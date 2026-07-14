@@ -36,7 +36,6 @@ If you enjoy the game and want to help keep development going:
 - Sound effects by Celesti
 - Music by Lumine Haaristo & Cube Code
 - Powered by [libGDX](https://libgdx.com/)
-- Community translations via [Transifex](https://explore.transifex.com/shattered-pixel/shattered-pixel-dungeon/)
 
 ## Building from Source
 
@@ -50,6 +49,12 @@ The full source lives in the development repo for now and will move here once cl
 ## Privacy Policy
 
 Read it here: [privacy-policy.txt](https://gabriwar.github.io/warpedpd/privacy-policy.txt)
+
+## Translations
+
+Translations are maintained by the developer. If you spot a wrong or missing
+translation, PRs are welcome - open one with the `[translation]` flag in the
+title, touching only the `.properties` files for your language.
 
 ## License
 
