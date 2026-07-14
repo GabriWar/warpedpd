@@ -38,6 +38,15 @@ If you enjoy the game and want to help keep development going:
 - Powered by [libGDX](https://libgdx.com/)
 - Community translations via [Transifex](https://explore.transifex.com/shattered-pixel/shattered-pixel-dungeon/)
 
+## Building from Source
+
+You can find the following guides in `/docs`:
+- [Compiling for Android](docs/getting-started-android.md)
+- [Compiling for Desktop](docs/getting-started-desktop.md)
+- [Compiling for iOS](docs/getting-started-ios.md)
+
+The full source lives in the development repo for now and will move here once cleaned up.
+
 ## Privacy Policy
 
 Read it here: [privacy-policy.txt](https://gabriwar.github.io/warpedpd/privacy-policy.txt)
