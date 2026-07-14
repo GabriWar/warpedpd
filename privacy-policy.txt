@@ -1,0 +1,65 @@
+WARPED PIXEL DUNGEON - PRIVACY POLICY
+Last updated: July 14, 2026
+
+Warped Pixel Dungeon ("the game") is a free, open-source roguelike developed
+by GabriWar. This policy describes what data the game handles. The short
+version: the game collects no personal data, has no ads, and no analytics.
+
+
+DATA THE GAME STORES
+
+- Save files and settings are stored locally on your device only. They never
+  leave it, and uninstalling the game deletes them.
+
+
+NETWORK CONNECTIONS THE GAME MAKES
+
+- News and update checks: the game periodically fetches a public changelog
+  feed and release information from GitHub. These are ordinary web requests;
+  no account, identifier or personal data is sent. Both can be disabled in
+  the settings.
+
+- Multiplayer: when you choose to play online, the game exchanges gameplay
+  data (positions, actions, the nickname you enter) with the server you
+  connect to, only for the duration of the session. Nothing is used for
+  tracking or profiling.
+
+
+PURCHASES AND DONATIONS
+
+- On builds distributed through Google Play, optional supporter donations are
+  processed entirely by Google Play Billing. The game never sees your payment
+  details; it only receives Google's confirmation that a purchase happened.
+  See Google's privacy policy (https://policies.google.com/privacy) for how
+  Google handles payment data.
+
+- Builds downloaded from GitHub link to Ko-fi (https://ko-fi.com/gabriwar),
+  an external website with its own privacy policy
+  (https://more.ko-fi.com/privacy). The game itself is not involved in those
+  transactions.
+
+
+WHAT THE GAME DOES NOT DO
+
+- No advertising, and no ad networks.
+- No analytics, telemetry or crash reporting SDKs.
+- No accounts, and no collection of names, emails, contacts, location or
+  device identifiers.
+- No selling or sharing of any data with third parties.
+
+
+CHILDREN
+
+The game does not collect personal data from anyone, including children.
+
+
+CHANGES TO THIS POLICY
+
+If the game's data handling ever changes, this page will be updated, and the
+date at the top revised.
+
+
+CONTACT
+
+Questions about this policy: contact@gabriwar.xyz
+or open an issue at https://github.com/GabriWar/warpedpd
