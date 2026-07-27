@@ -1,15 +1,18 @@
 WARPED PIXEL DUNGEON - PRIVACY POLICY
-Last updated: July 14, 2026
+Last updated: July 27, 2026
+
+Web version: https://gabriwar.github.io/warpedpd/privacy-policy.html
 
 Warped Pixel Dungeon ("the game") is a free, open-source roguelike developed
 by GabriWar. This policy describes what data the game handles. The short
 version: the game collects no personal data, has no ads, and no analytics.
 
 
-DATA THE GAME STORES
+DATA STORED ON YOUR DEVICE
 
-- Save files and settings are stored locally on your device only. They never
-  leave it, and uninstalling the game deletes them.
+- Save files, settings, rankings and badges are written to your device's
+  private app storage. They never leave it, and uninstalling the game deletes
+  them. There is no cloud save and no account system.
 
 
 NETWORK CONNECTIONS THE GAME MAKES
@@ -19,24 +22,40 @@ NETWORK CONNECTIONS THE GAME MAKES
   no account, identifier or personal data is sent. Both can be disabled in
   the settings.
 
-- Multiplayer: when you choose to play online, the game exchanges gameplay
-  data (positions, actions, the nickname you enter) with the server you
-  connect to, only for the duration of the session. Nothing is used for
-  tracking or profiling.
+- Local-network multiplayer: when you host or join a co-op game, the game
+  exchanges gameplay data (the nickname you type, hero state, positions and
+  actions) with the other players' devices on your local network, for the
+  duration of that session only. Nothing is sent to a server operated by the
+  developer, and nothing is retained afterwards. On iOS the system asks for
+  local network permission the first time you use this feature; declining it
+  only disables multiplayer.
+
+- Subscription status check (iOS): to confirm whether a supporter
+  subscription is still active, the app sends its App Store receipt to
+  Apple's receipt-verification service (buy.itunes.apple.com). The receipt is
+  issued by Apple and covers purchases for this app only - no name, email or
+  payment details. See https://www.apple.com/legal/privacy/
+
+As with any internet request, the servers contacted above (GitHub and Apple)
+can see the IP address the request came from. That is inherent to how the
+internet works; the game itself neither logs nor transmits it anywhere else.
 
 
 PURCHASES AND DONATIONS
 
-- On builds distributed through Google Play, optional supporter donations are
-  processed entirely by Google Play Billing. The game never sees your payment
-  details; it only receives Google's confirmation that a purchase happened.
-  See Google's privacy policy (https://policies.google.com/privacy) for how
-  Google handles payment data.
+- App Store (iOS): optional supporter subscriptions are processed entirely by
+  Apple through In-App Purchase. The game never sees your payment details; it
+  only receives Apple's confirmation that a purchase exists and whether it is
+  still active.
 
-- Builds downloaded from GitHub link to Ko-fi (https://ko-fi.com/gabriwar),
-  an external website with its own privacy policy
-  (https://more.ko-fi.com/privacy). The game itself is not involved in those
-  transactions.
+- Google Play (Android): optional supporter donations are processed entirely
+  by Google Play Billing, under the same terms. See
+  https://policies.google.com/privacy
+
+- Builds from GitHub and desktop: these have no store billing and instead
+  link to Ko-fi (https://ko-fi.com/gabriwar), an external website with its own
+  privacy policy (https://more.ko-fi.com/privacy). The game itself is not
+  involved in those transactions. Store builds never show this link.
 
 
 WHAT THE GAME DOES NOT DO
@@ -44,8 +63,9 @@ WHAT THE GAME DOES NOT DO
 - No advertising, and no ad networks.
 - No analytics, telemetry or crash reporting SDKs.
 - No accounts, and no collection of names, emails, contacts, location or
-  device identifiers.
-- No selling or sharing of any data with third parties.
+  advertising identifiers.
+- No tracking across apps or websites, and no selling or sharing of any data
+  with third parties.
 
 
 CHILDREN
@@ -56,10 +76,11 @@ The game does not collect personal data from anyone, including children.
 CHANGES TO THIS POLICY
 
 If the game's data handling ever changes, this page will be updated, and the
-date at the top revised.
+date at the top revised. Material changes are also noted in the in-game news
+feed.
 
 
 CONTACT
 
 Questions about this policy: contact@gabriwar.xyz
-or open an issue at https://github.com/GabriWar/warpedpd
+or open an issue at https://github.com/GabriWar/warped-pixel-dungeon/issues

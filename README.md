@@ -46,9 +46,10 @@ You can find the following guides in `/docs`:
 
 The full source lives in the development repo for now and will move here once cleaned up.
 
-## Privacy Policy
+## Privacy Policy & Terms
 
-Read it here: [privacy-policy.txt](https://gabriwar.github.io/warpedpd/privacy-policy.txt)
+- [Privacy Policy](https://gabriwar.github.io/warpedpd/privacy-policy.html) ([plain text](https://gabriwar.github.io/warpedpd/privacy-policy.txt))
+- [Terms of Use](https://gabriwar.github.io/warpedpd/terms-of-use.html)
 
 ## Translations
 
