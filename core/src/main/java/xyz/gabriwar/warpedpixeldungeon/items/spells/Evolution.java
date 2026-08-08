@@ -1,0 +1,189 @@
+/*
+ * Pixel Dungeon
+ * Copyright (C) 2012-2015 Oleg Dolya
+ *
+ * Shattered Pixel Dungeon
+ * Copyright (C) 2014-2021 Evan Debenham
+ *
+ * Warped Pixel Dungeon
+ * Copyright (C) 2026 Gabriel Duarte Guerra (gabriwar)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ */
+
+package xyz.gabriwar.warpedpixeldungeon.items.spells;
+
+import xyz.gabriwar.warpedpixeldungeon.Challenges;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.Transmuting;
+import xyz.gabriwar.warpedpixeldungeon.items.EquipableItem;
+import xyz.gabriwar.warpedpixeldungeon.items.Generator;
+import xyz.gabriwar.warpedpixeldungeon.items.Item;
+import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
+import xyz.gabriwar.warpedpixeldungeon.items.artifacts.Artifact;
+import xyz.gabriwar.warpedpixeldungeon.items.rings.Ring;
+import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTransmutation;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
+import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
+import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import com.watabou.utils.Random;
+import com.watabou.utils.Reflection;
+
+public class Evolution extends InventorySpell {
+
+    {
+        image = ItemSpriteSheet.EVOLUTION;
+
+        unique = true;
+    }
+
+    @Override
+    protected boolean usableOnItem(Item item) {
+        return item instanceof MeleeWeapon;
+    }
+
+    @Override
+    protected void onItemSelected(Item item) {
+
+        Item result = changeItem(item);
+
+        if (result == null){
+            //This shouldn't ever trigger
+            GLog.n( Messages.get(this, "nothing") );
+            curItem.collect( curUser.belongings.backpack );
+        } else {
+            if (result != item) {
+                int slot = Dungeon.quickslot.getSlot(item);
+                if (item.isEquipped(Dungeon.hero)) {
+                    item.cursed = false; //to allow it to be unequipped
+                    if (item instanceof Artifact && result instanceof Ring){
+                        //if we turned an equipped artifact into a ring, ring goes into inventory
+                        ((EquipableItem) item).doUnequip(Dungeon.hero, false);
+                        if (!result.collect()){
+                            Dungeon.level.drop(result, curUser.pos).sprite.drop();
+                        }
+                    } else if (item instanceof KindOfWeapon && Dungeon.hero.belongings.secondWep() == item){
+                        ((EquipableItem) item).doUnequip(Dungeon.hero, false);
+                        ((KindOfWeapon) result).equipSecondary(Dungeon.hero);
+                    } else {
+                        ((EquipableItem) item).doUnequip(Dungeon.hero, false);
+                        ((EquipableItem) result).doEquip(Dungeon.hero);
+                    }
+                    Dungeon.hero.spend(-Dungeon.hero.cooldown()); //cancel equip/unequip time
+                } else {
+                    item.detach(Dungeon.hero.belongings.backpack);
+                    if (!result.collect()) {
+                        Dungeon.level.drop(result, curUser.pos).sprite.drop();
+                    } else if (Dungeon.hero.belongings.getSimilar(result) != null){
+                        result = Dungeon.hero.belongings.getSimilar(result);
+                    }
+                }
+                if (slot != -1
+                        && result.defaultAction() != null
+                        && !Dungeon.quickslot.isNonePlaceholder(slot)
+                        && Dungeon.hero.belongings.contains(result)){
+                    Dungeon.quickslot.setSlot(slot, result);
+                }
+            }
+            if (result.isIdentified()){
+                Catalog.setSeen(result.getClass());
+            }
+            Transmuting.show(curUser, item, result);
+            curUser.sprite.emitter().start(Speck.factory(Speck.CHANGE), 0.2f, 10);
+            GLog.p( Messages.get(this, "evolve") );
+        }
+
+    }
+
+    public static Item changeItem( Item item ){
+        if (item instanceof MeleeWeapon) {
+            return changeWeapon((Weapon) item);
+        } else {
+            return null;
+        }
+    }
+
+    private static Weapon changeWeapon( Weapon w ) {
+
+        Weapon n;
+        Generator.Category c;
+        if (Random.Float() < 0.25f) {
+            if (((MeleeWeapon)w).tier >= 4){
+                c = Generator.wepTiers[4];
+            } else {
+                c = Generator.wepTiers[((MeleeWeapon)w).tier];
+            }
+        } else {
+            if (((MeleeWeapon)w).tier >= 5){
+                c = Generator.wepTiers[4];
+            } else {
+                c = Generator.wepTiers[((MeleeWeapon)w).tier-1];
+            }
+        }
+
+        do {
+            n = (Weapon) Reflection.newInstance(c.classes[Random.chances(c.probs)]);
+        } while (Challenges.isItemBlocked(n) || n.getClass() == w.getClass());
+
+        n.level(0);
+        n.quantity(1);
+        int level = w.trueLevel();
+        if (level > 0) {
+            n.upgrade( level );
+        } else if (level < 0) {
+            n.degrade( -level );
+        }
+
+        n.enchantment = w.enchantment;
+        n.curseInfusionBonus = w.curseInfusionBonus;
+        n.masteryPotionBonus = w.masteryPotionBonus;
+        n.levelKnown = w.levelKnown;
+        n.cursedKnown = w.cursedKnown;
+        n.cursed = w.cursed;
+        n.augment = w.augment;
+
+        return n;
+
+    }
+
+    @Override
+    public int value() {
+        //prices of ingredients, divided by output quantity
+        return Math.round((90) * (quantity/(float) Recipe.OUT_QUANTITY));
+    }
+
+    @Override
+    public int energyVal() {
+        return (int)(22 * (quantity/(float) Recipe.OUT_QUANTITY));
+    }
+
+    public static class Recipe extends xyz.gabriwar.warpedpixeldungeon.items.Recipe.SimpleRecipe {
+
+        private static final int OUT_QUANTITY = 1;
+
+        {
+            inputs =  new Class[]{ScrollOfTransmutation.class, UnstableSpell.class};
+            inQuantity = new int[]{1, 1};
+
+            cost = 4;
+
+            output = Evolution.class;
+            outQuantity = 1;
+        }
+    }
+}

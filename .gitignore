@@ -1,0 +1,49 @@
+# Built application files
+*.apk
+
+# Files for the Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Gradle build files
+.gradle/
+build/
+release/
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+#intellij project files
+*.iml
+*.idea
+tools/__pycache__/
+tools/output/
+
+# signing - never commit keystores or their credentials
+*.keystore
+*.jks
+keystore.properties
+warped-release-keystore.properties
+
+# apple signing - certs, profiles and the local identity config
+warped-ios-signing.properties
+*.mobileprovision
+*.provisionprofile
+*.p12
+*.cer
+*.certSigningRequest
+ExportOptions.plist
+
+# OAuth client secrets (never commit)
+OAUTH-client_secret_*.json
+*client_secret*.json
+
+# tooling / caches
+.playwright-mcp/
+__pycache__/
+
+# Play service-account keys (never commit)
+warped-pd-*.json
+*.gserviceaccount*.json

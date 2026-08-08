@@ -1,0 +1,170 @@
+/*
+ * Pixel Dungeon
+ * Copyright (C) 2012-2015 Oleg Dolya
+ *
+ * Shattered Pixel Dungeon
+ * Copyright (C) 2014-2022 Evan Debenham
+ *
+ * Warped Pixel Dungeon
+ * Copyright (C) 2026 Gabriel Duarte Guerra (gabriwar)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ */
+
+package xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.alchemy;
+
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.items.Item;
+import xyz.gabriwar.warpedpixeldungeon.items.LiquidMetal;
+import xyz.gabriwar.warpedpixeldungeon.items.spells.Evolution;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.AssassinsBlade;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Glaive;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
+import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
+import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import com.watabou.noosa.audio.Sample;
+import com.watabou.utils.Callback;
+import com.watabou.utils.Random;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+
+public class AssassinsSpear extends MeleeWeapon implements AlchemyWeapon {
+
+	{
+		image = ItemSpriteSheet.ASSASSINS_SPEAR;
+		hitSound = Assets.Sounds.HIT_STAB;
+		hitSoundPitch = 0.9f;
+
+		tier = 6;
+		DLY = 1.5f; //0.67x speed
+		RCH = 2;    //extra reach
+	}
+
+	@Override
+	public int max(int lvl) {
+		return  Math.round(6.67f*(tier)) +    //40 base, up from 30
+				lvl*Math.round(1.33f*(tier)); //+8 per level, up from +6
+	}
+
+	@Override
+	public int damageRoll(Char owner) {
+		if (owner instanceof Hero) {
+			Hero hero = (Hero)owner;
+			Char enemy = hero.attackTarget();
+			if (enemy instanceof Mob && ((Mob) enemy).surprisedBy(hero)) {
+				//deals 50% toward max to max on surprise, instead of min to max.
+				int diff = max() - min();
+				int damage = augment.damageFactor(Random.NormalIntRange(
+						min() + Math.round(diff*0.50f),
+						max()));
+				int exStr = hero.STR() - STRReq();
+				if (exStr > 0) {
+					damage += Random.IntRange(0, exStr);
+				}
+				return damage;
+			}
+		}
+		return super.damageRoll(owner);
+	}
+
+	@Override
+	public String targetingPrompt() {
+		return Messages.get(this, "prompt");
+	}
+
+	@Override
+	protected void duelistAbility(Hero hero, Integer target) {
+		assassinSpikeAbility(hero, target, 1, Math.round(0.4f*max(buffedLvl())),this);
+	}
+
+	@Override
+	public String abilityInfo() {
+		int dmgBoost = levelKnown ? Math.round(0.4f*max()) : Math.round(0.4f*max(0));
+		if (levelKnown){
+			return Messages.get(this, "ability_desc", augment.damageFactor(min()+dmgBoost), augment.damageFactor(max()+dmgBoost));
+		} else {
+			return Messages.get(this, "typical_ability_desc", min(0)+dmgBoost, max(0)+dmgBoost);
+		}
+	}
+
+	public static void assassinSpikeAbility(Hero hero, Integer target, float dmgMulti, int dmgBoost, MeleeWeapon wep){
+		if (target == null) {
+			return;
+		}
+
+		Char enemy = Actor.findChar(target);
+		if (enemy == null || enemy == hero || hero.isCharmedBy(enemy)/* || !Dungeon.level.heroFOV[target]*/) {
+			GLog.w(Messages.get(wep, "ability_no_target"));
+			return;
+		}
+
+		hero.belongings.abilityWeapon = wep;
+		if (!hero.canAttack(enemy)){
+			GLog.w(Messages.get(wep, "ability_bad_position"));
+			hero.belongings.abilityWeapon = null;
+			return;
+		}
+		hero.belongings.abilityWeapon = null;
+
+		hero.sprite.attack(enemy.pos, new Callback() {
+			@Override
+			public void call() {
+				wep.beforeAbilityUsed(hero, enemy);
+				AttackIndicator.target(enemy);
+				if (hero.attack(enemy, dmgMulti, dmgBoost, 0.25f)){
+					Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG);
+				}
+
+				Invisibility.dispel();
+				hero.spendAndNext(hero.attackDelay());
+				if (!enemy.isAlive()){
+					wep.onAbilityKill(hero, enemy);
+				}
+				wep.afterAbilityUsed(hero);
+			}
+		});
+	}
+
+	@Override
+	public ArrayList<Class<?extends Item>> weaponRecipe() {
+		return new ArrayList<>(Arrays.asList(Glaive.class, AssassinsBlade.class, Evolution.class));
+	}
+
+	@Override
+	public String discoverHint() {
+		return AlchemyWeapon.hintString(weaponRecipe());
+	}
+
+	@Override
+	public String desc() {
+		String info = super.desc();
+
+		info += "\n\n" + AlchemyWeapon.hintString(weaponRecipe());
+
+		return info;
+	}
+
+}

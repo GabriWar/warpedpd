@@ -1,0 +1,18 @@
+//core game code modules
+include ':SPD-classes'
+include ':core'
+
+//platform modules
+include ':android'
+include ':ios'
+include ':desktop'
+
+//service modules
+include ':services'
+    //updates
+    include ':services:updates:debugUpdates'
+    include ':services:updates:githubUpdates'
+    include ':services:updates:playUpdates'
+    //news
+    include ':services:news:debugNews'
+    include ':services:news:shatteredNews'

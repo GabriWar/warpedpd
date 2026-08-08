@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<!-- Play Games Services numeric project ID from Play Console
+	     (Play Games Services > Setup and management > Configuration).
+	     TODO: confirm this matches the console; currently the GCP project number. -->
+	<string name="game_services_project_id" translatable="false">59932788746</string>
+</resources>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+	<!-- playstore-only: Play Games Services app id, merged into the main manifest.
+	     Required by the Play Games v2 SDK; a missing/wrong value crashes on launch. -->
+	<application>
+		<meta-data
+			android:name="com.google.android.gms.games.APP_ID"
+			android:value="@string/game_services_project_id" />
+	</application>
+</manifest>

@@ -1,0 +1,81 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "com.mobidevelop.robovm:robovm-gradle-plugin:$robovmVersion"
+    }
+}
+
+apply plugin: "java"
+apply plugin: "robovm"
+
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+java.sourceCompatibility = java.targetCompatibility = appJavaCompatibility
+
+// App Store / TestFlight signing. Identity + provisioning profile are personal to
+// whoever builds, so they never live in the repo. Resolution order:
+//   1. -Pwpd.signIdentity / -Pwpd.provProfile
+//   2. the file pointed at by IOS_SIGNING_PROPS (CI)
+//   3. ~/.robovm/warped-ios-signing.properties (gitignored, same idea as the
+//      android release keystore props)
+// Nothing configured -> robovm picks its own default, which is fine for the
+// simulator and for anyone who just wants the thing to compile.
+def iosSigningProps = new Properties()
+def iosPropsFile = System.getenv("IOS_SIGNING_PROPS") != null
+        ? file(System.getenv("IOS_SIGNING_PROPS"))
+        : file("${System.getProperty('user.home')}/.robovm/warped-ios-signing.properties")
+if (iosPropsFile.exists()) {
+    iosPropsFile.withInputStream { iosSigningProps.load(it) }
+}
+
+def wpdSignIdentity = project.findProperty('wpd.signIdentity') ?: iosSigningProps['signIdentity']
+def wpdProvProfile  = project.findProperty('wpd.provProfile')  ?: iosSigningProps['provProfile']
+
+robovm {
+    archs = 'arm64'
+    if (wpdSignIdentity) iosSignIdentity = wpdSignIdentity
+    if (wpdProvProfile)  iosProvisioningProfile = wpdProvProfile
+}
+
+task updateRoboVMProps(){
+    def props = new Properties()
+    
+    props.setProperty ('appName', appName)
+    //append .apple because xyz.gabriwar.warpedpixeldungeon was taken =(
+    props.setProperty ('appApplePackageName', appPackageName + ".apple")
+
+    props.setProperty ('appVersionCode', appVersionCode.toString())
+    props.setProperty ('appVersionName', appVersionName)
+    //parse out just #.#.# from version name, this is an apple requirement
+    props.setProperty ('appShortVersionName', (appVersionName =~ /\d+\.\d+\.\d+/)[0])
+
+    props.setProperty ('appMainclass', appPackageName + ".ios.IOSLauncher")
+    props.setProperty ('appExecutable', "IOSLauncher")
+
+    file("robovm.properties").withWriter { props.store(it, "Dynamically generated, do not commit to version control!") }
+}
+
+build.dependsOn updateRoboVMProps
+
+launchIPhoneSimulator.dependsOn build
+launchIPadSimulator.dependsOn build
+launchIOSDevice.dependsOn build
+createIPA.dependsOn build
+
+dependencies {
+    implementation project(':core')
+    implementation project(':services:updates:debugUpdates')
+    implementation project(':services:news:shatteredNews')
+
+    implementation "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
+    implementation "com.mobidevelop.robovm:robovm-rt:$robovmVersion"
+    implementation "com.mobidevelop.robovm:robovm-cocoatouch:$robovmVersion"
+    //FIXME using a prior version of metalangle backend as 1.13.5+ crashes on A7 and A8 devices
+    // Yes this is dangerous, the old backend seems to only work with libGDX 1.14.0 incidentally
+    // Ideally the next release of libGDX will fix this and this can simply use $gdxVersion again
+    implementation "com.badlogicgames.gdx:gdx-backend-robovm-metalangle:1.13.1"
+    implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-ios"
+    implementation "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-ios"
+    implementation "com.badlogicgames.gdx-controllers:gdx-controllers-ios:$gdxControllersVersion"
+}

@@ -1,0 +1,125 @@
+WARPED PIXEL DUNGEON - PRIVACY POLICY
+Last updated: September 3, 2026
+
+Web version: https://gabriwar.github.io/warpedpd/privacy-policy.html
+
+Warped Pixel Dungeon ("the game") is a free, open-source roguelike developed
+by GabriWar. This policy describes what data the game handles. The short
+version: the game collects no personal data, has no ads, and no analytics.
+
+
+DATA STORED ON YOUR DEVICE
+
+- Save files, settings, rankings and badges are written to your device's
+  private app storage, and uninstalling the game deletes them. There is no
+  cloud save and no account system. On Android, the system's own backup may
+  include settings, rankings and badges in the backup of your Google account,
+  under your control and with no access by the developer.
+
+
+NETWORK CONNECTIONS THE GAME MAKES
+
+- News and update checks: the game periodically fetches a public changelog
+  feed hosted on GitHub, and builds distributed outside Google Play also
+  check GitHub for new releases (the Google Play build updates through Play
+  itself). These are ordinary web requests; no account, identifier or
+  personal data is sent, and they can be disabled in the settings.
+
+- Local-network multiplayer: when you host or join a co-op game on your own
+  network, the game exchanges gameplay data (the nickname you type, hero
+  state, positions and actions) directly with the other players' devices, for
+  the duration of that session only. Nothing passes through the developer, and
+  nothing is retained afterwards. On iOS the system asks for local network
+  permission the first time you use this feature; declining it only disables
+  multiplayer.
+
+- Online multiplayer (room codes): if you host or join an online game instead,
+  the same gameplay data travels between the players through a relay server
+  operated by the developer (relay.gabriwar.xyz), because most home
+  connections cannot accept an incoming connection directly. The relay is a
+  pipe and nothing more: it pairs two players who share a room code and copies
+  bytes between them. It does not read, interpret or store the game data
+  passing through it, it keeps no database, and it writes nothing to disk. A
+  room exists only while it is in use and disappears when the last player
+  leaves. The connection to the relay is encrypted with TLS.
+
+  The relay's operational log records the time, how many bytes a session moved,
+  and a salted one-way hash of the connecting IP address - never the address
+  itself, never the room code in full, never a player name, and never any game
+  content. The salt is regenerated every time the server restarts, so those
+  hashes cannot be linked across restarts or back to a person. Logs rotate and
+  are capped at a few tens of megabytes.
+
+  Online play is entirely optional. If you never open an online room and never
+  enter a room code, the game never contacts the relay.
+
+- Google Play Games (Android, Google Play build only): the Play build
+  initialises Google Play Games Services, which signs you in with your Play
+  Games profile automatically when one is set up on the device. Google then
+  knows your Play Games player ID and gamer name, and handles achievements.
+  This runs under Google's privacy policy (https://policies.google.com/privacy);
+  the developer receives nothing from it. You can turn off automatic sign-in
+  for this game in the Play Games app. Builds from GitHub and desktop contain
+  none of this.
+
+- Subscription status check (iOS): to confirm whether a supporter
+  subscription is still active, the app sends its App Store receipt to
+  Apple's receipt-verification service (buy.itunes.apple.com). The receipt is
+  issued by Apple and covers purchases for this app only - no name, email or
+  payment details. See https://www.apple.com/legal/privacy/
+
+As with any internet request, the servers contacted above (GitHub, Google,
+Apple and the relay)
+can see the IP address the request came from. That is inherent to how the
+internet works; the game itself neither logs nor transmits it anywhere else.
+
+
+PURCHASES AND DONATIONS
+
+- App Store (iOS): optional supporter subscriptions are processed entirely by
+  Apple through In-App Purchase. The game never sees your payment details; it
+  only receives Apple's confirmation that a purchase exists and whether it is
+  still active.
+
+- Google Play (Android): optional supporter subscriptions are processed
+  entirely by Google Play Billing, under the same terms: the game only
+  receives Google's signed confirmation that a subscription exists and
+  whether it is still active. See
+  https://policies.google.com/privacy
+
+- Builds from GitHub and desktop: these have no store billing and instead
+  link to Ko-fi (https://ko-fi.com/gabriwar), an external website with its own
+  privacy policy (https://more.ko-fi.com/privacy). The game itself is not
+  involved in those transactions. Store builds never show this link.
+
+
+WHAT THE GAME DOES NOT DO
+
+- No advertising, and no ad networks.
+- No analytics, telemetry or crash reporting SDKs. If the game crashes it
+  shows the error on screen; sending it to the developer is a manual,
+  optional e-mail.
+- No accounts of its own, and no collection of names, emails, contacts,
+  location or advertising identifiers by the developer. The only identity
+  involved is the optional Google Play Games profile described above, held
+  by Google.
+- No tracking across apps or websites, and no selling or sharing of any data
+  with third parties.
+
+
+CHILDREN
+
+The game does not collect personal data from anyone, including children.
+
+
+CHANGES TO THIS POLICY
+
+If the game's data handling ever changes, this page will be updated, and the
+date at the top revised. Material changes are also noted in the in-game news
+feed.
+
+
+CONTACT
+
+Questions about this policy: contact@gabriwar.xyz
+or open an issue at https://github.com/GabriWar/warpedpd/issues
