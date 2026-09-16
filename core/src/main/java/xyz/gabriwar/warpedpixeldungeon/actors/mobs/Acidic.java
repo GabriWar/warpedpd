@@ -32,6 +32,9 @@ public class Acidic extends Scorpio {
 
 	{
 		spriteClass = AcidicSprite.class;
+
+		//built for the heat: the chill is what hurts
+		thermal = Thermal.HEAT_DWELLER;
 	}
 
 	@Override

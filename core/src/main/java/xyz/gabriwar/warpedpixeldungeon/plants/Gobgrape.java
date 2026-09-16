@@ -74,10 +74,6 @@ public class Gobgrape extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			if(Random.Float() < 0.3f) Dungeon.level.drop(new Grape(), defender.pos).sprite.drop(defender.pos);
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

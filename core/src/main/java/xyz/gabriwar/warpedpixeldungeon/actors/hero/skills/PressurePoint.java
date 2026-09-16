@@ -26,23 +26,61 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import com.watabou.noosa.audio.Sample;
+import com.watabou.utils.Random;
 
 public class PressurePoint extends SubSkill1 {
 
+	private static final float LOCKED_MULTIPLIER = 1.5f;
+
 	{
 		name = "Pressure Point";
-		image = 61;
+		image = 189;
 		tier = 1;
 	}
 
 	@Override
 	protected boolean upgrade(){ return true; }
 
+	//a passive: nothing to switch on, so it stays out of the quick panel
 	@Override
-	public int onHitProc( xyz.gabriwar.warpedpixeldungeon.actors.Char enemy, int damage, boolean ranged ){
-		if (!ranged && level > 0 && enemy.isAlive() && com.watabou.utils.Random.Int(100) < 8 * level){
-			xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff.prolong( enemy,
-					xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis.class, 1 );
+	public boolean toggleable(){ return false; }
+
+	@Override
+	public java.util.ArrayList<String> actions( xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero ){
+		return new java.util.ArrayList<>();
+	}
+
+
+	@Override
+	public int onHitProc( Char enemy, int damage, boolean ranged ){
+		if (ranged || level <= 0 || enemy == null || !enemy.isAlive()){
+			return damage;
+		}
+		//+3: a body already locked up takes the follow-through in full
+		if (level == MAX_LEVEL && enemy.buff( Paralysis.class ) != null){
+			if (enemy.sprite != null){
+				new Flare( 5, 18 ).color( 0xFFDD66, true ).show( enemy.sprite, 0.4f );
+			}
+			Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 1f, 1.3f );
+			return Math.round( damage * LOCKED_MULTIPLIER );
+		}
+		//10% / 15% / 20%
+		if (!Char.hasProp( enemy, Char.Property.BOSS ) && Random.Int( 100 ) < 5 + 5 * level){
+			SkillInteractions.affectAfterHit( enemy, Paralysis.class, 1f );
+			if (enemy.sprite != null){
+				enemy.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 4 );
+				enemy.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "cast" ) );
+			}
+			Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 1f, 1.5f );
 		}
 		return damage;
 	}

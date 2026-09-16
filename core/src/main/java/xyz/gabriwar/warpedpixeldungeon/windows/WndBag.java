@@ -140,6 +140,16 @@ public class WndBag extends WndTabbed {
 			}
 		}
 
+		// Slots stop shrinking at a readable size, and on the narrowest screens
+		// that floor is still wider than the screen: 135 virtual pixels cannot
+		// hold six 26-wide columns. Drop columns until the grid fits instead of
+		// letting it hang off both edges. The rows follow, and they scroll.
+		while (nCols > 1 && (windowWidth + chrome.marginHor()) > PixelScene.uiCamera.width){
+			nCols--;
+			windowWidth = slotWidth * nCols + SLOT_MARGIN * (nCols - 1);
+		}
+		nRows = (int)Math.ceil((bag.capacity() - bagCount)/(float)nCols);
+
 		int fullGridHeight = slotHeight * nRows + SLOT_MARGIN * (nRows - 1);
 		int maxGridHeight  = (int)(PixelScene.uiCamera.height - chrome.marginTop() - 20 - TITLE_HEIGHT);
 		int visibleGridHeight = Math.min(fullGridHeight, maxGridHeight);

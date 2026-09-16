@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -61,7 +62,7 @@ public class Smoke extends Blob {
 	@Override
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
-		emitter.pour( Speck.factory( Speck.SMOKE ), 0.1f );
+		emitter.pour( WeatherBlobFX.layered( Speck.factory( Speck.SMOKE ), WeatherBlobFX.SOOT, 4 ), 0.1f );
 	}
 
 	@Override

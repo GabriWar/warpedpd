@@ -53,6 +53,9 @@ public class LostSoul extends Mob {
 		properties.add( Property.UNDEAD );
 		properties.add( Property.DEMONIC );
 		properties.add( Property.FIERY );
+
+		//built for the heat: the chill is what hurts
+		thermal = Thermal.HEAT_DWELLER;
 	}
 
 	@Override

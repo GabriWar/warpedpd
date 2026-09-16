@@ -51,6 +51,9 @@ public class KoboldIcemancer extends Mob {
 		lootChance = 0.2f;
 
 		properties.add( Property.ICY );
+
+		//built for the cold: the deep freeze is home, the thaw is what hurts
+		thermal = Thermal.COLD_DWELLER;
 	}
 
 	@Override
@@ -82,18 +85,21 @@ public class KoboldIcemancer extends Mob {
 			return super.doAttack( enemy );
 		}
 
-		if (sprite != null && (sprite.visible || enemy.sprite.visible)) {
+		if (sprite != null && (sprite.visible || (enemy.sprite != null && enemy.sprite.visible))) {
 			((KoboldIcemancerSprite) sprite).zap( enemy.pos );
 			return false;
 		} else {
-			onZapComplete();
+			zap();
 			return true;
 		}
 	}
 
-	public void onZapComplete() {
+	private void zap() {
+		// Pay for every shot, even a miss or a target lost during animation.
+		// Without this the scheduler immediately gives us the same turn again.
+		spend( attackDelay() );
 		Char enemy = this.enemy;
-		if (enemy != null && hit( this, enemy, true )) {
+		if (enemy != null && enemy.isAlive() && hit( this, enemy, true )) {
 			int dmg = Random.NormalIntRange( 8, 14 );
 			enemy.damage( dmg, this );
 
@@ -107,6 +113,10 @@ public class KoboldIcemancer extends Mob {
 				Dungeon.fail( this );
 			}
 		}
+	}
+
+	public void onZapComplete() {
+		zap();
 		next();
 	}
 }

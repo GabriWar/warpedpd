@@ -60,7 +60,7 @@ public class GitHubUpdates extends UpdateService {
 		}
 
 		Net.HttpRequest httpGet = new Net.HttpRequest(Net.HttpMethods.GET);
-		httpGet.setUrl("https://api.github.com/repos/GabriWar/warped-pixel-dungeon/releases");
+		httpGet.setUrl("https://api.github.com/repos/GabriWar/warpedpd/releases");
 		httpGet.setHeader("Accept", "application/vnd.github.v3+json");
 
 		Gdx.net.sendHttpRequest(httpGet, new Net.HttpResponseListener() {
@@ -114,9 +114,10 @@ public class GitHubUpdates extends UpdateService {
 						AvailableUpdateData update = new AvailableUpdateData();
 						update.versionName = latestRelease.getString("name");
 						update.versionCode = latestVersionCode;
-						Matcher m = descPattern.matcher(latestRelease.getString("body"));
-						m.find();
-						update.desc = m.group(1);
+						//the notes above the --- line; a release written without one shows whole
+						String body = latestRelease.getString("body");
+						Matcher m = descPattern.matcher(body);
+						update.desc = m.find() ? m.group(1) : body;
 						update.URL = latestRelease.getString("html_url");
 						callback.onUpdateAvailable(update);
 					}

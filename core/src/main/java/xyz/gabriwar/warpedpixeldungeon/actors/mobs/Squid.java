@@ -43,7 +43,7 @@ public class Squid extends Mob {
 		EXP = 0;
 
 		loot = MysteryMeat.class;
-		lootChance = 1f;
+		lootChance = 1f / 4f;
 
 		state = SLEEPING;
 	}

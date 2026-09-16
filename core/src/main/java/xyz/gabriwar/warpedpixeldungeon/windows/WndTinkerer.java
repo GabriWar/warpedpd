@@ -25,9 +25,6 @@
 package xyz.gabriwar.warpedpixeldungeon.windows;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.Statistics;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Dewcharge;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Tinkerer1;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.Mushroom;
@@ -38,7 +35,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.RedButton;
 import xyz.gabriwar.warpedpixeldungeon.ui.RenderedTextBlock;
 import xyz.gabriwar.warpedpixeldungeon.ui.Window;
-import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 
 public class WndTinkerer extends Window {
 
@@ -62,34 +58,34 @@ public class WndTinkerer extends Window {
 		message.setPos( 0, titlebar.bottom() + GAP );
 		add( message );
 
-		RedButton btnWater = new RedButton( Messages.get(this, "water") ) {
+		RedButton btnCondenser = new RedButton( Messages.get(this, "condenser") ) {
 			@Override
 			protected void onClick() {
 				selectUpgrade( tinkerer, 1 );
 			}
 		};
-		btnWater.setRect( 0, message.top() + message.height() + GAP, WIDTH, BTN_HEIGHT );
-		add( btnWater );
+		btnCondenser.setRect( 0, message.top() + message.height() + GAP, WIDTH, BTN_HEIGHT );
+		add( btnCondenser );
 
-		RedButton btnDraw = new RedButton( Messages.get(this, "draw") ) {
+		RedButton btnMeasure = new RedButton( Messages.get(this, "measure") ) {
 			@Override
 			protected void onClick() {
 				selectUpgrade( tinkerer, 2 );
 			}
 		};
-		btnDraw.setRect( 0, btnWater.bottom() + GAP, WIDTH, BTN_HEIGHT );
-		add( btnDraw );
+		btnMeasure.setRect( 0, btnCondenser.bottom() + GAP, WIDTH, BTN_HEIGHT );
+		add( btnMeasure );
 
-		RedButton btnDrawInfo = new RedButton( Messages.get(this, "draw_info") ) {
+		RedButton btnInfo = new RedButton( Messages.get(this, "info") ) {
 			@Override
 			protected void onClick() {
-				GameScene.show( new WndDewDrawInfo() );
+				GameScene.show( new WndTinkererInfo() );
 			}
 		};
-		btnDrawInfo.setRect( 0, btnDraw.bottom() + GAP, WIDTH, BTN_HEIGHT );
-		add( btnDrawInfo );
+		btnInfo.setRect( 0, btnMeasure.bottom() + GAP, WIDTH, BTN_HEIGHT );
+		add( btnInfo );
 
-		resize( WIDTH, (int) btnDrawInfo.bottom() );
+		resize( WIDTH, (int) btnInfo.bottom() );
 	}
 
 	private void selectUpgrade( Tinkerer1 tinkerer, int type ) {
@@ -100,14 +96,11 @@ public class WndTinkerer extends Window {
 		mushroom.detach( Dungeon.hero.belongings.backpack );
 
 		if (type == 1) {
-			Dungeon.dewWater = true;
-			tinkerer.yell( Messages.get(this, "farewell_water", Dungeon.hero.name()) );
-		} else if (type == 2) {
-			Dungeon.dewDraw = true;
-			Statistics.prevfloormoves = 500;
-			Buff.prolong(Dungeon.hero, Dewcharge.class, Dewcharge.DURATION + 50);
-			tinkerer.yell( Messages.get(this, "farewell_draw", Dungeon.hero.name()) );
-			GLog.p( Messages.get(this, "dew_charged") );
+			Dungeon.dewCondenser = true;
+			tinkerer.yell( Messages.get(this, "farewell_condenser", Dungeon.hero.name()) );
+		} else {
+			Dungeon.measuredDraught = true;
+			tinkerer.yell( Messages.get(this, "farewell_measure", Dungeon.hero.name()) );
 		}
 
 		tinkerer.destroy();

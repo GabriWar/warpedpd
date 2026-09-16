@@ -26,24 +26,58 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.EnergyParticle;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfMagic;
+
 
 public class SpellBlade extends SubSkill1 {
 
 	{
 		name = "Spell Blade";
-		image = 33;
+		image = 177;
 		tier = 1;
 	}
+
+	//what a proc turns into instead of mana when the pool is already full
+	private static final int OVERFLOW_DAMAGE = 4;
 
 	@Override
 	protected boolean upgrade(){ return true; }
 
+	//a passive: nothing to switch on, so it stays out of the quick panel
+	@Override
+	public boolean toggleable(){ return false; }
+
+	@Override
+	public java.util.ArrayList<String> actions( xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero ){
+		return new java.util.ArrayList<>();
+	}
+
 	@Override
 	public int onHitProc( xyz.gabriwar.warpedpixeldungeon.actors.Char enemy, int damage, boolean ranged ){
 		if (!ranged && level > 0 && com.watabou.utils.Random.Int(100) < 15 * level){
-			xyz.gabriwar.warpedpixeldungeon.Dungeon.hero.MP = Math.min(
-					xyz.gabriwar.warpedpixeldungeon.Dungeon.hero.MT,
-					xyz.gabriwar.warpedpixeldungeon.Dungeon.hero.MP + 2 );
+			Hero hero = Dungeon.hero;
+			int effectiveMT = hero.MT + RingOfMagic.manaBonus( hero );
+			//overflow: a full pool spills the drink into the blade instead
+			if (level >= MAX_LEVEL && hero.MP >= effectiveMT){
+				if (enemy.sprite != null){
+					enemy.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 6 );
+					enemy.sprite.flash();
+				}
+				Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 0.8f, 1.2f );
+				return damage + OVERFLOW_DAMAGE;
+			}
+			hero.MP = Math.max( hero.MP, Math.min( effectiveMT, hero.MP + 1 + level ) );
+			//the blade drinks, and it shows
+			if (hero.sprite != null){
+				hero.sprite.emitter().burst( EnergyParticle.FACTORY, 2 + level );
+				Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 0.4f, 1.6f );
+			}
 		}
 		return damage;
 	}

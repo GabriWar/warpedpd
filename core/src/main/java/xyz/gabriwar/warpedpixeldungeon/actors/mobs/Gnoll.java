@@ -43,7 +43,7 @@ public class Gnoll extends Mob {
 		lootChance = 0.5f;
 
 		lootOther = new MonsterMeat();
-		lootChanceOther = 0.05f;
+		lootChanceOther = 0.05f / 4f;
 	}
 	
 	@Override

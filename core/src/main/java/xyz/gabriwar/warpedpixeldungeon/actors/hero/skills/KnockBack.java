@@ -27,8 +27,16 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.Camera;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 
 public class KnockBack extends ActiveSkill2 {
 
@@ -45,6 +53,7 @@ public class KnockBack extends ActiveSkill2 {
 		super.execute(hero, action);
 		if (action.equals(Skill.AC_ACTIVATE)){
 			hero.heroSkills.deactivateOtherToggles( this );
+			Sample.INSTANCE.play( Assets.Sounds.STURDY, 0.8f, 1.3f );
 		}
 	}
 
@@ -57,15 +66,40 @@ public class KnockBack extends ActiveSkill2 {
 		}
 	}
 
+	//the shove itself, paid only when it can happen: a free tile behind the target, or at +3 the crush.
+	//pinned enemies are shoved all the same (SkillInteractions.push ignores roots)
+	@Override
+	public int onHitProc( Char enemy, int damage, boolean ranged ){
+		Hero hero = Dungeon.hero;
+		if (ranged || !active || level <= 0 || hero == null || enemy == null || !enemy.isAlive()
+				|| !Dungeon.level.adjacent( hero.pos, enemy.pos )
+				|| enemy.properties().contains( Char.Property.IMMOVABLE )
+				|| hero.MP < getManaCost()) return damage;
+		int behind = enemy.pos + (enemy.pos - hero.pos);
+		boolean room = SkillInteractions.valid( behind ) && !Dungeon.level.solid[behind]
+				&& Dungeon.level.passable[behind] && !Dungeon.level.pit[behind] && Actor.findChar( behind ) == null;
+		if (!room && level < MAX_LEVEL) return damage;
+
+		castTextYell();
+		hero.MP -= getManaCost();
+		if (room){
+			Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 1f, 0.7f );
+			SkillInteractions.push( enemy, hero.pos, 1, 0 );
+			return damage;
+		}
+		//+3: nowhere to fly, so the target is crushed against what stands behind it
+		if (enemy.sprite != null && enemy.sprite.visible){
+			CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.ROCK ), 4 );
+			Camera.main.shake( 2, 0.2f );
+		}
+		Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 1f, 0.8f );
+		return Math.round( damage * 1.25f );
+	}
+
+	//the legacy shove in Hero.attackProc stays unused: onHitProc does it, with the mana check first
 	@Override
 	public boolean knocksBack(){
-		if (!active || Dungeon.hero.MP < getManaCost())
-			return false;
-		else {
-			castTextYell();
-			Dungeon.hero.MP -= getManaCost();
-			return true;
-		}
+		return false;
 	}
 
 	@Override

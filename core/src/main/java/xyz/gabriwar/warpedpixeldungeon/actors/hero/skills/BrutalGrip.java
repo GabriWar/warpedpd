@@ -26,16 +26,30 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
-
+import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
+import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
+import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import com.watabou.utils.Random;
 
 public class BrutalGrip extends Skill {
+
+	//damage comes from the weapon or strength, which already grow with the hero
+	@Override
+	public boolean weaponScaled(){ return true; }
+
+
+	private static final float CRUSH_MULTIPLIER = 1.5f;
 
 	{
 		tag = "CB";
@@ -56,24 +70,27 @@ public class BrutalGrip extends Skill {
 		return true;
 	}
 
-	@Override
-	public float damageModifier(){
-		return qualifies() ? 1f + 0.07f * level : 1f;
-	}
-
-	//you commit to the swing, so you eat more of what comes back
-	@Override
-	public float incomingDamageModifier(){
-		return qualifies() ? 1f + 0.03f * level : 1f;
-	}
-
-	//the melee cripple is rolled here rather than through cripple(), which only fires on ranged attacks
+	//a heavy melee hit can crush: 15% / 25% / 35% chance to deal 50% more and Cripple for 3 / 4 / 5 turns.
+	//+3: the crush also hurls the target 2 tiles back into whatever is behind it, the same way
+	//Hero's own knockback does it from attackProc before the damage lands
 	@Override
 	public int onHitProc( Char enemy, int damage, boolean ranged ){
-		if (!ranged && enemy != null && enemy.isAlive() && qualifies()
-				&& Random.Int( 100 ) < 8 * level){
-			Buff.prolong( enemy, Cripple.class, 3 + level );
+		if (ranged || enemy == null || !enemy.isAlive() || !qualifies()
+				|| Random.Int( 100 ) >= 5 + 10 * level){
+			return damage;
 		}
-		return damage;
+		Buff.prolong( enemy, Cripple.class, 2 + level );
+		Wound.hit( enemy );
+		if (enemy.sprite != null){
+			enemy.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "crush" ) );
+		}
+		Camera.main.shake( 1, 0.2f );
+		Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 1f, 0.8f );
+		int heroPos = Dungeon.hero.pos;
+		if (level >= MAX_LEVEL && enemy.pos != heroPos){
+			Ballistica trajectory = new Ballistica( enemy.pos, enemy.pos + (enemy.pos - heroPos), Ballistica.MAGIC_BOLT );
+			WandOfBlastWave.throwChar( enemy, trajectory, 2, true, true, this );
+		}
+		return Math.round( damage * CRUSH_MULTIPLIER );
 	}
 }

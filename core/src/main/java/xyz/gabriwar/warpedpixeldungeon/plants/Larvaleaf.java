@@ -84,10 +84,6 @@ public class Larvaleaf extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect( Char attacker, Char defender, int damage ) {
-			Buff.prolong(defender, BeetleInfected.class, BeetleInfected.DURATION);
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

@@ -86,10 +86,6 @@ public class Willowcane extends Plant {
 			plantClass = Willowcane.class;
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			Buff.prolong( defender, Slow.class, Slow.DURATION );
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

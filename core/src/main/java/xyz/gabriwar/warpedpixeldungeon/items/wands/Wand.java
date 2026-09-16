@@ -156,6 +156,7 @@ public abstract class Wand extends Item {
 
 		//if we're using wild magic, then assume we have charges
 		if ( owner.buff(WildMagic.WildMagicTracker.class) != null || curCharges >= chargesPerCast()){
+			beginQuiverCast(owner);
 			return true;
 		} else {
 			GLog.w(Messages.get(this, "fizzles"));
@@ -202,8 +203,31 @@ public abstract class Wand extends Item {
 		charger.setScaleFactor( chargeScaleFactor );
 	}
 
+	private final java.util.HashSet<Integer> quiverTargets = new java.util.HashSet<>();
+	private Hero quiverCaster;
+
+	public void beginQuiverCast(Hero caster) {
+		quiverTargets.clear();
+		quiverCaster = caster;
+	}
+
 	protected void wandProc(Char target, int chargesUsed){
 		wandProc(target, buffedLvl(), chargesUsed);
+		quiverProc(target);
+	}
+
+	protected void quiverProc(Char target) {
+		if (quiverCaster != null && target != null && target.alignment == Char.Alignment.ENEMY
+				&& quiverTargets.add(target.id())) {
+			xyz.gabriwar.warpedpixeldungeon.items.ArrowBag quiver = quiverCaster.belongings.getItem(
+					xyz.gabriwar.warpedpixeldungeon.items.ArrowBag.class);
+			if (quiver != null) {
+				int base = this instanceof DamageWand ? (((DamageWand)this).min() + ((DamageWand)this).max()) / 2
+						: Math.max(1, 3 + 2 * buffedLvl());
+				int infused = quiver.proc(quiverCaster, target, base);
+				if (infused > base && target.isAlive()) target.damage(infused - base, quiver);
+			}
+		}
 	}
 
 	//TODO Consider externalizing char awareness buff
@@ -255,9 +279,10 @@ public abstract class Wand extends Item {
 		}
 	}
 	
-	public void level( int value) {
+	public Item level( int value) {
 		super.level( value );
 		updateLevel();
+		return this;
 	}
 	
 	@Override
@@ -455,11 +480,13 @@ public abstract class Wand extends Item {
 	}
 
 	public void wandUsed() {
+		quiverTargets.clear();
+		quiverCaster = null;
 		if (!isIdentified()) {
 			float uses = Math.min( availableUsesToID, Talent.itemIDSpeedFactor(Dungeon.hero, this) );
 			availableUsesToID -= uses;
 			usesLeftToID -= uses;
-			if (usesLeftToID <= 0 || Dungeon.hero.pointsInTalent(Talent.SCHOLARS_INTUITION) == 2) {
+			if (usesLeftToID <= 0 || Dungeon.hero.pointsInTalent(Talent.SCHOLARS_INTUITION) >= 2) {
 				if (ShardOfOblivion.passiveIDDisabled()){
 					if (usesLeftToID > -1){
 						GLog.p(Messages.get(ShardOfOblivion.class, "identify_ready"), name());
@@ -486,6 +513,11 @@ public abstract class Wand extends Item {
 		}
 		
 		curCharges -= cursed ? 1 : chargesPerCast();
+
+		//skill tree: Mage's Wizard - a spent charge may snap back into the hero's own wand
+		if (charger != null && charger.target == Dungeon.hero){
+			xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Wizard.onChargeSpent(this);
+		}
 
 		//remove magic charge at a higher priority, if we are benefiting from it are and not the
 		//wand that just applied it
@@ -692,7 +724,7 @@ public abstract class Wand extends Item {
 						}
 
 						float shield = curUser.HT * (0.04f*curWand.curCharges);
-						if (curUser.pointsInTalent(Talent.SHIELD_BATTERY) == 2) shield *= 1.5f;
+						shield *= 1f + 0.5f*(curUser.pointsInTalent(Talent.SHIELD_BATTERY) - 1);
 						Buff.affect(curUser, Barrier.class).setShield(Math.round(shield));
 						curUser.sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(Math.round(shield)), FloatingText.SHIELDING);
 						curWand.curCharges = 0;
@@ -765,7 +797,14 @@ public abstract class Wand extends Item {
 					} else {
 						curWand.fx(shot, new Callback() {
 							public void call() {
+								//skill tree: Mage's Sorcerer and Serene Focus act on whoever the bolt was aimed at
+								Char zapped = Actor.findChar(shot.collisionPos);
+								int zappedBefore = xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.beforeMagicHit(zapped, curWand);
 								curWand.onZap(shot);
+								xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.afterMagicHit(zapped, zappedBefore, curWand);
+								xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Sorcerer.onZap(curWand, zapped, shot.collisionPos);
+								xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SereneFocus.onZap(zapped);
+								xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Wizard.aimedAt(zapped);
 								if (Random.Float() < WondrousResin.extraCurseEffectChance()){
 									WondrousResin.forcePositive = true;
 									CursedWand.cursedZap(curWand,

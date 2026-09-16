@@ -43,8 +43,7 @@ public class PotionOfFlower extends ExoticPotion {
 		int count = 0;
 		for (Mob mob : hero.getVisibleEnemies().toArray(new Mob[0])) {
 			Plant.Seed seed = (Plant.Seed) Generator.random(Generator.Category.SEED);
-			Plant plant = seed.couch(mob.pos, Dungeon.level);
-			plant.activate(mob);
+			seed.onProc(hero, mob, Math.max(1, hero.STR()));
 			count++;
 		}
 

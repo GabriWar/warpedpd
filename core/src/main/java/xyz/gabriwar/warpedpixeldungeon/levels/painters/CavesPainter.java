@@ -26,6 +26,7 @@ import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.Room;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.standard.StandardRoom;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTileSheet;
+import xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.BlacksmithRoom;
 import com.watabou.utils.Random;
 
 import java.util.ArrayList;
@@ -48,7 +49,7 @@ public class CavesPainter extends RegularPainter {
 		}
 
 		for (Room room : rooms) {
-			if (!(room instanceof StandardRoom)) {
+			if (!(room instanceof StandardRoom) || room instanceof BlacksmithRoom) {
 				continue;
 			}
 			

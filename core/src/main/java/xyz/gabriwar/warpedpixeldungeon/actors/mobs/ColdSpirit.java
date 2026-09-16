@@ -49,6 +49,9 @@ public class ColdSpirit extends Mob {
 
 		properties.add( Property.ICY );
 		properties.add( Property.UNDEAD );
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	@Override

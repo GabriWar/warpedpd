@@ -27,15 +27,19 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.BloodParticle;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Amok;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Charm;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MagicalSleep;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import com.watabou.utils.Random;
 
 public class Predation extends Skill {
 
@@ -46,28 +50,39 @@ public class Predation extends Skill {
 		tier = 2;
 	}
 
+	private static final float FEED = 0.03f;
+
 	@Override
 	protected boolean upgrade(){ return true; }
 
+	//the predator tears into the wounded: a hit on an enemy at or under 40% health can rend it open
 	@Override
 	public int onHitProc( Char enemy, int damage, boolean ranged ){
-		if (level > 0 && enemy != null && isBroken( enemy )){
-			return damage + Math.round( damage * 0.05f * level );
+		if (level > 0 && enemy != null && enemy.HP * 5 <= enemy.HT * 2
+				&& Random.Int( 100 ) < 15 + 10 * level){
+			Buff.affect( enemy, Bleeding.class ).set( Math.max( 2f, damage / 4f ) );
+			CellEmitter.center( enemy.pos ).burst( BloodParticle.BURST, 8 );
+			if (enemy.sprite != null){
+				enemy.sprite.flash();
+				enemy.sprite.showStatus( CharSprite.WARNING, name() );
+			}
+			Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 0.8f, 0.7f );
 		}
 		return damage;
 	}
 
-	private static boolean isBroken( Char enemy ){
-		if (enemy instanceof Mob){
-			Mob mob = (Mob) enemy;
-			if (mob.state == mob.SLEEPING || mob.state == mob.FLEEING) return true;
+	//at mastery a bleeding enemy you kill feeds you
+	@Override
+	public void onKill( Mob mob, boolean ranged ){
+		Hero hero = Dungeon.hero;
+		if (level < MAX_LEVEL || hero == null || mob.buff( Bleeding.class ) == null || hero.HP >= hero.HT) return;
+		int heal = Math.min( SkillInteractions.ofHealth( hero.HT, FEED ), hero.HT - hero.HP );
+		hero.HP += heal;
+		CellEmitter.center( mob.pos ).burst( BloodParticle.BURST, 10 );
+		if (hero.sprite != null){
+			hero.sprite.emitter().burst( Speck.factory( Speck.HEALING ), 3 );
+			hero.sprite.showStatus( CharSprite.POSITIVE, Integer.toString( heal ) );
 		}
-		return enemy.buff( Terror.class ) != null
-				|| enemy.buff( Amok.class ) != null
-				|| enemy.buff( Charm.class ) != null
-				|| enemy.buff( Blindness.class ) != null
-				|| enemy.buff( Paralysis.class ) != null
-				|| enemy.buff( MagicalSleep.class ) != null
-				|| enemy.buff( Roots.class ) != null;
+		Sample.INSTANCE.play( Assets.Sounds.DRINK, 0.7f, 0.8f );
 	}
 }

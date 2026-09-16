@@ -27,6 +27,9 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -77,54 +80,65 @@ public class BladeBind extends Skill {
 
 				@Override
 				public String prompt(){
-					return "Choose a blade to bind";
+					return Messages.get(BladeBind.class, "prompt");
 				}
 			} );
 		}
 	}
 
+	//blades lock with an adjacent enemy: its blows are weakened
 	private void bind( Hero hero, int target ){
 		//the selector stays live across other casts, so re-check before spending
 		if (level <= 0 || hero.MP < getManaCost()) return;
 
 		final Char ch = Actor.findChar( target );
-		if (ch == null || ch.alignment != Char.Alignment.ENEMY
-				|| !Dungeon.level.heroFOV[target]
-				|| Dungeon.level.distance( hero.pos, target ) > 3){
+		if (ch == null || ch.alignment != Char.Alignment.ENEMY || !ch.isAlive()
+				|| !Dungeon.level.adjacent( hero.pos, target )){
 			GLog.w( Messages.get(this, "no_target") );
 			return;
 		}
 
-		final int cripple = 3 + 2 * level;
-		final int vulnerable = 3 + level;
-		final boolean weaken = level >= MAX_LEVEL;
-
 		hero.MP -= getManaCost();
 		castTextYell();
+		Buff.prolong( ch, Weakness.class, 2 + 2 * level );
+		//+3: you wrench it off balance: its next attack goes wide and leaves it open
+		if (level >= MAX_LEVEL) Buff.affect( ch, Wrenched.class );
+		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 1f, 1.0f );
+		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 0.8f, 0.7f );
+		if (ch.sprite != null){
+			ch.sprite.showStatus( CharSprite.WARNING, Messages.get( BladeBind.this, "bound" ) );
+			ch.sprite.emitter().burst( Speck.factory( Speck.STAR ), 6 );
+			ch.sprite.flash();
+		}
+		xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.center( ch.pos ).burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle.FACTORY, 8 );
 		Dungeon.hero.heroSkills.lastUsed = this;
-		hero.sprite.zap( ch.pos );
-		hero.busy();
+		hero.sprite.operate( ch.pos );
+		hero.spendAndNext( TIME_TO_USE );
+	}
 
-		MagicMissile.boltFromChar( hero.sprite.parent,
-				MagicMissile.RAINBOW,
-				hero.sprite,
-				ch.pos,
-				new Callback(){
-					@Override
-					public void call(){
-						if (ch.isAlive()){
-							Buff.prolong( ch, Cripple.class, cripple );
-							Buff.prolong( ch, Vulnerable.class, vulnerable );
-							if (weaken){
-								Buff.prolong( ch, Weakness.class, 5 );
-							}
-							if (ch.sprite != null){
-								ch.sprite.showStatus( CharSprite.WARNING, "bound!" );
-							}
-						}
-						Dungeon.hero.spendAndNext( TIME_TO_USE );
-					}
-				} );
+	//+3: the wrenched enemy's next attack on you misses outright
+	@Override
+	public boolean dodgeChance( Char attacker ){
+		return level >= MAX_LEVEL && attacker != null && attacker.buff( Wrenched.class ) != null;
+	}
+
+	@Override
+	public void onDodge( Char attacker ){
+		if (attacker == null) return;
+		Buff.detach( attacker, Wrenched.class );
+		SkillInteractions.affectAfterHit( attacker, Vulnerable.class, 3f );
+		if (attacker.sprite != null) attacker.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
+		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 1f, 1.4f );
+	}
+
+	/** its weapon was wrenched aside: the next attack it makes goes wide */
+	public static class Wrenched extends Buff {
+		{
+			type = buffType.NEGATIVE;
+		}
+
+		@Override
+		public int icon(){ return xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator.NONE; }
 	}
 
 	@Override

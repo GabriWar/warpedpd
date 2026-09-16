@@ -98,10 +98,6 @@ public class Rose extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect( Char attacker, Char defender, int damage ) {
-			Buff.affect(defender, Thorns.class).set(damage);
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

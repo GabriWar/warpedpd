@@ -26,6 +26,7 @@ import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.effects.TargetedCell;
 import xyz.gabriwar.warpedpixeldungeon.levels.VaultLevel;
 import com.watabou.noosa.Game;
 import com.watabou.utils.Bundlable;
@@ -102,6 +103,11 @@ public abstract class Actor implements Bundlable {
 
 	public void timeToNow() {
 		time = now;
+	}
+
+	//used when now is being cleared as a part of statix fixTime()
+	public void fixTime(float decrement){
+		time -= decrement;
 	}
 	
 	protected void diactivate() {
@@ -182,10 +188,11 @@ public abstract class Actor implements Bundlable {
 		//So that turns always align with a whole number
 		min = (int)min;
 		for (Actor a : all) {
-			a.time -= min;
+			a.fixTime(min);
 		}
+		TargetedCell.fixTime(min);
 
-		if (Dungeon.hero != null && all.contains( Dungeon.hero ) && !(Dungeon.level instanceof VaultLevel)) {
+		if (Dungeon.hero != null && all.contains( Dungeon.hero )) {
 			Statistics.duration += min;
 		}
 		now -= min;

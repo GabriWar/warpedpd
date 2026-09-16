@@ -56,6 +56,9 @@ public class SokobanSentinel extends Mob {
 		resistances.add( Grim.class );
 
 		immunities.add( Vampiric.class );
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	protected MeleeWeapon weapon;

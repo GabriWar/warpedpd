@@ -65,9 +65,11 @@ public class LightningFlash extends ColorBlock {
 			return;
 		}
 
-		// Quick exponential decay: bright spike → fast fade
+		// Quick exponential decay: bright spike → fast fade, with the second,
+		// weaker pulse a real strike has as the return stroke follows the first
 		float p = left / DURATION; // 1 → 0
 		float intensity = p * p; // quadratic falloff
-		am = intensity * 0.6f; // peak 60% opacity so it doesn't fully white-out
+		if (p > 0.5f && p < 0.68f) intensity += 0.45f * (1f - Math.abs(p - 0.59f) / 0.09f);
+		am = Math.min(1f, intensity) * 0.6f; // peak 60% opacity so it doesn't fully white-out
 	}
 }

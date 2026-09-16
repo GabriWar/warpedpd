@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -69,7 +70,7 @@ public class StenchGas extends Blob {
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
 
-		emitter.pour( Speck.factory(Speck.STENCH), 0.4f );
+		emitter.pour( WeatherBlobFX.layered( Speck.factory(Speck.STENCH), WeatherBlobFX.FLIES, 3 ), 0.3f );
 	}
 
 	@Override

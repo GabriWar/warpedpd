@@ -116,8 +116,9 @@ public class EntranceRoom extends StandardRoom {
 			Document.ADVENTURERS_GUIDE.deletePage(Document.GUIDE_INTRO);
 		}
 
-		//places the third guidebook page on floor 2
-		if (Dungeon.depth == 2 && !Document.ADVENTURERS_GUIDE.isPageFound(Document.GUIDE_SEARCHING)){
+		//places the searching page on floor 1: the guidebook itself is picked up in the
+		//town, so the first floor is where the dungeon's own lessons start
+		if (Dungeon.depth == 1 && !Document.ADVENTURERS_GUIDE.isPageFound(Document.GUIDE_SEARCHING)){
 			int pos;
 			do {
 				//can't be on bottom row of tiles

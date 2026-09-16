@@ -50,7 +50,7 @@ public class SpiderMind extends Mob {
 		maxLvl = 9;
 
 		loot = MysteryMeat.class;
-		lootChance = 0.067f;
+		lootChance = 0.067f / 4f;
 	}
 
 	@Override

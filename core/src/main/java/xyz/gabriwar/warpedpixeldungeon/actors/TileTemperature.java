@@ -22,6 +22,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Fire;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Drenched;
@@ -60,6 +61,7 @@ public final class TileTemperature {
     // A torch burning in your hand is not a campfire, but it is a flame you
     // carry: it takes the edge off the cold wherever you walk.
     public static final float TORCH_WARMTH     = 6f;
+    public static final float WALL_TORCH_MIN_TEMP = 5f;
 
     // Reusable diffusion buffer — avoids GC pressure from per-turn allocation.
     // Lazily sized to match level.length().
@@ -191,7 +193,23 @@ public final class TileTemperature {
             t += Dungeon.level.tileHeat[cell];
         }
 
+        if (nearWallTorch(cell)) t = Math.max(t, WALL_TORCH_MIN_TEMP);
         return t;
+    }
+
+    /** Wall flames rendered by PrisonLevel.addPrisonVisuals, within one tile. */
+    public static boolean nearWallTorch(int cell) {
+        Level level = Dungeon.level;
+        if (level == null || cell < 0 || cell >= level.length()
+                || !Assets.Environment.TILES_PRISON.equals(level.tilesTex())) return false;
+        int w = level.width();
+        int x = cell % w;
+        for (int offset : PathFinder.NEIGHBOURS9) {
+            int n = cell + offset;
+            if (n < 0 || n >= level.length() || Math.abs(n % w - x) > 1) continue;
+            if (level.map[n] == Terrain.WALL_DECO) return true;
+        }
+        return false;
     }
 
     /**
@@ -244,6 +262,8 @@ public final class TileTemperature {
             Light light = ch.buff(Light.class);
             if (light != null && light.flame) t += TORCH_WARMTH;
         }
+        //The fixture provides a small refuge even with wind chill or wet clothes.
+        if (nearWallTorch(cell)) t = Math.max(t, WALL_TORCH_MIN_TEMP);
         return t;
     }
 

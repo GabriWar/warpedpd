@@ -107,13 +107,6 @@ public class Apricobush extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect( Char attacker, Char defender, int damage ) {
-			if (attacker instanceof Hero){
-				statisfy((Hero) attacker);
-			}
-			Buff.affect( attacker, Healing.class ).setHeal(Math.round(damage/10), 0.25f, 0);
-		}
 
 		private void statisfy( Hero hero ) {
 			Hunger hunger = hero.buff( Hunger.class );

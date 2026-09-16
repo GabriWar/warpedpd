@@ -108,6 +108,11 @@ public class BanditKing extends Thief {
 	}
 
 	@Override
+	protected boolean extraLootIgnoresLevel() {
+		return true;
+	}
+
+	@Override
 	protected void dropExtraLoot() {
 		if (Dungeon.depth < 25 && !Dungeon.LimitedDrops.SPORK.dropped()) {
 			Dungeon.LimitedDrops.SPORK.drop();

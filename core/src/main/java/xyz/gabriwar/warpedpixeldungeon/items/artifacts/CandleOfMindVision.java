@@ -42,7 +42,7 @@ public class CandleOfMindVision extends Artifact {
 	public static final String AC_SNUFF = "SNUFF";
 
 	{
-		image = ItemSpriteSheet.ARTIFACT_FROST;
+		image = ItemSpriteSheet.ARTIFACT_MIND_CANDLE;
 
 		levelCap = 0;
 		charge = 50;
@@ -100,6 +100,31 @@ public class CandleOfMindVision extends Artifact {
 			GLog.i( Messages.get( this, "snuffed" ) );
 			updateQuickslot();
 		}
+	}
+
+	//while lit, violet sparks rise off the wick, in the inventory and on the ground alike
+	@Override
+	public com.watabou.noosa.particles.Emitter emitter() {
+		if (!lit) return super.emitter();
+		com.watabou.noosa.particles.Emitter emitter = new com.watabou.noosa.particles.Emitter();
+		emitter.pos( 5.5f, 1.5f );
+		emitter.fillTarget = false;
+		emitter.pour( xyz.gabriwar.warpedpixeldungeon.effects.particles.PurpleParticle.MISSILE, 0.15f );
+		return emitter;
+	}
+
+	//taken off while lit, the flame goes out: the candle only burns down while worn,
+	//so an unworn lit candle would give mind vision for nothing
+	@Override
+	public boolean doUnequip( Hero hero, boolean collect, boolean single ) {
+		if (!super.doUnequip( hero, collect, single )) return false;
+		if (lit) {
+			lit = false;
+			Buff.detach( hero, MindVision.class );
+			GLog.i( Messages.get( this, "snuffed" ) );
+			updateQuickslot();
+		}
+		return true;
 	}
 
 	@Override

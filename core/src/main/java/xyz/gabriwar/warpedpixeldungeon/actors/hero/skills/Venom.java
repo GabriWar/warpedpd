@@ -27,6 +27,15 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.PoisonParticle;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import com.watabou.utils.Random;
 
 public class Venom extends PassiveSkillB1 {
@@ -42,9 +51,26 @@ public class Venom extends PassiveSkillB1 {
 	public boolean venomousAttack(){
 		if (Random.Int(100) < 10 * level){
 			castTextYell();
+			//venom seen running off the blade
+			if (Dungeon.hero != null && Dungeon.hero.sprite != null){
+				Dungeon.hero.sprite.emitter().burst( PoisonParticle.MISSILE, 4 );
+			}
+			Sample.INSTANCE.play( Assets.Sounds.DEBUFF, 0.8f, 1.2f );
 			return true;
 		}
 		return false;
+	}
+
+	//at mastery a blow the enemy never saw coming is always envenomed
+	@Override
+	public int onHitProc( Char enemy, int damage, boolean ranged ){
+		if (level >= Skill.MAX_LEVEL && !ranged && enemy instanceof Mob && enemy.isAlive()
+				&& ((Mob) enemy).surprisedBy( Dungeon.hero )){
+			Buff.affect( enemy, Poison.class ).set( 2 + level + Dungeon.hero.heroSkills.allVenomBonus() );
+			CellEmitter.center( enemy.pos ).burst( PoisonParticle.SPLASH, 6 );
+			Sample.INSTANCE.play( Assets.Sounds.DEBUFF, 0.8f, 1.2f );
+		}
+		return damage;
 	}
 
 	@Override

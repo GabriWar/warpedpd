@@ -53,8 +53,9 @@ public class Balling extends FlavourBuff {
 
 	@Override
 	public void detach() {
-		if (target.sprite != null) {
+		if (target != null && target.sprite != null) {
 			target.sprite.angularSpeed = 0;
+			target.sprite.angle = 0;
 			target.sprite.origin.set( 0, 0 );
 		}
 		super.detach();

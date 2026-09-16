@@ -21,16 +21,16 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments;
 
-import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Adrenaline;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AllyBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Corruption;
-import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.items.armor.curses.Multiplicity;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import com.watabou.utils.Random;
 
 public class Corrupting extends Weapon.Enchantment {
@@ -40,35 +40,68 @@ public class Corrupting extends Weapon.Enchantment {
 	@Override
 	public int proc(Weapon weapon, Char attacker, Char defender, int damage) {
 		int level = Math.max( 0, weapon.buffedLvl() );
-		
+
 		// lvl 0 - 20%
 		// lvl 1 ~ 23%
 		// lvl 2 ~ 26%
 		float procChance = (level+5f)/(level+25f) * procChanceMultiplier(attacker);
-		if (damage * power() >= defender.HP //scales with enchantment level
-				&& Random.Float() < procChance
+		if (Random.Float() < procChance
+				&& attacker.alignment == Char.Alignment.ALLY //enemies cannot inflict corruption
 				&& !defender.isImmune(Corruption.class)
 				&& defender.buff(Corruption.class) == null
 				&& defender instanceof Mob
 				&& defender.isAlive()){
-			
-			Mob enemy = (Mob) defender;
-			Hero hero = (attacker instanceof Hero) ? (Hero) attacker : Dungeon.hero;
 
-			Corruption.corruptionHeal(enemy);
+			//we use a tracker so that anything that kills the enemy as part of this attack triggers
+			CorruptingTracker tracker = Buff.affect(defender, CorruptingTracker.class);
+			tracker.powerMulti = Math.max(1f, procChance);
+			tracker.power = power(); //scales with enchantment level
 
-			AllyBuff.affectAndLoot(enemy, hero, Corruption.class);
-
-			float powerMulti = Math.max(1f, procChance);
-			if (powerMulti > 1.1f){
-				//1 turn of adrenaline for each 20% above 100% proc rate
-				Buff.affect(enemy, Adrenaline.class, Math.round(5*(powerMulti-1f)*power())); //scales with enchantment level
-			}
-			
-			return 0;
 		}
 		
 		return damage;
+	}
+
+	public static class CorruptingTracker extends Buff {
+
+		{
+			actPriority = Actor.VFX_PRIO;
+		}
+
+		float powerMulti = 1f;
+		float power = 1f;
+
+		@Override
+		public boolean act() {
+			detach();
+			return true;
+		}
+
+		@Override
+		public void detach() {
+			if (!target.isAlive()){
+
+				Mob corrupted = Multiplicity.duplicate((Mob)target);
+
+				if (corrupted != null) {
+					target.sprite.killAndErase();
+
+					corrupted.timeToNow();
+					corrupted.pos = target.pos;
+					GameScene.add(corrupted);
+
+					Corruption.corruptionHeal(corrupted);
+					Buff.affect(corrupted, Corruption.class);
+
+					if (powerMulti > 1.1f) {
+						//1 turn of adrenaline for each 20% above 100% proc rate
+						Buff.affect(corrupted, Adrenaline.class, Math.round(5 * (powerMulti - 1f) * power));
+					}
+				}
+
+			}
+			super.detach();
+		}
 	}
 	
 	@Override

@@ -49,6 +49,7 @@ public class BlandfruitBush extends Plant {
 
 	@Override
 	public void spiceEffect( Char ch ) {
+		if (ch instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero) xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff.affect(ch, xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger.class).satisfy(50f);
 		ch.sprite.burst(new BlandfruitPoisonParticle().getColor(), 10);
 	}
 

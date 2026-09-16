@@ -29,6 +29,10 @@ import xyz.gabriwar.warpedpixeldungeon.plants.PlantGrowthManager;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town.TownCommute;
+import xyz.gabriwar.warpedpixeldungeon.Badges;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Comfy;
+import xyz.gabriwar.warpedpixeldungeon.effects.GuideTrail;
 
 import java.util.Calendar;
 
@@ -470,6 +474,10 @@ public class DayNightCycle {
 		ClimateManager.onHeroTurn();
 		WeatherBlobSpawner.onHeroTurn();
 		PlantGrowthManager.onHeroTurn(Dungeon.level);
+		TownCommute.onHeroTurn();
+		Comfy.check( Dungeon.hero );
+		Badges.validateWorldTurn();
+		GuideTrail.onHeroTurn();
 	}
 
 	public static void syncPhase() {

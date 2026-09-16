@@ -35,7 +35,10 @@ import java.util.HashMap;
 
 public class GamesInProgress {
 	
-	public static final int MAX_SLOTS = HeroClass.values().length;
+	//six offline heroes and six online ones, each kind counted on its own screen; the
+	//pool holds both, so one side filling up never eats the other side's slots
+	public static final int SLOTS_PER_MODE = HeroClass.values().length;
+	public static final int MAX_SLOTS = SLOTS_PER_MODE * 2;
 	
 	//null means we have loaded info and it is empty, no entry means unknown.
 	private static HashMap<Integer, Info> slotStates = new HashMap<>();
@@ -113,7 +116,7 @@ public class GamesInProgress {
 				
 				Bundle bundle = FileUtils.bundleFromFile(gameFile(slot));
 
-				if (bundle.getInt( "version" ) < WarpedPixelDungeon.v2_5_4) {
+				if (bundle.getInt( "version" ) < WarpedPixelDungeon.v3_1_1) {
 					info = null;
 				} else {
 
@@ -142,12 +145,14 @@ public class GamesInProgress {
 		info.lastPlayed = Dungeon.lastPlayed;
 		
 		info.depth = Dungeon.depth;
+		info.branch = Dungeon.branch;
 		info.challenges = Dungeon.challenges;
 
 		info.seed = Dungeon.seed;
 		info.customSeed = Dungeon.customSeedText;
 		info.daily = Dungeon.daily;
 		info.dailyReplay = Dungeon.dailyReplay;
+		info.multiplayer = Dungeon.multiplayer;
 		
 		info.level = Dungeon.hero.lvl;
 		info.str = Dungeon.hero.STR;
@@ -179,6 +184,7 @@ public class GamesInProgress {
 		public int slot;
 
 		public int depth;
+		public int branch;
 		public int version;
 		public int challenges;
 
@@ -186,6 +192,7 @@ public class GamesInProgress {
 		public String customSeed;
 		public boolean daily;
 		public boolean dailyReplay;
+		public boolean multiplayer;
 		public long lastPlayed;
 
 		public int level;

@@ -184,7 +184,8 @@ public class QuickSlotButton extends Button {
 
 	@Override
 	public GameAction keyAction() {
-		switch (slotNum){
+		//number keys follow the hotbar page that is showing
+		switch (slotNum - Toolbar.visibleStart){
 			case 0:
 				return WPDAction.QUICKSLOT_1;
 			case 1:
@@ -394,7 +395,9 @@ public class QuickSlotButton extends Button {
 	}
 	
 	public static void target( Char target ) {
-		if (target != null && target.alignment != Char.Alignment.ALLY) {
+		if (target != null
+				&& target.alignment != Char.Alignment.ALLY
+				&& !Char.hasProp(target, Char.Property.OBJECT)) {
 			lastTarget = target;
 			
 			TargetHealthIndicator.instance.target( target );

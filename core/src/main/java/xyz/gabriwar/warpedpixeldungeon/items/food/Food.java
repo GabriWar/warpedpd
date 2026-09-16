@@ -102,6 +102,14 @@ public class Food extends Item {
 		return super.name();
 	}
 
+	protected String spiceDescription(){
+		return seed == null || seed.getPlantClass() == null ? ""
+				: "\n\n" + Messages.get(seed.getPlantClass(), "spice_desc");
+	}
+
+	@Override
+	public String desc(){ return super.desc() + spiceDescription(); }
+
 	@Override
 	public boolean isSimilar(Item item) {
 		// spiced food doesn't stack with unspiced food
@@ -194,6 +202,7 @@ public class Food extends Item {
 		if (seed != null && seed.getPlantClass() != null) {
 			Plant plant = Reflection.newInstance(seed.getPlantClass());
 			if (plant != null) {
+				plant.pos = hero.pos;
 				plant.spiceEffect(hero);
 			}
 		}

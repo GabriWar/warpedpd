@@ -22,52 +22,37 @@
 package xyz.gabriwar.warpedpixeldungeon.effects;
 
 import com.badlogic.gdx.graphics.Pixmap;
+import com.watabou.gltextures.SmartTexture;
 import com.watabou.gltextures.TextureCache;
 import com.watabou.glwrap.Blending;
+import com.watabou.glwrap.Texture;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
 import com.watabou.noosa.Image;
+
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 
 /**
- * Aurora borealis overlay. Curtains are placed at fixed level-space positions
- * distributed across the entire dungeon (like snow/rain particles), not
- * following the camera. Each curtain uses a smooth procedural gradient texture
- * and is FOV-masked — only shown when the hero can see its tile.
+ * The aurora: curtains of light hung at fixed places over the level, each a
+ * pixel painting of rays, green along the body and rose at the top rim, cycled
+ * through a ring of frames and cross-faded from one to the next so they fold and
+ * flow without a jump. They drift a little, breathe in brightness, and show only
+ * where the hero can see. Drawn additively.
  */
 public class AuroraOverlay extends Group {
 
-	private static final int TEX_HEIGHT = 128;
 	private static final int NUM_CURTAINS = 9;
-
-	// Multiple gradient textures with different color offsets for variety
-	private static final Object[] CACHE_KEYS = new Object[NUM_CURTAINS];
-	static {
-		for (int i = 0; i < NUM_CURTAINS; i++)
-			CACHE_KEYS[i] = "AuroraOverlay_" + i;
-	}
-
-	// Aurora palette — smooth gradient through these
-	private static final int[] PALETTE = {
-			0x115533, // dark green
-			0x22FF88, // bright green
-			0x33FFCC, // teal
-			0x44CCFF, // cyan
-			0x5588FF, // sky blue
-			0x6644FF, // indigo
-			0x8844FF, // purple
-			0xAA44DD, // violet
-			0x6644FF, // indigo (wrap back)
-			0x44CCFF, // cyan
-			0x22FF88, // green
-			0x115533, // dark green
-	};
+	private static final int VARIANTS = 3;
+	private static final int FRAMES = 12;
+	private static final int CW = 96, CH = 48;
+	private static final float FRAME_RATE = 4f;
 
 	private static final float FADE_IN_TIME  = 4f;
 	private static final float FADE_OUT_TIME = 3f;
 
-	private AuroraCurtain[] curtains;
+	private final SmartTexture[] sheets = new SmartTexture[VARIANTS];
+	private final AuroraCurtain[] curtains = new AuroraCurtain[NUM_CURTAINS];
 	private float masterAlpha = 0f;
 	private float globalTime  = 0f;
 	private boolean active    = false;
@@ -76,68 +61,33 @@ public class AuroraOverlay extends Group {
 
 	public AuroraOverlay() {
 		super();
-		curtains = new AuroraCurtain[NUM_CURTAINS];
+		for (int v = 0; v < VARIANTS; v++) sheets[v] = sheet(v);
 		for (int i = 0; i < NUM_CURTAINS; i++) {
-			createTexture(i);
-			curtains[i] = new AuroraCurtain(i);
+			curtains[i] = new AuroraCurtain(i, sheets[i % VARIANTS]);
 			add(curtains[i]);
+			add(curtains[i].next);
 		}
 		visible = false;
 	}
 
-	private void createTexture(int index) {
-		Object key = CACHE_KEYS[index];
-		if (TextureCache.contains(key)) return;
-
-		Pixmap px = TextureCache.create(key, 1, TEX_HEIGHT).bitmap;
-		px.setColor(0x00000000);
-		px.fill();
-
-		// Each curtain has a different color offset into the palette
-		int colorOffset = index * 2;
-
-		// Top 10%: sharp transparent fade-in
-		// 10-30%: bright aurora core
-		// 30-100%: long trailing fade (curtain wisps)
-		int h = px.getHeight();
-		for (int y = 0; y < h; y++) {
-			float t = y / (float) (h - 1);
-
-			// Envelope: asymmetric — sharp top, long trailing bottom
-			float envelope;
-			if (t < 0.08f) {
-				envelope = t / 0.08f;
-				envelope = envelope * envelope;
-			} else if (t < 0.30f) {
-				envelope = 1f;
-			} else {
-				float fade = (t - 0.30f) / 0.70f;
-				envelope = (1f - fade);
-				envelope = envelope * envelope * envelope; // cubic fade
+	/** one curtain's frames, side by side, painted once and kept */
+	private static SmartTexture sheet(int variant) {
+		String key = "aurora-curtain-" + variant;
+		boolean fresh = !TextureCache.contains(key);
+		SmartTexture t = TextureCache.create(key, CW * FRAMES, CH);
+		if (fresh) {
+			Pixmap pm = t.bitmap;
+			pm.setBlending(Pixmap.Blending.None);
+			pm.setColor(0);
+			pm.fill();
+			long seed = 0xA0A0L + variant * 977L;
+			for (int f = 0; f < FRAMES; f++) {
+				WeatherSprites.paintCurtain(pm, f * CW, CW, CH, seed, f * (float)(Math.PI * 2 / FRAMES));
 			}
-			envelope = Math.max(0f, Math.min(1f, envelope));
-
-			// Color: interpolate through palette based on vertical position
-			float colorT = t * 0.8f;
-			float stopF = colorT * (PALETTE.length - 1);
-			int stop0 = Math.min((int) stopF, PALETTE.length - 2);
-			int stop1 = stop0 + 1;
-			float frac = stopF - stop0;
-			frac = frac * frac * (3f - 2f * frac); // smoothstep
-
-			// Apply color offset for variety between curtains
-			int idx0 = (stop0 + colorOffset) % PALETTE.length;
-			int idx1 = (stop1 + colorOffset) % PALETTE.length;
-			int c0 = PALETTE[idx0];
-			int c1 = PALETTE[idx1];
-
-			int r = (int) (((c0 >> 16) & 0xFF) * (1f - frac) + ((c1 >> 16) & 0xFF) * frac);
-			int g = (int) (((c0 >> 8) & 0xFF) * (1f - frac) + ((c1 >> 8) & 0xFF) * frac);
-			int b = (int) ((c0 & 0xFF) * (1f - frac) + (c1 & 0xFF) * frac);
-
-			int alpha = (int) (envelope * 255);
-			px.drawPixel(0, y, (r << 24) | (g << 16) | (b << 8) | alpha);
+			t.bitmap(pm);
+			t.filter(Texture.NEAREST, Texture.NEAREST);
 		}
+		return t;
 	}
 
 	public void show() {
@@ -188,13 +138,10 @@ public class AuroraOverlay extends Group {
 
 	private static class AuroraCurtain extends Image {
 
-		private final int index;
-
 		// Fixed level-space position fractions
 		private final float xFrac;
 		private final float yFrac;
 		private final float widthFrac;
-		private final float heightFrac;
 
 		private final float waveFreq1, waveFreq2;
 		private final float waveAmp1, waveAmp2;
@@ -202,17 +149,19 @@ public class AuroraOverlay extends Group {
 		private final float driftFreq;
 		private final float phaseOffset;
 		private final float baseAlpha;
+		private int shown = -1, shownNext = -1;
+		//the frame after this one, faded in as this one fades out
+		final Image next;
 
-		AuroraCurtain(int seed) {
+		AuroraCurtain(int seed, SmartTexture sheet) {
 			super();
-			texture(CACHE_KEYS[seed]);
-			this.index = seed;
+			texture(sheet);
+			next = new Image(sheet);
 
 			// Distribute curtains evenly across the full level in both axes
 			xFrac       = seed / (float) NUM_CURTAINS;
 			yFrac       = 0.05f + (seed % 3) * 0.20f;   // 0.05, 0.25, 0.45 cycling
-			widthFrac   = 0.08f + (seed % 3) * 0.04f;   // 0.08–0.16 of level width
-			heightFrac  = 0.30f + (seed % 3) * 0.10f;   // 0.30–0.50 of level height
+			widthFrac   = 0.08f + (seed % 3) * 0.04f;   // 0.08-0.16 of level width
 
 			waveFreq1 = 0.2f  + seed * 0.07f;
 			waveFreq2 = 0.35f + seed * 0.05f;
@@ -222,17 +171,37 @@ public class AuroraOverlay extends Group {
 			driftFreq   = 0.08f + seed * 0.03f;
 			phaseOffset = seed * 1.7f;
 
-			baseAlpha = 0.25f + (seed % 3 == 0 ? 0.10f : 0f);
+			baseAlpha = 0.55f + (seed % 3 == 0 ? 0.15f : 0f);
+			show(0);
 		}
 
-		void updateCurtain(float levelW, float levelH,
-		                   float masterAlpha, float time) {
+		private void show(int f) {
+			if (f != shown) {
+				shown = f;
+				frame(f * CW, 0, CW, CH);
+			}
+			int n = (f + 1) % FRAMES;
+			if (n != shownNext) {
+				shownNext = n;
+				next.frame(n * CW, 0, CW, CH);
+			}
+		}
+
+		void updateCurtain(float levelW, float levelH, float masterAlpha, float time) {
 			float t = time + phaseOffset;
 
-			// Level-space size
-			float bandW = levelW * widthFrac;
-			float bandH = levelH * heightFrac;
-			scale.set(bandW, bandH / TEX_HEIGHT);
+			//the frames cycle, and each curtain is at its own point in the cycle; the
+			//blend between a frame and the next moves with it, so nothing snaps
+			float fpos = t * FRAME_RATE;
+			int f = ((int)fpos) % FRAMES;
+			float blend = fpos - (float)Math.floor(fpos);
+			show(f);
+
+			//blown up by whole pixels only, so the rays stay rays
+			int k = Math.max(1, Math.round(levelW * widthFrac / CW));
+			scale.set(k);
+			next.scale.set(k);
+			float bandW = CW * k, bandH = CH * k;
 
 			// Gentle drift in level space
 			float driftX = (float) (Math.sin(t * driftFreq) * levelW * 0.04f
@@ -242,8 +211,8 @@ public class AuroraOverlay extends Group {
 
 			float rawX = levelW * xFrac - bandW * 0.5f + driftX;
 			float rawY = levelH * yFrac + waveY;
-			x = Math.max(0, Math.min(levelW - bandW, rawX));
-			y = Math.max(0, Math.min(levelH - bandH, rawY));
+			x = (float)Math.floor(Math.max(0, Math.min(levelW - bandW, rawX)));
+			y = (float)Math.floor(Math.max(0, Math.min(levelH - bandH, rawY)));
 
 			// Shimmer
 			float s1 = (float) Math.sin(t * shimmerFreq);
@@ -251,9 +220,9 @@ public class AuroraOverlay extends Group {
 			float s3 = (float) Math.sin(t * shimmerFreq * 0.7f + 3f);
 			float shimmer = (s1 * 0.5f + s2 * 0.3f + s3 * 0.2f + 1f) * 0.5f;
 
-			am = baseAlpha * (0.3f + shimmer * 0.7f) * masterAlpha;
+			float bright = baseAlpha * (0.4f + shimmer * 0.6f) * masterAlpha;
 
-			// FOV check — only show if hero can see this curtain's center tile
+			// FOV check: only show if hero can see this curtain's centre tile
 			if (Dungeon.level != null && Dungeon.level.heroFOV != null) {
 				int col = (int) ((x + bandW * 0.5f) / DungeonTilemap.SIZE);
 				int row = (int) ((y + bandH * 0.5f) / DungeonTilemap.SIZE);
@@ -263,9 +232,15 @@ public class AuroraOverlay extends Group {
 				int cell = col + row * w;
 				if (cell < 0 || cell >= Dungeon.level.heroFOV.length
 						|| !Dungeon.level.heroFOV[cell]) {
-					am = 0;
+					bright = 0;
 				}
 			}
+			//additive, so the two halves add up to one curtain
+			am = bright * (1f - blend);
+			next.am = bright * blend;
+			next.x = x;
+			next.y = y;
+			next.visible = visible;
 		}
 	}
 }

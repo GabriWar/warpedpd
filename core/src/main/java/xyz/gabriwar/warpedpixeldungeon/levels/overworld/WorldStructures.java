@@ -53,9 +53,9 @@ public class WorldStructures {
 	public static final int TOWN_X0 = -TOWN_SIZE/2, TOWN_Y0 = -TOWN_SIZE/2;
 
 	//layout cells with a fixed meaning (see TownLevel history)
-	public static final int TOWN_PLAZA      = 766;  //where you arrive by magic (journal, beacon, new game)
-	public static final int TOWN_STAIRS     = 899;  //down into the dungeon (floor 1)
-	public static final int TOWN_MINE_GATE  = 141;  //the barred north gate into the kupua mines
+	public static final int TOWN_PLAZA      = 752;  //where you arrive (new game, journal, beacon): two south of the plaza guards, on the town's axis
+	public static final int TOWN_MINE_GATE     = 899;  //the plaza staircase, down into the kupua mines
+	public static final int TOWN_DUNGEON_GATE  = 141;  //the north gate: the dungeon's front door (floor 1)
 	public static final int TOWN_TEMPLE_DOOR = 412;
 	public static final int TOWN_PEDESTAL   = 222;  //enchanting station
 	public static final int TOWN_ALTAR      = 350;  //norn-stone altar
@@ -80,7 +80,7 @@ public class WorldStructures {
 			for (int dx = -2; dx <= 2; dx++){
 				int c = townCell( wx + dx, wy + dy );
 				if (c == -1) continue;
-				if (c == TOWN_STAIRS || c == TOWN_MINE_GATE || c == TOWN_TEMPLE_DOOR
+				if (c == TOWN_MINE_GATE || c == TOWN_DUNGEON_GATE || c == TOWN_TEMPLE_DOOR
 						|| c == TOWN_PLAZA || c == TOWN_PEDESTAL || c == TOWN_ALTAR) return true;
 				for (int d : TOWN_DOORS) if (c == d) return true;
 			}
@@ -94,8 +94,8 @@ public class WorldStructures {
 	private static int townTerrain( long seed, int wx, int wy ){
 		int cell = townCell( wx, wy );
 		if (cell == -1) return -1;
-		if (cell == TOWN_STAIRS) return Terrain.EXIT;
-		if (cell == TOWN_MINE_GATE || cell == TOWN_TEMPLE_DOOR) return Terrain.DOOR;
+		if (cell == TOWN_MINE_GATE) return Terrain.EXIT;
+		if (cell == TOWN_DUNGEON_GATE || cell == TOWN_TEMPLE_DOOR) return Terrain.DOOR;
 		if (cell == TOWN_PEDESTAL || cell == TOWN_ALTAR) return Terrain.PEDESTAL;
 		for (int d : TOWN_DOORS) if (cell == d) return Terrain.DOOR;
 		int t = xyz.gabriwar.warpedpixeldungeon.levels.TownLayouts.TOWN_LAYOUT_REMIXED[cell];
@@ -115,8 +115,10 @@ public class WorldStructures {
 			return Terrain.TOWN_SOLID;
 		}
 		if (xyz.gabriwar.warpedpixeldungeon.tiles.TownRemixedTiles.snowGround( cell )){
-			//nothing sprouts on the roads, and nothing ever blocks a doorway
+			//nothing sprouts on the roads, nothing ever blocks a doorway, and the
+			//streets inside the fence stay clear: the wood is what surrounds the town
 			return (h & 15) == 0 && t == Terrain.EMPTY && !townApproach( wx, wy )
+					&& !xyz.gabriwar.warpedpixeldungeon.tiles.TownRemixedTiles.insideWalls( cell )
 					? Terrain.TREE_PINE : Terrain.SNOW;
 		}
 		return t;
@@ -500,8 +502,6 @@ public class WorldStructures {
 
 		int adx = Math.abs( dx ), ady = Math.abs( dy );
 		if (adx > radius + 3 || ady > radius + 3) return -1;
-
-		if (dx == 0 && dy == 0) return Terrain.WELL;
 
 		//the village signpost: on the road out, just past the houses,
 		//pointing at this village's road neighbour

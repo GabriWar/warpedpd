@@ -44,7 +44,7 @@ public class PotionOfMana extends Potion {
 	@Override
 	public void apply(Hero hero) {
 		identify();
-		restoreMana(Dungeon.hero);
+		restoreMana(hero);
 	}
 
 	public static void restoreMana(Hero hero) {

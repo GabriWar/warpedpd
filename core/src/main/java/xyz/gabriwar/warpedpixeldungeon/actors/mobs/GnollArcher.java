@@ -99,6 +99,11 @@ public class GnollArcher extends Mob {
 	}
 
 	@Override
+	protected boolean extraLootIgnoresLevel() {
+		return true;
+	}
+
+	@Override
 	protected void dropExtraLoot() {
 		if (!Dungeon.LimitedDrops.SEWER_KEY.dropped() && Dungeon.depth < Dungeon.POSTGAME_DEPTH) {
 			Dungeon.LimitedDrops.SEWER_KEY.drop();

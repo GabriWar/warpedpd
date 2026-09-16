@@ -7,4 +7,8 @@ public class PlayGamesSetup {
 	public static void setup(Activity activity) {
 		//nothing to install
 	}
+
+	public static void unlockAchievement(Activity activity, String badge) {
+		//nowhere to send it
+	}
 }

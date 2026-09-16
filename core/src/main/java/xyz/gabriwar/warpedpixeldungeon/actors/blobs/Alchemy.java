@@ -28,6 +28,10 @@ import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 
 public class Alchemy extends Blob {
 
+	{
+		alwaysVisible = true;
+	}
+
 	protected int pos;
 
 	@Override

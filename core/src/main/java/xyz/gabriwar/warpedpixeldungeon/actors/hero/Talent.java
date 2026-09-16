@@ -228,7 +228,8 @@ public enum Talent {
 					barrierInc += 0.5f * ((Hero) target).pointsInTalent(Talent.PROTECTIVE_SHADOWS);
 				}
 				if (barrierInc >= 1){
-					barrierInc = 0;
+					//at +3 the gain is one and a half a turn: one now, and the rest carries
+					barrierInc -= 1;
 					barrier.incShield(1);
 				} else {
 					barrier.incShield(0); //resets barrier decay
@@ -257,7 +258,7 @@ public enum Talent {
 	public static class RejuvenatingStepsCooldown extends FlavourBuff{
 		public int icon() { return BuffIndicator.TIME; }
 		public void tintIcon(Image icon) { icon.hardlight(0f, 0.35f, 0.15f); }
-		public float iconFadePercent() { return GameMath.gate(0, visualcooldown() / (15 - 5*Dungeon.hero.pointsInTalent(REJUVENATING_STEPS)), 1); }
+		public float iconFadePercent() { return GameMath.gate(0, visualcooldown() / Math.max(2, 15 - 5*Dungeon.hero.pointsInTalent(REJUVENATING_STEPS)), 1); }
 	};
 	public static class RejuvenatingStepsFurrow extends CounterBuff{{revivePersists = true;}};
 	public static class SeerShotCooldown extends FlavourBuff{
@@ -438,7 +439,7 @@ public enum Talent {
 	public static int[] tierLevelThresholds = new int[]{0, 2, 7, 13, 21, 31};
 
 	Talent( int icon ){
-		this(icon, 2);
+		this(icon, 3);
 	}
 
 	Talent( int icon, int maxPoints ){
@@ -502,12 +503,12 @@ public enum Talent {
 			Buff.affect(hero, BrokenSeal.WarriorShield.class);
 		}
 
-		if (talent == VETERANS_INTUITION && hero.pointsInTalent(VETERANS_INTUITION) == 2){
+		if (talent == VETERANS_INTUITION && hero.pointsInTalent(VETERANS_INTUITION) >= 2){
 			if (hero.belongings.armor() != null && !ShardOfOblivion.passiveIDDisabled())  {
 				hero.belongings.armor.identify();
 			}
 		}
-		if (talent == THIEFS_INTUITION && hero.pointsInTalent(THIEFS_INTUITION) == 2){
+		if (talent == THIEFS_INTUITION && hero.pointsInTalent(THIEFS_INTUITION) >= 2){
 			if (hero.belongings.ring instanceof Ring && !ShardOfOblivion.passiveIDDisabled()) {
 				hero.belongings.ring.identify();
 			}
@@ -524,9 +525,12 @@ public enum Talent {
 			if (hero.belongings.ring instanceof Ring) hero.belongings.ring.setKnown();
 			if (hero.belongings.misc instanceof Ring) ((Ring) hero.belongings.misc).setKnown();
 		}
-		if (talent == ADVENTURERS_INTUITION && hero.pointsInTalent(ADVENTURERS_INTUITION) == 2){
+		if (talent == ADVENTURERS_INTUITION && hero.pointsInTalent(ADVENTURERS_INTUITION) >= 2){
 			if (hero.belongings.weapon() != null && !ShardOfOblivion.passiveIDDisabled()){
 				hero.belongings.weapon().identify();
+			}
+			if (hero.belongings.secondWep() != null && !ShardOfOblivion.passiveIDDisabled()){
+				hero.belongings.secondWep().identify();
 			}
 		}
 
@@ -594,8 +598,10 @@ public enum Talent {
 			}
 		}
 		if (hero.hasTalent(IRON_STOMACH)){
-			if (hero.cooldown() > 0) {
-				Buff.affect(hero, WarriorFoodImmunity.class, hero.cooldown());
+			//at +3 the iron holds for the turn after the meal as well
+			float extra = hero.pointsInTalent(IRON_STOMACH) >= 3 ? 1f : 0f;
+			if (hero.cooldown() + extra > 0) {
+				Buff.affect(hero, WarriorFoodImmunity.class, hero.cooldown() + extra);
 			}
 		}
 		if (hero.hasTalent(EMPOWERING_MEAL)){
@@ -628,7 +634,7 @@ public enum Talent {
 				ScrollOfRecharging.charge( hero );
 			} else {
 				// lvl/3 / lvl/2 bonus dmg on next hit for other classes
-				Buff.affect( hero, PhysicalEmpower.class).set(Math.round(hero.lvl / (4f - hero.pointsInTalent(FOCUSED_MEAL))), 1);
+				Buff.affect( hero, PhysicalEmpower.class).set(Math.round(hero.lvl / (hero.pointsInTalent(FOCUSED_MEAL) >= 3 ? 1.5f : 4f - hero.pointsInTalent(FOCUSED_MEAL))), 1);
 			}
 		}
 		if (hero.hasTalent(SATIATED_SPELLS)){
@@ -751,9 +757,11 @@ public enum Talent {
 			Dungeon.observe();
 		}
 		if (hero.hasTalent(LIQUID_AGILITY)){
-			Buff.prolong(hero, LiquidAgilEVATracker.class, hero.cooldown() + Math.max(0, factor-1));
+			//a third point keeps the footing a turn longer, and the aim one attack longer
+			int extra = hero.pointsInTalent(LIQUID_AGILITY) >= 3 ? 1 : 0;
+			Buff.prolong(hero, LiquidAgilEVATracker.class, hero.cooldown() + Math.max(0, factor-1) + extra);
 			if (factor >= 0.5f){
-				Buff.prolong(hero, LiquidAgilACCTracker.class, 5f).uses = Math.round(factor);
+				Buff.prolong(hero, LiquidAgilACCTracker.class, 5f + extra).uses = Math.round(factor) + extra;
 			}
 		}
 	}
@@ -770,7 +778,7 @@ public enum Talent {
 		}
 		if (hero.hasTalent(RECALL_INSCRIPTION) && Scroll.class.isAssignableFrom(cls) && cls != ScrollOfUpgrade.class){
 			if (hero.heroClass == HeroClass.CLERIC){
-				Buff.prolong(hero, RecallInscription.UsedItemTracker.class, hero.pointsInTalent(RECALL_INSCRIPTION) == 2 ? 300 : 10).item = cls;
+				Buff.prolong(hero, RecallInscription.UsedItemTracker.class, RecallInscription.duration(hero)).item = cls;
 			} else {
 				// 10/15%
 				if (Random.Int(20) < 1 + hero.pointsInTalent(RECALL_INSCRIPTION)){
@@ -784,7 +792,7 @@ public enum Talent {
 	public static void onRunestoneUsed( Hero hero, int pos, Class<?extends Item> cls ){
 		if (hero.hasTalent(RECALL_INSCRIPTION) && Runestone.class.isAssignableFrom(cls)){
 			if (hero.heroClass == HeroClass.CLERIC){
-				Buff.prolong(hero, RecallInscription.UsedItemTracker.class, hero.pointsInTalent(RECALL_INSCRIPTION) == 2 ? 300 : 10).item = cls;
+				Buff.prolong(hero, RecallInscription.UsedItemTracker.class, RecallInscription.duration(hero)).item = cls;
 			} else {
 
 				//don't trigger on 1st intuition use
@@ -830,16 +838,23 @@ public enum Talent {
 
 	public static void onItemEquipped( Hero hero, Item item ){
 		boolean identify = false;
-		if (hero.pointsInTalent(VETERANS_INTUITION) == 2 && item instanceof Armor){
+		if (hero.pointsInTalent(VETERANS_INTUITION) >= 2 && item instanceof Armor){
+			identify = true;
+		}
+		//at +3 the veteran reads weapons on equip too, and the adventurer armor
+		if (hero.pointsInTalent(VETERANS_INTUITION) >= 3 && item instanceof Weapon){
+			identify = true;
+		}
+		if (hero.pointsInTalent(ADVENTURERS_INTUITION) >= 3 && item instanceof Armor){
 			identify = true;
 		}
 		if (hero.hasTalent(THIEFS_INTUITION) && item instanceof Ring){
-			if (hero.pointsInTalent(THIEFS_INTUITION) == 2){
+			if (hero.pointsInTalent(THIEFS_INTUITION) >= 2){
 				identify = true;
 			}
 			((Ring) item).setKnown();
 		}
-		if (hero.pointsInTalent(ADVENTURERS_INTUITION) == 2 && item instanceof Weapon){
+		if (hero.pointsInTalent(ADVENTURERS_INTUITION) >= 2 && item instanceof Weapon){
 			identify = true;
 		}
 
@@ -859,8 +874,14 @@ public enum Talent {
 	}
 
 	public static void onItemCollected( Hero hero, Item item ){
-		if (hero.pointsInTalent(THIEFS_INTUITION) == 2){
+		if (hero.pointsInTalent(THIEFS_INTUITION) >= 2){
 			if (item instanceof Ring) ((Ring) item).setKnown();
+		}
+		//the third point of each intuition: the item is known the moment it is picked up
+		if (!ShardOfOblivion.passiveIDDisabled()){
+			if (hero.pointsInTalent(THIEFS_INTUITION) >= 3 && item instanceof Ring) item.identify();
+			if (hero.pointsInTalent(SCHOLARS_INTUITION) >= 3 && item instanceof Wand) item.identify();
+			if (hero.pointsInTalent(SURVIVALISTS_INTUITION) >= 3 && item instanceof MissileWeapon) item.identify();
 		}
 	}
 
@@ -874,14 +895,14 @@ public enum Talent {
 
 		if (hero.hasTalent(Talent.LINGERING_MAGIC)
 				&& hero.buff(LingeringMagicTracker.class) != null){
-			dmg += Random.IntRange(hero.pointsInTalent(Talent.LINGERING_MAGIC) , 2);
+			dmg += Random.IntRange(hero.pointsInTalent(Talent.LINGERING_MAGIC), Math.max(2, hero.pointsInTalent(Talent.LINGERING_MAGIC)));
 			hero.buff(LingeringMagicTracker.class).detach();
 		}
 
 		if (hero.hasTalent(Talent.SUCKER_PUNCH)
 				&& enemy instanceof Mob && ((Mob) enemy).surprisedBy(hero)
 				&& enemy.buff(SuckerPunchTracker.class) == null){
-			dmg += Random.IntRange(hero.pointsInTalent(Talent.SUCKER_PUNCH) , 2);
+			dmg += Random.IntRange(hero.pointsInTalent(Talent.SUCKER_PUNCH), Math.max(2, hero.pointsInTalent(Talent.SUCKER_PUNCH)));
 			Buff.affect(enemy, SuckerPunchTracker.class);
 		}
 
@@ -906,7 +927,7 @@ public enum Talent {
 			if (hero.buff(PatientStrikeTracker.class) != null
 					&& !(hero.belongings.attackingWeapon() instanceof MissileWeapon)){
 				hero.buff(PatientStrikeTracker.class).detach();
-				dmg += Random.IntRange(hero.pointsInTalent(Talent.PATIENT_STRIKE), 2);
+				dmg += Random.IntRange(hero.pointsInTalent(Talent.PATIENT_STRIKE), Math.max(2, hero.pointsInTalent(Talent.PATIENT_STRIKE)));
 			}
 		}
 

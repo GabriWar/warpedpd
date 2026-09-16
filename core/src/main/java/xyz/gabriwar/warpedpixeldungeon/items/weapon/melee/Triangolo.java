@@ -24,6 +24,19 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.weapon.melee;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
+import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
+import com.watabou.utils.Callback;
+import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -68,9 +81,52 @@ public class Triangolo extends MeleeWeapon {
 		return super.proc(attacker, defender, damage);
 	}
 
-	//SPS-PD weapon: no Duelist ability was ever designed for it
+	// ---- Duelist ability: one clear chime that sets every skull nearby ringing ----
+
 	@Override
-	public boolean hasDuelistAbility() {
-		return false;
+	protected void duelistAbility(Hero hero, Integer target) {
+		chimeAbility(hero, this);
+	}
+
+	@Override
+	public String abilityInfo() {
+		int turns = levelKnown ? 2 + buffedLvl() / 2 : 2;
+		return Messages.get(this, levelKnown ? "ability_desc" : "typical_ability_desc", turns);
+	}
+
+	@Override
+	public String upgradeAbilityStat(int level) {
+		return Integer.toString(2 + level / 2);
+	}
+
+	/** every enemy within 2 tiles in view reels with vertigo and takes a quarter of a strike */
+	public static void chimeAbility(Hero hero, MeleeWeapon wep){
+		boolean any = false;
+		for (Char ch : Actor.chars()){
+			if (ch == hero || ch.alignment != Char.Alignment.ENEMY || !ch.isAlive()) continue;
+			if (!Dungeon.level.heroFOV[ch.pos] || Dungeon.level.distance(hero.pos, ch.pos) > 2) continue;
+			any = true;
+		}
+		if (!any){
+			GLog.w(Messages.get(wep, "ability_no_target"));
+			return;
+		}
+		wep.beforeAbilityUsed(hero, null);
+		int turns = 2 + wep.buffedLvl() / 2;
+		for (Char ch : Actor.chars()){
+			if (ch == hero || ch.alignment != Char.Alignment.ENEMY || !ch.isAlive()) continue;
+			if (!Dungeon.level.heroFOV[ch.pos] || Dungeon.level.distance(hero.pos, ch.pos) > 2) continue;
+			Buff.prolong(ch, Vertigo.class, turns);
+			ch.damage(Math.max(1, wep.damageRoll(hero) / 4), wep);
+			if (ch.sprite != null) ch.sprite.emitter().burst(Speck.factory(Speck.NOTE), 3);
+			SkillFX.flash(ch);
+		}
+		hero.sprite.operate(hero.pos);
+		new Flare(6, 18).color(0xFFE080, true).show(hero.sprite, 0.6f).angularSpeed = 180;
+		Sample.INSTANCE.play(Assets.Sounds.HIT_PARRY, 1f, 1.6f);
+		Sample.INSTANCE.playDelayed(Assets.Sounds.HIT_PARRY, 0.15f, 0.8f, 1.9f);
+		Invisibility.dispel();
+		hero.spendAndNext(hero.attackDelay());
+		wep.afterAbilityUsed(hero);
 	}
 }

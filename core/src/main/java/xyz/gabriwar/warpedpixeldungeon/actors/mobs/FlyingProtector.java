@@ -50,6 +50,9 @@ public class FlyingProtector extends Mob implements Callback {
 		flying = true;
 
 		resistances.add(Electricity.class);
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	@Override

@@ -29,7 +29,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfChallenge;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.SaltCube;
 import xyz.gabriwar.warpedpixeldungeon.journal.Document;
-import xyz.gabriwar.warpedpixeldungeon.levels.VaultLevel;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
@@ -67,8 +66,7 @@ public class Hunger extends Buff implements Hero.Doom {
 		if (Dungeon.level.locked
 				|| target.buff(WellFed.class) != null
 				|| WPDSettings.intro()
-				|| target.buff(ScrollOfChallenge.ChallengeArena.class) != null
-				|| Dungeon.level instanceof VaultLevel){
+				|| target.buff(ScrollOfChallenge.ChallengeArena.class) != null){
 			spend(TICK);
 			return true;
 		}
@@ -91,7 +89,8 @@ public class Hunger extends Buff implements Hero.Doom {
 				
 			} else {
 
-				float hungerDelay = 1f;
+				//Food lasts twice as long; other hunger modifiers still stack normally.
+				float hungerDelay = 2f;
 				if (target.buff(Shadows.class) != null){
 					hungerDelay *= 1.5f;
 				}

@@ -27,7 +27,15 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfMagic;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 public class Spirituality extends PassiveSkillA1 {
 
@@ -39,8 +47,36 @@ public class Spirituality extends PassiveSkillA1 {
 
 	@Override
 	protected boolean upgrade(){
-		Dungeon.hero.MP += 5;
-		Dungeon.hero.MT += 5;
 		return true;
+	}
+
+	//a blow that lands jolts mana loose: never more than the blow itself, so trading
+	//health for mana is the best a weak attacker can be farmed for
+	@Override
+	public int onDefendProc( Char enemy, int damage ){
+		Hero hero = Dungeon.hero;
+		if (level <= 0 || hero == null || damage <= 0) return damage;
+		int amount = Math.min( damage, 1 + level );
+		int effectiveMT = hero.MT + RingOfMagic.manaBonus( hero );
+
+		if (hero.MP < effectiveMT){
+			int gain = Math.min( amount, effectiveMT - hero.MP );
+			hero.MP += gain;
+			if (hero.sprite != null){
+				hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 2 + gain );
+				hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "jolt", gain ) );
+			}
+			Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 0.5f, 1.4f );
+
+		//a full spirit has nowhere to put it: the jolt lashes back at the attacker
+		} else if (level >= MAX_LEVEL && enemy != null && enemy != hero && enemy.isAlive()){
+			enemy.damage( amount, this );
+			if (enemy.sprite != null && Dungeon.level.heroFOV[enemy.pos]){
+				enemy.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 6 );
+				enemy.sprite.flash();
+			}
+			Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 0.8f, 1.2f );
+		}
+		return damage;
 	}
 }

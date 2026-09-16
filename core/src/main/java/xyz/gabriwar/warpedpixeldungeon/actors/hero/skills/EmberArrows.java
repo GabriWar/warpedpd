@@ -27,11 +27,17 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
 
@@ -50,6 +56,8 @@ public class EmberArrows extends ActiveSkill {
 	public void execute( Hero hero, String action ){
 		super.execute(hero, action);
 		if (action.equals(Skill.AC_ACTIVATE)){
+			Sample.INSTANCE.play( Assets.Sounds.BURNING, 1f, 1.3f );
+			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 3 );
 			//mutually exclusive with its fork partner
 			for (Skill s : hero.heroSkills.activeSkills){
 				if (s instanceof FrostArrows) s.active = false;
@@ -68,6 +76,11 @@ public class EmberArrows extends ActiveSkill {
 		return true;
 	}
 
+	private static void ignite( Char ch ){
+		Buff.affect( ch, Burning.class ).reignite( ch );
+		if (Dungeon.level.heroFOV[ch.pos]) CellEmitter.get( ch.pos ).burst( FlameParticle.FACTORY, 6 );
+	}
+
 	@Override
 	public int onHitProc( Char enemy, int damage, boolean ranged ){
 		if (!ranged || !active || level == 0 || enemy == null
@@ -75,13 +88,37 @@ public class EmberArrows extends ActiveSkill {
 			return damage;
 
 		Dungeon.hero.MP -= getManaCost();
+		ignite( enemy );
 
-		Buff.affect( enemy, Burning.class ).reignite( enemy );
-
-		if (Dungeon.level.heroFOV[enemy.pos]){
-			CellEmitter.get( enemy.pos ).burst( FlameParticle.FACTORY, 4 );
+		//+2: the flame leaps to one enemy beside the target that is not yet burning
+		if (level >= 2){
+			for (int n : PathFinder.NEIGHBOURS8){
+				Char ch = Actor.findChar( enemy.pos + n );
+				if (ch != null && ch != Dungeon.hero && ch.alignment == Char.Alignment.ENEMY
+						&& ch.isAlive() && ch.buff( Burning.class ) == null){
+					ignite( ch );
+					break;
+				}
+			}
 		}
 
-		return Math.round( damage * (1f + 0.06f * level) );
+		Sample.INSTANCE.play( Assets.Sounds.BURNING, 0.6f, 1.3f );
+		return damage;
+	}
+
+	//+3: a burning enemy your shot kills bursts, setting the enemies around it alight
+	@Override
+	public void onKill( Mob mob, boolean ranged ){
+		if (!ranged || !active || level < 3 || mob.buff( Burning.class ) == null) return;
+		for (int n : PathFinder.NEIGHBOURS8){
+			int c = mob.pos + n;
+			if (c < 0 || c >= Dungeon.level.length() || Dungeon.level.solid[c]) continue;
+			if (Dungeon.level.heroFOV[c]) CellEmitter.get( c ).burst( FlameParticle.FACTORY, 5 );
+			Char ch = Actor.findChar( c );
+			if (ch != null && ch.alignment == Char.Alignment.ENEMY && ch.isAlive()){
+				Buff.affect( ch, Burning.class ).reignite( ch );
+			}
+		}
+		Sample.INSTANCE.play( Assets.Sounds.BURNING, 1f, 0.9f );
 	}
 }

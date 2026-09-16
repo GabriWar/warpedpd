@@ -30,6 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
 import xyz.gabriwar.warpedpixeldungeon.items.food.MysteryMeat;
 import xyz.gabriwar.warpedpixeldungeon.sprites.SpiderServantSprite;
+import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
 //ported from Remixed PD's Spider Nest: the common brood, poisonous and quick
@@ -51,7 +52,7 @@ public class SpiderServant extends Mob {
 		maxLvl = 9;
 
 		loot = MysteryMeat.class;
-		lootChance = 0.03f;
+		lootChance = 0.03f / 4f;
 
 	}
 
@@ -79,11 +80,42 @@ public class SpiderServant extends Mob {
 		return damage;
 	}
 
+	//a servant called by the Spider Charm: an ally that follows the hero between floors
+	private boolean pet = false;
+
+	public static SpiderServant pet() {
+		SpiderServant s = new SpiderServant();
+		s.makePet();
+		s.state = s.WANDERING;
+		return s;
+	}
+
+	private void makePet() {
+		pet = true;
+		alignment = Alignment.ALLY;
+		intelligentAlly = true;
+	}
+
+	private static final String PET = "pet";
+
+	@Override
+	public void storeInBundle( Bundle bundle ) {
+		super.storeInBundle( bundle );
+		bundle.put( PET, pet );
+	}
+
+	@Override
+	public void restoreFromBundle( Bundle bundle ) {
+		super.restoreFromBundle( bundle );
+		if (bundle.getBoolean( PET )) makePet();
+	}
+
 	//current brood on the level, used by SpiderEgg and SpiderNest to respect the cap
 	public static int population() {
 		int n = 0;
 		for (Mob m : Dungeon.level.mobs) {
-			if (m instanceof SpiderServant || m instanceof SpiderGuard || m instanceof SpiderExploding) {
+			if (m.alignment != Alignment.ALLY
+					&& (m instanceof SpiderServant || m instanceof SpiderGuard || m instanceof SpiderExploding)) {
 				n++;
 			}
 		}

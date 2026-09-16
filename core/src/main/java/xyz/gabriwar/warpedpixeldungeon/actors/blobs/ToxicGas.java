@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -59,7 +60,7 @@ public class ToxicGas extends Blob implements Hero.Doom {
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
 
-		emitter.pour( Speck.factory( Speck.TOXIC ), 0.4f );
+		emitter.pour( WeatherBlobFX.layered( Speck.factory( Speck.TOXIC ), WeatherBlobFX.bubbles( 0x90FF60 ), 3 ), 0.3f );
 	}
 	
 	@Override

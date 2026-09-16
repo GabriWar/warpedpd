@@ -27,6 +27,11 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
@@ -45,9 +50,13 @@ public class SummonSkeleton extends ActiveSkill3 {
 	{
 		name = "Summon Skeleton";
 		castText = "The dead shall obey!";
+		tier = 3;
 		image = 43;
-		mana = 3;
+		mana = 6;
 	}
+
+	@Override
+	public boolean toggleable(){ return false; }
 
 	@Override
 	public ArrayList<String> actions( Hero hero ){
@@ -61,7 +70,7 @@ public class SummonSkeleton extends ActiveSkill3 {
 	public void execute( Hero hero, String action ){
 		if (action.equals(Skill.AC_SUMMON)){
 
-			if (SummonedPet.summonedPets >= 3 + hero.heroSkills.allSummonLimit()){
+			if (SummonedPet.activeCount() >= 3 + hero.heroSkills.allSummonLimit()){
 				GLog.w( "You cannot control more summons." );
 				return;
 			}
@@ -75,7 +84,21 @@ public class SummonSkeleton extends ActiveSkill3 {
 					candidates.add(c);
 				}
 			}
+			if (candidates.isEmpty()){
+				for (int n : PathFinder.NEIGHBOURS8){
+					int c = hero.pos + n;
+					if (c < 0 || c >= Dungeon.level.length())
+						continue;
+					if (Dungeon.level.passable[c] && Actor.findChar(c) == null){
+						candidates.add(c);
+					}
+				}
+			}
 			int newPos = candidates.size() > 0 ? Random.element(candidates) : -1;
+			if (newPos == -1){
+				GLog.w( xyz.gabriwar.warpedpixeldungeon.messages.Messages.get( this, "no_room" ) );
+				return;
+			}
 			if (newPos != -1){
 				SummonedPet pet = new SummonedPet(SummonedPet.PET_TYPES.SKELETON);
 				pet.spawn(level + Summoner.markBonus());
@@ -84,9 +107,12 @@ public class SummonSkeleton extends ActiveSkill3 {
 				Actor.addDelayed(new Pushing(pet, hero.pos, newPos), -1);
 				pet.sprite.alpha(0);
 				pet.sprite.parent.add(new AlphaTweener(pet.sprite, 1, 0.15f));
+				CellEmitter.get( newPos ).burst( Speck.factory( Speck.BONE ), 6 );
+				CellEmitter.bottom( newPos ).burst( ShadowParticle.UP, 4 );
 
 				hero.MP -= getManaCost();
 				castTextYell();
+				Sample.INSTANCE.play( Assets.Sounds.BONES, 1f, 1.0f );
 				hero.spend( TIME_TO_USE );
 				hero.busy();
 				hero.sprite.operate( hero.pos );

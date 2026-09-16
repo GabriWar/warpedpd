@@ -27,6 +27,13 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import com.watabou.utils.Random;
 
@@ -39,26 +46,69 @@ public class SilentDeath extends PassiveSkillB3 {
 		image = 59;
 	}
 
-	@Override
-	public boolean instantKill(){
-		if (Random.Int(100) < 10 * level){
-			castText = Messages.get(this, "cast");
-			castTextYell();
-			return true;
-		}
-		castText = Messages.get(this, "cast_fail");
-		castTextYell();
-		return false;
-	}
+	private static final float HUSH_TURNS = 3f;
+	private static final int HUSH_RANGE = 4;
 
-	//the shout swaps between hit and miss lines, so the live field wins over the bundle
-	@Override
-	public String castText(){
-		return castText;
-	}
+	//sleepers hushed by a silent kill: mob id -> game time the hush ends (refreshes, never stacks)
+	private final java.util.HashMap<Integer, Float> hushed = new java.util.HashMap<>();
 
 	@Override
 	protected boolean upgrade(){
+		return true;
+	}
+
+	//15% / 25% / 35% of its max health: a blow that leaves a sleeper at or below that kills it outright
+	private float threshold(){
+		return 0.05f + 0.10f * level;
+	}
+
+	//no roll: Hero.attackProc asks only for melee blows on a mob that was asleep before this blow,
+	//bosses and minibosses already excluded, with the blow's final damage
+	@Override
+	public boolean instantKill( Char enemy, int damage ){
+		if (level <= 0 || enemy == null) return false;
+		if (enemy.HP + enemy.shielding() - damage > threshold() * enemy.HT) return false;
+		castTextYell();
+		//the kill is quiet; the shadows are not
+		CellEmitter.get( enemy.pos ).burst( ShadowParticle.UP, 8 );
+		if (Dungeon.hero != null && Dungeon.hero.sprite != null){
+			Dungeon.hero.sprite.emitter().burst( ShadowParticle.UP, 6 );
+		}
+		Sample.INSTANCE.play( Assets.Sounds.HIT_STAB, 1f, 0.6f );
+		Sample.INSTANCE.play( Assets.Sounds.GHOST, 0.5f, 0.7f );
+		return true;
+	}
+
+	//+3: any sleeper killed by a melee blow hushes the room; nearby sleepers can't wake for 3 turns unless hurt
+	@Override
+	public void onKill( Mob mob, boolean ranged ){
+		if (level < MAX_LEVEL || ranged || mob == null || !mob.wasAsleepBeforeBlow()) return;
+		float until = xyz.gabriwar.warpedpixeldungeon.actors.Actor.now() + HUSH_TURNS;
+		boolean any = false;
+		for (Mob m : Dungeon.level.mobs.toArray( new Mob[0] )){
+			if (m == mob || !m.isAlive() || m.alignment != Char.Alignment.ENEMY || m.state != m.SLEEPING
+					|| Char.hasProp( m, Char.Property.BOSS ) || Char.hasProp( m, Char.Property.MINIBOSS )
+					|| Dungeon.level.distance( mob.pos, m.pos ) > HUSH_RANGE) continue;
+			hushed.put( m.id(), until );
+			any = true;
+			if (m.sprite != null && m.sprite.visible){
+				CellEmitter.get( m.pos ).burst( xyz.gabriwar.warpedpixeldungeon.effects.Speck.factory( xyz.gabriwar.warpedpixeldungeon.effects.Speck.SMOKE ), 3 );
+			}
+		}
+		if (any && Dungeon.hero != null && Dungeon.hero.sprite != null){
+			Dungeon.hero.sprite.showStatus( xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite.NEUTRAL, Messages.get( this, "hush" ) );
+			Sample.INSTANCE.play( Assets.Sounds.MELD, 0.6f, 0.8f );
+		}
+	}
+
+	@Override
+	public boolean preventsWaking( Mob mob ){
+		Float until = hushed.get( mob.id() );
+		if (until == null) return false;
+		if (xyz.gabriwar.warpedpixeldungeon.actors.Actor.now() > until || mob.state != mob.SLEEPING){
+			hushed.remove( mob.id() );
+			return false;
+		}
 		return true;
 	}
 }

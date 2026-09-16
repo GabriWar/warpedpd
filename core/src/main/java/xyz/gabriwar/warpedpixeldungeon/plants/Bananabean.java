@@ -100,16 +100,6 @@ public class Bananabean extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect( Char attacker, Char defender, int damage ) {
-			if (defender instanceof Hero && ((Hero) defender).subClass == HeroSubClass.WARDEN){
-				if (((Hero) defender).enemy() != null){
-					Buff.prolong(((Hero) defender).enemy(), Slippery.class, Slippery.DURATION);
-				}
-			} else {
-				Buff.prolong(defender, Slippery.class, Slippery.DURATION);
-			}
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

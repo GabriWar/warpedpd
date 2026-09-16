@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.scenes;
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.WPDSettings;
 import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
@@ -35,7 +36,6 @@ import xyz.gabriwar.warpedpixeldungeon.windows.WndMessage;
 import com.watabou.input.PointerEvent;
 import com.watabou.noosa.Camera;
 import com.watabou.noosa.ColorBlock;
-import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.PointerArea;
@@ -48,7 +48,7 @@ public class AboutScene extends PixelScene {
 	public void create() {
 		super.create();
 
-		final float colWidth = 120;
+		final float colWidth = landscape() ? 120 : 130;
 		final float fullWidth = colWidth * (landscape() ? 2 : 1);
 
 		int w = Camera.main.width;
@@ -77,13 +77,16 @@ public class AboutScene extends PixelScene {
 				"Developed by: _GabriWar_\nBased on Shattered, Overgrown, Sprouted\nand other Pixel Dungeon mods",
 				"github.com/GabriWar",
 				"https://github.com/GabriWar");
-		//hold the WPD avatar for 5s to unlock the debug settings
-		warpd.holdToActivate(5f, new Runnable() {
+		//tap the WPD avatar ten times to unlock the debug settings
+		warpd.tapToActivate(10, new Runnable() {
 			@Override
 			public void run() {
 				if (!WPDSettings.debugUnlocked()) {
 					WPDSettings.debugUnlocked(true);
 					WarpedPixelDungeon.scene().add(new WndMessage(Messages.get(AboutScene.class, "debug_unlocked")));
+				} else {
+					//already done once: say so, rather than leaving ten taps unanswered
+					WarpedPixelDungeon.scene().add(new WndMessage(Messages.get(AboutScene.class, "debug_already")));
 				}
 			}
 		});
@@ -111,19 +114,38 @@ public class AboutScene extends PixelScene {
 
 		addLine(shpx.top() - 4, content);
 
-		CreditsBlock alex = new CreditsBlock(false, Window.SHPX_COLOR,
-				"Splash Art & Design:",
+		CreditsBlock aleks = new CreditsBlock(false, Window.SHPX_COLOR,
+				"Splash & Dungeon Art:",
 				Icons.ALEKS.get(),
 				"Aleksandar Komitov",
 				"alekskomitov.com",
 				"https://www.alekskomitov.com/");
-		alex.setSize(colWidth/2f, 0);
+		aleks.setSize(colWidth/2f, 0);
 		if (landscape()){
-			alex.setPos(shpx.right(), shpx.top() + (shpx.height() - alex.height()*2)/2f);
+			aleks.setPos(shpx.right(), insets.top+6);
 		} else {
-			alex.setPos(w/2f - colWidth/2f, shpx.bottom()+5);
+			aleks.setPos(w/2f - colWidth/2f, shpx.bottom()+6);
 		}
-		content.add(alex);
+		content.add(aleks);
+
+		CreditsBlock lumine = new CreditsBlock(false, Window.SHPX_COLOR,
+				"Composer:",
+				Icons.LUMINE.get(),
+				"Lumine Haaristo",
+				"youtube.com/@Lumine...",
+				"https://www.youtube.com/@LumineThomasHaaristo");
+		lumine.setRect(aleks.right(), aleks.top(), colWidth/2f, 0);
+		content.add(lumine);
+
+		CreditsBlock pumpkin = new CreditsBlock(false, Window.SHPX_COLOR,
+				"Item Pixel Art:",
+				Icons.PUMPKINVOLT.get(),
+				"PumpkinVolt",
+				null,
+				null);
+		pumpkin.setSize(colWidth/2f, 0);
+		pumpkin.setRect(aleks.left(), aleks.bottom()+6, colWidth/2f, 0);
+		content.add(pumpkin);
 
 		CreditsBlock celesti = new CreditsBlock(false, Window.SHPX_COLOR,
 				"Sound Effects:",
@@ -131,17 +153,18 @@ public class AboutScene extends PixelScene {
 				"Celesti",
 				"celesti-whispers.itch.io",
 				"https://celesti-whispers.itch.io/");
-		celesti.setRect(alex.right(), alex.top(), colWidth/2f, 0);
+		celesti.setRect(pumpkin.right(), pumpkin.top(), colWidth/2f, 0);
 		content.add(celesti);
 
-		CreditsBlock lumine = new CreditsBlock(false, Window.SHPX_COLOR,
-				"Music:",
-				Icons.LUMINE.get(),
-				"Lumine Haaristo",
-				"youtube.com/@Lumine...",
-				"https://www.youtube.com/@LumineThomasHaaristo");
-		lumine.setRect(alex.right() - colWidth/4f, alex.bottom() + 5, colWidth/2f, 0);
-		content.add(lumine);
+		CreditsBlock alastair = new CreditsBlock(false, Window.SHPX_COLOR,
+				"Additional Pixel Art:",
+				Icons.ALASTAIR.get(),
+				"Alastair Braun",
+				null,
+				null);
+		alastair.setSize(colWidth/2f, 0);
+		alastair.setRect(pumpkin.left(), celesti.bottom()+6, colWidth/2f, 0);
+		content.add(alastair);
 
 		//*** The mods Warped is built from ***
 		//Warped is a patchwork: most of what is in it was written by these
@@ -157,73 +180,61 @@ public class AboutScene extends PixelScene {
 						+ "These are the people whose work it carries.",
 				null,
 				null);
-		modsTitle.setRect(shpx.left(), lumine.bottom() + 10, colWidth, 0);
+		modsTitle.setRect(shpx.left(), alastair.bottom() + 10, colWidth, 0);
 		content.add(modsTitle);
 
 		addLine(modsTitle.top() - 4, content);
 
-		CreditsBlock sprouted = new CreditsBlock(false, OVGR_COLOR,
-				"Sprouted PD:",
-				Icons.SHPX.get(),
-				"_dachhack_\nThe overworld town, farming,\ndew and the deep floors",
-				"github.com/dachhack",
-				"https://github.com/dachhack/SproutedPixelDungeon");
-		sprouted.setRect(modsTitle.left(), modsTitle.bottom() + 6, colWidth, 0);
-		content.add(sprouted);
+		//a card each, laid out in a grid: two columns in portrait, four in
+		//landscape. The cards are the "large" shape - avatar over centred text -
+		//because at half a column an avatar beside the text leaves ten characters
+		//a line, and every one of these names is longer than that
+		CreditsBlock[] mods = {
+				modCard( "Sprouted PD:", 0, OVGR_COLOR,
+						"_dachhack_\nTown, farming, dew,\nthe deep floors",
+						"github.com/dachhack",
+						"https://github.com/dachhack/SproutedPixelDungeon" ),
+				modCard( "Overgrown PD:", 1, OVGR_COLOR,
+						"_AnonymousPD_\n(_TypedScroll_)\nPlants, seeds, the\ngrowing world",
+						"github.com/AnonymousPD",
+						"https://github.com/AnonymousPD/OvergrownPD" ),
+				modCard( "Remixed Dungeon:", 2, OVGR_COLOR,
+						"_NYRDS_\nThe town, its folk,\nthe ice caves",
+						"github.com/NYRDS",
+						"https://github.com/NYRDS/remixed-dungeon" ),
+				modCard( "SPS-PD:", 3, OVGR_COLOR,
+						"_hmdzl001_\nItems, enchantments,\nunique weapons",
+						"github.com/hmdzl001",
+						"https://github.com/hmdzl001/SPS-PD" ),
+				modCard( "Unleashed PD:", 4, OVGR_COLOR,
+						"_FthrNature_\nMonsters and\ndungeon features",
+						"github.com/FthrNature",
+						"https://github.com/FthrNature/unleashed-pixel-dungeon" ),
+				modCard( "Re-ARranged PD:", 5, OVGR_COLOR,
+						"_Hoto-Mocha_\nGuns, ammunition,\nalchemical weapons",
+						"github.com/Hoto-Mocha",
+						"https://github.com/Hoto-Mocha/Re-ARranged-Pixel-Dungeon" ),
+				modCard( "Cursed PD:", 6, OVGR_COLOR,
+						"_Smujb_\nTiles and\nroom layouts",
+						"github.com/Smujb",
+						"https://github.com/Smujb/cursed-pixel-dungeon" ) };
 
-		CreditsBlock overgrown = new CreditsBlock(false, OVGR_COLOR,
-				"Overgrown PD:",
-				Icons.SHPX.get(),
-				"_AnonymousPD_ (_TypedScroll_)\nPlants, seeds and the\ngrowing world",
-				"github.com/AnonymousPD",
-				"https://github.com/AnonymousPD/OvergrownPD");
-		overgrown.setRect(sprouted.left(), sprouted.bottom() + 5, colWidth, 0);
-		content.add(overgrown);
-
-		CreditsBlock remixed = new CreditsBlock(false, OVGR_COLOR,
-				"Remixed Dungeon:",
-				Icons.SHPX.get(),
-				"_NYRDS_\nThe town square and its\nbuildings, townsfolk and\nthe ice caves",
-				"github.com/NYRDS",
-				"https://github.com/NYRDS/remixed-dungeon");
-		remixed.setRect(sprouted.left(), overgrown.bottom() + 5, colWidth, 0);
-		content.add(remixed);
-
-		CreditsBlock sps = new CreditsBlock(false, OVGR_COLOR,
-				"SPS-PD:",
-				Icons.SHPX.get(),
-				"_hmdzl001_\nItems, enchantments and\nthe unique weapons",
-				"github.com/hmdzl001",
-				"https://github.com/hmdzl001/SPS-PD");
-		sps.setRect(sprouted.left(), remixed.bottom() + 5, colWidth, 0);
-		content.add(sps);
-
-		CreditsBlock unleashed = new CreditsBlock(false, OVGR_COLOR,
-				"Unleashed PD:",
-				Icons.SHPX.get(),
-				"_FthrNature_\nMonsters and dungeon\nfeatures",
-				"github.com/FthrNature",
-				"https://github.com/FthrNature/unleashed-pixel-dungeon");
-		unleashed.setRect(sprouted.left(), sps.bottom() + 5, colWidth, 0);
-		content.add(unleashed);
-
-		CreditsBlock rearranged = new CreditsBlock(false, OVGR_COLOR,
-				"Re-ARranged PD:",
-				Icons.SHPX.get(),
-				"_Hoto-Mocha_\nGuns, ammunition and\nalchemical weapons",
-				"github.com/Hoto-Mocha",
-				"https://github.com/Hoto-Mocha/Re-ARranged-Pixel-Dungeon");
-		rearranged.setRect(sprouted.left(), unleashed.bottom() + 5, colWidth, 0);
-		content.add(rearranged);
-
-		CreditsBlock cursed = new CreditsBlock(false, OVGR_COLOR,
-				"Cursed PD:",
-				Icons.SHPX.get(),
-				"_Smujb_\nTiles and room layouts",
-				"github.com/Smujb",
-				"https://github.com/Smujb/cursed-pixel-dungeon");
-		cursed.setRect(sprouted.left(), rearranged.bottom() + 5, colWidth, 0);
-		content.add(cursed);
+		final float cardWidth = colWidth / 2f;
+		int modCols = Math.max( 2, (int)(fullWidth / cardWidth) );
+		float gridLeft = (w - modCols * cardWidth) / 2f;
+		float rowTop = modsTitle.bottom() + 6;
+		for (int i = 0; i < mods.length; i += modCols){
+			float rowHeight = 0;
+			for (int c = 0; c < modCols && i + c < mods.length; c++){
+				CreditsBlock card = mods[i + c];
+				card.setRect( gridLeft + c * cardWidth, rowTop, cardWidth, 0 );
+				content.add( card );
+				rowHeight = Math.max( rowHeight, card.height() );
+			}
+			rowTop += rowHeight + 5;
+		}
+		//the grid's own bottom: in a wide layout the last card is not the lowest one
+		final float modsBottom = rowTop - 5;
 
 		//*** Pixel Dungeon Credits ***
 
@@ -234,7 +245,7 @@ public class AboutScene extends PixelScene {
 				"Developed by: _Watabou_\nInspired by Brian Walker's Brogue",
 				"watabou.itch.io",
 				"https://watabou.itch.io/");
-		wata.setRect(shpx.left(), cursed.bottom() + 8, colWidth, 0);
+		wata.setRect(shpx.left(), modsBottom + 8, colWidth, 0);
 		content.add(wata);
 
 		addLine(wata.top() - 4, content);
@@ -249,7 +260,7 @@ public class AboutScene extends PixelScene {
 		if (landscape()){
 			cube.setPos(wata.right() + colWidth/4f, wata.top() + (wata.height() - cube.height())/2f);
 		} else {
-			cube.setPos(alex.left() + colWidth/4f, wata.bottom()+5);
+			cube.setPos(aleks.left() + colWidth/4f, wata.bottom()+6);
 		}
 		content.add(cube);
 
@@ -282,7 +293,7 @@ public class AboutScene extends PixelScene {
 		if (landscape()){
 			arcnor.setPos(gdx.right(), gdx.top() + (gdx.height() - arcnor.height())/2f);
 		} else {
-			arcnor.setPos(alex.left(), gdx.bottom()+5);
+			arcnor.setPos(aleks.left(), gdx.bottom()+6);
 		}
 		content.add(arcnor);
 
@@ -362,6 +373,25 @@ public class AboutScene extends PixelScene {
 		WarpedPixelDungeon.switchScene(TitleScene.class);
 	}
 
+	//one mod's card: the large shape (avatar over centred text) without the
+	//flare that shape normally spins behind an avatar - seven of those at once
+	//would be a fairground
+	private static CreditsBlock modCard( String title, int face, int colour,
+			String body, String linkText, String linkUrl ){
+		CreditsBlock card = new CreditsBlock( true, colour, title, authorFace( face ),
+				body, linkText, linkUrl );
+		card.dropFlare();
+		return card;
+	}
+
+	//the mod authors' own avatars, one 32x32 frame each, in list order
+	private static Image authorFace( int index ){
+		Image face = new Image( Assets.Interfaces.MOD_AUTHORS );
+		face.frame( face.texture.uvRectBySize( index * 32, 0, 32, 32 ) );
+		face.scale.set( PixelScene.align( 0.49f ) );
+		return face;
+	}
+
 	private void addLine( float y, Group content ){
 		ColorBlock line = new ColorBlock(Camera.main.width, 1, 0xFF333333);
 		line.y = y;
@@ -380,12 +410,12 @@ public class AboutScene extends PixelScene {
 		ColorBlock linkUnderline;
 		PointerArea linkButton;
 
-		//hold-to-activate on the avatar (used to unlock debug settings)
-		PointerArea holdArea;
-		float holdSecs;
-		Runnable holdAction;
-		float holdTimer = -1;
-		boolean holdFired;
+		//tap-to-activate on the avatar (used to unlock debug settings)
+		PointerArea tapArea;
+		int tapsNeeded;
+		Runnable tapAction;
+		int taps;
+		boolean tapFired;
 
 		//many elements can be null, but body is assumed to have content.
 		private CreditsBlock(boolean large, int highlight, String title, Image avatar, String body, String linkText, String linkUrl){
@@ -439,38 +469,42 @@ public class AboutScene extends PixelScene {
 
 		}
 
-		//press-and-hold the avatar for the given duration to fire the action
-		public void holdToActivate(float seconds, Runnable action){
-			this.holdSecs = seconds;
-			this.holdAction = action;
-			holdArea = new PointerArea(0, 0, 0, 0){
-				@Override
-				protected void onPointerDown( PointerEvent event ){
-					holdTimer = 0;
-					holdFired = false;
-				}
-				@Override
-				protected void onPointerUp( PointerEvent event ){
-					holdTimer = -1;
-				}
-			};
-			add(holdArea);
+		/** takes the spinning flare back off an avatar (see modCard) */
+		public void dropFlare(){
+			if (flare != null){
+				flare.killAndErase();
+				flare = null;
+			}
 		}
 
-		@Override
-		public void update() {
-			super.update();
-			if (holdTimer >= 0 && !holdFired){
-				holdTimer += Game.elapsed;
-				if (holdTimer >= holdSecs){
-					holdFired = true;
-					holdTimer = -1;
-					if (flare == null && avatar != null){
-						new Flare(7, 24).color(0xFFFFFF, true).show(avatar, 2f);
+		//tap the avatar this many times to fire the action
+		public void tapToActivate(int taps, Runnable action){
+			this.tapsNeeded = taps;
+			this.tapAction = action;
+			tapArea = new PointerArea(0, 0, 0, 0){
+				//counted on the press, not on the click: a click needs the same
+				//pointer to go down and come up inside the area, and inside a
+				//scrolling list that pairing is lost the moment a finger drifts
+				@Override
+				protected void onPointerDown( PointerEvent event ){
+					if (tapFired) return;
+					CreditsBlock.this.taps++;
+					//from halfway on, every press answers with a spark, so a player can
+					//tell the presses are landing and how far along they are
+					if (CreditsBlock.this.taps >= tapsNeeded/2 && CreditsBlock.this.taps < tapsNeeded
+							&& avatar != null){
+						new Flare(4, 12).color(0xFFFFFF, true).show(avatar, 0.4f);
 					}
-					if (holdAction != null) holdAction.run();
+					if (CreditsBlock.this.taps >= tapsNeeded){
+						tapFired = true;
+						if (flare == null && avatar != null){
+							new Flare(7, 24).color(0xFFFFFF, true).show(avatar, 2f);
+						}
+						if (tapAction != null) tapAction.run();
+					}
 				}
-			}
+			};
+			add(tapArea);
 		}
 
 		@Override
@@ -529,11 +563,11 @@ public class AboutScene extends PixelScene {
 
 			}
 
-			if (holdArea != null && avatar != null){
-				holdArea.x = avatar.x - 2;
-				holdArea.y = avatar.y - 2;
-				holdArea.width = avatar.width() + 4;
-				holdArea.height = avatar.height() + 4;
+			if (tapArea != null && avatar != null){
+				tapArea.x = avatar.x - 2;
+				tapArea.y = avatar.y - 2;
+				tapArea.width = avatar.width() + 4;
+				tapArea.height = avatar.height() + 4;
 			}
 
 			if (link != null){

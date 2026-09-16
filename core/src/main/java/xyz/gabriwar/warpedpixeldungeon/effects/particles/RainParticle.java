@@ -21,14 +21,19 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
-import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
+import com.watabou.noosa.Group;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.Random;
 
-public class RainParticle extends PixelParticle {
+import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherSprites;
+
+/**
+ * A raindrop: a short streak leaning with the wind, brighter toward its falling
+ * end, that breaks into a small splash where it lands. Gusts lean it harder and
+ * hurry it down.
+ */
+public class RainParticle extends WeatherParticle {
 
 	public static final Emitter.Factory FACTORY = new Emitter.Factory() {
 		@Override
@@ -37,9 +42,12 @@ public class RainParticle extends PixelParticle {
 		}
 	};
 
+	private int tint;
+	private float peak;
+	private boolean splashes;
+
 	public RainParticle() {
 		super();
-		color(Random.Float() < 0.3f ? 0x8899BB : 0x6688AA);
 		lifespan = Random.Float(0.6f, 1.0f);
 	}
 
@@ -47,27 +55,43 @@ public class RainParticle extends PixelParticle {
 		revive();
 		this.x = x;
 		this.y = y;
-		left = lifespan;
-		size = Random.Float(0.5f, 1.5f);
+		left = lifespan = Random.Float(0.6f, 1.0f);
 
-		// Wind pushes rain in the actual wind direction
-		float wind = ClimateManager.localWindSpeed();
+		float rate = ClimateManager.localPrecipRate();
+		tint = Random.Float() < 0.35f ? 0xC8DCF4 : 0x9CB8DC;
+		color(tint);
+		//heavy rain is denser, so each drop can be a touch fainter
+		peak = 0.55f + 0.25f * (1f - rate);
+		splashes = Random.Float() < 0.35f + 0.25f * rate;
+
+		//wind pushes rain in the actual wind direction, a gust more so
+		float wind = ClimateManager.localWindSpeed() * (1f + 0.35f * WeatherSprites.gust());
 		float windRad = (float) Math.toRadians(ClimateManager.surfaceWindDir());
 		float windX = (float) Math.sin(windRad) * wind * 1.2f;
 		float windY = -(float) Math.cos(windRad) * wind * 0.35f; // headwind slows fall, tailwind hastens
-		speed.set(Random.Float(windX - 3f, windX + 1f), Random.Float(50, 80) + windY);
+		speed.set(Random.Float(windX - 3f, windX + 1f), Random.Float(50, 80) + windY + 6f * WeatherSprites.gust());
 		acc.set(0, 30);
+
+		//the streak leans as far as it flies sideways, and draws out with speed
+		float lean = Math.abs(speed.x) / Math.max(1f, speed.y);
+		boolean fast = speed.y > 72f || (rate > 0.6f && Random.Float() < 0.6f);
+		if (fast) frame(lean < 0.12f ? WeatherSprites.RAIN_VL : (lean < 0.4f ? WeatherSprites.RAIN_S1L : WeatherSprites.RAIN_S2L));
+		else frame(lean < 0.12f ? WeatherSprites.RAIN_V : (lean < 0.4f ? WeatherSprites.RAIN_S1 : WeatherSprites.RAIN_S2));
+		scale.x = speed.x < 0 ? -1 : 1;
 	}
 
 	@Override
 	public void update() {
+		boolean falling = left > 0;
 		super.update();
-		float p = left / lifespan;
-		am = p < 0.3f ? p * 3.3f : 0.6f;
-
-		int cell = (int)(this.x / DungeonTilemap.SIZE) + (int)(this.y / DungeonTilemap.SIZE) * Dungeon.level.width();
-		if (cell < 0 || cell >= Dungeon.level.heroFOV.length || !Dungeon.level.heroFOV[cell]) {
-			am = 0;
+		if (falling && left <= 0) {
+			//landed: a splash where it hit, if anyone is there to see it
+			if (splashes && WeatherSprites.visible(x, y) && parent instanceof Group) {
+				SplashParticle.splash((Group) parent, x, y, tint, peak);
+			}
+			return;
 		}
+		am = envelope(0.3f, 0.05f, peak);
+		fov();
 	}
 }

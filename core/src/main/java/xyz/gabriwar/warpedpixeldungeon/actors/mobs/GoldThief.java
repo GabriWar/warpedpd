@@ -65,6 +65,11 @@ public class GoldThief extends Mob {
 	private static final String STOLEN_GOLD = "stolen_gold";
 
 	@Override
+	protected boolean lootIgnoresLevel() {
+		return true;
+	}
+
+	@Override
 	public void storeInBundle( Bundle bundle ) {
 		super.storeInBundle( bundle );
 		bundle.put( STOLEN_GOLD, stolenGold );
@@ -127,8 +132,12 @@ public class GoldThief extends Mob {
 	}
 
 	@Override
+	protected boolean extraLootIgnoresLevel() {
+		return true;
+	}
+
+	@Override
 	protected void dropExtraLoot() {
-		explodeDew(pos);
 		if (!Dungeon.LimitedDrops.CITY_KEY.dropped() && Dungeon.depth < Dungeon.POSTGAME_DEPTH) {
 			Dungeon.LimitedDrops.CITY_KEY.drop();
 			trackedDrop(new CityKey(), 0);

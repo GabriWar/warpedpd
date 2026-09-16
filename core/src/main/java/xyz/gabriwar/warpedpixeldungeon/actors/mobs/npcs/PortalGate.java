@@ -1,4 +1,28 @@
 /*
+ * Pixel Dungeon
+ * Copyright (C) 2012-2015 Oleg Dolya
+ *
+ * Shattered Pixel Dungeon
+ * Copyright (C) 2014-2026 Evan Debenham
+ *
+ * Warped Pixel Dungeon
+ * Copyright (C) 2026 Gabriel Duarte Guerra (gabriwar)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ */
+
+/*
  * Warped Pixel Dungeon
  *
  * PortalGate: shopkeeper-guarded fast-travel node. Three states:
@@ -72,7 +96,7 @@ public class PortalGate extends NPC {
 	public boolean interact(Char c) {
 		if (!(c instanceof Hero)) return true;
 		Hero h = (Hero) c;
-		Portals.discover(Dungeon.depth);
+		Portals.discover(Portals.keyHere());
 
 		// Remote (netHero) → route the portal UI to the owning client via NetDialogs.
 		// The host can't open a GameScene window on someone else's screen, so we
@@ -87,7 +111,7 @@ public class PortalGate extends NPC {
 				payload.put("gold", Dungeon.gold);
 				if (state == State.ACTIVE) {
 					JSONArray dests = new JSONArray();
-					for (int d : Portals.travelable(Dungeon.depth)) dests.put(d);
+					for (int d : Portals.travelable(Portals.keyHere())) dests.put(d);
 					payload.put("dests", dests);
 				}
 				NetDialogs.request(h, NetDialogs.KIND_PORTAL, payload, true);
@@ -110,7 +134,7 @@ public class PortalGate extends NPC {
 		if (state == s) return;
 		State prev = state;
 		state = s;
-		Portals.setState(Dungeon.depth, s);
+		Portals.setState(Portals.keyHere(), s);
 		if (sprite instanceof PortalGateSprite) {
 			((PortalGateSprite) sprite).onStateChange(prev, s);
 		}
@@ -119,7 +143,7 @@ public class PortalGate extends NPC {
 	// Sync this NPC's state with the global registry. Called when added to level
 	// (re-spawn on revisit picks up DEAD/ACTIVE flags set on prior visits).
 	public void syncFromRegistry() {
-		Portals.Record r = Portals.register(Dungeon.depth, pos);
+		Portals.Record r = Portals.register(Portals.keyHere(), pos);
 		if (state != r.state) {
 			State prev = state;
 			state = r.state;

@@ -32,6 +32,26 @@ import com.watabou.utils.Random;
 
 public class ForestDart extends MissileWeapon {
 
+	@Override
+	protected int maxStackQuantity(){ return 60; }
+
+	@Override
+	public boolean isSimilar(xyz.gabriwar.warpedpixeldungeon.items.Item item){
+		if (item == null || item.getClass() != getClass()) return false;
+		ForestDart other = (ForestDart)item;
+		return trueLevel() == other.trueLevel() && quantity <= 60 - other.quantity
+				&& augment == other.augment && cursed == other.cursed
+				&& curseInfusionBonus == other.curseInfusionBonus
+				&& masteryPotionBonus == other.masteryPotionBonus
+				&& enchantHardened == other.enchantHardened
+				&& matchingEnchant(enchantment, other.enchantment)
+				&& matchingEnchant(enchantment2, other.enchantment2);
+	}
+
+	private static boolean matchingEnchant(Enchantment a, Enchantment b){
+		return a == b || a != null && b != null && a.getClass() == b.getClass() && a.level() == b.level();
+	}
+
 	{
 		image = ItemSpriteSheet.DART;
 		hitSound = Assets.Sounds.HIT;

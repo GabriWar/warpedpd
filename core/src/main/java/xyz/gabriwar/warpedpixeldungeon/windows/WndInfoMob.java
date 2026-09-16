@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.ui.HealthBar;
 import xyz.gabriwar.warpedpixeldungeon.ui.RenderedTextBlock;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import com.watabou.noosa.ui.Component;
 
 public class WndInfoMob extends WndTitledMessage {
@@ -68,10 +69,10 @@ public class WndInfoMob extends WndTitledMessage {
 
 			health = new HealthBar();
 			health.level(mob);
-			add( health );
+			if (!Char.hasProp(mob, Char.Property.OBJECT)) add( health );
 
 			buffs = new BuffIndicator( mob, false );
-			add( buffs );
+			if (!Char.hasProp(mob, Char.Property.OBJECT)) add( buffs );
 		}
 		
 		@Override

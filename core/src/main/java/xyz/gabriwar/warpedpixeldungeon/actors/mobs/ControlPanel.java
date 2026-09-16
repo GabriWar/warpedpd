@@ -47,6 +47,9 @@ public class ControlPanel extends Mob {
 		lootChance = 0.05f;
 
 		properties.add( Property.IMMOVABLE );
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	@Override

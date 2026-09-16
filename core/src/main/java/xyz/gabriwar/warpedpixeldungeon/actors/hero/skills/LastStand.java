@@ -27,10 +27,21 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import com.watabou.noosa.audio.Sample;
+import com.watabou.utils.Bundle;
+import com.watabou.utils.PathFinder;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.Statistics;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barrier;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 
 public class LastStand extends Skill {
 
@@ -41,28 +52,59 @@ public class LastStand extends Skill {
 		tier = 4;
 	}
 
+	private static final float COOLDOWN = 40f;
+	private static final String READY = "LASTSTAND_READY";
+
+	//game-clock time at which the stand can be taken again
+	private float readyAt = 0;
+
 	@Override
 	protected boolean upgrade(){
 		return true;
 	}
 
+	//this runs inside Hero.damage, so the blow has already lost the armour's dr:
+	//the barrier answers the damage the hero is really about to take, and soaks it
 	@Override
-	public int incomingDamageReduction( int damage ){
+	public int incomingDamageReduction( int damage, Object source ){
 		Hero hero = Dungeon.hero;
-		if (level <= 0 || hero == null) return 0;
+		if (level <= 0 || hero == null || source instanceof Buff.DOTbuff) return 0;
+		if (hero.HP - damage > hero.HT / 4) return 0;
+		float now = Statistics.duration + Actor.now();
+		if (now < readyAt) return 0;
+		readyAt = now + COOLDOWN;
 
-		//this runs inside Hero.damage, so the blow has already lost the armour's dr:
-		//the barrier answers the damage the hero is really about to take
-		if (hero.HP - damage <= hero.HT * 0.25f){
-			Barrier barrier = Buff.affect( hero, Barrier.class );
-			if (barrier.shielding() == 0){
-				barrier.setShield( 4 * level );
+		Buff.affect( hero, Barrier.class ).setShield( SkillInteractions.ofHealth( hero.HT, 0.05f * level ) );
+		castTextYell();
+		if (hero.sprite != null){
+			new Flare( 6, 20 ).color( 0xFFCC66, true ).show( hero.sprite, 0.6f );
+			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 5 );
+		}
+		Sample.INSTANCE.play( Assets.Sounds.STURDY, 1f, 0.8f );
+
+		if (level >= MAX_LEVEL){
+			SkillFX.land( hero.pos );
+			for (int n : PathFinder.NEIGHBOURS8){
+				Char ch = Actor.findChar( hero.pos + n );
+				if (ch != null && ch.alignment == Char.Alignment.ENEMY && ch.isAlive()){
+					if (!Char.hasProp( ch, Char.Property.BOSS ) && !Char.hasProp( ch, Char.Property.MINIBOSS ))
+						Buff.affect( ch, Paralysis.class, 2f );
+					if (ch.sprite != null) ch.sprite.emitter().burst( Speck.factory( Speck.STAR ), 3 );
+				}
 			}
 		}
-
-		if (hero.HP <= hero.HT / 3){
-			return Math.round( damage * 0.05f * level );
-		}
 		return 0;
+	}
+
+	@Override
+	public void storeInBundle( Bundle bundle ){
+		super.storeInBundle( bundle );
+		bundle.put( READY, readyAt );
+	}
+
+	@Override
+	public void restoreInBundle( Bundle bundle ){
+		super.restoreInBundle( bundle );
+		readyAt = bundle.getFloat( READY );
 	}
 }

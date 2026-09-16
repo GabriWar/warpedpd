@@ -27,6 +27,8 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -52,6 +54,8 @@ public class FrostArrows extends ActiveSkill {
 	public void execute( Hero hero, String action ){
 		super.execute(hero, action);
 		if (action.equals(Skill.AC_ACTIVATE)){
+			Sample.INSTANCE.play( Assets.Sounds.DEGRADE, 1f, 1.6f );
+			hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 3 );
 			//mutually exclusive with its fork partner
 			for (Skill s : hero.heroSkills.activeSkills){
 				if (s instanceof EmberArrows) s.active = false;
@@ -78,19 +82,21 @@ public class FrostArrows extends ActiveSkill {
 
 		Dungeon.hero.MP -= getManaCost();
 
-		//a target that is already chilled takes the brunt of it
-		if (enemy.buff( Chill.class ) != null){
-			damage = Math.round( damage * (1f + 0.08f * level) );
+		//+2: a target that is already chilled takes the brunt of it
+		if (level >= 2 && enemy.buff( Chill.class ) != null){
+			damage = Math.round( damage * 1.15f );
 		}
 
-		Buff.affect( enemy, Chill.class, 2 + level );
-
-		if (level >= 3 && Random.Int(100) < 15){
-			Buff.affect( enemy, Frost.class, 2f );
+		boolean froze = level >= 3 && Random.Int(100) < 20;
+		if (froze){
+			SkillInteractions.affectAfterHit( enemy, Frost.class, 2f );
+		} else {
+			Buff.affect( enemy, Chill.class, 2 + level );
 		}
-
 		if (Dungeon.level.heroFOV[enemy.pos]){
-			CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.LIGHT ), 4 );
+			CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.BLUE_LIGHT ), froze ? 8 : 4 );
+			Sample.INSTANCE.play( froze ? Assets.Sounds.SHATTER : Assets.Sounds.DEGRADE, 0.7f, froze ? 1.2f : 1.5f );
+			if (froze && enemy.sprite != null) enemy.sprite.flash();
 		}
 
 		return damage;

@@ -27,10 +27,29 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import java.util.ArrayList;
+import com.watabou.utils.Bundle;
+import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
+import com.watabou.utils.Random;
+
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 
 public class DoubleShot extends ActiveSkill2 {
+
+	//its damage is already a share of a blow, a hit or a health pool, so it grows with the hero on its own
+	@Override
+	public boolean weaponScaled(){ return true; }
+
 
 	{
 		name = "Double Shot";
@@ -40,32 +59,97 @@ public class DoubleShot extends ActiveSkill2 {
 		mana = 5;
 	}
 
-	private boolean onDouble = false; // prevent infinite loop
+	@Override
+	public ArrayList<String> actions( Hero hero ){
+		ArrayList<String> actions = super.actions( hero );
+		if (level >= 3) actions.add( AC_MARK );
+		return actions;
+	}
 
 	@Override
 	public void execute( Hero hero, String action ){
+		if (action.equals( AC_MARK )){
+			pickMark();
+			return;
+		}
 		super.execute(hero, action);
 		if (action.equals(Skill.AC_ACTIVATE)){
+			Sample.INSTANCE.play( Assets.Sounds.ATK_SPIRITBOW, 1f, 1.3f );
+			hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 3 );
+			hero.heroSkills.active1.active = false; // Disable Aimed Shot
 			hero.heroSkills.active3.active = false; // Disable Bombvoyage
 		}
 	}
 
+	//the old latch let this fire on every second shot no matter the rank, so ranks 2
+	//and 3 bought nothing. damageRoll() and Char.damage() never re-enter attackProc,
+	//so there is no loop to guard against and the rank can own the proc rate instead
 	@Override
 	public boolean doubleShot(){
 		if (!active || Dungeon.hero.MP < getManaCost())
 			return false;
-		else if (!onDouble){
-			onDouble = true;
-			castTextYell();
-			Dungeon.hero.MP -= getManaCost();
-			return true;
-		}
-		onDouble = false;
-		return false;
+		if (Random.Int(100) >= 25 + 25 * level)
+			return false;
+		castTextYell();
+		Dungeon.hero.MP -= getManaCost();
+		return true;
 	}
 
 	@Override
 	protected boolean upgrade(){
 		return true;
+	}
+
+	// ---- the mark: the enemy the second shot goes into, chosen by the player ----
+
+	private int mark = -1;
+
+	/** the marked enemy, if it is still there to be hit; marking is the +3 upgrade */
+	public Char marked(){
+		if (mark == -1 || level < 3) return null;
+		Actor a = Actor.findById( mark );
+		if (a instanceof Char && ((Char) a).isAlive() && ((Char) a).alignment == Char.Alignment.ENEMY) return (Char) a;
+		mark = -1;
+		return null;
+	}
+
+	private void pickMark(){
+		GameScene.selectCell( new CellSelector.Listener() {
+			@Override
+			public void onSelect( Integer cell ){
+				if (cell == null) return;
+				Char ch = Actor.findChar( cell );
+				if (ch == null || ch == Dungeon.hero || ch.alignment != Char.Alignment.ENEMY || !Dungeon.level.heroFOV[cell]){
+					GLog.w( Messages.get( DoubleShot.class, "no_mark" ) );
+					return;
+				}
+				mark = ch.id();
+				if (ch.sprite != null){
+					new Flare( 6, 14 ).color( 0xFF5555, true ).show( ch.sprite, 0.8f );
+					ch.sprite.emitter().burst( Speck.factory( Speck.STAR ), 3 );
+				}
+				Sample.INSTANCE.play( Assets.Sounds.BEACON, 0.7f, 1.4f );
+				GLog.i( Messages.get( DoubleShot.class, "marked", ch.name() ) );
+			}
+			@Override
+			public String prompt(){
+				return Messages.get( DoubleShot.class, "mark_prompt" );
+			}
+		} );
+	}
+
+	private static final String MARK = "MARK";
+
+	@Override
+	public void storeInBundle( Bundle bundle ){
+		super.storeInBundle( bundle );
+		bundle.put( SKILL_LEVEL + " " + tag + " " + MARK, mark );
+	}
+
+	@Override
+	public void restoreInBundle( Bundle bundle ){
+		super.restoreInBundle( bundle );
+		String key = SKILL_LEVEL + " " + tag + " " + MARK;
+		mark = bundle.contains( key ) ? bundle.getInt( key ) : -1;
 	}
 }

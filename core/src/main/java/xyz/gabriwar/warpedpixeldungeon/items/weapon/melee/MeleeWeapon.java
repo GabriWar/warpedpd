@@ -58,6 +58,7 @@ import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
 import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Crystal;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.Visual;
 import com.watabou.noosa.audio.Sample;
@@ -440,7 +441,10 @@ public class MeleeWeapon extends Weapon {
 	public int value() {
 		int price = 20 * tier;
 		if (hasGoodEnchant()) {
-			price *= 1.5;
+			price *= 1.5f;
+			if (enchantment instanceof Crystal){
+				price *= 3;
+			}
 		}
 		if (cursedKnown && (cursed || hasCurseEnchant())) {
 			price /= 2;

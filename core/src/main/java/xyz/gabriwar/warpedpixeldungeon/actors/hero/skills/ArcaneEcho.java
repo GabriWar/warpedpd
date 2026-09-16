@@ -26,24 +26,70 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
+import com.watabou.utils.PathFinder;
+import com.watabou.utils.Random;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+
 
 public class ArcaneEcho extends SubSkill3 {
 
 	{
 		name = "Arcane Echo";
-		image = 34;
+		image = 178;
 		tier = 3;
 	}
 
 	@Override
 	protected boolean upgrade(){ return true; }
 
+	//a passive: nothing to switch on, so it stays out of the quick panel
 	@Override
-	public int onHitProc( xyz.gabriwar.warpedpixeldungeon.actors.Char enemy, int damage, boolean ranged ){
-		if (!ranged && level > 0 && enemy.isAlive() && com.watabou.utils.Random.Int(100) < 10 * level){
-			enemy.damage( com.watabou.utils.Random.NormalIntRange( 2, 4 + 2 * level ), this );
-			enemy.sprite.emitter().burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle.FACTORY, 3 );
+	public boolean toggleable(){ return false; }
+
+	@Override
+	public java.util.ArrayList<String> actions( xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero ){
+		return new java.util.ArrayList<>();
+	}
+
+	@Override
+	public int onHitProc( Char enemy, int damage, boolean ranged ){
+		if (!ranged && level > 0 && enemy.isAlive() && Random.Int(100) < 10 * level){
+			int echo = Random.NormalIntRange( 2, 4 + 2 * level );
+			//at max level the echo jumps on to one more enemy standing next to the first
+			Char chained = level >= MAX_LEVEL ? nextTo( enemy ) : null;
+
+			enemy.damage( echo, this );
+			//the echo arcs back along the blow
+			if (enemy.sprite != null && Dungeon.hero.sprite != null){
+				Dungeon.hero.sprite.parent.add( new Lightning( Dungeon.hero.pos, enemy.pos, null ) );
+				enemy.sprite.emitter().burst( SparkParticle.FACTORY, 3 + level );
+				enemy.sprite.flash();
+			}
+			if (chained != null){
+				if (chained.sprite != null && Dungeon.hero.sprite != null){
+					Dungeon.hero.sprite.parent.add( new Lightning( enemy.pos, chained.pos, null ) );
+					chained.sprite.emitter().burst( SparkParticle.FACTORY, 3 + level );
+					chained.sprite.flash();
+				}
+				chained.damage( echo, this );
+			}
+			Sample.INSTANCE.play( Assets.Sounds.ZAP, 0.6f, 1.3f );
 		}
 		return damage;
+	}
+
+	private Char nextTo( Char enemy ){
+		for (int offset : PathFinder.NEIGHBOURS8){
+			Char ch = Actor.findChar( enemy.pos + offset );
+			if (ch != null && ch != Dungeon.hero && ch.alignment == Char.Alignment.ENEMY && ch.isAlive())
+				return ch;
+		}
+		return null;
 	}
 }

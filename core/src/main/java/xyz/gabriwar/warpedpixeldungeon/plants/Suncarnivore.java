@@ -97,15 +97,6 @@ public class Suncarnivore extends Plant {
 			plantClass = Suncarnivore.class;
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			if (defender instanceof Mob && defender.properties().contains(Char.Property.UNDEAD)){
-				defender.die(this);
-				if (Dungeon.level.heroFOV[defender.pos]){
-					defender.sprite.emitter().start( ShadowParticle.UP, 0.05f, 10 );
-				}
-			}
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

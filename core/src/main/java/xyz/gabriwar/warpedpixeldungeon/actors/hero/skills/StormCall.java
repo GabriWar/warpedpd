@@ -27,23 +27,27 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.audio.Sample;
+import com.watabou.utils.PointF;
 import com.watabou.utils.Random;
 
 import java.util.ArrayList;
@@ -62,6 +66,9 @@ public class StormCall extends Skill {
 		image = 47;
 		mana = 9;
 	}
+
+	@Override
+	public boolean rangedSource(){ return true; }
 
 	@Override
 	public ArrayList<String> actions( Hero hero ){
@@ -89,38 +96,39 @@ public class StormCall extends Skill {
 			if (level <= 0 || hero.MP < getManaCost())
 				return;
 
-			final int cell = new Ballistica( hero.pos, target, Ballistica.MAGIC_BOLT ).collisionPos;
-			Char primary = Actor.findChar( cell );
-			if (primary == null){
+			//the sky strikes the chosen tile itself: no line of fire, but it must be seen and hold an enemy
+			final int cell = target;
+			Char primary = SkillInteractions.valid( cell ) && Dungeon.level.heroFOV[cell] ? Actor.findChar( cell ) : null;
+			if (primary == null || primary == hero || primary.alignment != Char.Alignment.ENEMY){
 				GLog.w( Messages.get(StormCall.this, "no_target") );
 				return;
 			}
 
-			hero.sprite.parent.add( new Lightning( hero.pos, cell, null ) );
+			PointF foot = DungeonTilemap.raisedTileCenterToWorld( cell );
+			hero.sprite.parent.add( new Lightning( new PointF( foot.x, foot.y - DungeonTilemap.SIZE * 7 ), cell, null ) );
 			Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
-			strike( primary, roll(), true );
+			Camera.main.shake( 2, 0.3f );
+			strike( primary, roll() );
 
-			ArrayList<Mob> chain = new ArrayList<>();
-			for (Mob mob : Dungeon.level.mobs.toArray(new Mob[0])){
-				if (mob != primary && mob.alignment == Char.Alignment.ENEMY
-						&& Dungeon.level.distance( cell, mob.pos ) <= ARC_RANGE)
-					chain.add( mob );
-			}
-			Collections.sort( chain, new Comparator<Mob>() {
-				@Override
-				public int compare( Mob a, Mob b ){
-					return Dungeon.level.distance( cell, a.pos ) - Dungeon.level.distance( cell, b.pos );
-				}
-			} );
-
-			int arcs = Math.min( level, chain.size() );
+			//each arc hops from the last victim to the nearest enemy in sight and in reach
+			ArrayList<Char> struck = new ArrayList<>();
+			struck.add( primary );
 			int from = cell;
-			for (int i = 0; i < arcs; i++){
-				Mob mob = chain.get( i );
-				hero.sprite.parent.add( new Lightning( from, mob.pos, null ) );
+			for (int i = 0; i < level; i++){
+				Mob next = null;
+				for (Mob mob : Dungeon.level.mobs.toArray(new Mob[0])){
+					if (struck.contains( mob ) || mob.alignment != Char.Alignment.ENEMY || !mob.isAlive()
+							|| !Dungeon.level.heroFOV[mob.pos] || Dungeon.level.distance( from, mob.pos ) > ARC_RANGE
+							|| !SkillInteractions.clear( from, mob.pos )) continue;
+					if (next == null || Dungeon.level.distance( from, mob.pos ) < Dungeon.level.distance( from, next.pos ))
+						next = mob;
+				}
+				if (next == null) break;
+				hero.sprite.parent.add( new Lightning( from, next.pos, null ) );
 				Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
-				strike( mob, Math.round( roll() * 0.6f ), false );
-				from = mob.pos;
+				strike( next, Math.round( roll() * 0.6f ) );
+				struck.add( next );
+				from = next.pos;
 			}
 
 			hero.MP -= getManaCost();
@@ -133,7 +141,7 @@ public class StormCall extends Skill {
 
 		@Override
 		public String prompt(){
-			return "Choose a target to call the storm down on";
+			return Messages.get( StormCall.class, "prompt" );
 		}
 	};
 
@@ -141,30 +149,17 @@ public class StormCall extends Skill {
 		return Random.NormalIntRange( 4 + 2 * level, 8 + 4 * level );
 	}
 
-	private void strike( Char ch, int damage, boolean primary ){
-		boolean wet = Dungeon.level.water[ch.pos];
-		if (wet)
-			damage = Math.round( damage * 1.33f );
-
+	private void strike( Char ch, int damage ){
 		if (ch.sprite != null)
 			ch.sprite.flash();
+		CellEmitter.center( ch.pos ).burst( SparkParticle.FACTORY, 8 );
+		int before = SkillInteractions.beforeMagicHit( ch, this );
 		ch.damage( damage, this );
+		SkillInteractions.afterMagicHit( ch, before, this );
 
-		if (!ch.isAlive())
-			return;
-		if (wet && level >= MAX_LEVEL)
-			Buff.affect( ch, Paralysis.class, 1f );
-		if (primary && pyromancyLevel() >= 2)
-			Buff.affect( ch, Burning.class ).reignite( ch );
-	}
-
-	private static int pyromancyLevel(){
-		if (Dungeon.hero == null || Dungeon.hero.heroSkills == null)
-			return 0;
-		for (Skill s : Dungeon.hero.heroSkills.fourthSkills)
-			if (s instanceof PyreAffinity)
-				return s.level;
-		return 0;
+		//at mastery the storm stuns everything it strikes
+		if (ch.isAlive() && level >= MAX_LEVEL)
+			SkillInteractions.affectAfterHit( ch, Paralysis.class, 1f );
 	}
 
 	@Override

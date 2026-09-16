@@ -88,10 +88,6 @@ public class Starflower extends Plant {
 			return new StarflowerPoisonParticle();
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			new Starflower().attackProc(defender, damage);
-		}
 
 		@Override
 		public int value() {
@@ -100,7 +96,7 @@ public class Starflower extends Plant {
 
 		@Override
 		public int energyVal() {
-			return 3 * quantity;
+			return quantity;
 		}
 	}
 }

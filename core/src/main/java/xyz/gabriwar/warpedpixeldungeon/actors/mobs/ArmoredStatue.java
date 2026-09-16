@@ -25,6 +25,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Corrupting;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.StatueSprite;
@@ -35,6 +36,9 @@ public class ArmoredStatue extends Statue {
 
 	{
 		spriteClass = StatueSprite.class;
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	protected Armor armor;
@@ -127,8 +131,11 @@ public class ArmoredStatue extends Statue {
 	@Override
 	protected void dropExtraLoot() {
 		super.dropExtraLoot(); // drops weapon via Statue.dropExtraLoot()
-		armor.identify(false);
-		trackedDrop(armor, 1);
+		//silently duplicated in this case, so don't drop original armor
+		if (buff(Corrupting.CorruptingTracker.class) == null) {
+			armor.identify(false);
+			trackedDrop(armor, 1);
+		}
 	}
 
 	@Override

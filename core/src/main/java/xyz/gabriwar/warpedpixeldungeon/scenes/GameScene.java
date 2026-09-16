@@ -58,6 +58,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.Ripple;
 import xyz.gabriwar.warpedpixeldungeon.effects.SpellSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.GuideTrail;
 import xyz.gabriwar.warpedpixeldungeon.items.Ankh;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Honeypot;
@@ -119,6 +120,7 @@ import xyz.gabriwar.warpedpixeldungeon.ui.Toast;
 import xyz.gabriwar.warpedpixeldungeon.ui.Toolbar;
 import xyz.gabriwar.warpedpixeldungeon.ui.Window;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.windows.WndSupporterThanks;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndGame;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndHero;
@@ -132,6 +134,9 @@ import xyz.gabriwar.warpedpixeldungeon.windows.WndMessage;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndResurrect;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndUpgrade;
+import xyz.gabriwar.warpedpixeldungeon.effects.CheckedCell;
+import xyz.gabriwar.warpedpixeldungeon.effects.TargetedCell;
+import xyz.gabriwar.warpedpixeldungeon.tiles.WallOcclusionTilemap;
 import com.watabou.gltextures.TextureCache;
 import com.watabou.glwrap.Blending;
 import com.watabou.input.ControllerHandler;
@@ -171,6 +176,7 @@ public class GameScene extends PixelScene {
 	private SkinnedBlock water;
 	private DungeonTerrainTilemap tiles;
 	private GridTileMap visualGrid;
+	private WallOcclusionTilemap occlusion;
 	private TerrainFeaturesTilemap terrainFeatures;
 	private RaisedTerrainTilemap raisedTerrain;
 	private DungeonWallsTilemap walls;
@@ -196,6 +202,7 @@ public class GameScene extends PixelScene {
 	private Group terrain;
 	private Group customTiles;
 	private Group levelVisuals;
+	private Group customTerrain;
 	private Group levelWallVisuals;
 	private Group customWalls;
 	private Group ripples;
@@ -211,6 +218,8 @@ public class GameScene extends PixelScene {
 	private Group statuses;
 	private Group emoicons;
 	private Group overFogEffects;
+	private Group checkedCells;
+	private Group targetedCells;
 	private Group healthIndicators;
 	private WeatherOverlay weatherOverlay;
 	private AuroraOverlay auroraOverlay;
@@ -300,16 +309,18 @@ public class GameScene extends PixelScene {
 		customTiles = new Group();
 		terrain.add(customTiles);
 
-		for( CustomTilemap visual : Dungeon.level.customTiles){
-			addCustomTile(visual);
-		}
-
 		visualGrid = new GridTileMap();
 		terrain.add( visualGrid );
 
+		occlusion = new WallOcclusionTilemap();
+		terrain.add( occlusion );
+
 		terrainFeatures = new TerrainFeaturesTilemap(Dungeon.level.plants, Dungeon.level.traps);
 		terrain.add(terrainFeatures);
-		
+
+		customTerrain = new Group();
+		terrain.add(customTerrain);
+
 		levelVisuals = Dungeon.level.addVisuals();
 		add(levelVisuals);
 
@@ -322,6 +333,9 @@ public class GameScene extends PixelScene {
 		for ( Heap heap : Dungeon.level.heaps.valueList() ) {
 			addHeapSprite( heap );
 		}
+
+		//the way to the adventurer's guide, drawn on the floor under everyone's feet
+		add( new GuideTrail() );
 
 		emitters = new Group();
 		effects = new Group();
@@ -360,10 +374,6 @@ public class GameScene extends PixelScene {
 
 		customWalls = new Group();
 		add(customWalls);
-
-		for( CustomTilemap visual : Dungeon.level.customWalls){
-			addCustomWall(visual);
-		}
 
 		levelWallVisuals = Dungeon.level.addWallVisuals();
 		add( levelWallVisuals );
@@ -436,6 +446,29 @@ public class GameScene extends PixelScene {
 		add( spells );
 
 		add(overFogEffects);
+
+		checkedCells = new Group();
+		add(checkedCells);
+
+		targetedCells = new Group();
+		add(targetedCells);
+		for (TargetedCell cell : TargetedCell.cells.valueList()){
+			cell.reset(cell.pos, cell.time);
+			targetedCells.add(cell);
+		}
+
+		//set these up later so that they can influence previous tilemaps if needed
+		for( CustomTilemap visual : Dungeon.level.customTiles){
+			addCustomTile(visual);
+		}
+
+		for( CustomTilemap visual : Dungeon.level.customTerrain){
+			addCustomTerrain(visual);
+		}
+
+		for( CustomTilemap visual : Dungeon.level.customWalls){
+			addCustomWall(visual);
+		}
 		
 		statuses = new Group();
 		add( statuses );
@@ -706,6 +739,17 @@ public class GameScene extends PixelScene {
 			afterObserve();
 			xyz.gabriwar.warpedpixeldungeon.net.SpectatorReceiver.applyPendingBoss(
 					xyz.gabriwar.warpedpixeldungeon.net.NetVisuals.getSpectatorMobs());
+			//a remote player's turn is granted once, by the host's YOUR_TURN, and it is
+			//the scene that acts on it. Any scene built after that grant - a rotation, or
+			//the second full state a held join produces - comes up with a fresh cell
+			//selector: input off, no listener, hero not ready, and every tap refused. A
+			//client has no actor thread to put any of it back, so the new scene re-applies
+			//the grant itself. This has to happen before the return below, which is where
+			//client scene setup ends
+			if (xyz.gabriwar.warpedpixeldungeon.net.NetManager.isMyTurn()){
+				enablePlayerInput();
+				if (Dungeon.hero != null) Dungeon.hero.ready = true;
+			}
 			fadeIn();
 			return;
 		}
@@ -773,7 +817,7 @@ public class GameScene extends PixelScene {
 		if (InterlevelScene.mode != InterlevelScene.Mode.NONE) {
 			if (Dungeon.depth == Statistics.deepestFloor
 					&& (InterlevelScene.mode == InterlevelScene.Mode.DESCEND || InterlevelScene.mode == InterlevelScene.Mode.FALL)) {
-				GLog.h(Messages.get(this, "descend"), Dungeon.depth);
+				GLog.h(Messages.get(this, "descend"), arrivalPlace());
 				Sample.INSTANCE.play(Assets.Sounds.DESCEND);
 
 				if (Dungeon.depth == 1) {
@@ -799,6 +843,7 @@ public class GameScene extends PixelScene {
 					}
 
 					if (spawnersAbove > 0) {
+						GLog.newLine();
 						if (Dungeon.bossLevel()) {
 							GLog.n(Messages.get(this, "spawner_warn_final"));
 						} else {
@@ -810,9 +855,11 @@ public class GameScene extends PixelScene {
 			} else if (InterlevelScene.mode == InterlevelScene.Mode.RESET) {
 				GLog.h(Messages.get(this, "warp"));
 			} else if (InterlevelScene.mode == InterlevelScene.Mode.RESURRECT) {
-				GLog.h(Messages.get(this, "resurrect"), Dungeon.depth);
+				GLog.h(Messages.get(this, "resurrect"), arrivalPlace());
+			} else if (Dungeon.firstArrival) {
+				GLog.h(Messages.get(this, "arrive"), arrivalPlace());
 			} else {
-				GLog.h(Messages.get(this, "return"), Dungeon.depth);
+				GLog.h(Messages.get(this, "return"), arrivalPlace());
 			}
 
 			//lunar flavour on arriving at a dungeon floor: the moon reaches down here
@@ -838,6 +885,19 @@ public class GameScene extends PixelScene {
 				Random.pushGenerator(Dungeon.seedCurDepth()+1);
 					if (reqSecrets <= 0 && Random.Int(4) < 2+Dungeon.hero.pointsInTalent(Talent.ROGUES_FORESIGHT)){
 						GLog.p(Messages.get(this, "secret_hint"));
+						//at +3 he knows where: the secret rooms are drawn on the map
+						if (Dungeon.hero.pointsInTalent(Talent.ROGUES_FORESIGHT) >= 3){
+							for (Room r : ((RegularLevel) Dungeon.level).rooms()){
+								if (r instanceof SecretRoom){
+									for (int x = r.left; x <= r.right; x++){
+										for (int y = r.top; y <= r.bottom; y++){
+											Dungeon.level.mapped[x + y * Dungeon.level.width()] = true;
+										}
+									}
+								}
+							}
+							GameScene.updateFog();
+						}
 					}
 				Random.popGenerator();
 			}
@@ -942,6 +1002,7 @@ public class GameScene extends PixelScene {
 
 		updateItemDisplays = true; // ensure HUD reflects loaded inventory (bags bypass collect())
 		restoreInvState();
+		WndSupporterThanks.showIfPending(this);
 		fadeIn();
 
 		//re-show WndResurrect if needed
@@ -980,6 +1041,15 @@ public class GameScene extends PixelScene {
 		super.destroy();
 	}
 	
+	//where the hero just arrived, as the log should name it: the surface and the town's
+	//rooms have names, the dungeon proper has floors. "floor 97" was the overworld's
+	//slot number leaking into the log
+	private static String arrivalPlace(){
+		return Dungeon.numberedFloor()
+				? Messages.get(GameScene.class, "place_floor", Dungeon.placeName(), Dungeon.depth)
+				: Dungeon.placeName();
+	}
+
 	public static void endActorThread(){
 		if (actorThread != null && actorThread.isAlive()){
 			Actor.keepActorThreadAlive = false;
@@ -1286,6 +1356,10 @@ public class GameScene extends PixelScene {
 		customTiles.add( visual.create() );
 	}
 
+	public void addCustomTerrain(CustomTilemap visual){
+		customTerrain.add( visual.create() );
+	}
+
 	public void addCustomWall( CustomTilemap visual){
 		customWalls.add( visual.create() );
 	}
@@ -1312,7 +1386,7 @@ public class GameScene extends PixelScene {
 	
 	private synchronized void addMobSprite( Mob mob ) {
 		CharSprite sprite = mob.sprite();
-		sprite.visible = Dungeon.level.heroFOV[mob.pos];
+		sprite.visible = sprite.visibleOutOfFFOV || Dungeon.level.heroFOV[mob.pos];
 		mobs.add( sprite );
 		sprite.link( mob );
 		sortMobSprites();
@@ -1449,9 +1523,41 @@ public class GameScene extends PixelScene {
 	}
 
 	public static void effectOverFog( Visual effect ) {
-		scene.overFogEffects.add( effect );
+		if (scene != null) scene.overFogEffects.add( effect );
 	}
 	
+	public static CheckedCell checkedCell( int pos, int source ){
+		if (scene != null) {
+			CheckedCell check = (CheckedCell) scene.checkedCells.recycle(CheckedCell.class);
+			check.reset(pos, source);
+			return check;
+		} else {
+			return null;
+		}
+	}
+
+	public static TargetedCell targetedCell(int pos, int color, float delay){
+		return targetedCell(pos, delay);
+	}
+
+	public static TargetedCell targetedCell(int pos, float delay){
+		if (scene != null) {
+			TargetedCell cell;
+			synchronized (TargetedCell.cells) {
+				if (TargetedCell.cells.containsKey(pos)) {
+					cell = TargetedCell.cells.get(pos);
+					cell.reset(pos, Actor.now()+delay);
+					return cell;
+				}
+			}
+			cell = (TargetedCell) scene.targetedCells.recycle(TargetedCell.class);
+			cell.reset(pos, Actor.now()+delay);
+			return cell;
+		} else {
+			return null;
+		}
+	}
+
 	public static Ripple ripple( int pos ) {
 		if (scene != null) {
 			Ripple ripple = (Ripple) scene.ripples.recycle(Ripple.class);
@@ -1571,6 +1677,7 @@ public class GameScene extends PixelScene {
 	public static void resetMap() {
 		if (scene != null) {
 			scene.tiles.map(Dungeon.level.map, Dungeon.level.width() );
+			scene.occlusion.map(Dungeon.level.map, Dungeon.level.width() );
 			scene.visualGrid.map(Dungeon.level.map, Dungeon.level.width() );
 			scene.terrainFeatures.map(Dungeon.level.map, Dungeon.level.width() );
 			scene.raisedTerrain.map(Dungeon.level.map, Dungeon.level.width() );
@@ -1640,6 +1747,8 @@ public class GameScene extends PixelScene {
 		if (scene == null) return;
 		xyz.gabriwar.warpedpixeldungeon.tiles.DungeonWallsTilemap.shiftSkipCells(
 				dcx, dcy, Dungeon.level.width(), Dungeon.level.height() );
+		xyz.gabriwar.warpedpixeldungeon.tiles.RaisedTerrainTilemap.shiftSkipCells(
+				dcx, dcy, Dungeon.level.width(), Dungeon.level.height() );
 		scene.tiles.shiftAndUpdate( dcx, dcy );
 		scene.visualGrid.shiftAndUpdate( dcx, dcy );
 		scene.terrainFeatures.shiftAndUpdate( dcx, dcy );
@@ -1653,6 +1762,7 @@ public class GameScene extends PixelScene {
 	public static void updateMap() {
 		if (scene != null) {
 			scene.tiles.updateMap();
+			scene.occlusion.updateMap();
 			scene.visualGrid.updateMap();
 			scene.terrainFeatures.updateMap();
 			scene.raisedTerrain.updateMap();
@@ -1664,6 +1774,7 @@ public class GameScene extends PixelScene {
 	public static void updateMap( int cell ) {
 		if (scene != null) {
 			scene.tiles.updateMapCell( cell );
+			scene.occlusion.updateMapCell( cell );
 			scene.visualGrid.updateMapCell( cell );
 			scene.terrainFeatures.updateMapCell( cell );
 			scene.raisedTerrain.updateMapCell( cell );
@@ -1781,6 +1892,12 @@ public class GameScene extends PixelScene {
 		}
 	}
 
+	public static void nextWndOffset(Point ofs){
+		if (scene != null){
+			lastOffset = ofs;
+		}
+	}
+
 	public static void updateFog(){
 		if (scene != null) {
 			scene.fog.updateFog();
@@ -1872,6 +1989,7 @@ public class GameScene extends PixelScene {
 			case STEAM:         ambient = WeatherOverlay.AmbientType.STEAM;         break;
 			case CORONA:        ambient = WeatherOverlay.AmbientType.CORONA;        break;
 			case DRIP:          ambient = WeatherOverlay.AmbientType.DRIP;          break;
+			case HEAT_RAYS:     ambient = WeatherOverlay.AmbientType.HEAT_RAYS;     break;
 			case AURORA:        // handled by AuroraOverlay below
 			case RAINBOW:       // handled by RainbowOverlay below
 			default:            ambient = WeatherOverlay.AmbientType.NONE;           break;
@@ -1924,6 +2042,9 @@ public class GameScene extends PixelScene {
 		if (scene == null || cellSelector == null) return;
 		cellSelector.enabled = true;
 		cellSelector.listener = playerCellListener;
+		//and say so: the banner is put up on the grant and taken down when the turn is
+		//spent, rather than standing there for the whole game
+		scene.prompt( playerCellListener.prompt() );
 	}
 
 	/** Cell listener for remote players — sends action to host instead of local processing */
@@ -1937,7 +2058,7 @@ public class GameScene extends PixelScene {
 				// validates adjacency, so tapping from afar just shows a no-op window.
 				xyz.gabriwar.warpedpixeldungeon.Portals.Record pr =
 						xyz.gabriwar.warpedpixeldungeon.net.NetManager.isPlayer()
-								? xyz.gabriwar.warpedpixeldungeon.Portals.get(Dungeon.depth) : null;
+								? xyz.gabriwar.warpedpixeldungeon.Portals.get(xyz.gabriwar.warpedpixeldungeon.Portals.keyHere()) : null;
 				if (pr != null && pr.cell == cell) {
 					xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.PortalGate gate =
 							new xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.PortalGate();
@@ -1949,7 +2070,13 @@ public class GameScene extends PixelScene {
 				}
 				xyz.gabriwar.warpedpixeldungeon.net.NetManager.sendPlayerAction(cell);
 			}
+			//the turn is spent: the host grants the next one with its own YOUR_TURN, so
+			//holding the flag here left the banner up and the hero looking ready between
+			//every pair of turns
+			xyz.gabriwar.warpedpixeldungeon.net.NetManager.setMyTurn(false);
+			if (Dungeon.hero != null) Dungeon.hero.ready = false;
 			cellSelector.enabled = false;
+			if (scene != null) scene.prompt( null );
 		}
 		@Override
 		public void onRightClick(Integer cell) {
@@ -1959,7 +2086,10 @@ public class GameScene extends PixelScene {
 			}
 		}
 		@Override
-		public String prompt() { return "Your turn — tap where to act"; }
+		public String prompt() {
+			return xyz.gabriwar.warpedpixeldungeon.net.NetManager.isMyTurn()
+					? "Your turn — tap where to act" : null;
+		}
 	};
 
 	public static void addNetBlobSprite( Blob gas ) {
@@ -2039,9 +2169,10 @@ public class GameScene extends PixelScene {
 				if (mob.sprite != null) {
 					if (mob instanceof Mimic && mob.state == mob.PASSIVE && ((Mimic) mob).stealthy() && Dungeon.level.visited[mob.pos]){
 						//mimics stay visible in fog of war after being first seen
+						//TODO can probably migrate this to Charsprite.visibleOutOfFFOV
 						mob.sprite.visible = true;
 					} else {
-						mob.sprite.visible = Dungeon.level.heroFOV[mob.pos];
+						mob.sprite.visible = mob.sprite.visibleOutOfFFOV || Dungeon.level.heroFOV[mob.pos];
 					}
 				}
 				if (mob instanceof Ghoul){
@@ -2145,7 +2276,22 @@ public class GameScene extends PixelScene {
 		cellSelector.select( cell, PointerEvent.LEFT );
 	}
 	
+	//a remote player aims on their own screen and sends the square with the action, so
+	//the item's own selectCell must answer with it instead of prompting the host. One
+	//shot: set right before the item is executed, consumed by its first ask
+	private static Integer netSuppliedTarget = null;
+
+	public static void supplyNetTarget( Integer cell ) {
+		netSuppliedTarget = cell;
+	}
+
 	public static void selectCell( CellSelector.Listener listener ) {
+		if (netSuppliedTarget != null){
+			Integer cell = netSuppliedTarget;
+			netSuppliedTarget = null;
+			listener.onSelect( cell );
+			return;
+		}
 		if (cellSelector.listener != null && cellSelector.listener != defaultCellListener){
 			cellSelector.listener.onSelect(null);
 		}
@@ -2297,15 +2443,15 @@ public class GameScene extends PixelScene {
 	private static ArrayList<Object> getObjectsAtCell( int cell ){
 		ArrayList<Object> objects = new ArrayList<>();
 
-		if (cell == Dungeon.hero.pos) {
-			objects.add(Dungeon.hero);
-
-		} else if (Dungeon.level.heroFOV[cell]) {
-			// Net MP: cell may hold another player's Hero (host side) or a NetHeroMob (client side).
-			// findChar returns Char; unchecked Mob cast crashes on Hero — guard the cast.
-			xyz.gabriwar.warpedpixeldungeon.actors.Char ch = Actor.findChar(cell);
-			if (ch instanceof Mob)        objects.add((Mob) ch);
-			else if (ch instanceof Hero)  objects.add(ch);
+		// Net MP: cell may hold another player's Hero (host side) or a NetHeroMob (client side).
+		// findChar returns Char; unchecked Mob cast crashes on Hero — guard the cast.
+		//objects (statues etc.) are listed even when out of view; our own hero is added below
+		Char ch = Actor.findChar(cell);
+		if (ch != null && ch != Dungeon.hero){
+			if (Dungeon.level.heroFOV[cell] || Char.hasProp(ch, Char.Property.OBJECT)){
+				if (ch instanceof Mob)        objects.add((Mob) ch);
+				else if (ch instanceof Hero)  objects.add(ch);
+			}
 		}
 
 		Heap heap = Dungeon.level.heaps.get(cell);
@@ -2313,6 +2459,10 @@ public class GameScene extends PixelScene {
 
 		Plant plant = Dungeon.level.plants.get( cell );
 		if (plant != null) objects.add(plant);
+
+		if (cell == Dungeon.hero.pos) {
+			objects.add(Dungeon.hero);
+		}
 
 		Trap trap = Dungeon.level.traps.get( cell );
 		if (trap != null && trap.visible) objects.add(trap);
@@ -2427,7 +2577,7 @@ public class GameScene extends PixelScene {
 			if (objects.isEmpty()) {
 				textLines.add(0, Messages.get(GameScene.class, "go_here"));
 			} else if (objects.get(0) instanceof Hero) {
-				textLines.add(0, Messages.get(GameScene.class, "go_here"));
+				textLines.add(0, Messages.get(GameScene.class, "cancel"));
 			} else if (objects.get(0) instanceof Mob) {
 				if (((Mob) objects.get(0)).alignment != Char.Alignment.ENEMY) {
 					textLines.add(0, Messages.get(GameScene.class, "interact"));

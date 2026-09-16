@@ -80,10 +80,6 @@ public class Poppoplar extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect( Char attacker, Char defender, int damage ) {
-			GameScene.add(Blob.seed(defender.pos, 10, PopGas.class));
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SnowParticle;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Comfy;
 import com.watabou.utils.Random;
 import com.watabou.utils.Reflection;
 
@@ -79,6 +80,8 @@ public class PlantGrowthManager {
 	/** Called every hero turn from DayNightCycle.onHeroTurn(). */
 	public static void onHeroTurn(Level level) {
 		if (level == null) return;
+		//nothing grows on a floorboard: indoors there is no soil, no rain and no frost
+		if (Comfy.indoors(level)) return;
 
 		// Freeze/thaw runs regardless of herbalism challenge
 		processFreezeThaw(level);
@@ -104,7 +107,7 @@ public class PlantGrowthManager {
 
 	/** Called when the player enters a level, catching up missed growth ticks. */
 	public static void catchUpGrowth(Level level) {
-		if (level == null) return;
+		if (level == null || Comfy.indoors(level)) return;
 		if (Dungeon.isChallenged(Challenges.NO_HERBALISM)) return;
 
 		GameCalendar.Season season = GameCalendar.season();

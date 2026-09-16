@@ -27,17 +27,66 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import com.watabou.noosa.audio.Sample;
+import com.watabou.utils.PathFinder;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Berserk;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.BloodParticle;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+
 public class Carnage extends SubSkill1 {
 
 	{
 		name = "Carnage";
-		image = 17;
+		image = 171;
 		tier = 1;
+	}
+
+	//a passive: nothing to switch on, so it stays out of the quick panel
+	@Override
+	public boolean toggleable(){ return false; }
+
+	@Override
+	public java.util.ArrayList<String> actions( Hero hero ){
+		return new java.util.ArrayList<>();
 	}
 
 	@Override
 	protected boolean upgrade(){ return true; }
 
+	//every melee kill stokes the berserker's rage by 10% per level. Berserk.damage() is the
+	//rage's own intake (power grows by a quarter of the share of max health it is fed),
+	//so 0.4 * HT per level is +10% power; it takes nothing while already berserking
 	@Override
-	public float damageModifier(){ return 1f + 0.08f * level; }
+	public void onKill( Mob mob, boolean ranged ){
+		Hero hero = Dungeon.hero;
+		if (ranged || level <= 0 || hero == null || hero.subClass != HeroSubClass.BERSERKER) return;
+		Buff.affect( hero, Berserk.class ).damage( Math.round( hero.HT * 0.4f * level ) );
+		if (hero.sprite != null){
+			hero.sprite.emitter().burst( Speck.factory( Speck.RED_LIGHT ), 2 + level );
+		}
+		Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 0.5f, 1.3f );
+
+		//fully trained, a kill while berserking pours back into the berserk shield
+		Berserk berserk = hero.buff( Berserk.class );
+		if (level >= MAX_LEVEL && berserk != null && berserk.berserking()){
+			int top = Math.max( 1, Math.round( hero.HT * 0.05f ) );
+			berserk.incShield( top );
+			CellEmitter.center( mob.pos ).burst( BloodParticle.BURST, 10 );
+			if (hero.sprite != null){
+				new xyz.gabriwar.warpedpixeldungeon.effects.Flare( 6, 18 ).color( 0xFF2222, true ).show( hero.sprite, 0.5f );
+				hero.sprite.showStatusWithIcon( CharSprite.POSITIVE, Integer.toString( top ), xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.SHIELDING );
+			}
+		}
+	}
 }

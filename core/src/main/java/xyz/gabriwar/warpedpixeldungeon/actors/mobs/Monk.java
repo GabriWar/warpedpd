@@ -50,7 +50,7 @@ public class Monk extends Mob {
 		lootChance = 0.1f;
 
 		lootOther = new MonsterMeat();
-		lootChanceOther = 0.01f;
+		lootChanceOther = 0.01f / 4f;
 
 		properties.add(Property.UNDEAD);
 
@@ -80,7 +80,7 @@ public class Monk extends Mob {
 	
 	@Override
 	public void rollToDropLoot() {
-		Imp.Quest.process( this );
+		Imp.Quest.oldProcess( this );
 		
 		super.rollToDropLoot();
 	}

@@ -27,6 +27,10 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
@@ -38,10 +42,13 @@ public class WarCry extends SubSkill2 {
 	{
 		name = "War Cry";
 		castText = "RAAAAH!";
-		image = 16;
+		image = 170;
 		mana = 10;
 		tier = 2;
 	}
+
+	@Override
+	public boolean toggleable(){ return false; }
 
 	@Override
 	public ArrayList<String> actions( Hero hero ){
@@ -57,10 +64,16 @@ public class WarCry extends SubSkill2 {
 			for (xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob mob : Dungeon.level.mobs.toArray(new xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob[0])){
 				if (Dungeon.level.heroFOV[mob.pos] && mob.alignment == xyz.gabriwar.warpedpixeldungeon.actors.Char.Alignment.ENEMY){
 					Buff.prolong( mob, xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror.class, 2 + level ).object = hero.id();
+					//+3: the fleeing are weakened for as long as they run
+					if (level >= MAX_LEVEL) Buff.prolong( mob, xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness.class, 2 + level );
+					if (mob.sprite != null) mob.sprite.emitter().burst( Speck.factory( Speck.SCREAM ), 3 );
 				}
 			}
 			hero.MP -= getManaCost();
 			castTextYell();
+			Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 1f, 0.9f );
+			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.SCREAM ), 4 );
+			Camera.main.shake( 2, 0.3f );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
 			hero.busy();

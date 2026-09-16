@@ -27,6 +27,19 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import com.watabou.noosa.audio.Sample;
+import com.watabou.utils.Random;
+
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AccuracyMark;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+
 public class Accuracy extends PassiveSkillB1 {
 
 	{
@@ -35,11 +48,29 @@ public class Accuracy extends PassiveSkillB1 {
 		tier = 1;
 	}
 
+	public static final float BLIND_TURNS = 3f;
+
 	@Override
 	protected boolean upgrade(){
 		return true;
 	}
 
+	//a ranged hit can find the eyes: a bullseye blinds the target for a few turns.
+	//Fully trained, the first ranged hit on each enemy is always a bullseye
 	@Override
-	public float toHitModifier(){ return 1f + 0.1f * level; }
+	public int onHitProc( Char enemy, int damage, boolean ranged ){
+		if (!ranged || level <= 0 || enemy == null || !enemy.isAlive()) return damage;
+		boolean firstHit = enemy.buff( AccuracyMark.class ) == null;
+		if (firstHit) Buff.affect( enemy, AccuracyMark.class );
+		boolean bullseye = (level >= MAX_LEVEL && firstHit) || Random.Float() < 0.1f * level;
+		if (!bullseye) return damage;
+
+		Buff.prolong( enemy, Blindness.class, BLIND_TURNS );
+		if (enemy.sprite != null && Dungeon.level.heroFOV[enemy.pos]){
+			new Flare( 4, 16 ).color( 0xFF4444, true ).show( enemy.sprite, 0.5f );
+			enemy.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "bullseye" ) );
+		}
+		Sample.INSTANCE.play( Assets.Sounds.HIT_ARROW, 1f, 1.4f );
+		return damage;
+	}
 }

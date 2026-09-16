@@ -21,15 +21,22 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
-import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.Random;
 
-public class AmbientSnowParticle extends PixelParticle {
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherSprites;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
+import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
+
+/**
+ * A snowflake, in one of four sizes from a speck to a crystal, wandering down on
+ * its own wobble and carried by the wind; in a blizzard it is a white streak
+ * driven sideways.
+ */
+public class AmbientSnowParticle extends WeatherParticle {
 
 	public static final Emitter.Factory FACTORY = new Emitter.Factory() {
 		@Override
@@ -38,8 +45,28 @@ public class AmbientSnowParticle extends PixelParticle {
 		}
 	};
 
+	/** loose snow the wind picks up off frozen ground; nothing when the air is still */
+	public static final Emitter.Factory DRIFT = new Emitter.Factory() {
+		@Override
+		public void emit(Emitter emitter, int index, float x, float y) {
+			if (ClimateManager.localWindSpeed() < 7f) return;
+			((AmbientSnowParticle) emitter.recycle(AmbientSnowParticle.class)).resetDrift(x, y);
+		}
+	};
+
+	/** driven snow: streaks that cross the screen with the wind */
+	public static final Emitter.Factory BLIZZARD = new Emitter.Factory() {
+		@Override
+		public void emit(Emitter emitter, int index, float x, float y) {
+			((AmbientSnowParticle) emitter.recycle(AmbientSnowParticle.class)).resetStorm(x, y);
+		}
+	};
+
 	private float wobblePhase;
 	private float windBias; // cached wind at spawn
+	private float wobble;
+	private boolean storm, settled;
+	private static final float SETTLE = 0.7f;
 
 	public AmbientSnowParticle() {
 		super();
@@ -51,14 +78,23 @@ public class AmbientSnowParticle extends PixelParticle {
 		revive();
 		this.x = x;
 		this.y = y;
-		left = lifespan;
-		size = Random.Float(1f, 2.5f);
+		left = lifespan = Random.Float(3f, 6f);
+		storm = false;
+		settled = false;
+		color(Random.Float() < 0.8f ? 0xFFFFFF : 0xE4EEFF);
 
-		// Wind biases horizontal drift in actual wind direction — snow is light so wind has big effect
+		//most flakes are specks; the crystals are rare and fall slower
+		float r = Random.Float();
+		frame(r < 0.5f ? WeatherSprites.FLAKE_1 : (r < 0.78f ? WeatherSprites.FLAKE_2 : (r < 0.94f ? WeatherSprites.FLAKE_3 : WeatherSprites.FLAKE_5)));
+		float weight = frame == WeatherSprites.FLAKE_5 ? 0.7f : (frame == WeatherSprites.FLAKE_3 ? 0.85f : 1f);
+
+		//wind biases horizontal drift in actual wind direction - snow is light so wind has big effect
+		float wind = ClimateManager.localWindSpeed() * (1f + 0.3f * WeatherSprites.gust());
 		float windRad = (float) Math.toRadians(ClimateManager.surfaceWindDir());
-		windBias = (float) Math.sin(windRad) * ClimateManager.localWindSpeed() * 0.8f;
-		float windY  = -(float) Math.cos(windRad) * ClimateManager.localWindSpeed() * 0.2f;
-		speed.set(Random.Float(-2, 2) + windBias, Random.Float(6, 14) + windY);
+		windBias = (float) Math.sin(windRad) * wind * 0.8f;
+		float windY  = -(float) Math.cos(windRad) * wind * 0.2f;
+		speed.set(Random.Float(-2, 2) + windBias, (Random.Float(6, 14) + windY) * weight);
+		wobble = Math.max(1f, 5f - Math.abs(windBias) * 0.25f);
 		wobblePhase = Random.Float((float)(Math.PI * 2));
 	}
 
@@ -73,31 +109,54 @@ public class AmbientSnowParticle extends PixelParticle {
 		windBias = (float) Math.sin(windRad) * wind * 1.2f;
 		float windY = -(float) Math.cos(windRad) * wind * 0.5f;
 		speed.set(Random.Float(-2, 2) + windBias, Random.Float(-2, 2) + windY);
-		size = Random.Float(0.8f, 1.6f);
+		frame(Random.Float() < 0.7f ? WeatherSprites.FLAKE_1 : WeatherSprites.FLAKE_2);
 		left = lifespan = Random.Float(1.5f, 3f);
+	}
+
+	/** a blizzard flake: a streak, fast, nearly level, gone in a second */
+	public void resetStorm(float x, float y) {
+		reset(x, y);
+		storm = true;
+		float wind = Math.max(8f, ClimateManager.localWindSpeed()) * (1f + 0.4f * WeatherSprites.gust());
+		float windRad = (float) Math.toRadians(ClimateManager.surfaceWindDir());
+		float wx = (float) Math.sin(windRad) * wind * 3f;
+		float wy = -(float) Math.cos(windRad) * wind * 0.8f + Random.Float(14, 26);
+		speed.set(wx + Random.Float(-4, 4), wy);
+		windBias = wx;
+		wobble = 0.5f;
+		frame(Random.Float() < 0.6f ? WeatherSprites.STREAK_3 : WeatherSprites.STREAK_4);
+		angle = (float) Math.toDegrees(Math.atan2(speed.y, speed.x));
+		left = lifespan = Random.Float(0.8f, 1.6f);
 	}
 
 	@Override
 	public void update() {
+		if (!storm && !settled && left <= Game.elapsed && onFrozenGround()) {
+			//it lands on snow and lies there a moment before it is lost in the rest
+			settled = true;
+			left = lifespan = SETTLE;
+			speed.set(0, 0);
+			acc.set(0, 0);
+		}
 		super.update();
-		float p = left / lifespan;
-
-		// Gentle drift + wind — strong wind suppresses wobble amplitude
-		wobblePhase += Game.elapsed * 2f;
-		float wobbleAmt = Math.max(1f, 5f - Math.abs(windBias) * 0.25f);
-		speed.x = (float)Math.sin(wobblePhase) * wobbleAmt + windBias;
-
-		if (p > 0.9f) {
-			am = (1f - p) * 10f;
-		} else if (p < 0.15f) {
-			am = p * 6.7f;
+		if (settled) {
+			am = 0.7f * (left / lifespan);
 		} else {
-			am = 0.7f;
+			if (!storm) {
+				//gentle drift + wind - strong wind suppresses wobble amplitude
+				wobblePhase += Game.elapsed * 2f;
+				speed.x = (float)Math.sin(wobblePhase) * wobble + windBias;
+			}
+			am = envelope(0.15f, 0.05f, storm ? 0.85f : 0.75f);
 		}
+		fov();
+	}
 
-		int cell = (int)(this.x / DungeonTilemap.SIZE) + (int)(this.y / DungeonTilemap.SIZE) * Dungeon.level.width();
-		if (cell < 0 || cell >= Dungeon.level.heroFOV.length || !Dungeon.level.heroFOV[cell]) {
-			am = 0;
-		}
+	private boolean onFrozenGround() {
+		if (!(Dungeon.level instanceof OverworldLevel) || x < 0 || y < 0) return false;
+		OverworldLevel ow = (OverworldLevel) Dungeon.level;
+		int cx = (int)(x / DungeonTilemap.SIZE), cy = (int)(y / DungeonTilemap.SIZE);
+		if (cx >= ow.width() || cy >= ow.height()) return false;
+		return ow.frozenAt(cx + cy * ow.width());
 	}
 }

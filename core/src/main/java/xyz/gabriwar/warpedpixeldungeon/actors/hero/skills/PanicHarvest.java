@@ -27,14 +27,23 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Amok;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Charm;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import com.watabou.utils.PathFinder;
 
 public class PanicHarvest extends Skill {
 
@@ -45,22 +54,50 @@ public class PanicHarvest extends Skill {
 		tier = 4;
 	}
 
-	/** the turn the last mana tick was taken; not bundled, it only gates within a turn */
+	/** the turn the last harvest was taken; not bundled, it only gates within a turn */
 	private float lastHarvest = -1f;
+
+	private static final int MANA_COLOR = 0x44AAFF;
 
 	@Override
 	protected boolean upgrade(){ return true; }
 
+	//a hit on a panicked enemy reaps its fear as mana, once per turn
 	@Override
 	public int onHitProc( Char enemy, int damage, boolean ranged ){
-		if (level <= 0 || enemy == null || !isPanicked( enemy )) return damage;
-
 		Hero hero = Dungeon.hero;
-		if (hero != null && lastHarvest != Actor.now()){
-			lastHarvest = Actor.now();
-			hero.MP = Math.min( hero.MT, hero.MP + 1 );
+		if (level <= 0 || enemy == null || hero == null || !isPanicked( enemy ) || lastHarvest == Actor.now()) return damage;
+		lastHarvest = Actor.now();
+
+		int gain = Math.min( level, 2 );
+		hero.MP = Math.min( hero.MT, hero.MP + gain );
+		CellEmitter.get( enemy.pos ).burst( ShadowParticle.UP, 5 );
+		if (hero.sprite != null){
+			hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 3 );
+			hero.sprite.showStatus( MANA_COLOR, Messages.get( this, "harvest", gain ) );
 		}
-		return damage + Math.round( damage * 0.05f * level );
+		Sample.INSTANCE.play( Assets.Sounds.GHOST, 0.5f, 1.4f );
+		return damage;
+	}
+
+	//at mastery a panicked enemy that dies spreads its terror to everyone next to it
+	@Override
+	public void onKill( Mob mob, boolean ranged ){
+		Hero hero = Dungeon.hero;
+		if (level < MAX_LEVEL || hero == null || !isPanicked( mob )) return;
+		boolean spread = false;
+		for (int n : PathFinder.NEIGHBOURS8){
+			Char ch = Actor.findChar( mob.pos + n );
+			if (ch instanceof Mob && ch.isAlive() && ch.alignment == Char.Alignment.ENEMY){
+				Buff.affect( ch, Terror.class, 3f ).object = hero.id();
+				CellEmitter.get( ch.pos ).burst( ShadowParticle.CURSE, 4 );
+				spread = true;
+			}
+		}
+		if (!spread) return;
+		CellEmitter.get( mob.pos ).burst( Speck.factory( Speck.SCREAM ), 3 );
+		if (mob.sprite != null) new Flare( 5, 24 ).color( 0x663399, true ).show( mob.sprite, 0.6f );
+		Sample.INSTANCE.play( Assets.Sounds.GHOST, 1f, 0.6f );
 	}
 
 	private static boolean isPanicked( Char enemy ){

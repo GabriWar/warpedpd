@@ -27,6 +27,10 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -75,19 +79,38 @@ public class DreadHowl extends Skill {
 				terrified.add( ch );
 			}
 
-			if (terrified.isEmpty()){
+			//at mastery the howl makes its own fear in whoever is not afraid yet
+			ArrayList<Char> unafraid = new ArrayList<>();
+			if (level >= MAX_LEVEL) for (Char ch : Actor.chars()){
+				if (!(ch instanceof Mob) || ch.alignment != Char.Alignment.ENEMY) continue;
+				if (Dungeon.level.distance( hero.pos, ch.pos ) > 5) continue;
+				if (!Dungeon.level.heroFOV[ch.pos]) continue;
+				if (ch.buff( Terror.class ) != null || ch.buff( Amok.class ) != null) continue;
+				unafraid.add( ch );
+			}
+
+			if (terrified.isEmpty() && unafraid.isEmpty()){
 				GLog.w( Messages.get(this, "no_targets") );
 				return;
+			}
+
+			for (Char ch : unafraid){
+				Buff.affect( ch, Terror.class, 3 ).object = hero.id();
+				CellEmitter.get( ch.pos ).burst( ShadowParticle.CURSE, 4 );
 			}
 
 			for (Char ch : terrified){
 				Buff.detach( ch, Terror.class );
 				Buff.prolong( ch, Amok.class, 3 + level );
-				CellEmitter.get( ch.pos ).burst( Speck.factory( Speck.STAR ), 3 );
+				CellEmitter.get( ch.pos ).burst( Speck.factory( Speck.SCREAM ), 2 );
+				CellEmitter.get( ch.pos ).burst( ShadowParticle.UP, 3 );
 			}
+			Camera.main.shake( 1, 0.3f );
+			hero.sprite.emitter().burst( ShadowParticle.UP, 8 );
 
 			hero.MP -= getManaCost();
 			castTextYell();
+			Sample.INSTANCE.play( Assets.Sounds.GHOST, 1f, 0.6f );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
 			hero.busy();

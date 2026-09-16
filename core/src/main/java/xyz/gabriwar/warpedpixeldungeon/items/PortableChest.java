@@ -134,8 +134,7 @@ public class PortableChest extends Item {
 		public void onSelect( Integer cell ) {
 			if (cell == null) return;
 
-			if (!Dungeon.level.adjacent( Dungeon.hero.pos, cell )
-					|| !Dungeon.level.passable[cell]
+			if (!Dungeon.level.passable[cell]
 					|| Actor.findChar( cell ) != null
 					|| Dungeon.level.heaps.get( cell ) != null){
 				GLog.w( Messages.get(PortableChest.class, "bad_spot") );

@@ -166,7 +166,7 @@ public class WndNetDialog extends Window {
 			} else {
 				for (int i = 0; i < destCount; i++) {
 					final int destDepth = dests.optInt(i);
-					RedButton btn = new RedButton(depthLabel(destDepth)) {
+					RedButton btn = new RedButton(WndPortal.depthLabel(destDepth)) {
 						@Override
 						protected void onClick() {
 							NetManager.sendDialogChoice(dialogId, "travel:" + destDepth);
@@ -210,18 +210,6 @@ public class WndNetDialog extends Window {
 		resize(WIDTH, (int) leave.bottom());
 	}
 
-	private static String depthLabel(int depth) {
-		String region;
-		switch ((depth - 1) / 5) {
-			case 0: region = "Sewers"; break;
-			case 1: region = "Prison"; break;
-			case 2: region = "Caves";  break;
-			case 3: region = "City";   break;
-			case 4: region = "Halls";  break;
-			default: region = "Floor"; break;
-		}
-		return region + " — Floor " + depth;
-	}
 
 	private void buildInfo(JSONObject payload) {
 		String text = payload.optString("text", "");

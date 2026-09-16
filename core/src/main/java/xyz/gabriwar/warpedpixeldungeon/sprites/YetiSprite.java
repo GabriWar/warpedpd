@@ -27,28 +27,28 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import com.watabou.noosa.TextureFilm;
 
+//remastered from the original Unleashed PD yeti: same frames, white fur, clean outline
 public class YetiSprite extends MobSprite {
 
     public YetiSprite() {
         super();
 
-        texture( Assets.Sprites.UL_GOLEM );
+        texture( Assets.Sprites.YETI );
 
         TextureFilm frames = new TextureFilm( texture, 16, 16 );
 
         idle = new Animation( 4, true );
-        idle.frames( frames, 28, 29 );
+        idle.frames( frames, 0, 1 );
 
         run = new Animation( 12, true );
-        run.frames( frames, 28, 32, 28, 32 );
+        run.frames( frames, 0, 4, 0, 4 );
 
         attack = new Animation( 10, false );
-        attack.frames( frames, 28, 30, 31, 30 );
+        attack.frames( frames, 0, 2, 3, 2 );
 
         die = new Animation( 15, false );
-        die.frames( frames, 33, 34, 35, 36 );
+        die.frames( frames, 5, 6, 7, 8 );
 
         play( idle );
     }
 }
-

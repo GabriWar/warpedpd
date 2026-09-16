@@ -86,6 +86,8 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 	protected float shadowHeight    = 0.25f;
 	protected float shadowOffset    = 0.25f;
 
+	public boolean visibleOutOfFFOV = false;
+
 	public enum State {
 		BURNING, LEVITATING, INVISIBLE, PARALYSED, FROZEN, ILLUMINATED, CHILLED, DARKENED, MARKED, HEALING, SHIELDED, HEARTS, GLOWING, AURA, ELECTRIC, BUTTER, HALOMETHANEBURNING, HEATSTROKE, HYPOTHERMIA
 	}
@@ -168,7 +170,10 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 			}
 		}
 
-		ch.updateSpriteState();
+        // HeroSprite links from its constructor, before GameScene adds it to a layer.
+        // Parent-owned buff effects must wait until that layer exists.
+        pendingBuffVisuals=parent==null;
+        if(!pendingBuffVisuals)ch.updateSpriteState();
 	}
 
 	@Override
@@ -657,8 +662,12 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 		}
 	}
 	
+    private boolean pendingBuffVisuals;
 	@Override
 	public void update() {
+        if(pendingBuffVisuals&&parent!=null&&ch!=null){
+            pendingBuffVisuals=false;ch.updateSpriteState();
+        }
 		if (paused && ch != null && curAnim != null && !curAnim.looped && !finished){
 			listener.onComplete(curAnim);
 			finished = true;
@@ -738,6 +747,16 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 			hideSleep();
 		}
 		synchronized (EmoIcon.class) {
+			boolean wandering = !sleeping
+					&& ch instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob
+					&& ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob) ch).isWanderingUnaware();
+			// Awareness and sleep icons take priority over the idle wandering indicator.
+			if (wandering && emo == null) {
+				emo = new EmoIcon.Wandering(this);
+			} else if (!wandering && emo instanceof EmoIcon.Wandering) {
+				emo.killAndErase();
+				emo = null;
+			}
 			if (emo != null && emo.alive) {
 				emo.visible = visible;
 			}

@@ -27,6 +27,8 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -66,54 +68,45 @@ public class SoulDetonation extends Skill {
 		return actions;
 	}
 
-	@Override
-	public void execute( Hero hero, String action ){
-		if (action.equals(Skill.AC_CAST) && level > 0 && hero.MP >= getManaCost()){
-
-			ArrayList<SummonedPet> pets = new ArrayList<>();
-			for (Mob mob : Dungeon.level.mobs.toArray(new Mob[0])){
-				if (mob instanceof SummonedPet && mob.alignment == Char.Alignment.ALLY){
-					pets.add( (SummonedPet)mob );
-					if (pets.size() >= MAX_DETONATIONS)
-						break;
-				}
-			}
-
-			if (pets.isEmpty()){
-				GLog.w( Messages.get(this, "no_summons") );
-				return;
-			}
-
-			for (SummonedPet pet : pets){
-				int origin = pet.pos;
-				CellEmitter.center( origin ).burst( BlastParticle.FACTORY, 6 );
-				Sample.INSTANCE.play( Assets.Sounds.BLAST );
-
-				for (int n : PathFinder.NEIGHBOURS9){
-					int c = origin + n;
-					if (c < 0 || c >= Dungeon.level.length())
-						continue;
-					Char ch = Actor.findChar( c );
-					if (ch != null && ch.alignment == Char.Alignment.ENEMY)
-						ch.damage( Random.NormalIntRange( 3 + 2 * level, 6 + 3 * level ), this );
-				}
-
-				pet.die( this );
-			}
-
-			if (level >= MAX_LEVEL){
-				hero.HP = Math.min( hero.HT, hero.HP + 2 * pets.size() );
-				hero.sprite.emitter().burst( Speck.factory( Speck.HEALING ), 2 * pets.size() );
-			}
-
-			hero.MP -= getManaCost();
-			castTextYell();
-			Dungeon.hero.heroSkills.lastUsed = this;
-			hero.spend( TIME_TO_USE );
-			hero.busy();
-			hero.sprite.operate( hero.pos );
-		}
-	}
+    @Override public void execute(Hero hero,String action){
+        if(!AC_CAST.equals(action)||level<=0||hero.MP<getManaCost())return;
+        ArrayList<SummonedPet> pets=new ArrayList<>();
+        for(Mob mob:Dungeon.level.mobs.toArray(new Mob[0]))
+            if(mob instanceof SummonedPet && mob.alignment==Char.Alignment.ALLY && mob.isAlive() && Dungeon.level.heroFOV[mob.pos])pets.add((SummonedPet)mob);
+        if(pets.isEmpty()){GLog.w(Messages.get(this,"no_summons"));return;}
+        String[] options=new String[pets.size()+1];
+        for(int i=0;i<pets.size();i++)options[i]=pets.get(i).name()+" ("+(i+1)+")";
+        options[pets.size()]=Messages.get(this,"detonate_all");
+        xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.show(new xyz.gabriwar.warpedpixeldungeon.windows.WndOptions(name(),Messages.get(this,"choose"),options){
+            @Override protected void onSelect(int index){
+                if(hero.MP<getManaCost())return;
+                ArrayList<SummonedPet> selected=new ArrayList<>();
+                if(index==pets.size())selected.addAll(pets.subList(0,Math.min(MAX_DETONATIONS,pets.size())));
+                else if(index>=0&&index<pets.size())selected.add(pets.get(index));
+                selected.removeIf(p->!p.isAlive()||!Dungeon.level.mobs.contains(p));
+                if(selected.isEmpty())return;
+                for(SummonedPet pet:selected){
+                    int origin=pet.pos;
+                    boolean rat=pet.sprite instanceof xyz.gabriwar.warpedpixeldungeon.sprites.RatSprite;
+                    boolean skeleton=pet.sprite instanceof xyz.gabriwar.warpedpixeldungeon.sprites.SkeletonSprite;
+                    if(pet.sprite!=null)pet.sprite.parent.add(new xyz.gabriwar.warpedpixeldungeon.effects.Beam.HealthRay(pet.sprite.center(),hero.sprite.center()));
+                    CellEmitter.bottom(origin).burst(ShadowParticle.UP,12);
+                    SkillInteractions.blast(origin,skeleton?2:1,4+3*level,0xBBA7EE);
+                    if(rat)for(int c:SkillInteractions.area(origin,1)){
+                        Char enemy=Actor.findChar(c);
+                        if(enemy!=null&&enemy.alignment==Char.Alignment.ENEMY)xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff.affect(enemy,xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison.class).set(2+level);
+                    }
+                    pet.die(SoulDetonation.this);
+                    //at mastery each sacrifice leaves a soul mote that returns mana when stepped on
+                    if(level>=MAX_LEVEL)xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField.place(hero,
+                        xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField.SOUL,level,6,java.util.Collections.singleton(origin));
+                }
+                hero.MP-=getManaCost();castTextYell();xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility.dispel();
+                Sample.INSTANCE.play(Assets.Sounds.BLAST);hero.spendAndNext(TIME_TO_USE);
+            }
+        });
+        hero.heroSkills.lastUsed=this;
+    }
 
 	@Override
 	public int getManaCost(){
@@ -127,7 +120,7 @@ public class SoulDetonation extends Skill {
 
 	@Override
 	public String info(){
-		return Messages.get(this, "desc", 3 + 2 * Math.max(1, level), 6 + 3 * Math.max(1, level)) + "\n"
+		return Messages.get(this, "desc") + "\n"
 				+ costUpgradeInfo();
 	}
 }

@@ -24,6 +24,18 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.weapon.melee;
 
+import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.BloodParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.utils.Callback;
+import com.watabou.noosa.audio.Sample;
+import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Gullin;
@@ -127,9 +139,79 @@ public class Chainsaw extends MeleeWeapon {
 		turnedOn = bundle.getBoolean(TURNED_ON);
 	}
 
-	//Sprouted weapon: no Duelist ability was ever designed for it
+
+	// ---- Duelist: Rip. The saw is held in the wound: three bites in one swing, each ----
+	// ---- at 60% damage, each opening a bleed. Loud, and the screen shakes with it. ----
+
 	@Override
-	public boolean hasDuelistAbility() {
-		return false;
+	protected int baseChargeUse(Hero hero, Char target){
+		return 2;
+	}
+
+	@Override
+	public String targetingPrompt() {
+		return Messages.get(this, "prompt");
+	}
+
+	@Override
+	protected void duelistAbility(Hero hero, Integer target) {
+		if (target == null) return;
+		Char enemy = Actor.findChar(target);
+		if (enemy == null || enemy == hero || hero.isCharmedBy(enemy) || !Dungeon.level.heroFOV[target]) {
+			GLog.w(Messages.get(this, "ability_no_target"));
+			return;
+		}
+		hero.belongings.abilityWeapon = this;
+		if (!hero.canAttack(enemy)){
+			GLog.w(Messages.get(this, "ability_target_range"));
+			hero.belongings.abilityWeapon = null;
+			return;
+		}
+		hero.belongings.abilityWeapon = null;
+
+		hero.sprite.attack(enemy.pos, new Callback() {
+			@Override
+			public void call() {
+				beforeAbilityUsed(hero, enemy);
+				AttackIndicator.target(enemy);
+				int bleed = 2 + buffedLvl() / 2;
+				boolean any = false;
+				for (int i = 0; i < 3 && enemy.isAlive(); i++){
+					if (hero.attack(enemy, 0.6f, 0, Char.INFINITE_ACCURACY)){
+						any = true;
+						Sample.INSTANCE.play(Assets.Sounds.HIT_SLASH, 1f, 0.7f + 0.15f * i);
+						if (enemy.isAlive()) Buff.affect(enemy, Bleeding.class).set(bleed);
+						if (enemy.sprite != null) enemy.sprite.emitter().burst(BloodParticle.BURST, 4);
+					}
+				}
+				if (any){
+					Wound.hit(enemy);
+					Camera.main.shake(2, 0.3f);
+				}
+				Invisibility.dispel();
+				if (!enemy.isAlive()){
+					hero.next();
+					onAbilityKill(hero, enemy);
+				} else {
+					hero.spendAndNext(hero.attackDelay());
+				}
+				afterAbilityUsed(hero);
+			}
+		});
+	}
+
+	@Override
+	public String abilityInfo() {
+		int bleed = levelKnown ? 2 + buffedLvl() / 2 : 2;
+		if (levelKnown){
+			return Messages.get(this, "ability_desc", augment.damageFactor(Math.round(min()*0.6f)), augment.damageFactor(Math.round(max()*0.6f)), bleed);
+		} else {
+			return Messages.get(this, "typical_ability_desc", Math.round(min(0)*0.6f), Math.round(max(0)*0.6f), bleed);
+		}
+	}
+
+	@Override
+	public String upgradeAbilityStat(int level){
+		return augment.damageFactor(Math.round(min(level)*0.6f)) + "-" + augment.damageFactor(Math.round(max(level)*0.6f)) + " x3, " + (2 + level/2);
 	}
 }

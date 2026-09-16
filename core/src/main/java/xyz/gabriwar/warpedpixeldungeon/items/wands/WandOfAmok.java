@@ -50,6 +50,11 @@ public class WandOfAmok extends Wand {
 	}
 
 	@Override
+	public String statsDesc() {
+		return Messages.get(this, "stats_desc", 3 + (levelKnown ? buffedLvl() : 0));
+	}
+
+	@Override
 	public void onZap(Ballistica bolt) {
 		Char ch = Actor.findChar(bolt.collisionPos);
 		if (ch != null) {

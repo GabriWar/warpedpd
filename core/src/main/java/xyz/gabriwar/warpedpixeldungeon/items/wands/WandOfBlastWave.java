@@ -43,6 +43,7 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
 import com.watabou.noosa.Image;
@@ -170,7 +171,7 @@ public class WandOfBlastWave extends DamageWand {
 					if (ch.isActive()) {
 						Paralysis.prolong(ch, Paralysis.class, 1 + finalDist/2f);
 					} else if (ch == Dungeon.hero){
-						if (cause instanceof WandOfBlastWave){
+						if (cause instanceof Wand || cause instanceof Weapon.Enchantment){
 							Badges.validateDeathFromFriendlyMagic();
 						}
 						GLog.n(Messages.get(WandOfBlastWave.class, "knockback_ondeath"));

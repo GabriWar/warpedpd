@@ -27,6 +27,9 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -46,6 +49,7 @@ public class KneeShot extends PassiveSkillB2 {
 	public boolean cripple(){
 		if (Random.Int(100) < 10 * level){
 			castTextYell();
+			Sample.INSTANCE.play( Assets.Sounds.HIT_ARROW, 1f, 0.7f );
 			return true;
 		}
 		return false;
@@ -57,6 +61,8 @@ public class KneeShot extends PassiveSkillB2 {
 	public int onHitProc( Char enemy, int damage, boolean ranged ){
 		if (ranged && level >= 3 && enemy != null && enemy.buff( Cripple.class ) != null){
 			Buff.affect( enemy, Bleeding.class ).set( 1 + level );
+			Wound.hit( enemy );
+			Sample.INSTANCE.play( Assets.Sounds.HIT_STAB, 0.8f, 1.2f );
 		}
 		return damage;
 	}

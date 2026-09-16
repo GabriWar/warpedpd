@@ -195,9 +195,5 @@ public class Fadeleaf extends Plant {
 			return new FadeleafPoisonParticle();
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			new Fadeleaf().attackProc(defender, damage);
-		}
 	}
 }

@@ -1,8 +1,34 @@
+/*
+ * Pixel Dungeon
+ * Copyright (C) 2012-2015 Oleg Dolya
+ *
+ * Shattered Pixel Dungeon
+ * Copyright (C) 2014-2026 Evan Debenham
+ *
+ * Warped Pixel Dungeon
+ * Copyright (C) 2026 Gabriel Duarte Guerra (gabriwar)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ */
+
 package xyz.gabriwar.warpedpixeldungeon.net.ui;
 
 import xyz.gabriwar.warpedpixeldungeon.Chrome;
 import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
 import xyz.gabriwar.warpedpixeldungeon.net.NetManager;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.TitleScene;
 import xyz.gabriwar.warpedpixeldungeon.ui.ExitButton;
@@ -35,6 +61,10 @@ public class SpectatorLobbyScene extends PixelScene {
 	private long animDot = 0;
 	private String hostName;
 
+	/** "player" when the host is holding a claim for us, else we are only watching. */
+	public static String pendingRole = "";
+	public static int pendingClass = -1;
+
 	@Override
 	public void create() {
 		super.create();
@@ -42,6 +72,12 @@ public class SpectatorLobbyScene extends PixelScene {
 		hostName = (pendingHostName == null || pendingHostName.isEmpty())
 				? "Host" : pendingHostName;
 		pendingHostName = "";
+		boolean player = "player".equals(pendingRole);
+		HeroClass[] classes = HeroClass.values();
+		String className = pendingClass >= 0 && pendingClass < classes.length
+				? Messages.titleCase(classes[pendingClass].title()) : "your hero";
+		pendingRole = "";
+		pendingClass = -1;
 
 		uiCamera.visible = false;
 
@@ -66,7 +102,7 @@ public class SpectatorLobbyScene extends PixelScene {
 		btnExit.setPos(insets.left + w - btnExit.width(), insets.top);
 		add(btnExit);
 
-		IconTitle title = new IconTitle(Icons.COMPASS.get(), "Spectating");
+		IconTitle title = new IconTitle(Icons.COMPASS.get(), player ? "Waiting for host" : "Spectating");
 		title.setSize(220, 0);
 		title.setPos(insets.left + (w - title.reqWidth()) / 2f,
 				insets.top + (20 - title.height()) / 2f);
@@ -85,7 +121,7 @@ public class SpectatorLobbyScene extends PixelScene {
 		card.size(cardW, cardH);
 		add(card);
 
-		cardRow(cardX, yPos + 4, cardW, "Following", hostName, NetUi.GREEN);
+		cardRow(cardX, yPos + 4, cardW, player ? "Joining" : "Following", hostName, NetUi.GREEN);
 
 		RenderedTextBlock pingLabel = PixelScene.renderTextBlock("Latency", 6);
 		pingLabel.hardlight(NetUi.MUTED);
@@ -103,15 +139,17 @@ public class SpectatorLobbyScene extends PixelScene {
 		yPos += cardH + 12;
 
 		// ---- Status text (waits + dots animation) ----
-		waitText = PixelScene.renderTextBlock("Waiting for host to start a game", 8);
+		waitText = PixelScene.renderTextBlock(player
+				? "You will play as " + className : "Waiting for host to start a game", 8);
 		waitText.hardlight(NetUi.BLUE);
 		waitText.setPos(insets.left + (w - waitText.width()) / 2f, yPos);
 		align(waitText);
 		add(waitText);
 		yPos = waitText.bottom() + 6;
 
-		RenderedTextBlock hint = PixelScene.renderTextBlock(
-				"Read-only. The host's view will appear here as soon as they enter a level.",
+		RenderedTextBlock hint = PixelScene.renderTextBlock(player
+				? "Your hero joins the party the moment the host enters a level."
+				: "Read-only. The host's view will appear here as soon as they enter a level.",
 				6);
 		hint.hardlight(NetUi.MUTED);
 		hint.maxWidth((int)cardW);

@@ -33,5 +33,8 @@ public class AlbinoRat extends Rat {
 
 	{
 		spriteClass = AlbinoRatSprite.class;
+
+		//built for the cold: the deep freeze is home, the thaw is what hurts
+		thermal = Thermal.COLD_DWELLER;
 	}
 }

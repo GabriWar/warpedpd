@@ -27,9 +27,19 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import com.watabou.noosa.audio.Sample;
+import com.watabou.utils.Random;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 public class IronStance extends ActiveSkill {
 
@@ -42,12 +52,16 @@ public class IronStance extends ActiveSkill {
 		mana = 3;
 	}
 
+	private static final float DIZZY = 3f;
+
 	@Override
 	public void execute( Hero hero, String action ){
 		super.execute(hero, action);
 		if (action.equals(Skill.AC_ACTIVATE)){
 			// only one stance or attack toggle at a time
 			hero.heroSkills.deactivateOtherToggles( this );
+			Sample.INSTANCE.play( Assets.Sounds.STURDY, 1f, 1.1f );
+			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 3 );
 		}
 	}
 
@@ -61,19 +75,41 @@ public class IronStance extends ActiveSkill {
 		return true;
 	}
 
+	//the guard only weighs on the arm while there is mana to hold it with
 	@Override
 	public float damageModifier(){
-		if (!active || level <= 0)
+		Hero hero = Dungeon.hero;
+		if (!active || level <= 0 || hero == null || hero.MP < getManaCost())
 			return 1f;
 		return 0.85f;
 	}
 
+	//a parried melee blow is a real miss: no damage, no on-hit effects, the hero keeps his tile
 	@Override
-	public int onDefendProc( Char enemy, int damage ){
-		if (!active || level <= 0 || Dungeon.hero.MP < getManaCost())
-			return damage;
+	public boolean dodgeChance( Char attacker ){
+		Hero hero = Dungeon.hero;
+		return active && level > 0 && hero != null && attacker != null && attacker != hero
+				&& attacker.alignment == Char.Alignment.ENEMY
+				&& hero.MP >= getManaCost()
+				&& Dungeon.level.adjacent( hero.pos, attacker.pos )
+				&& Random.Int( 100 ) < 15 * level;
+	}
+
+	@Override
+	public void onDodge( Char attacker ){
+		Hero hero = Dungeon.hero;
+		if (hero == null) return;
 		castTextYell();
-		Dungeon.hero.MP -= getManaCost();
-		return Math.round( damage * (1f - 0.12f * level) );
+		hero.MP = Math.max( 0, hero.MP - getManaCost() );
+		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 1f, 1.1f );
+		if (hero.sprite != null){
+			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
+			hero.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( this, "blocked" ) );
+		}
+		//+3: the attacker reels back from the steel it hit, dizzy
+		if (level >= MAX_LEVEL && attacker != null && !attacker.properties().contains( Char.Property.BOSS )){
+			SkillInteractions.affectAfterHit( attacker, Vertigo.class, DIZZY );
+			if (attacker.sprite != null) attacker.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
+		}
 	}
 }

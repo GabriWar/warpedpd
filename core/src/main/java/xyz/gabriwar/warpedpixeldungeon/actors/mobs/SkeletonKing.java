@@ -60,6 +60,9 @@ public class SkeletonKing extends Mob {
 		immunities.add(Burning.class);
 
 		declareExtraLoot(AdamantWeapon.class, 1f);
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	@Override

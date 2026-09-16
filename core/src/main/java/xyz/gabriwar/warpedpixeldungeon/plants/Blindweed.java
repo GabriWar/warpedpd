@@ -106,10 +106,6 @@ public class Blindweed extends Plant {
 			plantClass = Blindweed.class;
 		}
 
-		@Override
-		public void procEffect( Char attacker, Char defender, int damage ) {
-			new Blindweed().attackProc(defender, damage);
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

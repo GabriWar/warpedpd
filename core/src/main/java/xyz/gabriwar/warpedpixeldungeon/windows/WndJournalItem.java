@@ -21,9 +21,18 @@
 
 package xyz.gabriwar.warpedpixeldungeon.windows;
 
+import xyz.gabriwar.warpedpixeldungeon.items.potions.Potion;
+import xyz.gabriwar.warpedpixeldungeon.items.scrolls.Scroll;
+import xyz.gabriwar.warpedpixeldungeon.items.rings.Ring;
+import xyz.gabriwar.warpedpixeldungeon.items.wands.Wand;
+import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.MissileWeapon;
+import xyz.gabriwar.warpedpixeldungeon.items.Gold;
+import xyz.gabriwar.warpedpixeldungeon.items.Item;
+import xyz.gabriwar.warpedpixeldungeon.plants.Plant;
 import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
-import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
@@ -78,41 +87,70 @@ public class WndJournalItem extends WndTitledMessage {
 		resize(w, (int)(y + 2));
 	}
 
-	private float addDropRow(Mob.DropInfo drop, int width, float y) {
-		ItemSprite sprite;
-		if (drop.item != null) {
-			sprite = new ItemSprite(drop.item);
-		} else {
-			sprite = new ItemSprite(ItemSpriteSheet.SOMETHING, null);
+	/**
+	 * Potions, scrolls and rings are told apart by a colour, a rune or a gem that is
+	 * rolled anew each run, so a row that showed the real sprite next to the kind of
+	 * item would hand the player the answer. Until the kind is known this run, the row
+	 * shows the generic holder sprite and only says what sort of item it is.
+	 */
+	private static boolean concealed(Item item) {
+		return item != null
+				&& (item instanceof Potion || item instanceof Scroll || item instanceof Ring)
+				&& !item.isIdentified();
+	}
+
+	private static ItemSprite spriteFor(Mob.DropInfo drop) {
+		if (drop.item == null) {
+			return new ItemSprite(ItemSpriteSheet.SOMETHING, null);
 		}
+		if (drop.isCategory || concealed(drop.item)) {
+			int holder = drop.item instanceof Potion ? ItemSpriteSheet.POTION_HOLDER
+					: drop.item instanceof Scroll ? ItemSpriteSheet.SCROLL_HOLDER
+					: drop.item instanceof Ring ? ItemSpriteSheet.RING_HOLDER
+					: drop.item instanceof Wand ? ItemSpriteSheet.WAND_HOLDER
+					: drop.item instanceof Armor ? ItemSpriteSheet.ARMOR_HOLDER
+					: drop.item instanceof MissileWeapon ? ItemSpriteSheet.MISSILE_HOLDER
+					: drop.item instanceof Weapon ? ItemSpriteSheet.WEAPON_HOLDER
+					: drop.item instanceof Plant.Seed ? ItemSpriteSheet.SEED_HOLDER
+					: drop.item instanceof Gold ? drop.item.image
+					: ItemSpriteSheet.SOMETHING;
+			return new ItemSprite(holder, null);
+		}
+		return new ItemSprite(drop.item);
+	}
 
-		boolean nameRevealed = drop.slotSeen
-				&& (drop.isCategory
-					|| drop.item == null
-					|| !Catalog.isTracked(drop.item.getClass())
-					|| Catalog.isSeen(drop.item.getClass()));
+	private static String labelFor(Mob.DropInfo drop) {
+		//the real name of the kind; only the sprite is withheld, since the sprite is the
+		//run's colour, rune or gem and that pairing is what the player has to find out
+		if (concealed(drop.item)) {
+			return Messages.titleCase(Messages.get(drop.item, "name"));
+		}
+		return drop.name;
+	}
 
+	private float addDropRow(Mob.DropInfo drop, int width, float y) {
+		ItemSprite sprite = spriteFor(drop);
+		//a name is withheld only while the slot itself is unseen: a key or a shard has
+		//nothing to hide, and what is hidden about a potion is hidden by concealed()
 		String label;
 		if (!drop.slotSeen) {
 			sprite.lightness(0f);
 			label = "???";
-		} else if (nameRevealed) {
-			label = drop.name + " (" + Mob.formatChance(drop.chance) + ")";
 		} else {
-			label = "??? (" + Mob.formatChance(drop.chance) + ")";
+			label = labelFor(drop) + " (" + Mob.formatChance(drop.chance) + ")";
 		}
-
-		sprite.x = 1;
-		sprite.y = y;
+		//item frames are cut to the art (a dewdrop is 10 by 10, a shard 8 by 10), so
+		//the sprite is centred in the row's 16 by 16 slot rather than pinned to its corner
+		sprite.x = 1 + (ItemSpriteSheet.SIZE - sprite.width()) / 2f;
+		sprite.y = y + (ItemSpriteSheet.SIZE - sprite.height()) / 2f;
+		PixelScene.align(sprite);
 		add(sprite);
-
 		RenderedTextBlock text = PixelScene.renderTextBlock(label, 6);
 		text.maxWidth(width - 20);
 		text.setPos(20, y + (ItemSpriteSheet.SIZE - text.height()) / 2f);
+		PixelScene.align(text);
 		add(text);
-
-		float rowBottom = Math.max(sprite.y + ItemSpriteSheet.SIZE, text.bottom()) + 1;
-
+		float rowBottom = Math.max(y + ItemSpriteSheet.SIZE, text.bottom()) + 1;
 		if (drop.slotSeen) {
 			PointerArea hotArea = new PointerArea(0, y, width, rowBottom - y) {
 				@Override
@@ -122,32 +160,27 @@ public class WndJournalItem extends WndTitledMessage {
 			};
 			add(hotArea);
 		}
-
 		return rowBottom;
 	}
 
 	private void showDropInfo(Mob.DropInfo drop) {
 		if (drop.item == null) return;
-
-		boolean catalogSeen = drop.isCategory
-				|| !Catalog.isTracked(drop.item.getClass())
-				|| Catalog.isSeen(drop.item.getClass());
-
 		Image icon;
 		String title;
 		String desc;
-
-		if (catalogSeen) {
+		if (drop.isCategory) {
+			icon = spriteFor(drop);
+			title = Messages.titleCase(drop.name);
+			desc = Messages.get(WndJournalItem.class, "category_desc");
+		} else if (concealed(drop.item)) {
+			icon = spriteFor(drop);
+			title = Messages.titleCase(labelFor(drop));
+			desc = Messages.get(WndJournalItem.class, "concealed_desc");
+		} else {
 			icon = new ItemSprite(drop.item);
 			title = Messages.titleCase(drop.item.name());
 			desc = drop.item.info();
-		} else {
-			icon = new ItemSprite(drop.item);
-			icon.lightness(0f);
-			title = "???";
-			desc = Messages.get(WndJournal.CatalogTab.class, "not_seen_item");
 		}
-
 		if (WarpedPixelDungeon.scene() instanceof GameScene) {
 			GameScene.show(new WndTitledMessage(icon, title, desc));
 		} else {

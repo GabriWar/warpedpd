@@ -82,6 +82,9 @@ public class YogDzewa extends Mob {
 		properties.add(Property.IMMOVABLE);
 		properties.add(Property.DEMONIC);
 		properties.add(Property.STATIC);
+
+		//built for the heat: the chill is what hurts
+		thermal = Thermal.HEAT_DWELLER;
 	}
 
 	private int phase = 0;
@@ -272,16 +275,19 @@ public class YogDzewa extends Mob {
 				if (allAdjTargeted){
 					targetedCells.remove(targetedCells.size()-1);
 				}
+
+				//don't want to overly punish players with slow move or attack speed
+				float delay = GameMath.gate(TICK, (int)Math.ceil(Dungeon.hero.cooldown()), 3*TICK);
+
 				for (int i : targetedCells){
 					Ballistica b = new Ballistica(pos, i, Ballistica.WONT_STOP);
 					for (int p : b.path){
-						sprite.parent.add(new TargetedCell(p, 0xFF0000));
+						GameScene.targetedCell(p, delay);
 						affectedCells.add(p);
 					}
 				}
 
-				//don't want to overly punish players with slow move or attack speed
-				spend(GameMath.gate(TICK, (int)Math.ceil(Dungeon.hero.cooldown()), 3*TICK));
+				spend( delay );
 				Dungeon.hero.interrupt();
 
 				abilityCooldown += Random.NormalFloat(MIN_ABILITY_CD, MAX_ABILITY_CD);

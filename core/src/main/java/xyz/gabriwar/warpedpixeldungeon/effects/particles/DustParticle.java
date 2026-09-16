@@ -21,19 +21,15 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
-import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.Random;
 
-/**
- * Tiny tan/brown motes blown around by wind.
- * Used in dry/warm areas and prison corridors.
- */
-public class DustParticle extends PixelParticle {
+import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherSprites;
+
+/** Wind-borne dust: tan specks that skate along low and stretch when the wind is up. */
+public class DustParticle extends WeatherParticle {
 
 	public static final Emitter.Factory FACTORY = new Emitter.Factory() {
 		@Override
@@ -44,7 +40,7 @@ public class DustParticle extends PixelParticle {
 
 	private static final int[] COLORS = { 0xBB9966, 0xAA8855, 0xCC9977, 0x998866 };
 
-	private float wobblePhase;
+	private float wobblePhase, wobbleRate;
 
 	public DustParticle() {
 		super();
@@ -55,41 +51,25 @@ public class DustParticle extends PixelParticle {
 		revive();
 		this.x = x;
 		this.y = y;
-		left = lifespan;
+		left = lifespan = Random.Float(2f, 5f);
 
-		size = Random.Float(0.5f, 1.5f);
+		float wind = ClimateManager.localWindSpeed();
+		//a fast wind draws the specks out into short streaks
+		frame(wind > 6f && Random.Float() < 0.5f ? WeatherSprites.SPECK_2 : WeatherSprites.SPECK_1);
 		color(COLORS[Random.Int(COLORS.length)]);
 
-		// Dust is very light — wind dominates movement
-		float wind = ClimateManager.localWindSpeed();
 		speed.set(Random.Float(-2, 2) + wind * 1.2f, Random.Float(-2, 4));
 		acc.set(0, Random.Float(0.5f, 2f)); // barely falls
 		wobblePhase = Random.Float((float)(Math.PI * 2));
+		wobbleRate = Random.Float(3f, 6f);
 	}
 
 	@Override
 	public void update() {
 		super.update();
-		float p = left / lifespan;
-
-		// Erratic drift
-		wobblePhase += Game.elapsed * Random.Float(3f, 6f);
-		speed.x += (float) Math.sin(wobblePhase) * 3f * Game.elapsed;
-
-		// Very subtle — dust is barely visible
-		float envelope;
-		if (p > 0.85f) {
-			envelope = (1f - p) * 6.7f;
-		} else if (p < 0.15f) {
-			envelope = p * 6.7f;
-		} else {
-			envelope = 1f;
-		}
-		am = envelope * 0.35f;
-
-		int cell = (int)(this.x / DungeonTilemap.SIZE) + (int)(this.y / DungeonTilemap.SIZE) * Dungeon.level.width();
-		if (cell < 0 || cell >= Dungeon.level.heroFOV.length || !Dungeon.level.heroFOV[cell]) {
-			am = 0;
-		}
+		wobblePhase += Game.elapsed * wobbleRate;
+		speed.x += ((float) Math.sin(wobblePhase) * 3f + 4f * WeatherSprites.gust()) * Game.elapsed;
+		am = envelope(0.15f, 0.15f, 0.4f);
+		fov();
 	}
 }

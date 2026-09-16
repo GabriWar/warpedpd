@@ -25,26 +25,13 @@
 package xyz.gabriwar.warpedpixeldungeon.items;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
-import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Water;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barrier;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Haste;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Levitation;
-import xyz.gabriwar.warpedpixeldungeon.actors.hero.Belongings;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
-import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
-import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
-import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfRemoveCurse;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.VialOfBlood;
 import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
-import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
@@ -52,28 +39,23 @@ import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.GameMath;
-import com.watabou.utils.Random;
 
 import java.util.ArrayList;
 
 public class Waterskin extends Item {
 
 	private static final int BASE_MAX_VOLUME = 100;
-	private static final int WINGS_MAX_VOLUME = 300;
+	private static final int UPGRADED_MAX_VOLUME = 300;
 
 	public int maxVolume() {
-		return Dungeon.wings ? WINGS_MAX_VOLUME : BASE_MAX_VOLUME;
+		return Dungeon.skinCapacity ? UPGRADED_MAX_VOLUME : BASE_MAX_VOLUME;
 	}
 
 	private static final String AC_DRINK	= "DRINK";
 	private static final String AC_SIP		= "SIP";
-	private static final String AC_SPLASH	= "SPLASH";
-	private static final String AC_WATER	= "WATER";
-	private static final String AC_BLESS	= "BLESS";
+	private static final String AC_MEASURE	= "MEASURE";
 
 	private static final float TIME_TO_DRINK = 1f;
-	private static final float TIME_TO_WATER = 3f;
-	private static final float TIME_TO_BLESS = 1f;
 
 	private static final String TXT_STATUS	= "%d/%d";
 
@@ -110,14 +92,8 @@ public class Waterskin extends Item {
 		if (volume > 2) {
 			actions.add( AC_DRINK );
 		}
-		if (volume > 29) {
-			actions.add( AC_SPLASH );
-		}
-		if (volume > 49 && Dungeon.dewWater) {
-			actions.add( AC_WATER );
-		}
-		if (volume >= maxVolume()) {
-			actions.add( AC_BLESS );
+		if (volume > 0 && Dungeon.measuredDraught) {
+			actions.add( AC_MEASURE );
 		}
 		return actions;
 	}
@@ -198,108 +174,13 @@ public class Waterskin extends Item {
 				GLog.w( Messages.get(this, "empty") );
 			}
 
-		} else if (action.equals( AC_SPLASH )) {
+		} else if (action.equals( AC_MEASURE )) {
 
-			Buff.affect(hero, Haste.class, Haste.DURATION);
-			Buff.affect(hero, Invisibility.class, Invisibility.DURATION);
-			if (Dungeon.wings && Dungeon.depth < 51) {
-				Buff.affect(hero, Levitation.class, Levitation.DURATION);
+			if (volume > 0) {
+				GameScene.show( new xyz.gabriwar.warpedpixeldungeon.windows.WndMeasuredDraught( this, hero ) );
+			} else {
+				GLog.w( Messages.get(this, "empty") );
 			}
-
-			GLog.i( Messages.get(this, "refreshed") );
-
-			volume -= 10;
-
-			hero.spend(TIME_TO_DRINK);
-			hero.busy();
-
-			Sample.INSTANCE.play(Assets.Sounds.DRINK);
-			hero.sprite.operate(hero.pos);
-
-			updateQuickslot();
-
-		} else if (action.equals( AC_WATER )) {
-
-			int length = Dungeon.level.length();
-			for (int i = 0; i < length; i++) {
-				if (Dungeon.level.heroFOV[i]) {
-					int terr = Dungeon.level.map[i];
-					if (terr == Terrain.GRASS || terr == Terrain.HIGH_GRASS
-							|| terr == Terrain.FURROWED_GRASS
-							|| terr == Terrain.EMPTY
-							|| terr == Terrain.EMBERS) {
-						GameScene.add(Blob.seed(i, 40, Water.class));
-					}
-				}
-			}
-
-			volume -= 2;
-
-			GLog.i( Messages.get(this, "watered") );
-
-			hero.sprite.operate(hero.pos);
-			hero.busy();
-			hero.spend(TIME_TO_WATER);
-
-			updateQuickslot();
-
-		} else if (action.equals( AC_BLESS )) {
-
-			if (Dungeon.dewDraw) {
-				GameScene.selectItem(blessItemSelector);
-				return; // time spent inside selector callback
-			}
-
-			//uncurse all equipped items
-			boolean procced = ScrollOfRemoveCurse.uncurse(hero,
-					hero.belongings.weapon,
-					hero.belongings.armor,
-					hero.belongings.artifact,
-					hero.belongings.misc,
-					hero.belongings.ring);
-
-			//also uncurse backpack items
-			for (Item item : hero.belongings.backpack) {
-				if (item.cursed) {
-					procced = ScrollOfRemoveCurse.uncurse(hero, item) || procced;
-				}
-			}
-
-			//chance to upgrade each upgradeable item
-			int levelLimit = 5 + Dungeon.scalingDepth() / 3;
-			float upgradeChance = 0.33f;
-			boolean upgraded = false;
-
-			for (Item item : hero.belongings) {
-				if (item != null && Random.Float() < upgradeChance
-						&& item.isUpgradable() && item.buffedLvl() < levelLimit) {
-					item.upgrade();
-					upgraded = true;
-					GLog.p( Messages.get(this, "looks_better", item.name()) );
-					Badges.validateItemLevelAquired(item);
-				}
-			}
-
-			if (upgraded) {
-				hero.sprite.emitter().start(Speck.factory(Speck.UP), 0.2f, 3);
-			}
-
-			if (procced) {
-				GLog.p( Messages.get(this, "procced") );
-				hero.sprite.emitter().start(ShadowParticle.UP, 0.05f, 10);
-			} else if (!upgraded) {
-				GLog.i( Messages.get(this, "not_procced") );
-			}
-
-			volume -= 50;
-
-			hero.spend(TIME_TO_BLESS);
-			hero.busy();
-
-			Sample.INSTANCE.play(Assets.Sounds.DRINK);
-			hero.sprite.operate(hero.pos);
-
-			updateQuickslot();
 
 		}
 	}
@@ -314,20 +195,16 @@ public class Waterskin extends Item {
 			info += "\n\n" + Messages.get(this, "desc_heal");
 		}
 
-		if (volume > 29){
-			info += "\n\n" + Messages.get(this, "desc_splash");
+		if (Dungeon.dewCondenser){
+			int turns = xyz.gabriwar.warpedpixeldungeon.actors.WeatherAttunement.turnsPerDrop(
+					xyz.gabriwar.warpedpixeldungeon.actors.WeatherAttunement.condenseRate() );
+			info += "\n\n" + (turns > 0
+					? Messages.get(xyz.gabriwar.warpedpixeldungeon.actors.WeatherAttunement.class, "skin_condenser", turns)
+					: Messages.get(xyz.gabriwar.warpedpixeldungeon.actors.WeatherAttunement.class, "skin_condenser_dry"));
 		}
 
-		if (Dungeon.dewWater && volume > 49){
-			info += "\n\n" + Messages.get(this, "desc_water_action");
-		}
-
-		if (volume >= maxVolume()){
-			info += "\n\n" + Messages.get(this, "desc_bless");
-		}
-
-		if (isFull()){
-			info += "\n\n" + Messages.get(this, "desc_full");
+		if (Dungeon.measuredDraught && volume > 0){
+			info += "\n\n" + Messages.get(this, "desc_measure");
 		}
 
 		return info;
@@ -361,6 +238,46 @@ public class Waterskin extends Item {
 		updateQuickslot();
 	}
 
+	//the Tinkerer's measured draught: each drop is 5% of max health and 5% of max mana
+	public static final float DROP_FRACTION = 0.05f;
+
+	public int measuredHeal( Hero hero, int drops ){
+		return Math.min( hero.HT - hero.HP, Math.round( hero.HT * DROP_FRACTION * drops ) );
+	}
+
+	public int measuredMana( Hero hero, int drops ){
+		int maxMP = hero.MT + xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfMagic.manaBonus( hero );
+		return Math.max( 0, Math.min( maxMP - hero.MP, Math.round( hero.MT * DROP_FRACTION * drops ) ) );
+	}
+
+	public void drinkMeasured( Hero hero, int drops ){
+		drops = (int) GameMath.gate( 1, drops, volume );
+		int mana = measuredMana( hero, drops );
+		Dewdrop.consumeDew( drops, hero, true );
+		if (mana > 0){
+			hero.MP += mana;
+			hero.sprite.showStatus( 0x6688FF, "+%d MP", mana );
+		}
+		volume -= drops;
+		Catalog.countUses( Dewdrop.class, drops );
+
+		hero.spend( TIME_TO_DRINK );
+		hero.busy();
+
+		Sample.INSTANCE.play( Assets.Sounds.DRINK );
+		hero.sprite.operate( hero.pos );
+
+		updateQuickslot();
+	}
+
+	/** dew condensed out of the air by the Tinkerer's upgrade: silent, capped at the skin */
+	public void condense( int drops ) {
+		if (drops <= 0 || volume >= maxVolume()) return;
+		volume = Math.min( maxVolume(), volume + drops );
+		if (volume >= maxVolume()) GLog.p( Messages.get(this, "full") );
+		updateQuickslot();
+	}
+
 	public void collectDew( Dewdrop dew ) {
 		int amount;
 		if      (dew instanceof VioletDewdrop) amount = 50;
@@ -387,47 +304,5 @@ public class Waterskin extends Item {
 	public String status() {
 		return Messages.format( TXT_STATUS, volume, maxVolume() );
 	}
-
-	// Sprouted dewDraw mode: player selects which item to upgrade (costs 90 volume)
-	private final WndBag.ItemSelector blessItemSelector = new WndBag.ItemSelector() {
-
-		@Override
-		public String textPrompt() {
-			return Messages.get(Waterskin.class, "select_item");
-		}
-
-		@Override
-		public Class<? extends Bag> preferredBag() {
-			return Belongings.Backpack.class;
-		}
-
-		@Override
-		public boolean itemSelectable(Item item) {
-			int levelLimit = 5 + Dungeon.scalingDepth() / 3;
-			return item.isUpgradable() && item.buffedLvl() < levelLimit;
-		}
-
-		@Override
-		public void onSelect(Item item) {
-			if (item != null) {
-				Hero hero = Dungeon.hero;
-				item.upgrade();
-				GLog.p( Messages.get(Waterskin.class, "looks_better", item.name()) );
-				hero.sprite.emitter().start(Speck.factory(Speck.UP), 0.2f, 3);
-				Badges.validateItemLevelAquired(item);
-
-				volume -= 90;
-				if (volume < 0) volume = 0;
-
-				hero.spend(TIME_TO_BLESS);
-				hero.busy();
-
-				Sample.INSTANCE.play(Assets.Sounds.DRINK);
-				hero.sprite.operate(hero.pos);
-
-				updateQuickslot();
-			}
-		}
-	};
 
 }

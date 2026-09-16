@@ -97,10 +97,6 @@ public class Cocostuft extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect( Char attacker, Char defender, int damage ) {
-			Buff.prolong( defender, Cripple.class, Cripple.DURATION );
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

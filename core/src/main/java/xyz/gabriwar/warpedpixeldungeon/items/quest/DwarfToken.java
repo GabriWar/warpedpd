@@ -23,6 +23,10 @@ package xyz.gabriwar.warpedpixeldungeon.items.quest;
 
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Imp;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 
 public class DwarfToken extends Item {
 	
@@ -41,5 +45,25 @@ public class DwarfToken extends Item {
 	@Override
 	public boolean isIdentified() {
 		return true;
+	}
+
+	@Override
+	public boolean doPickUp(Hero hero, int pos) {
+		if (Imp.Quest.mirrorUsed){
+			GLog.i(Messages.get(this, "discard"));
+			hero.next();
+			return true;
+		}
+		return super.doPickUp(hero, pos);
+	}
+
+	@Override
+	public String desc() {
+		if (Imp.Quest.isOld()){
+			return Messages.get(this, "desc_old");
+		} else {
+			return super.desc();
+		}
+
 	}
 }

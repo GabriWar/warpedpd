@@ -42,7 +42,8 @@ public abstract class Key extends Item {
 		unique = true;
 	}
 
-	//TODO currently keys can only appear on branch = 0, add branch support here if that changes
+	//Keys match by type and depth on both the main path and branches.
+	//Keep this identity compatible with keys already collected in older saves.
 	public int depth;
 	
 	@Override

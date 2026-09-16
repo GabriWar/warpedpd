@@ -25,8 +25,15 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillSequence;
 
 
+import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -34,6 +41,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
+import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfForce;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
@@ -43,6 +52,11 @@ import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import java.util.ArrayList;
 
 public class ImpalingThrust extends Skill {
+
+	//damage comes from the weapon or strength, which already grow with the hero
+	@Override
+	public boolean weaponScaled(){ return true; }
+
 
 	{
 		tag = "A4";
@@ -74,7 +88,7 @@ public class ImpalingThrust extends Skill {
 
 				@Override
 				public String prompt(){
-					return "Choose a direction to thrust";
+					return Messages.get(ImpalingThrust.class, "prompt");
 				}
 			} );
 		}
@@ -87,11 +101,21 @@ public class ImpalingThrust extends Skill {
 		Ballistica traj = new Ballistica( hero.pos, target, Ballistica.STOP_SOLID );
 		int reach = Math.min( 2 + level, traj.dist );
 
+		//a raw roll of what is in hand. Deliberately not Hero.damageRoll(): that path runs the
+		//skill tree's damage modifiers, so an active Riposte would spend its mana and yell its cast
+		//text from inside this thrust
+		KindOfWeapon wep = hero.belongings.weapon();
+		int roll = wep != null ? wep.damageRoll( hero ) : RingOfForce.damageRoll( hero );
+
 		boolean hit = false;
 		for (int cell : traj.subPath( 1, reach )){
 			Char ch = Actor.findChar( cell );
+			if (Dungeon.level.heroFOV[cell] && !Dungeon.level.solid[cell]){
+				CellEmitter.center( cell ).burst( Speck.factory( Speck.STAR ), 2 );
+			}
 			if (ch != null && ch.alignment == Char.Alignment.ENEMY){
-				ch.damage( Math.round( hero.damageRoll() * (0.5f + 0.15f * level) ), this );
+				ch.damage( Math.round( roll * 0.8f ), this );
+				Wound.hit( ch );
 				if (ch.isAlive()){
 					Buff.affect( ch, Bleeding.class ).set( 2 + level );
 				}
@@ -104,8 +128,14 @@ public class ImpalingThrust extends Skill {
 			return;
 		}
 
+		if (level >= MAX_LEVEL){
+			SkillSequence.start(hero, SkillSequence.LANCES, 1, hero.pos, Math.max(1, roll/3), 2, traj.subPath(1, reach));
+		}
+		SkillSpectacleFX.fly(SkillSpectacleFX.LANCE, hero.pos, traj.path.get(reach), 0, .4f);
 		hero.MP -= getManaCost();
 		castTextYell();
+		Sample.INSTANCE.play( Assets.Sounds.HIT_STAB, 1f, 1.0f );
+		Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 3 );
 		Dungeon.hero.heroSkills.lastUsed = this;
 		hero.spend( TIME_TO_USE );
 		hero.busy();

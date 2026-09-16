@@ -26,7 +26,9 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Fire;
+import xyz.gabriwar.warpedpixeldungeon.actors.blobs.WaterOfTransmutation;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Ooze;
@@ -123,6 +125,7 @@ import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndUseItem;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.brews.Brew;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
@@ -450,7 +453,9 @@ public class Potion extends Item {
 	
 	@Override
 	protected void onThrow( int cell ) {
-		if (Dungeon.level.map[cell] == Terrain.WELL || Dungeon.level.pit[cell]) {
+		if (Dungeon.level.map[cell] == Terrain.WELL || Dungeon.level.pit[cell]
+				|| Dungeon.level.plants.get(cell) instanceof xyz.gabriwar.warpedpixeldungeon.plants.Phaseshift
+				|| Blob.volumeAt(cell, WaterOfTransmutation.class) > 0) {
 			
 			super.onThrow( cell );
 			
@@ -462,7 +467,7 @@ public class Potion extends Item {
 			}
 			shatter( cell );
 
-			if (!anonymous) {
+			if (!anonymous && (mustThrowPots.contains(getClass()) || canThrowPots.contains(getClass()) || this instanceof Brew)) {
 				Catalog.countUse(getClass());
 				if (Random.Float() < talentChance) {
 					Talent.onPotionUsed(curUser, cell, talentFactor);
@@ -530,7 +535,7 @@ public class Potion extends Item {
 
 	@Override
 	public String desc() {
-		return isKnown() ? super.desc() : Messages.get(this, "unknown_desc");
+		return isKnown() ? super.desc() + "\n\n" + infusionDesc() : Messages.get(this, "unknown_desc");
 	}
 	
 	@Override
@@ -763,7 +768,47 @@ public class Potion extends Item {
 
 	//per-potion effect when an arrow soaked in this potion lands (Re-ARranged port)
 	public void potionProc(Hero hero, Char enemy, float damage) {
-		//nothing by default
+		//Potions without a bespoke coating release a full dose on each activation.
+		//Splash effects happen at impact; drink-only effects apply to the wearer.
+		try {
+			if (this instanceof xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.Elixir
+					|| this instanceof PotionOfTime) {
+				apply(hero);
+				return;
+			}
+			int impact = enemy.pos;
+			if (this instanceof PotionOfChilli
+					|| this instanceof xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfOrb
+					|| this instanceof xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfSleepParalysis) {
+				impact = -1;
+				for (int offset : com.watabou.utils.PathFinder.NEIGHBOURS8) {
+					int cell = enemy.pos + offset;
+					if (cell >= 0 && cell < Dungeon.level.length() && Dungeon.level.distance(enemy.pos, cell) <= 1
+							&& Dungeon.level.passable[cell] && !Dungeon.level.pit[cell]
+							&& xyz.gabriwar.warpedpixeldungeon.actors.Actor.findChar(cell) == null) {
+						impact = cell;
+						break;
+					}
+				}
+				if (impact == -1) return;
+			}
+			if (getClass().getMethod("shatter", int.class).getDeclaringClass() != Potion.class) {
+				shatter(impact);
+			} else {
+				apply(hero);
+			}
+		} catch (NoSuchMethodException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+
+	public int infusionUses(int normalUses) {
+		// Potion doses are fixed; quiver upgrades improve charge conservation instead.
+		return this instanceof ExoticPotion ? 5 : 15;
+	}
+
+	public String infusionDesc() {
+		return Messages.get(this, "infuse_desc");
 	}
 
 	public ItemSprite.Glowing potionGlowing() {

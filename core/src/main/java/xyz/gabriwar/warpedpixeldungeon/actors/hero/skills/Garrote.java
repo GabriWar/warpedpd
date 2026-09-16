@@ -31,19 +31,42 @@ public class Garrote extends SubSkill2 {
 
 	{
 		name = "Garrote";
-		image = 57;
+		image = 184;
 		tier = 2;
+	}
+
+	//a passive: nothing to switch on, so it stays out of the quick panel
+	@Override
+	public boolean toggleable(){ return false; }
+
+	@Override
+	public java.util.ArrayList<String> actions( xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero ){
+		return new java.util.ArrayList<>();
 	}
 
 	@Override
 	protected boolean upgrade(){ return true; }
 
+	//the wire goes round the throat of an enemy busy with someone else (a shadow, a double, an ally,
+	//a maddened foe): the melee hit always opens a bleeding wound
 	@Override
 	public int onHitProc( xyz.gabriwar.warpedpixeldungeon.actors.Char enemy, int damage, boolean ranged ){
-		if (!ranged && level > 0 && enemy.isAlive() && com.watabou.utils.Random.Int(100) < 10 * level){
-			xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff.affect( enemy,
-					xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding.class ).set( 2 + level );
+		if (ranged || level <= 0 || !(enemy instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob) || !enemy.isAlive()) return damage;
+		xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob mob = (xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob) enemy;
+		xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero = xyz.gabriwar.warpedpixeldungeon.Dungeon.hero;
+		boolean busy = (mob.state == mob.HUNTING && !mob.isTargeting( hero ))
+				|| mob.buff( xyz.gabriwar.warpedpixeldungeon.actors.buffs.Amok.class ) != null;
+		if (!busy) return damage;
+		xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff.affect( enemy, xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding.class ).set( 2 + level );
+		//a wire drawn tight: at mastery the choke leaves it lame as well
+		if (level >= Skill.MAX_LEVEL){
+			xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff.prolong( enemy, xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple.class, 2f );
 		}
+		xyz.gabriwar.warpedpixeldungeon.effects.Splash.at( enemy.pos, 0xCC1111, 6 );
+		if (enemy.sprite != null){
+			enemy.sprite.showStatus( xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite.NEGATIVE, xyz.gabriwar.warpedpixeldungeon.messages.Messages.get( this, "choke" ) );
+		}
+		com.watabou.noosa.audio.Sample.INSTANCE.play( xyz.gabriwar.warpedpixeldungeon.Assets.Sounds.HIT_STAB, 1f, 0.8f );
 		return damage;
 	}
 }

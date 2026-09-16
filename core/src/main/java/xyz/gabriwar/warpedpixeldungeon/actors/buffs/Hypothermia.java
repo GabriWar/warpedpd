@@ -70,7 +70,8 @@ public class Hypothermia extends Buff implements Hero.Doom {
 					? TileTemperature.feelsLikeAt(target.pos)
 					: target.bodyTemp;
 			boolean nearFire = target.buff(Burning.class) != null
-					|| target.buff(FireImbue.class) != null;
+					|| target.buff(FireImbue.class) != null
+					|| TileTemperature.nearWallTorch(target.pos);
 
 			if (temp > 0f || nearFire) {
 				detach();
@@ -114,6 +115,9 @@ public class Hypothermia extends Buff implements Hero.Doom {
 	public float speedFactor() {
 		return 0.85f; // 15% speed reduction
 	}
+
+	/** cold hands and slow feet: a third of the dodge goes, for hero and monster alike */
+	public static final float EVASION_FACTOR = 0.65f;
 
 	@Override
 	public int icon() {

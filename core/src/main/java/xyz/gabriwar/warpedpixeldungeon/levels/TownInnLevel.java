@@ -53,12 +53,15 @@ public class TownInnLevel extends TownInteriorLevel {
 		return new TownInteriors.InnRoof();
 	}
 
+	//the keeper never leaves the bar; the other four sleep upstairs like everyone
+	//else (TownCommute.BEDS) and are back at these spots by day
 	@Override
-	protected void spawnFolk() {
-		place( new InnKeeper(), 166 );
-		place( new Drunkard(), 235 );
-		place( new Mercenary(), 192 );
-		place( new InnServant(), 314 );
-		place( new Bard(), 246 );
+	public Object[][] folk() {
+		return new Object[][]{
+				{ InnKeeper.class,  166 },
+				{ Drunkard.class,   235 },
+				{ Mercenary.class,  192 },
+				{ InnServant.class, 689 },
+				{ Bard.class,       246 } };
 	}
 }

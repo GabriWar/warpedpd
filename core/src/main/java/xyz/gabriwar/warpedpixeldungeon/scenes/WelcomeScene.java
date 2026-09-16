@@ -42,6 +42,7 @@ import xyz.gabriwar.warpedpixeldungeon.ui.RenderedTextBlock;
 import xyz.gabriwar.warpedpixeldungeon.ui.StyledButton;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndError;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndHardNotification;
+import com.watabou.glwrap.Blending;
 import com.watabou.input.ControllerHandler;
 import com.watabou.noosa.Camera;
 import com.watabou.noosa.ColorBlock;
@@ -55,7 +56,7 @@ import java.util.Collections;
 
 public class WelcomeScene extends PixelScene {
 
-	private static final int LATEST_UPDATE = WarpedPixelDungeon.v3_3_0;
+	private static final int LATEST_UPDATE = WarpedPixelDungeon.v4_0_0;
 
 	//used so that the game does not keep showing the window forever if cleaning fails
 	private static boolean triedCleaningTemp = false;
@@ -277,13 +278,6 @@ public class WelcomeScene extends PixelScene {
 
 			Badges.loadGlobal();
 			Journal.loadGlobal();
-
-			//pre-unlock Cleric for those who already have a win
-			if (previousVersion <= WarpedPixelDungeon.v2_5_4){
-				if (Badges.isUnlocked(Badges.Badge.VICTORY) && !Badges.isUnlocked(Badges.Badge.UNLOCK_CLERIC)){
-					Badges.unlock(Badges.Badge.UNLOCK_CLERIC);
-				}
-			}
 
 			try {
 				Rankings.INSTANCE.load();

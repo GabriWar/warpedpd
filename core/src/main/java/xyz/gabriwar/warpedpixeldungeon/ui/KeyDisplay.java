@@ -83,7 +83,7 @@ public class KeyDisplay extends Visual {
 			if (rec.depth() < Dungeon.depth){
 				//only ever 1 black key
 				keys[0] = 1;
-			} else if (rec.depth() == Dungeon.depth){
+			} else if (rec.depth() == Dungeon.depth && Dungeon.branch == 0){
 				//sprouted teleport keys (sewers/city/tengu/...) aren't in the display map;
 				//skip them instead of NPEing on the null slot (crashed on pickup and load)
 				Integer slot = keyMap.get(rec.type());

@@ -345,6 +345,12 @@ public class SpiritBow extends Weapon {
 		
 		@Override
 		public int proc(Char attacker, Char defender, int damage) {
+			// Spirit arrows delegate to the bow instead of MissileWeapon.proc.
+			if (attacker instanceof Hero) {
+				xyz.gabriwar.warpedpixeldungeon.items.ArrowBag quiver = ((Hero)attacker).belongings
+						.getItem(xyz.gabriwar.warpedpixeldungeon.items.ArrowBag.class);
+				if (quiver != null) damage = quiver.proc((Hero)attacker, defender, damage);
+			}
 			return SpiritBow.this.proc(attacker, defender, damage);
 		}
 		
@@ -369,6 +375,7 @@ public class SpiritBow extends Weapon {
 
 		@Override
 		protected void onThrow( int cell ) {
+            if(xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.snapAnchor(Dungeon.hero,cell))return;
 			Char enemy = Actor.findChar( cell );
 			if (enemy == null || enemy == curUser) {
 				parent = null;

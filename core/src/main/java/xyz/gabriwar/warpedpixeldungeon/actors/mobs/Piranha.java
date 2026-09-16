@@ -49,7 +49,7 @@ public class Piranha extends Mob {
 		EXP = 0;
 
 		loot = MysteryMeat.class;
-		lootChance = 1f;
+		lootChance = 1f / 4f;
 
 		SLEEPING = new Sleeping();
 		WANDERING = new Wandering();
@@ -121,8 +121,12 @@ public class Piranha extends Mob {
 	}
 
 	@Override
+	protected boolean extraLootIgnoresLevel() {
+		return true;
+	}
+
+	@Override
 	protected void dropExtraLoot() {
-		explodeDew(pos);
 		if (!Dungeon.LimitedDrops.CAVES_KEY.dropped() && Statistics.deepestFloor > 10) {
 			Dungeon.LimitedDrops.CAVES_KEY.drop();
 			trackedDrop(new xyz.gabriwar.warpedpixeldungeon.items.CavesKey(), 0);

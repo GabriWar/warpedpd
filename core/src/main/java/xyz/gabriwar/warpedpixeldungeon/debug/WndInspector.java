@@ -1,3 +1,27 @@
+/*
+ * Pixel Dungeon
+ * Copyright (C) 2012-2015 Oleg Dolya
+ *
+ * Shattered Pixel Dungeon
+ * Copyright (C) 2014-2026 Evan Debenham
+ *
+ * Warped Pixel Dungeon
+ * Copyright (C) 2026 Gabriel Duarte Guerra (gabriwar)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ */
+
 package xyz.gabriwar.warpedpixeldungeon.debug;
 
 import com.badlogic.gdx.Gdx;
@@ -57,12 +81,18 @@ public class WndInspector extends Window {
 	private final ScrollPane infoPane;
 
 	private int selected = -1;
+	private int reportTab = 0;
+	private String currentReport = "";
+	private final ArrayList<RedButton> reportTabs = new ArrayList<>();
+	private final ArrayList<Image> previews = new ArrayList<>();
+	private static final String[] REPORT_TABS = {"Tile", "Items", "Actors", "Nature", "Effects", "Layers"};
 
 	private final int screenX, screenY;
 
 	public WndInspector(ArrayList<Gizmo> targets, int screenX, int screenY) {
 		super();
 
+		targets.sort(java.util.Comparator.comparingInt(WndInspector::inspectionPriority));
 		this.targets = targets;
 		this.screenX = screenX;
 		this.screenY = screenY;
@@ -85,13 +115,23 @@ public class WndInspector extends Window {
 		}
 
 		RenderedTextBlock title = PixelScene.renderTextBlock(
-				targets.size() + " under screen (" + screenX + ", " + screenY + "), top first:", 6);
+				targets.size() + " under screen (" + screenX + ", " + screenY + "), inspect by tab:", 6);
 		title.hardlight(TITLE_COLOR);
 		title.maxWidth(ww);
 		title.setPos(0, 0);
 		add(title);
 
 		float top = title.bottom() + 2;
+		for (int tab = 0; tab < REPORT_TABS.length; tab++) {
+			final int index = tab;
+			RedButton button = new RedButton(REPORT_TABS[tab], 5) {
+				@Override protected void onClick() { showReport(index); }
+			};
+			add(button);
+			button.setRect(tab * ww / 6f, top, ww / 6f - 1, 14);
+			reportTabs.add(button);
+		}
+		top += 16;
 
 		//IMPORTANT: the pane must exist before the row buttons are created - pointer events
 		// are dispatched newest-listener-first, so buttons must register after the pane's
@@ -138,11 +178,15 @@ public class WndInspector extends Window {
 		infoPane.setRect(0, actionsBottom + 2, ww, hh - (actionsBottom + 2));
 
 		select(0);
+		int tappedCell = cellAt(screenX, screenY);
+		showReport(targets.stream().anyMatch(g -> g instanceof xyz.gabriwar.warpedpixeldungeon.ui.ItemSlot) ? 1
+				: tappedCell < 0 ? 5 : Dungeon.level.heaps.get(tappedCell) != null ? 1
+				: Actor.findChar(tappedCell) != null ? 2 : 0);
 	}
 
 	//action buttons: copy dump, edit selected sprite, edit entities on the inspected cell
 	private float buildActions(int ww, float y) {
-		RedButton btnCopy = new RedButton("copy all", 6) {
+		RedButton btnCopy = new RedButton("copy tab", 6) {
 			@Override
 			protected void onClick() {
 				copyAll();
@@ -226,7 +270,7 @@ public class WndInspector extends Window {
 		PointF hp = PointerEvent.currentHoverPos();
 		Gizmo hovered = null;
 		for (int j = 0; j < rows.size(); j++) {
-			if (SpriteInspector.hitTest(rows.get(j), (int) hp.x, (int) hp.y)) {
+			if (reportTab == 5 && SpriteInspector.hitTest(rows.get(j), (int) hp.x, (int) hp.y)) {
 				hovered = targets.get(j);
 				break;
 			}
@@ -246,10 +290,11 @@ public class WndInspector extends Window {
 		Gizmo t = targets.get(i);
 		SpriteInspector.select(t);
 
-		info.text(describe(t, i), width - 6);
-		info.setPos(2, 1);
-		infoContent.setSize(width, info.bottom() + 2);
-		infoPane.scrollTo(0, 0);
+		if (reportTab == 5) {
+			clearPreviews();
+			if (t instanceof Image) preview(new Image((Image)t));
+			displayReport(describe(t, i));
+		}
 	}
 
 	//scroll pane content cameras are placed in screen space at layout time, so any
@@ -271,23 +316,179 @@ public class WndInspector extends Window {
 		SpriteInspector.windowClosed(this);
 	}
 
-	//full dump of every candidate to the system clipboard
+	//Copy only the selected category (or selected rendering layer).
 	private void copyAll() {
-		StringBuilder sb = new StringBuilder();
-		sb.append(targets.size()).append(" under screen (").append(screenX).append(", ").append(screenY).append("), top first\n");
-		for (int i = 0; i < targets.size(); i++) {
-			sb.append("\n==== ").append(labels.get(i)).append(" ====\n");
-			try {
-				sb.append(describe(targets.get(i), i));
-			} catch (Throwable t) {
-				sb.append("(describe failed: ").append(t).append(")\n");
+		try { Gdx.app.getClipboard().setContents(currentReport); } catch (Throwable ignored) { }
+	}
+
+	private void displayReport(String report) {
+		currentReport = report;
+		info.text(report, width - 6);
+		info.setPos(2, previews.isEmpty() ? 1 : 27 + 26 * ((previews.size()-1) / Math.max(1, (int)width / 26)));
+		infoContent.setSize(width, info.bottom() + 2);
+		infoPane.scrollTo(0, 0);
+	}
+
+	private void clearPreviews() {
+		for (Image preview : previews) { preview.killAndErase(); preview.destroy(); }
+		previews.clear();
+	}
+
+	private void preview(Image image) {
+		if (image == null) return;
+		float scale = Math.min(24f / Math.max(1, image.width()), 24f / Math.max(1, image.height()));
+		image.scale.set(scale);
+		int columns = Math.max(1, (int)width / 26);
+		image.x = 2 + 26 * (previews.size() % columns);
+		image.y = 1 + 26 * (previews.size() / columns);
+		infoContent.add(image);
+		previews.add(image);
+	}
+
+	private void showReport(int tab) {
+		reportTab = tab;
+		clearPreviews();
+		for (int i = 0; i < reportTabs.size(); i++) reportTabs.get(i).textColor(i == tab ? TITLE_COLOR : 0xFFFFFF);
+		listPane.visible = listPane.active = tab == 5;
+		if (tab == 5) {
+			if (selected >= 0) select(selected);
+			else displayReport("No rendering layers under this tap.");
+			return;
+		}
+		StringBuilder sb = new StringBuilder(REPORT_TABS[tab] + " at screen (" + screenX + ", " + screenY + ")\n");
+		int cell = cellAt(screenX, screenY);
+		if (tab == 1) {
+			java.util.LinkedHashSet<xyz.gabriwar.warpedpixeldungeon.items.Item> items = new java.util.LinkedHashSet<>();
+			java.util.LinkedHashSet<xyz.gabriwar.warpedpixeldungeon.items.Heap> heaps = new java.util.LinkedHashSet<>();
+			if (cell >= 0 && Dungeon.level.heaps.get(cell) != null) heaps.add(Dungeon.level.heaps.get(cell));
+			for (Gizmo g : targets) {
+				if (g instanceof xyz.gabriwar.warpedpixeldungeon.ui.ItemSlot) {
+					xyz.gabriwar.warpedpixeldungeon.items.Item item = ((xyz.gabriwar.warpedpixeldungeon.ui.ItemSlot)g).item();
+					if (item != null) items.add(item);
+				}
+				if (g instanceof xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite) {
+					xyz.gabriwar.warpedpixeldungeon.items.Heap heap = ((xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite)g).heap;
+					if (heap != null) heaps.add(heap);
+				}
 			}
+			for (xyz.gabriwar.warpedpixeldungeon.items.Heap heap : heaps) {
+				sb.append("Heap: ").append(heap.type).append(" at cell ").append(heap.pos).append("\n");
+				items.addAll(heap.items);
+			}
+			for (xyz.gabriwar.warpedpixeldungeon.items.Item item : items) {
+				preview(new xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite(item));
+				sb.append("\n#").append(previews.size()).append(" ").append(item.name()).append(" x").append(item.quantity()).append("\n");
+				objectReport(sb, item);
+				if (item instanceof xyz.gabriwar.warpedpixeldungeon.items.ArrowBag)
+					for (xyz.gabriwar.warpedpixeldungeon.items.ArrowBag.Effect effect : ((xyz.gabriwar.warpedpixeldungeon.items.ArrowBag)item).effects()) objectReport(sb, effect);
+			}
+			if (items.isEmpty()) sb.append("No items under this tap.\n");
+			displayReport(sb.toString());
+			return;
 		}
+		if (cell < 0) { displayReport(sb + "No dungeon cell under this tap."); return; }
+		xyz.gabriwar.warpedpixeldungeon.levels.Level level = Dungeon.level;
+		sb.append("Depth ").append(Dungeon.depth).append(" branch ").append(Dungeon.branch)
+			.append(" | cell ").append(cell).append(" (").append(cell % level.width()).append(", ")
+			.append(cell / level.width()).append(")\n");
 		try {
-			Gdx.app.getClipboard().setContents(sb.toString());
-		} catch (Throwable t) {
-			//clipboard can be unavailable on some platforms, don't crash a debug tool over it
-		}
+			if (tab == 0) {
+				int terrain = level.map[cell];
+				try { preview(xyz.gabriwar.warpedpixeldungeon.windows.WndInfoCell.cellImage(cell)); } catch (Exception ignored) { }
+				sb.append("Level: ").append(level.getClass().getName()).append("\nTerrain: ").append(terrain);
+				for (Field field : xyz.gabriwar.warpedpixeldungeon.levels.Terrain.class.getFields()) {
+					if (field.getType() == int.class && Modifier.isStatic(field.getModifiers())
+							&& !java.util.Arrays.asList("PASSABLE", "LOS_BLOCKING", "FLAMABLE", "SECRET", "SOLID", "AVOID", "LIQUID", "PIT").contains(field.getName())
+							&& field.getInt(null) == terrain) sb.append(" ").append(field.getName());
+				}
+				sb.append("\nName: ").append(xyz.gabriwar.warpedpixeldungeon.windows.WndInfoCell.cellName(cell)).append("\nDescription: ").append(level.tileDesc(terrain));
+				sb.append("\nTexture: ").append(level.tilesTex());
+				sb.append("\nTemperature: ").append(f(xyz.gabriwar.warpedpixeldungeon.actors.TileTemperature.tileTemp(cell))).append(" C");
+				sb.append("\nPassable: ").append(level.passable[cell]).append(" | solid: ").append(level.solid[cell])
+					.append(" | blocks sight: ").append(level.losBlocking[cell]).append(" | pit: ").append(level.pit[cell])
+					.append(" | water: ").append(level.water[cell]);
+				sb.append("\nVisible: ").append(level.heroFOV[cell]).append(" | visited: ").append(level.visited[cell])
+					.append(" | mapped: ").append(level.mapped[cell]).append("\n");
+				ArrayList<xyz.gabriwar.warpedpixeldungeon.tiles.CustomTilemap> custom = new ArrayList<>(level.customTiles);
+				custom.addAll(level.customWalls);
+				custom.addAll(level.customTerrain);
+				for (xyz.gabriwar.warpedpixeldungeon.tiles.CustomTilemap tile : custom) {
+					int x = cell % level.width() - tile.tileX, y = cell / level.width() - tile.tileY;
+					if (x >= 0 && y >= 0 && x < tile.tileW && y < tile.tileH) {
+						Image image = tile.image(x, y);
+						if (image != null) preview(image);
+						sb.append("Custom tile: ").append(tile.getClass().getName()).append("\n")
+							.append(tile.name(x, y)).append("\n").append(tile.desc(x, y)).append("\n");
+					}
+				}
+				for (Gizmo g : targets) if (g instanceof com.watabou.noosa.Tilemap) tileAtTap(sb, (com.watabou.noosa.Tilemap)g);
+			} else if (tab == 2) {
+				java.util.LinkedHashSet<Char> characters = new java.util.LinkedHashSet<>();
+				Char atCell = Actor.findChar(cell);
+				if (atCell != null) characters.add(atCell);
+				for (Gizmo g : targets) if (g instanceof CharSprite && ((CharSprite)g).ch != null) characters.add(((CharSprite)g).ch);
+				if (characters.isEmpty()) sb.append("No character.\n");
+				for (Char ch : characters) {
+					if (ch.sprite != null) preview(new Image(ch.sprite));
+					if (ch instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob) {
+						xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob mob = (xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob)ch;
+						sb.append("Base XP: ").append(mob.EXP).append(" | hero level cutoff: ").append(mob.maxLvl).append("\n");
+						if (Dungeon.hero != null && Dungeon.hero.lvl > mob.maxLvl
+								&& mob.maxLvl < xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero.MAX_LEVEL - 1)
+							sb.append("Outleveled: normally grants 0 XP (ascent rules may override this).\n");
+					}
+					objectReport(sb, ch);
+					for (xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff buff : ch.buffs()) objectReport(sb, buff);
+				}
+			} else if (tab == 3) {
+				objectReport(sb, level.plants.get(cell));
+				objectReport(sb, level.traps.get(cell));
+				for (Gizmo g : targets) if (g instanceof com.watabou.noosa.Tilemap
+						&& g.getClass().getSimpleName().equals("TerrainFeaturesTilemap")) {
+					Image image = ((com.watabou.noosa.Tilemap)g).image(cell % level.width(), cell / level.width());
+					if (image != null) preview(image);
+				}
+			} else if (tab == 4) {
+				int count = 0;
+				for (xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob blob : level.blobs.values()) {
+					if (blob.cur != null && cell < blob.cur.length && blob.cur[cell] > 0) {
+						sb.append("Strength at cell: ").append(blob.cur[cell]).append("\n");
+						objectReport(sb, blob); count++;
+					}
+				}
+				if (count == 0) sb.append("No active blobs at this cell.\n");
+			}
+		} catch (Exception e) { sb.append("\nInspection error: ").append(e); }
+		displayReport(sb.toString());
+	}
+
+	private static void objectReport(StringBuilder sb, Object object) {
+		if (object == null) { sb.append("None.\n"); return; }
+		sb.append("\n").append(object.getClass().getName()).append("\n");
+		fields(sb, object);
+	}
+
+	private void tileAtTap(StringBuilder sb, com.watabou.noosa.Tilemap tilemap) throws Exception {
+		PointF world = tilemap.camera().screenToCamera(screenX, screenY);
+		Class<?> type = com.watabou.noosa.Tilemap.class;
+		Field dataField = type.getDeclaredField("data"), widthField = type.getDeclaredField("mapWidth");
+		dataField.setAccessible(true); widthField.setAccessible(true);
+		int[] data = (int[]) dataField.get(tilemap);
+		int cols = widthField.getInt(tilemap);
+		Field cellW = type.getDeclaredField("cellW"), cellH = type.getDeclaredField("cellH");
+		cellW.setAccessible(true); cellH.setAccessible(true);
+		int x = (int)Math.floor((world.x - tilemap.x) / (cellW.getFloat(tilemap) * tilemap.scale.x));
+		int y = (int)Math.floor((world.y - tilemap.y) / (cellH.getFloat(tilemap) * tilemap.scale.y));
+		if (data == null || cols <= 0 || x < 0 || x >= cols || y < 0 || y * cols + x >= data.length) return;
+		int frame = data[y * cols + x];
+		if (frame < 0) return;
+		sb.append(simpleName(tilemap.getClass())).append(": frame ").append(frame);
+		Field textureField = type.getDeclaredField("texture"); textureField.setAccessible(true);
+		Object texture = textureField.get(tilemap);
+		Field cache = com.watabou.gltextures.TextureCache.class.getDeclaredField("all"); cache.setAccessible(true);
+		for (Map.Entry<?, ?> entry : ((Map<?, ?>)cache.get(null)).entrySet())
+			if (entry.getValue() == texture) sb.append(" | texture ").append(entry.getKey());
+		sb.append("\n");
 	}
 
 	//=== labels & info dump ===
@@ -625,7 +826,17 @@ public class WndInspector extends Window {
 		}
 	}
 
-	private static void fields(StringBuilder sb, Gizmo g) {
+	static int inspectionPriority(Gizmo g) {
+		if (g instanceof CharSprite || g instanceof xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite
+				|| g instanceof xyz.gabriwar.warpedpixeldungeon.ui.ItemSlot) return 0;
+		if (g instanceof xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTerrainTilemap
+				|| g instanceof xyz.gabriwar.warpedpixeldungeon.tiles.TerrainFeaturesTilemap) return 1;
+		if (g instanceof xyz.gabriwar.warpedpixeldungeon.tiles.FogOfWar || g instanceof ColorBlock
+				|| g instanceof GameScene || g instanceof xyz.gabriwar.warpedpixeldungeon.tiles.WallBlockingTilemap) return 4;
+		return g instanceof DungeonTilemap ? 3 : 2;
+	}
+
+	private static void fields(StringBuilder sb, Object g) {
 		sb.append("\n- fields -\n");
 		Class<?> c = g.getClass();
 		while (c != null && c != Object.class) {

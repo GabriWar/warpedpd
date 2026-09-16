@@ -125,10 +125,6 @@ public class Tomatobush extends Plant {
 			plantClass = Tomatobush.class;
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			new Tomatobush().explode(defender.pos, attacker);
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

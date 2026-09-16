@@ -30,6 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.journal.Bestiary;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import xyz.gabriwar.warpedpixeldungeon.windows.WndInfoTrap;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundlable;
 import com.watabou.utils.Bundle;
@@ -128,7 +129,12 @@ public abstract class Trap implements Bundlable {
 	}
 
 	public String desc() {
-		return Messages.get(this, "desc");
+		String desc = "";
+		if (!active){
+			desc += Messages.get(WndInfoTrap.class, "inactive") + "\n\n";
+		}
+		desc += Messages.get(this, "desc");
+		return desc;
 	}
 
 	private static final String POS	= "pos";

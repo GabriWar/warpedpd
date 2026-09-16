@@ -52,6 +52,9 @@ public class SkeletonHand1 extends Mob {
 		properties.add(Property.UNDEAD);
 
 		immunities.add(Burning.class);
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	@Override

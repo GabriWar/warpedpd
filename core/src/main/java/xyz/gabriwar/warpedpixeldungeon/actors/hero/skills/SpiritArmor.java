@@ -27,16 +27,24 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Recharging;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SpiritArmorMotes;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
-import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.utils.Random;
 
 import java.util.ArrayList;
 
+/**
+ * Mage: while active, part of every blow is paid with mana, and the mana it eats condenses
+ * into motes that circle the hero. A full ring fires itself at the nearest enemies.
+ */
 public class SpiritArmor extends PassiveSkillA3 {
+
+	@Override
+	public boolean toggleable(){ return true; }
 
 	{
 		name = "Spirit Armor";
@@ -64,29 +72,35 @@ public class SpiritArmor extends PassiveSkillA3 {
 	public void execute( Hero hero, String action ){
 		if (action.equals(Skill.AC_ACTIVATE)){
 			active = true;
+            xyz.gabriwar.warpedpixeldungeon.effects.SkillCastFX.play(this,hero);
+			//one mana ward at a time
+			Skill other = hero.heroSkills.get( Transcendence.class );
+			if (other != null) other.active = false;
+			if (hero.sprite != null){
+				Sample.INSTANCE.play( Assets.Sounds.MELD, 1f, 1.3f );
+				hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 6 );
+			}
 		} else if (action.equals(Skill.AC_DEACTIVATE)){
 			active = false;
+			//the ring scatters when the ward drops
+			Buff.detach( hero, SpiritArmorMotes.class );
 		}
 	}
 
 	@Override
-	public int incomingDamageReduction(int damage){
-		if (!active)
+	public int incomingDamageReduction(int damage, Object source){
+		if (!active || level <= 0 || Skill.isTickDamage( source ))
 			return 0;
-		int maxReduction = (int)(damage * 0.1f * level);
-		if (maxReduction == 0 && damage > 0)
-			maxReduction = 1;
-		if (Dungeon.hero.MP > maxReduction)
-			Dungeon.hero.MP -= maxReduction;
-		else {
-			maxReduction = Dungeon.hero.MP;
-			Dungeon.hero.MP = 0;
+		Hero hero = Dungeon.hero;
+		int absorbed = Math.min( Math.max( 1, (int)(damage * 0.1f * level) ), hero.MP );
+		if (absorbed <= 0)
+			return 0;
+		hero.MP -= absorbed;
+		if (hero.sprite != null){
+			hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 1 + absorbed / 2 );
+			if (absorbed >= 3) Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 0.5f, 1.3f );
 		}
-		if (maxReduction != 0)
-			GLog.p(" (Spirit Armor absorbed " + maxReduction + " damage) ");
-		//arcane backwash: a heavy absorption sometimes washes back into your wands
-		if (level >= MAX_LEVEL && maxReduction >= 3 && Random.Int(100) < 20)
-			Buff.affect( Dungeon.hero, Recharging.class, 3f );
-		return maxReduction;
+		Buff.affect( hero, SpiritArmorMotes.class ).absorb( absorbed, level );
+		return absorbed;
 	}
 }

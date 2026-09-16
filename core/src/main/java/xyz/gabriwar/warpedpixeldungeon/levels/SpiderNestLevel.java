@@ -33,7 +33,9 @@ import xyz.gabriwar.warpedpixeldungeon.levels.painters.CavesPainter;
 import xyz.gabriwar.warpedpixeldungeon.levels.painters.Painter;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.Room;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import com.watabou.noosa.Game;
 import com.watabou.noosa.audio.Music;
+import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
 
 import java.util.ArrayList;
@@ -56,10 +58,46 @@ public class SpiderNestLevel extends RegularLevel {
 
 	@Override
 	public void playLevelMusic() {
+		//the queen's fight seals the floor
+		if (locked) {
+			Music.INSTANCE.play( Assets.Music.CAVES_BOSS, true );
+			return;
+		}
 		Music.INSTANCE.playTracks(
 				CavesLevel.CAVES_TRACK_LIST,
 				CavesLevel.CAVES_TRACK_CHANCES,
 				false);
+	}
+
+	@Override
+	public void seal() {
+		if (!locked) {
+			super.seal();
+			Game.runOnRenderThread(new Callback() {
+				@Override
+				public void call() {
+					Music.INSTANCE.play( Assets.Music.CAVES_BOSS, true );
+				}
+			});
+		}
+	}
+
+	@Override
+	public void unseal() {
+		if (locked) {
+			super.unseal();
+			Game.runOnRenderThread(new Callback() {
+				@Override
+				public void call() {
+					Music.INSTANCE.fadeOut(5f, new Callback() {
+						@Override
+						public void call() {
+							playLevelMusic();
+						}
+					});
+				}
+			});
+		}
 	}
 
 	@Override
@@ -126,6 +164,8 @@ public class SpiderNestLevel extends RegularLevel {
 	protected boolean build() {
 		if (!super.build()) return false;
 
+		addSilkPillars();
+
 		for (LevelTransition t : transitions) {
 			//the loop: descending from the deepest floor returns to the top of the nest
 			if (t.type == LevelTransition.Type.REGULAR_EXIT && Dungeon.depth >= LAST_DEPTH) {
@@ -142,6 +182,41 @@ public class SpiderNestLevel extends RegularLevel {
 		}
 
 		return true;
+	}
+
+	@Override
+	public void restoreFromBundle(com.watabou.utils.Bundle bundle) {
+		super.restoreFromBundle(bundle);
+		addSilkPillars();
+	}
+
+	private void addSilkPillars() {
+		for (int cell = width(); cell < length(); cell++) {
+			if (map[cell] == Terrain.REGION_DECO || map[cell] == Terrain.REGION_DECO_ALT) {
+				// Same SOLID flags; use a custom visual instead of the inherited grave art.
+				map[cell] = Terrain.CUSTOM_DECO;
+				SilkPillar pillar = new SilkPillar();
+				pillar.pos(cell - width(), this);
+				customTiles.add(pillar);
+			}
+		}
+	}
+
+	public static class SilkPillar extends xyz.gabriwar.warpedpixeldungeon.tiles.CustomTilemap {
+		public SilkPillar() {
+			texture = "environment/custom_tiles/spider_silk_pillar.png";
+			tileW = 1;
+			tileH = 2;
+		}
+		@Override public com.watabou.noosa.Tilemap create() {
+			return create(new int[]{0, 1}, 1);
+		}
+		@Override public String name(int x, int y) {
+			return Messages.get(SpiderNestLevel.class, "region_deco_name");
+		}
+		@Override public String desc(int x, int y) {
+			return Messages.get(SpiderNestLevel.class, "region_deco_desc");
+		}
 	}
 
 	@Override

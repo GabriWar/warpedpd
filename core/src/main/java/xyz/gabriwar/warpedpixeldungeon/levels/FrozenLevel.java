@@ -109,10 +109,7 @@ public class FrozenLevel extends RegularLevel {
 		super.createMobs();
 
 		if (Dungeon.depth == GUARDIAN_DEPTH) {
-			int coreCell;
-			do {
-				coreCell = randomRespawnCell( null );
-			} while (coreCell == -1);
+			int coreCell = openCell();
 
 			IceGuardianCore core = new IceGuardianCore();
 			core.pos = coreCell;
@@ -133,12 +130,21 @@ public class FrozenLevel extends RegularLevel {
 		}
 		//one caged kobold per run, on the top floor of the branch
 		if (Dungeon.depth == FIRST_DEPTH && !CagedKobold.Quest.spawned()) {
-			int cell;
-			do {
-				cell = randomRespawnCell( null );
-			} while (cell == -1);
-			CagedKobold.Quest.spawn( this, cell );
+			CagedKobold.Quest.spawn( this, openCell() );
 		}
+	}
+
+	//a floor cell in open space away from the arrival room, so a cage or the core
+	//never plugs a corridor or the stairs
+	private int openCell() {
+		int cell;
+		int tries = 0;
+		do {
+			cell = randomRespawnCell( null );
+			tries++;
+		} while (cell == -1 || (tries < 200 && (!openSpace[cell]
+				|| (roomEntrance != null && roomEntrance.inside( cellToPoint( cell ) )))));
+		return cell;
 	}
 
 	@Override
@@ -234,6 +240,12 @@ public class FrozenLevel extends RegularLevel {
 	@Override
 	public String tileName( int tile ) {
 		switch (tile) {
+            case Terrain.REGION_DECO:
+            case Terrain.REGION_DECO_ALT:
+                return Messages.get(FrozenLevel.class, "region_deco_name");
+            case Terrain.STATUE:
+            case Terrain.STATUE_SP:
+                return Messages.get(FrozenLevel.class, "statue_name");
 			case Terrain.WATER:
 				return Messages.get(FrozenLevel.class, "water_name");
 			case Terrain.GRASS:
@@ -248,6 +260,12 @@ public class FrozenLevel extends RegularLevel {
 	@Override
 	public String tileDesc( int tile ) {
 		switch (tile) {
+            case Terrain.REGION_DECO:
+            case Terrain.REGION_DECO_ALT:
+                return Messages.get(FrozenLevel.class, "region_deco_desc");
+            case Terrain.STATUE:
+            case Terrain.STATUE_SP:
+                return Messages.get(FrozenLevel.class, "statue_desc");
 			case Terrain.WATER:
 				return Messages.get(FrozenLevel.class, "water_desc");
 			case Terrain.EMPTY_DECO:

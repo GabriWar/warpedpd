@@ -27,7 +27,11 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -53,16 +57,24 @@ public class Demoralize extends Skill {
 		if (ranged || level <= 0 || enemy == null || !enemy.isAlive())
 			return damage;
 
-		if (enemy.buff( Weakness.class ) != null){
-			damage = Math.round( damage * (1f + 0.05f * level) );
-		}
-
 		if (Random.Int( 100 ) < 10 * level){
 			Buff.prolong( enemy, Weakness.class, 4 + 2 * level );
 			if (enemy.sprite != null){
-				enemy.sprite.emitter().burst( Speck.factory( Speck.SCREAM ), 2 );
+				enemy.sprite.emitter().burst( Speck.factory( Speck.SCREAM ), 3 );
+			}
+			//+3: the fear spreads to every enemy close by
+			if (level >= MAX_LEVEL){
+				for (Mob mob : Dungeon.level.mobs.toArray( new Mob[0] )){
+					if (mob == enemy || mob.alignment != Char.Alignment.ENEMY || !mob.isAlive()
+							|| Dungeon.level.distance( enemy.pos, mob.pos ) > 2) continue;
+					Buff.prolong( mob, Weakness.class, 4 + 2 * level );
+					if (mob.sprite != null && mob.sprite.visible){
+						mob.sprite.emitter().burst( Speck.factory( Speck.SCREAM ), 2 );
+					}
+				}
 			}
 			castTextYell();
+			Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 0.8f, 0.6f );
 		}
 
 		return damage;

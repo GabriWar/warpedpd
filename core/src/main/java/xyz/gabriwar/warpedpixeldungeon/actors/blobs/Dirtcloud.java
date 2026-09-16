@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -58,7 +59,7 @@ public class Dirtcloud extends Blob {
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
 
-		emitter.pour( Speck.factory(Speck.DIRTCLOUD), 0.6f );
+		emitter.pour( WeatherBlobFX.layered( Speck.factory(Speck.DIRTCLOUD), WeatherBlobFX.motes( 0xB89060 ), 2 ), 0.4f );
 	}
 
 	@Override

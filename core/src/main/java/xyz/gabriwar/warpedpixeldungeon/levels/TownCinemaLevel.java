@@ -50,7 +50,7 @@ public class TownCinemaLevel extends TownInteriorLevel {
 	}
 
 	@Override
-	protected void spawnFolk() {
-		place( new Employee(), 162 );
+	public Object[][] folk() {
+		return new Object[][]{ { Employee.class, 162 } };
 	}
 }

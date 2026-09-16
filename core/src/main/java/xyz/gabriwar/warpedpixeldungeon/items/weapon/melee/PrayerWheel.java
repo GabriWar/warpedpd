@@ -24,6 +24,30 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.weapon.melee;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Ooze;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Chill;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Slow;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bless;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
+import com.watabou.utils.Callback;
+import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -79,10 +103,6 @@ public class PrayerWheel extends MeleeWeapon {
 	}
 
 	//SPS-PD weapon: no Duelist ability was ever designed for it
-	@Override
-	public boolean hasDuelistAbility() {
-		return false;
-	}
 
 	private static final String CHARGE = "charge";
 
@@ -96,5 +116,42 @@ public class PrayerWheel extends MeleeWeapon {
 	public void restoreFromBundle(Bundle bundle) {
 		super.restoreFromBundle(bundle);
 		charge = bundle.getInt(CHARGE);
+	}
+
+	private int blessTurns(){ return Math.min( 6, 3 + buffedLvl() / 2 ); }
+
+	/** the wheel is turned: a blessing, one affliction lifted, and the wheel's own count moves on three */
+	@Override
+	protected void duelistAbility( Hero hero, Integer target ){
+		beforeAbilityUsed( hero, null );
+		Buff.prolong( hero, Bless.class, blessTurns() );
+		Class<?>[] afflictions = { Poison.class, Bleeding.class, Burning.class, Cripple.class, Weakness.class,
+				Blindness.class, Vertigo.class, Slow.class, Terror.class, Chill.class, Ooze.class };
+		for (Class<?> c : afflictions){
+			Buff b = hero.buff( (Class<? extends Buff>) c );
+			if (b != null){
+				b.detach();
+				break;
+			}
+		}
+		charge = Math.min( CHARGE_CAP, charge + 3 );
+		if (hero.sprite != null){
+			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 8 );
+			new Flare( 6, 18 ).color( 0xFFE9A0, true ).show( hero.sprite, 0.8f ).angularSpeed = 180;
+		}
+		Sample.INSTANCE.play( Assets.Sounds.CHARMS, 1f, 1.1f );
+		hero.sprite.operate( hero.pos );
+		hero.next();
+		afterAbilityUsed( hero );
+	}
+
+	@Override
+	public String abilityInfo() {
+		return Messages.get(this, levelKnown ? "ability_desc" : "typical_ability_desc", blessTurns());
+	}
+
+	@Override
+	public String upgradeAbilityStat(int level) {
+		return Integer.toString( Math.min( 6, 3 + level / 2 ) );
 	}
 }

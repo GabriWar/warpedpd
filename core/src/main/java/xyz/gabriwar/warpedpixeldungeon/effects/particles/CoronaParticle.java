@@ -21,19 +21,14 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
-import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.Random;
 
-/**
- * Faint white-gold ring glow for solar eclipse totality.
- * Large, slow-drifting particles with light blending that create
- * a corona halo in the sky during eclipses.
- */
-public class CoronaParticle extends PixelParticle {
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherSprites;
+
+/** The motes of an eclipse's corona: pale gold glows that hang and pulse. */
+public class CoronaParticle extends WeatherParticle {
 
 	public static final Emitter.Factory FACTORY = new Emitter.Factory() {
 		@Override
@@ -58,8 +53,8 @@ public class CoronaParticle extends PixelParticle {
 		revive();
 		this.x = x;
 		this.y = y;
-		left = lifespan;
-		size = Random.Float(3f, 6f);
+		left = lifespan = Random.Float(2f, 4f);
+		frame(Random.Float() < 0.6f ? WeatherSprites.GLOW_5 : WeatherSprites.CORONA);
 
 		// White-gold glow
 		color(Random.Float() < 0.6f ? 0xFFEECC : 0xFFFFDD);
@@ -73,26 +68,9 @@ public class CoronaParticle extends PixelParticle {
 	@Override
 	public void update() {
 		super.update();
-		float p = left / lifespan;
-
-		// Slow pulse
 		pulsePhase += Game.elapsed * 2f;
 		float pulse = ((float) Math.sin(pulsePhase) + 1f) * 0.5f;
-
-		float envelope;
-		if (p > 0.8f) {
-			envelope = (1f - p) * 5f;
-		} else if (p < 0.2f) {
-			envelope = p * 5f;
-		} else {
-			envelope = 1f;
-		}
-
-		am = pulse * envelope * 0.2f; // very subtle glow
-
-		int cell = (int)(this.x / DungeonTilemap.SIZE) + (int)(this.y / DungeonTilemap.SIZE) * Dungeon.level.width();
-		if (cell < 0 || cell >= Dungeon.level.heroFOV.length || !Dungeon.level.heroFOV[cell]) {
-			am = 0;
-		}
+		am = envelope(0.2f, 0.2f, 0.7f) * (0.4f + 0.6f * pulse);
+		fov();
 	}
 }

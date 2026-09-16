@@ -40,6 +40,16 @@ public class TerrainFeaturesTilemap extends DungeonTilemap {
 	private SparseArray<Plant> plants;
 	private SparseArray<Trap> traps;
 
+	static boolean usesSeparateDecoration(String texture) {
+		return Assets.Environment.TILES_SEWERS.equals(texture)
+				|| Assets.Environment.TILES_PRISON.equals(texture)
+				|| Assets.Environment.TILES_CAVES.equals(texture)
+				|| Assets.Environment.TILES_CAVES_CRYSTAL.equals(texture)
+				|| Assets.Environment.TILES_CAVES_GNOLL.equals(texture)
+				|| Assets.Environment.TILES_CITY.equals(texture)
+				|| Assets.Environment.TILES_HALLS.equals(texture);
+	}
+
 	public TerrainFeaturesTilemap(SparseArray<Plant> plants, SparseArray<Trap> traps) {
 		super(Assets.Environment.TERRAIN_FEATURES);
 
@@ -64,6 +74,17 @@ public class TerrainFeaturesTilemap extends DungeonTilemap {
 
 		if (plants.get(pos) != null){
 			return plants.get(pos).image + 7*16;
+		}
+
+		//Only the upstream sheets were split into base art + decoration in v4.0.
+		//Custom sheets still contain the complete object (including its overhang).
+		//Adding a depth-based overlay paints prison bars over Spider Nest minecarts.
+		if (!usesSeparateDecoration(Dungeon.level.tilesTex())
+				&& (tile == Terrain.BARRICADE || tile == Terrain.ALCHEMY
+				|| tile == Terrain.STATUE || tile == Terrain.STATUE_SP
+				|| tile == Terrain.REGION_DECO || tile == Terrain.REGION_DECO_ALT
+				|| tile == Terrain.MINE_CRYSTAL || tile == Terrain.MINE_BOULDER)) {
+			return -1;
 		}
 
 		int stage = (Dungeon.depth-1)/5;
@@ -93,15 +114,70 @@ public class TerrainFeaturesTilemap extends DungeonTilemap {
 		} else if (tile == Terrain.MUSHROOM_PATCH){
 			return 95;
 		} else if (tile == Terrain.HIGH_GRASS){
-			return 9 + 16*stage + (DungeonTileSheet.tileVariance[pos] >= 50 ? 1 : 0);
+			if (DungeonTileSheet.getVisualWithAlts(DungeonTileSheet.RAISED_HIGH_GRASS, pos) == DungeonTileSheet.RAISED_HIGH_GRASS_ALT){
+				return 192 + 16*stage + 1;
+			} else {
+				return 192 + 16*stage;
+			}
 		} else if (tile == Terrain.FURROWED_GRASS
 				&& !(Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.SafeLevel)){
 			//safe-zone tilled soil is clean farm dirt - no grass decoration on top
-			return 11 + 16*stage + (DungeonTileSheet.tileVariance[pos] >= 50 ? 1 : 0);
+			if (DungeonTileSheet.getVisualWithAlts(DungeonTileSheet.RAISED_FURROWED_GRASS, pos) == DungeonTileSheet.RAISED_FURROWED_ALT){
+				return 194 + 16*stage + 1;
+			} else {
+				return 194 + 16*stage;
+			}
 		} else if (tile == Terrain.GRASS) {
-			return 13 + 16*stage + (DungeonTileSheet.tileVariance[pos] >= 50 ? 1 : 0);
+			if (DungeonTileSheet.getVisualWithAlts(DungeonTileSheet.GRASS, pos) == DungeonTileSheet.GRASS_ALT){
+				return 196 + 16*stage + 1;
+			} else {
+				return 196 + 16*stage;
+			}
+		} else if (tile == Terrain.BARRICADE) {
+			return 198 + 16*stage;
+
+		} else if (tile == Terrain.ALCHEMY) {
+			return 199 + 16*stage;
+
+		} else if (tile == Terrain.STATUE || tile == Terrain.STATUE_SP) {
+			return 200 + 16*stage;
+
+		} else if (tile == Terrain.REGION_DECO) {
+			return 201 + 16 * stage;
+
+		} else if (tile == Terrain.REGION_DECO_ALT) {
+			return 202 + 16 * stage;
+
 		} else if (tile == Terrain.EMBERS) {
-			return 9 + (16*5) + (DungeonTileSheet.tileVariance[pos] >= 50 ? 1 : 0);
+			if (DungeonTileSheet.getVisualWithAlts(DungeonTileSheet.EMBERS, pos) == DungeonTileSheet.EMBERS_ALT){
+				return 272 + 1;
+			} else {
+				return 272;
+			}
+		} else if (tile == Terrain.MINE_CRYSTAL){
+			int vis = DungeonTileSheet.getVisualWithAlts(DungeonTileSheet.RAISED_MINE_CRYSTAL_BLUE_1, pos);
+			if (vis == DungeonTileSheet.RAISED_MINE_CRYSTAL_RED_2){
+				return 274 + 5;
+			} else if (vis == DungeonTileSheet.RAISED_MINE_CRYSTAL_RED_1){
+				return 274 + 4;
+			} else if (vis == DungeonTileSheet.RAISED_MINE_CRYSTAL_GREEN_2){
+				return 274 + 3;
+			} else if (vis == DungeonTileSheet.RAISED_MINE_CRYSTAL_GREEN_1){
+				return 274 + 2;
+			} else if (vis == DungeonTileSheet.RAISED_MINE_CRYSTAL_BLUE_2){
+				return 274 + 1;
+			} else {
+				return 274 + 0;
+			}
+		} else if (tile == Terrain.MINE_BOULDER){
+			int vis = DungeonTileSheet.getVisualWithAlts(DungeonTileSheet.RAISED_MINE_BOULDER, pos);
+			if (vis == DungeonTileSheet.RAISED_MINE_BOULDER_ALT_2){
+				return 280 + 2;
+			} else if (vis == DungeonTileSheet.RAISED_MINE_BOULDER_ALT){
+				return 280 + 1;
+			} else {
+				return 280;
+			}
 		}
 
 		return -1;

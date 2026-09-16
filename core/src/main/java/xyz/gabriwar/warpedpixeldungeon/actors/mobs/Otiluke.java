@@ -71,6 +71,9 @@ public class Otiluke extends Mob implements Callback {
 		immunities.add(Burning.class);
 		immunities.add(ToxicGas.class);
 		immunities.add(Vertigo.class);
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	@Override

@@ -37,7 +37,7 @@ import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
 
-public class DM100 extends Mob implements Callback {
+public class DM100 extends Mob {
 
 	private static final float TIME_TO_ZAP	= 1f;
 	
@@ -55,6 +55,9 @@ public class DM100 extends Mob implements Callback {
 		
 		properties.add(Property.ELECTRIC);
 		properties.add(Property.INORGANIC);
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 	
 	@Override
@@ -125,11 +128,6 @@ public class DM100 extends Mob implements Callback {
 				return true;
 			}
 		}
-	}
-	
-	@Override
-	public void call() {
-		next();
 	}
 	
 }

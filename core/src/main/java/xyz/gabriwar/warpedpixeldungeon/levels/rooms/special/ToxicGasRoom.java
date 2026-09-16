@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.painters.Painter;
 import xyz.gabriwar.warpedpixeldungeon.levels.traps.Trap;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import com.watabou.utils.Point;
 
 import java.util.ArrayList;
@@ -161,6 +162,11 @@ public class ToxicGasRoom extends SpecialRoom {
 
 			canBeHidden = false;
 			active = false;
+		}
+
+		@Override
+		public String desc() {
+			return Messages.get(this, "desc");
 		}
 
 		@Override

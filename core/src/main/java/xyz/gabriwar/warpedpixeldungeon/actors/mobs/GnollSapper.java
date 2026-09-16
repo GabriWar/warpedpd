@@ -27,6 +27,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.effects.TargetedCell;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.GnollSapperSprite;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.GameMath;
@@ -196,14 +197,15 @@ public class GnollSapper extends Mob {
 						throwingRockFromPos = aim.sourcePos;
 						throwingRockToPos = aim.collisionPos;
 
+						float delay = GameMath.gate(TICK, (int)Math.ceil(enemy.cooldown()), 3*TICK);
 						Ballistica warnPath = new Ballistica(aim.sourcePos, aim.collisionPos, Ballistica.STOP_SOLID);
 						for (int i : warnPath.subPath(0, warnPath.dist)){
-							sprite.parent.add(new TargetedCell(i, 0xFF0000));
+							GameScene.targetedCell(i, delay);
 						}
 
 						Dungeon.hero.interrupt();
 						abilityCooldown = Random.NormalIntRange(4, 6);
-						spend(GameMath.gate(TICK, (int)Math.ceil(enemy.cooldown()), 3*TICK));
+						spend(delay);
 						return true;
 					} else if (GnollGeomancer.prepRockFallAttack(enemy, GnollSapper.this, 2, true)) {
 						lastAbilityWasRockfall = true;

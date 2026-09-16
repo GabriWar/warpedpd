@@ -1,3 +1,27 @@
+/*
+ * Pixel Dungeon
+ * Copyright (C) 2012-2015 Oleg Dolya
+ *
+ * Shattered Pixel Dungeon
+ * Copyright (C) 2014-2026 Evan Debenham
+ *
+ * Warped Pixel Dungeon
+ * Copyright (C) 2026 Gabriel Duarte Guerra (gabriwar)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ */
+
 package xyz.gabriwar.warpedpixeldungeon.net;
 
 import org.json.JSONException;
@@ -23,6 +47,8 @@ public class Protocol {
 	public static final int PLAYER_ACTION  = 8;   // Client→Host: cell click
 	public static final int SHOW_DIALOG    = 9;   // Host→Client: open an interaction window {dialogId, kind, payload}
 	public static final int DIALOG_CHOICE  = 10;  // Client→Host: a dialog was resolved {dialogId, choice}
+	public static final int HERO_SAVE      = 12;  // Host→Client: your hero as the host has it {name, cls, lvl, host, token, hero}
+	public static final int HOST_CLOSED    = 13;  // Host→Client: the game is over, do not reconnect {reason}
 	public static final int JOIN          = 100;
 	public static final int JOIN_AS_PLAYER = 101;  // Client→Host: join with hero data
 	public static final int PEEK_CHARACTER          = 110; // Client→Host: do you have a stashed hero for this name?

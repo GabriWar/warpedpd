@@ -94,6 +94,8 @@ public class HallsLevel extends RegularLevel {
 
 	//the frozen branch hangs off this Halls floor
 	public static final int FROZEN_BRANCH_DEPTH = 22;
+	//the frozen branch is switched off for now: no entrance is generated
+	public static final boolean FROZEN_BRANCH_ENABLED = false;
 
 	@Override
 	protected ArrayList<Room> initRooms() {
@@ -102,7 +104,7 @@ public class HallsLevel extends RegularLevel {
 		rooms.add(new DemonSpawnerRoom());
 
 		//mouth of the frozen branch, on a single Halls floor (Unleashed PD port)
-		if (Dungeon.depth == FROZEN_BRANCH_DEPTH && Dungeon.branch == 0) {
+		if (FROZEN_BRANCH_ENABLED && Dungeon.depth == FROZEN_BRANCH_DEPTH && Dungeon.branch == 0) {
 			rooms.add(new FrozenEntranceRoom());
 		}
 

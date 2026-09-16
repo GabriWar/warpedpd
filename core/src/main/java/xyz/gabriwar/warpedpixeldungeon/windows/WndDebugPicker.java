@@ -71,75 +71,11 @@ public class WndDebugPicker extends Window {
 	};
 
 	public static WndDebugPicker forItemCategory(Generator.Category cat) {
-		return new WndDebugPicker(cat.name(), buildItemEntries(cat));
+		return new WndDebugPicker(cat.name(), buildItemEntries(cat), true);
 	}
 
 	public static WndDebugPicker forAllItems() {
-		ArrayList<Entry> entries = new ArrayList<>();
-		HashSet<Class<?>> seen = new HashSet<>();
-
-		// Collect from all Catalog categories
-		for (Catalog cat : Catalog.values()) {
-			for (Class<?> cls : cat.items()) {
-				if (seen.contains(cls)) continue;
-				if (!Item.class.isAssignableFrom(cls)) continue;
-				seen.add(cls);
-
-				try {
-					Item sample = (Item) Reflection.newInstance(cls);
-					if (sample == null) continue;
-					sample.identify();
-					String name = sample.name();
-					if (name == null || name.isEmpty()) name = cls.getSimpleName();
-
-					Image icon = new ItemSprite(sample.image(), sample.glowing());
-
-					final Class<?> itemCls = cls;
-					final String itemName = name;
-					entries.add(new Entry(name, icon, () -> selectCellForItem(itemCls, itemName)));
-				} catch (Exception ignored) { }
-			}
-		}
-
-		// Also add from Generator categories (catches anything Catalog misses)
-		Generator.Category[] genCats = Generator.Category.values();
-		Generator.Category[] expandWeapon = {
-				Generator.Category.WEP_T1, Generator.Category.WEP_T2,
-				Generator.Category.WEP_T3, Generator.Category.WEP_T4,
-				Generator.Category.WEP_T5
-		};
-		Generator.Category[] expandMissile = {
-				Generator.Category.MIS_T1, Generator.Category.MIS_T2,
-				Generator.Category.MIS_T3, Generator.Category.MIS_T4,
-				Generator.Category.MIS_T5
-		};
-		for (Generator.Category gc : genCats) {
-			Generator.Category[] subs;
-			if (gc == Generator.Category.WEAPON) subs = expandWeapon;
-			else if (gc == Generator.Category.MISSILE) subs = expandMissile;
-			else subs = new Generator.Category[]{gc};
-			for (Generator.Category sub : subs) {
-				if (sub.classes == null) continue;
-				for (Class<?> cls : sub.classes) {
-					if (seen.contains(cls)) continue;
-					seen.add(cls);
-					try {
-						Item sample = (Item) Reflection.newInstance(cls);
-						if (sample == null) continue;
-						sample.identify();
-						String name = sample.name();
-						if (name == null || name.isEmpty()) name = cls.getSimpleName();
-						Image icon = new ItemSprite(sample.image(), sample.glowing());
-						final Class<?> itemCls = cls;
-						final String itemName = name;
-						entries.add(new Entry(name, icon, () -> selectCellForItem(itemCls, itemName)));
-					} catch (Exception ignored) { }
-				}
-			}
-		}
-
-		Collections.sort(entries);
-		return new WndDebugPicker("ALL ITEMS (" + entries.size() + ")", entries);
+		return forItemClasses("ALL ITEMS", DebugItems.ALL);
 	}
 
 	public static WndDebugPicker forMobCategory(Bestiary bestiary) {
@@ -210,138 +146,51 @@ public class WndDebugPicker extends Window {
 	}
 
 	public static WndDebugPicker forExoticPotions() {
-		return forItemClasses("EXOTIC POTIONS", new Class<?>[]{
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfAbsoluteZero.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfAdrenalineSurge.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfAlcohol.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfAllSeeing.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfArmor.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfAsh.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfAthmosphericCompression.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfAutumn.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfBallLightning.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfBeacon.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfBee.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfBleeding.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfBrain.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfButterbread.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfCleansing.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfControl.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfCorrosiveGas.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfDeath.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfDivineInspiration.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfDragonsBreath.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfEarthenArmor.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfFlower.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfGloop.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfHail.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfHellstorm.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfHighgrass.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfHoly.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfHolyFuror.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfHotness.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfImmortality.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfIronSkin.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfLaserbeam.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfMagicalSight.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfMagicFire.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfMastery.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfNuts.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfOrb.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfPlague.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfPressure.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfProtain.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfQuantumsoup.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfRadiation.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfRelativity.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfReproduction.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfShielding.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfShroudingFog.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfSleepParalysis.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfSlime.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfSnapFreeze.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfSoil.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfSowing.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfSpiral.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfStamina.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfStarving.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfStomach.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfStormClouds.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfStrung.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfSugar.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfSuperdew.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfSupernova.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfSwelling.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfTears.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfTerror.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfTsunami.class,
-				xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfWorm.class,
-		});
+		return forItemType("EXOTIC POTIONS", xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.ExoticPotion.class);
 	}
 
 	public static WndDebugPicker forExoticScrolls() {
-		return forItemClasses("EXOTIC SCROLLS", new Class<?>[]{
-				xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfAntiMagic.class,
-				xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfChallenge.class,
-				xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfDivination.class,
-				xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfDread.class,
-				xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfEnchantment.class,
-				xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfForesight.class,
-				xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfMetamorphosis.class,
-				xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfMysticalEnergy.class,
-				xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPassage.class,
-				xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPrismaticImage.class,
-				xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPsionicBlast.class,
-				xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfSirensSong.class,
-		});
+		return forItemType("EXOTIC SCROLLS", xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ExoticScroll.class);
 	}
 
 	public static WndDebugPicker forSpells() {
-		return forItemClasses("SPELLS", new Class<?>[]{
-				xyz.gabriwar.warpedpixeldungeon.items.spells.Alchemize.class,
-				xyz.gabriwar.warpedpixeldungeon.items.spells.AquaBlast.class,
-				xyz.gabriwar.warpedpixeldungeon.items.spells.BeaconOfReturning.class,
-				xyz.gabriwar.warpedpixeldungeon.items.spells.CrimsonEpithet.class,
-				xyz.gabriwar.warpedpixeldungeon.items.spells.CurseInfusion.class,
-				xyz.gabriwar.warpedpixeldungeon.items.spells.DoomCall.class,
-				xyz.gabriwar.warpedpixeldungeon.items.spells.EnchantmentInfusion.class,
-				xyz.gabriwar.warpedpixeldungeon.items.spells.FeatherFall.class,
-				xyz.gabriwar.warpedpixeldungeon.items.spells.Forcefield.class,
-				xyz.gabriwar.warpedpixeldungeon.items.spells.ForcePush.class,
-				xyz.gabriwar.warpedpixeldungeon.items.spells.HolyBlast.class,
-				xyz.gabriwar.warpedpixeldungeon.items.spells.MagicalInfusion.class,
-				xyz.gabriwar.warpedpixeldungeon.items.spells.MagicalPorter.class,
-				xyz.gabriwar.warpedpixeldungeon.items.spells.NaturesLullaby.class,
-				xyz.gabriwar.warpedpixeldungeon.items.spells.PhaseShift.class,
-				xyz.gabriwar.warpedpixeldungeon.items.spells.PlantSummon.class,
-				xyz.gabriwar.warpedpixeldungeon.items.spells.ReclaimTrap.class,
-				xyz.gabriwar.warpedpixeldungeon.items.spells.Recycle.class,
-				xyz.gabriwar.warpedpixeldungeon.items.spells.SeasonChange.class,
-				xyz.gabriwar.warpedpixeldungeon.items.spells.SpontaneousCombustion.class,
-				xyz.gabriwar.warpedpixeldungeon.items.spells.SummonElemental.class,
-				xyz.gabriwar.warpedpixeldungeon.items.spells.TelekineticGrab.class,
-				xyz.gabriwar.warpedpixeldungeon.items.spells.UnstableSpell.class,
-				xyz.gabriwar.warpedpixeldungeon.items.spells.WildEnergy.class,
-		});
+		return forItemType("SPELLS", xyz.gabriwar.warpedpixeldungeon.items.spells.Spell.class);
+	}
+
+	private static WndDebugPicker forItemType(String title, Class<?> type) {
+		ArrayList<Class<?>> classes = new ArrayList<>();
+		for (Class<?> cls : DebugItems.ALL) if (type.isAssignableFrom(cls)) classes.add(cls);
+		return forItemClasses(title, classes.toArray(new Class<?>[0]));
 	}
 
 	private static WndDebugPicker forItemClasses(String title, Class<?>[] classes) {
+		ArrayList<Entry> entries = itemEntries(classes);
+		return new WndDebugPicker(title, entries, true);
+	}
+
+	private static ArrayList<Entry> itemEntries(Class<?>[] classes) {
 		ArrayList<Entry> entries = new ArrayList<>();
 		for (Class<?> cls : classes) {
+			String name = cls.getSimpleName();
+			Image icon = null;
 			try {
 				Item sample = (Item) Reflection.newInstance(cls);
-				if (sample == null) continue;
-				sample.identify();
-				String name = sample.name();
-				if (name == null || name.isEmpty()) name = cls.getSimpleName();
-				Image icon = new ItemSprite(sample.image(), sample.glowing());
-				final Class<?> itemCls = cls;
-				final String itemName = name;
-				entries.add(new Entry(name, icon, () -> selectCellForItem(itemCls, itemName)));
-			} catch (Exception ignored) { }
+				if (sample != null) {
+					// Do not identify preview objects: that changes global item knowledge.
+					String translated = xyz.gabriwar.warpedpixeldungeon.messages.Messages.get(cls, "name");
+					if (!translated.contains("NO TEXT FOUND") && !translated.isEmpty()) name = translated;
+					icon = new ItemSprite(sample.image(), sample.glowing());
+				}
+			} catch (Exception ignored) {
+				// Keep the entry available even when its preview needs live game state.
+			}
+			final String itemName = name;
+			Entry entry = new Entry(name, icon, () -> selectCellForItem(cls, itemName));
+			entry.searchText = name + " " + cls.getSimpleName();
+			entries.add(entry);
 		}
 		Collections.sort(entries);
-		return new WndDebugPicker(title + " (" + entries.size() + ")", entries);
+		return entries;
 	}
 
 	public static WndDebugPicker forTravel() {
@@ -463,11 +312,16 @@ public class WndDebugPicker extends Window {
 	}
 
 	private WndDebugPicker(String title, ArrayList<Entry> entries) {
+		this(title, entries, false);
+	}
+
+	private WndDebugPicker(String title, ArrayList<Entry> entries, boolean searchable) {
 		super();
+		final int listTop = HEADER_HEIGHT + (searchable ? 20 : 0);
 
 		int maxH = (int)(Game.height / PixelScene.defaultZoom * 0.8f);
 		int contentH = entries.size() * 18;
-		int finalH = (int) Math.min(maxH, HEADER_HEIGHT + contentH + 4);
+		int finalH = (int) Math.min(maxH, listTop + Math.max(18, contentH) + 4);
 
 		resize(WIDTH, finalH);
 
@@ -478,9 +332,34 @@ public class WndDebugPicker extends Window {
 
 		ScrollingListPane list = new ScrollingListPane();
 		add(list);
-		list.setRect(0, HEADER_HEIGHT, WIDTH, finalH - HEADER_HEIGHT);
+		list.setRect(0, listTop, WIDTH, finalH - listTop);
+		if (searchable) {
+			RedButton search = new RedButton("Search (" + entries.size() + ")", 6) {
+				private String query = "";
+				@Override protected void onClick() {
+					GameScene.show(new WndTextInput("Search items", "Name or class name. Leave empty to show all.",
+							query, 80, false, "Search", "Cancel") {
+						@Override public void onSelect(boolean positive, String text) {
+							if (!positive) return;
+							query = text.trim();
+							int count = populate(list, entries, query);
+							text(query.isEmpty() ? "Search (" + count + ")" : "Search: " + query + " (" + count + ")");
+						}
+					});
+				}
+			};
+			add(search);
+			search.setRect(0, HEADER_HEIGHT, WIDTH, 18);
+		}
+		populate(list, entries, "");
+	}
 
+	private int populate(ScrollingListPane list, ArrayList<Entry> entries, String query) {
+		list.clear();
+		int count = 0;
 		for (Entry e : entries) {
+			if (!matches(e.searchText, query)) continue;
+			count++;
 			ScrollingListPane.ListItem item = new ScrollingListPane.ListItem(
 					e.icon, null, e.name
 			) {
@@ -496,17 +375,27 @@ public class WndDebugPicker extends Window {
 			};
 			list.addItem(item);
 		}
+		if (count == 0) list.addTitle("No matching items");
+		list.scrollTo(0, 0);
+		return count;
+	}
+
+	static boolean matches(String name, String query) {
+		String normalized = name.toLowerCase(java.util.Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]", "");
+		return normalized.contains(query.toLowerCase(java.util.Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]", ""));
 	}
 
 	// --- Entry data ---
 
 	private static class Entry implements Comparable<Entry> {
 		String name;
+		String searchText;
 		Runnable action;
 		Image icon;
 
 		Entry(String name, Image icon, Runnable action) {
 			this.name = name;
+			this.searchText = name;
 			this.icon = icon;
 			this.action = action;
 		}
@@ -520,42 +409,11 @@ public class WndDebugPicker extends Window {
 	// --- Build item entries ---
 
 	private static ArrayList<Entry> buildItemEntries(Generator.Category cat) {
-		ArrayList<Entry> entries = new ArrayList<>();
-		HashSet<Class<?>> seen = new HashSet<>();
-
-		Generator.Category[] subcats;
-		if (cat == Generator.Category.WEAPON) {
-			subcats = WEAPON_TIERS;
-		} else if (cat == Generator.Category.MISSILE) {
-			subcats = MISSILE_TIERS;
-		} else {
-			subcats = new Generator.Category[]{cat};
+		ArrayList<Class<?>> classes = new ArrayList<>();
+		for (Class<?> cls : DebugItems.ALL) {
+			if (cat.superClass.isAssignableFrom(cls)) classes.add(cls);
 		}
-
-		for (Generator.Category c : subcats) {
-			if (c.classes == null) continue;
-			for (Class<?> cls : c.classes) {
-				if (seen.contains(cls)) continue;
-				seen.add(cls);
-
-				try {
-					Item sample = (Item) Reflection.newInstance(cls);
-					if (sample == null) continue;
-					sample.identify();
-					String name = sample.name();
-					if (name == null || name.isEmpty()) name = cls.getSimpleName();
-
-					Image icon = new ItemSprite(sample.image(), sample.glowing());
-
-					final Class<?> itemCls = cls;
-					final String itemName = name;
-					entries.add(new Entry(name, icon, () -> selectCellForItem(itemCls, itemName)));
-				} catch (Exception ignored) { }
-			}
-		}
-
-		Collections.sort(entries);
-		return entries;
+		return itemEntries(classes.toArray(new Class<?>[0]));
 	}
 
 	// --- Build mob entries ---

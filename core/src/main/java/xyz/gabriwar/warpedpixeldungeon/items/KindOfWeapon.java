@@ -142,8 +142,8 @@ abstract public class KindOfWeapon extends EquipableItem {
 			if (isSwiftEquipping) {
 				GLog.i(Messages.get(this, "swift_equip"));
 				if (hero.buff(Talent.SwiftEquipCooldown.class) == null){
-					Buff.affect(hero, Talent.SwiftEquipCooldown.class, 19f)
-							.secondUse = hero.pointsInTalent(Talent.SWIFT_EQUIP) == 2;
+					Buff.affect(hero, Talent.SwiftEquipCooldown.class, hero.pointsInTalent(Talent.SWIFT_EQUIP) >= 3 ? 9f : 19f)
+							.secondUse = hero.pointsInTalent(Talent.SWIFT_EQUIP) >= 2;
 				} else if (hero.buff(Talent.SwiftEquipCooldown.class).hasSecondUse()) {
 					hero.buff(Talent.SwiftEquipCooldown.class).secondUse = false;
 				}
@@ -189,8 +189,8 @@ abstract public class KindOfWeapon extends EquipableItem {
 			if (isSwiftEquipping) {
 				GLog.i(Messages.get(this, "swift_equip"));
 				if (hero.buff(Talent.SwiftEquipCooldown.class) == null){
-					Buff.affect(hero, Talent.SwiftEquipCooldown.class, 19f)
-							.secondUse = hero.pointsInTalent(Talent.SWIFT_EQUIP) == 2;
+					Buff.affect(hero, Talent.SwiftEquipCooldown.class, hero.pointsInTalent(Talent.SWIFT_EQUIP) >= 3 ? 9f : 19f)
+							.secondUse = hero.pointsInTalent(Talent.SWIFT_EQUIP) >= 2;
 				} else if (hero.buff(Talent.SwiftEquipCooldown.class).hasSecondUse()) {
 					hero.buff(Talent.SwiftEquipCooldown.class).secondUse = false;
 				}

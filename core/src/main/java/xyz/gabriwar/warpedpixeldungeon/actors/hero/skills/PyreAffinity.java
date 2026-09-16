@@ -27,11 +27,15 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
 public class PyreAffinity extends Skill {
@@ -49,14 +53,26 @@ public class PyreAffinity extends Skill {
 		return true;
 	}
 
+	//wand zaps and bolt spells that hurt an enemy can set it alight
 	@Override
-	public int onHitProc( Char enemy, int damage, boolean ranged ){
-		if (level > 0 && enemy != null && enemy.isAlive() && Random.Int(100) < 12 * level){
-			Buff.affect( enemy, Burning.class ).reignite( enemy );
-			if (enemy.sprite != null)
-				enemy.sprite.emitter().burst( FlameParticle.FACTORY, 3 );
+	public void onMagicDamage( Char target, int damage, Object source ){
+		if (level <= 0 || target == null || !target.isAlive() || Random.Int(100) >= 12 * level) return;
+		Buff.affect( target, Burning.class ).reignite( target );
+		if (target.sprite != null)
+			target.sprite.emitter().burst( FlameParticle.FACTORY, 3 + level );
+		Sample.INSTANCE.play( Assets.Sounds.BURNING, 0.6f, 1.2f );
+		//at mastery the flames leap to one enemy standing next to the target
+		if (level >= MAX_LEVEL){
+			for (int n : PathFinder.NEIGHBOURS8){
+				Char near = Actor.findChar( target.pos + n );
+				if (near != null && near != target && near.isAlive() && near.alignment == Char.Alignment.ENEMY){
+					Buff.affect( near, Burning.class ).reignite( near );
+					if (near.sprite != null)
+						near.sprite.emitter().burst( FlameParticle.FACTORY, 6 );
+					break;
+				}
+			}
 		}
-		return damage;
 	}
 
 	@Override

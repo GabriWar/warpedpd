@@ -27,23 +27,26 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Chill;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SnowParticle;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 import java.util.ArrayList;
 
 public class FrostNova extends Skill {
+
+	private static final int RADIUS = 3;
 
 	{
 		tag = "D2";
@@ -66,29 +69,35 @@ public class FrostNova extends Skill {
 	public void execute( Hero hero, String action ){
 		if (action.equals(Skill.AC_CAST) && level > 0 && hero.MP >= getManaCost()){
 
-			int cryo = cryomancyLevel();
-			int radius = 3 + (cryo >= 2 ? 1 : 0);
+			ArrayList<Integer> frozenGround = new ArrayList<>();
+			for (int c : SkillInteractions.area( hero.pos, RADIUS )) if (!Dungeon.level.pit[c]) frozenGround.add( c );
+			//at mastery the ring leaves the ground bristling with ice spikes
+			if (level >= MAX_LEVEL && !frozenGround.isEmpty())
+				SkillField.place( hero, SkillField.ICE, level, 4, frozenGround );
 
 			ArrayList<Mob> caught = new ArrayList<>();
 			for (Mob mob : Dungeon.level.mobs.toArray(new Mob[0])){
 				if (mob.alignment == Char.Alignment.ENEMY
-						&& Dungeon.level.distance( hero.pos, mob.pos ) <= radius)
+						&& frozenGround.contains(mob.pos))
 					caught.add( mob );
 			}
 
-			if (caught.isEmpty()){
-				GLog.w( Messages.get(this, "no_targets") );
-				return;
+			CellEmitter.center( hero.pos ).burst( SnowParticle.FACTORY, 12 );
+			new Flare( 6, 32 ).color( 0x88DDFF, true ).show( hero.sprite, 0.8f );
+			//the ring is seen over the whole floor it covers
+			for (int c : frozenGround){
+				if (Dungeon.level.heroFOV[c] && c != hero.pos)
+					CellEmitter.get( c ).burst( SnowParticle.FACTORY, 2 );
 			}
-
-			CellEmitter.center( hero.pos ).burst( SnowParticle.FACTORY, 10 );
 			Sample.INSTANCE.play( Assets.Sounds.SHATTER );
+			Camera.main.shake( 1, 0.3f );
 
 			for (Mob mob : caught){
 				CellEmitter.get( mob.pos ).burst( SnowParticle.FACTORY, 5 );
 				mob.damage( Random.NormalIntRange( 2 + level, 4 + 3 * level ), this );
+				if (mob.sprite != null) mob.sprite.flash();
 				if (mob.isAlive())
-					Buff.prolong( mob, Chill.class, 3 + 2 * level + cryo );
+					Buff.prolong( mob, Chill.class, 3 + 2 * level );
 			}
 
 			hero.MP -= getManaCost();
@@ -98,15 +107,6 @@ public class FrostNova extends Skill {
 			hero.busy();
 			hero.sprite.operate( hero.pos );
 		}
-	}
-
-	private static int cryomancyLevel(){
-		if (Dungeon.hero == null || Dungeon.hero.heroSkills == null)
-			return 0;
-		for (Skill s : Dungeon.hero.heroSkills.fourthSkills)
-			if (s instanceof RimeAffinity)
-				return s.level;
-		return 0;
 	}
 
 	@Override

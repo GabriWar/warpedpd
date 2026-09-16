@@ -47,12 +47,15 @@ public class Scorpio extends Mob {
 		lootChance = 0.2f;
 
 		lootOther = new xyz.gabriwar.warpedpixeldungeon.items.food.MysteryMeat();
-		lootChanceOther = 0.333f;
+		lootChanceOther = 0.333f / 4f;
 
 		properties.add(Property.DEMONIC);
 
 		resistances.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Vampiric.class);
 		resistances.add(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison.class);
+
+		//built for the heat: the chill is what hurts
+		thermal = Thermal.HEAT_DWELLER;
 	}
 	
 	@Override
@@ -112,7 +115,8 @@ public class Scorpio extends Mob {
 			Dungeon.LimitedDrops.SCORPIO_HP.count++;
 			return (Item) loot;
 		} else {
-			return new xyz.gabriwar.warpedpixeldungeon.items.food.MysteryMeat();
+			return Random.Int(4) == 0
+					? new xyz.gabriwar.warpedpixeldungeon.items.food.MysteryMeat() : null;
 		}
 	}
 

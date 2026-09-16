@@ -48,7 +48,7 @@ public class PotionOfOverHealing extends Potion {
 	@Override
 	public void apply(Hero hero) {
 		identify();
-		heal(Dungeon.hero);
+		heal(hero);
 	}
 
 	public static void heal(Hero hero) {

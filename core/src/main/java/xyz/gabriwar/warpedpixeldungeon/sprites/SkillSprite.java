@@ -27,6 +27,8 @@
 package xyz.gabriwar.warpedpixeldungeon.sprites;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.gltextures.SmartTexture;
+import com.watabou.gltextures.TextureCache;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.TextureFilm;
 
@@ -35,6 +37,9 @@ public class SkillSprite extends Image {
 	public static final int SIZE = 16;
 
 	private static TextureFilm film;
+
+	private int image = -1;
+    private boolean inactive;
 
 	public SkillSprite(){
 		super( Assets.Sprites.HERO_SKILLS );
@@ -49,7 +54,32 @@ public class SkillSprite extends Image {
 	}
 
 	public SkillSprite view( int image ){
+		this.image = image;
 		frame( film.get( image ) );
 		return this;
 	}
+
+	/**
+	 * Drains the colour out of this icon, or puts it back. A skill you switch
+	 * on and off is drawn grey while it is off, so a glance at the tree says
+	 * which ones are running.
+	 */
+	public SkillSprite grey( boolean grey ){
+        inactive=grey;
+		texture( grey ? greyscale() : TextureCache.get( Assets.Sprites.HERO_SKILLS ) );
+		if (image >= 0) frame( film.get( image ) );
+		return this;
+	}
+
+    @Override public void update(){
+        super.update();
+        SmartTexture current=inactive?greyscale():TextureCache.get(Assets.Sprites.HERO_SKILLS);
+        if(texture!=current){texture(current);if(image>=0)frame(film.get(image));}
+    }
+
+    // Asset-backed like every other sprite: cache clear, context reload and new windows
+    // all acquire the current texture instead of holding a deleted generated texture.
+    private static SmartTexture greyscale(){
+        return TextureCache.get("sprites/hero_skills_grey.png");
+    }
 }

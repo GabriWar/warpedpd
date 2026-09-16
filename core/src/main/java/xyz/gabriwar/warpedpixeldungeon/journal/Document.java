@@ -353,16 +353,14 @@ public enum Document {
 		
 		for ( Document doc : values()){
 			Bundle pagesBundle = new Bundle();
-			boolean empty = true;
 			for (String page : doc.pageNames()){
 				if (doc.pagesStates.get(page) != NOT_FOUND){
 					pagesBundle.put(page, doc.pagesStates.get(page));
-					empty = false;
 				}
 			}
-			if (!empty){
-				docsBundle.put(doc.name(), pagesBundle);
-			}
+			//every document is written, found pages or none: on restore, a document
+			//the file knows is the record of what was found (see restore)
+			docsBundle.put(doc.name(), pagesBundle);
 		}
 		
 		bundle.put( DOCUMENTS, docsBundle );
@@ -382,9 +380,10 @@ public enum Document {
 				Bundle pagesBundle = docsBundle.getBundle(doc.name());
 
 				for (String page : doc.pageNames()) {
-					if (pagesBundle.contains(page)) {
-						doc.pagesStates.put(page, pagesBundle.getInt(page));
-					}
+					//a page the file does not list has not been found, whatever the
+					//build's defaults say - debug builds start every page as read, which
+					//made a tutorial reset undo itself on the next launch
+					doc.pagesStates.put(page, pagesBundle.contains(page) ? pagesBundle.getInt(page) : NOT_FOUND);
 				}
 			}
 		}

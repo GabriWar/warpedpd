@@ -39,11 +39,13 @@ public class CagedKoboldSprite extends MobSprite {
 		idle = new Animation( 2, true );
 		idle.frames( frames, 0, 1, 2, 3 );
 
-		//it never moves, fights or dies, but the slots must be distinct objects:
+		//it never moves or fights, but the slots must be distinct objects:
 		//aliasing them to a looped idle breaks onComplete callbacks
 		run = idle.clone();
 		attack = idle.clone();
-		die = idle.clone();
+		//the cage opening must finish, or the sprite never fades out
+		die = new Animation( 8, false );
+		die.frames( frames, 0, 1, 2, 3 );
 
 		play( idle );
 	}

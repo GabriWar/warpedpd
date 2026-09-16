@@ -86,10 +86,6 @@ public class Hypnohemp extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect( Char attacker, Char defender, int damage ) {
-			Buff.affect(defender, Corruption.class);
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

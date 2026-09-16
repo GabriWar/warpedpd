@@ -27,8 +27,14 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import com.watabou.utils.Random;
@@ -49,8 +55,22 @@ public class CreepingDread extends Skill {
 	@Override
 	public int onHitProc( Char enemy, int damage, boolean ranged ){
 		if (level > 0 && !ranged && enemy != null && Random.Int( 100 ) < 8 * level){
-			Buff.affect( enemy, Terror.class, 3 + level ).object = Dungeon.hero.id();
+			final Char struck = enemy;
+			final int heroId = Dungeon.hero.id();
+			final float turns = 3 + level;
+			SkillInteractions.defer( () -> {
+				if (struck.isAlive()) Buff.affect( struck, Terror.class, turns ).object = heroId;
+			} );
 			castTextYell();
+			CellEmitter.get( enemy.pos ).burst( ShadowParticle.CURSE, 5 );
+			//at mastery the fear spills onto every enemy standing beside it
+			if (level >= MAX_LEVEL) for (int n : PathFinder.NEIGHBOURS8){
+				Char other = Actor.findChar( enemy.pos + n );
+				if (other == null || other.alignment != Char.Alignment.ENEMY || !other.isAlive()) continue;
+				Buff.affect( other, Terror.class, 3 + level ).object = Dungeon.hero.id();
+				CellEmitter.get( other.pos ).burst( ShadowParticle.CURSE, 3 );
+			}
+			Sample.INSTANCE.play( Assets.Sounds.GHOST, 0.8f, 0.8f );
 		}
 		return damage;
 	}

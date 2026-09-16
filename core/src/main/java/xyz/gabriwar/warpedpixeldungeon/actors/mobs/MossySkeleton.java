@@ -63,6 +63,9 @@ public class MossySkeleton extends Mob {
 
 		declareExtraLoot(PrisonKey.class, 1f);
 		declareExtraLoot(Bone.class, 0.1f);
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	@Override
@@ -122,8 +125,12 @@ public class MossySkeleton extends Mob {
 	}
 
 	@Override
+	protected boolean extraLootIgnoresLevel() {
+		return true;
+	}
+
+	@Override
 	protected void dropExtraLoot() {
-		explodeDew(pos);
 		if (!Dungeon.LimitedDrops.PRISON_KEY.dropped() && Dungeon.depth < Dungeon.POSTGAME_DEPTH) {
 			Dungeon.LimitedDrops.PRISON_KEY.drop();
 			trackedDrop(new PrisonKey(), 0);

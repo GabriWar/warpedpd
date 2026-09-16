@@ -27,7 +27,17 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import com.watabou.noosa.audio.Sample;
+import com.watabou.utils.PathFinder;
+
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Frost;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MagicalSleep;
@@ -35,6 +45,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
 
 public class Groundwork extends Skill {
+
+	//its damage is already a share of a blow, a hit or a health pool, so it grows with the hero on its own
+	@Override
+	public boolean weaponScaled(){ return true; }
+
 
 	{
 		tag = "D1";
@@ -48,15 +63,40 @@ public class Groundwork extends Skill {
 		return true;
 	}
 
+	private static boolean heldDown( Char ch ){
+		return (ch instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob && ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob) ch).wasAsleepBeforeBlow())
+				|| ch.buff( Roots.class ) != null
+				|| ch.buff( Cripple.class ) != null
+				|| ch.buff( Paralysis.class ) != null
+				|| ch.buff( MagicalSleep.class ) != null
+				|| ch.buff( Frost.class ) != null;
+	}
+
+	//a hit on an enemy that cannot step away makes the ground burst: every enemy
+	//next to it takes 20/35/50% of the hit. Fully trained, the burst cripples them too
 	@Override
 	public int onHitProc( Char enemy, int damage, boolean ranged ){
-		if (level > 0 && enemy != null
-				&& (enemy.buff( Roots.class ) != null
-					|| enemy.buff( Cripple.class ) != null
-					|| enemy.buff( Paralysis.class ) != null
-					|| enemy.buff( MagicalSleep.class ) != null
-					|| enemy.buff( Frost.class ) != null)){
-			return Math.round( damage * (1f + 0.05f * level) );
+		if (level <= 0 || enemy == null || damage <= 0 || !heldDown( enemy )) return damage;
+
+		int splash = Math.max( 1, Math.round( damage * (0.05f + 0.15f * level) ) );
+		if (Dungeon.level.heroFOV[enemy.pos]){
+			CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.ROCK ), 4 );
+		}
+		Sample.INSTANCE.play( Assets.Sounds.ROCKS, 0.7f, 1.2f );
+
+		for (int n : PathFinder.NEIGHBOURS8){
+			int c = enemy.pos + n;
+			Char ch = Actor.findChar( c );
+			if (ch == null || ch == Dungeon.hero || ch.alignment != Char.Alignment.ENEMY || !ch.isAlive()) continue;
+			if (Dungeon.level.heroFOV[c]){
+				CellEmitter.get( c ).burst( Speck.factory( Speck.ROCK ), 3 );
+				SkillSpectacleFX.show( SkillSpectacleFX.THORN, c );
+			}
+			ch.damage( splash, this );
+			if (level >= MAX_LEVEL && ch.isAlive()){
+				Buff.prolong( ch, Cripple.class, 2f );
+				SkillSpectacleFX.show( SkillSpectacleFX.THORN, c );
+			}
 		}
 		return damage;
 	}

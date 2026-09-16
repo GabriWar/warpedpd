@@ -42,6 +42,9 @@ public class IceDemon extends Mob {
 		properties.add( Property.ICY );
 
 		maxLvl = 29;
+
+		//built for the cold: the deep freeze is home, the thaw is what hurts
+		thermal = Thermal.COLD_DWELLER;
 	}
 
 	@Override

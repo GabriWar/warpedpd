@@ -26,47 +26,46 @@ import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.Challenges;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Statistics;
-import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
-import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Lichen;
-import xyz.gabriwar.warpedpixeldungeon.actors.mobs.LivingPlant;
-import xyz.gabriwar.warpedpixeldungeon.actors.mobs.RotLasher;
-import xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle;
-import xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
+import xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle;
+import xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar;
 import xyz.gabriwar.warpedpixeldungeon.actors.TileTemperature;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AuroraBless;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Adrenaline;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.BloodMoonBuff;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.RainbowBlessing;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Chill;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Haste;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Slow;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Heatstroke;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hypothermia;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AllyBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Amok;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AscensionChallenge;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AuroraBless;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.BloodMoonBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ChampionEnemy;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Charm;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Chill;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Corruption;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Dewcharge;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Dread;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Glowing;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Drenched;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Frost;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Glowing;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.GreaterHaste;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Haste;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Heatstroke;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hypothermia;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MindVision;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MonkEnergy;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Preparation;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.RainbowBlessing;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Sleep;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Slow;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Speed;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SoulMark;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Speed;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SwarmIntelTracker;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
@@ -78,19 +77,26 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.rogue.ShadowClone;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.ClericSpell;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.GuidingLight;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.Stasis;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Lichen;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.LivingPlant;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.RotLasher;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.DirectableAlly;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.NPC;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town.TownGuardFolk;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town.TownLedger;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.Surprise;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
+import xyz.gabriwar.warpedpixeldungeon.items.Gold;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.RedDewdrop;
 import xyz.gabriwar.warpedpixeldungeon.items.VioletDewdrop;
 import xyz.gabriwar.warpedpixeldungeon.items.YellowDewdrop;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.MasterThievesArmband;
+import xyz.gabriwar.warpedpixeldungeon.items.artifacts.TalismanOfForesight;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.TimekeepersHourglass;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.ExoticPotion;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.Ring;
@@ -100,14 +106,19 @@ import xyz.gabriwar.warpedpixeldungeon.items.stones.StoneOfAggression;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.ExoticCrystals;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.ShardOfOblivion;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.Wand;
+import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
+import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfFireblast;
+import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfFrost;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.SpiritBow;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Blazing;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Lucky;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.MissileWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.Dart;
 import xyz.gabriwar.warpedpixeldungeon.journal.Bestiary;
 import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
+import xyz.gabriwar.warpedpixeldungeon.levels.VaultLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.features.Chasm;
 import xyz.gabriwar.warpedpixeldungeon.levels.traps.Trap;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -117,7 +128,9 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
+import com.watabou.utils.GameMath;
 import com.watabou.utils.PathFinder;
+import com.watabou.utils.PointF;
 import com.watabou.utils.Random;
 import com.watabou.utils.Reflection;
 
@@ -125,6 +138,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Arrays;
 
 public abstract class Mob extends Char {
 
@@ -183,6 +197,14 @@ public abstract class Mob extends Char {
 	private static final String ORIGINAL	= "originalgen";
 
 	private static final String ENEMY_ID	= "enemy_id";
+
+	private static final String SWARM_TIME = "swarm_time";
+
+	//for stealth gameplay
+	private static final String USING_STEALTH = "using_stealth";
+	private static final String INVEST_TURNS = "invest_turns";
+	private static final String WANDER_POSITIONS = "wander_positions";
+	private static final String WANDER_POS_IDX = "wander_pos_idx";
 	
 	@Override
 	public void storeInBundle( Bundle bundle ) {
@@ -210,12 +232,33 @@ public abstract class Mob extends Char {
 		if (enemy != null) {
 			bundle.put(ENEMY_ID, enemy.id() );
 		}
+
+		bundle.put(SWARM_TIME, timeSeenAt);
+
+		bundle.put( USING_STEALTH, usingStealthGamePlay );
+		if (usingStealthGamePlay){
+			bundle.put(INVEST_TURNS, investigatingTurns);
+			if (wanderPositions != null) {
+				bundle.put(WANDER_POSITIONS, wanderPositions);
+				bundle.put(WANDER_POS_IDX, wanderPosIdx);
+			}
+		}
 	}
 	
 	@Override
 	public void restoreFromBundle( Bundle bundle ) {
 		
 		super.restoreFromBundle( bundle );
+
+		if (bundle.getBoolean(USING_STEALTH)) {
+			activateSteathGameplayBehaviour();
+
+			investigatingTurns = bundle.getInt(INVEST_TURNS);
+			if (bundle.contains(WANDER_POSITIONS)) {
+				wanderPositions = bundle.getIntArray(WANDER_POSITIONS);
+				wanderPosIdx = bundle.getInt(WANDER_POS_IDX);
+			}
+		}
 
 		String state = bundle.getString( STATE );
 		if (state.equals( Sleeping.TAG )) {
@@ -236,13 +279,15 @@ public abstract class Mob extends Char {
 
 		target = bundle.getInt( TARGET );
 
-		if (bundle.contains(MAX_LVL)) maxLvl = bundle.getInt(MAX_LVL);
+		maxLvl = bundle.getInt(MAX_LVL);
 
 		originalgen = bundle.getBoolean(ORIGINAL);
 
 		if (bundle.contains(ENEMY_ID)) {
 			enemyID = bundle.getInt(ENEMY_ID);
 		}
+
+		timeSeenAt = bundle.getFloat( SWARM_TIME );
 
 		//no need to actually save this, must be false
 		firstAdded = false;
@@ -302,6 +347,66 @@ public abstract class Mob extends Char {
 		}
 	}
 
+	//how a body handles the weather. The dungeon's temperature reaches every creature,
+	//but a snow wolf should not freeze in its own snow and a bare skeleton should not
+	//feel the snow at all: each nature names the band its owner lives in, and what the
+	//far side of that band costs. -20C is the game's extreme cold
+	public enum Thermal {
+		//              freezes below   overheats above
+		NORMAL       (          -5f,             35f ),
+		COLD_DWELLER (         -35f,             25f ),  //fur, blubber, ice: the thaw is the danger
+		HEAT_DWELLER (           5f,             60f ),  //forge and volcano: the chill is
+		INSENSATE    (         -45f,             80f );  //bone, metal, stone: nothing to disturb
+
+		public final float coldPoint, heatPoint;
+
+		Thermal( float coldPoint, float heatPoint ){
+			this.coldPoint = coldPoint;
+			this.heatPoint = heatPoint;
+		}
+
+		private static final Class[] FIRE = { Burning.class, Blazing.class,
+				WandOfFireblast.class, Elemental.FireElemental.class };
+		private static final Class[] FROST = { Frost.class, Chill.class,
+				WandOfFrost.class, Elemental.FrostElemental.class };
+
+		//the element it lives in, shrugged off when it comes as a weapon
+		public HashSet<Class> resistances(){
+			switch (this){
+				case COLD_DWELLER: return new HashSet<Class>( Arrays.asList( FROST ) );
+				case HEAT_DWELLER: return new HashSet<Class>( Arrays.asList( FIRE ) );
+				default:           return new HashSet<>();
+			}
+		}
+
+		//and the element on the far side of its band, which lands the harder for it
+		public HashSet<Class> vulnerabilities(){
+			switch (this){
+				case COLD_DWELLER: return new HashSet<Class>( Arrays.asList( FIRE ) );
+				case HEAT_DWELLER: return new HashSet<Class>( Arrays.asList( FROST ) );
+				default:           return new HashSet<>();
+			}
+		}
+	}
+
+	//set in the instance block of the mobs that are not ordinary flesh, the way
+	//properties are; never changes at runtime, so it needs no bundling
+	public Thermal thermal = Thermal.NORMAL;
+
+	//a creature shrugs off the element it lives in, and suffers more from the one on
+	//the far side of its band
+	@Override
+	public float resist( Class effect ){
+		float result = super.resist( effect );
+		for (Class c : thermal.resistances()){
+			if (c.isAssignableFrom( effect )) result *= 0.5f;
+		}
+		for (Class c : thermal.vulnerabilities()){
+			if (c.isAssignableFrom( effect )) result *= 1.5f;
+		}
+		return result;
+	}
+
 	private void checkTileTemperatureEffects() {
 		if (!isAlive() || Dungeon.level == null) return;
 		//NPCs (shopkeeper, portals, quest givers) never freeze or overheat -
@@ -320,14 +425,14 @@ public abstract class Mob extends Char {
 			bodyTemp += Math.signum(diff) * Math.min(Math.abs(diff), rate);
 		}
 
-		if (bodyTemp < -5f
+		if (bodyTemp < thermal.coldPoint
 				&& !properties().contains(Property.FIERY)
 				&& !properties().contains(Property.ICY)
 				&& buff(Hypothermia.class) == null) {
 			Buff.affect(this, Hypothermia.class);
 		}
 
-		if (bodyTemp > 35f
+		if (bodyTemp > thermal.heatPoint
 				&& !properties().contains(Property.FIERY)
 				&& buff(Heatstroke.class) == null) {
 			Buff.affect(this, Heatstroke.class);
@@ -425,6 +530,7 @@ public abstract class Mob extends Char {
 
 		if (paralysed > 0) {
 			enemySeen = false;
+			processSwarmIntel(false);
 			spend( TICK );
 			return true;
 		}
@@ -444,7 +550,11 @@ public abstract class Mob extends Char {
 			return true;
 		}
 
+		AiState curState = state;
 		boolean result = state.act( enemyInFOV, justAlerted );
+
+		//if we just swapped into hunting, this gets processed again
+		processSwarmIntel(enemyInFOV && state == curState);
 
 		//for updating hero FOV
 		if (buff(PowerOfMany.PowerBuff.class) != null){
@@ -454,7 +564,46 @@ public abstract class Mob extends Char {
 
 		return result;
 	}
-	
+
+	private float timeSeenAt = Float.MAX_VALUE;
+
+	protected void processSwarmIntel( boolean enemyInFOV ){
+		if (alignment == Alignment.ENEMY && state == HUNTING
+				&& Dungeon.isChallenged(Challenges.SWARM_INTELLIGENCE)
+				&& enemyInFOV && enemy != null && enemy.alignment == Alignment.ALLY) {
+
+			if (timeSeenAt >= now()){
+				timeSeenAt = now()-1; //starts at 2
+			}
+
+			int range = swarmAlertRange();
+			for (Mob mob : Dungeon.level.mobs) {
+				if (mob.alignment == Alignment.ENEMY
+						&& mob.paralysed <= 0
+						&& Dungeon.level.distance(pos, mob.pos) <= range
+						&& mob.state != mob.HUNTING) {
+					mob.beckon(	enemy.pos);
+				}
+			}
+			Buff.affect( Dungeon.hero, SwarmIntelTracker.class );
+		} else {
+			timeSeenAt = Float.MAX_VALUE;
+		}
+	}
+
+	public int swarmAlertRange(){
+		int range = 2*(int)Math.max(now() - timeSeenAt, 0);
+		return (int)GameMath.gate(0, range, 12);
+	}
+
+	@Override
+	public void fixTime(float decrement) {
+		if (swarmAlertRange() > 0){
+			timeSeenAt -= decrement;
+		}
+		super.fixTime(decrement);
+	}
+
 	//FIXME this is sort of a band-aid correction for allies needing more intelligent behaviour
 	protected boolean intelligentAlly = false;
 	
@@ -784,7 +933,7 @@ public abstract class Mob extends Char {
 			if (newPath) {
 				//If we aren't hunting, always take a full path
 				PathFinder.Path full = Dungeon.findPath(this, target, Dungeon.level.passable, fieldOfView, true);
-				if (state != HUNTING){
+				if (state != HUNTING && state != INVESTIGATING){
 					path = full;
 				} else {
 					//otherwise, check if other characters are forcing us to take a very slow route
@@ -828,6 +977,28 @@ public abstract class Mob extends Char {
 		} else {
 			return false;
 		}
+	}
+
+	@Override
+	public void move(int step, boolean travelling) {
+		super.move(step, travelling);
+		if (usingStealthGamePlay
+				&& travelling
+				&& !sprite.visible
+				&& Dungeon.level.distance(pos, Dungeon.hero.pos) <= 6){
+			if (state == HUNTING){
+				WandOfBlastWave.BlastWave.blast(pos, 1f, 0xFF0000);
+			} else if (state == INVESTIGATING){
+				WandOfBlastWave.BlastWave.blast(pos, 1f, 0xFF8800);
+			} else {
+				WandOfBlastWave.BlastWave.blast(pos, 1f);
+			}
+		}
+	}
+
+	public boolean isWanderingUnaware() {
+		return isAlive() && alignment == Alignment.ENEMY
+				&& state == WANDERING && !enemySeen && !alerted;
 	}
 
 	@Override
@@ -890,8 +1061,28 @@ public abstract class Mob extends Char {
 		}
 	}
 	
+	//what the blow being resolved found: defenseProc wakes the mob and turns it on its attacker before
+	//the attacker's on-hit hooks run, so skills (Silent Death, Ambush) read the state from here
+	private float blowAt = -1f;
+	private boolean blowFoundAsleep = false;
+	private boolean blowWasSurprise = false;
+
+	/** true during the attack that is hitting this mob if it was SLEEPING when that blow arrived */
+	public boolean wasAsleepBeforeBlow(){
+		return blowFoundAsleep && blowAt == Actor.now();
+	}
+
+	/** true during the attack that is hitting this mob if that blow was a surprise attack */
+	public boolean wasSurprisedByBlow(){
+		return blowWasSurprise && blowAt == Actor.now();
+	}
+
 	@Override
 	public int defenseProc( Char enemy, int damage ) {
+
+		blowAt = Actor.now();
+		blowFoundAsleep = state == SLEEPING;
+		blowWasSurprise = surprisedBy(enemy);
 		
 		if (enemy instanceof Hero
 				&& ((Hero) enemy).belongings.attackingWeapon() instanceof MissileWeapon){
@@ -988,14 +1179,6 @@ public abstract class Mob extends Char {
 		}
 	}
 
-	//Sprouted: checks if any original-generation mobs remain on the level
-	public boolean checkOriginalGenMobs(){
-		for (Mob mob : Dungeon.level.mobs.toArray(new Mob[0])) {
-			if (mob.originalgen) return true;
-		}
-		return false;
-	}
-
 	public void clearEnemy(){
 		enemy = null;
 		enemySeen = false;
@@ -1049,8 +1232,11 @@ public abstract class Mob extends Char {
 			
 			if (alignment == Alignment.ENEMY) {
 				Statistics.enemiesSlain++;
-				if (Dungeon.dewDraw) Dungeon.level.currentkills++;
 				Badges.validateMonstersSlain();
+				if (DayNightCycle.isNight()) {
+					Statistics.nightKills++;
+					Badges.validateNightHunter();
+				}
 				Statistics.qualifiedForNoKilling = false;
 				Bestiary.setSeen(getClass());
 				Bestiary.countEncounter(getClass());
@@ -1073,6 +1259,17 @@ public abstract class Mob extends Char {
 					Dungeon.hero.sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(exp), FloatingText.EXPERIENCE);
 				}
 				Dungeon.hero.earnExp(exp, getClass());
+				//in the vault level we manually progress ring IDing. 5 enemies defeated to an ID
+				if (exp == 0 && Dungeon.level instanceof VaultLevel){
+					Item ring = Dungeon.hero.belongings.ring();
+					if (ring != null){
+						ring.onHeroGainExp(0.2f, Dungeon.hero);
+					}
+					Item misc = Dungeon.hero.belongings.misc();
+					if (misc instanceof Ring){
+						misc.onHeroGainExp(0.2f, Dungeon.hero);
+					}
+				}
 
 				if (Dungeon.hero.subClass == HeroSubClass.MONK){
 					Buff.affect(Dungeon.hero, MonkEnergy.class).gainEnergy(this);
@@ -1084,20 +1281,18 @@ public abstract class Mob extends Char {
 	@Override
 	public void die( Object cause ) {
 
+		//skill tree: the hero's kills feed Fletching and Hunting
+		//kills by the hero's own blows and by any hero skill damage source count; see CurrentSkills.creditKill
+		if (Dungeon.hero != null && Dungeon.hero.heroSkills != null
+				&& alignment == Alignment.ENEMY && !(this instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.NPC)){
+			Dungeon.hero.heroSkills.creditKill( this, cause );
+			Dungeon.hero.heroSkills.onEnemyDeath( this, cause );
+		}
+
 		if (cause == Chasm.class){
 			//50% chance to round up, 50% to round down
 			if (EXP % 2 == 1) EXP += Random.Int(2);
 			EXP /= 2;
-		}
-
-		//Sprouted: scatter dew on death when hero has Dewcharge buff
-		//Only for non-spawned Swarms (generation==0)
-		int generation = 0;
-		if (this instanceof Swarm) {
-			generation = ((Swarm) this).generation;
-		}
-		if (Dungeon.hero.buff(Dewcharge.class) != null && generation == 0) {
-			explodeDewHigh(pos);
 		}
 
 		if (alignment == Alignment.ENEMY){
@@ -1109,9 +1304,21 @@ public abstract class Mob extends Char {
 			rollToDropLoot();
 
 			if (cause == Dungeon.hero || cause instanceof Weapon || cause instanceof Weapon.Enchantment){
+				//the town guard's bounty: the posted creature, brought down by the hero's hand
+				if (TownLedger.bountyTarget == getClass()){
+					Dungeon.level.drop( new Gold( TownLedger.bountyReward ), pos ).sprite.drop();
+					GLog.p( Messages.get( TownGuardFolk.class, "bounty_paid", TownLedger.bountyReward ) );
+					TownLedger.bountyTarget = null;
+					TownLedger.used( TownLedger.BOUNTY );
+					Badges.validateBountyHunter();
+				}
 				if (Dungeon.hero.hasTalent(Talent.LETHAL_MOMENTUM)
 						&& Random.Float() < 0.34f + 0.33f* Dungeon.hero.pointsInTalent(Talent.LETHAL_MOMENTUM)){
 					Buff.affect(Dungeon.hero, Talent.LethalMomentumTracker.class, 0f);
+					//at +3 the momentum carries: two turns of adrenaline after the kill
+					if (Dungeon.hero.pointsInTalent(Talent.LETHAL_MOMENTUM) >= 3){
+						Buff.prolong(Dungeon.hero, xyz.gabriwar.warpedpixeldungeon.actors.buffs.Adrenaline.class, 2f);
+					}
 				}
 				if (Dungeon.hero.heroClass != HeroClass.DUELIST
 						&& Dungeon.hero.hasTalent(Talent.LETHAL_HASTE)
@@ -1181,7 +1388,11 @@ public abstract class Mob extends Char {
 	public void rollToDropLoot(){
 		//bosses always drop their loot - several postgame bosses have low
 		//maxLvl values and were dropping nothing for high-level heroes
-		if (Dungeon.hero.lvl > maxLvl + 2 && !properties().contains(Property.BOSS)) return;
+		if (Dungeon.hero.lvl > maxLvl + 2 && !properties().contains(Property.BOSS)
+				&& !lootIgnoresLevel()) {
+			if (extraLootIgnoresLevel()) dropExtraLoot();
+			return;
+		}
 
 		MasterThievesArmband.StolenTracker stolen = buff(MasterThievesArmband.StolenTracker.class);
 		if (stolen == null || !stolen.itemWasStolen()) {
@@ -1269,6 +1480,13 @@ public abstract class Mob extends Char {
 	// Called from rollToDropLoot() for ENEMY-aligned mobs.
 	protected void dropExtraLoot() {}
 
+	//Opt in for progression rewards originally dropped directly from die().
+	//Normal loot rolls keep their level cap and existing chances.
+	protected boolean extraLootIgnoresLevel() { return false; }
+
+	//Sprouted enemies whose regular loot includes a guaranteed reward.
+	protected boolean lootIgnoresLevel() { return false; }
+
 	// Drop an item at pos and mark the corresponding Bestiary slot as seen.
 	// extraSlotIndex 0 = slot 3, 1 = slot 4, etc.
 	protected final void trackedDrop(Item item, int extraSlotIndex) {
@@ -1337,40 +1555,6 @@ public abstract class Mob extends Char {
 			item = (Item)lootThird;
 		}
 		return item;
-	}
-
-	//Sprouted: scatter dewdrops around a cell on mob death (normal version)
-	public void explodeDew(int cell) {
-		if (Dungeon.dewDraw) {
-			Sample.INSTANCE.play(Assets.Sounds.BLAST, 2);
-			for (int n : PathFinder.NEIGHBOURS9) {
-				int c = cell + n;
-				if (c >= 0 && c < Dungeon.level.length() && Dungeon.level.passable[c]) {
-					if (Random.Int(10) == 1) {
-						Dungeon.level.drop(new RedDewdrop(), c).sprite.drop();
-					} else if (Random.Int(3) == 1) {
-						Dungeon.level.drop(new YellowDewdrop(), c).sprite.drop();
-					}
-				}
-			}
-		}
-	}
-
-	//Sprouted: scatter high-quality dewdrops around a cell on mob death (Dewcharge version)
-	public void explodeDewHigh(int cell) {
-		if (Dungeon.dewDraw) {
-			Sample.INSTANCE.play(Assets.Sounds.BLAST, 2);
-			for (int n : PathFinder.NEIGHBOURS9) {
-				int c = cell + n;
-				if (c >= 0 && c < Dungeon.level.length() && Dungeon.level.passable[c]) {
-					if (Random.Int(8) == 1) {
-						Dungeon.level.drop(new VioletDewdrop(), c).sprite.drop();
-					} else if (Random.Int(2) == 1) {
-						Dungeon.level.drop(new RedDewdrop(), c).sprite.drop();
-					}
-				}
-			}
-		}
 	}
 
 	//how many mobs this one should count as when determining spawning totals
@@ -1614,7 +1798,9 @@ public abstract class Mob extends Char {
 					}
 				}
 
-				if (closestHostile != null && Random.Float() < detectionChance(closestHostile)) {
+				if (closestHostile != null && Random.Float() < detectionChance(closestHostile)
+						&& !(closestHostile == Dungeon.hero && Dungeon.hero.heroSkills != null
+							&& Dungeon.hero.heroSkills.anyPreventsWaking(Mob.this))) {
 					awaken(enemyInFOV);
 					if (state == SLEEPING){
 						spend(TICK); //wait if we can't wake up for some reason
@@ -1641,21 +1827,13 @@ public abstract class Mob extends Char {
 				notice();
 				state = HUNTING;
 				target = enemy.pos;
+				if (enemy == Dungeon.hero) xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.heroNoticed(Mob.this, true);
 			} else {
 				notice();
 				state = WANDERING;
 				target = Dungeon.level.randomDestination( Mob.this );
 			}
 
-			if (alignment == Alignment.ENEMY && Dungeon.isChallenged(Challenges.SWARM_INTELLIGENCE)) {
-				for (Mob mob : Dungeon.level.mobs) {
-					if (mob.paralysed <= 0
-							&& Dungeon.level.distance(pos, mob.pos) <= 8
-							&& mob.state != mob.HUNTING) {
-						mob.beckon(target);
-					}
-				}
-			}
 			spend(TIME_TO_WAKE_UP);
 		}
 	}
@@ -1689,16 +1867,7 @@ public abstract class Mob extends Char {
 			alerted = true;
 			state = HUNTING;
 			target = enemy.pos;
-			
-			if (alignment == Alignment.ENEMY && Dungeon.isChallenged( Challenges.SWARM_INTELLIGENCE )) {
-				for (Mob mob : Dungeon.level.mobs) {
-					if (mob.paralysed <= 0
-							&& Dungeon.level.distance(pos, mob.pos) <= 8
-							&& mob.state != mob.HUNTING) {
-						mob.beckon( target );
-					}
-				}
-			}
+			if (enemy == Dungeon.hero) xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.heroNoticed(Mob.this, false);
 			
 			return true;
 		}
@@ -1816,7 +1985,7 @@ public abstract class Mob extends Char {
 		}
 	}
 
-	//essentially a more aggressive version of wandering, where target pos is updated like hunting
+	//essentially a more aggressive version of wandering, where target pos is updated like hunting.
 	//not currently used directly by mobs outside of the vault, which also add more behaviour here
 	protected class Investigating extends Wandering {
 
@@ -1906,7 +2075,185 @@ public abstract class Mob extends Char {
 			return true;
 		}
 	}
-	
+
+
+	// *** Alternative investigating, wandering, and sleeping behaviour for stealth gameplay ***
+	// Currently exclusively used in the dwarven vault
+
+	//swaps AI logic for stealth gameplay.
+	// This is persisted over save/load, mobs with custom AI logic may need to override this
+	public void activateSteathGameplayBehaviour(){
+		if (!usingStealthGamePlay) {
+			usingStealthGamePlay = true;
+			AiState oldInvestigate = INVESTIGATING;
+			INVESTIGATING = new StealthGameplayInvestigating();
+			if (state == oldInvestigate) {
+				state = INVESTIGATING;
+			}
+
+			AiState oldWander = WANDERING;
+			WANDERING = new StealthGameplayWandering();
+			if (state == oldWander) {
+				state = WANDERING;
+			}
+
+			AiState oldSleep = SLEEPING;
+			SLEEPING = new StealthGameplaySleeping();
+			if (state == oldSleep){
+				state = SLEEPING;
+			}
+		}
+	}
+
+	private boolean usingStealthGamePlay;
+
+	//detection chance is lower on the first turn of investigating
+	private int investigatingTurns;
+
+	protected class StealthGameplayInvestigating extends Investigating {
+
+		@Override
+		public boolean act(boolean enemyInFOV, boolean justAlerted) {
+			if (enemyInFOV){
+				investigatingTurns++;
+			} else {
+				investigatingTurns = 0;
+			}
+			return super.act(enemyInFOV, justAlerted);
+		}
+
+		@Override
+		//chance is 1 in (distance/2 + stealth) at base (classic wandering), but reduced if enemy was only just seen
+		protected float detectionChance( Char enemy ){
+			float chance = 1 / (distance( enemy ) / 2f + enemy.stealth());
+			if (investigatingTurns == 1 && chance <= 1){
+				chance -= 0.33f;
+			}
+			return chance;
+		}
+	}
+
+	public void setupStealthGameplayWanderPositions(int[] wanderPositions, int startingIdx){
+		this.wanderPositions = wanderPositions;
+		wanderPosIdx = startingIdx;
+	}
+
+	//in stealth gameplay mobs wander to more consistent pre-determined locations
+	private int wanderPosIdx = 0;
+	private int[] wanderPositions;
+
+	protected class StealthGameplayWandering extends Wandering {
+
+		@Override
+		public boolean act(boolean enemyInFOV, boolean justAlerted) {
+			return super.act(enemyInFOV, justAlerted);
+		}
+
+		@Override
+		protected float detectionChance( Char enemy ){
+			//defaults to 1 in (distance + stealth) (classic sleeping detection)
+			if (!Dungeon.level.adjacent(pos, previousPos)){
+				return 1 / (distance( enemy ) + enemy.stealth());
+			}
+
+			float movementDir = PointF.angle(Dungeon.level.cellToPoint(previousPos), Dungeon.level.cellToPoint(pos))/PointF.G2R;;
+			float enemyDir = PointF.angle(Dungeon.level.cellToPoint(pos), Dungeon.level.cellToPoint(enemy.pos))/PointF.G2R;
+			//classic wandering detection if enemy is touching a 75 degree cone of vision and within 6 tiles
+			if (Math.abs(enemyDir - movementDir) <= 37.5f && Dungeon.level.distance(pos, enemy.pos) <= 6){
+				return 1 / (distance( enemy ) / 2f + enemy.stealth());
+			//classic sleeping (i.e. default) detection if enemy is touching a 150 degree vision cone
+			} else if (Math.abs(enemyDir - movementDir) <= 75f){
+				return 1 / (distance( enemy ) + enemy.stealth());
+			//otherwise uses very low chance detection (1/8 at 2 tiles, 0% at 3+)
+			} else {
+				float chance = 1 / (float)Math.pow((distance( enemy ) + enemy.stealth()), 3);
+				if (chance < 0.1f){
+					return 0;
+				} else {
+					return chance;
+				}
+			}
+		}
+
+		@Override
+		protected boolean noticeEnemy() {
+			super.noticeEnemy();
+			alerted = false;
+			state = INVESTIGATING;
+			investigatingTurns = 0;
+			sprite.showInvestigate();
+			spend(TICK);
+			//hero must know if they are detected
+			if (!Dungeon.level.heroFOV[pos]){
+				Buff.affect(Dungeon.hero, TalismanOfForesight.CharAwareness.class, 1f).charID = id();
+			}
+			return true;
+		}
+
+		@Override
+		protected int randomDestination() {
+			//stay still by default if given no other wandering behaviour
+			if (wanderPositions == null){
+				wanderPositions = new int[1];
+				wanderPositions[0] = pos;
+			}
+
+			int wanderPos = wanderPositions[wanderPosIdx];
+			if (wanderPos == pos) {
+				if (wanderPositions.length > 1) {
+					wanderPosIdx++;
+					if (wanderPosIdx == wanderPositions.length) {
+						wanderPosIdx = 0;
+					}
+					wanderPos = wanderPositions[wanderPosIdx];
+				} else {
+					//reset this, representing the mob looking around in place
+					previousPos = pos;
+					sprite.idle();
+				}
+			}
+			return wanderPos;
+		}
+	}
+
+	protected class StealthGameplaySleeping extends Sleeping {
+
+		@Override
+		public boolean act(boolean enemyInFOV, boolean justAlerted) {
+			//stay still by default if given no other wandering behaviour
+			if (wanderPositions == null){
+				wanderPositions = new int[1];
+				wanderPositions[0] = pos;
+			}
+			return super.act(enemyInFOV, justAlerted);
+		}
+
+		protected void awaken(boolean enemyInFOV) {
+			super.awaken(enemyInFOV);
+			if (state == HUNTING){
+				alerted = false;
+				state = INVESTIGATING;
+				investigatingTurns = 0;
+				sprite.showInvestigate();
+				//hero must know if they are detected
+				if (!Dungeon.level.heroFOV[pos]){
+					Buff.affect(Dungeon.hero, TalismanOfForesight.CharAwareness.class, 1f).charID = id();
+				}
+			}
+		}
+
+		//chance is 1 in (distance + stealth)^2
+		//set to 0 if below 10% (usually happens at 4+ distance)
+		@Override
+		protected float detectionChance( Char enemy ){
+			float chance = 1 / (float)Math.pow((distance( enemy ) + enemy.stealth()), 2);
+			if (chance < 0.1f){
+				return 0;
+			} else {
+				return chance;
+			}
+		}
+	}
 	
 	private static ArrayList<Mob> heldAllies = new ArrayList<>();
 
@@ -2007,4 +2354,3 @@ public abstract class Mob extends Char {
 		heldAllies.clear();
 	}
 }
-

@@ -84,14 +84,6 @@ public class Eggbloom extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			float chances = 0.3f;
-			if(attacker instanceof Hero){
-				chances = (((Hero)attacker).subClass == HeroSubClass.WARDEN) ? 0.7f : 0.3f;
-			}
-			if(Random.Float() < chances) Dungeon.level.drop(new PlantEgg(), defender.pos).sprite.drop(attacker.pos);
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

@@ -205,7 +205,17 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town.TownGuardFolk;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town.TownsfolkMovie;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town.Townsfolk;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town.TownsfolkSilent;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.VaultLaser;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.VaultSentry;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Wandmaker;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.quest.vault.VaultBossElemental;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.quest.vault.VaultDM100;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.quest.vault.VaultDM200;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.quest.vault.VaultElemental;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.quest.vault.VaultGhoul;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.quest.vault.VaultGolem;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.quest.vault.VaultShaman;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.quest.vault.VaultSkeleton;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.pets.BlueDragon;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.pets.Bunny;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.pets.Fairy;
@@ -400,9 +410,9 @@ public enum Bestiary {
 				BrownWolf.class, GrayWolf.class, Yeti.class, IceDemon.class,
 				ColdSpirit.class, KoboldIcemancer.class, IceGuardian.class, IceGuardianCore.class,
 				SpiderServant.class, SpiderGuard.class, SpiderMind.class, SpiderExploding.class,
-				SpiderEgg.class, SpiderNest.class, SpiderQueen.class);
+				SpiderEgg.class, SpiderNest.class);
 
-		BOSSES.addEntities(Goo.class,
+		BOSSES.addEntities(Goo.class, SpiderQueen.class,
 				Tengu.class,
 				Pylon.class, DM300.class,
 				DwarfKing.class,
@@ -425,7 +435,8 @@ public enum Bestiary {
 
 		QUEST.addEntities(FetidRat.class, GnollTrickster.class, GreatCrab.class,
 				Elemental.NewbornFireElemental.class, RotLasher.class, RotHeart.class,
-				CrystalWisp.class, CrystalGuardian.class, CrystalSpire.class, GnollGuard.class, GnollSapper.class, GnollGeomancer.class);
+				CrystalWisp.class, CrystalGuardian.class, CrystalSpire.class, GnollGuard.class, GnollSapper.class, GnollGeomancer.class,
+				VaultSkeleton.class, VaultDM100.class, VaultShaman.class, VaultDM200.class, VaultSentry.class, VaultLaser.class, VaultBossElemental.class);
 
 		NEUTRAL.addEntities(CagedKobold.class, Ghost.class, RatKing.class, Shopkeeper.class, Wandmaker.class, Blacksmith.class, Imp.class, Sheep.class, Bee.class,
 				Tower.class, LitTower.class, ControlPanel.class,
@@ -485,6 +496,12 @@ public enum Bestiary {
 
 		classConversions.put(TenguDartTrap.class,              PoisonDartTrap.class);
 		classConversions.put(GnollRockfallTrap.class,          RockfallTrap.class);
+
+		classConversions.put(VaultGhoul.class,                 Ghoul.class);
+		classConversions.put(VaultElemental.Fire.class,        Elemental.FireElemental.class);
+		classConversions.put(VaultElemental.Frost.class,       Elemental.FrostElemental.class);
+		classConversions.put(VaultElemental.Shock.class,       Elemental.ShockElemental.class);
+		classConversions.put(VaultGolem.class,                 Golem.class);
 
 		classConversions.put(DwarfKing.DKGhoul.class,          Ghoul.class);
 		classConversions.put(DwarfKing.DKWarlock.class,        Warlock.class);

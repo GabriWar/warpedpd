@@ -110,9 +110,5 @@ public class Dreamfoil extends Plant {
 			return new DreamfoilPoisonParticle();
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			new Dreamfoil().activate(defender);
-		}
 	}
 }

@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace 'xyz.gabriwar.warpedpixeldungeon.android'
+    namespace = 'xyz.gabriwar.warpedpixeldungeon.android'
     compileSdk appAndroidCompileSDK
     compileOptions.sourceCompatibility = compileOptions.targetCompatibility = appJavaCompatibility
 
@@ -66,34 +66,34 @@ android {
 
     buildTypes {
         debug {
-            signingConfig signingConfigs.debug
+            signingConfig = signingConfigs.debug
             applicationIdSuffix ".indev"
             versionNameSuffix '-INDEV'
             dependencies {
-                debugImplementation project(':services:updates:debugUpdates')
                 //debug builds are what CI actually ships to players, so they read the real
-            //gh-pages changelog feed too (debugNews serves canned articles; swap it back
-            //in locally when testing the parser)
-            debugImplementation project(':services:news:shatteredNews')
+                //gh-pages changelog feed too (debugNews serves canned articles; swap it back
+                //in locally when testing the parser). The update service is per flavor,
+                //see the dependencies block below
+                debugImplementation project(':services:news:shatteredNews')
             }
         }
         release {
 
             if (signingConfigs.release.storeFile != null) {
-                signingConfig signingConfigs.release
+                signingConfig = signingConfigs.release
             }
 
             //package native symbol tables (libgdx .so libs) into the bundle, so Play
             //can symbolicate native crashes and ANRs
             ndk {
-                debugSymbolLevel 'SYMBOL_TABLE'
+                debugSymbolLevel = 'SYMBOL_TABLE'
             }
 
             //These lines enable R8, which is a code shrinker/optimizer/obfuscator.
             //This makes release APKs smaller and more efficient, but also makes debugging trickier
             //as the information produced in stack traces must be de-obfuscated.
             //See here: https://developer.android.com/studio/build/shrink-code#decode-stack-trace
-            shrinkResources true
+            shrinkResources = true
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
 
@@ -160,17 +160,24 @@ tasks.matching { it.name.contains("merge") && it.name.contains("JniLibFolders") 
     packageTask.dependsOn 'copyAndroidNatives'
 }
 
-//release update checker per flavor: github builds fetch releases from GitHub; Play
-//builds must never point players outside the store, so they get a no-op. The
+//update checker per flavor, for debug and release alike since CI ships the debug
+//APKs: github builds fetch releases from the public GabriWar/warpedpd repo; Play
+//builds must never point players outside the store, so they ask Play itself through
+//its in-app updates API (PlayInAppUpdates in the playstore source set). The
 //flavor+buildType configurations only exist once the variants are computed.
 afterEvaluate {
     dependencies {
+        githubDebugImplementation project(':services:updates:githubUpdates')
         githubReleaseImplementation project(':services:updates:githubUpdates')
+        playstoreDebugImplementation project(':services:updates:playUpdates')
         playstoreReleaseImplementation project(':services:updates:playUpdates')
     }
 }
 
 dependencies {
+    //Play's own in-app update flow: the store tells the game a newer build exists and
+    //downloads it in the background, which is the one update prompt Play policy allows
+    playstoreImplementation 'com.google.android.play:app-update:2.1.0'
     playstoreImplementation 'com.android.billingclient:billing:8.3.0'
     //Play Games Services v2 SDK (Play Store builds only); required before wiring up
     //Play Games sign-in and any leaderboard/achievement APIs.
@@ -183,6 +190,9 @@ dependencies {
     //jdk7/jdk8 split artifacts; from 1.8 those are merged into the main stdlib, so
     //aligning them resolves the duplicate-class check
     constraints {
+        //Play Services pulls Fragment 1.1.0, which Play flags as outdated.
+        //Use the stable 1.8 release line without raising the minimum SDK.
+        playstoreImplementation 'androidx.fragment:fragment:1.8.9'
         playstoreImplementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'
         playstoreImplementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'
     }

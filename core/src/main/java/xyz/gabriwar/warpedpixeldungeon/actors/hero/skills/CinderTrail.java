@@ -26,109 +26,116 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
-
+import java.util.ArrayList;
+import com.watabou.noosa.audio.Sample;
+import com.watabou.utils.Random;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
-import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
-import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Fire;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
+import xyz.gabriwar.warpedpixeldungeon.actors.blobs.*;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.*;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.effects.ElementalOrbitFX;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import com.watabou.noosa.audio.Sample;
-import com.watabou.utils.PathFinder;
+import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 
-import java.util.ArrayList;
-
+/** Class/tag retained so existing saves keep their purchased skill levels. */
 public class CinderTrail extends Skill {
-
-	{
-		tag = "D1";
-		name = "Cinder Trail";
-		castText = "Let it burn!";
-		tier = 1;
-		image = 29;
-		mana = 4;
-	}
-
-	@Override
-	public ArrayList<String> actions( Hero hero ){
-		ArrayList<String> actions = new ArrayList<>();
-		if (level > 0 && hero.MP >= getManaCost())
-			actions.add(AC_CAST);
-		return actions;
-	}
-
-	@Override
-	public void execute( Hero hero, String action ){
-		if (action.equals(Skill.AC_CAST) && level > 0 && hero.MP >= getManaCost()){
-			GameScene.selectCell( igniter );
-			Dungeon.hero.heroSkills.lastUsed = this;
-		}
-	}
-
-	private final CellSelector.Listener igniter = new CellSelector.Listener() {
-		@Override
-		public void onSelect( Integer target ){
-			if (target == null)
-				return;
-
-			Hero hero = Dungeon.hero;
-			if (level <= 0 || hero.MP < getManaCost())
-				return;
-
-			int cell = new Ballistica( hero.pos, target, Ballistica.PROJECTILE ).collisionPos;
-			int kicker = 2 * pyromancyLevel();
-
-			ignite( cell, 3 + 3 * level + kicker );
-			for (int n : PathFinder.NEIGHBOURS4){
-				int c = cell + n;
-				if (c >= 0 && c < Dungeon.level.length() && Dungeon.level.passable[c])
-					ignite( c, 2 + 2 * level + kicker );
-			}
-
-			hero.MP -= getManaCost();
-			castTextYell();
-			Sample.INSTANCE.play( Assets.Sounds.BURNING );
-			hero.spend( TIME_TO_USE );
-			hero.busy();
-			hero.sprite.operate( hero.pos );
-		}
-
-		@Override
-		public String prompt(){
-			return "Choose a cell to set alight";
-		}
-	};
-
-	//the fire does not care whose feet it is under, the hero's included
-	private static void ignite( int cell, int amount ){
-		GameScene.add( Blob.seed( cell, amount, Fire.class ) );
-		Char ch = Actor.findChar( cell );
-		if (ch != null)
-			Buff.affect( ch, Burning.class ).reignite( ch );
-	}
-
-	private static int pyromancyLevel(){
-		if (Dungeon.hero == null || Dungeon.hero.heroSkills == null)
-			return 0;
-		for (Skill s : Dungeon.hero.heroSkills.fourthSkills)
-			if (s instanceof PyreAffinity)
-				return s.level;
-		return 0;
-	}
-
-	@Override
-	public int getManaCost(){
-		return (int)Math.ceil(mana * (1 + 0.5 * level));
-	}
-
-	@Override
-	protected boolean upgrade(){
-		return true;
-	}
+    { tag="D1"; name="Elemental Orbit"; castText="Gather!"; tier=1; image=29; mana=4; }
+    private ElementalOrbit orbit(Hero hero){ return hero.buff(ElementalOrbit.class); }
+    @Override public ArrayList<String> actions(Hero hero){
+        ArrayList<String> out=new ArrayList<>();
+        if(level>0 && (orbit(hero)!=null || hero.MP>=getManaCost())) out.add(AC_CAST);
+        return out;
+    }
+    @Override public String quickslotStatus(){
+        ElementalOrbit orbit=Dungeon.hero==null?null:orbit(Dungeon.hero);
+        return orbit==null?super.quickslotStatus():Integer.toString(orbit.count());
+    }
+    @Override public void execute(Hero hero,String action){
+        if(!AC_CAST.equals(action) || level<=0) return;
+        if(orbit(hero)==null){
+            refresh(hero);
+        }else{
+            ElementalOrbit current=orbit(hero);
+            ArrayList<String> options=new ArrayList<>();
+            ArrayList<Integer> choices=new ArrayList<>();
+            for(int element=0;element<2;element++)if(current.count(element)>0){
+                options.add(Messages.get(CinderTrail.class,element==0?"fire":"ice",current.count(element)));
+                choices.add(element);
+            }
+            if(hero.MP>=getManaCost()){
+                options.add(Messages.get(CinderTrail.class,"refresh",getManaCost()));choices.add(2);
+            }
+            if(options.isEmpty())return;
+            if(options.size()==1&&choices.get(0)!=2){aim(hero,choices.get(0));return;}
+            GameScene.show(new xyz.gabriwar.warpedpixeldungeon.windows.WndOptions(name(),
+                    Messages.get(CinderTrail.class,"choose_element"),options.toArray(new String[0])){
+                @Override protected void onSelect(int index){
+                    if(index<0||index>=choices.size())return;
+                    int choice=choices.get(index);
+                    if(choice==2)refresh(hero);else aim(hero,choice);
+                }
+            });
+        }
+        hero.heroSkills.lastUsed=this;
+    }
+    private void refresh(Hero hero){
+        if(!hero.isAlive()||hero.MP<getManaCost())return;
+        Buff.affect(hero,ElementalOrbit.class).set(level);
+        hero.MP-=getManaCost();hero.heroSkills.lastUsed=this;
+        castTextYell();Sample.INSTANCE.play(Assets.Sounds.CHARGEUP);
+        hero.spendAndNext(TIME_TO_USE);
+    }
+    private void aim(Hero hero,int element){
+        GameScene.selectCell(new CellSelector.Listener(){
+            @Override public String prompt(){return Messages.get(CinderTrail.class,"prompt");}
+            @Override public void onSelect(Integer selected){
+                ElementalOrbit orbit=orbit(hero);
+                if(selected==null || orbit==null || !hero.isAlive())return;
+                if(selected<0 || selected>=Dungeon.level.length() || !Dungeon.level.heroFOV[selected]
+                        || Dungeon.level.distance(hero.pos,selected)>7){ GLog.w(Messages.get(CinderTrail.class,"no_target")); return; }
+                int cell=new Ballistica(hero.pos,selected,Ballistica.PROJECTILE).collisionPos;
+                if(cell==hero.pos || Dungeon.level.solid[cell])return;
+                int[] shot=orbit.launch(element);
+                if(shot==null)return;
+                Invisibility.dispel();
+                hero.busy();
+                hero.sprite.zap(cell);
+                ElementalOrbitFX.launch(hero,cell,shot[0],shot[1],()->{
+                    explode(hero,cell,shot[0],shot[1],shot[2]);
+                    hero.spendAndNext(TIME_TO_USE);
+                });
+            }
+        });
+    }
+    public static int damage(int level,int heat){ return (4+3*level)*(3+heat)/3; }
+    public static void explode(Hero hero,int cell,int element,int heat,int level){
+        Sample.INSTANCE.play(element==0?Assets.Sounds.BURNING:Assets.Sounds.SHATTER);
+        for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){
+            int nx=cell%Dungeon.level.width()+x, ny=cell/Dungeon.level.width()+y;
+            if(nx<0 || nx>=Dungeon.level.width() || ny<0 || ny>=Dungeon.level.height())continue;
+            int c=nx+ny*Dungeon.level.width();
+            if(Dungeon.level.solid[c])continue;
+            if(new Ballistica(cell,c,Ballistica.STOP_TARGET|Ballistica.STOP_SOLID).collisionPos!=c)continue;
+            Char ch=Actor.findChar(c);
+            if(ch!=null && ch.alignment==Char.Alignment.ENEMY){
+                int damage=Random.NormalIntRange(damage(level,heat)/2,damage(level,heat));
+                ch.damage(damage,CinderTrail.class);
+                if(ch.isAlive()){
+                    if(element==0)Buff.affect(ch,Burning.class).reignite(ch);
+                    else Buff.prolong(ch,Chill.class,2+heat);
+                }
+            }
+            // Every impact leaves its element; mature upgraded orbs sustain a stronger patch.
+            int strength=2+level+heat;
+            GameScene.add(element==0?Blob.seed(c,strength,Fire.class):Blob.seed(c,strength*4,Blizzard.class));
+        }
+    }
+    @Override public int getManaCost(){return (int)Math.ceil(mana*(1+.5*level));}
+    @Override protected boolean upgrade(){return true;}
 }

@@ -50,7 +50,7 @@ public class Bat extends Mob {
 		lootChance = 0.1667f; //by default, see lootChance()
 
 		lootOther = new MonsterMeat();
-		lootChanceOther = 0.05f;
+		lootChanceOther = 0.05f / 4f;
 
 		resistances.add(Vampiric.class);
 	}

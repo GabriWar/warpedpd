@@ -21,15 +21,17 @@
 
 package xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.vault.treasure;
 
-import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfLiquidFlame;
-import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
+import xyz.gabriwar.warpedpixeldungeon.items.quest.DwarfToken;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
+import xyz.gabriwar.warpedpixeldungeon.levels.VaultLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.painters.Painter;
 import com.watabou.utils.GameMath;
+import com.watabou.utils.PathFinder;
+import com.watabou.utils.Random;
 
 public class VaultBookcaseTreasureRoom extends VaultTreasureRoom {
 
@@ -77,16 +79,17 @@ public class VaultBookcaseTreasureRoom extends VaultTreasureRoom {
 			level.drop(treasureItem, firstItem);
 		}
 
-		treasureItem = Generator.randomUsingDefaults(Generator.Category.WEP_T4);
-		if (treasureItem.cursed){
-			treasureItem.cursed = false;
-			if (((MeleeWeapon) treasureItem).hasCurseEnchant()){
-				((MeleeWeapon) treasureItem).enchant(null);
-			}
-		}
-		//not true ID
-		treasureItem.levelKnown = treasureItem.cursedKnown = true;
+		treasureItem = ((VaultLevel)level).createEquipment(2);
 		level.drop(treasureItem,secondItem).type = Heap.Type.CHEST;
+
+		treasureItem = ((VaultLevel)level).findT3SolveItem();
+		if (treasureItem == null){
+			treasureItem = ((VaultLevel) level).createConsumabe(2);
+		}
+		level.drop(treasureItem, secondItem + PathFinder.NEIGHBOURS8[Random.Int(PathFinder.NEIGHBOURS8.length)]);
+
+		treasureItem = new DwarfToken();
+		level.drop(treasureItem, secondItem + PathFinder.NEIGHBOURS8[Random.Int(PathFinder.NEIGHBOURS8.length)]);
 
 		level.addItemToSpawn(new PotionOfLiquidFlame());
 

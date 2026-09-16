@@ -33,6 +33,7 @@ public class Effects {
 		EXCLAMATION,
 		CHAIN,
 		ETHEREAL_CHAIN,
+        ROPE,
 		DEATH_RAY,
 		LIGHT_RAY,
 		HEALTH_RAY,
@@ -43,6 +44,8 @@ public class Effects {
 	public static Image get( Type type ) {
 		Image icon = new Image( Assets.Effects.EFFECTS );
 		switch (type) {
+			case ROPE:
+                return new Image("effects/grapple_rope.png");
 			case RIPPLE:
 				icon.frame(icon.texture.uvRect(0, 0, 16, 16));
 				break;

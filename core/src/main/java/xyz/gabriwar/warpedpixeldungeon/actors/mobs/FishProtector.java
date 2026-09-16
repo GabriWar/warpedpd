@@ -55,6 +55,14 @@ public class FishProtector extends Mob implements Callback {
 
 		resistances.add(Electricity.class);
 		resistances.add(Invisibility.class);
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
+	}
+
+	@Override
+	protected boolean lootIgnoresLevel() {
+		return true;
 	}
 
 	@Override

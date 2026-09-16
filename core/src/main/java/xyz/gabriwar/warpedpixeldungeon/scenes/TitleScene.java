@@ -34,7 +34,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Fireball;
 import xyz.gabriwar.warpedpixeldungeon.messages.Languages;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.services.news.News;
-import xyz.gabriwar.warpedpixeldungeon.services.updates.AvailableUpdateData;
 import xyz.gabriwar.warpedpixeldungeon.services.updates.Updates;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.ExitButton;
@@ -43,7 +42,8 @@ import xyz.gabriwar.warpedpixeldungeon.ui.Icons;
 import xyz.gabriwar.warpedpixeldungeon.ui.StyledButton;
 import xyz.gabriwar.warpedpixeldungeon.ui.TitleBackground;
 import xyz.gabriwar.warpedpixeldungeon.ui.Window;
-import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
+import xyz.gabriwar.warpedpixeldungeon.windows.WndSupporterThanks;
+import xyz.gabriwar.warpedpixeldungeon.windows.WndUpdate;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndSettings;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndVictoryCongrats;
 import com.watabou.input.PointerEvent;
@@ -315,6 +315,7 @@ public class TitleScene extends PixelScene {
 			add(new WndVictoryCongrats());
 		}
 
+		WndSupporterThanks.showIfPending(this);
 		fadeIn();
 	}
 
@@ -420,39 +421,32 @@ public class TitleScene extends PixelScene {
 		public void update() {
 			super.update();
 
-			if (!updateShown && Updates.updateAvailable()){
+			if (Updates.isInstallable()){
+				if (!installShown){
+					installShown = true;
+					text(Messages.get(TitleScene.class, "install"));
+				}
+			} else if (!updateShown && Updates.updateAvailable()){
 				updateShown = true;
 				text(Messages.get(TitleScene.class, "update"));
 			}
 
-			if (updateShown){
+			if (updateShown || installShown){
 				textColor(ColorMath.interpolate( 0xFFFFFF, Window.SHPX_COLOR, 0.5f + (float)Math.sin(Game.timeTotal*5)/2f));
+				//once per launch the news comes to the player, after the title has faded in
+				if (!Updates.prompted && alpha() == 1f){
+					Updates.prompted = true;
+					WarpedPixelDungeon.scene().addToFront( new WndUpdate() );
+				}
 			}
 		}
 
+		boolean installShown = false;
+
 		@Override
 		protected void onClick() {
-			if (Updates.updateAvailable()){
-				AvailableUpdateData update = Updates.updateData();
-
-				WarpedPixelDungeon.scene().addToFront( new WndOptions(
-						Icons.get(Icons.CHANGES),
-						update.versionName == null ? Messages.get(this,"title") : Messages.get(this,"versioned_title", update.versionName),
-						update.desc == null ? Messages.get(this,"desc") : update.desc,
-						Messages.get(this,"update"),
-						Messages.get(this,"changes")
-				) {
-					@Override
-					protected void onSelect(int index) {
-						if (index == 0) {
-							Updates.launchUpdate(Updates.updateData());
-						} else if (index == 1){
-							ChangesScene.changesSelected = 0;
-							WarpedPixelDungeon.switchNoFade( ChangesScene.class );
-						}
-					}
-				});
-
+			if (Updates.updateAvailable() || Updates.isInstallable()){
+				WarpedPixelDungeon.scene().addToFront( new WndUpdate() );
 			} else {
 				ChangesScene.changesSelected = 0;
 				WarpedPixelDungeon.switchNoFade( ChangesScene.class );

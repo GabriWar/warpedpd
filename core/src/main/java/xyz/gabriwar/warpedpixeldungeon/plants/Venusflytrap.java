@@ -83,10 +83,6 @@ public class Venusflytrap extends Plant {
 			plantClass = Venusflytrap.class;
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			Buff.prolong(defender, Vertigo.class, Vertigo.DURATION);
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

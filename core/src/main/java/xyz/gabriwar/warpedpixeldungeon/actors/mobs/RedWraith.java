@@ -75,6 +75,9 @@ public class RedWraith extends Wraith {
 		immunities.add( Frost.class );
 		immunities.add( Sleep.class );
 		immunities.add( Charm.class );
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	@Override
@@ -112,7 +115,6 @@ public class RedWraith extends Wraith {
 
 	@Override
 	protected void dropExtraLoot() {
-		explodeDew(pos);
 		if (!Dungeon.LimitedDrops.RING_OF_WEALTH.dropped() && Random.Float() < 0.04f) {
 			Dungeon.LimitedDrops.RING_OF_WEALTH.drop();
 			trackedDrop(new RingOfWealth(), 0);

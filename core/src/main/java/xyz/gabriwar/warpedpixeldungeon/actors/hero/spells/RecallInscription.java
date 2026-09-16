@@ -56,7 +56,7 @@ public class RecallInscription extends ClericSpell {
 
 	@Override
 	public String desc() {
-		return Messages.get(this, "desc", Dungeon.hero.pointsInTalent(Talent.RECALL_INSCRIPTION) == 2 ? 300 : 10) + "\n\n" + Messages.get(this, "charge_cost", (int)chargeUse(Dungeon.hero));
+		return Messages.get(this, "desc", duration(Dungeon.hero)) + "\n\n" + Messages.get(this, "charge_cost", (int)chargeUse(Dungeon.hero));
 	}
 
 	@Override
@@ -127,6 +127,12 @@ public class RecallInscription extends ClericSpell {
 		return 0;
 	}
 
+	/** how long the last scroll or stone stays within recall: 10, 300, or 1000 turns */
+	public static int duration(Hero hero){
+		int points = hero.pointsInTalent(Talent.RECALL_INSCRIPTION);
+		return points >= 3 ? 1000 : (points == 2 ? 300 : 10);
+	}
+
 	@Override
 	public boolean canCast(Hero hero) {
 		return super.canCast(hero)
@@ -149,7 +155,7 @@ public class RecallInscription extends ClericSpell {
 
 		@Override
 		public float iconFadePercent() {
-			float duration = Dungeon.hero.pointsInTalent(Talent.RECALL_INSCRIPTION) == 2 ? 300 : 10;
+			float duration = duration(Dungeon.hero);
 			return Math.max(0, (duration - visualcooldown()) / duration);
 		}
 

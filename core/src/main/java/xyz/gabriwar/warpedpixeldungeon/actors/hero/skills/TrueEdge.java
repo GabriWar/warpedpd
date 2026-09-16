@@ -26,20 +26,30 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
-
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vulnerable;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
+import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 public class TrueEdge extends Skill {
 
-	//the crit chance can never exceed this, however many openings the target is showing
-	private static final int MAX_CRIT_CHANCE = 30;
+	//its damage is already a share of a blow, a hit or a health pool, so it grows with the hero on its own
+	@Override
+	public boolean weaponScaled(){ return true; }
 
-	private static final float CRIT_MULTIPLIER = 1.75f;
+
+	private static final float CRIT_MULTIPLIER = 1.5f;
 
 	{
 		tag = "PB4";
@@ -53,23 +63,54 @@ public class TrueEdge extends Skill {
 		return true;
 	}
 
+	//5% / 10% / 15% of melee hits crit; a crit on an adjacent enemy slashes on through
+	//1 / 2 / 3 tiles behind it
 	@Override
 	public int onHitProc( Char enemy, int damage, boolean ranged ){
-		if (ranged || level <= 0 || enemy == null || !enemy.isAlive()){
+		Hero hero = Dungeon.hero;
+		if (ranged || level <= 0 || hero == null || enemy == null || !enemy.isAlive()
+				|| Random.Int( 100 ) >= 5 * level){
 			return damage;
 		}
-		int chance = 5 * level;
-		if (enemy.buff( Vulnerable.class ) != null
-				|| enemy.buff( Cripple.class ) != null
-				|| enemy.buff( Bleeding.class ) != null){
-			chance = Math.min( 2 * chance, MAX_CRIT_CHANCE );
+		int crit = Math.round( damage * CRIT_MULTIPLIER );
+		if (enemy.sprite != null){
+			enemy.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "crit" ) );
+			enemy.sprite.emitter().burst( Speck.factory( Speck.STAR ), 6 );
+			Wound.hit( enemy );
 		}
-		if (Random.Int( 100 ) < chance){
-			if (enemy.sprite != null){
-				enemy.sprite.showStatus( CharSprite.WARNING, "critical!" );
-			}
-			return Math.round( damage * CRIT_MULTIPLIER );
+		Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 1f, 1.4f );
+		if (level >= MAX_LEVEL){
+			Buff.affect( enemy, Bleeding.class ).set( crit / 4f );
 		}
-		return damage;
+		if (Dungeon.level.adjacent( hero.pos, enemy.pos )){
+			slashThrough( hero, enemy, crit / 2 );
+		}
+		return crit;
+	}
+
+	//the cut is plain damage dealt by the hero, not another swing, so it can never proc skills again
+	private void slashThrough( Hero hero, Char enemy, int damage ){
+		int w = Dungeon.level.width();
+		int dx = enemy.pos % w - hero.pos % w;
+		int dy = enemy.pos / w - hero.pos / w;
+		int end = enemy.pos;
+		for (int i = 1; i <= level; i++){
+			int x = enemy.pos % w + dx * i;
+			int y = enemy.pos / w + dy * i;
+			if (x < 0 || x >= w || y < 0 || y >= Dungeon.level.height()) break;
+			int c = x + y * w;
+			if (Dungeon.level.solid[c]) break;
+			end = c;
+			Char behind = Actor.findChar( c );
+			if (behind == null || !behind.isAlive() || behind.alignment != Char.Alignment.ENEMY) continue;
+			if (behind.sprite != null) Wound.hit( behind );
+			if (level >= MAX_LEVEL) Buff.affect( behind, Bleeding.class ).set( Math.max( 1, damage ) / 4f );
+			if (damage > 0) behind.damage( damage, hero );
+		}
+		if (end != enemy.pos && hero.sprite != null && hero.sprite.parent != null){
+			hero.sprite.parent.add( new Beam.LightRay(
+					DungeonTilemap.tileCenterToWorld( hero.pos ), DungeonTilemap.tileCenterToWorld( end ) ) );
+			Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 1f, 0.8f );
+		}
 	}
 }

@@ -35,6 +35,9 @@ import java.util.ArrayList;
 public class ActiveSkill extends Skill {
 
 	@Override
+	public boolean toggleable(){ return true; }
+
+	@Override
 	public ArrayList<String> actions( Hero hero ){
 		ArrayList<String> actions = new ArrayList<>();
 		if (!active && level > 0)
@@ -49,6 +52,7 @@ public class ActiveSkill extends Skill {
 		Dungeon.hero.heroSkills.lastUsed = this;
 		if (action.equals(Skill.AC_ACTIVATE)){
 			active = true;
+            xyz.gabriwar.warpedpixeldungeon.effects.SkillCastFX.play(this,hero);
 		} else if (action.equals(Skill.AC_DEACTIVATE)){
 			active = false;
 		}

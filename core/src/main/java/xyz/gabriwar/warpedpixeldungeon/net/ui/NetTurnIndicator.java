@@ -1,3 +1,27 @@
+/*
+ * Pixel Dungeon
+ * Copyright (C) 2012-2015 Oleg Dolya
+ *
+ * Shattered Pixel Dungeon
+ * Copyright (C) 2014-2026 Evan Debenham
+ *
+ * Warped Pixel Dungeon
+ * Copyright (C) 2026 Gabriel Duarte Guerra (gabriwar)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ */
+
 package xyz.gabriwar.warpedpixeldungeon.net.ui;
 
 import xyz.gabriwar.warpedpixeldungeon.Chrome;
@@ -150,8 +174,23 @@ public class NetTurnIndicator extends Component {
 
 		long ping = NetManager.getPingMs();
 		if (NetManager.isHost()) {
-			headerMode = "HOSTING";
-			headerModeColor = NetUi.GREEN;
+			//turns pass back and forth between the host and the remote players, so the
+			//host is owed the same answer. Its own hero being ready is the local truth
+			//of it: that is exactly when the game is waiting on this screen
+			boolean mine = Dungeon.hero != null && Dungeon.hero.isAlive() && Dungeon.hero.ready;
+			//and when it is nobody's turn here, say whose it is: a remote player holds
+			//the actor loop while they think, so an unexplained freeze is really a wait
+			String waitingOn = mine ? null : NetManager.waitingOnPlayer();
+			if (mine) {
+				headerMode = "YOUR TURN";
+				headerModeColor = NetUi.GREEN;
+			} else if (waitingOn != null) {
+				headerMode = "WAITING " + waitingOn;
+				headerModeColor = NetUi.BLUE;
+			} else {
+				headerMode = "HOSTING";
+				headerModeColor = NetUi.YELLOW;
+			}
 			int specs = NetManager.getSpectatorCount();
 			if (specs > 0) {
 				headerInfo = specs + " watching";

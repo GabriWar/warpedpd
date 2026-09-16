@@ -90,10 +90,6 @@ public class Rotberry extends Plant {
 			unique = true;
 		}
 
-		@Override
-		public void procEffect( Char attacker, Char defender, int damage ) {
-			new Rotberry().attackProc(defender, damage);
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {
@@ -112,7 +108,7 @@ public class Rotberry extends Plant {
 
 		@Override
 		public int energyVal() {
-			return 3 * quantity;
+			return quantity;
 		}
 	}
 }

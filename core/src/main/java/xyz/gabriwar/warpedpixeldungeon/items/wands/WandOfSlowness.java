@@ -48,6 +48,11 @@ public class WandOfSlowness extends Wand {
 	}
 
 	@Override
+	public String statsDesc() {
+		return Messages.get(this, "stats_desc", Slow.DURATION / 3f + (levelKnown ? buffedLvl() : 0));
+	}
+
+	@Override
 	public void onZap(Ballistica bolt) {
 		Char ch = Actor.findChar(bolt.collisionPos);
 		if (ch != null) {

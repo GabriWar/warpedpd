@@ -104,6 +104,7 @@ import xyz.gabriwar.warpedpixeldungeon.ui.Icons;
 import xyz.gabriwar.warpedpixeldungeon.ui.TargetHealthIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
+import xyz.gabriwar.warpedpixeldungeon.items.EquipableItem;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.BArray;
@@ -134,7 +135,7 @@ public class CursedWand {
 
 	public static void tryForWandProc( Char target, Item origin ){
 		if (target != null && target != Dungeon.hero && origin instanceof Wand){
-			Wand.wandProc(target, origin.buffedLvl(), 1);
+			((Wand)origin).wandProc(target, 1);
 		}
 	}
 
@@ -352,9 +353,8 @@ public class CursedWand {
 
 		@Override
 		public boolean valid(Item origin, Char user, Ballistica bolt, boolean positiveOnly) {
-			//we have this limit atm because some wands are coded to depend on their fx logic
-			// and chaos elementals trigger the effect directly, with no FX first
-			return super.valid(origin, user, bolt, positiveOnly) && user instanceof Hero;
+			//only trigger this one if cursed zap fx are coming from a wand
+			return super.valid(origin, user, bolt, positiveOnly) && origin instanceof Wand;
 		}
 
 		@Override
@@ -376,6 +376,7 @@ public class CursedWand {
 				wand.upgrade(Dungeon.scalingDepth()/5);
 			}
 			wand.levelKnown = false;
+			if (user instanceof Hero) wand.beginQuiverCast((Hero)user);
 			wand.onZap(bolt);
 			wand = null;
 			return true;
@@ -1163,7 +1164,12 @@ public class CursedWand {
 			if (origin == null || user != Dungeon.hero || !Dungeon.hero.belongings.contains(origin)){
 				return false;
 			}
-			origin.detach(Dungeon.hero.belongings.backpack);
+			if (origin.isEquipped(Dungeon.hero) && origin instanceof EquipableItem){
+				origin.cursed = false;
+				((EquipableItem) origin).doUnequip(Dungeon.hero, false);
+			} else {
+				origin.detach(Dungeon.hero.belongings.backpack);
+			}
 			Item result;
 			do {
 				result = Generator.randomUsingDefaults(Random.oneOf(Generator.Category.WEAPON, Generator.Category.ARMOR,

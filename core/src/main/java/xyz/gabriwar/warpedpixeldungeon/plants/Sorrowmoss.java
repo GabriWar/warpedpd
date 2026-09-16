@@ -104,9 +104,5 @@ public class Sorrowmoss extends Plant {
 			return new SorrowmossPoisonParticle();
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			new Sorrowmoss().attackProc(defender, damage);
-		}
 	}
 }

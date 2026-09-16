@@ -91,10 +91,6 @@ public class Swiftthistle extends Plant {
 			return new SwiftthistlePoisonParticle();
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			new Swiftthistle().attackProc(defender, damage);
-		}
 	}
 
 	//FIXME lots of copypasta from time freeze here

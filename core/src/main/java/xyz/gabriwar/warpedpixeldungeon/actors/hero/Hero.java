@@ -21,15 +21,14 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero;
 
-import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfSearching;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.Bones;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.GamesInProgress;
+import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.WPDSettings;
 import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
-import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
@@ -38,55 +37,57 @@ import xyz.gabriwar.warpedpixeldungeon.actors.TileTemperature;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.SacrificialFire;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AdrenalineSurge;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ArmorEnhance;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ArtifactRecharge;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AscensionChallenge;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AuroraBless;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Awareness;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barkskin;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barrier;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Berserk;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bless;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ArmorEnhance;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.BloodMoonBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Dewcharge;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ChargedShotDraw;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Charm;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Combo;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Coughing;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Crouching;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Drowsy;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Dewcharge;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Drenched;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Drowsy;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Drunk;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FireflyGlow;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Foresight;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.GreaterHaste;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Heatstroke;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.HeroDisguise;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Coughing;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Heavy;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.HeroDisguise;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.HoldFast;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hypothermia;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Sleepiness;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invulnerability;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Levitation;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.LostInventory;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ManaRegen;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MindVision;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Momentum;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MonkEnergy;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.PhysicalEmpower;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Recharging;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ManaRegen;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Regeneration;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SnipersMark;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.TimeStasis;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Drunk;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SoakedShoes;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AuroraBless;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.BloodMoonBuff;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FireflyGlow;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.RainbowBlessing;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Recharging;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Regeneration;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Sleepiness;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SnipersMark;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SoakedShoes;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SolarEclipseBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SpringBloom;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Strength;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.TimeStasis;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.WeaponEnhance;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Windswept;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.ArmorAbility;
@@ -95,6 +96,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.duelist.Challenge;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.duelist.ElementalStrike;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.huntress.NaturesPower;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.warrior.Endure;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.DoubleShot;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.DoubleStab;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.BodyForm;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.HallowedGround;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.HolyWard;
@@ -103,15 +106,20 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.Smite;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mimic;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Monk;
-import xyz.gabriwar.warpedpixeldungeon.actors.mobs.pets.PET;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Snake;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Imp;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.pets.PET;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.CheckedCell;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
+import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.SpellSprite;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
+import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.BlastParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.SmokeParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Ankh;
+import xyz.gabriwar.warpedpixeldungeon.items.BrokenSeal;
 import xyz.gabriwar.warpedpixeldungeon.items.Dewdrop;
 import xyz.gabriwar.warpedpixeldungeon.items.EasterEgg;
 import xyz.gabriwar.warpedpixeldungeon.items.Egg;
@@ -139,13 +147,11 @@ import xyz.gabriwar.warpedpixeldungeon.items.artifacts.SkeletonKey;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.TalismanOfForesight;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.TimekeepersHourglass;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.MagicalHolster;
+import xyz.gabriwar.warpedpixeldungeon.items.bombs.Bomb;
 import xyz.gabriwar.warpedpixeldungeon.items.journal.Guidebook;
 import xyz.gabriwar.warpedpixeldungeon.items.keys.CrystalKey;
 import xyz.gabriwar.warpedpixeldungeon.items.keys.GoldenKey;
 import xyz.gabriwar.warpedpixeldungeon.items.keys.GoldenSkeletonKey;
-import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
-import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
-import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.items.keys.IronKey;
 import xyz.gabriwar.warpedpixeldungeon.items.keys.Key;
 import xyz.gabriwar.warpedpixeldungeon.items.keys.WornKey;
@@ -156,6 +162,8 @@ import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfHealing;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfMight;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfDivineInspiration;
 import xyz.gabriwar.warpedpixeldungeon.items.quest.DarkGold;
+import xyz.gabriwar.warpedpixeldungeon.items.quest.DwarfToken;
+import xyz.gabriwar.warpedpixeldungeon.items.quest.EscapeCrystal;
 import xyz.gabriwar.warpedpixeldungeon.items.quest.Pickaxe;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfAccuracy;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfEvasion;
@@ -163,12 +171,14 @@ import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfForce;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfFuror;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfHaste;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfMight;
+import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfSearching;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfTenacity;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.Scroll;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfMagicMapping;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfChallenge;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.ThirteenLeafClover;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.Wand;
+import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfLivingEarth;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.SpiritBow;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
@@ -179,11 +189,11 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.LargeSword;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MagesStaff;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Quarterstaff;
-import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.alchemy.UnholyBible;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.RoundShield;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Sai;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Scimitar;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.WornShortsword;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.alchemy.UnholyBible;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.MissileWeapon;
 import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
 import xyz.gabriwar.warpedpixeldungeon.journal.Document;
@@ -191,30 +201,33 @@ import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.MiningLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
+import xyz.gabriwar.warpedpixeldungeon.levels.VaultLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.features.Chasm;
 import xyz.gabriwar.warpedpixeldungeon.levels.features.LevelTransition;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.special.WeakFloorRoom;
 import xyz.gabriwar.warpedpixeldungeon.levels.traps.Trap;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
-import xyz.gabriwar.warpedpixeldungeon.items.bombs.Bomb;
-import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.ShadowCaster;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.AlchemyScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
+import xyz.gabriwar.warpedpixeldungeon.scenes.WelcomeScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.HeroSprite;
+import xyz.gabriwar.warpedpixeldungeon.sprites.ImpSprite;
+import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.ui.QuickSlotButton;
 import xyz.gabriwar.warpedpixeldungeon.ui.StatusPane;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndHero;
+import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndResurrect;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndTradeItem;
+import com.watabou.noosa.Camera;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.tweeners.Delayer;
@@ -505,6 +518,9 @@ public class Hero extends Char {
 		HTBoost = bundle.getInt(HTBOOST);
 
 		super.restoreFromBundle( bundle );
+		//a hero from before the mana pool existed never got its regeneration buff: give it now
+		Buff.affect( this, ManaRegen.class );
+		Buff.affect( this, xyz.gabriwar.warpedpixeldungeon.actors.buffs.DewCondenser.class );
 
 		customName = bundle.contains( CUSTOM_NAME ) ? bundle.getString( CUSTOM_NAME ) : null;
 		netOwnerName = bundle.contains( NET_OWNER ) ? bundle.getString( NET_OWNER ) : "";
@@ -678,9 +694,8 @@ public class Hero extends Char {
 		Buff.affect( this, Hunger.class );
 		Buff.affect( this, Sleepiness.class );
 		Buff.affect( this, ManaRegen.class );
+		Buff.affect( this, xyz.gabriwar.warpedpixeldungeon.actors.buffs.DewCondenser.class );
 		//skill tree production passives (no-ops until leveled)
-		Buff.affect( this, xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillFletching.class );
-		Buff.affect( this, xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillHunting.class );
 	}
 	
 	public int tier() {
@@ -703,7 +718,12 @@ public class Hero extends Char {
 		//temporarily set the hero's weapon to the missile weapon being used
 		//TODO improve this!
 		belongings.thrownWeapon = wep;
-		boolean hit = attack( enemy );
+        float wind=1f;
+        if(wep instanceof xyz.gabriwar.warpedpixeldungeon.items.weapon.SpiritBow.SpiritArrow){
+            for(xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField field:buffs(xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField.class))
+                if(field.kind==xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField.WIND&&field.contains(enemy.pos))wind=1.5f;
+        }
+		boolean hit = attack(enemy,1f,0f,wind);
 		Invisibility.dispel();
 		belongings.thrownWeapon = null;
 
@@ -712,7 +732,7 @@ public class Hero extends Char {
 		}
 
 		if (hit && heroClass == HeroClass.DUELIST && wasEnemy){
-			Buff.affect( this, Sai.ComboStrikeTracker.class).addHit();
+			Buff.affect( this, Sai.ComboStrikeTracker.class).addHit( attackTarget );
 		}
 
 		attackTarget = null;
@@ -782,7 +802,7 @@ public class Hero extends Char {
 					}
 				} else if (buff(Talent.LiquidAgilACCTracker.class) != null){
 					// 3x/inf. ACC, depending on talent level
-					accuracy *= pointsInTalent(Talent.LIQUID_AGILITY) == 2 ? Float.POSITIVE_INFINITY : 3f;
+					accuracy *= pointsInTalent(Talent.LIQUID_AGILITY) >= 2 ? Float.POSITIVE_INFINITY : 3f;
 					Talent.LiquidAgilACCTracker buff = buff(Talent.LiquidAgilACCTracker.class);
 					buff.uses--;
 				}
@@ -814,6 +834,11 @@ public class Hero extends Char {
 			return INFINITE_ACCURACY;
 		}
 
+		//skill tree: blows that can't miss this target
+		if (target != null && heroSkills.anySureHit(target)){
+			return INFINITE_ACCURACY;
+		}
+
 		//skill tree: Firm Hand flat bonus (melee), Accuracy multiplier and
 		//Aimed Shot's no-miss shot (ranged)
 		int atkBase = attackSkill;
@@ -839,10 +864,8 @@ public class Hero extends Char {
 	@Override
 	public int defenseSkill( Char enemy ) {
 
-		//skill tree: Awareness - chance to dodge a ranged attack outright
-		if (enemy != null
-				&& !Dungeon.level.adjacent(pos, enemy.pos)
-				&& heroSkills.anyDodge()){
+		//skill tree: dodges rolled per attacker (each skill decides which attackers it answers)
+		if (enemy != null && heroSkills.anyDodge(enemy)){
 			return INFINITE_EVASION;
 		}
 
@@ -868,7 +891,7 @@ public class Hero extends Char {
 		if (buff(Talent.LiquidAgilEVATracker.class) != null){
 			if (pointsInTalent(Talent.LIQUID_AGILITY) == 1){
 				evasion *= 3f;
-			} else if (pointsInTalent(Talent.LIQUID_AGILITY) == 2){
+			} else if (pointsInTalent(Talent.LIQUID_AGILITY) >= 2){
 				return INFINITE_EVASION;
 			}
 		}
@@ -1187,6 +1210,8 @@ public class Hero extends Char {
 	@Override
 	public boolean act() {
 
+		if (Dungeon.debugInfiniteMana) MP = MT;
+
 		//the waypoint march does not stop for ANYTHING - whenever the hero
 		//would act with no action queued, the march seats a fresh Move RIGHT
 		//HERE on the actor thread, so this same act executes the step. (the
@@ -1264,7 +1289,6 @@ public class Hero extends Char {
 		if (!isRemote) {
 			// Advance the day/night cycle each hero turn
 			DayNightCycle.onHeroTurn();
-			if (Dungeon.dewDraw) Dungeon.level.currentmoves++;
 
 			// Thermal diffusion: decay and spread persistent tile heat
 			TileTemperature.stepDiffusion(Dungeon.level);
@@ -1309,6 +1333,9 @@ public class Hero extends Char {
 		BuffIndicator.refreshHero();
 		BuffIndicator.refreshBoss();
 		
+        ChargedShotDraw draw=buff(ChargedShotDraw.class);
+        if(draw!=null&&draw.holdTurn(this))return false;
+
 		if (paralysed > 0) {
 			if (isRemote) xyz.gabriwar.warpedpixeldungeon.net.NetManager.log("[NET-HOST] netHero " + id() + " EARLY-RETURN paralysed pos=" + pos);
 			curAction = null;
@@ -1382,7 +1409,9 @@ public class Hero extends Char {
 					pendingActionItem = null;
 					pendingActionItemAction = null;
 					pendingActionExtra = -1;
-					if ("throw".equals(type)) pendingActionCell = -1; // consumed as target
+					//both carry a target square rather than a destination to walk to:
+					//leaving it set would send the hero walking there next turn
+					if ("throw".equals(type) || "use".equals(type)) pendingActionCell = -1;
 				}
 				remoteWaiting = false;
 				xyz.gabriwar.warpedpixeldungeon.net.NetManager.log("[NET-HOST] netHero " + id() + " consuming type=" + type
@@ -1423,8 +1452,17 @@ public class Hero extends Char {
 						return false;
 					}
 					if (it != null && useAction != null) {
-						xyz.gabriwar.warpedpixeldungeon.net.NetManager.log("[NET-HOST] use: " + itemName + "." + useAction);
-						it.execute(this, useAction);
+						xyz.gabriwar.warpedpixeldungeon.net.NetManager.log("[NET-HOST] use: " + itemName + "." + useAction
+								+ (targetCell >= 0 ? " at " + targetCell : ""));
+						//an aimed item asks for a cell as it runs; answer with the one the
+						//player picked, and take it back afterwards so an item that never
+						//asked cannot hand it to whatever the host aims next
+						if (targetCell >= 0) GameScene.supplyNetTarget( targetCell );
+						try {
+							it.execute(this, useAction);
+						} finally {
+							GameScene.supplyNetTarget( null );
+						}
 					} else {
 						xyz.gabriwar.warpedpixeldungeon.net.NetManager.log("[NET-HOST] use: missing item=" + itemName + " action=" + useAction);
 						spendAndNext(TICK);
@@ -1590,10 +1628,6 @@ public class Hero extends Char {
 			}
 		}
 		
-		if(hasTalent(Talent.BARKSKIN) && Dungeon.level.map[pos] == Terrain.FURROWED_GRASS){
-			Barkskin.conditionallyAppend(this, (lvl*pointsInTalent(Talent.BARKSKIN))/2, 1 );
-		}
-
 		if (isRemote) {
 			xyz.gabriwar.warpedpixeldungeon.net.NetManager.log("[NET-HOST] netHero " + id() + " act() RETURN actResult=" + actResult
 					+ " pos=" + pos
@@ -1645,6 +1679,41 @@ public class Hero extends Char {
 		AttackIndicator.updateState();
 		
 		GameScene.ready();
+		//check statistics to see if vault warned?
+		//or just used shared prefs?
+		if (Dungeon.level instanceof VaultLevel
+				&& HP < HT*0.334f
+				&& !Statistics.vaultInjureWarned
+				&& WPDSettings.vaultInjureWarns() < 3){
+			WPDSettings.vaultInjureWarns(WPDSettings.vaultInjureWarns()+1);
+			Statistics.vaultInjureWarned = true;
+			WarpedPixelDungeon.runOnRenderThread(new Callback() {
+				@Override
+				public void call() {
+					String text = Messages.get(EscapeCrystal.class, "injure_warning_1");
+					if (!Dungeon.level.locked) {
+						text += "\n\n" + Messages.get(EscapeCrystal.class, "injure_warning_2");
+					}
+					text += "\n\n" + Messages.get(EscapeCrystal.class, "injure_warning_3");
+					GameScene.show(new WndOptions(new ImpSprite(),
+							Messages.titleCase(Messages.get(Imp.class, "name")),
+							text,
+							//recycling this one
+							Messages.get(WelcomeScene.class, "controller_okay")){
+
+						@Override
+						protected void onSelect(int index) {
+							super.onSelect(index);
+						}
+
+						@Override
+						public void onBackPressed() {
+							//do nothing, must close via button
+						}
+					});
+				}
+			});
+		}
 	}
 	
 	public void interrupt() {
@@ -1686,16 +1755,33 @@ public class Hero extends Char {
 	//-1 cold (feels-like below Hypothermia.WARN_TEMP), 1 hot (above Heatstroke.WARN_TEMP), 0 neither.
 	//one warning per crossing, with a 2°C hysteresis so a border-line reading does not spam
 	private int thermalWarnBand = 0;
+	//how many turns the temperature has sat in a new band; a fire flickering at
+	//your side used to warn and un-warn every other turn
+	private int thermalBandHeld = 0;
+	private int thermalBandPending = 0;
+	private static final float THERMAL_HYSTERESIS = 4f;
+	private static final int   THERMAL_HOLD = 3;
 
 	private void checkThermalWarnings( float feelsLike ) {
 		int band = thermalWarnBand;
-		if (band == -1 && feelsLike > Hypothermia.WARN_TEMP + 2f) band = 0;
-		if (band ==  1 && feelsLike < Heatstroke.WARN_TEMP - 2f)  band = 0;
+		if (band == -1 && feelsLike > Hypothermia.WARN_TEMP + THERMAL_HYSTERESIS) band = 0;
+		if (band ==  1 && feelsLike < Heatstroke.WARN_TEMP - THERMAL_HYSTERESIS)  band = 0;
 		if (band == 0) {
 			if (feelsLike < Hypothermia.WARN_TEMP)     band = -1;
 			else if (feelsLike > Heatstroke.WARN_TEMP) band = 1;
 		}
-		if (band == thermalWarnBand) return;
+		if (band == thermalWarnBand) {
+			thermalBandHeld = 0;
+			return;
+		}
+		//the new band has to stand for a few turns before it is worth saying
+		if (band != thermalBandPending) {
+			thermalBandPending = band;
+			thermalBandHeld = 1;
+			return;
+		}
+		if (++thermalBandHeld < THERMAL_HOLD) return;
+		thermalBandHeld = 0;
 
 		if (band == -1) {
 			if (buff(Hypothermia.class) == null) {
@@ -1757,6 +1843,7 @@ public class Hero extends Char {
 		// --- Temperature → Hypothermia (uses bodyTemp, not raw tile) ---
 		if (coldGrace > 0) coldGrace--;
 		if (bodyTemp < -5f
+				&& !TileTemperature.nearWallTorch(pos)
 				&& coldGrace <= 0
 				&& buff(Hypothermia.class) == null
 				&& buff(xyz.gabriwar.warpedpixeldungeon.actors.buffs.FireImbue.class) == null) {
@@ -1863,7 +1950,7 @@ public class Hero extends Char {
 			
 		} else {
 			
-			if (fieldOfView[ch.pos] && getCloser( ch.pos )) {
+			if ((fieldOfView[ch.pos] || Char.hasProp(ch, Property.OBJECT)) && getCloser( ch.pos )) {
 
 				return true;
 
@@ -1972,7 +2059,9 @@ public class Hero extends Char {
 				if (item.doPickUp( this )) {
 					heap.pickUp();
 
+					//TODO this statement is getting silly, might be better to handle this as a propery of items
 					if (item instanceof Dewdrop
+							|| (item instanceof DwarfToken && Imp.Quest.mirrorUsed)
 							|| item instanceof TimekeepersHourglass.sandBag
 							|| item instanceof DriedRose.Petal
 							|| item instanceof Key
@@ -1990,7 +2079,6 @@ public class Hero extends Char {
 						}
 					} else {
 
-						//TODO make all unique items important? or just POS / SOU?
 						boolean important = item.unique && item.isIdentified() &&
 								(item instanceof Scroll || item instanceof Potion);
 						if (important) {
@@ -2049,15 +2137,20 @@ public class Hero extends Char {
 			
 			Heap heap = Dungeon.level.heaps.get( dst );
 			if (heap != null && (heap.type != Type.HEAP && heap.type != Type.FOR_SALE)) {
-				
+
+				boolean noKey = false;
+				if (heap.type == Type.LOCKED_CHEST){
+					noKey = Notes.keyCount(new GoldenKey(Dungeon.depth)) < 1;
+				} else if (heap.type == Type.CRYSTAL_CHEST){
+					noKey = Notes.keyCount(new CrystalKey(Dungeon.depth)) < 1;
+				}
 				//GoldenSkeletonKey is a master key: it opens any lock from any
 				//floor, after the specific key is tried and the player confirms.
-				if ((heap.type == Type.LOCKED_CHEST
-							&& Notes.keyCount(new GoldenKey(Dungeon.depth)) < 1
-							&& !GoldenSkeletonKey.anyInJournal())
-					|| (heap.type == Type.CRYSTAL_CHEST
-							&& Notes.keyCount(new CrystalKey(Dungeon.depth)) < 1
-							&& !GoldenSkeletonKey.anyInJournal())){
+				if (noKey && GoldenSkeletonKey.anyInJournal()){
+					noKey = false;
+				}
+
+				if (noKey){
 
 						GLog.w( Messages.get(this, "locked_chest") );
 						ready();
@@ -2106,19 +2199,25 @@ public class Hero extends Char {
 	//asks before spending a golden skeleton key on a lock, then re-issues the action
 	private void promptGoldenKey( final HeroAction action, final int cell ){
 		ready();
-		GameScene.show( new WndOptions(
-				new ItemSprite( ItemSpriteSheet.GOLDEN_KEY ),
-				Messages.titleCase( Messages.get(GoldenSkeletonKey.class, "name") ),
-				Messages.get(GoldenSkeletonKey.class, "confirm"),
-				Messages.get(GoldenSkeletonKey.class, "confirm_yes"),
-				Messages.get(GoldenSkeletonKey.class, "confirm_no") ){
+		//a window measures its own text, and only the render thread may measure text
+		Game.runOnRenderThread( new Callback() {
 			@Override
-			protected void onSelect( int index ) {
-				if (index == 0){
-					GoldenSkeletonKey.confirmedCell = cell;
-					curAction = action;
-					next();
-				}
+			public void call() {
+				GameScene.show( new WndOptions(
+						new ItemSprite( ItemSpriteSheet.GOLDEN_KEY ),
+						Messages.titleCase( Messages.get(GoldenSkeletonKey.class, "name") ),
+						Messages.get(GoldenSkeletonKey.class, "confirm"),
+						Messages.get(GoldenSkeletonKey.class, "confirm_yes"),
+						Messages.get(GoldenSkeletonKey.class, "confirm_no") ){
+					@Override
+					protected void onSelect( int index ) {
+						if (index == 0){
+							GoldenSkeletonKey.confirmedCell = cell;
+							curAction = action;
+							next();
+						}
+					}
+				} );
 			}
 		} );
 	}
@@ -2322,22 +2421,6 @@ public class Hero extends Char {
 
 		} else if (!Dungeon.level.locked && transition != null && transition.inside(pos)) {
 
-			// Sprouted: warn before leaving if dewDraw is on and dew/charge would be lost
-			if (Dungeon.dewDraw && !Dungeon.level.forcedone
-					&& transition.type == xyz.gabriwar.warpedpixeldungeon.levels.features.LevelTransition.Type.REGULAR_EXIT) {
-				boolean hasDew = Dungeon.level.hasDew();
-				boolean hasCharge = buff(Dewcharge.class) != null;
-				if (hasDew || hasCharge) {
-					Game.runOnRenderThread(new Callback() {
-						@Override
-						public void call() {
-							GameScene.show(new xyz.gabriwar.warpedpixeldungeon.windows.WndDescend());
-						}
-					});
-					ready();
-					return false;
-				}
-			}
 
 			// Net MP: don't actually descend. Park the hero at the transition
 			// cell and let NetManager check whether everyone else is also waiting.
@@ -2356,7 +2439,13 @@ public class Hero extends Char {
 					xyz.gabriwar.warpedpixeldungeon.net.ui.WndAtExit.show();
 				}
 				xyz.gabriwar.warpedpixeldungeon.net.NetManager.onHeroReachedExit(this);
-				return false;
+				//waiting at the exit is not taking a turn. Returning false here holds the
+				//actor loop on this hero, and everyone else - the other players and every
+				//mob - stops with them. Yield instead; the atExit guard at the top of
+				//act() keeps yielding each round until the party is ready
+				spend( TICK );
+				next();
+				return true;
 			}
 
 			if (Dungeon.level.activateTransition(this, transition)){
@@ -2479,6 +2568,13 @@ public class Hero extends Char {
 				Buff.affect(this, Talent.AggressiveBarrierCooldown.class, 50f);
 
 			}
+			//skill tree: a bump that a skill turns into something else (it spends the hero's time itself)
+			if (Dungeon.level.adjacent(pos, attackTarget.pos) && heroSkills.anyHeroBump(this, attackTarget)){
+				attackTarget = null;
+				curAction = null;
+				return false;
+			}
+
 			//attack target cleared on onAttackComplete
 			sprite.attack( attackTarget.pos );
 
@@ -2507,7 +2603,9 @@ public class Hero extends Char {
 	public void rest( boolean fullRest ) {
 		spendAndNextConstant( TIME_TO_REST );
 		if (hasTalent(Talent.HOLD_FAST)){
-			Buff.affect(this, HoldFast.class).pos = pos;
+			if (heroClass != HeroClass.WARRIOR || buff(BrokenSeal.WarriorShield.class) != null) {
+				Buff.affect(this, HoldFast.class).pos = pos;
+			}
 		}
 		if (hasTalent(Talent.PATIENT_STRIKE)){
 			Buff.affect(Dungeon.hero, Talent.PatientStrikeTracker.class).pos = Dungeon.hero.pos;
@@ -2523,6 +2621,11 @@ public class Hero extends Char {
 	@Override
 	public int attackProc( final Char enemy, int damage ) {
 		damage = super.attackProc( enemy, damage );
+
+		// Establish the paid link before talents or weapon effects can deal damage.
+		// The opening hit and its procs share immediately, even if a proc kills.
+		DoubleStab shadowLink = heroSkills.get(DoubleStab.class);
+		if (shadowLink != null) shadowLink.onHitProc(enemy, damage, false);
 
 		KindOfWeapon wep;
 		if (RingOfForce.fightingUnarmed(this) && !RingOfForce.unarmedGetsWeaponEnchantment(this)){
@@ -2540,38 +2643,40 @@ public class Hero extends Char {
 		if (wep != null) {
 			damage = wep.proc( this, enemy, damage );
 		} else {
-			boolean wasEnemy = enemy.alignment == Alignment.ENEMY;
-			if (buff(BodyForm.BodyFormBuff.class) != null
-					&& buff(BodyForm.BodyFormBuff.class).enchant() != null){
+
+			if (buff(BodyForm.BodyFormBuff.class) != null && buff(BodyForm.BodyFormBuff.class).enchant() != null){
 				damage = buff(BodyForm.BodyFormBuff.class).enchant().proc(new WornShortsword(), this, enemy, damage);
 			}
-			if (!wasEnemy || enemy.alignment == Alignment.ENEMY) {
-				if (buff(HolyWeapon.HolyWepBuff.class) != null) {
-					int dmg = subClass == HeroSubClass.PALADIN ? 6 : 2;
-					enemy.damage(Math.round(dmg * Weapon.Enchantment.genericProcChanceMultiplier(this)), HolyWeapon.INSTANCE);
-				}
-				if (buff(Smite.SmiteTracker.class) != null) {
-					enemy.damage(Smite.bonusDmg(this, enemy), Smite.INSTANCE);
-				}
+			if (enemy.isAlive() && buff(HolyWeapon.HolyWepBuff.class) != null) {
+				int dmg = subClass == HeroSubClass.PALADIN ? 6 : 2;
+				enemy.damage(Math.round(dmg * Weapon.Enchantment.genericProcChanceMultiplier(this)), HolyWeapon.INSTANCE);
+			}
+			if (enemy.isAlive() && buff(Smite.SmiteTracker.class) != null) {
+				enemy.damage(Smite.bonusDmg(this, enemy), Smite.INSTANCE);
 			}
 		}
 		
 		//skill tree on-hit hooks
 		boolean skillRanged = wep instanceof MissileWeapon;
-		damage = heroSkills.allOnHit(enemy, damage, skillRanged);
+		final int preProcDamage = damage;   //what a pierce carries on: never an execute's number
+		damage = heroSkills.allOnHit(enemy, damage, skillRanged, true);
+		xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.onHeroHit(this, enemy, damage, skillRanged);
 		if (!skillRanged){
 			//Warrior: KnockBack - shove the target away
 			if (heroSkills.anyKnocksBack() && enemy.isAlive() && enemy.pos != pos){
 				int oppositeHero = enemy.pos + (enemy.pos - pos);
 				Ballistica trajectory = new Ballistica(enemy.pos, oppositeHero, Ballistica.MAGIC_BOLT);
-				WandOfBlastWave.throwChar(enemy, trajectory, 1, true, false, this);
+				if (xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.get(enemy,
+                        xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.Mark.STAGGER)!=null)
+                    xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.push(enemy,pos,1,preProcDamage/2);
+                else WandOfBlastWave.throwChar(enemy, trajectory, 1, true, false, this);
 			}
 			//Warrior: Rampage - splash the whole ring
 			if (heroSkills.anyAoEDamage()){
 				for (int n : PathFinder.NEIGHBOURS8){
 					Char ch = Actor.findChar(pos + n);
 					if (ch != null && ch != enemy && ch.alignment == Alignment.ENEMY && ch.isAlive()){
-						ch.damage(damage, this);
+						ch.damage(preProcDamage, this);
 					}
 				}
 			}
@@ -2581,14 +2686,35 @@ public class Hero extends Char {
 				//Scorpion deepens whatever venom lands
 				Buff.affect(enemy, Poison.class).set(2 + venomSkill.level + heroSkills.allVenomBonus());
 			}
-			//Rogue: Silent Death - only rolled against sleeping prey
-			if (enemy instanceof Mob && ((Mob) enemy).state == ((Mob) enemy).SLEEPING
-					&& heroSkills.anyInstantKill() && enemy.isAlive()){
+			//Rogue: Silent Death - only against prey that was asleep before this blow (defenseProc already woke it)
+			if (enemy instanceof Mob && ((Mob) enemy).wasAsleepBeforeBlow() && enemy.isAlive()
+					&& !Char.hasProp(enemy, Property.BOSS) && !Char.hasProp(enemy, Property.MINIBOSS)
+					&& heroSkills.anyInstantKill(enemy, damage)){
 				enemy.die(this);
 			}
-			//Rogue: Double Strike
-			if (heroSkills.anyDoubleStab() && enemy.isAlive()){
-				enemy.damage(damageRoll(), this);
+			//Rogue: Double Strike - the second cut goes into a different enemy in reach
+			//when there is one, and back into the same one when there is not
+			if (heroSkills.anyDoubleStab()){
+				Char second = enemy.isAlive() ? enemy : null;
+				//the player's mark first, if it is within reach
+				DoubleStab stab = heroSkills.get(DoubleStab.class);
+				Char marked = stab != null ? stab.marked() : null;
+				if (marked != null && marked != enemy && Dungeon.level.adjacent(pos, marked.pos) && fieldOfView[marked.pos]){
+					second = marked;
+				} else for (Mob m : Dungeon.level.mobs){
+					if (m == enemy || m.alignment != Alignment.ENEMY || !m.isAlive()) continue;
+					if (!Dungeon.level.adjacent(pos, m.pos) || !fieldOfView[m.pos]) continue;
+					if (second == null || second == enemy || Dungeon.level.trueDistance(pos, m.pos) < Dungeon.level.trueDistance(pos, second.pos)){
+						second = m;
+					}
+				}
+				if (second != null){
+					second.damage(damageRoll(), this);
+					if (second != enemy){
+						Wound.hit(second);
+						Sample.INSTANCE.play(Assets.Sounds.HIT_SLASH, 1f, 1.2f);
+					}
+				}
 			}
 		} else {
 			//Huntress: Knee Shot
@@ -2596,24 +2722,53 @@ public class Hero extends Char {
 			if (crippleSkill != null && enemy.isAlive()){
 				Buff.prolong(enemy, Cripple.class, 3 + crippleSkill.level);
 			}
-			//Huntress: Double Shot - a second projectile's worth of damage
+			//Huntress: Double Shot - a second projectile, loosed at a second enemy when one is in view
 			if (!extraShotAttack && heroSkills.anyDoubleShot() && enemy.isAlive()){
-				enemy.damage(damageRoll(), this);
+				Char second = enemy;
+				//the player's mark first, if the arrow can reach it
+				DoubleShot shot = heroSkills.get(DoubleShot.class);
+				Char marked = shot != null ? shot.marked() : null;
+				if (marked != null && marked != enemy && fieldOfView[marked.pos]
+						&& new Ballistica(pos, marked.pos, Ballistica.PROJECTILE).collisionPos == marked.pos){
+					second = marked;
+				} else {
+					int best = Integer.MAX_VALUE;
+					for (Mob m : Dungeon.level.mobs){
+						if (m == enemy || m.alignment != Alignment.ENEMY || !m.isAlive() || !fieldOfView[m.pos]) continue;
+						int d = Dungeon.level.distance(pos, m.pos);
+						if (d < best && new Ballistica(pos, m.pos, Ballistica.PROJECTILE).collisionPos == m.pos){
+							best = d;
+							second = m;
+						}
+					}
+				}
+				final Char struck = second;
+				struck.damage(damageRoll(), this);
+				SkillFX.streak(sprite, struck.pos, wep, () -> SkillFX.flash(struck));
+				Sample.INSTANCE.play(Assets.Sounds.HIT_ARROW, 1f, 1.2f);
 			}
-			//Huntress: Bombvoyage - the projectile carries a bomb
+			//Huntress: Bombvoyage - the projectile carries a charge. It bursts on what stands
+			//there and on nothing else: no walls or blocks broken, no heaps blown apart
 			if (!extraShotAttack && heroSkills.anyArrowToBomb()){
-				new Bomb().explode(enemy.pos);
+				xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Bombvoyage.blast(this, enemy.pos);
 			}
-			//Huntress: Iron Tip - punch through to whoever stands behind
+			//Huntress: Iron Tip - the shot punches on through whoever stands behind, one
+			//enemy per level, and the streak is seen carrying on from body to body
 			xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill pierceSkill = heroSkills.rollPassThrough();
 			if (pierceSkill != null && enemy.pos != pos){
 				int beyond = enemy.pos + (enemy.pos - pos);
-				Ballistica path = new Ballistica(enemy.pos, beyond, Ballistica.PROJECTILE);
+				Ballistica path = new Ballistica(enemy.pos, beyond, Ballistica.STOP_SOLID);
+				int pierced = 0;
+				int from = enemy.pos;
 				for (int c : path.subPath(1, pierceSkill.passThroughTargets(false))){
 					Char next = Actor.findChar(c);
-					if (next != null && next.alignment == Alignment.ENEMY){
-						next.damage(damage, this);
-						break;
+					if (next != null && next.alignment == Alignment.ENEMY && next.isAlive()){
+						next.damage(preProcDamage, this);
+						final Char victim = next;
+						SkillFX.streak(from, c, wep, () -> SkillFX.flash(victim));
+						Sample.INSTANCE.play(Assets.Sounds.HIT_ARROW, 1f, 0.9f);
+						from = c;
+						if (++pierced >= pierceSkill.level) break;
 					}
 				}
 			}
@@ -2710,22 +2865,35 @@ public class Hero extends Char {
 		}
 	}
 
+	//Last Rites-style saves: the lowest health the blow being resolved may leave, 0 for none.
+	//Set by a skill from inside allIncomingDamage, honoured in Char.damage, cleared after the blow
+	private int healthHold = 0;
+
+	public void holdHealthAt( int hp ){
+		healthHold = Math.max(healthHold, Math.max(1, Math.min(hp, HT)));
+	}
+
+	public int applyHealthHold( int dmg ){
+		if (healthHold <= 0) return dmg;
+		return Math.min(dmg, Math.max(0, HP - healthHold));
+	}
+
 	@Override
 	public void damage( int dmg, Object src ) {
 
-		//skill tree: incoming damage passes through every learned skill
-		if (dmg > 0){
-			dmg = heroSkills.allIncomingDamage(dmg);
+		//skill tree: incoming damage passes through every learned skill.
+		//Starvation is the exception: it ticks for one point at a time, so any flat
+		//reduction (Conditioning, Endurance, Aplomb, Stone Skin, the warded armours)
+		//would cancel it outright and you could live without ever eating. Hunger is
+		//meant to be unavoidable, the way it already ignores worn armour.
+		healthHold = 0;
+		if (dmg > 0 && !(src instanceof Hunger)){
+			dmg = heroSkills.allIncomingDamage(dmg, src);
 		}
 
 		if (buff(TimekeepersHourglass.timeStasis.class) != null
 				|| buff(TimeStasis.class) != null) {
 			return;
-		}
-
-		//TODO hero cannot take damage in the vault tester area
-		if (Dungeon.depth > 15 && Dungeon.branch == 1){
-			dmg = 0;
 		}
 
 		//regular damage interrupt, triggers on any damage except specific mild DOT effects
@@ -2766,7 +2934,7 @@ public class Hero extends Char {
 
 		if (buff(Talent.WarriorFoodImmunity.class) != null){
 			if (pointsInTalent(Talent.IRON_STOMACH) == 1)       damage /= 4f;
-			else if (pointsInTalent(Talent.IRON_STOMACH) == 2)  damage = 0;
+			else if (pointsInTalent(Talent.IRON_STOMACH) >= 2)  damage = 0;
 		}
 
 		dmg = Math.round(damage);
@@ -2781,7 +2949,9 @@ public class Hero extends Char {
 
 		int preHP = HP + shielding();
 		if (src instanceof Hunger) preHP -= shielding();
+		int hpBefore = HP;
 		super.damage( dmg, src );
+		healthHold = 0;
 		int postHP = HP + shielding();
 		if (src instanceof Hunger) postHP -= shielding();
 		int effectiveDamage = preHP - postHP;
@@ -2790,6 +2960,12 @@ public class Hero extends Char {
 		AutoPotion.trigger(this);
 
 		if (effectiveDamage <= 0) return;
+
+		//skill tree: what the blow really took, after armour and every reduction; never damage over time
+		if (isAlive() && !xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.isTickDamage(src)){
+			int hpLost = Math.max(0, hpBefore - HP);
+			heroSkills.onDamageTaken(hpLost, Math.max(0, effectiveDamage - hpLost), src);
+		}
 
 		if (buff(Challenge.DuelParticipant.class) != null){
 			buff(Challenge.DuelParticipant.class).addDamage(effectiveDamage);
@@ -3100,7 +3276,7 @@ public class Hero extends Char {
 			
 			curAction = new HeroAction.Alchemy( cell );
 			
-		} else if (fieldOfView[cell] && ch instanceof Mob) {
+		} else if (ch instanceof Mob && (fieldOfView[cell] || Char.hasProp(ch, Property.OBJECT))) {
 
 			if (((Mob) ch).heroShouldInteract()) {
 				curAction = new HeroAction.Interact( ch );
@@ -3221,7 +3397,7 @@ public class Hero extends Char {
 			this.exp -= maxExp();
 
 			if (buff(Talent.WandPreservationCounter.class) != null
-				&& pointsInTalent(Talent.WAND_PRESERVATION) == 2){
+				&& pointsInTalent(Talent.WAND_PRESERVATION) >= 2){
 				buff(Talent.WandPreservationCounter.class).detach();
 			}
 
@@ -3564,7 +3740,7 @@ public class Hero extends Char {
 		}
 
 		if (hit && heroClass == HeroClass.DUELIST && wasEnemy){
-			Buff.affect( this, Sai.ComboStrikeTracker.class).addHit();
+			Buff.affect( this, Sai.ComboStrikeTracker.class).addHit( attackTarget );
 		}
 
 		curAction = null;
@@ -3701,6 +3877,7 @@ public class Hero extends Char {
 		boolean circular = pointsInTalent(Talent.WIDE_SEARCH) == 1;
 		int distance = heroClass == HeroClass.ROGUE ? 2 : 1;
 		if (hasTalent(Talent.WIDE_SEARCH)) distance++;
+		if (pointsInTalent(Talent.WIDE_SEARCH) >= 3) distance++;
 
 		//Unleashed PD port: ring of searching widens deliberate searches
 		if (intentional) distance += RingOfSearching.searchDistanceBonus(this);
@@ -3746,9 +3923,9 @@ public class Hero extends Char {
 				if ((foresight || fieldOfView[curr]) && curr != pos) {
 
 					if ((foresight && (!Dungeon.level.mapped[curr] || foresightScan))){
-						GameScene.effectOverFog(new CheckedCell(curr, foresightScan ? pos : curr));
+						GameScene.checkedCell(curr, foresightScan ? pos : curr);
 					} else if (intentional) {
-						GameScene.effectOverFog(new CheckedCell(curr, pos));
+						GameScene.checkedCell(curr, pos);
 					}
 
 					if (foresight){

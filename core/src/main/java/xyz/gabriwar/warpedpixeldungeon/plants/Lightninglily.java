@@ -170,10 +170,6 @@ public class Lightninglily extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect( Char attacker, Char defender, int damage ) {
-			new Lightninglily().shoot(attacker.pos, defender.pos);
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

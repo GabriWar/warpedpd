@@ -21,6 +21,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -92,12 +94,15 @@ public class FallenLeaves extends Blob {
 				}
 			}
 		}
+	
+		//heavy rain beats the drift flat and washes it away
+		if (ClimateManager.localPrecipRate() > 0.5f) dissipate(0.8f);
 	}
 
 	@Override
 	public void use(BlobEmitter emitter) {
 		super.use(emitter);
-		emitter.start(LeafParticle.GENERAL, 0.8f, 0);
+		emitter.start(WeatherBlobFX.FALLEN_LEAVES, 0.5f, 0);
 	}
 
 	@Override

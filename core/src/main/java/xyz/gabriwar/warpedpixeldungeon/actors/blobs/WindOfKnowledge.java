@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -64,7 +65,7 @@ public class WindOfKnowledge extends Blob {
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
 
-		emitter.pour( Speck.factory(Speck.KNOWWIND), 0.6f );
+		emitter.pour( WeatherBlobFX.layered( Speck.factory(Speck.KNOWWIND), WeatherBlobFX.sparkles( 0xA0C8FF ), 3 ), 0.45f );
 	}
 
 	@Override

@@ -55,6 +55,9 @@ public class FossilSkeleton extends Mob {
 		properties.add(Property.INORGANIC);
 
 		resistances.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim.class);
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	@Override

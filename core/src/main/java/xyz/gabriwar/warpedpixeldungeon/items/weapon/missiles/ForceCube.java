@@ -26,11 +26,8 @@ import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SnipersMark;
-import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
-import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.levels.traps.TenguDartTrap;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -52,6 +49,12 @@ public class ForceCube extends MissileWeapon {
 		baseUses = 5;
 		
 		sticky = false;
+	}
+
+	@Override
+	public int max(int lvl) {
+		return  6 * tier +                  //30 base, up from 25
+				(tier) * lvl;               //scaling unchanged
 	}
 
 	@Override

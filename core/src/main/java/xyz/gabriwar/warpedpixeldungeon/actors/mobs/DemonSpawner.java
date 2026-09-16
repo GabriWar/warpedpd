@@ -58,6 +58,9 @@ public class DemonSpawner extends Mob {
 		properties.add(Property.MINIBOSS);
 		properties.add(Property.DEMONIC);
 		properties.add(Property.STATIC);
+
+		//built for the heat: the chill is what hurts
+		thermal = Thermal.HEAT_DWELLER;
 	}
 
 	@Override

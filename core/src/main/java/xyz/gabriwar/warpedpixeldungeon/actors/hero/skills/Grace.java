@@ -27,7 +27,19 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfMagic;
+
 public class Grace extends PassiveSkillA2 {
+
+	//at max rank a mote that finds the pool already full heals instead
+	private static final float OVERFLOW_HEAL = 0.03f;
 
 	{
 		name = "Grace";
@@ -40,6 +52,31 @@ public class Grace extends PassiveSkillA2 {
 		return true;
 	}
 
+	//every enemy you slay sends a mote of light home: 1 mana per level
 	@Override
-	public int manaRegenerationBonus(){ return level; }
+	public void onKill( Mob mob, boolean ranged ){
+		Hero hero = Dungeon.hero;
+		if (hero == null || !hero.isAlive())
+			return;
+
+		int maxMana = hero.MT + RingOfMagic.manaBonus( hero );
+		boolean overflow = hero.MP >= maxMana;
+		if (overflow && (level < MAX_LEVEL || hero.HP >= hero.HT))
+			return;
+
+		if (mob.sprite != null && hero.sprite != null && hero.sprite.parent != null)
+			MagicMissile.boltFromChar( hero.sprite.parent, MagicMissile.LIGHT_MISSILE, mob.sprite, hero.pos, null );
+
+		if (overflow){
+			hero.heal( SkillInteractions.ofHealth( hero.HT, OVERFLOW_HEAL ) );
+		} else {
+			int gain = Math.min( level, maxMana - hero.MP );
+			hero.MP += gain;
+			if (hero.sprite != null){
+				hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 2 + gain );
+				hero.sprite.showStatus( 0x8ac0ff, "+" + gain );
+			}
+		}
+		Sample.INSTANCE.play( Assets.Sounds.CHARMS, 0.5f, 1.5f );
+	}
 }

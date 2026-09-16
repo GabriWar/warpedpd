@@ -150,7 +150,7 @@ public class Blandfruit extends Food {
 			} else {
 				desc += Messages.get(this, "desc_eat");
 			}
-			return desc;
+			return desc + spiceDescription();
 		}
 	}
 

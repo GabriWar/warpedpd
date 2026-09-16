@@ -39,6 +39,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.ClassArmor;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTeleportation;
+import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfSirensSong;
 import xyz.gabriwar.warpedpixeldungeon.journal.Bestiary;
 import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -259,8 +260,11 @@ public class Ratmogrify extends ArmorAbility {
 			allied = true;
 			alignment = Alignment.ALLY;
 			timeLeft = Float.POSITIVE_INFINITY;
-			Bestiary.setSeen(original.getClass());
-			Bestiary.countEncounter(original.getClass());
+			if (original != null){
+				original.pos = pos;
+				//the specific ally buff doesn't matter here, we just want to process ally effects
+				AllyBuff.affectAndLoot(original, Dungeon.hero, ScrollOfSirensSong.Enthralled.class);
+			}
 		}
 
 		public int attackSkill(Char target) {

@@ -27,27 +27,28 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import com.watabou.noosa.TextureFilm;
 
-public class IceDemonSprite  extends MobSprite {
+public class IceDemonSprite extends MobSprite {
 
-    public IceDemonSprite() {
-        super();
+	public IceDemonSprite() {
+		super();
 
-        texture( Assets.Sprites.UL_ICEDEMON);
+		//redrawn to match the demon lord: frost skin, bone horns, ice claws
+		texture( Assets.Sprites.ICE_DEMON );
 
-        TextureFilm frames = new TextureFilm( texture, 16, 15 );
+		TextureFilm frames = new TextureFilm( texture, 16, 16 );
 
-        idle = new Animation( 2, true );
-        idle.frames( frames, 0, 1 );
+		idle = new Animation( 2, true );
+		idle.frames( frames, 0, 1 );
 
-        run = new Animation( 10, true );
-        run.frames( frames, 2, 3, 4, 3 );
+		run = new Animation( 10, true );
+		run.frames( frames, 2, 3, 4, 3 );
 
-        attack = new Animation( 14, false );
-        attack.frames( frames, 5, 6, 5 );
+		attack = new Animation( 14, false );
+		attack.frames( frames, 5, 6, 5 );
 
-        die = new Animation( 10, false );
-        die.frames( frames, 7, 8 );
+		die = new Animation( 10, false );
+		die.frames( frames, 7, 8 );
 
-        play( idle );
-    }
+		play( idle );
+	}
 }

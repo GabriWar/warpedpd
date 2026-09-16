@@ -25,42 +25,43 @@
 package xyz.gabriwar.warpedpixeldungeon.sprites;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ElmoParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import com.watabou.noosa.TextureFilm;
 
+//remastered from the original Unleashed PD golem: same frames, fired clay, kiln eyes
 public class ClayGolemSprite extends MobSprite {
 
     public ClayGolemSprite() {
         super();
 
-        texture( Assets.Sprites.UL_GOLEM );
+        texture( Assets.Sprites.CLAY_GOLEM );
 
         TextureFilm frames = new TextureFilm( texture, 16, 16 );
 
         idle = new Animation( 4, true );
-        idle.frames( frames, 14, 15 );
+        idle.frames( frames, 0, 1 );
 
         run = new Animation( 12, true );
-        run.frames( frames, 16, 17, 18, 17 );
+        run.frames( frames, 2, 3, 4, 3 );
 
         attack = new Animation( 10, false );
-        attack.frames( frames, 23, 24, 23 );
+        attack.frames( frames, 9, 10, 9 );
 
         die = new Animation( 15, false );
-        die.frames( frames, 19, 20, 21, 22 );
+        die.frames( frames, 5, 6, 7, 8 );
 
         play( idle );
     }
 
     @Override
     public int blood() {
-        return 0xFF80706c;
+        return 0xFF9A5E34;
     }
 
     @Override
     public void onComplete( Animation anim ) {
         if (anim == die) {
-            emitter().burst( ElmoParticle.FACTORY, 4 );
+            emitter().burst( Speck.factory( Speck.ROCK ), 5 );
         }
         super.onComplete( anim );
     }

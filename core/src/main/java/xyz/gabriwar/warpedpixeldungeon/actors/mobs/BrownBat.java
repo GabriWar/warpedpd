@@ -54,7 +54,7 @@ public class BrownBat extends Mob {
 		flying = true;
 
 		loot = new MonsterMeat();
-		lootChance = 0.05f;
+		lootChance = 0.05f / 4f;
 	}
 
 	@Override

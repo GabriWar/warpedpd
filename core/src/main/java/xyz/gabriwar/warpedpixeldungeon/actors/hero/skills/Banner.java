@@ -27,7 +27,23 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.BannerStandard;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+
 public class Banner extends SubSkill1 {
+
+	//a passive: nothing to switch on, so it stays out of the quick panel
+	@Override
+	public boolean toggleable(){ return false; }
+
+	@Override
+	public java.util.ArrayList<String> actions( xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero ){
+		return new java.util.ArrayList<>();
+	}
 
 	{
 		name = "Banner";
@@ -38,6 +54,15 @@ public class Banner extends SubSkill1 {
 	@Override
 	protected boolean upgrade(){ return true; }
 
+	//every melee kill plants the standard where the enemy fell; only one stands at a time,
+	//so the next kill pulls it up and plants it again. What it does lives in BannerStandard
 	@Override
-	public float damageModifier(){ return 1f + 0.05f * level; }
+	public void onKill( Mob mob, boolean ranged ){
+		Hero hero = Dungeon.hero;
+		if (level <= 0 || ranged || hero == null || mob == null) return;
+		BannerStandard.plant( hero, mob.pos, level );
+		if (hero.sprite != null){
+			hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "planted" ) );
+		}
+	}
 }

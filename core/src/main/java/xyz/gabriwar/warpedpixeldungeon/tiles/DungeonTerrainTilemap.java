@@ -23,6 +23,7 @@ package xyz.gabriwar.warpedpixeldungeon.tiles;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
+import xyz.gabriwar.warpedpixeldungeon.levels.MiningLevel;
 import com.watabou.noosa.Image;
 import com.watabou.utils.PathFinder;
 
@@ -72,7 +73,17 @@ public class DungeonTerrainTilemap extends DungeonTilemap {
 			return DungeonTileSheet.WAYSTONE_TILE;
 		}
 		int visual = DungeonTileSheet.directVisuals.get(tile, -1);
-		if (visual != -1) return DungeonTileSheet.getVisualWithAlts(visual, pos);
+		if (visual != -1) {
+			if (visual == DungeonTileSheet.FLOOR_DECO && Dungeon.level instanceof MiningLevel) {
+				for (int i : PathFinder.NEIGHBOURS4) {
+					if (map[pos + i] == Terrain.MINE_BOULDER) {
+						visual = DungeonTileSheet.MINE_FLOOR_DECO_HEAVY;
+						break;
+					}
+				}
+			}
+			return DungeonTileSheet.getVisualWithAlts(visual, pos);
+		}
 
 		if (tile == Terrain.WATER || tile == Terrain.DEEP_WATER) {
 			return DungeonTileSheet.stitchWaterTile(
@@ -115,7 +126,7 @@ public class DungeonTerrainTilemap extends DungeonTilemap {
 				return DungeonTileSheet.RAISED_REGION_DECO_ALT;
 			} else if (tile == Terrain.MINE_CRYSTAL) {
 				return DungeonTileSheet.getVisualWithAlts(
-						DungeonTileSheet.RAISED_MINE_CRYSTAL,
+						DungeonTileSheet.RAISED_MINE_CRYSTAL_BLUE_1,
 						pos);
 			} else if (tile == Terrain.MINE_BOULDER) {
 				return DungeonTileSheet.getVisualWithAlts(

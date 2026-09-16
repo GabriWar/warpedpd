@@ -22,6 +22,10 @@
 package xyz.gabriwar.warpedpixeldungeon.windows;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
+import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTeleportation;
+import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.InterlevelScene;
 import com.watabou.noosa.Game;
 import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
@@ -39,6 +43,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.journal.Bestiary;
 import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
 import xyz.gabriwar.warpedpixeldungeon.journal.Document;
+import xyz.gabriwar.warpedpixeldungeon.journal.Journal;
 import xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph;
 import xyz.gabriwar.warpedpixeldungeon.journal.GuideProgress;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -50,6 +55,9 @@ import xyz.gabriwar.warpedpixeldungeon.ui.RedButton;
 import xyz.gabriwar.warpedpixeldungeon.ui.RenderedTextBlock;
 import xyz.gabriwar.warpedpixeldungeon.ui.ScrollPane;
 import xyz.gabriwar.warpedpixeldungeon.ui.Window;
+import xyz.gabriwar.warpedpixeldungeon.WPDSettings;
+import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.windows.WndTextInput;
 import com.watabou.noosa.ui.Component;
 
 public class WndDebug extends WndTabbed {
@@ -74,33 +82,44 @@ public class WndDebug extends WndTabbed {
 		float fullClimateH = buildClimateContent(climateContent, width);
 		climateContent.setSize(width, fullClimateH);
 		int maxPaneH = (int)(PixelScene.uiCamera.height - chrome.marginVer() - 20);
-		float climateH = Math.min(fullClimateH, maxPaneH);
 
-		// --- Measure remaining tab heights ---
+		//every tab scrolls: the hero tab alone is taller than a phone screen, and the
+		//window is never taller than the screen it is on. Each pane is created BEFORE
+		//its tab: pointer listeners fire newest first, so a pane's controller made
+		//after the buttons under it would take their presses
+		ScrollPane itemsScroll = new ScrollPane(new Component());
 		ItemsTab items = new ItemsTab();
 		items.setSize(width, 0);
+		fill(itemsScroll, items, width);
 
+		ScrollPane mobsScroll = new ScrollPane(new Component());
 		MobsTab mobs = new MobsTab();
 		mobs.setSize(width, 0);
+		fill(mobsScroll, mobs, width);
 
+		ScrollPane travelScroll = new ScrollPane(new Component());
 		TravelTab travel = new TravelTab();
 		travel.setSize(width, 0);
+		fill(travelScroll, travel, width);
 
+		ScrollPane heroScroll = new ScrollPane(new Component());
 		HeroTab hero = new HeroTab();
 		hero.setSize(width, 0);
+		fill(heroScroll, hero, width);
 
-		float height = climateH;
+		float height = fullClimateH;
 		height = Math.max(height, items.height());
 		height = Math.max(height, mobs.height());
 		height = Math.max(height, travel.height());
 		height = Math.max(height, hero.height());
+		height = Math.min(height, maxPaneH);
 
 		// --- resize() BEFORE adding ScrollPane (required for correct camera positioning) ---
 		resize(width, (int) Math.ceil(height));
 
 		// --- Climate Tab ---
 		add(climateScroll);
-		climateScroll.setRect(0, 0, width, climateH);
+		climateScroll.setRect(0, 0, width, height);
 
 		add(new IconTab(Icons.get(Icons.SEED)) {
 			@Override
@@ -112,55 +131,65 @@ public class WndDebug extends WndTabbed {
 		});
 
 		// --- Items Tab ---
-		add(items);
+		add(itemsScroll);
+		itemsScroll.setRect(0, 0, width, height);
 
 		add(new IconTab(Icons.get(Icons.BACKPACK)) {
 			@Override
 			protected void select(boolean value) {
 				super.select(value);
-				items.visible = items.active = value;
+				itemsScroll.visible = itemsScroll.active = value;
 				if (value) lastTab = 1;
 			}
 		});
 
 		// --- Mobs Tab ---
-		add(mobs);
+		add(mobsScroll);
+		mobsScroll.setRect(0, 0, width, height);
 
 		add(new IconTab(Icons.get(Icons.SKULL)) {
 			@Override
 			protected void select(boolean value) {
 				super.select(value);
-				mobs.visible = mobs.active = value;
+				mobsScroll.visible = mobsScroll.active = value;
 				if (value) lastTab = 2;
 			}
 		});
 
 		// --- Travel Tab ---
-		add(travel);
+		add(travelScroll);
+		travelScroll.setRect(0, 0, width, height);
 
 		add(new IconTab(Icons.get(Icons.DEPTH)) {
 			@Override
 			protected void select(boolean value) {
 				super.select(value);
-				travel.visible = travel.active = value;
+				travelScroll.visible = travelScroll.active = value;
 				if (value) lastTab = 3;
 			}
 		});
 
 		// --- Hero Tab ---
-		add(hero);
+		add(heroScroll);
+		heroScroll.setRect(0, 0, width, height);
 
 		add(new IconTab(Icons.get(Icons.TALENT)) {
 			@Override
 			protected void select(boolean value) {
 				super.select(value);
-				hero.visible = hero.active = value;
+				heroScroll.visible = heroScroll.active = value;
 				if (value) lastTab = 4;
 			}
 		});
 
 		layoutTabs();
 		select(lastTab);
+	}
+
+	/** a tab into the pane made for it, so it scrolls when it is taller than the window */
+	private void fill(ScrollPane pane, Component tab, float width) {
+		pane.content().add(tab);
+		pane.content().setSize(width, tab.height());
 	}
 
 	// =====================================================================
@@ -547,6 +576,49 @@ public class WndDebug extends WndTabbed {
 			stats.setPos(x, pos);
 			pos = stats.bottom() + GAP;
 
+			//debug builds mark every guide page read at startup, which is exactly what
+			//hides the guidebook, its trail and the searching page: back to first-run
+			pos = addHeroBtn("Reset Tutorial", pos, () -> {
+				WPDSettings.intro(true);
+				for (String page : Document.ADVENTURERS_GUIDE.pageNames()) {
+					Document.ADVENTURERS_GUIDE.deletePage(page);
+				}
+				//to disk now: a restart would otherwise bring the read pages back
+				Journal.saveGlobal();
+				GLog.p("Tutorial reset: the guidebook returns in the next new game.");
+			});
+			//online play asks the relay for a supporter receipt. This is the relay's own
+			//test secret, typed in here rather than shipped: an empty box is the shipped
+			//state, and the relay refuses anything that is not the token it was started
+			//with. Rotating it there revokes every device at once
+			pos = addHeroBtn("Relay Dev Token", pos, () -> GameScene.show(new WndTextInput(
+					"Relay dev token",
+					"Stands in for a supporter receipt, and only on a relay started with the "
+							+ "same secret. Leave empty to go back to using the store receipt.",
+					WPDSettings.relayDevToken(), 128, false, "Save", "Cancel") {
+				@Override
+				public void onSelect(boolean positive, String text) {
+					if (!positive) return;
+					WPDSettings.relayDevToken(text.trim());
+					GLog.p(text.trim().isEmpty() ? "Relay dev token cleared." : "Relay dev token set.");
+				}
+			}));
+			pos = addHeroBtn("Supporter Thanks T1", pos, () -> GameScene.show(new WndSupporterThanks(1, "Tier 1")));
+			pos = addHeroBtn("Supporter Thanks T2", pos, () -> GameScene.show(new WndSupporterThanks(2, "Tier 2")));
+			pos = addHeroBtn("Supporter Thanks T3", pos, () -> GameScene.show(new WndSupporterThanks(3, "Tier 3")));
+			//the real purchase path: the thank-you is written down, shown, and then the
+			//scene is rebuilt the way the store sheet closing rebuilds it (a resize resets
+			//the scene). The window must come straight back on the rebuilt scene
+			pos = addHeroBtn("Thanks T3 + scene reset", pos, () -> {
+				WndSupporterThanks.request(3, "Tier 3 (test)");
+				Game.scene().add(new com.watabou.noosa.tweeners.Delayer(0.6f) {
+					@Override
+					protected void onComplete() {
+						super.onComplete();
+						Game.resetScene();
+					}
+				});
+			});
 			pos = addHeroBtn("Full Heal", pos, () -> hero.HP = hero.HT);
 			pos = addHeroBtn("+5 Strength", pos, () -> hero.STR += 5);
 			pos = addHeroBtn("+5 Levels", pos, () -> {
@@ -651,6 +723,21 @@ public class WndDebug extends WndTabbed {
 			ohkBtn.setRect(x, pos, width, BTN_HEIGHT);
 			pos = ohkBtn.bottom() + GAP;
 
+			boolean manaOn = Dungeon.debugInfiniteMana;
+			RedButton manaBtn = new RedButton(manaOn ? "Infinite Mana (ON)" : "Infinite Mana") {
+				@Override
+				protected void onClick() {
+					Dungeon.debugInfiniteMana = !Dungeon.debugInfiniteMana;
+					if (Dungeon.debugInfiniteMana) hero.MP = hero.MT;
+					hide();
+					GameScene.show(new WndDebug());
+				}
+			};
+			if (manaOn) manaBtn.textColor(0x44FF44);
+			add(manaBtn);
+			manaBtn.setRect(x, pos, width, BTN_HEIGHT);
+			pos = manaBtn.bottom() + GAP;
+
 			pos = addHeroBtnPair("Identify All", () -> {
 				for (Item item : hero.belongings) {
 					item.identify();
@@ -754,7 +841,7 @@ public class WndDebug extends WndTabbed {
 	}
 
 	// =====================================================================
-	// Travel Tab — teleport to any level
+	// Travel Tab — teleport within or between levels
 	// =====================================================================
 	private class TravelTab extends Component {
 
@@ -771,6 +858,42 @@ public class WndDebug extends WndTabbed {
 			add(header);
 			header.setPos(x, pos);
 			pos = header.bottom() + GAP;
+
+			RedButton teleport = new RedButton("Teleport to Cursor") {
+				@Override
+				protected void onClick() {
+					WndDebug.this.hide();
+					GameScene.selectCell(new CellSelector.Listener() {
+						@Override
+						public void onSelect(Integer cell) {
+							if (cell == null || Dungeon.level == null || Dungeon.hero == null) return;
+							Hero hero = Dungeon.hero;
+							if (cell < 0 || cell >= Dungeon.level.length()
+									|| !(Dungeon.level.passable[cell] || (hero.flying && Dungeon.level.avoid[cell]))
+									|| (Actor.findChar(cell) != null && Actor.findChar(cell) != hero)) {
+								GLog.w("Choose an open, unoccupied tile.");
+								return;
+							}
+							if (cell == hero.pos) return;
+							hero.interrupt();
+							Buff.detach(hero, Roots.class);
+							// Debug travel deliberately bypasses teleport pathfinding restrictions.
+							ScrollOfTeleportation.appear(hero, cell);
+							Dungeon.level.occupyCell(hero);
+							Dungeon.observe();
+							GameScene.updateFog();
+						}
+
+						@Override
+						public String prompt() {
+							return "Click or tap a tile to teleport.";
+						}
+					});
+				}
+			};
+			add(teleport);
+			teleport.setRect(x, pos, width, BTN_HEIGHT);
+			pos = teleport.bottom() + GAP;
 
 			RedButton allLevels = new RedButton("All Levels") {
 				@Override

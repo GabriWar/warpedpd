@@ -41,6 +41,16 @@ public abstract class UpdateService {
 
 	public abstract void initializeUpdate( AvailableUpdateData update );
 
+	//whether an update has already been downloaded and only waits for an install
+	//(the store's own background download); most services never get there
+	public boolean isInstallable(){
+		return false;
+	}
+
+	public void initializeInstall(){
+		//nothing downloaded in the background
+	}
+
 	public static abstract class ReviewResultCallback {
 		public abstract void onComplete();
 	}

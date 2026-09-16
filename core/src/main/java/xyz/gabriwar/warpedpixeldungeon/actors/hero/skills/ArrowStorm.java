@@ -27,6 +27,9 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ArrowRain;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -37,6 +40,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import com.watabou.utils.PathFinder;
@@ -44,6 +48,11 @@ import com.watabou.utils.PathFinder;
 import java.util.ArrayList;
 
 public class ArrowStorm extends Skill {
+
+	//damage comes from the weapon or strength, which already grow with the hero
+	@Override
+	public boolean weaponScaled(){ return true; }
+
 
 	{
 		tag = "A4";
@@ -84,31 +93,16 @@ public class ArrowStorm extends Skill {
 			curUser.sprite.zap( cell );
 			curUser.MP -= getManaCost();
 			castTextYell();
-
-			for (int n : PathFinder.NEIGHBOURS9){
-				int c = cell + n;
-				if (c < 0 || c >= Dungeon.level.length()) continue;
-
-				if (Dungeon.level.heroFOV[c]){
-					CellEmitter.get( c ).burst( Speck.factory( Speck.STAR ), 3 );
-				}
-
-				Char ch = Actor.findChar( c );
-				if (ch != null && ch != curUser && ch.alignment == Char.Alignment.ENEMY){
-					ch.damage( Math.round( curUser.damageRoll() * (0.4f + 0.2f * level) ), curUser );
-					if (ch.isAlive()){
-						Buff.prolong( ch, Cripple.class, 2 + level );
-					}
-				}
-			}
-
+			Sample.INSTANCE.play( Assets.Sounds.ATK_SPIRITBOW, 1f, 0.8f );
+			//the storm falls now and keeps falling for two more turns
+			Buff.append( curUser, ArrowRain.class ).set( cell, level, 3 );
 			Invisibility.dispel();
 			curUser.spendAndNext( TIME_TO_USE );
 		}
 
 		@Override
 		public String prompt(){
-			return "Choose where to loose the volley";
+			return Messages.get( ArrowStorm.class, "prompt" );
 		}
 	}
 

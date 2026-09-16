@@ -24,6 +24,23 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.weapon.melee;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bless;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
+import com.watabou.utils.Callback;
+import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -58,8 +75,52 @@ public class Trumpet extends MeleeWeapon {
 	}
 
 	//SPS-PD weapon: no Duelist ability was ever designed for it
+
 	@Override
-	public boolean hasDuelistAbility() {
-		return false;
+	protected int baseChargeUse(Hero hero, Char target){
+		return 2;
+	}
+
+	private int fanfareReach(){ return Math.min( 5, 3 + buffedLvl() / 3 ); }
+
+	/** a fanfare: a blast that stops every enemy in earshot for a turn and heartens every ally */
+	@Override
+	protected void duelistAbility( Hero hero, Integer target ){
+		beforeAbilityUsed( hero, null );
+		int reach = fanfareReach();
+		boolean any = false;
+		for (Mob m : Dungeon.level.mobs.toArray( new Mob[0] )){
+			if (!m.isAlive() || !Dungeon.level.heroFOV[m.pos] || Dungeon.level.distance( hero.pos, m.pos ) > reach) continue;
+			if (m.alignment == Char.Alignment.ENEMY){
+				Buff.affect( m, Paralysis.class, 1f );
+				if (m.sprite != null) m.sprite.emitter().burst( Speck.factory( Speck.SCREAM ), 3 );
+				any = true;
+			} else if (m.alignment == Char.Alignment.ALLY){
+				Buff.prolong( m, Bless.class, 3f );
+				if (m.sprite != null) m.sprite.emitter().burst( Speck.factory( Speck.STAR ), 3 );
+			}
+		}
+		Buff.prolong( hero, Bless.class, 3f );
+		if (hero.sprite != null){
+			new Flare( 8, 12 + 4 * reach ).color( 0xFFD700, true ).show( hero.sprite, 0.9f ).angularSpeed = 45;
+			hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 6 );
+		}
+		Camera.main.shake( any ? 2 : 1, 0.3f );
+		Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 1f, 1.3f );
+		Sample.INSTANCE.play( Assets.Sounds.BEACON, 0.8f, 1.5f );
+		hero.sprite.operate( hero.pos );
+		Invisibility.dispel();
+		hero.spendAndNext( 1f );
+		afterAbilityUsed( hero );
+	}
+
+	@Override
+	public String abilityInfo() {
+		return Messages.get(this, levelKnown ? "ability_desc" : "typical_ability_desc", fanfareReach());
+	}
+
+	@Override
+	public String upgradeAbilityStat(int level) {
+		return Integer.toString( Math.min( 5, 3 + level / 3 ) );
 	}
 }

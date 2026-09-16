@@ -27,6 +27,8 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
+import xyz.gabriwar.warpedpixeldungeon.mechanics.ConeAOE;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -62,17 +64,22 @@ public class ScouringFlame extends Skill {
 	@Override
 	public ArrayList<String> actions( Hero hero ){
 		ArrayList<String> actions = new ArrayList<>();
-		if (level > 0 && hero.MP >= getManaCost())
+		if (level > 0 && canPayMana( hero, getManaCost() ))
 			actions.add(AC_CAST);
 		return actions;
 	}
 
 	@Override
 	public void execute( Hero hero, String action ){
-		if (action.equals(Skill.AC_CAST) && level > 0 && hero.MP >= getManaCost()){
+		if (action.equals(Skill.AC_CAST) && level > 0 && canPayMana( hero, getManaCost() )){
 			GameScene.selectCell( zapper );
 			Dungeon.hero.heroSkills.lastUsed = this;
 		}
+	}
+
+	//the cone reaches 3 tiles at level 1, 4 at level 2, 5 at level 3
+	public int reach(){
+		return 2 + level;
 	}
 
 	private final CellSelector.Listener zapper = new CellSelector.Listener() {
@@ -80,47 +87,52 @@ public class ScouringFlame extends Skill {
 		public void onSelect( Integer cell ){
 			if (cell == null)
 				return;
-
 			final Hero hero = Dungeon.hero;
-			if (level <= 0 || hero.MP < getManaCost())
+			if (level <= 0 || !canPayMana( hero, getManaCost() ))
 				return;
-
-			final Char target = Actor.findChar( cell );
-			if (target == null || target == hero || !Dungeon.level.heroFOV[target.pos]){
+			if (cell == hero.pos){
 				GLog.w( Messages.get(ScouringFlame.this, "no_target") );
 				return;
 			}
 
-			hero.MP -= getManaCost();
-			castTextYell();
-			hero.sprite.zap( target.pos );
-			hero.busy();
-			Sample.INSTANCE.play( Assets.Sounds.ZAP );
+			//a cone of white fire, aimed rather than thrown: everything in it is scoured
+			Ballistica aim = new Ballistica( hero.pos, cell, Ballistica.STOP_SOLID );
+			ConeAOE cone = new ConeAOE( aim, reach(), 50, Ballistica.STOP_SOLID | Ballistica.STOP_TARGET );
 
-			MagicMissile.boltFromChar( hero.sprite.parent,
-					MagicMissile.LIGHT_MISSILE,
-					hero.sprite,
-					target.pos,
-					new Callback() {
-						@Override
-						public void call(){
-							int dmg = 4 + 3 * level;
-							if (Char.hasProp( target, Char.Property.UNDEAD ) || Char.hasProp( target, Char.Property.DEMONIC ))
-								dmg *= 2;
-							CellEmitter.center( target.pos ).burst( Speck.factory( Speck.LIGHT ), 5 );
-							target.damage( dmg, ScouringFlame.this );
-							if (target.isAlive())
-								Buff.prolong( target, Blindness.class, 2 + level );
-							hero.spendAndNext( TIME_TO_USE );
-						}
-					} );
+			payMana( hero, getManaCost() );
+			castTextYell();
+			hero.sprite.zap( cell );
+			Sample.INSTANCE.play( Assets.Sounds.BURNING, 1f, 1.3f );
+			Sample.INSTANCE.play( Assets.Sounds.RAY, 0.7f, 1.2f );
+			for (Ballistica ray : cone.rays){
+				MagicMissile.boltFromChar( hero.sprite.parent, MagicMissile.LIGHT_MISSILE, hero.sprite, ray.path.get( ray.dist ), null );
+			}
+
+			int dmg = 4 + 3 * level;
+			boolean any = false;
+			for (int c : cone.cells){
+				if (Dungeon.level.heroFOV[c]) CellEmitter.center( c ).burst( Speck.factory( Speck.LIGHT ), 2 );
+				Char target = Actor.findChar( c );
+				if (target == null || target == hero || target.alignment != Char.Alignment.ENEMY || !target.isAlive()) continue;
+				int hit = dmg;
+				if (Char.hasProp( target, Char.Property.UNDEAD ) || Char.hasProp( target, Char.Property.DEMONIC ))
+					hit *= 2;
+				CellEmitter.center( target.pos ).burst( Speck.factory( Speck.LIGHT ), 5 );
+				target.damage( hit, ScouringFlame.this );
+				if (target.sprite != null) target.sprite.flash();
+				//at level 3 the white fire leaves its survivors blinded
+				if (level >= MAX_LEVEL && target.isAlive())
+					Buff.prolong( target, Blindness.class, 3f );
+				any = true;
+			}
+			if (any) Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 1f, 0.9f );
 
 			Invisibility.dispel();
+			hero.spendAndNext( TIME_TO_USE );
 		}
-
 		@Override
 		public String prompt(){
-			return "Choose a target to scour";
+			return Messages.get(ScouringFlame.this, "prompt");
 		}
 	};
 

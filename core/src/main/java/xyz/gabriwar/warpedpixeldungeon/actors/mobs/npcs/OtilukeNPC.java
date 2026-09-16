@@ -48,6 +48,13 @@ public class OtilukeNPC extends NPC {
 		properties.add( Property.IMMOVABLE );
 	}
 
+	//lives in the town: sleeps at the inn (TownCommute)
+	@Override
+	public boolean sleepsAtInn() { return true; }
+
+	@Override
+	protected int bedtime() { return 50; }
+
 	protected static final float SPAWN_DELAY = 2f;
 
 	private boolean first = true;

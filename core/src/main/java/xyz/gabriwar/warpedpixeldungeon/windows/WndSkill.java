@@ -26,11 +26,15 @@
 
 package xyz.gabriwar.warpedpixeldungeon.windows;
 
+import com.watabou.noosa.Gizmo;
+import java.util.ArrayList;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.BranchSkill;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.SkillSprite;
+import xyz.gabriwar.warpedpixeldungeon.ui.Icons;
 import xyz.gabriwar.warpedpixeldungeon.ui.RedButton;
 import xyz.gabriwar.warpedpixeldungeon.ui.RenderedTextBlock;
 import xyz.gabriwar.warpedpixeldungeon.ui.Window;
@@ -43,27 +47,58 @@ public class WndSkill extends Window {
 	private static final int WIDTH_MIN = 120;
 	private static final int WIDTH_MAX = 220;
 
+	private final Window host;
+	private final Skill skill;
+	//everything but the chrome, so the window can redraw itself in place
+	private final ArrayList<Gizmo> content = new ArrayList<>();
+
 	public WndSkill( final Window host, final Skill skill ){
 		this( host, skill, false );
 	}
 
 	public WndSkill( final Window host, final Skill skill, final boolean upgradable ){
-
 		super();
+		this.host = host;
+		this.skill = skill;
+		build( upgradable );
+	}
+
+	private boolean canUpgradeNow(){
+		return skill.level < Skill.MAX_LEVEL && Skill.availableSkill >= skill.upgradeCost()
+				&& !(skill.exclusiveWith != null && skill.exclusiveWith.level > 0);
+	}
+
+	private <T extends Gizmo> T show( T g ){
+		add( g );
+		content.add( g );
+		return g;
+	}
+
+	/** lays the window out for the skill as it is now; called again after an
+	 *  upgrade or a toggle, so the window stays where it is with fresh numbers */
+	private void build( boolean upgradable ){
+		for (Gizmo g : content){
+			erase( g );
+			g.destroy();
+		}
+		content.clear();
 
 		int width = WIDTH_MIN;
 
 		//title: icon + name + level
 		IconTitle titlebar = new IconTitle();
-		titlebar.icon( new SkillSprite( skill.image() ) );
-		titlebar.label( skill.name() + " (lvl " + skill.level + ")" );
+		titlebar.icon( skill.quickslotIcon() );
+		titlebar.label( skill instanceof BranchSkill
+				? skill.name() + " (" + ((BranchSkill) skill).spent() + " pts)"
+				: skill instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.CrownSkill ? skill.name()
+				: skill.name() + " (lvl " + skill.level + ")" );
 		titlebar.setRect( 0, 0, width, 0 );
-		add( titlebar );
+		show( titlebar );
 
 		RenderedTextBlock info = PixelScene.renderTextBlock( skill.info(), 6 );
 		info.maxWidth( width );
 		info.setPos( titlebar.left(), titlebar.bottom() + GAP );
-		add( info );
+		show( info );
 
 		float y = info.bottom() + GAP;
 
@@ -71,16 +106,14 @@ public class WndSkill extends Window {
 			RedButton btnUp = new RedButton( "Upgrade (" + skill.upgradeCost() + (skill.upgradeCost() == 1 ? " point)" : " points)") ) {
 				@Override
 				protected void onClick() {
-					hide();
 					skill.requestUpgrade();
-					//keep the flow going: reopen with fresh numbers
-					GameScene.show( new WndSkill( host, skill,
-							skill.level < Skill.MAX_LEVEL
-									&& Skill.availableSkill >= skill.upgradeCost() ) );
+					//keep the flow going: the same window, with fresh numbers
+					build( canUpgradeNow() );
 				}
 			};
+			btnUp.icon( Icons.get(Icons.TALENT) );
 			btnUp.setRect( 0, y + GAP, width, BUTTON_HEIGHT );
-			add( btnUp );
+			show( btnUp );
 			y = btnUp.bottom();
 		}
 
@@ -88,22 +121,20 @@ public class WndSkill extends Window {
 			RedButton btn = new RedButton( action ) {
 				@Override
 				protected void onClick() {
-					hide();
 					if (action.equals(Skill.AC_CAST) || action.equals(Skill.AC_SUMMON)){
-						//game actions need the board - close the hosting window too
+						//game actions need the board - close this and the hosting window too
+						hide();
 						if (host != null) host.hide();
 						skill.execute( Dungeon.hero, action );
 					} else {
+						//a toggle: flip it and stay put
 						skill.execute( Dungeon.hero, action );
-						//advancing keeps the flow going: reopen fresh numbers
-						if (action.equals(Skill.AC_ADVANCE)){
-							GameScene.show( new WndSkill( host, skill ) );
-						}
+						build( canUpgradeNow() );
 					}
 				}
 			};
 			btn.setRect( 0, y + GAP, width, BUTTON_HEIGHT );
-			add( btn );
+			show( btn );
 			y = btn.bottom();
 		}
 

@@ -255,7 +255,7 @@ public class MineLevel extends Level {
 			LevelTransition transition ) {
 		if (Dungeon.depth == 56 && transition.type == LevelTransition.Type.REGULAR_ENTRANCE) {
 			xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel.arriveInTown(
-					xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldStructures.TOWN_STAIRS - 32 );
+					xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldStructures.TOWN_MINE_GATE - 32 );
 			xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel.travelToSurface();
 			return true;
 		}

@@ -44,6 +44,7 @@ import xyz.gabriwar.warpedpixeldungeon.levels.MiningLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.VaultLevel;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barkskin;
 import com.watabou.utils.Random;
 
 public class HighGrass {
@@ -68,6 +69,9 @@ public class HighGrass {
 			
 		} else {
 			if (ch instanceof Hero && ((Hero) ch).heroClass == HeroClass.HUNTRESS){
+				if(((Hero) ch).hasTalent(Talent.BARKSKIN)){
+					Barkskin.conditionallyAppend(ch, (((Hero) ch).lvl* ((Hero) ch).pointsInTalent(Talent.BARKSKIN))/3, 1 );
+				}
 				Level.set(pos, Terrain.FURROWED_GRASS);
 				freezeTrample = true;
 			} else {
@@ -105,7 +109,7 @@ public class HighGrass {
 						else if (Dungeon.depth == targetFloor) droppingBerry = Random.Int(30) == 0;
 						else if (Dungeon.depth < targetFloor) droppingBerry = Random.Int(90) == 0;
 
-						if (droppingBerry) {
+						if (droppingBerry && Random.Int(4) == 0) {
 							dropped.countUp(1);
 							level.drop(new Berry(), pos).sprite.drop();
 						}
@@ -120,11 +124,6 @@ public class HighGrass {
 					&& Random.Int(3) != 0){
 				naturalismLevel = -1;
 			}
-
-			//grass gives no loot in vault tester area
-			if (Dungeon.level instanceof VaultLevel){
-				naturalismLevel = -1;
-			}
 			
 			if (naturalismLevel >= 0) {
 				// Seed, scales from 1/25 to 1/9
@@ -132,6 +131,11 @@ public class HighGrass {
 
 				// absolute max drop rate is ~1/6.5 with footwear of nature, ~1/18 without
 				lootChance *= PetrifiedSeed.grassLootMultiplier();
+
+				//vault level spawns significantly fewer seeds from grass
+				if (Dungeon.level instanceof VaultLevel){
+					lootChance /= 3;
+				}
 
 				if (Random.Float() < lootChance) {
 					if (Random.Float() < PetrifiedSeed.stoneInsteadOfSeedChance()) {
@@ -142,7 +146,9 @@ public class HighGrass {
 						//category here - SEED is declared as Plant.Seed and a dozen call sites
 						//hard-cast the result, so a Nut (a Food) would throw - so take its share
 						//of the same roll instead.
-						level.drop(new Nut(), pos).sprite.drop();
+						if (Random.Int(4) == 0) {
+							level.drop(new Nut(), pos).sprite.drop();
+						}
 					} else {
 						level.drop(Generator.random(Generator.Category.SEED), pos).sprite.drop();
 					}
@@ -150,7 +156,7 @@ public class HighGrass {
 				
 				// Sprouted: universal berry drops from grass, decaying chance
 				if (Random.Int(40) - Dungeon.LimitedDrops.BERRIES.count >= 0
-						&& Random.Int(40) == 0) {
+						&& Random.Int(160) == 0) {
 					Dungeon.LimitedDrops.BERRIES.count++;
 					level.drop(new Berry(), pos).sprite.drop();
 				}

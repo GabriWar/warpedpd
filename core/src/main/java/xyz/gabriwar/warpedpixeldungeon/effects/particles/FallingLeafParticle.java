@@ -21,15 +21,18 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
-import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.Random;
 
-public class FallingLeafParticle extends PixelParticle {
+import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherSprites;
+
+/**
+ * A leaf, or in spring a petal, tumbling down: it turns over as it falls, swings
+ * on its wobble and rides the wind. The colours are the season's.
+ */
+public class FallingLeafParticle extends WeatherParticle {
 
 	private static final int[] AUTUMN_COLORS = {
 			0xCC6622, 0xDD8833, 0xBB4411, 0xEEAA22, 0x995511
@@ -56,6 +59,7 @@ public class FallingLeafParticle extends PixelParticle {
 		@Override
 		public void emit(Emitter emitter, int index, float x, float y) {
 			FallingLeafParticle p = (FallingLeafParticle) emitter.recycle(FallingLeafParticle.class);
+			p.petal = false;
 			p.color(AUTUMN_COLORS[Random.Int(AUTUMN_COLORS.length)]);
 			p.reset(x, y);
 		}
@@ -65,13 +69,19 @@ public class FallingLeafParticle extends PixelParticle {
 		@Override
 		public void emit(Emitter emitter, int index, float x, float y) {
 			FallingLeafParticle p = (FallingLeafParticle) emitter.recycle(FallingLeafParticle.class);
-			p.color(SPRING_COLORS[Random.Int(SPRING_COLORS.length)]);
+			int c = SPRING_COLORS[Random.Int(SPRING_COLORS.length)];
+			//the pinks are blossom, the greens young leaves
+			p.petal = (c & 0xFF0000) == 0xFF0000;
+			p.color(c);
 			p.reset(x, y);
 		}
 	};
 
 	private float wobblePhase;
 	private float windBias;
+	private float tumble;
+	private int face;
+	private boolean petal;
 
 	public FallingLeafParticle() {
 		super();
@@ -82,12 +92,13 @@ public class FallingLeafParticle extends PixelParticle {
 		revive();
 		this.x = x;
 		this.y = y;
-		left = lifespan;
-		size = Random.Float(1.5f, 3f);
+		left = lifespan = Random.Float(3f, 5f);
+		face = Random.Int(WeatherSprites.LEAVES.length);
+		frame(petal ? WeatherSprites.PETAL : WeatherSprites.LEAVES[face]);
+		tumble = Random.Float(0.12f, 0.3f);
 
-		// Wind carries leaves — they're very light
 		windBias = ClimateManager.localWindSpeed() * 1.0f;
-		speed.set(Random.Float(-6, 6) + windBias, Random.Float(8, 16));
+		speed.set(Random.Float(-6, 6) + windBias, petal ? Random.Float(5, 10) : Random.Float(8, 16));
 		acc.set(0, Random.Float(4, 8));
 		wobblePhase = Random.Float((float)(Math.PI * 2));
 	}
@@ -110,25 +121,20 @@ public class FallingLeafParticle extends PixelParticle {
 	@Override
 	public void update() {
 		super.update();
-		float p = left / lifespan;
-
-		// Wobble + wind drift
 		wobblePhase += Game.elapsed * 3f;
-		speed.x = (float) Math.sin(wobblePhase) * 10f + windBias;
-
-		if (p > 0.9f) {
-			am = (1f - p) * 10f;
-		} else if (p < 0.2f) {
-			am = p * 5f;
-		} else {
-			am = 1f;
+		float gust = 1f + 0.4f * WeatherSprites.gust();
+		speed.x = (float) Math.sin(wobblePhase) * 10f + windBias * gust;
+		//it turns over as it swings: another face, or the same one mirrored
+		tumble -= Game.elapsed;
+		if (tumble <= 0) {
+			tumble = Random.Float(0.12f, 0.3f);
+			if (!petal && Random.Float() < 0.5f) {
+				face = (face + 1 + Random.Int(WeatherSprites.LEAVES.length - 1)) % WeatherSprites.LEAVES.length;
+				frame(WeatherSprites.LEAVES[face]);
+			}
+			scale.x = -scale.x;
 		}
-
-		size(size * (0.5f + 0.5f * p));
-
-		int cell = (int)(this.x / DungeonTilemap.SIZE) + (int)(this.y / DungeonTilemap.SIZE) * Dungeon.level.width();
-		if (cell < 0 || cell >= Dungeon.level.heroFOV.length || !Dungeon.level.heroFOV[cell]) {
-			am = 0;
-		}
+		am = envelope(0.2f, 0.1f, 1f);
+		fov();
 	}
 }

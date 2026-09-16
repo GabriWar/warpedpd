@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -78,7 +79,7 @@ public class WaterOfTransmutation extends WellWater {
 	@Override
 	public void use(BlobEmitter emitter) {
 		super.use(emitter);
-		emitter.start(Speck.factory(Speck.CHANGE), 0.2f, 0);
+		emitter.start(WeatherBlobFX.layered(Speck.factory(Speck.CHANGE), WeatherBlobFX.sparkles( 0xE0A0FF ), 4), 0.2f, 0);
 	}
 
 	@Override

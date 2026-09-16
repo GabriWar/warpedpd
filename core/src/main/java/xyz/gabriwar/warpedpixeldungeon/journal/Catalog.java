@@ -202,7 +202,92 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.relic.CromCruachAxe;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.relic.LokisFlail;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.relic.NeptunusTrident;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.TippedDart;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.AresLeech;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.BuzzSaw;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.CromLuck;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.JupitersHorror;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.LokisPoison;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.NeptuneShock;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.ElfBow;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MegaCannon;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MiniGun;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.ShootGun;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.TaurcenBow;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.Boomerang;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.JupitersWraith;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.RiceBall;
+import xyz.gabriwar.warpedpixeldungeon.items.armor.AsceticArmor;
+import xyz.gabriwar.warpedpixeldungeon.items.armor.BulletArmor;
+import xyz.gabriwar.warpedpixeldungeon.items.armor.CeramicsArmor;
+import xyz.gabriwar.warpedpixeldungeon.items.armor.FollowerArmor;
+import xyz.gabriwar.warpedpixeldungeon.items.armor.LifeArmor;
+import xyz.gabriwar.warpedpixeldungeon.items.armor.MachineArmor;
+import xyz.gabriwar.warpedpixeldungeon.items.armor.PerformerArmor;
+import xyz.gabriwar.warpedpixeldungeon.items.armor.SoldierArmor;
+import xyz.gabriwar.warpedpixeldungeon.items.artifacts.LloydsBeacon;
+import xyz.gabriwar.warpedpixeldungeon.items.bombs.FishingBomb;
+import xyz.gabriwar.warpedpixeldungeon.items.SeekingBombItem;
+import xyz.gabriwar.warpedpixeldungeon.items.SeekingClusterBombItem;
+import xyz.gabriwar.warpedpixeldungeon.items.food.Aprico;
+import xyz.gabriwar.warpedpixeldungeon.items.food.Cornwheatshaft;
+import xyz.gabriwar.warpedpixeldungeon.items.food.Fish;
+import xyz.gabriwar.warpedpixeldungeon.items.food.Grape;
+import xyz.gabriwar.warpedpixeldungeon.items.food.Peanut;
+import xyz.gabriwar.warpedpixeldungeon.items.food.PlantEgg;
+import xyz.gabriwar.warpedpixeldungeon.items.Coffee;
+import xyz.gabriwar.warpedpixeldungeon.items.keys.IceKey;
+import xyz.gabriwar.warpedpixeldungeon.items.CavesKey;
+import xyz.gabriwar.warpedpixeldungeon.items.CityKey;
+import xyz.gabriwar.warpedpixeldungeon.items.HallsKey;
+import xyz.gabriwar.warpedpixeldungeon.items.PrisonKey;
+import xyz.gabriwar.warpedpixeldungeon.items.SewersKey;
+import xyz.gabriwar.warpedpixeldungeon.items.TenguKey;
+import xyz.gabriwar.warpedpixeldungeon.items.AncientCoin;
+import xyz.gabriwar.warpedpixeldungeon.items.Bone;
+import xyz.gabriwar.warpedpixeldungeon.items.BookOfDead;
+import xyz.gabriwar.warpedpixeldungeon.items.BookOfLife;
+import xyz.gabriwar.warpedpixeldungeon.items.BookOfTranscendence;
+import xyz.gabriwar.warpedpixeldungeon.items.BuildersTool;
+import xyz.gabriwar.warpedpixeldungeon.items.ConchShell;
+import xyz.gabriwar.warpedpixeldungeon.items.DiaryPage;
+import xyz.gabriwar.warpedpixeldungeon.items.EasterEgg;
+import xyz.gabriwar.warpedpixeldungeon.items.Egg;
+import xyz.gabriwar.warpedpixeldungeon.items.Fertilizer;
+import xyz.gabriwar.warpedpixeldungeon.items.MagicWorldMap;
+import xyz.gabriwar.warpedpixeldungeon.items.OtilukesJournal;
+import xyz.gabriwar.warpedpixeldungeon.items.Palantir;
+import xyz.gabriwar.warpedpixeldungeon.items.PortableChest;
+import xyz.gabriwar.warpedpixeldungeon.items.RedDewdrop;
+import xyz.gabriwar.warpedpixeldungeon.items.VioletDewdrop;
+import xyz.gabriwar.warpedpixeldungeon.items.YellowDewdrop;
+import xyz.gabriwar.warpedpixeldungeon.items.SanChikarah;
+import xyz.gabriwar.warpedpixeldungeon.items.SanChikarahDeath;
+import xyz.gabriwar.warpedpixeldungeon.items.SanChikarahLife;
+import xyz.gabriwar.warpedpixeldungeon.items.SanChikarahTranscend;
+import xyz.gabriwar.warpedpixeldungeon.items.ShadowDragonEgg;
+import xyz.gabriwar.warpedpixeldungeon.items.SteelHoneypot;
+import xyz.gabriwar.warpedpixeldungeon.items.TownReturnBeacon;
+import xyz.gabriwar.warpedpixeldungeon.items.UpgradeBlobRed;
+import xyz.gabriwar.warpedpixeldungeon.items.UpgradeBlobViolet;
+import xyz.gabriwar.warpedpixeldungeon.items.UpgradeBlobYellow;
+import xyz.gabriwar.warpedpixeldungeon.items.Whistle;
+import xyz.gabriwar.warpedpixeldungeon.items.quest.EscapeCrystal;
+import xyz.gabriwar.warpedpixeldungeon.items.spells.AquaBlast;
+import xyz.gabriwar.warpedpixeldungeon.items.spells.CrimsonEpithet;
+import xyz.gabriwar.warpedpixeldungeon.items.spells.DoomCall;
+import xyz.gabriwar.warpedpixeldungeon.items.spells.EnchantmentInfusion;
+import xyz.gabriwar.warpedpixeldungeon.items.spells.FeatherFall;
+import xyz.gabriwar.warpedpixeldungeon.items.spells.ForcePush;
+import xyz.gabriwar.warpedpixeldungeon.items.spells.Forcefield;
+import xyz.gabriwar.warpedpixeldungeon.items.spells.HolyBlast;
+import xyz.gabriwar.warpedpixeldungeon.items.spells.MagicalPorter;
+import xyz.gabriwar.warpedpixeldungeon.items.spells.NaturesLullaby;
+import xyz.gabriwar.warpedpixeldungeon.items.spells.PlantSummon;
+import xyz.gabriwar.warpedpixeldungeon.items.spells.SeasonChange;
+import xyz.gabriwar.warpedpixeldungeon.items.spells.SpontaneousCombustion;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.items.quest.ImpStatue;
+import xyz.gabriwar.warpedpixeldungeon.items.quest.VaultBeacon;
 import com.watabou.utils.Bundle;
 
 import java.util.ArrayList;
@@ -282,8 +367,12 @@ public enum Catalog {
 
 		//ported content that is craft-only or otherwise outside the loot tables
 		MELEE_WEAPONS.addItems(Saber.class, Shovel.class, Spade.class, MinersTool.class, PocketKnife.class, DeathSword.class, AssassinsSpear.class, BeamSaber.class, ChainFlail.class, ChainWhip.class, DualGreatSword.class, ForceGlove.class, HolySword.class, HugeSword.class, Lance.class, LanceNShield.class, MeisterHammer.class, ObsidianShield.class, SharpKatana.class, SpearNShield.class, TrueRunicBlade.class, UnformedBlade.class, UnholyBible.class);
+		MELEE_WEAPONS.addItems(ElfBow.class, TaurcenBow.class, ShootGun.class, MiniGun.class, MegaCannon.class);
 
 		ARMOR.addItems(Generator.Category.ARMOR.classes);
+		//specials rolled by Generator.randomArmor
+		ARMOR.addItems(LifeArmor.class, PerformerArmor.class, AsceticArmor.class, FollowerArmor.class,
+				CeramicsArmor.class, SoldierArmor.class, BulletArmor.class, MachineArmor.class);
 
 		THROWN_WEAPONS.addItems(Generator.Category.MIS_T1.classes);
 		THROWN_WEAPONS.addItems(Generator.Category.MIS_T2.classes);
@@ -291,11 +380,15 @@ public enum Catalog {
 		THROWN_WEAPONS.addItems(Generator.Category.MIS_T4.classes);
 		THROWN_WEAPONS.addItems(Generator.Category.MIS_T5.classes);
 		THROWN_WEAPONS.addItems(Cross.class, PotOThunder.class);
+		THROWN_WEAPONS.addItems(Boomerang.class, JupitersWraith.class, RiceBall.class);
 
 		ENCHANTMENTS.addItems(Weapon.Enchantment.common);
 		ENCHANTMENTS.addItems(Weapon.Enchantment.uncommon);
 		ENCHANTMENTS.addItems(Weapon.Enchantment.rare);
 		ENCHANTMENTS.addItems(Weapon.Enchantment.curses);
+		//innate to relic weapons and the chainsaw
+		ENCHANTMENTS.addItems(AresLeech.class, CromLuck.class, LokisPoison.class,
+				NeptuneShock.class, JupitersHorror.class, BuzzSaw.class);
 
 		GLYPHS.addItems(Armor.Glyph.common);
 		GLYPHS.addItems(Armor.Glyph.uncommon);
@@ -309,6 +402,7 @@ public enum Catalog {
 		ARTIFACTS.addItems(Generator.Category.ARTIFACT.classes);
 		ARTIFACTS.addItems(CandleOfMindVision.class);
 		ARTIFACTS.addItems(RingOfDisintegration.class, RingOfFrost.class);
+		ARTIFACTS.addItems(LloydsBeacon.class);
 
 		TRINKETS.addItems(Generator.Category.TRINKET.classes);
 
@@ -335,7 +429,9 @@ public enum Catalog {
 				MonsterMeat.class, Nut.class, ToastedNut.class, GoldenNut.class,
 				Blackberry.class, Cloudberry.class, Blueberry.class, Moonberry.class,
 				FullMoonberry.class, DeathCap.class, Earthstar.class, GoldenJelly.class,
-				JackOLantern.class, BlueMilk.class, PixieParasol.class, PotionOfConstitution.class );
+				JackOLantern.class, BlueMilk.class, PixieParasol.class, PotionOfConstitution.class,
+				Aprico.class, Cornwheatshaft.class, Fish.class, Pasty.FishLeftover.class, Grape.class,
+				Peanut.class, PlantEgg.class );
 
 		EXOTIC_POTIONS.addItems(ExoticPotion.exoToReg.keySet().toArray(new Class[0]));
 
@@ -343,7 +439,8 @@ public enum Catalog {
 
 		BOMBS.addItems( Bomb.class, FrostBomb.class, Firebomb.class, SmokeBomb.class, RegrowthBomb.class,
 				WoollyBomb.class, Noisemaker.class, FlashBangBomb.class, HolyBomb.class, ArcaneBomb.class, ShrapnelBomb.class,
-				SmartBomb.class, ClusterBomb.class, DizzyBomb.class, HolyHandGrenade.class, DumplingBomb.class );
+				SmartBomb.class, ClusterBomb.class, DizzyBomb.class, HolyHandGrenade.class, DumplingBomb.class,
+				FishingBomb.class, SeekingBombItem.class, SeekingClusterBombItem.class );
 
 		TIPPED_DARTS.addItems(TippedDart.types.values().toArray(new Class[0]));
 
@@ -356,12 +453,13 @@ public enum Catalog {
 				Alchemize.class, CurseInfusion.class, MagicalInfusion.class, Recycle.class,
 				ReclaimTrap.class, SummonElemental.class, BeaconOfReturning.class);
 		SPELLS.addItems(Evolution.class, UpgradeDust.class);
+		SPELLS.addItems(Generator.Category.SPELLS.classes);
 
 		MISC_CONSUMABLES.addItems(ArrowItem.class, BulletItem.class, BulletBelt.class, ArrowBag.class, GunSmithingTool.class);
 		MISC_CONSUMABLES.addItems( Gold.class, EnergyCrystal.class, Dewdrop.class,
 				IronKey.class, GoldenKey.class, CrystalKey.class, WornKey.class,
 				TrinketCatalyst.class, Stylus.class, Torch.class, Honeypot.class, Ankh.class,
-				CorpseDust.class, Embers.class, CeremonialCandle.class, DarkGold.class, DwarfToken.class,
+				CorpseDust.class, Embers.class, CeremonialCandle.class, DarkGold.class, EscapeCrystal.class, VaultBeacon.class, DwarfToken.class, ImpStatue.class,
 				GooBlob.class, TengusMask.class, MetalShard.class, KingsCrown.class,
 				LiquidMetal.class, ArcaneResin.class,
 				SealShard.class, BrokenStaff.class, CloakScrap.class, BowFragment.class, BrokenHilt.class, TornPage.class,
@@ -372,20 +470,17 @@ public enum Catalog {
 				AdamantArmor.class, AdamantRing.class, AdamantWand.class, AdamantWeapon.class,
 				InactiveMrDestructo.class, InactiveMrDestructo2.class,
 				ActiveMrDestructo.class, ActiveMrDestructo2.class, OrbOfZot.class,
-				Towel.class );
+				Towel.class,
+				IceKey.class, SewersKey.class, PrisonKey.class, CavesKey.class, CityKey.class, HallsKey.class, TenguKey.class,
+				RedDewdrop.class, YellowDewdrop.class, VioletDewdrop.class,
+				UpgradeBlobRed.class, UpgradeBlobYellow.class, UpgradeBlobViolet.class,
+				SanChikarah.class, SanChikarahLife.class, SanChikarahDeath.class, SanChikarahTranscend.class,
+				BookOfLife.class, BookOfDead.class, BookOfTranscendence.class,
+				AncientCoin.class, Bone.class, ConchShell.class, DiaryPage.class, Coffee.class,
+				Egg.class, EasterEgg.class, ShadowDragonEgg.class, Fertilizer.class, BuildersTool.class,
+				MagicWorldMap.class, OtilukesJournal.class, Palantir.class, PortableChest.class,
+				SteelHoneypot.class, TownReturnBeacon.class, Whistle.class, EscapeCrystal.class );
 
-	}
-
-	//old badges for pre-2.5
-	public static LinkedHashMap<Catalog, Badges.Badge> catalogBadges = new LinkedHashMap<>();
-	static {
-		catalogBadges.put(MELEE_WEAPONS, Badges.Badge.ALL_WEAPONS_IDENTIFIED);
-		catalogBadges.put(ARMOR, Badges.Badge.ALL_ARMOR_IDENTIFIED);
-		catalogBadges.put(WANDS, Badges.Badge.ALL_WANDS_IDENTIFIED);
-		catalogBadges.put(RINGS, Badges.Badge.ALL_RINGS_IDENTIFIED);
-		catalogBadges.put(ARTIFACTS, Badges.Badge.ALL_ARTIFACTS_IDENTIFIED);
-		catalogBadges.put(POTIONS, Badges.Badge.ALL_POTIONS_IDENTIFIED);
-		catalogBadges.put(SCROLLS, Badges.Badge.ALL_SCROLLS_IDENTIFIED);
 	}
 
 	public static ArrayList<Catalog> equipmentCatalogs = new ArrayList<>();
@@ -460,10 +555,6 @@ public enum Catalog {
 	}
 
 	public static void countUses(Class<?> cls, int uses){
-		//TODO currently uses of items in vault tester are don't count
-		if (Dungeon.depth > 15 && Dungeon.branch > 0){
-			return;
-		}
 		for (Catalog cat : values()) {
 			if (cat.useCount.containsKey(cls) && cat.useCount.get(cls) != Integer.MAX_VALUE) {
 				cat.useCount.put(cls, cat.useCount.get(cls)+uses);
@@ -510,31 +601,8 @@ public enum Catalog {
 		bundle.put( CATALOG_USES, storeUses );
 		
 	}
-
-	//pre-v2.5
-	private static final String CATALOG_ITEMS = "catalog_items";
 	
 	public static void restore( Bundle bundle ){
-
-		//old logic for pre-v2.5 catalog-specific badges
-		Badges.loadGlobal();
-		for (Catalog cat : values()){
-			if (Badges.isUnlocked(catalogBadges.get(cat))){
-				for (Class<?> item : cat.items()){
-					cat.seen.put(item, true);
-				}
-			}
-		}
-		if (bundle.contains(CATALOG_ITEMS)) {
-			for (Class<?> cls : Arrays.asList(bundle.getClassArray(CATALOG_ITEMS))){
-				for (Catalog cat : values()) {
-					if (cat.seen.containsKey(cls)) {
-						cat.seen.put(cls, true);
-					}
-				}
-			}
-		}
-		//end of old logic
 
 		if (bundle.contains(CATALOG_CLASSES)){
 			Class<?>[] classes = bundle.getClassArray(CATALOG_CLASSES);

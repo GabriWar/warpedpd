@@ -146,7 +146,8 @@ public class Notes {
 
 		DEMON_SPAWNER,
 
-		PORTAL;
+		PORTAL,
+		ENCHANTING;
 	}
 	
 	public static class LandmarkRecord extends Record {
@@ -185,6 +186,8 @@ public class Notes {
 					else                return new Image(new ShopkeeperSprite());
 				case ALCHEMY:
 					return Icons.get(Icons.ALCHEMY);
+				case ENCHANTING:
+					return new Image(xyz.gabriwar.warpedpixeldungeon.Assets.Interfaces.ENCHANTING);
 				case GARDEN:
 					return Icons.get(Icons.GRASS);
 				case DISTANT_WELL:
@@ -280,6 +283,7 @@ public class Notes {
 					if (depth == 20)    return Messages.get(ImpShopkeeper.class, "desc");
 					else                return Messages.get(Shopkeeper.class, "desc");
 				case ALCHEMY:           return Messages.get(Level.class, "alchemy_desc");
+				case ENCHANTING:        return Messages.get(xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.EnchantingStation.class, "desc");
 				case GARDEN:            return Messages.get(Foliage.class, "desc");
 				case DISTANT_WELL:      return Messages.get(WeakFloorRoom.HiddenWell.class, "desc");
 				case WELL_OF_HEALTH:    return Messages.get(WaterOfHealth.class, "desc");
@@ -423,8 +427,7 @@ public class Notes {
 		TEXT,
 		DEPTH,
 		ITEM_TYPE,
-		SPECIFIC_ITEM,
-		ITEM //for pre-3.1 save conversion
+		SPECIFIC_ITEM
 	}
 
 	public static class CustomRecord extends Record {
@@ -571,15 +574,6 @@ public class Notes {
 
 			if (bundle.contains(ITEM_CLASS)) {
 				itemClass = bundle.getClass(ITEM_CLASS);
-				if (type == CustomType.ITEM){
-					//prior to v3.1 specific item notes and item type notes were the same
-					//we assume notes are for a specific item if they're for an equipment
-					if (EquipableItem.class.isAssignableFrom(itemClass)){
-						type = CustomType.SPECIFIC_ITEM;
-					} else {
-						type = CustomType.ITEM_TYPE;
-					}
-				}
 			}
 
 			title = bundle.getString(TITLE);

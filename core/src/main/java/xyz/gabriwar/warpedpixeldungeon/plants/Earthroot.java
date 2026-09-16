@@ -114,10 +114,6 @@ public class Earthroot extends Plant {
 			return new EarthrootPoisonParticle();
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			new Earthroot().attackProc(defender, damage);
-		}
 	}
 
 	public static class Armor extends Buff {

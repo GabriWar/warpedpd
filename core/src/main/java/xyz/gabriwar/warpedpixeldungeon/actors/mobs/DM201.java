@@ -42,6 +42,9 @@ public class DM201 extends DM200 {
 		properties.add(Property.IMMOVABLE);
 
 		HUNTING = new Hunting();
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	@Override

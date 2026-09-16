@@ -86,10 +86,6 @@ public class Dirtdaisy extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			GameScene.add(Blob.seed(defender.pos, damage+1, Dirtcloud.class));
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

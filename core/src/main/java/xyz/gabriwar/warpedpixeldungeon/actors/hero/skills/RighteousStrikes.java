@@ -27,9 +27,28 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+
+import java.util.HashSet;
 
 public class RighteousStrikes extends PassiveSkillB1 {
+
+	//light gathers over this many landed melee blows and is released on the last of them
+	private static final int BLOWS_PER_RELEASE = 3;
+	//holy damage of each link of the chain, doubled against the unholy
+	private static final int LIGHT = 5;
+	//how far the light can leap from one enemy to the next
+	private static final int LEAP = 2;
+
+	private int blows = 0;
 
 	{
 		name = "Righteous Strikes";
@@ -42,16 +61,61 @@ public class RighteousStrikes extends PassiveSkillB1 {
 		return true;
 	}
 
-	@Override
-	public int toHitBonus(){ return level * 2; }
+	private static int holy( Char ch ){
+		boolean unholy = Char.hasProp( ch, Char.Property.UNDEAD ) || Char.hasProp( ch, Char.Property.DEMONIC );
+		return unholy ? LIGHT * 2 : LIGHT;
+	}
 
-	//holy bite: the accuracy filler keeps its worth late by biting into the unholy
 	@Override
 	public int onHitProc( Char enemy, int damage, boolean ranged ){
-		if (level <= 0 || enemy == null)
+		if (level <= 0 || ranged || enemy == null)
 			return damage;
-		if (Char.hasProp( enemy, Char.Property.UNDEAD ) || Char.hasProp( enemy, Char.Property.DEMONIC ))
-			damage += level * 2;
-		return damage;
+		Hero hero = Dungeon.hero;
+		if (++blows < BLOWS_PER_RELEASE){
+			//the light is seen gathering on the cleric, brighter each blow
+			if (hero != null && hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), blows * 2 );
+			return damage;
+		}
+		blows = 0;
+
+		if (enemy.sprite != null){
+			new Flare( 6, 20 ).color( 0xFFEE88, true ).show( enemy.sprite, 0.6f );
+			enemy.sprite.emitter().burst( Speck.factory( Speck.YELLOW_LIGHT ), 6 );
+		}
+		Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 0.8f, 1.2f );
+
+		//the released light leaps from enemy to enemy, one more leap per level
+		HashSet<Char> struck = new HashSet<>();
+		struck.add( enemy );
+		Char from = enemy;
+		for (int i = 0; i < level; i++){
+			Char next = null;
+			for (Mob m : Dungeon.level.mobs){
+				if (struck.contains( m ) || m.alignment != Char.Alignment.ENEMY || !m.isAlive()
+						|| !Dungeon.level.heroFOV[m.pos] || Dungeon.level.distance( from.pos, m.pos ) > LEAP
+						|| !SkillInteractions.clear( from.pos, m.pos )) continue;
+				if (next == null || Dungeon.level.trueDistance( from.pos, m.pos ) < Dungeon.level.trueDistance( from.pos, next.pos )) next = m;
+			}
+			if (next == null) break;
+			ray( from, next );
+			struck.add( next );
+			next.damage( holy( next ), this );
+			from = next;
+		}
+		if (struck.size() > 1) Sample.INSTANCE.play( Assets.Sounds.RAY, 0.7f, 1.2f );
+
+		//at mastery the light comes home and mends the cleric for every enemy it touched
+		if (level >= MAX_LEVEL && hero != null && hero.sprite != null){
+			ray( from, hero );
+			hero.heal( SkillInteractions.ofHealth( hero.HT, 0.01f ) * struck.size() );
+		}
+
+		return damage + holy( enemy );
+	}
+
+	private static void ray( Char a, Char b ){
+		if (a.sprite == null || b.sprite == null || a.sprite.parent == null) return;
+		a.sprite.parent.add( new Beam.LightRay( a.sprite.center(), b.sprite.center() ) );
+		b.sprite.emitter().burst( Speck.factory( Speck.YELLOW_LIGHT ), 4 );
 	}
 }

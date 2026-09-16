@@ -42,7 +42,7 @@ public class Velocirooster extends Mob {
 		EXP = 4;
 		maxLvl = 11;
 		loot = MysteryMeat.class;
-		lootChance = 0.167f;
+		lootChance = 0.167f / 4f;
 	}
 
 	@Override

@@ -54,7 +54,7 @@ public class ShardOfOblivion extends Trinket {
 
 	@Override
 	protected int upgradeEnergyCost() {
-		//6 -> 8(14) -> 10(24) -> 12(36)
+		//6 -> 6(12) -> 8(20) -> 10(30)
 		return 6+2*level();
 	}
 
@@ -105,17 +105,17 @@ public class ShardOfOblivion extends Trinket {
 			boolean ready = false;
 			if (item instanceof Weapon){
 				ready = ((Weapon) item).readyToIdentify();
-				if (item.isEquipped(curUser) && curUser.pointsInTalent(Talent.ADVENTURERS_INTUITION) == 2){
+				if (item.isEquipped(curUser) && curUser.pointsInTalent(Talent.ADVENTURERS_INTUITION) >= 2){
 					ready = true;
 				}
 			} else if (item instanceof Armor){
 				ready = ((Armor) item).readyToIdentify();
-				if (item.isEquipped(curUser) && curUser.pointsInTalent(Talent.VETERANS_INTUITION) == 2){
+				if (item.isEquipped(curUser) && curUser.pointsInTalent(Talent.VETERANS_INTUITION) >= 2){
 					ready = true;
 				}
 			} else if (item instanceof Ring){
 				ready = ((Ring) item).readyToIdentify();
-				if (item.isEquipped(curUser) && curUser.pointsInTalent(Talent.THIEFS_INTUITION) == 2){
+				if (item.isEquipped(curUser) && curUser.pointsInTalent(Talent.THIEFS_INTUITION) >= 2){
 					ready = true;
 				}
 			} else if (item instanceof Wand){
@@ -198,6 +198,9 @@ public class ShardOfOblivion extends Trinket {
 
 		int wornUnIDed = 0;
 		if (Dungeon.hero.belongings.weapon() != null && !Dungeon.hero.belongings.weapon().isIdentified()){
+			wornUnIDed++;
+		}
+		if (Dungeon.hero.belongings.secondWep() != null && !Dungeon.hero.belongings.secondWep().isIdentified()){
 			wornUnIDed++;
 		}
 		if (Dungeon.hero.belongings.armor() != null && !Dungeon.hero.belongings.armor().isIdentified()){

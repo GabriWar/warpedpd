@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -59,7 +60,7 @@ public class Depressant extends Blob {
 		super.use( emitter );
 
 		//OV uses a dedicated DEPRESSANT speck; SLOW is the closest WPD equivalent
-		emitter.pour( Speck.factory( Speck.DEPRESSANT ), 0.8f );
+		emitter.pour( WeatherBlobFX.layered( Speck.factory( Speck.DEPRESSANT ), WeatherBlobFX.drips( 0x7080A0 ), 3 ), 0.6f );
 	}
 
 	@Override

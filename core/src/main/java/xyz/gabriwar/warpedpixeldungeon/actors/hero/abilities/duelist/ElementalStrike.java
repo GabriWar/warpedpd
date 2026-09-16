@@ -41,7 +41,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.CounterBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FlavourBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hex;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.ArmorAbility;
@@ -50,12 +52,16 @@ import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.RainbowParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.ClassArmor;
 import xyz.gabriwar.warpedpixeldungeon.items.bombs.Bomb;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTeleportation;
+import xyz.gabriwar.warpedpixeldungeon.items.trinkets.WondrousResin;
+import xyz.gabriwar.warpedpixeldungeon.items.wands.CursedWand;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.curses.Annoying;
@@ -64,14 +70,18 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.curses.Displacing;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.curses.Explosive;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.curses.Friendly;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.curses.Polarized;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.curses.Pressurized;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.curses.Sacrificial;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.curses.Wayward;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.curses.Wondrous;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Blazing;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Blocking;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Blooming;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Chilling;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Corrupting;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Crystal;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Elastic;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Eldritch;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Kinetic;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Lucky;
@@ -79,6 +89,8 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Projecting;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Shocking;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Unstable;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Vampiric;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Venomous;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Vorpal;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
@@ -103,18 +115,23 @@ public class ElementalStrike extends ArmorAbility {
 
 	//TODO a few duplicates here (curse duplicates are fine)
 	private static final HashMap<Class<?extends Weapon.Enchantment>, Integer> effectTypes = new HashMap<>();
+	private static final java.util.Set<Class<? extends Weapon.Enchantment>> portedEffects = new java.util.HashSet<>();
 	static {
 		effectTypes.put(Blazing.class,      MagicMissile.FIRE_CONE);
 		effectTypes.put(Chilling.class,     MagicMissile.FROST_CONE);
 		effectTypes.put(Kinetic.class,      MagicMissile.FORCE_CONE);
 		effectTypes.put(Shocking.class,     MagicMissile.SPARK_CONE);
+		effectTypes.put(Venomous.class,     MagicMissile.POISON_CONE);
 		effectTypes.put(Blocking.class,     MagicMissile.WARD_CONE);
 		effectTypes.put(Blooming.class,     MagicMissile.FOLIAGE_CONE);
+		effectTypes.put(Eldritch.class,     MagicMissile.SHADOW_CONE);
 		effectTypes.put(Elastic.class,      MagicMissile.FORCE_CONE);
 		effectTypes.put(Lucky.class,        MagicMissile.RAINBOW_CONE);
 		effectTypes.put(Projecting.class,   MagicMissile.PURPLE_CONE);
 		effectTypes.put(Unstable.class,     MagicMissile.RAINBOW_CONE);
+		effectTypes.put(Vorpal.class,       MagicMissile.BLOOD_CONE);
 		effectTypes.put(Corrupting.class,   MagicMissile.SHADOW_CONE);
+		effectTypes.put(Crystal.class,      MagicMissile.SPECK + Speck.LIGHT);
 		effectTypes.put(Grim.class,         MagicMissile.SHADOW_CONE);
 		effectTypes.put(Vampiric.class,     MagicMissile.BLOOD_CONE);
 
@@ -122,10 +139,55 @@ public class ElementalStrike extends ArmorAbility {
 		effectTypes.put(Displacing.class,   MagicMissile.SHADOW_CONE);
 		effectTypes.put(Dazzling.class,     MagicMissile.SHADOW_CONE);
 		effectTypes.put(Explosive.class,    MagicMissile.SHADOW_CONE);
+		effectTypes.put(Friendly.class,     MagicMissile.SHADOW_CONE);
+		effectTypes.put(Polarized.class,    MagicMissile.SHADOW_CONE);
+		effectTypes.put(Pressurized.class,  MagicMissile.SHADOW_CONE);
 		effectTypes.put(Sacrificial.class,  MagicMissile.SHADOW_CONE);
 		effectTypes.put(Wayward.class,      MagicMissile.SHADOW_CONE);
-		effectTypes.put(Polarized.class,    MagicMissile.SHADOW_CONE);
-		effectTypes.put(Friendly.class,     MagicMissile.SHADOW_CONE);
+		effectTypes.put(Wondrous.class,     MagicMissile.SHADOW_CONE);
+
+
+		// Ported enchantments keep their actual weapon effects, costs and scaling.
+		portedEffects.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Ancient.class);
+		effectTypes.put(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Ancient.class, MagicMissile.FORCE_CONE);
+		portedEffects.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.AresLeech.class);
+		effectTypes.put(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.AresLeech.class, MagicMissile.BLOOD_CONE);
+		portedEffects.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.BuzzSaw.class);
+		effectTypes.put(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.BuzzSaw.class, MagicMissile.BLOOD_CONE);
+		portedEffects.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.CromLuck.class);
+		effectTypes.put(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.CromLuck.class, MagicMissile.RAINBOW_CONE);
+		portedEffects.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Holy.class);
+		effectTypes.put(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Holy.class, MagicMissile.WARD_CONE);
+		portedEffects.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Horror.class);
+		effectTypes.put(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Horror.class, MagicMissile.SHADOW_CONE);
+		portedEffects.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Hunting.class);
+		effectTypes.put(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Hunting.class, MagicMissile.BLOOD_CONE);
+		portedEffects.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.JupitersHorror.class);
+		effectTypes.put(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.JupitersHorror.class, MagicMissile.SHADOW_CONE);
+		portedEffects.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.LokisPoison.class);
+		effectTypes.put(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.LokisPoison.class, MagicMissile.POISON_CONE);
+		portedEffects.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Luck.class);
+		effectTypes.put(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Luck.class, MagicMissile.RAINBOW_CONE);
+		portedEffects.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Midas.class);
+		effectTypes.put(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Midas.class, MagicMissile.RAINBOW_CONE);
+		portedEffects.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.NeptuneShock.class);
+		effectTypes.put(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.NeptuneShock.class, MagicMissile.SPARK_CONE);
+		portedEffects.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Nomnom.class);
+		effectTypes.put(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Nomnom.class, MagicMissile.BLOOD_CONE);
+		portedEffects.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Osmose.class);
+		effectTypes.put(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Osmose.class, MagicMissile.MAGIC_MISS_CONE);
+		portedEffects.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Paralysis.class);
+		effectTypes.put(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Paralysis.class, MagicMissile.WARD_CONE);
+		portedEffects.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Parasitic.class);
+		effectTypes.put(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Parasitic.class, MagicMissile.FOLIAGE_CONE);
+		portedEffects.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Poison.class);
+		effectTypes.put(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Poison.class, MagicMissile.POISON_CONE);
+		portedEffects.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Slashing.class);
+		effectTypes.put(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Slashing.class, MagicMissile.BLOOD_CONE);
+		portedEffects.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Surging.class);
+		effectTypes.put(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Surging.class, MagicMissile.SPARK_CONE);
+		portedEffects.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Vicious.class);
+		effectTypes.put(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Vicious.class, MagicMissile.BLOOD_CONE);
 
 		effectTypes.put(null,               MagicMissile.MAGIC_MISS_CONE);
 	}
@@ -176,7 +238,7 @@ public class ElementalStrike extends ArmorAbility {
 		//cast to cells at the tip, rather than all cells, better performance.
 		for (Ballistica ray : cone.outerRays){
 			((MagicMissile)hero.sprite.parent.recycle( MagicMissile.class )).reset(
-					effectTypes.get(enchCls),
+					effectTypes.getOrDefault(enchCls, MagicMissile.MAGIC_MISS_CONE),
 					hero.sprite,
 					ray.path.get(ray.dist),
 					null
@@ -349,6 +411,15 @@ public class ElementalStrike extends ArmorAbility {
 				}
 			}
 			Dungeon.observe();
+
+		//*** Pressurized ***
+		} else if (ench instanceof Pressurized) {
+			for (int cell : cone.cells) {
+				if (Random.Float() < powerMulti/2f) {
+					Splash.at(cell, 0x5bc1e3, 5);
+					Dungeon.level.setCellToWater(true, cell);
+				}
+			}
 		}
 	}
 
@@ -366,6 +437,20 @@ public class ElementalStrike extends ArmorAbility {
 				affected.add(ch);
 			}
 		}
+
+        if (ench != null && portedEffects.contains(ench.getClass())) {
+            KindOfWeapon held = hero.belongings.weapon();
+            if (held instanceof MeleeWeapon) {
+                for (Char ch : affected) {
+                    // The primary attack already ran this enchantment normally.
+                    if (ch == primaryTarget || !ch.isAlive() || !hero.isAlive()) continue;
+                    int damage = Math.max(1, Math.round(((MeleeWeapon) held).damageRoll(hero) * 0.3f * powerMulti));
+                    damage = ench.proc((MeleeWeapon) held, hero, ch, damage);
+                    if (ch.isAlive()) ch.damage(damage, ElementalStrike.this);
+                }
+            }
+            return;
+        }
 
 		//*** no enchantment ***
 		if (ench == null) {
@@ -386,6 +471,20 @@ public class ElementalStrike extends ArmorAbility {
 			//clear stored damage if there was no primary target
 			if (primaryTarget == null && hero.buff(Kinetic.ConservedDamage.class) != null){
 				hero.buff(Kinetic.ConservedDamage.class).detach();
+			}
+
+		//*** Venomous **
+		} else if (ench instanceof Venomous){
+			for (Char ch : affected){
+				if (ch != primaryTarget) {
+					Poison p = ch.buff(Poison.class);
+					if (p == null) {
+						p = Buff.affect(ch, Poison.class);
+						p.delay(3f);
+					}
+					//27 total damage at base
+					p.extend(powerMulti*10);
+				}
 			}
 
 		//*** Blooming ***
@@ -416,6 +515,12 @@ public class ElementalStrike extends ArmorAbility {
 						true,
 						true,
 						ElementalStrike.this);
+			}
+
+		//*** Eldritch ***
+		} else if (ench instanceof Eldritch){
+			for (Char ch : affected){
+				Buff.affect(ch, Terror.class, powerMulti*10).object = hero.id();
 			}
 
 		//*** Lucky ***
@@ -449,6 +554,14 @@ public class ElementalStrike extends ArmorAbility {
 				}
 			}
 
+		//*** Vorpal ***
+		} else if (ench instanceof Vorpal){
+			for (Char ch : affected){
+				if (ch != primaryTarget) {
+					Buff.affect(ch, Bleeding.class).set(powerMulti*10);
+				}
+			}
+
 		//*** Corrupting ***
 		} else if (ench instanceof Corrupting){
 			for (Char ch : affected){
@@ -463,6 +576,15 @@ public class ElementalStrike extends ArmorAbility {
 						Corruption.corruptionHeal(ch);
 						AllyBuff.affectAndLoot((Mob) ch, hero, Corruption.class);
 					}
+				}
+			}
+
+		//*** Crystal **
+		} else if (ench instanceof Crystal){
+			for (Char ch : affected){
+				if (ch != primaryTarget) {
+					ch.damage(Math.round(powerMulti* Hero.heroDamageIntRange(10, 20)), ElementalStrike.this);
+					((Crystal) ench).repair(null, false, 4f*powerMulti);
 				}
 			}
 
@@ -549,9 +671,44 @@ public class ElementalStrike extends ArmorAbility {
 					Buff.affect(ch, Charm.class, 6f).object = hero.id();
 				}
 			}
+
+		//*** Wondrous ***
+		} else if (ench instanceof Wondrous){
+			boolean positiveOnly = Random.Float() < WondrousResin.positiveCurseEffectChance();
+			for (Char ch : affected){
+				if (Random.Float() < powerMulti/2f){
+					Ballistica aim = new Ballistica(hero.pos, ch.pos, Ballistica.STOP_TARGET);
+					ch.sprite.emitter().burst(RainbowParticle.BURST, 25);
+					CursedWand.randomValidEffect(null, hero, aim, positiveOnly).effect(null, hero, aim, positiveOnly);
+				}
+			}
+
+		//*** Pressurized ***
+		} else if (ench instanceof Pressurized){
+			//sorts affected from furthest to closest
+			Collections.sort(affected, new Comparator<Char>() {
+				@Override
+				public int compare(Char a, Char b) {
+					return Dungeon.level.distance(hero.pos, a.pos) - Dungeon.level.distance(hero.pos, b.pos);
+				}
+			});
+
+			for (Char ch : affected){
+				if (ch == primaryTarget && oldEnemyPos != primaryTarget.pos) continue;
+
+				Ballistica aim = new Ballistica(hero.pos, ch.pos, Ballistica.WONT_STOP);
+				int knockback = Math.round(2*powerMulti);
+				WandOfBlastWave.throwChar(ch,
+						new Ballistica(ch.pos, aim.collisionPos, Ballistica.MAGIC_BOLT),
+						knockback,
+						true,
+						true,
+						ElementalStrike.this);
+			}
 		}
 
 	}
+
 
 	@Override
 	public String desc() {

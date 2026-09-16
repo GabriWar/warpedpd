@@ -27,7 +27,26 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import com.watabou.noosa.Camera;
+import com.watabou.noosa.audio.Sample;
+import com.watabou.utils.Random;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
+import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.MissileWeapon;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+
 public class Mastery extends PassiveSkillB3 {
+
+	//damage comes from the weapon or strength, which already grow with the hero
+	@Override
+	public boolean weaponScaled(){ return true; }
+
 
 	{
 		name = "Mastery";
@@ -40,10 +59,33 @@ public class Mastery extends PassiveSkillB3 {
 		return true;
 	}
 
-	//completing the branch is worth one more effective weapon level than cherry-picking
+	//the weapon's reach: an enemy that steps up next to the hero may be struck before it can swing.
+	//deferred by the core, so the strike lands after the enemy's move and before anyone else acts
 	@Override
-	public int weaponLevelBonus(){
-		if (level <= 0) return 0;
-		return level + (CurrentSkills.skillLevel(FirmHand.class) == Skill.MAX_LEVEL ? 1 : 0);
+	public void onEnemyStepsAdjacent( Char enemy, int from ){
+		Hero hero = Dungeon.hero;
+		if (level <= 0 || hero == null || enemy == null || !enemy.isAlive()
+				|| enemy.alignment != Char.Alignment.ENEMY || hero.paralysed > 0
+				|| !Dungeon.level.adjacent( hero.pos, enemy.pos )) return;
+		KindOfWeapon wep = hero.belongings.weapon();
+		if (wep == null || wep instanceof MissileWeapon) return;
+		if (Random.Int( 100 ) >= 15 + 15 * level) return;
+
+		if (hero.sprite != null){
+			hero.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( this, "riposte" ) );
+			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 3 );
+		}
+		Wound.hit( enemy );
+		if (enemy.sprite != null && enemy.sprite.visible){
+			enemy.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
+		}
+		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 1f, 1.1f );
+		Camera.main.shake( 1, 0.15f );
+		enemy.damage( Math.max( 0, wep.damageRoll( hero ) - enemy.drRoll() ), this );
+
+		//+3: the blow throws it back the way it came
+		if (level >= MAX_LEVEL && enemy.isAlive() && !enemy.properties().contains( Char.Property.BOSS )){
+			SkillInteractions.push( enemy, hero.pos, 1, 0 );
+		}
 	}
 }

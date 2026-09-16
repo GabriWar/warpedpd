@@ -34,6 +34,10 @@ import com.watabou.utils.Random;
 
 public abstract class WellWater extends Blob {
 
+	{
+		alwaysVisible = true;
+	}
+
 	@Override
 	protected void evolve() {
 		int cell;
@@ -105,7 +109,7 @@ public abstract class WellWater extends Blob {
 	protected abstract Item affectItem( Item item, int pos );
 	
 	private static final Class<?>[] WELL_WATERS = {
-		WaterOfHealth.class, WaterOfAwareness.class, WaterOfTransmutation.class, WaterOfUpgradeEating.class
+		WaterOfHealth.class, WaterOfAwareness.class, WaterOfTransmutation.class
 	};
 
 	public static void affectCell( int cell ) {

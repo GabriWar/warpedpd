@@ -54,7 +54,7 @@ public abstract class Shaman extends Mob {
 		lootChance = 0.33f;
 
 		lootOther = new MonsterMeat();
-		lootChanceOther = 0.01f;
+		lootChanceOther = 0.01f / 4f;
 
 		resistances.add(xyz.gabriwar.warpedpixeldungeon.actors.blobs.Electricity.class);
 	}

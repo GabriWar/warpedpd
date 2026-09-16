@@ -27,6 +27,12 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -67,7 +73,7 @@ public class Shieldbearer extends Skill {
 	public void execute( Hero hero, String action ){
 		if (action.equals(Skill.AC_SUMMON)){
 
-			if (SummonedPet.summonedPets >= 3 + hero.heroSkills.allSummonLimit()){
+			if (SummonedPet.activeCount() >= 3 + hero.heroSkills.allSummonLimit()){
 				GLog.w( Messages.get(this, "no_summons") );
 				return;
 			}
@@ -84,8 +90,9 @@ public class Shieldbearer extends Skill {
 			if (newPos != -1){
 				SummonedPet bearer = new SummonedPet(GuardSprite.class);
 				bearer.name = "Sworn Shieldbearer";
-				bearer.HT = 15 + 10 * level;
-				bearer.HP = bearer.HT;
+				//his health is a share of yours: 40% / 55% / 70%
+				bearer.setHealthShare( new float[]{ 0.40f, 0.55f, 0.70f }[Math.max( 0, Math.min( 2, level - 1 ) )] );
+				bearer.setDamageShare( new float[]{ 0.40f, 0.50f, 0.60f }[Math.max( 0, Math.min( 2, level - 1 ) )] );
 				bearer.defenseSkill = 5 + 3 * level;
 				//SPECIAL pets have no PET_TYPES stat line, so the bearer carries his own
 				bearer.setStats( 2 + level, 6 + 3 * level, 2 + 2 * level );
@@ -95,16 +102,33 @@ public class Shieldbearer extends Skill {
 				Actor.addDelayed(new Pushing(bearer, hero.pos, newPos), -1);
 				bearer.sprite.alpha(0);
 				bearer.sprite.parent.add(new AlphaTweener(bearer.sprite, 1, 0.15f));
+				new Flare( 6, 18 ).color( 0xFFDD88, true ).show( bearer.sprite, 0.7f );
+				CellEmitter.center( newPos ).burst( Speck.factory( Speck.LIGHT ), 6 );
+				Camera.main.shake( 1, 0.2f );
 
 				// the retinue exists to eat the hits: pull every visible enemy onto it
 				for (Mob mob : Dungeon.level.mobs.toArray( new Mob[0] )){
 					if (mob.alignment == Char.Alignment.ENEMY && Dungeon.level.heroFOV[mob.pos]){
+						mob.aggro( bearer );
 						mob.beckon( bearer.pos );
 					}
 				}
 
+				//+3: he lands with a shield bash that throws adjacent enemies back
+				if (level >= MAX_LEVEL){
+					for (int n : PathFinder.NEIGHBOURS8){
+						Char ch = Actor.findChar( newPos + n );
+						if (ch != null && ch.alignment == Char.Alignment.ENEMY && ch.isAlive()){
+							CellEmitter.get( ch.pos ).burst( Speck.factory( Speck.ROCK ), 3 );
+							SkillInteractions.push( ch, newPos, 1, 0 );
+						}
+					}
+					Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 1f, 0.9f );
+				}
+
 				hero.MP -= getManaCost();
 				castTextYell();
+				Sample.INSTANCE.play( Assets.Sounds.STURDY, 1f, 1.0f );
 				hero.spend( TIME_TO_USE );
 				hero.busy();
 				hero.sprite.operate( hero.pos );

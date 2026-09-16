@@ -27,7 +27,10 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.utils.Random;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ShieldOfTheFaithfulWard;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 
 public class ShieldOfTheFaithful extends Skill {
 
@@ -39,17 +42,19 @@ public class ShieldOfTheFaithful extends Skill {
 		level = 0;
 	}
 
+	//the shield appears at the cleric's side the moment the skill is learned
 	@Override
-	protected boolean upgrade(){ return true; }
-
-	@Override
-	public float incomingDamageModifier(){
-		return 1f - 0.05f * level;
+	protected boolean upgrade(){
+		if (Dungeon.hero != null) Buff.affect( Dungeon.hero, ShieldOfTheFaithfulWard.class );
+		return true;
 	}
 
-	//the hero only rolls dodgeChance() against attackers that are not adjacent
+	//the hovering shield catches part of the blow, cracks, and in time shatters
 	@Override
-	public boolean dodgeChance(){
-		return level > 0 && Random.Int(100) < 5 * level;
+	public int incomingDamageReduction( int damage, Object source ){
+		Hero hero = Dungeon.hero;
+		if (level <= 0 || damage <= 0 || hero == null || Skill.isTickDamage( source ))
+			return 0;
+		return Buff.affect( hero, ShieldOfTheFaithfulWard.class ).intercept( damage, source, level );
 	}
 }

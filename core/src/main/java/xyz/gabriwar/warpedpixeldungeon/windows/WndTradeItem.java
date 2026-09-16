@@ -270,7 +270,7 @@ public class WndTradeItem extends WndInfoItem {
 		//selling items in the sell interface doesn't spend time
 		hero.spend(-hero.cooldown());
 
-		new Gold( item.value() ).doPickUp( hero );
+		Shopkeeper.paySale( hero, item.value() );
 
 		if (shop != null){
 			shop.buybackItems.add(item);
@@ -308,7 +308,7 @@ public class WndTradeItem extends WndInfoItem {
 			//selling items in the sell interface doesn't spend time
 			hero.spend(-hero.cooldown());
 
-			new Gold( item.value() ).doPickUp( hero );
+			Shopkeeper.paySale( hero, item.value() );
 
 			if (shop != null){
 				shop.buybackItems.add(item);
@@ -332,6 +332,11 @@ public class WndTradeItem extends WndInfoItem {
 		int price = Shopkeeper.sellPrice( item );
 		Dungeon.gold -= price;
 		Catalog.countUses(Gold.class, price);
+
+		//every scroll of upgrade sold makes the next one dearer
+		if (item instanceof xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfUpgrade){
+			Dungeon.scrollsOfUpgradeBought += item.quantity();
+		}
 		
 		if (!item.doPickUp( Dungeon.hero )) {
 			Dungeon.level.drop( item, heap.pos ).sprite.drop();

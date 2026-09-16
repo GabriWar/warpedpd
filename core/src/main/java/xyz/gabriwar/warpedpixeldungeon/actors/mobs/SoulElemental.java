@@ -37,6 +37,9 @@ public class SoulElemental extends Elemental {
 		lootChance = 0.01f;
 
 		alignment = Alignment.ALLY;
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	@Override

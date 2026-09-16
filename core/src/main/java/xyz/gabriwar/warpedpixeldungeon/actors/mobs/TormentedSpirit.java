@@ -39,6 +39,9 @@ public class TormentedSpirit extends Wraith {
 
 	{
 		spriteClass = TormentedSpiritSprite.class;
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	//50% more damage scaling than regular wraiths

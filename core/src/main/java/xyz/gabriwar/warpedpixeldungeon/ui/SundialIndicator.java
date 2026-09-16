@@ -21,6 +21,16 @@
 
 package xyz.gabriwar.warpedpixeldungeon.ui;
 
+import com.badlogic.gdx.graphics.Pixmap;
+import com.watabou.gltextures.SmartTexture;
+import com.watabou.gltextures.TextureCache;
+import com.watabou.glwrap.Texture;
+import com.watabou.noosa.Game;
+import com.watabou.noosa.Image;
+import com.watabou.noosa.NinePatch;
+import com.watabou.noosa.TextureFilm;
+import com.watabou.noosa.audio.Sample;
+
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Chrome;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -28,140 +38,83 @@ import xyz.gabriwar.warpedpixeldungeon.WPDSettings;
 import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
 import xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle;
 import xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar;
+import xyz.gabriwar.warpedpixeldungeon.actors.PrecipType;
 import xyz.gabriwar.warpedpixeldungeon.actors.TileTemperature;
 import xyz.gabriwar.warpedpixeldungeon.actors.WeatherState;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Sleepiness;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
+import xyz.gabriwar.warpedpixeldungeon.scenes.sky.SkyContext;
+import xyz.gabriwar.warpedpixeldungeon.scenes.sky.SkyMiniature;
+import xyz.gabriwar.warpedpixeldungeon.scenes.sky.SkyPaint;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import xyz.gabriwar.warpedpixeldungeon.windows.WndSundialGuide;
-import com.watabou.glwrap.Texture;
-import com.watabou.noosa.ColorBlock;
-import com.watabou.noosa.Game;
-import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.Image;
-import com.watabou.noosa.NinePatch;
-import com.watabou.noosa.audio.Sample;
-
-import java.util.Locale;
+import xyz.gabriwar.warpedpixeldungeon.windows.WndAlmanac;
 
 /**
- * Compact climate/time HUD chip, anchored above the bag button.
+ * The climate and calendar HUD panel, top right under the menu pane.
  *
- * Layout, top to bottom:
- *   header — time-of-day phase (left) and weather conditions (right), each with a color swatch
- *   bars   — day cycle, season, moon, weather, rest; flanked by vertical temp (L) and wind (R) bars
- *   footer — temperature readout, wind compass, wind speed + heading readout
+ * Top to bottom: a window on the sky above (the real sun, the moon in its shape,
+ * the weather as it falls, the land you stand on), with the weather named in one
+ * corner and the moon's phase badged in the other; the day as a dial under the
+ * window; a thermometer and a wind compass with their readings; the countdown to
+ * the next phase and the rest meter; the date; and the year as a strip.
  *
- * Tapping the panel opens {@link WndSundialGuide}; hovering shows the full calendar date.
+ * Tapping opens {@link WndAlmanac}; holding hides the panel; hovering shows the date.
+ * The art is painted into three small textures and repainted only when what it
+ * shows has changed, a few times a second at most while weather is falling.
  */
 public class SundialIndicator extends Button {
 
-	// --- Geometry ---
-	private static final int PAD         = 3;
-	private static final int BAR_WIDTH   = 60;
-	private static final int BAR_HEIGHT  = 3;
-	private static final int GAP         = 2;   // between horizontal bars
-	private static final int VERT_W      = 3;   // temp / wind side bars
-	private static final int VERT_GAP    = 1;
-	private static final int SIDE_BAR_H  = BAR_HEIGHT * 4 + GAP * 3; // 18
-	private static final int HEADER_H    = 7;
-	private static final int SECTION_GAP = 3;   // header ↔ bars ↔ footer
-	private static final int COMPASS_SIZE = 9;
-	private static final int DATE_H      = 10;  // permanent date row, sun/moon icon + text
+	// --- geometry, mirrored by debug.SundialPreview ---
+	private static final int PAD   = 3;
+	private static final int W_IN  = 68, H_IN = 22;
+	private static final int WIN_W = W_IN + 2 * SkyMiniature.FRAME;
+	private static final int WIN_H = H_IN + 2 * SkyMiniature.FRAME;
+	public  static final int WIDTH = PAD * 2 + WIN_W;
+	private static final int Y_WIN = PAD;
+	private static final int Y_DAY = Y_WIN + WIN_H;
+	private static final int Y_ROW1 = Y_DAY + 3 + 2;
+	private static final int Y_ROW2 = Y_ROW1 + 9 + 1;
+	private static final int Y_ROW3 = Y_ROW2 + 7 + 1;
+	private static final int Y_SEASON = Y_ROW3 + 7 + 1;
+	private static final int HEIGHT = Y_SEASON + 3 + PAD;
+	private static final int REST_W = 14;
+	//the dials texture: rows 0-2 the day, 3-5 the year, 6-8 rest, 6-14 the instruments
+	private static final int DIALS_H = 15, THERM_X = 20, COMPASS_X = 30;
 
-	private static final int CONTENT_W = VERT_W + VERT_GAP + BAR_WIDTH + VERT_GAP + VERT_W; // 68
-	public  static final int WIDTH     = PAD * 2 + CONTENT_W;                               // 74
-	private static final int FOOTER_H    = 9;   // footer row: moon phase, compass, readouts
-	private static final int HEIGHT    = PAD * 2 + DATE_H + HEADER_H + SECTION_GAP
-			+ SIDE_BAR_H + SECTION_GAP + FOOTER_H;                                          // 56
+	// --- colours ---
+	public static final int[] PHASE_COLS  = { 0xff9a4a, 0xffd84a, 0xb070b8, 0x3a4a80 };
+	public static final int[] PHASE_TEXT  = { 0xffb070, 0xffe888, 0xd8a0d8, 0x9cb0f0 };
+	public static final int[] SEASON_COLS = { 0x4cb84c, 0xf0c832, 0xd06a24, 0x86b8de };
+	public static final int[] SEASON_TEXT = { 0x8ee08a, 0xffe070, 0xf0a060, 0xb8dcf8 };
 
-	// --- Colors ---
-	private static final int COLOR_DAWN   = 0xFFFF8844;
-	private static final int COLOR_DAY    = 0xFFFFDD44;
-	private static final int COLOR_DUSK   = 0xFF995577;
-	private static final int COLOR_NIGHT  = 0xFF3A4A80;
+	// continuous gradients: temperature over -20..45, wind over 0..25 m/s
+	public static final float[] TEMP_STOPS = { -20f, 0f, 15f, 25f, 35f, 45f };
+	public static final int[]   TEMP_COLS  = { 0x4477ff, 0x55ccee, 0x44cc55, 0xeebb33, 0xff7722, 0xff3322 };
+	public static final float[] WIND_STOPS = { 0f, 8f, 16f, 25f };
+	public static final int[]   WIND_COLS  = { 0x66bb66, 0xd8c43a, 0xee7733, 0xee3333 };
 
-	private static final int COLOR_SPRING = 0xFF44BB44;
-	private static final int COLOR_SUMMER = 0xFFFFCC22;
-	private static final int COLOR_AUTUMN = 0xFFCC6622;
-	private static final int COLOR_WINTER = 0xFF88BBDD;
-
-	private static final int COLOR_CLEAR        = 0xFF4488DD;
-	private static final int COLOR_FAIR         = 0xFF6699CC;
-	private static final int COLOR_PARTLY       = 0xFF8899AA;
-	private static final int COLOR_OVERCAST     = 0xFF667788;
-	private static final int COLOR_LIGHT_PRECIP = 0xFF5577AA;
-	private static final int COLOR_HEAVY_PRECIP = 0xFF3355AA;
-	private static final int COLOR_STORM        = 0xFF2233AA;
-	private static final int COLOR_FOG          = 0xFF889988;
-	private static final int COLOR_CLEARING     = 0xFF77AACC;
-
-	// Continuous gradients — temp maps −20..45°C, wind maps 0..25 m/s
-	private static final float[] TEMP_STOPS  = { -20f, 0f, 15f, 25f, 35f, 45f };
-	private static final int[]   TEMP_COLORS = {
-		0xFF4477FF, 0xFF55CCEE, 0xFF44CC55, 0xFFEEBB33, 0xFFFF7722, 0xFFFF3322 };
-	private static final float[] WIND_STOPS  = { 0f, 8f, 16f, 25f };
-	private static final int[]   WIND_COLORS = {
-		0xFF55AA55, 0xFFCCBB33, 0xFFEE7733, 0xFFEE3333 };
-
-	// Rest: blue while rested, shifting to red once drowsy
-	private static final int COLOR_SLEEP_OK    = 0xFF4488FF;
-	private static final int COLOR_SLEEP_TIRED = 0xFFCC3366;
-
-	private static final int COLOR_TRACK        = 0xFF101216;
-	private static final int COLOR_PIN          = 0xFFFFFFFF;
-	private static final int COLOR_TICK         = 0xFF666666;
-	private static final int COLOR_TEXT         = 0xFFCCCCCC;
-	private static final int COLOR_COMPASS_N    = 0xFFAABBCC;
-	private static final int COLOR_COMPASS_TICK = 0xFF444444;
-	private static final int COLOR_COMPASS_HUB  = 0xFF555555;
-
-	// Dim factor for the non-current day-phase / season segments
-	private static final float SEG_DIM = 0.4f;
+	private static final int COLOR_SLEEP_OK = 0x4488ff, COLOR_SLEEP_TIRED = 0xdd3355;
+	private static final int COLOR_TEXT = 0xCACFC2, COLOR_CALM = 0x9a9aa4;
 
 	private static final String[] CARDINALS = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
 
-	// --- Children ---
+	// --- children ---
 	private NinePatch panel;
+	private SmartTexture skyTex, overTex, dialsTex;
+	private Image skyImg, overImg, sunIcon, moonBadge;
+	private Image dayStrip, seasonStrip, restBar, therm, compass;
+	private TextureFilm film;
+	private RenderedTextBlock caption, tempLabel, windLabel, countLabel, zzLabel, weekdayLabel, seasonLabel;
 
-	//strip frames: 0 sun, 1..24 interpolated moon phases, 25 solar ecl, 26 lunar ecl
-	private static final int FRAME_SUN = 0, FRAME_SOLAR_ECL = 25, FRAME_LUNAR_ECL = 26;
-
-	private static int moonFrame() {
-		return 1 + Math.round(GameCalendar.moonProgress() * 24f) % 24;
-	}
-
-	private Image dateIcon;                    //sun by day, the moon in its phase by night
-	private RenderedTextBlock dateLabel;
-	private TextureFilm dateFilm;
-	private int dateFrame = -1;
-
-	private ColorBlock phaseSwatch, weatherSwatch;
-	private RenderedTextBlock phaseLabel, weatherLabel, tempLabel, windLabel;
-
-	private ColorBlock dayTrack, seasonTrack, weatherTrack, sleepTrack;
-	private ColorBlock[] daySegs, seasonSegs;
-	private ColorBlock dayPin, dayPinCap, seasonPin, seasonPinCap;
-	private ColorBlock weatherFill, sleepFill, sleepTick;
-
-	private ColorBlock tempTrack, tempFill, tempTick;
-	private ColorBlock windTrack, windFill;
-
-	private ColorBlock compassBg, compassN, compassE, compassS, compassW, compassHub;
-	private ColorBlock arrowA, arrowB, arrowC;
-
-	// --- State ---
-	private final float[] dayDims    = new float[4];
-	private final float[] seasonDims = new float[4];
-	private float arrowDim = 1f;
-
-	private String sPhase = "", sWeather = "", sTemp = "", sWind = "", sDate = "";
-	private int lastTempCol = 0, lastWindCol = 0;
-
-	private float targetAlpha  = 0f;
-	private float currentAlpha = 0f;
+	// --- state ---
+	private SkyContext ctx;
+	private float lastRefresh = -1f;
+	private long artKey = Long.MIN_VALUE, dialsKey = Long.MIN_VALUE;
+	private int sunFrame = -1, badgeFrame = -1;
+	private String sCaption = "", sTemp = "", sWind = "", sCount = "", sWeekday = "", sSeason = "";
+	private int captionW = 0;
 
 	//set by GameScene at creation: right edge to align to, the menu pane to hang under
 	//(read live every frame - a frozen y drifts if the pane lays out after us and the
@@ -181,295 +134,295 @@ public class SundialIndicator extends Button {
 
 	@Override
 	protected void createChildren() {
-		super.createChildren(); // hotArea — tap opens the guide
+		super.createChildren(); // hotArea: tap opens the almanac
 
 		panel = Chrome.get(Chrome.Type.TOAST_TR);
+		panel.alpha(0.9f);
 		add(panel);
 
-		dateIcon = new Image(Assets.Interfaces.SUNDIAL_TOGGLE);
+		skyTex   = tex("sky", WIN_W, WIN_H);
+		overTex  = tex("over", WIN_W, WIN_H);
+		dialsTex = tex("dials", WIN_W, DIALS_H);
+
+		skyImg = new Image(skyTex);
+		skyImg.frame(0, 0, WIN_W, WIN_H);
+		add(skyImg);
+
+		sunIcon = new Image(Assets.Interfaces.SUNDIAL_TOGGLE);
 		//flush frames + linear sampling bleed the neighbouring frame's rim in
-		dateIcon.texture.filter(Texture.NEAREST, Texture.NEAREST);
-		dateFilm = new TextureFilm(dateIcon.texture, 9, 9);
-		dateIcon.frame(dateFilm.get(0));
-		add(dateIcon);
-		dateLabel = text();
+		sunIcon.texture.filter(Texture.NEAREST, Texture.NEAREST);
+		film = new TextureFilm(sunIcon.texture, 9, 9);
+		sunIcon.frame(film.get(0));
+		add(sunIcon);
 
-		// header
-		phaseSwatch   = block(COLOR_DAY);
-		weatherSwatch = block(COLOR_CLEAR);
-		phaseLabel    = text();
-		weatherLabel  = text();
+		overImg = new Image(overTex);
+		overImg.frame(0, 0, WIN_W, WIN_H);
+		add(overImg);
 
-		// side bars
-		tempTrack = block(COLOR_TRACK);
-		tempFill  = block(0xFFFFFFFF);
-		tempTick  = block(COLOR_TICK);
-		windTrack = block(COLOR_TRACK);
-		windFill  = block(0xFFFFFFFF);
+		moonBadge = new Image(sunIcon.texture);
+		moonBadge.frame(film.get(1));
+		add(moonBadge);
 
-		// day cycle
-		dayTrack = block(COLOR_TRACK);
-		daySegs = new ColorBlock[] {
-			block(COLOR_DAWN), block(COLOR_DAY), block(COLOR_DUSK), block(COLOR_NIGHT) };
+		caption = text();
 
-		// season
-		seasonTrack = block(COLOR_TRACK);
-		seasonSegs = new ColorBlock[] {
-			block(COLOR_SPRING), block(COLOR_SUMMER), block(COLOR_AUTUMN), block(COLOR_WINTER) };
+		dayStrip    = slice(0, 0, WIN_W, 3);
+		seasonStrip = slice(0, 3, WIN_W, 3);
+		restBar     = slice(0, 6, REST_W, 3);
+		therm       = slice(THERM_X, 6, 5, 9);
+		compass     = slice(COMPASS_X, 6, 9, 9);
 
-		// moon
-
-		// weather + rest
-		weatherTrack = block(COLOR_TRACK);
-		weatherFill  = block(COLOR_CLEAR);
-		sleepTrack   = block(COLOR_TRACK);
-		sleepFill    = block(COLOR_SLEEP_OK);
-		sleepTick    = block(COLOR_TICK);
-
-		// position pins, drawn above the bars they mark
-		dayPin       = block(COLOR_PIN); dayPinCap    = block(COLOR_PIN);
-		seasonPin    = block(COLOR_PIN); seasonPinCap = block(COLOR_PIN);
-
-		// footer
-		tempLabel = text();
-		windLabel = text();
-		compassBg  = block(COLOR_TRACK);
-		compassN   = block(COLOR_COMPASS_N);
-		compassE   = block(COLOR_COMPASS_TICK);
-		compassS   = block(COLOR_COMPASS_TICK);
-		compassW   = block(COLOR_COMPASS_TICK);
-		compassHub = block(COLOR_COMPASS_HUB);
-		arrowA = block(COLOR_PIN);
-		arrowB = block(COLOR_PIN);
-		arrowC = block(COLOR_PIN);
+		tempLabel    = text();
+		windLabel    = text();
+		countLabel   = text();
+		zzLabel      = text();
+		weekdayLabel = text();
+		seasonLabel  = text();
+		zzLabel.text("Zz");
 	}
 
-	private ColorBlock block(int color) {
-		ColorBlock b = new ColorBlock(1, 1, color);
-		add(b);
-		return b;
+	private static SmartTexture tex(String name, int w, int h) {
+		SmartTexture t = TextureCache.create("sundial-" + name + "-" + w + "x" + h, w, h);
+		t.bitmap.setBlending(Pixmap.Blending.None);
+		t.filter(Texture.NEAREST, Texture.NEAREST);
+		return t;
+	}
+
+	private Image slice(int l, int t, int w, int h) {
+		Image i = new Image(dialsTex);
+		i.frame(l, t, w, h);
+		add(i);
+		return i;
 	}
 
 	private RenderedTextBlock text() {
 		RenderedTextBlock tb = PixelScene.renderTextBlock(6);
-		tb.hardlight(COLOR_TEXT & 0xFFFFFF);
+		tb.hardlight(COLOR_TEXT);
 		add(tb);
 		return tb;
 	}
 
+	// ------------------------------------------------------------ refresh
+
+	/** reads the world, and repaints whatever it changed */
+	private void refresh() {
+		SkyContext c = SkyMiniature.capture(W_IN, H_IN);
+		ctx = c;
+
+		//the window animates only while something in it moves
+		boolean animated = (c.precip != PrecipType.NONE && c.precipRate > 0.02f)
+				|| c.storm
+				|| c.ambient != ClimateManager.WeatherOverlayAmbient.NONE
+				|| (c.cloudCover >= 0.12f && c.wind > 2f)
+				|| (c.nightness > 0.55f && c.cloudCover < 0.8f)
+				|| c.water() || c.town;
+		int anim = animated ? (int)(Game.timeTotal * 8) : 0;
+
+		captionUpdate(c);
+
+		long key = 17;
+		key = key * 31 + Math.round(c.f * 300);
+		key = key * 31 + Math.round(c.cloudCover * 16);
+		key = key * 31 + c.precip.ordinal();
+		key = key * 31 + Math.round(c.precipRate * 6);
+		key = key * 31 + (c.fog ? 1 : 0) + (c.storm ? 2 : 0) + (c.aurora ? 4 : 0) + (c.rainbow ? 8 : 0)
+				+ (c.solarEclipse ? 16 : 0) + (c.lunarEclipse ? 32 : 0) + (c.town ? 64 : 0) + (c.underground ? 128 : 0) + (c.snow ? 256 : 0);
+		key = key * 31 + c.season.ordinal();
+		key = key * 31 + c.biome.ordinal();
+		key = key * 31 + Math.round(c.moonAge * 48);
+		key = key * 31 + Math.round(c.wind);
+		key = key * 31 + (c.windDir > 0 ? 1 : 0);
+		key = key * 31 + Math.round(c.humidity * 8);
+		key = key * 31 + Math.round(c.temp / 5f);
+		key = key * 31 + c.ambient.ordinal();
+		key = key * 31 + captionW;
+		key = key * 31 + anim;
+		if (key != artKey) {
+			artKey = key;
+			paintWindow(c, anim);
+		}
+
+		//the sun: the icon, tinted as the sun is, or the black disc of an eclipse
+		int[] sun = SkyMiniature.sunIcon(c);
+		sunIcon.visible = sun != null;
+		if (sun != null) {
+			int frame = c.solarEclipse ? 25 : 0;
+			if (frame != sunFrame) { sunFrame = frame; sunIcon.frame(film.get(frame)); }
+			if (c.solarEclipse) sunIcon.resetColor();
+			else sunIcon.hardlight(1f, 1f - 0.25f * c.warmth, 1f - 0.45f * c.warmth);
+			sunIcon.alpha(SkyMiniature.sunAlpha(c));
+		}
+		int mf = SkyMiniature.moonFrame(c);
+		if (mf != badgeFrame) { badgeFrame = mf; moonBadge.frame(film.get(mf)); }
+
+		readouts(c);
+	}
+
+	private void paintWindow(SkyContext c, int anim) {
+		Pixmap sky = skyTex.bitmap;
+		sky.setColor(0); sky.fill();
+		SkyMiniature.paintSky(c, sky, SkyMiniature.FRAME, SkyMiniature.FRAME, anim);
+		skyTex.bitmap(sky);
+
+		Pixmap over = overTex.bitmap;
+		over.setColor(0); over.fill();
+		SkyMiniature.paintOver(c, over, SkyMiniature.FRAME, SkyMiniature.FRAME, anim);
+		SkyMiniature.paintPlates(over, SkyMiniature.FRAME, SkyMiniature.FRAME, W_IN, captionW, Math.round(caption.height()));
+		SkyMiniature.paintFrame(over, 0, 0, WIN_W, WIN_H);
+		overTex.bitmap(over);
+	}
+
+	private void captionUpdate(SkyContext c) {
+		String name = weatherName(ClimateManager.weatherState());
+		if (!name.equals(sCaption)) {
+			sCaption = name;
+			caption.text(name);
+			int col = weatherColor(ClimateManager.weatherState());
+			caption.hardlight(col);
+			captionW = Math.round(caption.width());
+		}
+	}
+
+	/** the numbers under the window, and the dials they sit beside */
+	private void readouts(SkyContext c) {
+		DayNightCycle.Phase phase = DayNightCycle.phase();
+
+		// temperature where the hero stands
+		float temp = Dungeon.hero != null ? TileTemperature.feelsLikeAt(Dungeon.hero.pos) : ClimateManager.feelsLikeTemp();
+		int tCol = gradient(TEMP_STOPS, TEMP_COLS, temp);
+		String tTxt = Math.round(temp) + "°";
+		if (!tTxt.equals(sTemp)) { sTemp = tTxt; tempLabel.text(tTxt); }
+		tempLabel.hardlight(tCol);
+
+		// wind
+		float wind = ClimateManager.localWindSpeed();
+		float windDir = ClimateManager.surfaceWindDir();
+		boolean calm = wind < 0.5f;
+		int wCol = gradient(WIND_STOPS, WIND_COLS, wind);
+		String wTxt = calm ? Messages.get(this, "calm") : Math.round(wind) + " " + cardinal(windDir);
+		if (!wTxt.equals(sWind)) { sWind = wTxt; windLabel.text(wTxt); }
+		windLabel.hardlight(calm ? COLOR_CALM : wCol);
+
+		// the countdown to the next phase; the real-clock challenge has no turns to count
+		int turns = DayNightCycle.turnsUntilPhaseChange();
+		String next = phaseName(phase.next());
+		String cTxt = turns < 0 ? phaseName(phase) : Messages.get(this, "until", next, turns);
+		if (!cTxt.equals(sCount)) {
+			sCount = cTxt;
+			countLabel.text(cTxt);
+			//if the row is full, the short form
+			if (turns >= 0 && countLabel.width() > WIN_W - REST_W - zzLabel.width() - 6) {
+				countLabel.text(Messages.get(this, "until_short", next, turns));
+			}
+		}
+		countLabel.hardlight(PHASE_TEXT[phase.ordinal()]);
+
+		// rest
+		float sleepFrac = 0f;
+		if (Dungeon.hero != null) {
+			Sleepiness tired = Dungeon.hero.buff(Sleepiness.class);
+			if (tired != null) sleepFrac = SkyPaint.clamp01(tired.level() / Sleepiness.COMATOSE);
+		}
+		float drowsyFrac = Sleepiness.DROWSY / Sleepiness.COMATOSE;
+		float warn = sleepFrac <= drowsyFrac ? 0f : Math.min(1f, (sleepFrac - drowsyFrac) / (1f - drowsyFrac));
+		int sCol = SkyPaint.mix(COLOR_SLEEP_OK, COLOR_SLEEP_TIRED, warn);
+		zzLabel.hardlight(sCol);
+
+		// the date: the weekday drops its "day" when the row is full
+		String wd = GameCalendar.weekdayString();
+		String sd = Messages.get(GameCalendar.class, GameCalendar.season().name().toLowerCase()) + " " + GameCalendar.dayOfSeason();
+		if (!wd.equals(sWeekday) || !sd.equals(sSeason)) {
+			sWeekday = wd; sSeason = sd;
+			seasonLabel.text(sd);
+			weekdayLabel.text(wd);
+			if (weekdayLabel.width() + seasonLabel.width() + 4 > WIN_W && wd.toLowerCase().endsWith("day") && wd.length() > 5) {
+				weekdayLabel.text(wd.substring(0, wd.length() - 3));
+			}
+		}
+		seasonLabel.hardlight(SEASON_TEXT[GameCalendar.season().ordinal()]);
+
+		// the dials, repainted when a pixel of them would move
+		float dayPos = dayProgress(), yearPos = yearProgress();
+		int dirStep = Math.round((((windDir % 360f) + 360f) % 360f) / 22.5f) % 16;
+		long dk = 17;
+		dk = dk * 31 + Math.round(dayPos * WIN_W);
+		dk = dk * 31 + phase.ordinal();
+		dk = dk * 31 + GameCalendar.season().ordinal();
+		dk = dk * 31 + Math.round(yearPos * WIN_W);
+		dk = dk * 31 + Math.round(sleepFrac * REST_W * 2);
+		dk = dk * 31 + Math.round(warn * 8);
+		dk = dk * 31 + Math.round(temp);
+		dk = dk * 31 + dirStep;
+		dk = dk * 31 + Math.round(wind);
+		dk = dk * 31 + (calm ? 1 : 0);
+		if (dk != dialsKey) {
+			dialsKey = dk;
+			Pixmap pm = dialsTex.bitmap;
+			pm.setColor(0); pm.fill();
+			float total = DayNightCycle.FULL_CYCLE;
+			float[] fr = new float[4];
+			for (int i = 0; i < 4; i++) fr[i] = DayNightCycle.phaseDuration(DayNightCycle.Phase.values()[i]) / total;
+			SkyMiniature.paintStrip(pm, 0, 0, WIN_W, 3, fr, PHASE_COLS, phase.ordinal(), dayPos);
+			SkyMiniature.paintStrip(pm, 0, 3, WIN_W, 3, new float[]{ 0.25f, 0.25f, 0.25f, 0.25f }, SEASON_COLS, GameCalendar.season().ordinal(), yearPos);
+			SkyMiniature.paintBar(pm, 0, 6, REST_W, 3, sleepFrac, drowsyFrac, sCol);
+			SkyMiniature.paintThermometer(pm, THERM_X, 6, temp, TEMP_STOPS[0], TEMP_STOPS[TEMP_STOPS.length - 1], tCol);
+			SkyMiniature.paintCompass(pm, COMPASS_X, 6, windDir, calm, wCol);
+			dialsTex.bitmap(pm);
+		}
+	}
+
+	// ------------------------------------------------------------- layout
+
 	@Override
 	protected void layout() {
-		float px    = x + PAD;                       // content left
-		float bx    = px + VERT_W + VERT_GAP;        // horizontal bars left
-		float windX = bx + BAR_WIDTH + VERT_GAP;
-		float right = windX + VERT_W;                // content right
-
 		panel.x = x;
 		panel.y = y;
 		panel.size(WIDTH, HEIGHT);
 
-		DayNightCycle.Phase phase = DayNightCycle.phase();
-		boolean daytime = phase == DayNightCycle.Phase.DAWN || phase == DayNightCycle.Phase.DAY;
+		float wx = x + PAD, wy = y + Y_WIN;
+		skyImg.x = overImg.x = wx;
+		skyImg.y = overImg.y = wy;
+		float ix = wx + SkyMiniature.FRAME, iy = wy + SkyMiniature.FRAME;
 
-		// === Date row — the living sun/moon and the calendar date, always visible ===
-		float dy2 = y + PAD;
-		int frame;
-		if (daytime) {
-			frame = ClimateManager.isSolarEclipse() ? FRAME_SOLAR_ECL : FRAME_SUN;
-		} else if (ClimateManager.isLunarEclipse()) {
-			frame = FRAME_LUNAR_ECL;
-		} else {
-			frame = moonFrame();
-		}
-		if (frame != dateFrame) {
-			dateFrame = frame;
-			dateIcon.frame(dateFilm.get(frame));
-		}
-		switch (phase) {
-			case DAWN: dateIcon.hardlight(1f, 0.8f, 0.6f);  break;
-			case DUSK: dateIcon.hardlight(1f, 0.85f, 0.95f); break;
-			default:   dateIcon.resetColor();
-		}
-		dateIcon.x = px; dateIcon.y = dy2;
-		PixelScene.align(dateIcon);
-
-		String dTxt = pretty(GameCalendar.weekday()).substring(0, 3) + ", "
-				+ pretty(GameCalendar.season()) + " " + GameCalendar.dayOfSeason();
-		if (!dTxt.equals(sDate)) {
-			sDate = dTxt;
-			dateLabel.text(dTxt);
-		}
-		dateLabel.setPos(px + 11, dy2 + (9 - dateLabel.height()) / 2f);
-		PixelScene.align(dateLabel);
-
-		// === Header — phase name (left), weather conditions (right) ===
-		float hy = y + PAD + DATE_H;
-		String pName = pretty(phase);
-		if (!pName.equals(sPhase)) {
-			sPhase = pName;
-			phaseLabel.text(pName);
-		}
-		int pCol = phaseColor(phase);
-		phaseSwatch.hardlight(r(lighten(pCol)), g(lighten(pCol)), b(lighten(pCol)));
-		phaseSwatch.x = px; phaseSwatch.y = hy + 2; phaseSwatch.size(2, 2);
-		phaseLabel.setPos(px + 4, hy + (HEADER_H - phaseLabel.height()) / 2f);
-		PixelScene.align(phaseLabel);
-
-		WeatherState ws = ClimateManager.weatherState();
-		String wName = weatherName(ws);
-		if (!wName.equals(sWeather)) {
-			sWeather = wName;
-			weatherLabel.text(wName);
-		}
-		// weather color dulled by cloud cover — same blend as the weather bar below
-		int wsColor = weatherColor(ws);
-		float cc = ClimateManager.cloudCover();
-		float wR = r(wsColor) * (1f - cc) + 0.25f * cc;
-		float wG = g(wsColor) * (1f - cc) + 0.25f * cc;
-		float wB = b(wsColor) * (1f - cc) + 0.25f * cc;
-		weatherLabel.setPos(right - weatherLabel.width(), hy + (HEADER_H - weatherLabel.height()) / 2f);
-		PixelScene.align(weatherLabel);
-		weatherSwatch.hardlight(
-				wR + (1f - wR) * 0.25f, wG + (1f - wG) * 0.25f, wB + (1f - wB) * 0.25f);
-		weatherSwatch.x = weatherLabel.left() - 4; weatherSwatch.y = hy + 2; weatherSwatch.size(2, 2);
-
-		// === Bars block ===
-		float by = y + PAD + DATE_H + HEADER_H + SECTION_GAP;
-
-		// Temp vertical bar (LEFT) — fills bottom-up, gray notch at 0°C
-		float temp = (Dungeon.hero != null)
-				? TileTemperature.feelsLikeAt(Dungeon.hero.pos)
-				: ClimateManager.feelsLikeTemp();
-		float tempFrac  = clamp01((temp + 20f) / 65f);
-		float tempFillH = Math.max(1, SIDE_BAR_H * tempFrac);
-		int tCol = gradient(TEMP_STOPS, TEMP_COLORS, temp);
-		tempTrack.x = px; tempTrack.y = by; tempTrack.size(VERT_W, SIDE_BAR_H);
-		tempFill.hardlight(r(tCol), g(tCol), b(tCol));
-		tempFill.x = px; tempFill.y = by + SIDE_BAR_H - tempFillH;
-		tempFill.size(VERT_W, tempFillH);
-		float freezeFrac = 20f / 65f; // (0°C + 20) / 65
-		tempTick.x = px;
-		tempTick.y = by + Math.round((SIDE_BAR_H - 1) * (1f - freezeFrac));
-		tempTick.size(VERT_W, 1);
-
-		// Wind vertical bar (RIGHT) — fills bottom-up with speed
-		float wind     = ClimateManager.localWindSpeed();
-		float windFrac  = clamp01(wind / 25f);
-		float windFillH = Math.max(1, SIDE_BAR_H * windFrac);
-		int wCol = gradient(WIND_STOPS, WIND_COLORS, wind);
-		float aR = r(wCol), aG = g(wCol), aB = b(wCol);
-		windTrack.x = windX; windTrack.y = by; windTrack.size(VERT_W, SIDE_BAR_H);
-		windFill.hardlight(aR, aG, aB);
-		windFill.x = windX; windFill.y = by + SIDE_BAR_H - windFillH;
-		windFill.size(VERT_W, windFillH);
-
-		// Day cycle bar — current phase lit, others dimmed, pin on exact time
-		dayTrack.x = bx; dayTrack.y = by; dayTrack.size(BAR_WIDTH, BAR_HEIGHT);
-		float segX = bx;
-		for (int i = 0; i < 4; i++) {
-			DayNightCycle.Phase p = DayNightCycle.Phase.values()[i];
-			float w = BAR_WIDTH * DayNightCycle.phaseDuration(p) / (float) DayNightCycle.FULL_CYCLE;
-			daySegs[i].x = segX; daySegs[i].y = by; daySegs[i].size(w, BAR_HEIGHT);
-			dayDims[i] = (p == phase) ? 1f : SEG_DIM;
-			segX += w;
-		}
-		pin(dayPin, dayPinCap, bx + (BAR_WIDTH - 1) * dayProgress(), by);
-
-		// Season bar — 1px separators, current season lit, pin on day of year
-		float sy = by + BAR_HEIGHT + GAP;
-		seasonTrack.x = bx; seasonTrack.y = sy; seasonTrack.size(BAR_WIDTH, BAR_HEIGHT);
-		float sw = BAR_WIDTH / 4f;
-		int curSeason = GameCalendar.season().ordinal();
-		for (int i = 0; i < 4; i++) {
-			float w = (i < 3) ? sw - 1 : BAR_WIDTH - sw * 3;
-			seasonSegs[i].x = bx + sw * i; seasonSegs[i].y = sy; seasonSegs[i].size(w, BAR_HEIGHT);
-			seasonDims[i] = (i == curSeason) ? 1f : SEG_DIM;
-		}
-		pin(seasonPin, seasonPinCap, bx + (BAR_WIDTH - 1) * yearProgress(), sy);
-
-		// Moon bar — 8 phase segments, pin centered on tonight's phase
-		float wy = sy + BAR_HEIGHT + GAP;
-		weatherTrack.x = bx; weatherTrack.y = wy; weatherTrack.size(BAR_WIDTH, BAR_HEIGHT);
-		weatherFill.hardlight(wR, wG, wB);
-		weatherFill.x = bx; weatherFill.y = wy; weatherFill.size(BAR_WIDTH, BAR_HEIGHT);
-
-		// Rest bar — fills with tiredness, gray notch where drowsiness starts
-		float sleepY = wy + BAR_HEIGHT + GAP;
-		sleepTrack.x = bx; sleepTrack.y = sleepY; sleepTrack.size(BAR_WIDTH, BAR_HEIGHT);
-		float sleepFrac = 0f;
-		if (Dungeon.hero != null) {
-			Sleepiness tired = Dungeon.hero.buff(Sleepiness.class);
-			if (tired != null) {
-				sleepFrac = clamp01(tired.level() / Sleepiness.COMATOSE);
+		if (ctx != null && sunIcon.visible) {
+			int[] p = SkyMiniature.sunIcon(ctx);
+			if (p != null) {
+				sunIcon.x = ix + Math.max(0, Math.min(W_IN - 9, p[0]));
+				sunIcon.y = iy + Math.max(0, Math.min(H_IN - 9, p[1]));
 			}
 		}
-		float drowsyFrac = Sleepiness.DROWSY / Sleepiness.COMATOSE;
-		float warn = sleepFrac <= drowsyFrac ? 0f
-				: Math.min(1f, (sleepFrac - drowsyFrac) / (1f - drowsyFrac));
-		int sCol = lerpColor(COLOR_SLEEP_OK, COLOR_SLEEP_TIRED, warn);
-		sleepFill.hardlight(r(sCol), g(sCol), b(sCol));
-		sleepFill.x = bx; sleepFill.y = sleepY;
-		sleepFill.size(Math.max(1, BAR_WIDTH * sleepFrac), BAR_HEIGHT);
-		sleepTick.x = bx + Math.round((BAR_WIDTH - 1) * drowsyFrac);
-		sleepTick.y = sleepY; sleepTick.size(1, BAR_HEIGHT);
+		moonBadge.x = ix + W_IN - 11;
+		moonBadge.y = iy + 2;
 
-		// === Footer — temp readout, compass, wind readout ===
-		float fy = by + SIDE_BAR_H + SECTION_GAP;
+		caption.setPos(ix + 2, iy + 2);
+		PixelScene.align(caption);
 
-		String tTxt = Math.round(temp) + "°";
-		if (!tTxt.equals(sTemp)) {
-			sTemp = tTxt;
-			tempLabel.text(tTxt);
-		}
-		if (tCol != lastTempCol) {
-			lastTempCol = tCol;
-			tempLabel.hardlight(tCol & 0xFFFFFF);
-		}
-		tempLabel.setPos(px, fy + (FOOTER_H - tempLabel.height()) / 2f);
+		dayStrip.x = wx;    dayStrip.y = y + Y_DAY;
+		seasonStrip.x = wx; seasonStrip.y = y + Y_SEASON;
+
+		// row 1: the thermometer and its reading, the compass and its reading
+		therm.x = wx + 1; therm.y = y + Y_ROW1;
+		tempLabel.setPos(wx + 8, y + Y_ROW1 + (9 - tempLabel.height()) / 2f);
 		PixelScene.align(tempLabel);
-
-		float windDirVal = ClimateManager.surfaceWindDir();
-		boolean calm = wind < 0.5f;
-		String wTxt = calm ? "Calm" : Math.round(wind) + " " + cardinal(windDirVal);
-		if (!wTxt.equals(sWind)) {
-			sWind = wTxt;
-			windLabel.text(wTxt);
-		}
-		if (wCol != lastWindCol) {
-			lastWindCol = wCol;
-			windLabel.hardlight(wCol & 0xFFFFFF);
-		}
-		windLabel.setPos(right - windLabel.width(), fy + (FOOTER_H - windLabel.height()) / 2f);
+		windLabel.setPos(wx + WIN_W - windLabel.width(), y + Y_ROW1 + (9 - windLabel.height()) / 2f);
 		PixelScene.align(windLabel);
+		compass.x = Math.round(windLabel.left() - 11); compass.y = y + Y_ROW1;
 
-		// Compass — needle points where the wind blows, white tip; hidden when calm
-		float cx = bx + (BAR_WIDTH - COMPASS_SIZE) / 2f;
-		float half = (COMPASS_SIZE - 1) / 2f;
-		compassBg.x = cx; compassBg.y = fy; compassBg.size(COMPASS_SIZE, COMPASS_SIZE);
-		float cyy = fy;
-		compassN.x = cx + half;              compassN.y = cyy;                     compassN.size(1, 1);
-		compassS.x = cx + half;              compassS.y = cyy + COMPASS_SIZE - 1;  compassS.size(1, 1);
-		compassE.x = cx + COMPASS_SIZE - 1;  compassE.y = cyy + half;              compassE.size(1, 1);
-		compassW.x = cx;                     compassW.y = cyy + half;              compassW.size(1, 1);
-		compassHub.x = cx + half; compassHub.y = cyy + half; compassHub.size(1, 1);
-		float windRad = (float) Math.toRadians(windDirVal);
-		float sinW = (float) Math.sin(windRad);
-		float cosW = (float) Math.cos(windRad);
-		arrowA.x = cx + half + Math.round(1.5f * sinW); arrowA.y = cyy + half - Math.round(1.5f * cosW); arrowA.size(1, 1); arrowA.hardlight(aR, aG, aB);
-		arrowB.x = cx + half + Math.round(2.5f * sinW); arrowB.y = cyy + half - Math.round(2.5f * cosW); arrowB.size(1, 1); arrowB.hardlight(aR, aG, aB);
-		arrowC.x = cx + half + Math.round(3.5f * sinW); arrowC.y = cyy + half - Math.round(3.5f * cosW); arrowC.size(1, 1); arrowC.hardlight(1f, 1f, 1f);
-		arrowDim = calm ? 0f : 1f;
+		// row 2: the countdown and the rest meter
+		countLabel.setPos(wx + 1, y + Y_ROW2 + (7 - countLabel.height()) / 2f);
+		PixelScene.align(countLabel);
+		restBar.x = wx + WIN_W - REST_W; restBar.y = y + Y_ROW2 + 2;
+		zzLabel.setPos(restBar.x - zzLabel.width() - 2, y + Y_ROW2 + (7 - zzLabel.height()) / 2f);
+		PixelScene.align(zzLabel);
+
+		// row 3: the date
+		weekdayLabel.setPos(wx + 1, y + Y_ROW3 + (7 - weekdayLabel.height()) / 2f);
+		PixelScene.align(weekdayLabel);
+		seasonLabel.setPos(wx + WIN_W - seasonLabel.width(), y + Y_ROW3 + (7 - seasonLabel.height()) / 2f);
+		PixelScene.align(seasonLabel);
 
 		width  = WIDTH;
 		height = HEIGHT;
 		super.layout(); // size hotArea to the panel
-	}
-
-	// White position pin: 3px cap above the bar, stem through it with 1px overhang below
-	private static void pin(ColorBlock stem, ColorBlock cap, float pinX, float barY) {
-		pinX = Math.round(pinX);
-		stem.x = pinX;     stem.y = barY - 1; stem.size(1, BAR_HEIGHT + 2);
-		cap.x  = pinX - 1; cap.y  = barY - 2; cap.size(3, 1);
 	}
 
 	@Override
@@ -487,22 +440,21 @@ public class SundialIndicator extends Button {
 			y = Math.round(ty);
 		}
 
-		//no fade: the panel pops with the rest of the HUD. the tween used to
-		//strand it half-transparent whenever game time stood still
-		targetAlpha = WPDSettings.sundial() ? 1f : 0f;
-		currentAlpha = targetAlpha;
+		//no fade: the panel pops with the rest of the HUD
+		visible = WPDSettings.sundial();
+		if (!visible) return;
 
-		visible = currentAlpha > 0.01f;
-		if (visible) {
-			layout();
-			applyAlpha(currentAlpha);
+		if (ctx == null || Game.timeTotal - lastRefresh >= 0.25f) {
+			lastRefresh = Game.timeTotal;
+			refresh();
 		}
+		layout();
 	}
 
 	@Override
 	protected void onClick() {
 		Sample.INSTANCE.play(Assets.Sounds.CLICK);
-		GameScene.show(new WndSundialGuide());
+		GameScene.show(new WndAlmanac());
 	}
 
 	@Override
@@ -514,35 +466,7 @@ public class SundialIndicator extends Button {
 
 	@Override
 	protected String hoverText() {
-		return pretty(GameCalendar.weekday()) + ", "
-				+ pretty(GameCalendar.season()) + " " + GameCalendar.dayOfSeason() + ", "
-				+ GameCalendar.year();
-	}
-
-	private void applyAlpha(float a) {
-		panel.alpha(a * 0.9f);
-		dateIcon.alpha(a); dateLabel.alpha(a);
-
-		phaseSwatch.alpha(a); weatherSwatch.alpha(a);
-		phaseLabel.alpha(a); weatherLabel.alpha(a);
-		tempLabel.alpha(a); windLabel.alpha(a);
-
-		tempTrack.alpha(a); tempFill.alpha(a); tempTick.alpha(a);
-		windTrack.alpha(a); windFill.alpha(a);
-
-		dayTrack.alpha(a);
-		for (int i = 0; i < 4; i++) daySegs[i].alpha(a * dayDims[i]);
-		seasonTrack.alpha(a);
-		for (int i = 0; i < 4; i++) seasonSegs[i].alpha(a * seasonDims[i]);
-		weatherTrack.alpha(a); weatherFill.alpha(a);
-		sleepTrack.alpha(a); sleepFill.alpha(a); sleepTick.alpha(a);
-
-		dayPin.alpha(a); dayPinCap.alpha(a);
-		seasonPin.alpha(a); seasonPinCap.alpha(a);
-
-		compassBg.alpha(a); compassN.alpha(a); compassE.alpha(a);
-		compassS.alpha(a); compassW.alpha(a); compassHub.alpha(a);
-		arrowA.alpha(a * arrowDim); arrowB.alpha(a * arrowDim); arrowC.alpha(a * arrowDim);
+		return GameCalendar.dateString();
 	}
 
 	public static float totalWidth() {
@@ -553,111 +477,82 @@ public class SundialIndicator extends Button {
 		return HEIGHT;
 	}
 
-	// --- helpers ---
-	private static float r(int c) { return ((c >> 16) & 0xFF) / 255f; }
-	private static float g(int c) { return ((c >>  8) & 0xFF) / 255f; }
-	private static float b(int c) { return  (c        & 0xFF) / 255f; }
+	// ------------------------------------------------------------ helpers
 
-	private static float clamp01(float v) {
-		return Math.max(0f, Math.min(1f, v));
-	}
-
-	private static int lerpColor(int c1, int c2, float t) {
-		t = clamp01(t);
-		int rr = (int) (((c1 >> 16) & 0xFF) * (1 - t) + ((c2 >> 16) & 0xFF) * t);
-		int gg = (int) (((c1 >>  8) & 0xFF) * (1 - t) + ((c2 >>  8) & 0xFF) * t);
-		int bb = (int) ((c1         & 0xFF) * (1 - t) + (c2         & 0xFF) * t);
-		return 0xFF000000 | (rr << 16) | (gg << 8) | bb;
-	}
-
-	private static int gradient(float[] stops, int[] colors, float v) {
+	public static int gradient(float[] stops, int[] colors, float v) {
 		if (v <= stops[0]) return colors[0];
 		for (int i = 1; i < stops.length; i++) {
 			if (v <= stops[i]) {
-				return lerpColor(colors[i - 1], colors[i],
-						(v - stops[i - 1]) / (stops[i] - stops[i - 1]));
+				return SkyPaint.mix(colors[i - 1], colors[i], (v - stops[i - 1]) / (stops[i] - stops[i - 1]));
 			}
 		}
 		return colors[colors.length - 1];
 	}
 
-	private static int lighten(int c) {
-		return lerpColor(c, 0xFFFFFFFF, 0.25f);
-	}
-
-	private static String pretty(Enum<?> e) {
-		String n = e.name().toLowerCase(Locale.ENGLISH).replace('_', ' ');
-		return Character.toUpperCase(n.charAt(0)) + n.substring(1);
-	}
-
-	private static String cardinal(float deg) {
+	public static String cardinal(float deg) {
 		int idx = Math.round((((deg % 360f) + 360f) % 360f) / 45f) % 8;
 		return CARDINALS[idx];
 	}
 
-	private static int phaseColor(DayNightCycle.Phase phase) {
-		switch (phase) {
-			case DAWN:  return COLOR_DAWN;
-			case DAY:   return COLOR_DAY;
-			case DUSK:  return COLOR_DUSK;
-			case NIGHT: default: return COLOR_NIGHT;
-		}
+	public static String phaseName(DayNightCycle.Phase phase) {
+		return Messages.get(SundialIndicator.class, "phase_" + phase.name().toLowerCase());
 	}
 
-	private static int weatherColor(WeatherState ws) {
-		if (ws == null) return COLOR_CLEAR;
+	/** the text colour that names a state of the sky */
+	public static int weatherColor(WeatherState ws) {
+		if (ws == null) return 0x9cd0ff;
 		switch (ws) {
-			case CLEAR:         return COLOR_CLEAR;
-			case FAIR:          return COLOR_FAIR;
-			case PARTLY_CLOUDY: return COLOR_PARTLY;
-			case OVERCAST:      return COLOR_OVERCAST;
-			case LIGHT_PRECIP:  return COLOR_LIGHT_PRECIP;
-			case HEAVY_PRECIP:  return COLOR_HEAVY_PRECIP;
-			case STORM:         return COLOR_STORM;
-			case FOG:           return COLOR_FOG;
-			case CLEARING:      return COLOR_CLEARING;
-			default:            return COLOR_CLEAR;
-		}
-	}
-
-	private static String weatherName(WeatherState ws) {
-		if (ws == null) return "Clear";
-		switch (ws) {
-			case CLEAR:         return "Clear";
-			case FAIR:          return "Fair";
-			case PARTLY_CLOUDY: return "Clouds";
-			case OVERCAST:      return "Overcast";
+			case CLEAR:         return 0x9cd0ff;
+			case FAIR:          return 0xb8d8f8;
+			case PARTLY_CLOUDY: return 0xc8ccd4;
+			case OVERCAST:      return 0xa0a6b0;
 			case LIGHT_PRECIP:
 			case HEAVY_PRECIP:
 				switch (ClimateManager.localPrecipType()) {
-					case SNOW:     return "Snow";
-					case HAIL:     return "Hail";
-					case SLEET:    return "Sleet";
-					case BLIZZARD: return "Blizzard";
-					default:       return ws == WeatherState.HEAVY_PRECIP ? "Downpour" : "Rain";
+					case SNOW: case BLIZZARD: case SLEET: return 0xe8f4ff;
+					case HAIL: return 0xdfe4ea;
+					default:   return 0x8cb8f0;
 				}
-			case STORM:         return "Storm";
-			case FOG:           return "Fog";
-			case CLEARING:      return "Clearing";
-			default:            return "Clear";
+			case STORM:         return 0xb0a0f0;
+			case FOG:           return 0xc4ccc0;
+			case CLEARING:      return 0xa8e0ff;
+			default:            return 0x9cd0ff;
 		}
 	}
 
-	private float dayProgress() {
+	public static String weatherName(WeatherState ws) {
+		String key;
+		if (ws == null) key = "w_clear";
+		else switch (ws) {
+			case CLEAR:         key = "w_clear"; break;
+			case FAIR:          key = "w_fair"; break;
+			case PARTLY_CLOUDY: key = "w_clouds"; break;
+			case OVERCAST:      key = "w_overcast"; break;
+			case LIGHT_PRECIP:
+			case HEAVY_PRECIP:
+				switch (ClimateManager.localPrecipType()) {
+					case SNOW:     key = "w_snow"; break;
+					case HAIL:     key = "w_hail"; break;
+					case SLEET:    key = "w_sleet"; break;
+					case BLIZZARD: key = "w_blizzard"; break;
+					default:       key = ws == WeatherState.HEAVY_PRECIP ? "w_downpour" : "w_rain";
+				}
+				break;
+			case STORM:         key = "w_storm"; break;
+			case FOG:           key = "w_fog"; break;
+			case CLEARING:      key = "w_clearing"; break;
+			default:            key = "w_clear";
+		}
+		return Messages.get(SundialIndicator.class, key);
+	}
+
+	public static float dayProgress() {
 		int pos = Dungeon.cycleTurn % DayNightCycle.FULL_CYCLE;
 		return pos / (float) DayNightCycle.FULL_CYCLE;
 	}
 
-	private float yearProgress() {
-		GameCalendar.Season season = GameCalendar.season();
-		float seasonStart;
-		switch (season) {
-			case SPRING: seasonStart = 0f;    break;
-			case SUMMER: seasonStart = 0.25f; break;
-			case AUTUMN: seasonStart = 0.50f; break;
-			case WINTER: seasonStart = 0.75f; break;
-			default:     seasonStart = 0f;    break;
-		}
+	public static float yearProgress() {
+		float seasonStart = GameCalendar.season().ordinal() * 0.25f;
 		float withinSeason = (GameCalendar.dayOfSeason() - 1f) / GameCalendar.daysInCurrentSeason();
 		return seasonStart + 0.25f * withinSeason;
 	}

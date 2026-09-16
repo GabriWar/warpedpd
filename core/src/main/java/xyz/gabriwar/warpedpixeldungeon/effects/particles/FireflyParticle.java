@@ -21,75 +21,92 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
-import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.Random;
 
-public class FireflyParticle extends PixelParticle {
+import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherSprites;
+
+/**
+ * A firefly: a bright heart in a soft glow, drawn additively, that wanders on a
+ * slow meandering path and lights in pulses, a flash or two and then dark for a
+ * while, the way real ones signal.
+ */
+public class FireflyParticle extends WeatherParticle {
 
 	public static final Emitter.Factory FACTORY = new Emitter.Factory() {
 		@Override
 		public void emit(Emitter emitter, int index, float x, float y) {
 			((FireflyParticle) emitter.recycle(FireflyParticle.class)).reset(x, y);
 		}
+
+		@Override
+		public boolean lightMode() {
+			return true;
+		}
 	};
 
-	private float blinkPhase;
-	private float blinkSpeed;
+	private float heading, pace, bobPhase;
+	private float pulse, pulseLeft, dark;
+	private int flashes;
 
 	public FireflyParticle() {
 		super();
-		lifespan = Random.Float(4f, 8f);
+		lifespan = Random.Float(5f, 10f);
 	}
 
 	public void reset(float x, float y) {
 		revive();
 		this.x = x;
 		this.y = y;
-		left = lifespan;
-		size = Random.Float(1f, 2f);
-		color(Random.Float() < 0.7f ? 0xFFEE66 : 0xAAFF44);
+		left = lifespan = Random.Float(5f, 10f);
 
-		// Wind gently pushes fireflies — they're light but resist
-		float wind = ClimateManager.localWindSpeed() * 0.3f;
-		speed.set(Random.Float(-4, 4) + wind, Random.Float(-4, 4));
+		frame(Random.Float() < 0.75f ? WeatherSprites.GLOW_5 : WeatherSprites.GLOW_3);
+		color(Random.Float() < 0.7f ? 0xF8F060 : 0xC8FF60);
+
+		heading = Random.Float((float)(Math.PI * 2));
+		pace = Random.Float(3f, 7f);
+		bobPhase = Random.Float((float)(Math.PI * 2));
 		acc.set(0, 0);
-		blinkPhase = Random.Float((float)(Math.PI * 2));
-		blinkSpeed = Random.Float(2f, 5f);
+		//start somewhere in its cycle so a fresh swarm does not blink in step
+		dark = Random.Float(0f, 1.5f);
+		pulseLeft = 0;
+		flashes = 0;
+		am = 0;
 	}
 
 	@Override
 	public void update() {
 		super.update();
-		float p = left / lifespan;
+		float dt = Game.elapsed;
 
-		blinkPhase += Game.elapsed * blinkSpeed;
-		float glow = ((float) Math.sin(blinkPhase) + 1f) * 0.5f;
+		//the path: a heading that drifts, a gentle bob, the wind leaned into
+		heading += Random.Float(-1f, 1f) * 2.2f * dt;
+		bobPhase += dt * 2f;
+		float wind = ClimateManager.localWindSpeed() * 0.25f;
+		speed.set((float) Math.cos(heading) * pace + wind, (float) Math.sin(heading) * pace * 0.6f + (float) Math.sin(bobPhase) * 2.5f);
 
-		float envelope;
-		if (p > 0.85f) {
-			envelope = (1f - p) * 6.7f;
-		} else if (p < 0.15f) {
-			envelope = p * 6.7f;
+		//the light: a pulse of a third of a second, one to three of them, then dark
+		float glow;
+		if (pulseLeft > 0) {
+			pulseLeft -= dt;
+			float t = 1f - pulseLeft / pulse;
+			glow = (float) Math.sin(t * Math.PI);
+			if (pulseLeft <= 0) {
+				if (--flashes > 0) { pulse = Random.Float(0.25f, 0.4f); pulseLeft = pulse; dark = 0; }
+				else dark = Random.Float(0.9f, 2.6f);
+			}
 		} else {
-			envelope = 1f;
+			dark -= dt;
+			glow = 0;
+			if (dark <= 0) {
+				flashes = Random.Float() < 0.6f ? 1 : (Random.Float() < 0.7f ? 2 : 3);
+				pulse = Random.Float(0.3f, 0.5f);
+				pulseLeft = pulse;
+			}
 		}
-
-		am = glow * envelope * 0.8f;
-
-		// Random direction changes, biased by wind
-		if (Random.Float() < Game.elapsed * 0.5f) {
-			float wind = ClimateManager.localWindSpeed() * 0.3f;
-			speed.set(Random.Float(-4, 4) + wind, Random.Float(-4, 4));
-		}
-
-		int cell = (int)(this.x / DungeonTilemap.SIZE) + (int)(this.y / DungeonTilemap.SIZE) * Dungeon.level.width();
-		if (cell < 0 || cell >= Dungeon.level.heroFOV.length || !Dungeon.level.heroFOV[cell]) {
-			am = 0;
-		}
+		am = glow * envelope(0.1f, 0.15f, 0.95f);
+		fov();
 	}
 }

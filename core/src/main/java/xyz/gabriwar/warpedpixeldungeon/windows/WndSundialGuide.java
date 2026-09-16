@@ -22,13 +22,13 @@
 package xyz.gabriwar.warpedpixeldungeon.windows;
 
 import xyz.gabriwar.warpedpixeldungeon.Chrome;
-import xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
 import xyz.gabriwar.warpedpixeldungeon.ui.RedButton;
 import xyz.gabriwar.warpedpixeldungeon.ui.RenderedTextBlock;
 import xyz.gabriwar.warpedpixeldungeon.ui.Window;
 import com.watabou.noosa.Game;
 
+/** How to read the sundial panel, a page at a time. Opened from the almanac. */
 public class WndSundialGuide extends Window {
 
 	private static final int WIDTH_P  = 120;
@@ -38,60 +38,27 @@ public class WndSundialGuide extends Window {
 	private static final int GAP      = 2;
 
 	private static final String[] TITLES = {
-		"Overview",
-		"Day Cycle",
-		"Season",
-		"Moon",
-		"Weather",
-		"Rest",
-		"Temperature",
-		"Wind & Compass",
-		"Today"
+		"The Sundial",
+		"The Window",
+		"The Horizon",
+		"The Day Dial",
+		"The Instruments",
+		"The Calendar"
 	};
 
 	private static final String[] PAGES = {
-		"Carrying this sundial shows a panel just above the bag button, reading the world at a glance:\n\n_Header_ — time of day and current weather, by name.\n_Five bars_ — day cycle, season, moon, weather, rest.\n_Side bars_ — temperature (left) and wind (right).\n_Footer_ — exact readouts and a wind compass.\n\n_Tap the panel_ at any time to reopen this guide. _Hold it_ to hide the panel — it can be re-enabled in the interface settings.",
+		"The panel at the top right is a window on the sky above you, with the instruments of an almanac under it. Everything on it is read from the world: the real position of the sun, the true shape of the moon, the weather as it falls, the season the land is in.\n\n_Tap_ the panel for the almanac: the full date, the weather in numbers, the front on its way, and the calendar's effects today.\n\n_Hold_ the panel to hide it; the interface settings bring it back. On desktop, resting the pointer on it shows the date.",
 
-		"_Top bar_ — the full day in four colored phases:\n\n_Orange_ — dawn\n_Yellow_ — day\n_Purple_ — dusk\n_Blue_ — night\n\nThe current phase is lit while the others stay dim, and a _white pin_ slides left to right marking the exact time. The header names the current phase.",
+		"_The sky_ is lit by the sun itself: how high it stands is the hour, its colour the time of day. Dawn glows on the left, dusk on the right, and night brings the stars.\n\n_The sun_ crosses the window left to right and sets behind the land. In an eclipse it turns to a black disc with a corona.\n\n_The moon_ rises later every night and shows its true shape, a pale ghost when it hangs in the day sky. Its phase is always in the _badge_ at the top right, new to full and back over 29 days.\n\n_The weather_ is drawn as it happens: clouds drifting on the wind, a grey deck when it closes over, rain, snow, hail, fog, lightning; a rainbow after a shower, an aurora on cold clear nights. The word in the top left names it.",
 
-		"_Second bar_ — the year, split into four seasons:\n\n_Green_ — spring\n_Yellow_ — summer\n_Orange_ — autumn\n_Blue_ — winter\n\nThe current season is lit, the rest are dimmed, and a _white pin_ tracks how far the year has progressed.",
+		"The land under the sky is where you stand: forest, plains, hills or mountains, water, desert, tundra, or the roofs of the town, where lamps come on in the windows after dark and chimneys smoke on cold nights.\n\nIt wears the season: green in spring and summer, gold and rust in autumn, bare in winter, and white wherever it freezes.\n\nFrom inside the dungeon the window still shows the surface, so you know what is waiting above.",
 
-		"_Third bar_ — 8 segments, one per lunar phase:\n\nDark _new moon_ on the left, brightening through crescent, quarter and gibbous to the _full moon_ at the center, then waning back down on the right.\n\nThe _white pin_ sits over tonight's phase.",
+		"The strip glued under the window is the day, in four colours: _orange_ dawn, _yellow_ day, _purple_ dusk, _blue_ night. Each part is as long as it really lasts this season: summer days are long, winter days short. The current part is lit, and the white mark is now.\n\nThe text below counts down to the next part of the day, in turns.\n\nNight changes the dungeon: more creatures wake, you see less far, the undead hit harder, and you are harder to spot.",
 
-		"_Fourth bar_ — its color reflects the sky, and the header names the conditions:\n\n_Bright blue_ — clear\n_Gray-blue_ — partly cloudy\n_Deep blue_ — rain or storm\n_Gray-green_ — fog\n\nCloud cover blends into the bar color — the more clouds, the duller the hue.",
+		"_The thermometer_ reads how warm it feels where you stand, on a scale from -20° to 45°; the blue tick on its side is freezing. Its reading beside it runs from blue for cold through green to red for hot.\n\n_The compass_ points where the wind is blowing, and its needle takes the colour of the wind's speed. The reading gives metres per second and heading. In still air the needle rests and the reading says calm.\n\n_The rest meter_, beside the Zz, fills as tiredness builds. Blue while you are rested, red as collapse nears; the notch marks where drowsiness sets in. Sleep empties it.",
 
-		"_Fifth bar_ — your hero's need for sleep.\n\nIt fills left to right as tiredness builds: _blue_ while rested, turning _red_ as exhaustion nears. The small gray notch marks where drowsiness starts to bite.\n\nSleep to empty it.",
-
-		"_Left side bar_ — fills bottom-up with temperature, from \u221220\u00b0C to 45\u00b0C, shifting smoothly from _blue_ (freezing) through _green_ (mild) to _red_ (hot).\n\nThe small gray notch marks _0\u00b0C_ — below it, water freezes.\n\nThe exact reading sits at the bottom-left of the panel.",
-
-		"_Right side bar_ — fills bottom-up with wind speed (0\u201325 m/s):\n\n_Green_ — calm  _Yellow_ — breezy  _Red_ — gale\n\nThe exact speed and heading sit at the bottom-right.\n\n_Compass_ (bottom center): ticks at N, E, S, W. The needle points where the wind blows, colored by speed with a _bright white_ tip — in still air it disappears."
+		"The date row names the weekday, the season and the day of the season. Seasons and weekdays carry small bonuses and penalties, and the moon has its say too: a full moon keeps creatures away and makes them hit harder, a new moon breeds more of them. The almanac lists what is in force today.\n\nThe strip at the very bottom is the year: _green_ spring, _gold_ summer, _orange_ autumn, _blue_ winter, with the white mark on today. The ripe season is lit."
 	};
-
-	//the static pages above, plus a last page built live from the calendar
-	private static int pageCount() {
-		return PAGES.length + 1;
-	}
-
-	private static String pageText(int page) {
-		return page < PAGES.length ? PAGES[page] : todayText();
-	}
-
-	//the date, the moon, and every calendar modifier that is not neutral today
-	private static String todayText() {
-		StringBuilder sb = new StringBuilder();
-		sb.append("_").append(GameCalendar.dateString()).append("_\n");
-		sb.append("Moon: ").append(GameCalendar.moonPhaseString()).append("\n\n");
-		java.util.ArrayList<String[]> mods = GameCalendar.activeModifiers();
-		if (mods.isEmpty()) {
-			sb.append("No calendar modifiers are in effect today.");
-		} else {
-			sb.append("Active modifiers:\n");
-			for (String[] mod : mods) {
-				sb.append("\n").append(mod[0]).append("  _").append(mod[1]).append("_");
-			}
-		}
-		return sb.toString();
-	}
 
 	private final int page;
 
@@ -114,7 +81,7 @@ public class WndSundialGuide extends Window {
 		add(title);
 
 		// Body
-		RenderedTextBlock body = PixelScene.renderTextBlock(pageText(page), 6);
+		RenderedTextBlock body = PixelScene.renderTextBlock(PAGES[page], 6);
 		body.maxWidth(width);
 		body.invert();
 		body.setPos(MARGIN, title.bottom() + GAP);
@@ -137,7 +104,7 @@ public class WndSundialGuide extends Window {
 		if (!btnPrev.active) btnPrev.alpha(0.4f);
 		add(btnPrev);
 
-		RenderedTextBlock counter = PixelScene.renderTextBlock((page + 1) + " / " + pageCount(), 6);
+		RenderedTextBlock counter = PixelScene.renderTextBlock((page + 1) + " / " + PAGES.length, 6);
 		counter.invert();
 		counter.setPos(MARGIN + btnW + GAP, navY + (BTN_H - counter.height()) / 2f);
 		add(counter);
@@ -151,7 +118,7 @@ public class WndSundialGuide extends Window {
 		};
 		btnNext.setSize(btnW, BTN_H);
 		btnNext.setPos(width + MARGIN - btnW, navY);
-		btnNext.active = page < pageCount() - 1;
+		btnNext.active = page < PAGES.length - 1;
 		if (!btnNext.active) btnNext.alpha(0.4f);
 		add(btnNext);
 

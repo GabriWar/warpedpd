@@ -99,10 +99,6 @@ public class Sungrass extends Plant {
 			return new SungrassPoisonParticle();
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			new Sungrass().attackProc(defender, damage);
-		}
 	}
 
 	public static class Health extends Buff {

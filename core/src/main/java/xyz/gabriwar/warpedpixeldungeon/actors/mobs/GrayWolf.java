@@ -26,7 +26,7 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
-import xyz.gabriwar.warpedpixeldungeon.sprites.BrownWolfSprite;
+import xyz.gabriwar.warpedpixeldungeon.sprites.GrayWolfSprite;
 import xyz.gabriwar.warpedpixeldungeon.items.food.MysteryMeat;
 import com.watabou.utils.Random;
 
@@ -34,7 +34,7 @@ import com.watabou.utils.Random;
 public class GrayWolf extends Mob {
 
 	{
-		spriteClass = BrownWolfSprite.class;
+		spriteClass = GrayWolfSprite.class;
 
 		HP = HT = 110;
 		defenseSkill = 26;
@@ -42,7 +42,10 @@ public class GrayWolf extends Mob {
 		EXP = 12;
 		maxLvl = 29;
 		loot = MysteryMeat.class;
-		lootChance = 0.2f;
+		lootChance = 0.2f / 4f;
+
+		//built for the cold: the deep freeze is home, the thaw is what hurts
+		thermal = Thermal.COLD_DWELLER;
 	}
 
 	@Override

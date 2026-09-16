@@ -113,9 +113,5 @@ public class Icecap extends Plant {
 			return new IceCapPoisonParticle();
 		}
 
-		@Override
-		public void procEffect( Char attacker, Char defender, int damage ) {
-			new Icecap().attackProc(defender, damage);
-		}
 	}
 }

@@ -79,6 +79,11 @@ public class DemonGoo extends Mob {
 	}
 
 	@Override
+	protected boolean lootIgnoresLevel() {
+		return true;
+	}
+
+	@Override
 	public void storeInBundle( Bundle bundle ) {
 		super.storeInBundle( bundle );
 		bundle.put( DEMON_GOO_GENERATION, demonGooGeneration );

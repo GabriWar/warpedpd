@@ -60,6 +60,9 @@ public class Golem extends Mob {
 
 		WANDERING = new Wandering();
 		HUNTING = new Hunting();
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	@Override
@@ -86,7 +89,7 @@ public class Golem extends Mob {
 
 	@Override
 	public void rollToDropLoot() {
-		Imp.Quest.process( this );
+		Imp.Quest.oldProcess( this );
 		super.rollToDropLoot();
 	}
 

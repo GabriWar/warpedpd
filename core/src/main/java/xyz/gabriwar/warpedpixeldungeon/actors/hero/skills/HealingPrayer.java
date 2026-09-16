@@ -25,8 +25,15 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
 
 
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barrier;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.effects.ShieldHalo;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -36,34 +43,53 @@ import java.util.ArrayList;
 
 public class HealingPrayer extends ActiveSkill2 {
 
+	private static final float MAX_BARRIER = 0.20f;
+
 	{
 		name = "Healing Prayer";
 		castText = "Mend";
 		image = 114;
 		mana = 8;
+		tier = 2;
 	}
+
+	@Override
+	public boolean toggleable(){ return false; }
 
 	@Override
 	public ArrayList<String> actions( Hero hero ){
 		ArrayList<String> actions = new ArrayList<>();
-		if (level > 0 && hero.MP >= getManaCost())
+		if (level > 0 && canPayMana( hero, getManaCost() ))
 			actions.add(AC_CAST);
 		return actions;
 	}
 
 	@Override
 	public void execute( Hero hero, String action ){
-		if (action.equals(Skill.AC_CAST) && level > 0 && hero.MP >= getManaCost()){
-			if (hero.HP >= hero.HT){
-				GLog.w( "You are already at full health." );
-				return;
-			}
-			int healed = Math.min( 5 + 5 * level, hero.HT - hero.HP );
+		if (action.equals(Skill.AC_CAST) && level > 0 && canPayMana( hero, getManaCost() )){
+
+            SkillSpectacleFX.show(SkillSpectacleFX.WINGS,hero.pos);
+			int amount = SkillInteractions.ofHealth( hero.HT, 0.05f + 0.05f * level );
+            int healed = Math.min( amount, hero.HT - hero.HP );
 			hero.HP += healed;
 			hero.sprite.emitter().start( Speck.factory( Speck.HEALING ), 0.4f, 4 );
+			hero.sprite.emitter().burst( ShaftParticle.FACTORY, 5 );
 			hero.sprite.showStatus( xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite.POSITIVE, "+" + healed + "HP" );
-			hero.MP -= getManaCost();
+			//at level 3 the healing past full health stays on as a barrier of light, up to MAX_BARRIER
+			if (level >= MAX_LEVEL){
+				Barrier current = hero.buff( Barrier.class );
+				int added = Math.min( amount - healed, SkillInteractions.ofHealth( hero.HT, MAX_BARRIER ) - (current == null ? 0 : current.shielding()) );
+				if (added > 0){
+					Buff.affect( hero, Barrier.class ).incShield( added );
+					ShieldHalo halo = new ShieldHalo( hero.sprite );
+					hero.sprite.parent.add( halo );
+					halo.putOut();
+				}
+			}
+			payMana( hero, getManaCost() );
+			AsceticVow.tithe( hero, healed );
 			castTextYell();
+			Sample.INSTANCE.play( Assets.Sounds.CHARMS, 1f, 1.2f );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
 			hero.busy();

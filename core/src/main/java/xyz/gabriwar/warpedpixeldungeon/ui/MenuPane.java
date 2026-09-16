@@ -38,6 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.windows.WndJournal;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndKeyBindings;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndStory;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndTitledMessage;
+import xyz.gabriwar.warpedpixeldungeon.effects.GuideTrail;
 import com.watabou.input.GameAction;
 import com.watabou.noosa.BitmapText;
 import com.watabou.noosa.Game;
@@ -190,7 +191,8 @@ public class MenuPane extends Component {
 		placeDepthText();
 
 		depthButton.setRect(depthText.x, depthIcon.y,
-				depthIcon.x + depthIcon.width() - depthText.x, depthIcon.height());
+				depthIcon.x + depthIcon.width() - depthText.x,
+				depthText.y + depthText.height()*depthText.scale.y - depthIcon.y);
 
 		if (challengeIcon != null){
 			challengeIcon.x = btnJournal.left() - 14 + (7 - challengeIcon.width())/2f - 0.1f;
@@ -238,19 +240,22 @@ public class MenuPane extends Component {
 	//"Sewers(3)" in the dungeon; just the place on the surface and in buildings
 	private static String placeLine(){
 		String name = Dungeon.placeName();
-		boolean floored = Dungeon.branch == 0 && Dungeon.depth >= 1 && Dungeon.depth <= 26;
-		if (Dungeon.depth >= 56 && Dungeon.depth <= 65) floored = true;
-		return floored ? name + "(" + Dungeon.depth + ")" : name;
+		return Dungeon.numberedFloor() ? name + "(" + Dungeon.depth + ")" : name;
 	}
 
 	//the place line sits BESIDE the stairs icon, vertically centred on it,
 	//growing leftward by however wide the word is (clear of the challenge
 	//icon when that one is up)
+	//the place's name sits under the icon, flush with its right edge: names run
+	//from "Sewers(1)" to a village's, and beside the icon the long ones ran into it
 	private void placeDepthText(){
 		depthText.scale.set(PixelScene.align(0.67f));
-		float leftAnchor = challengeIcon != null ? challengeIcon.x : depthIcon.x;
-		depthText.x = leftAnchor - depthText.width()*depthText.scale.x - 2;
-		depthText.y = depthIcon.y + (depthIcon.height() - depthText.baseLine()*depthText.scale.y)/2f;
+		//four characters of air on the right, so it does not butt against the buttons:
+		//four average glyphs of the measured text (the font has no frame to ask for "0")
+		float pad = depthText.text().isEmpty() ? 0
+				: 4 * depthText.width() / depthText.text().length() * depthText.scale.x;
+		depthText.x = depthIcon.x + depthIcon.width() - depthText.width()*depthText.scale.x - pad;
+		depthText.y = depthIcon.y + depthIcon.height() + 1;
 		PixelScene.align(depthText);
 	}
 
@@ -396,6 +401,7 @@ public class MenuPane extends Component {
 						}
 					});
 					flashingDoc.readPage(flashingPage);
+					GuideTrail.refresh();
 				} else {
 					GameScene.show( new WndJournal() );
 				}

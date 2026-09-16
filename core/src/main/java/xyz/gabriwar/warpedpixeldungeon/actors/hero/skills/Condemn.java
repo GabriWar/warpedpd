@@ -27,6 +27,10 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vulnerable;
@@ -52,14 +56,21 @@ public class Condemn extends Skill {
 		if (level <= 0 || enemy == null || !enemy.isAlive())
 			return damage;
 
-		boolean holy = Char.hasProp( enemy, Char.Property.UNDEAD ) || Char.hasProp( enemy, Char.Property.DEMONIC );
+		//at level 3 the undead and the demonic are always branded, and the brand burns them
+		boolean holy = level >= MAX_LEVEL
+				&& (Char.hasProp( enemy, Char.Property.UNDEAD ) || Char.hasProp( enemy, Char.Property.DEMONIC ));
 		if (!holy && Random.Int(100) >= 12 * level)
 			return damage;
 
 		Buff.prolong( enemy, Vulnerable.class, 3 + level );
 		CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.LIGHT ), 3 );
+		if (enemy.sprite != null){
+			enemy.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "branded" ) );
+			if (holy) enemy.sprite.emitter().burst( Speck.factory( Speck.YELLOW_LIGHT ), 4 );
+		}
+		Sample.INSTANCE.play( Assets.Sounds.CURSED, 0.6f, holy ? 1.1f : 1.4f );
 		if (holy)
-			enemy.damage( 2 * level, this );
+			enemy.damage( 6, this );
 
 		return damage;
 	}

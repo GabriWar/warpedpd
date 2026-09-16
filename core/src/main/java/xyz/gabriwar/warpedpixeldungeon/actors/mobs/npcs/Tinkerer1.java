@@ -46,6 +46,13 @@ public class Tinkerer1 extends NPC {
 		properties.add( Property.IMMOVABLE );
 	}
 
+	//lives in the town: sleeps at the inn (TownCommute)
+	@Override
+	public boolean sleepsAtInn() { return true; }
+
+	@Override
+	protected int bedtime() { return 90; }
+
 	@Override
 	protected boolean act() {
 		throwItems();

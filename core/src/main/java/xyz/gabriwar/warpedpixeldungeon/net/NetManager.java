@@ -1,3 +1,27 @@
+/*
+ * Pixel Dungeon
+ * Copyright (C) 2012-2015 Oleg Dolya
+ *
+ * Shattered Pixel Dungeon
+ * Copyright (C) 2014-2026 Evan Debenham
+ *
+ * Warped Pixel Dungeon
+ * Copyright (C) 2026 Gabriel Duarte Guerra (gabriwar)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ */
+
 package xyz.gabriwar.warpedpixeldungeon.net;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -17,6 +41,8 @@ import com.watabou.noosa.particles.Emitter;
 
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
+import xyz.gabriwar.warpedpixeldungeon.net.relay.RelayHost;
+import xyz.gabriwar.warpedpixeldungeon.net.relay.RelayJoin;
 
 public class NetManager {
 
@@ -99,7 +125,33 @@ public class NetManager {
 
 	public static void startHost() throws IOException {
 		stop();
-		server = new HostServer(PORT);
+		startHost(new HostServer(PORT), true);
+	}
+
+	/**
+	 * Host a game that players reach over the internet with a room code. The relay only
+	 * carries bytes between the two of you; everything past the accept is the same code
+	 * the LAN path runs.
+	 */
+	public static void startHostOnline(RelayHost.Listener listener) throws IOException {
+		//before the room is opened, so tearing down the previous session cannot close
+		//the one we are about to hand to the new server
+		stop();
+		RelayHost relay = new RelayHost(listener);
+		relay.open();
+		onlineRoom = relay;
+		startHost(new HostServer(relay), false);
+	}
+
+	/** The room code this host is published under, or empty when hosting on a LAN. */
+	public static String onlineRoomCode() {
+		return onlineRoom != null ? onlineRoom.code() : "";
+	}
+
+	private static RelayHost onlineRoom;
+
+	private static void startHost(HostServer built, boolean announceOnLan) throws IOException {
+		server = built;
 
 		server.setOnClientConnected(c -> {
 			if (hostInGame) {
@@ -227,17 +279,28 @@ public class NetManager {
 			}
 		};
 
-		Discovery.startBroadcasting();
+		//an online room is found by its code, not by shouting on the local network
+		if (announceOnLan) {
+			Discovery.startBroadcasting();
+		}
 	}
 
 	// --- Host: handle JOIN_AS_PLAYER ---
 
 	private static void handleJoinAsPlayer(HostServer.ClientConnection client, JSONObject data) {
 		if (!hostInGame || Dungeon.level == null || Dungeon.hero == null) {
-			// Can't join yet — send lobby info
+			// No game to join yet. Hold the claim rather than drop it: the client is
+			// waiting in the lobby and will never send another, so forgetting it here
+			// left the player watching their own game as a spectator
+			client.pendingPlayerJoin = data;
+			log("[NET-HOST] JOIN_AS_PLAYER before the game started; held until it does");
 			try {
 				JSONObject lobbyData = new JSONObject();
 				lobbyData.put("hostName", xyz.gabriwar.warpedpixeldungeon.WPDSettings.multiplayerName());
+				//so the waiting screen says "you will play", not "you are watching"
+				lobbyData.put("role", "player");
+				lobbyData.put("cls", data.optInt("cls", 0));
+				lobbyData.put("name", data.optString("name", ""));
 				client.sendMessage(Protocol.LOBBY_INFO, lobbyData);
 			} catch (Exception ignored) {}
 			return;
@@ -266,6 +329,7 @@ public class NetManager {
 
 				Hero netHero = null;
 				boolean reclaimed = false;
+				boolean brought = false;
 
 				// Claim + spawn under CLAIM_LOCK so two reconnects racing on the same name
 				// can't both pass the unclaimedHeroes.remove() and double-bind one Hero.
@@ -337,6 +401,25 @@ public class NetManager {
 						}
 					}
 
+				if (netHero == null && data.optJSONObject("hero") != null) {
+					//nothing stashed here under that name, but the player brought the copy
+					//their last host sent them. It is taken as it is: the game is a table
+					//of friends, and the alternative is starting them over at level one
+					netHero = restoreClientHero(data.optJSONObject("hero"), playerName);
+					if (netHero != null) {
+						sessionToken = java.util.UUID.randomUUID().toString();
+						sessionTokens.put(playerName, sessionToken);
+						netHero.netSessionToken = sessionToken;
+						netHero.pos = findEmptyCell(Dungeon.hero.pos);
+						Dungeon.level.occupyCell(netHero);
+						Actor.addDelayed(netHero, Actor.TICK);
+						brought = true;
+						log("[NET-HOST] Restored the hero " + playerName + " brought: id=" + netHero.id()
+								+ " cls=" + netHero.heroClass.title() + " lvl=" + netHero.lvl
+								+ " items=" + netHero.belongings.backpack.items.size());
+					}
+				}
+
 				if (netHero == null) {
 					// Fresh spawn — ignore all client-supplied stats; host is authoritative.
 					netHero = new Hero();
@@ -377,7 +460,11 @@ public class NetManager {
 					// where a joining player wants to be — the entrance can be a whole window away.
 					netHero.pos = findEmptyCell(Dungeon.hero.pos);
 					Dungeon.level.occupyCell(netHero);
-					Actor.add(netHero);
+					//a turn behind the party, not level with it: added at the current time
+					//it ties with a host who has not moved yet and wins the tie, then parks
+					//the actor loop waiting for its owner before the host has ever been
+					//handed a turn - which reads as the host being frozen from the start
+					Actor.addDelayed(netHero, Actor.TICK);
 					xyz.gabriwar.warpedpixeldungeon.net.NetManager.log("[NET-HOST] Spawned new netHero id=" + netHero.id()
 							+ " name=" + playerName + " cls=" + hc.title()
 							+ " pos=" + netHero.pos
@@ -400,8 +487,11 @@ public class NetManager {
 				if (sessionToken != null) ack.put("token", sessionToken);
 				client.sendMessage(Protocol.YOUR_TURN, ack);
 
+				//sends every claimed hero to its owner too, this one included, so the
+				//token just issued is on the player's disk before their first turn
 				broadcastLevelChange();
-				GLog.p((reclaimed ? "Player reconnected as " : "Player joined as ")
+				GLog.p((reclaimed ? "Player reconnected as "
+						: brought ? "Player returned with their " : "Player joined as ")
 						+ netHero.heroClass.title() + "!");
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -412,6 +502,21 @@ public class NetManager {
 	/** Called from Hero.act() to check if a remote hero has an active client owner. */
 	public static boolean isClaimedNetHero(Hero h) {
 		return h != null && netHeroes.containsValue(h);
+	}
+
+	/**
+	 * Name of the remote player the whole game is currently parked on, or null if it
+	 * is not parked on anyone. A netHero that has been handed its turn holds the actor
+	 * loop until its owner answers, so without this the host sees every mob stop with
+	 * no idea why.
+	 */
+	public static String waitingOnPlayer() {
+		for (Hero h : netHeroes.values()) {
+			if (h != null && h.remoteWaiting) {
+				return h.netOwnerName == null || h.netOwnerName.isEmpty() ? "a player" : h.netOwnerName;
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -486,6 +591,126 @@ public class NetManager {
 		}
 		// Ensure client has latest state
 		broadcastGameState();
+		//and a copy of the hero itself, every turn: the player's own file is then never
+		//more than one action behind, whatever happens to either side next. This runs
+		//on the actor thread between two of its turns, the one moment the hero is not
+		//changing
+		sendHeroSave(owner, hero);
+	}
+
+	/**
+	 * The hero as the host has it, for its owner to keep: {name, cls, lvl, host, token,
+	 * hero}. The hero part is its save bundle, so it round-trips through
+	 * {@link #restoreClientHero} unchanged.
+	 */
+	private static JSONObject snapshotHero(Hero h) throws Exception {
+		com.watabou.utils.Bundle b = new com.watabou.utils.Bundle();
+		b.put("hero", h);
+		JSONObject snap = new JSONObject();
+		snap.put("name", h.netOwnerName);
+		snap.put("cls", h.heroClass.ordinal());
+		snap.put("lvl", h.lvl);
+		snap.put("host", xyz.gabriwar.warpedpixeldungeon.WPDSettings.multiplayerName());
+		snap.put("token", h.netSessionToken == null ? "" : h.netSessionToken);
+		snap.put("hero", new JSONObject(b.toString()).getJSONObject("hero"));
+		return snap;
+	}
+
+	private static void sendHeroSave(HostServer.ClientConnection owner, Hero h) {
+		if (owner == null || h == null) return;
+		try {
+			owner.sendMessage(Protocol.HERO_SAVE, snapshotHero(h));
+		} catch (Exception e) {
+			log("[NET-HOST] hero save for " + h.netOwnerName + " failed: " + e);
+		}
+	}
+
+	/** Every claimed hero, to its owner. Used at the moments the game changes shape. */
+	private static void sendAllHeroSaves() {
+		for (java.util.Map.Entry<HostServer.ClientConnection, Hero> e : netHeroes.entrySet()) {
+			sendHeroSave(e.getKey(), e.getValue());
+		}
+	}
+
+	/**
+	 * A hero from another host's snapshot, made ours. Actor ids are dropped so this host
+	 * hands out its own, and actor times are rebased on the hero's so its buffs keep
+	 * their spacing while the whole set lands at this game's clock when it is added.
+	 */
+	private static Hero restoreClientHero(JSONObject heroJson, String playerName) {
+		try {
+			JSONObject copy = new JSONObject(heroJson.toString());
+			float base = (float) copy.optDouble("time", 0);
+			rebaseActors(copy, base);
+			//a static on the host, not a field of the hero: leave ours alone
+			copy.remove("skillsavailable");
+			JSONObject wrap = new JSONObject();
+			wrap.put("hero", copy);
+			com.watabou.utils.Bundle b = com.watabou.utils.Bundle.read(
+					new java.io.ByteArrayInputStream(wrap.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+			int keepSkill = xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.availableSkill;
+			Hero h;
+			try {
+				h = (Hero) b.get("hero");
+			} finally {
+				xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.availableSkill = keepSkill;
+			}
+			if (h == null) return null;
+			h.isRemote = true;
+			h.netOwnerName = playerName;
+			h.remoteWaiting = false;
+			h.pendingActionCell = -1;
+			h.curAction = null;
+			h.atExit = false;
+			h.atExitCell = -1;
+			h.sprite = null;
+			//nobody arrives dead
+			if (h.HP <= 0) h.HP = 1;
+			return h;
+		} catch (Exception e) {
+			log("[NET-HOST] could not restore the hero " + playerName + " brought: " + e);
+			return null;
+		}
+	}
+
+	private static void rebaseActors(Object node, float base) {
+		if (node instanceof JSONObject) {
+			JSONObject o = (JSONObject) node;
+			//an actor's bundle is the one with both a clock and an id
+			if (o.has("time") && o.has("id")) {
+				o.put("time", o.optDouble("time", 0) - base);
+				o.remove("id");
+			}
+			java.util.ArrayList<String> keys = new java.util.ArrayList<>();
+			java.util.Iterator<String> it = o.keys();
+			while (it.hasNext()) keys.add(it.next());
+			for (String k : keys) rebaseActors(o.opt(k), base);
+		} else if (node instanceof org.json.JSONArray) {
+			org.json.JSONArray a = (org.json.JSONArray) node;
+			for (int i = 0; i < a.length(); i++) rebaseActors(a.opt(i), base);
+		}
+	}
+
+	/** A player who asked to join while the host was still in the lobby. */
+	public static final class PendingPlayer {
+		public final String name;
+		public final HeroClass cls;
+		PendingPlayer(String name, HeroClass cls) { this.name = name; this.cls = cls; }
+	}
+
+	public static java.util.List<PendingPlayer> getPendingPlayers() {
+		java.util.ArrayList<PendingPlayer> out = new java.util.ArrayList<>();
+		if (server == null) return out;
+		HeroClass[] all = HeroClass.values();
+		for (HostServer.ClientConnection c : server.clients()) {
+			JSONObject held = c.pendingPlayerJoin;
+			if (held == null) continue;
+			int ord = held.optInt("cls", 0);
+			String name = held.optString("name", "").trim();
+			out.add(new PendingPlayer(name.isEmpty() ? "Player" : name,
+					all[ord < 0 || ord >= all.length ? 0 : ord]));
+		}
+		return out;
 	}
 
 	/** Lobby preview: client asks "do you have a stashed hero for this name?".
@@ -590,7 +815,8 @@ public class NetManager {
 				hero.pendingActionItem = (item != null && !"null".equals(item)) ? item : null;
 				hero.pendingActionItemAction = (useAction != null && !"null".equals(useAction)) ? useAction : null;
 				hero.pendingActionExtra = extra;
-				if ("throw".equals(type)) hero.pendingActionCell = cell;
+				//throw and an aimed use both carry the square the client picked
+				if ("throw".equals(type) || "use".equals(type)) hero.pendingActionCell = cell;
 			} else {
 				hero.pendingActionCell = cell;
 			}
@@ -681,6 +907,7 @@ public class NetManager {
 		//reclaim their own hero after a visit to the lobby
 		String name = xyz.gabriwar.warpedpixeldungeon.WPDSettings.multiplayerName();
 		String keep = clientTokens.get( tokenKey( host, name ) );
+		if (keep == null) keep = NetHeroFile.token( name );
 		stop();
 		currentHostAddress = host;
 		client = new SpectatorClient(host, PORT);
@@ -699,6 +926,37 @@ public class NetManager {
 	public static void startSpectator(String host) {
 		stop();
 		client = new SpectatorClient(host, PORT);
+		receiver = new SpectatorReceiver();
+		client.setMessageHandler(receiver);
+		client.connect();
+		mode = NetMode.SPECTATOR;
+	}
+
+	// --- Client: the same two roles, reached through the relay by room code ---
+
+	public static void startPlayerOnline(String code, JSONObject heroData) {
+		String name = xyz.gabriwar.warpedpixeldungeon.WPDSettings.multiplayerName();
+		String keep = clientTokens.get( tokenKey( code, name ) );
+		if (keep == null) keep = NetHeroFile.token( name );
+		stop();
+		//the room code stands in for the host address: it is what a reconnect presents
+		//and what a returning player's session token is filed under
+		currentHostAddress = code;
+		client = new SpectatorClient(new RelayJoin(code));
+		receiver = new SpectatorReceiver();
+		client.setMessageHandler(receiver);
+		if (keep != null && !keep.isEmpty()) {
+			clientSessionToken = keep;
+			client.setSessionToken(keep);
+		}
+		client.connectAsPlayer(heroData);
+		mode = NetMode.PLAYER;
+	}
+
+	public static void startSpectatorOnline(String code) {
+		stop();
+		currentHostAddress = code;
+		client = new SpectatorClient(new RelayJoin(code));
 		receiver = new SpectatorReceiver();
 		client.setMessageHandler(receiver);
 		client.connect();
@@ -809,10 +1067,16 @@ public class NetManager {
 	/** Item-class-specific action (drink/eat/read/equip/...) routed to host.
 	 *  Host runs `item.execute(netHero, useAction)` against the item resolved by name. */
 	public static void sendItemUse(String itemName, String useAction) {
+		sendItemUse(itemName, useAction, -1);
+	}
+
+	/** cell is the square a targeted item was aimed at on this player's own screen,
+	 *  or -1 for an item that needs no aiming. */
+	public static void sendItemUse(String itemName, String useAction, int cell) {
 		if (client == null) return;
 		try {
 			JSONObject data = new JSONObject();
-			data.put("cell", -1);
+			data.put("cell", cell);
 			data.put("type", "use");
 			data.put("item", itemName);
 			data.put("useAction", useAction);
@@ -869,14 +1133,32 @@ public class NetManager {
 	// --- Common ---
 
 	public static void stop() {
-		if (NET_DEBUG) {
+		//the trace is for finding who tore a live session down; an idle stop, such
+		//as the one every window close makes, has nothing to say
+		if (NET_DEBUG && mode != NetMode.OFF) {
 			log("[NET] NetManager.stop() called from:");
 			new Throwable().printStackTrace();
 		}
 		Discovery.stopAll();
 		if (server != null) {
-			server.stop();
+			if (mode == NetMode.HOST) {
+				//the players leave with their heroes and a reason, not a dead socket
+				//they would spend the next fifteen seconds knocking on
+				sendAllHeroSaves();
+				try {
+					JSONObject bye = new JSONObject();
+					bye.put("reason", "host_closed");
+					server.broadcast(Protocol.HOST_CLOSED, bye);
+				} catch (Exception ignored) {}
+				server.stop(800);
+			} else {
+				server.stop();
+			}
 			server = null;
+		}
+		if (onlineRoom != null) {
+			onlineRoom.close();
+			onlineRoom = null;
 		}
 		if (client != null) {
 			client.disconnect();
@@ -898,10 +1180,14 @@ public class NetManager {
 	}
 
 	public static void broadcastGameState() {
-		if (!isHost() || server == null) return;
+		//this runs on the actor thread while stop() runs on the render thread, so the
+		//field can be nulled between the check and the use. Take one reference and
+		//test that; a broadcast on an already-stopped server is a no-op.
+		HostServer s = server;
+		if (!isHost() || s == null) return;
 		JSONObject delta = StateSerializer.serializeDelta();
 		if (delta != null) {
-			server.broadcast(Protocol.DELTA, delta);
+			s.broadcast(Protocol.DELTA, delta);
 		}
 	}
 
@@ -994,7 +1280,9 @@ public class NetManager {
 	}
 
 	public static void broadcastLevelChange() {
-		if (!isHost() || server == null) return;
+		//same race as broadcastGameState: snapshot rather than re-read the field
+		HostServer s = server;
+		if (!isHost() || s == null) return;
 
 		hostInGame = true;
 		// Seed floor tracking — onLevelDescent() compares against this on the
@@ -1008,7 +1296,7 @@ public class NetManager {
 		}
 
 		int clients = getClientCount();
-		server.broadcast(Protocol.LEVEL_CHANGE, new JSONObject());
+		s.broadcast(Protocol.LEVEL_CHANGE, new JSONObject());
 
 		JSONObject state = StateSerializer.serializeFullState();
 		if (state != null) {
@@ -1016,14 +1304,24 @@ public class NetManager {
 				String heroName = Dungeon.hero != null ? Dungeon.hero.name() : "Hero";
 				JSONObject nameData = new JSONObject();
 				nameData.put("name", heroName);
-				server.broadcast(Protocol.HERO_NAME, nameData);
+				s.broadcast(Protocol.HERO_NAME, nameData);
 			} catch (Exception ignored) {}
-			server.broadcast(Protocol.FULL_STATE, state);
+			s.broadcast(Protocol.FULL_STATE, state);
 			if (clients > 0) {
 				Game.runOnRenderThread(() -> GLog.p("Game state sent to " + clients + " client(s)"));
 			}
 		}
 		StateSerializer.resetDeltaTracking();
+		sendAllHeroSaves();
+
+		//anyone who asked to play while the host was still in the lobby is answered now
+		for (HostServer.ClientConnection c : s.clients()) {
+			JSONObject held = c.pendingPlayerJoin;
+			if (held == null) continue;
+			c.pendingPlayerJoin = null;
+			log("[NET-HOST] replaying held JOIN_AS_PLAYER now the game has started");
+			handleJoinAsPlayer(c, held);
+		}
 	}
 
 	public static int getClientCount() {
@@ -1035,7 +1333,7 @@ public class NetManager {
 
 	/** # of connected clients without a netHero (spectators only). */
 	public static int getSpectatorCount() {
-		return Math.max(0, getClientCount() - getPlayerCount());
+		return Math.max(0, getClientCount() - getPlayerCount() - getPendingPlayers().size());
 	}
 
 	// Net MP turn telemetry — set on host by StateSerializer (whoever has lowest
@@ -1345,14 +1643,41 @@ public class NetManager {
 	}
 
 
+	/** The relay answers "code: human sentence", and the code is for the log, not the
+	 *  player - underscores are highlight markup in a text block, so "no_such_room"
+	 *  even rendered as a grey "nosuchroom" in front of the sentence explaining it. */
+	private static String readable(String reason) {
+		if (reason == null || reason.isEmpty()) return "Connection lost";
+		int colon = reason.indexOf(':');
+		return colon >= 0 && colon + 1 < reason.length()
+				? reason.substring(colon + 1).trim()
+				: reason.replace('_', ' ');
+	}
+
 	public static void handleDisconnect(String reason) {
 		mode = NetMode.OFF;
 		Game.runOnRenderThread(() -> {
 			Game.scene().addToFront(new xyz.gabriwar.warpedpixeldungeon.net.ui.WndNetError(
 					"Disconnected",
-					reason != null ? reason : "Connection lost",
+					readable(reason),
 					() -> Game.switchScene(TitleScene.class)
 			));
+		});
+	}
+
+	/** The host closed the game on purpose: no reconnecting, and say so. */
+	public static void handleHostClosed(String reason) {
+		log("[NET-CLI] host closed the game: " + reason);
+		if (client != null) client.disconnect();
+		Game.runOnRenderThread(() -> {
+			stop();
+			if (Game.scene() != null) {
+				Game.scene().addToFront(new xyz.gabriwar.warpedpixeldungeon.net.ui.WndNetError(
+						"Game closed",
+						"The host has stopped hosting. Your hero was saved.",
+						() -> Game.switchScene(TitleScene.class)
+				));
+			}
 		});
 	}
 

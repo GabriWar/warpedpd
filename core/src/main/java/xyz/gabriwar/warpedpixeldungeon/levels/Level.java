@@ -36,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.SacrificialFire;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.SmokeScreen;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Web;
+import xyz.gabriwar.warpedpixeldungeon.actors.blobs.WaterOfTransmutation;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.WellWater;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Awareness;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
@@ -126,6 +127,7 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.InterlevelScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.tiles.CustomTilemap;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.effects.TargetedCell;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
 import com.watabou.noosa.audio.Sample;
@@ -207,9 +209,6 @@ public abstract class Level implements Bundlable {
 	//when a boss level has become locked.
 	public boolean locked = false;
 
-	// Sprouted: set by WndAscend/WndDescend to allow hero to proceed
-	public boolean forcedone = false;
-
 	// Sprouted: tracks first visit to journal/sokoban levels for one-time item drops
 	public boolean firstVisit = false;
 
@@ -218,10 +217,6 @@ public abstract class Level implements Bundlable {
 	// Sprouted: prevents escape from the level when true
 	public boolean sealedlevel = false;
 
-	// Sprouted: counts hero moves on this level, and par/goal for the level
-	public int currentmoves = 0;
-	public int currentkills = 0;  // mobs killed on this floor (for Dewcharge scaling)
-	public int movepar = 0;
 
 	public HashSet<Mob> mobs;
 	public SparseArray<Heap> heaps;
@@ -234,6 +229,7 @@ public abstract class Level implements Bundlable {
 	public int lastGrassRegrowthTurn = -1;
 	public ArrayList<Integer> naturalPlantOrder = new ArrayList<>();
 	public ArrayList<CustomTilemap> customTiles;
+	public ArrayList<CustomTilemap> customTerrain;
 	public ArrayList<CustomTilemap> customWalls;
 	public SparseArray<xyz.gabriwar.warpedpixeldungeon.tiles.butters.Butter> butter = new SparseArray<>();
 	
@@ -256,13 +252,11 @@ public abstract class Level implements Bundlable {
 	private static final String FIRST_VISIT = "firstVisit";
 	private static final String CLEARED     = "cleared";
 	private static final String SEALEDLEVEL = "sealedlevel";
-	private static final String MOVES       = "currentmoves";
-	private static final String KILLS       = "currentkills";
-	private static final String MOVEPAR     = "movepar";
 	private static final String HEAPS		= "heaps";
 	private static final String PLANTS		= "plants";
 	private static final String TRAPS       = "traps";
 	private static final String CUSTOM_TILES= "customTiles";
+	private static final String CUSTOM_TERRAIN= "customTerrain";
 	private static final String CUSTOM_WALLS= "customWalls";
 	private static final String MOBS		= "mobs";
 	private static final String NET_HEROES  = "netHeroes";
@@ -276,6 +270,7 @@ public abstract class Level implements Bundlable {
 
 	public void create() {
 
+		TargetedCell.cells.clear();
 		Random.pushGenerator( Dungeon.seedCurDepth() );
 
 		//TODO maybe just make this part of RegularLevel?
@@ -347,9 +342,12 @@ public abstract class Level implements Bundlable {
 						break;
 					default:
 						//if-else statements are fine here as only one chance can be above 0 at a time
-						if (Random.Float() < MossyClump.overrideNormalLevelChance()){
+						// we pre-generate the floats to ensure Random is called consistently
+						float mossyChance = Random.Float();
+						float trapMechChance = Random.Float();
+						if (mossyChance < MossyClump.overrideNormalLevelChance()){
 							feeling = MossyClump.getNextFeeling();
-						} else if (Random.Float() < TrapMechanism.overrideNormalLevelChance()) {
+						} else if (trapMechChance < TrapMechanism.overrideNormalLevelChance()) {
 							feeling = TrapMechanism.getNextFeeling();
 						} else {
 							feeling = Feeling.NONE;
@@ -369,6 +367,7 @@ public abstract class Level implements Bundlable {
 			plants = new SparseArray<>();
 			traps = new SparseArray<>();
 			customTiles = new ArrayList<>();
+			customTerrain = new ArrayList<>();
 			customWalls = new ArrayList<>();
 			butter = new SparseArray<>();
 			naturalPlantOrder = new ArrayList<>();
@@ -457,8 +456,8 @@ public abstract class Level implements Bundlable {
 
 		version = bundle.getInt( VERSION );
 		
-		//saves from before v2.5.4 are not supported
-		if (version < WarpedPixelDungeon.v2_5_4){
+		//saves from before v3.1.1 are not supported
+		if (version < WarpedPixelDungeon.v3_1_1){
 			throw new RuntimeException("old save");
 		}
 
@@ -474,6 +473,7 @@ public abstract class Level implements Bundlable {
 		plants = new SparseArray<>();
 		traps = new SparseArray<>();
 		customTiles = new ArrayList<>();
+		customTerrain = new ArrayList<>();
 		customWalls = new ArrayList<>();
 		butter = new SparseArray<>();
 
@@ -491,9 +491,6 @@ public abstract class Level implements Bundlable {
 		firstVisit  = bundle.getBoolean( FIRST_VISIT );
 		cleared     = bundle.getBoolean( CLEARED );
 		sealedlevel = bundle.getBoolean( SEALEDLEVEL );
-		currentmoves = bundle.getInt( MOVES );
-		currentkills = bundle.getInt( KILLS );
-		movepar     = bundle.getInt( MOVEPAR );
 
 		Collection<Bundlable> collection = bundle.getCollection( HEAPS );
 		for (Bundlable h : collection) {
@@ -545,6 +542,12 @@ public abstract class Level implements Bundlable {
 			customTiles.add(vis);
 		}
 
+		collection = bundle.getCollection( CUSTOM_TERRAIN );
+		for (Bundlable p : collection) {
+			CustomTilemap vis = (CustomTilemap)p;
+			customTerrain.add(vis);
+		}
+
 		collection = bundle.getCollection( CUSTOM_WALLS );
 		for (Bundlable p : collection) {
 			CustomTilemap vis = (CustomTilemap)p;
@@ -562,6 +565,19 @@ public abstract class Level implements Bundlable {
 		collection = bundle.getCollection( BLOBS );
 		for (Bundlable b : collection) {
 			Blob blob = (Blob)b;
+			// Old saves stored upgrade eaters as invisible pools after trampling.
+			if (blob instanceof xyz.gabriwar.warpedpixeldungeon.actors.blobs.WaterOfUpgradeEating) {
+				if (blob.cur != null) {
+					for (int cell = 0; cell < Math.min(blob.cur.length, length()); cell++) {
+						if (blob.cur[cell] > 0 && plants.get(cell) == null) {
+							Plant plant = new xyz.gabriwar.warpedpixeldungeon.plants.Flytrap();
+							plant.pos = cell;
+							plants.put(cell, plant);
+						}
+					}
+				}
+				continue;
+			}
 			blobs.put( blob.getClass(), blob );
 		}
 
@@ -578,6 +594,17 @@ public abstract class Level implements Bundlable {
 
 		if (bundle.contains( "respawner" )){
 			respawner = (MobSpawner) bundle.get("respawner");
+		}
+
+		TargetedCell.cells.clear();
+		if (bundle.contains( "targeted_cells" )){
+			collection = bundle.getCollection( "targeted_cells" );
+			for (Bundlable c : collection) {
+				TargetedCell cell = (TargetedCell)c;
+				if (cell != null) {
+					TargetedCell.cells.put(cell.pos, cell);
+				}
+			}
 		}
 
 		// Net MP host: restore persisted netHeroes. Re-Actor.add them and stash by
@@ -612,9 +639,6 @@ public abstract class Level implements Bundlable {
 		bundle.put( FIRST_VISIT, firstVisit );
 		bundle.put( CLEARED, cleared );
 		bundle.put( SEALEDLEVEL, sealedlevel );
-		bundle.put( MOVES, currentmoves );
-		bundle.put( KILLS, currentkills );
-		bundle.put( MOVEPAR, movepar );
 		bundle.put( HEAPS, heaps.valueList() );
 		bundle.put( PLANTS, plants.valueList() );
 		bundle.put( TRAPS, traps.valueList() );
@@ -625,6 +649,7 @@ public abstract class Level implements Bundlable {
 		bundle.put( NATURAL_PLANT_ORDER, npo );
 		bundle.put( BUTTER, butter.valueList() );
 		bundle.put( CUSTOM_TILES, customTiles );
+		bundle.put( CUSTOM_TERRAIN, customTerrain);
 		bundle.put( CUSTOM_WALLS, customWalls );
 		bundle.put( MOBS, mobs );
 		// Net MP host: persist remote players' Hero state (claimed + unclaimed)
@@ -644,6 +669,7 @@ public abstract class Level implements Bundlable {
 		bundle.put( FEELING, feeling );
 		bundle.put( "mobs_to_spawn", mobsToSpawn.toArray(new Class[0]));
 		bundle.put( "respawner", respawner );
+		bundle.put( "targeted_cells", TargetedCell.cells.valueList() );
 	}
 	
 	public int tunnelTile() {
@@ -826,9 +852,6 @@ public abstract class Level implements Bundlable {
 			Dungeon.hero.buff(Stasis.StasisBuff.class).act();
 			GLog.w(Messages.get(Stasis.StasisBuff.class, "left_behind"));
 		}
-
-		// Sprouted: save kills from this floor so next floor's Dewcharge is proportional
-		if (Dungeon.dewDraw) Statistics.prevfloormoves = Dungeon.level.currentkills;
 
 		// Sprouted: evaporate all dewdrops on the current level when leaving
 		for (Heap heap : Dungeon.level.heaps.valueList()) {
@@ -1120,14 +1143,14 @@ public abstract class Level implements Bundlable {
 		
 		for (int i=0; i < length(); i++) {
 			int flags = Terrain.flags[map[i]];
-			passable[i]		= (flags & Terrain.PASSABLE) != 0;
-			losBlocking[i]	= (flags & Terrain.LOS_BLOCKING) != 0;
-			flamable[i]		= (flags & Terrain.FLAMABLE) != 0;
-			secret[i]		= (flags & Terrain.SECRET) != 0;
-			solid[i]		= (flags & Terrain.SOLID) != 0;
-			avoid[i]		= (flags & Terrain.AVOID) != 0;
-			water[i]		= (flags & Terrain.LIQUID) != 0;
-			pit[i]			= (flags & Terrain.PIT) != 0;
+			passable[i]     = (flags & Terrain.PASSABLE) != 0;
+			losBlocking[i]  = (flags & Terrain.LOS_BLOCKING) != 0;
+			flamable[i]     = (flags & Terrain.FLAMABLE) != 0;
+			secret[i]       = (flags & Terrain.SECRET) != 0;
+			solid[i]        = (flags & Terrain.SOLID) != 0;
+			avoid[i]        = (flags & Terrain.AVOID) != 0;
+			water[i]        = (flags & Terrain.LIQUID) != 0;
+			pit[i]          = (flags & Terrain.PIT) != 0;
 		}
 
 		for (Blob b : blobs.values()){
@@ -1246,42 +1269,37 @@ public abstract class Level implements Bundlable {
 			xyz.gabriwar.warpedpixeldungeon.net.StateSerializer.markCellDirty(cell);
 		}
 
-		if (terrain != Terrain.TRAP && terrain != Terrain.SECRET_TRAP && terrain != Terrain.INACTIVE_TRAP){
-			level.traps.remove( cell );
+		if (terrain != Terrain.TRAP && terrain != Terrain.SECRET_TRAP && terrain != Terrain.INACTIVE_TRAP) {
+			level.traps.remove(cell);
 		}
+
+		level.updateCellFlags(cell);
+	}
+
+	public void updateCellFlags( int cell ){
+		int terrain = map[cell];
 
 		int flags = Terrain.flags[terrain];
-		level.passable[cell]		= (flags & Terrain.PASSABLE) != 0;
-		level.losBlocking[cell]	    = (flags & Terrain.LOS_BLOCKING) != 0;
-		level.flamable[cell]		= (flags & Terrain.FLAMABLE) != 0;
-		level.secret[cell]		    = (flags & Terrain.SECRET) != 0;
-		level.solid[cell]			= (flags & Terrain.SOLID) != 0;
-		level.avoid[cell]			= (flags & Terrain.AVOID) != 0;
-		level.pit[cell]			    = (flags & Terrain.PIT) != 0;
-		level.water[cell]			= terrain == Terrain.WATER;
+		passable[cell]      = (flags & Terrain.PASSABLE) != 0;
+		losBlocking[cell]   = (flags & Terrain.LOS_BLOCKING) != 0;
+		flamable[cell]      = (flags & Terrain.FLAMABLE) != 0;
+		secret[cell]        = (flags & Terrain.SECRET) != 0;
+		solid[cell]         = (flags & Terrain.SOLID) != 0;
+		avoid[cell]         = (flags & Terrain.AVOID) != 0;
+		pit[cell]           = (flags & Terrain.PIT) != 0;
+		water[cell]         = terrain == Terrain.WATER;
 
-		if (level instanceof SewerLevel){
-			if (level.map[cell] == Terrain.REGION_DECO || level.map[cell] == Terrain.REGION_DECO_ALT){
-				level.flamable[cell] = true;
+		if (this instanceof SewerLevel){
+			if (map[cell] == Terrain.REGION_DECO || map[cell] == Terrain.REGION_DECO_ALT){
+				flamable[cell] = true;
 			}
 		}
 
-		for (int i : PathFinder.NEIGHBOURS9){
-			i = cell + i;
-			if (level.solid[i]){
-				level.openSpace[i] = false;
-			} else {
-				for (int j = 1; j < PathFinder.CIRCLE8.length; j += 2){
-					if (level.solid[i+PathFinder.CIRCLE8[j]]) {
-						level.openSpace[i] = false;
-					} else if (!level.solid[i+PathFinder.CIRCLE8[(j+1)%8]]
-							&& !level.solid[i+PathFinder.CIRCLE8[(j+2)%8]]){
-						level.openSpace[i] = true;
-						break;
-					}
-				}
-			}
+		for (Blob b : blobs.values()){
+			b.onUpdateCellFlags(this, cell);
 		}
+
+		updateOpenSpace(cell);
 	}
 	
 	public Heap drop( Item item, int cell ) {
@@ -1462,14 +1480,14 @@ public abstract class Level implements Bundlable {
 	public boolean setCellToWater( boolean includeTraps, int cell ){
 		Point p = cellToPoint(cell);
 
-		//if a custom tilemap is over that cell, don't put water there
+		//if a custom tilemap is over that cell, check if it allows water
 		for (CustomTilemap cust : customTiles){
 			Point custPoint = new Point(p);
 			custPoint.x -= cust.tileX;
 			custPoint.y -= cust.tileY;
 			if (custPoint.x >= 0 && custPoint.y >= 0
 					&& custPoint.x < cust.tileW && custPoint.y < cust.tileH){
-				if (cust.image(custPoint.x, custPoint.y) != null){
+				if (!cust.allowWater(custPoint.x, custPoint.y)){
 					return false;
 				}
 			}
@@ -1505,6 +1523,14 @@ public abstract class Level implements Bundlable {
 	}
 	
 	public void occupyCell( Char ch ){
+		// Report the actual step before terrain effects can move the hero or
+		// remove the plant. Delayed presses and thrown items must not repeat it.
+		if (ch == Dungeon.hero && !ch.flying) {
+			Plant steppedPlant = plants.get(ch.pos);
+			if (steppedPlant != null) {
+				GLog.i(Messages.get(Plant.class, "stepped", steppedPlant.name()));
+			}
+		}
 		if (!ch.isImmune(Web.class) && Blob.volumeAt(ch.pos, Web.class) > 0){
 			blobs.get(Web.class).clear(ch.pos);
 			Web.affectChar( ch );
@@ -1539,10 +1565,10 @@ public abstract class Level implements Bundlable {
 					set(ch.pos, Terrain.FURROWED_GRASS);
 				} else {
 					set(ch.pos, Terrain.HIGH_GRASS);
-					Buff.count(ch, Talent.RejuvenatingStepsFurrow.class, 3 - Dungeon.hero.pointsInTalent(Talent.REJUVENATING_STEPS));
+					Buff.count(ch, Talent.RejuvenatingStepsFurrow.class, Math.max(1, 3 - Dungeon.hero.pointsInTalent(Talent.REJUVENATING_STEPS)));
 				}
 				GameScene.updateMap(ch.pos);
-				Buff.affect(ch, Talent.RejuvenatingStepsCooldown.class, 15f - 5f*Dungeon.hero.pointsInTalent(Talent.REJUVENATING_STEPS));
+				Buff.affect(ch, Talent.RejuvenatingStepsCooldown.class, Math.max(2f, 15f - 5f*Dungeon.hero.pointsInTalent(Talent.REJUVENATING_STEPS)));
 			}
 			
 			if (pit[ch.pos]){
@@ -1575,6 +1601,11 @@ public abstract class Level implements Bundlable {
 	//a 'soft' press ignores hidden traps
 	//a 'hard' press triggers all things
 	private void pressCell( int cell, boolean hard ) {
+
+		Plant rootPlant = plants.get(cell);
+		if (rootPlant instanceof xyz.gabriwar.warpedpixeldungeon.plants.Phaseshift) {
+			((xyz.gabriwar.warpedpixeldungeon.plants.Phaseshift) rootPlant).ensureWater(this);
+		}
 
 		Trap trap = null;
 		
@@ -1612,6 +1643,12 @@ public abstract class Level implements Bundlable {
 		case Terrain.DOOR:
 			Door.enter( cell );
 			break;
+		}
+
+		//Phase pitchers leave well water on ordinary terrain, including after
+		//the plant is trampled. Items must still reach that water.
+		if (map[cell] != Terrain.WELL && Blob.volumeAt(cell, WaterOfTransmutation.class) > 0) {
+			WellWater.affectCellPlant(cell);
 		}
 
 		// Overgrown: butter tile effect
@@ -1807,46 +1844,41 @@ public abstract class Level implements Bundlable {
 			}
 
 			Dungeon.hero.mindVisionEnemies.clear();
-			if (c.buff( MindVision.class ) != null) {
-				for (Mob mob : mobs) {
-					if (mob instanceof Mimic && mob.alignment == Char.Alignment.NEUTRAL&& ((Mimic) mob).stealthy()){
-						continue;
-					}
-					for (int i : PathFinder.NEIGHBOURS9) {
-						heroMindFov[mob.pos + i] = true;
-					}
-				}
-			} else {
 
-				int mindVisRange = 0;
-				if (((Hero) c).hasTalent(Talent.HEIGHTENED_SENSES)){
-					mindVisRange = 1+((Hero) c).pointsInTalent(Talent.HEIGHTENED_SENSES);
+			int mindVisRange = 0;
+			if (c.buff(MindVision.class) != null) {
+				mindVisRange = Integer.MAX_VALUE;
+			} else {
+				if (((Hero) c).hasTalent(Talent.HEIGHTENED_SENSES)) {
+					mindVisRange = 1 + ((Hero) c).pointsInTalent(Talent.HEIGHTENED_SENSES);
 				}
-				if (c.buff(DivineSense.DivineSenseTracker.class) != null){
-					if (((Hero) c).heroClass == HeroClass.CLERIC){
-						mindVisRange = 4+4*((Hero) c).pointsInTalent(Talent.DIVINE_SENSE);
+				if (c.buff(DivineSense.DivineSenseTracker.class) != null) {
+					if (((Hero) c).heroClass == HeroClass.CLERIC) {
+						mindVisRange = 4 + 4 * ((Hero) c).pointsInTalent(Talent.DIVINE_SENSE);
 					} else {
-						mindVisRange = 1+2*((Hero) c).pointsInTalent(Talent.DIVINE_SENSE);
+						mindVisRange = 1 + 2 * ((Hero) c).pointsInTalent(Talent.DIVINE_SENSE);
 					}
 				}
 				mindVisRange = Math.max(mindVisRange, EyeOfNewt.mindVisionRange());
+			}
+
+			if (mindVisRange >= 1) {
 
 				//power of many's life link spell allows allies to get divine sense
 				Char ally = PowerOfMany.getPoweredAlly();
-				if (ally != null && ally.buff(DivineSense.DivineSenseTracker.class) == null){
+				if (ally != null && ally.buff(DivineSense.DivineSenseTracker.class) == null) {
 					ally = null;
 				}
 
-				if (mindVisRange >= 1) {
-					for (Mob mob : mobs) {
-						if (mob instanceof Mimic && mob.alignment == Char.Alignment.NEUTRAL && ((Mimic) mob).stealthy()){
-							continue;
-						}
-						int p = mob.pos;
-						if (!fieldOfView[p] && (distance(c.pos, p) <= mindVisRange || (ally != null && distance(ally.pos, p) <= mindVisRange))) {
-							for (int i : PathFinder.NEIGHBOURS9) {
-								heroMindFov[mob.pos + i] = true;
-							}
+				for (Mob mob : mobs) {
+					if ((mob instanceof Mimic && mob.alignment == Char.Alignment.NEUTRAL && ((Mimic) mob).stealthy())
+						|| Char.hasProp(mob, Char.Property.OBJECT)){
+						continue;
+					}
+					int p = mob.pos;
+					if (!fieldOfView[p] && (distance(c.pos, p) <= mindVisRange || (ally != null && distance(ally.pos, p) <= mindVisRange))) {
+						for (int i : PathFinder.NEIGHBOURS9) {
+							heroMindFov[mob.pos + i] = true;
 						}
 					}
 				}
@@ -1861,7 +1893,7 @@ public abstract class Level implements Bundlable {
 
 			for (TalismanOfForesight.CharAwareness a : c.buffs(TalismanOfForesight.CharAwareness.class)){
 				Char ch = (Char) Actor.findById(a.charID);
-				if (ch == null || !ch.isAlive()) {
+				if (ch == null || !ch.isAlive() || Char.hasProp(ch, Char.Property.OBJECT)) {
 					continue;
 				}
 				int p = ch.pos;
@@ -1871,6 +1903,28 @@ public abstract class Level implements Bundlable {
 			for (TalismanOfForesight.HeapAwareness h : c.buffs(TalismanOfForesight.HeapAwareness.class)){
 				if (Dungeon.depth != h.depth || Dungeon.branch != h.branch) continue;
 				for (int i : PathFinder.NEIGHBOURS9) heroMindFov[h.pos+i] = true;
+			}
+
+			for (Mob shadow : mobs) {
+                if (shadow instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.RogueShadow
+                        && shadow.isAlive() && shadow.alignment == Char.Alignment.ALLY) {
+                    ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.RogueShadow)shadow).shareVision(heroMindFov);
+                }
+            }
+
+			//a fully trained Guardian Spirit lends the hero its eye
+			for (Mob eye : mobs) {
+				xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.Mark guard =
+						xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.get(eye,
+						xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.Mark.GUARD);
+				if (guard != null && eye.isAlive() && eye.alignment == Char.Alignment.ALLY
+						&& guard.rank >= xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.MAX_LEVEL) {
+					if (eye.fieldOfView == null || eye.fieldOfView.length != length()) {
+						eye.fieldOfView = new boolean[length()];
+					}
+					Dungeon.level.updateFieldOfView( eye, eye.fieldOfView );
+					BArray.or(heroMindFov, eye.fieldOfView, heroMindFov);
+				}
 			}
 
 			for (Mob m : mobs){
@@ -1940,9 +1994,11 @@ public abstract class Level implements Bundlable {
 		return (float)Math.sqrt(Math.pow(Math.abs( ax - bx ), 2) + Math.pow(Math.abs( ay - by ), 2));
 	}
 
-	//usually just if a cell is solid, but other cases exist too
+	//usually just if the base terrain of a cell is solid, but other cases exist too
+	//only check on base terrain, we want to ignore temporary changes from blobs (e.g. light wall)
 	public boolean invalidHeroPos( int tile ){
-		return !passable[tile] && !avoid[tile];
+		int flags = Terrain.flags[map[tile]];
+		return (flags & Terrain.PASSABLE) != 0 && (flags & Terrain.AVOID) != 0;
 	}
 
 	//returns true if the input is a valid tile within the level
@@ -2077,70 +2133,6 @@ public abstract class Level implements Bundlable {
 			default:
 				return "";
 		}
-	}
-
-	// Sprouted: true if any heap on this level contains a dewdrop of any type
-	public boolean hasDew() {
-		for (Heap heap : heaps.valueList()) {
-			for (Item item : heap.items) {
-				if (item instanceof Dewdrop || item instanceof YellowDewdrop
-						|| item instanceof RedDewdrop || item instanceof VioletDewdrop) {
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-
-	// Sprouted: scatter basic dewdrops around a position (e.g. on mob death)
-	public void explodeDew(int cell) {
-		if (Dungeon.dewDraw) {
-			Sample.INSTANCE.play(Assets.Sounds.BLAST, 2);
-
-			for (int n : PathFinder.NEIGHBOURS9) {
-				int c = cell + n;
-				if (c >= 0 && c < length() && passable[c]) {
-					if (Random.Int(10) == 1) {
-						Dungeon.level.drop(new RedDewdrop(), c).sprite.drop();
-					} else if (Random.Int(3) == 1) {
-						Dungeon.level.drop(new YellowDewdrop(), c).sprite.drop();
-					}
-				}
-			}
-		}
-	}
-
-	// Sprouted: scatter higher-tier dewdrops around a position
-	public void explodeDewHigh(int cell) {
-		if (Dungeon.dewDraw) {
-			Sample.INSTANCE.play(Assets.Sounds.BLAST, 2);
-
-			for (int n : PathFinder.NEIGHBOURS9) {
-				int c = cell + n;
-				if (c >= 0 && c < length() && passable[c]) {
-					if (Random.Int(8) == 1) {
-						Dungeon.level.drop(new VioletDewdrop(), c).sprite.drop();
-					} else if (Random.Int(2) == 1) {
-						Dungeon.level.drop(new RedDewdrop(), c).sprite.drop();
-					}
-				}
-			}
-		}
-	}
-
-	// Sprouted: checks if any original-generation mobs remain alive
-	public boolean checkOriginalGenMobs() {
-		for (Mob mob : Dungeon.level.mobs.toArray(new Mob[0])) {
-			if (mob.originalgen) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	// Sprouted: returns the move par including previous floor moves
-	public int movepar() {
-		return movepar + Statistics.prevfloormoves;
 	}
 
 	// Sprouted: periodic Actor that spawns/manages the hero's pet

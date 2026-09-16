@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
-
-
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town;
 
 import xyz.gabriwar.warpedpixeldungeon.Challenges;
@@ -43,13 +41,16 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.InnKeeperSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
+import xyz.gabriwar.warpedpixeldungeon.Badges;
+import com.watabou.noosa.Game;
+import com.watabou.utils.Callback;
 
 //Remixed PD's inn keeper. Rents a bed: for a few coins the hero sleeps until the
 //next dawn, waking rested, part-healed and dried off. The one townsperson who is
 //up all night - the inn is where you go when everything else is shut.
 public class InnKeeper extends FlavorNPC {
 
-	public static final int BED_PRICE = 30;
+	public static final int BED_PRICE = 250;
 
 	{
 		spriteClass = InnKeeperSprite.class;
@@ -72,21 +73,32 @@ public class InnKeeper extends FlavorNPC {
 		}
 		if (c != Dungeon.hero) return true;
 		final Hero hero = (Hero) c;
+		//a bed costs what the town charges for everything: more the deeper you have been
+		final int price = TownLedger.scaled( BED_PRICE );
 
-		GameScene.show( new WndOptions( sprite(),
-				Messages.get( this, "name" ),
-				Messages.get( this, "greet" ),
-				Messages.get( this, "rent", BED_PRICE ),
-				Messages.get( this, "looking" ) ) {
+		//a window measures its own text, and text can only be measured on the render
+		//thread; interact() runs on the actor thread, so building it here crashes
+		Game.runOnRenderThread( new Callback() {
 			@Override
-			protected void onSelect( int index ) {
-				if (index != 0) return;
-				if (Dungeon.gold < BED_PRICE) {
-					GLog.w( Messages.get( InnKeeper.class, "no_gold" ) );
-					return;
-				}
-				Dungeon.gold -= BED_PRICE;
-				rest( hero );
+			public void call() {
+				GameScene.show( new WndOptions( sprite(),
+						Messages.get( InnKeeper.this, "name" ),
+						Messages.get( InnKeeper.this, "greet" ),
+						Messages.get( InnKeeper.this, "rent", price ),
+						Messages.get( InnKeeper.this, "looking" ) ) {
+					@Override
+					protected void onSelect( int index ) {
+						if (index != 0) return;
+						if (Dungeon.gold < price) {
+							GLog.w( Messages.get( InnKeeper.class, "no_gold" ) );
+							return;
+						}
+						Dungeon.gold -= price;
+						TownLedger.used( TownLedger.BED );
+						Badges.validateInnGuest();
+						rest( hero );
+					}
+				} );
 			}
 		} );
 		return true;
@@ -102,6 +114,12 @@ public class InnKeeper extends FlavorNPC {
 		Buff.detach( hero, SoakedShoes.class );
 		Buff.detach( hero, Windswept.class );
 		hero.heal( hero.HT / 3 );
+
+		//the guest room: the one bed the townsfolk never take
+		hero.pos = TownCommute.PLAYER_BED;
+		hero.sprite.place( hero.pos );
+		Dungeon.observe();
+		GameScene.updateFog();
 
 		GameScene.flash( 0xFF000000, false );
 

@@ -22,20 +22,20 @@
 package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.noosa.particles.Emitter.Factory;
-import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.Random;
 
-public class SnowParticle extends PixelParticle {
-	
-	public static final Emitter.Factory FACTORY = new Factory() {
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherSprites;
+
+/** The flakes of a frost: they fall, or rise off something freezing. */
+public class SnowParticle extends WeatherParticle {
+
+	public static final Emitter.Factory FACTORY = new Emitter.Factory() {
 		@Override
 		public void emit( Emitter emitter, int index, float x, float y ) {
 			((SnowParticle)emitter.recycle( SnowParticle.class )).reset( x, y, false );
 		}
 	};
-
-	public static final Emitter.Factory RISING_FACTORY = new Factory() {
+	public static final Emitter.Factory RISING_FACTORY = new Emitter.Factory() {
 		@Override
 		public void emit( Emitter emitter, int index, float x, float y ) {
 			((SnowParticle)emitter.recycle( SnowParticle.class )).reset( x, y, true );
@@ -47,6 +47,7 @@ public class SnowParticle extends PixelParticle {
 	public SnowParticle() {
 		super();
 		lifespan = 1.2f;
+		color( 0xFFFFFF );
 	}
 
 	public void reset( float x, float y, boolean rising ) {
@@ -54,13 +55,12 @@ public class SnowParticle extends PixelParticle {
 		this.rising = rising;
 		float spd = Random.Float( 5, 8 );
 		speed.set( 0, rising ? -spd : spd );
-
 		this.x = x;
 		this.y = rising ? y + spd * lifespan : y - spd * lifespan;
-		
+		frame( Random.Float() < 0.6f ? WeatherSprites.FLAKE_1 : WeatherSprites.FLAKE_2 );
 		left = lifespan;
 	}
-	
+
 	@Override
 	public void update() {
 		super.update();

@@ -27,6 +27,13 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import com.watabou.noosa.Camera;
+import com.watabou.utils.PathFinder;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vulnerable;
@@ -48,16 +55,26 @@ public class Warbreaker extends Skill {
 	}
 
 	@Override
-	public int toHitBonus(){
-		return level;
-	}
-
-	@Override
 	public int onHitProc( Char enemy, int damage, boolean ranged ){
 		if (!ranged && level > 0 && enemy != null && enemy.isAlive()
 				&& Random.Int( 100 ) < 6 * level){
 			Buff.prolong( enemy, Vulnerable.class, 3 + level );
 			castTextYell();
+			Wound.hit( enemy );
+			if (enemy.sprite != null && enemy.sprite.visible) enemy.sprite.emitter().burst( Speck.factory( Speck.STAR ), 5 );
+			Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 1f, 0.8f );
+			Camera.main.shake( 1, 0.15f );
+
+			//fully trained, the shattered guard leaves everyone standing beside it open too
+			if (level >= MAX_LEVEL){
+				for (int n : PathFinder.NEIGHBOURS8){
+					Char ch = Actor.findChar( enemy.pos + n );
+					if (ch != null && ch.alignment == Char.Alignment.ENEMY && ch.isAlive()){
+						Buff.prolong( ch, Vulnerable.class, 3 + level );
+						if (ch.sprite != null && ch.sprite.visible) ch.sprite.emitter().burst( Speck.factory( Speck.STAR ), 3 );
+					}
+				}
+			}
 			return Math.round( damage * 1.3f );
 		}
 		return damage;

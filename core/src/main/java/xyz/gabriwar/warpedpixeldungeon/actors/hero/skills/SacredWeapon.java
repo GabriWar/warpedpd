@@ -27,7 +27,22 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import com.watabou.utils.Random;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SacredWeaponSwords;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+
 public class SacredWeapon extends PassiveSkillB3 {
+
+	//damage comes from the weapon or strength, which already grow with the hero
+	@Override
+	public boolean weaponScaled(){ return true; }
+
+
+	//chance, per melee hit, that a spectral copy of the weapon falls and plants itself beside the target
+	private static final int CHANCE = 20;
 
 	{
 		name = "Sacred Weapon";
@@ -40,6 +55,13 @@ public class SacredWeapon extends PassiveSkillB3 {
 		return true;
 	}
 
+	//the level caps how many swords stand at once: 1 / 2 / 3
 	@Override
-	public int weaponLevelBonus(){ return level; }
+	public int onHitProc( Char enemy, int damage, boolean ranged ){
+		Hero hero = Dungeon.hero;
+		if (level <= 0 || ranged || enemy == null || hero == null || !enemy.isAlive() || Random.Int( 100 ) >= CHANCE)
+			return damage;
+		Buff.affect( hero, SacredWeaponSwords.class ).plant( enemy, level );
+		return damage;
+	}
 }

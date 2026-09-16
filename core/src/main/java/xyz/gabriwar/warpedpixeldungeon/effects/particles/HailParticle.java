@@ -21,19 +21,18 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
-import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.Game;
+import com.watabou.noosa.Group;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.Random;
 
-/**
- * Hard ice pellets — falls fast with tumble, heavier than rain/snow.
- * Wind pushes them but they resist more due to mass.
- */
-public class HailParticle extends PixelParticle {
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherSprites;
+import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
+
+/** A hailstone: a small hard ball that drops fast and bounces once where it lands. */
+public class HailParticle extends WeatherParticle {
 
 	public static final Emitter.Factory FACTORY = new Emitter.Factory() {
 		@Override
@@ -42,7 +41,10 @@ public class HailParticle extends PixelParticle {
 		}
 	};
 
+	private static final float BOUNCE = 0.28f;
+
 	private float tumblePhase;
+	private boolean landed;
 
 	public HailParticle() {
 		super();
@@ -53,13 +55,12 @@ public class HailParticle extends PixelParticle {
 		revive();
 		this.x = x;
 		this.y = y;
-		left = lifespan;
+		left = lifespan = Random.Float(0.5f, 0.9f);
+		landed = false;
 
-		// Chunky ice: bigger than rain, ice-blue/white
-		size = Random.Float(1.5f, 3f);
-		color(Random.Float() < 0.4f ? 0xCCDDEE : 0xEEF4FF);
+		frame(Random.Float() < 0.7f ? WeatherSprites.HAIL_2 : WeatherSprites.HAIL_1);
+		color(Random.Float() < 0.4f ? 0xCCDDEE : 0xF4F8FF);
 
-		// Fast, heavy fall with wind drift — hail resists wind more than snow
 		float windRad = (float) Math.toRadians(ClimateManager.surfaceWindDir());
 		float windX = (float) Math.sin(windRad) * ClimateManager.localWindSpeed() * 0.5f;
 		speed.set(Random.Float(-2, 2) + windX, Random.Float(60, 100));
@@ -69,25 +70,36 @@ public class HailParticle extends PixelParticle {
 
 	@Override
 	public void update() {
+		if (!landed && left <= Game.elapsed && onWater()) {
+			//into water: a ring, and gone
+			landed = true;
+			if (WeatherSprites.visible(x, y) && parent instanceof Group) SplashParticle.splash((Group) parent, x, y, 0xD8E8F8, 0.7f);
+			kill();
+			return;
+		}
+		if (!landed && left <= Game.elapsed) {
+			//it hits and hops: back up a little, then down for good
+			landed = true;
+			left += BOUNCE;
+			lifespan = BOUNCE;
+			speed.set(speed.x * 0.4f + Random.Float(-6, 6), -Random.Float(22, 38));
+			acc.set(0, 220);
+		}
 		super.update();
-		float p = left / lifespan;
-
-		// Quick tumble (faster than snow wobble)
-		tumblePhase += Game.elapsed * 8f;
-		speed.x += (float) Math.sin(tumblePhase) * 2f * Game.elapsed;
-
-		// Hard edges — mostly opaque, abrupt end
-		if (p > 0.85f) {
-			am = (1f - p) * 6.7f;
-		} else if (p < 0.1f) {
-			am = p * 10f; // quick fade at ground
+		if (!landed) {
+			tumblePhase += Game.elapsed * 8f;
+			speed.x += (float) Math.sin(tumblePhase) * 2f * Game.elapsed;
+			am = envelope(0.15f, 0.02f, 0.9f);
 		} else {
-			am = 0.85f;
+			am = 0.9f * (left / lifespan);
 		}
+		fov();
+	}
 
-		int cell = (int)(this.x / DungeonTilemap.SIZE) + (int)(this.y / DungeonTilemap.SIZE) * Dungeon.level.width();
-		if (cell < 0 || cell >= Dungeon.level.heroFOV.length || !Dungeon.level.heroFOV[cell]) {
-			am = 0;
-		}
+	private boolean onWater() {
+		if (Dungeon.level == null || Dungeon.level.water == null || x < 0 || y < 0) return false;
+		int cx = (int)(x / DungeonTilemap.SIZE), cy = (int)(y / DungeonTilemap.SIZE);
+		if (cx >= Dungeon.level.width() || cy >= Dungeon.level.height()) return false;
+		return Dungeon.level.water[cx + cy * Dungeon.level.width()];
 	}
 }

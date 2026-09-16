@@ -64,6 +64,9 @@ public class Statistics {
 	public static int ballsCooked;
 
 	public static int spawnersAlive;
+
+	//kills after dark, for the Night Hunter badge
+	public static int nightKills;
 	
 	public static float duration;
 	
@@ -72,6 +75,8 @@ public class Statistics {
 	public static boolean qualifiedForBossRemainsBadge = false;
 	public static boolean qualifiedForBossChallengeBadge = false;
 	public static boolean qualifiedForRandomVictoryBadge = false;
+
+	public static boolean vaultInjureWarned = false;
 	
 	public static boolean amuletObtained = false;
 	public static boolean gameWon = false;
@@ -84,7 +89,6 @@ public class Statistics {
 	public static int goldThievesKilled;
 	public static int shadowYogsKilled;
 	public static int floormoves;
-	public static int prevfloormoves;
 	public static int moves;
 	public static int realdeepestFloor;
 	public static int nightHunt;
@@ -126,6 +130,7 @@ public class Statistics {
 		ballsCooked     = 0;
 
 		spawnersAlive   = 0;
+		nightKills      = 0;
 		
 		duration	    = 0;
 		
@@ -133,6 +138,8 @@ public class Statistics {
 		qualifiedForBossRemainsBadge = false;
 		qualifiedForBossChallengeBadge = false;
 		qualifiedForRandomVictoryBadge = GamesInProgress.randomizedClass;
+
+		vaultInjureWarned = false;
 		
 		amuletObtained = false;
 		gameWon = false;
@@ -145,7 +152,6 @@ public class Statistics {
 		goldThievesKilled = 0;
 		shadowYogsKilled = 0;
 		floormoves = 0;
-		prevfloormoves = 0;
 		moves = 0;
 		realdeepestFloor = 0;
 		nightHunt = 0;
@@ -188,6 +194,7 @@ public class Statistics {
 	private static final String BALLS		= "ballsCooked";
 
 	private static final String SPAWNERS	= "spawnersAlive";
+	private static final String NIGHT_KILLS	= "nightKills";
 	
 	private static final String DURATION	= "duration";
 
@@ -207,7 +214,6 @@ public class Statistics {
 	private static final String GOLD_THIEVES_KILLED  = "goldThievesKilled";
 	private static final String SHADOW_YOGS_KILLED   = "shadowYogsKilled";
 	private static final String FLOORMOVES           = "floormoves";
-	private static final String PREVFLOORMOVES       = "prevfloormoves";
 	private static final String MOVES                = "moves";
 	private static final String REALDEEPEST          = "maxDepthReal";
 	private static final String NIGHT                = "nightHunt";
@@ -252,6 +258,7 @@ public class Statistics {
 		bundle.put( BALLS,		ballsCooked );
 
 		bundle.put( SPAWNERS,	spawnersAlive );
+		bundle.put( NIGHT_KILLS, nightKills );
 
 		bundle.put( DURATION,	duration );
 
@@ -271,7 +278,6 @@ public class Statistics {
 		bundle.put( GOLD_THIEVES_KILLED, goldThievesKilled );
 		bundle.put( SHADOW_YOGS_KILLED, shadowYogsKilled );
 		bundle.put( FLOORMOVES, floormoves );
-		bundle.put( PREVFLOORMOVES, prevfloormoves );
 		bundle.put( MOVES, moves );
 		bundle.put( REALDEEPEST, realdeepestFloor );
 		bundle.put( NIGHT, nightHunt );
@@ -303,14 +309,8 @@ public class Statistics {
 		treasureScore   = bundle.getInt( TRES_SCORE );
 		floorsExplored.clear();
 		for (int i = 1; i < 26; i++){
-			if (bundle.contains( FLR_EXPL+i )){
-				//we have this check to reduce an error with bad conversion specifically in v3.1-BETA-1.0
-				if (!Dungeon.bossLevel(i) && i <= deepestFloor){
-					floorsExplored.put(i, bundle.getFloat( FLR_EXPL+i ));
-				}
-			//pre-3.1 saves. The bundle key does have an underscore and is a boolean
-			} else if (bundle.contains( "flr_expl"+i )){
-				floorsExplored.put(i, bundle.getBoolean( "flr_expl"+i ) ? 1f : 0f);
+			if (bundle.contains( FLR_EXPL+i )) {
+				floorsExplored.put(i, bundle.getFloat(FLR_EXPL + i));
 			}
 		}
 		exploreScore    = bundle.getInt( EXPL_SCORE );
@@ -331,6 +331,7 @@ public class Statistics {
 		ballsCooked     = bundle.getInt( BALLS );
 
 		spawnersAlive   = bundle.getInt( SPAWNERS );
+		nightKills      = bundle.getInt( NIGHT_KILLS );
 
 		duration		= bundle.getFloat( DURATION );
 
@@ -350,7 +351,6 @@ public class Statistics {
 		goldThievesKilled   = bundle.getInt( GOLD_THIEVES_KILLED );
 		shadowYogsKilled    = bundle.getInt( SHADOW_YOGS_KILLED );
 		floormoves          = bundle.getInt( FLOORMOVES );
-		prevfloormoves      = bundle.getInt( PREVFLOORMOVES );
 		moves               = bundle.getInt( MOVES );
 		realdeepestFloor    = bundle.getInt( REALDEEPEST );
 		nightHunt           = bundle.getInt( NIGHT );

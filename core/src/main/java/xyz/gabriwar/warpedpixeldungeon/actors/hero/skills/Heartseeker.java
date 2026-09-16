@@ -26,12 +26,26 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
+import com.watabou.noosa.audio.Sample;
 
-import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.HeartseekerArrow;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 
+/**
+ * Huntress: a ranged hit that leaves an enemy under half its health lodges an arrow in
+ * its heart. A heart pulses over it for three beats and then bursts, for a share of its
+ * full health that grows each level. Fully trained, a burst that kills tears the arrow
+ * free into the nearest wounded enemy and starts that heart pulsing too.
+ */
 public class Heartseeker extends Skill {
+
+	//its damage is already a share of a blow, a hit or a health pool, so it grows with the hero on its own
+	@Override
+	public boolean weaponScaled(){ return true; }
+
 
 	{
 		tag = "PB4";
@@ -48,20 +62,17 @@ public class Heartseeker extends Skill {
 
 	@Override
 	public int onHitProc( Char enemy, int damage, boolean ranged ){
-		if (!ranged || level == 0 || enemy == null)
+		if (!ranged || level <= 0 || enemy == null || !enemy.isAlive()
+				|| enemy.alignment != Char.Alignment.ENEMY || enemy.buff( HeartseekerArrow.class ) != null)
+			return damage;
+		int left = enemy.HP - damage;
+		if (left <= 0 || left * 2 > enemy.HT)
 			return damage;
 
-		int threshold = 3 * level + Dungeon.hero.lvl / 4;
-		if (!enemy.properties().contains( Char.Property.BOSS )
-				&& !enemy.properties().contains( Char.Property.MINIBOSS )
-				&& enemy.HP <= threshold){
-			castTextYell();
-			if (enemy.sprite != null){
-				enemy.sprite.emitter().burst( Speck.factory( Speck.STAR ), 5 );
-			}
-			return enemy.HP + enemy.drRoll();
-		}
-
-		return Math.round( damage * (1f + 0.05f * level) );
+		Buff.affect( enemy, HeartseekerArrow.class ).set( level );
+		castTextYell();
+		if (enemy.sprite != null) enemy.sprite.emitter().burst( Speck.factory( Speck.HEART ), 3 );
+		Sample.INSTANCE.play( Assets.Sounds.HIT_ARROW, 1f, 0.8f );
+		return damage;
 	}
 }

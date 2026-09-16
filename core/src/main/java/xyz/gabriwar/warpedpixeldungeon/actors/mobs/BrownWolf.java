@@ -42,7 +42,10 @@ public class BrownWolf extends Mob {
 		EXP = 12;
 		maxLvl = 29;
 		loot = MysteryMeat.class;
-		lootChance = 0.2f;
+		lootChance = 0.2f / 4f;
+
+		//built for the cold: the deep freeze is home, the thaw is what hurts
+		thermal = Thermal.COLD_DWELLER;
 	}
 
 	@Override

@@ -53,7 +53,7 @@ public class AlbinoPiranha extends Mob {
 		EXP = 0;
 
 		loot = MonsterMeat.class;
-		lootChance = 0.005f;
+		lootChance = 0.005f / 4f;
 
 		SLEEPING = new Sleeping();
 		WANDERING = new Wandering();
@@ -109,8 +109,12 @@ public class AlbinoPiranha extends Mob {
 	}
 
 	@Override
+	protected boolean extraLootIgnoresLevel() {
+		return true;
+	}
+
+	@Override
 	protected void dropExtraLoot() {
-		explodeDew(pos);
 		if (Random.Int(105 - Math.min(Statistics.albinoPiranhasKilled, 100)) == 0) {
 			Item mushroom = Generator.random(Generator.Category.FOOD);
 			trackedDrop(mushroom, 0);

@@ -21,19 +21,15 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
-import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
+import com.watabou.noosa.Group;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.Random;
 
-/**
- * Water drips falling from the sewer ceiling.
- * Sparse, slow, small blue-ish droplets with a brief fall and fade.
- * Slightly wind-reactive but mostly vertical.
- */
-public class DripParticle extends PixelParticle {
+import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherSprites;
+
+/** Water dripping from a cave roof: a drop, then the small splash of it landing. */
+public class DripParticle extends WeatherParticle {
 
 	public static final Emitter.Factory FACTORY = new Emitter.Factory() {
 		@Override
@@ -42,9 +38,10 @@ public class DripParticle extends PixelParticle {
 		}
 	};
 
+	private int tint;
+
 	public DripParticle() {
 		super();
-		color(Random.Float() < 0.5f ? 0x6688BB : 0x5577AA);
 		lifespan = Random.Float(0.4f, 0.8f);
 	}
 
@@ -52,10 +49,11 @@ public class DripParticle extends PixelParticle {
 		revive();
 		this.x = x;
 		this.y = y;
-		left = lifespan;
-		size = Random.Float(0.5f, 1.0f);
+		left = lifespan = Random.Float(0.4f, 0.8f);
+		tint = Random.Float() < 0.5f ? 0x7A9CCC : 0x6688BB;
+		color(tint);
+		frame(WeatherSprites.DROP);
 
-		// Mostly vertical with tiny wind bias
 		float wind = ClimateManager.localWindSpeed();
 		speed.set(Random.Float(-1f, 1f) + wind * 0.1f, Random.Float(25, 45));
 		acc.set(0, 40);
@@ -63,14 +61,15 @@ public class DripParticle extends PixelParticle {
 
 	@Override
 	public void update() {
+		boolean falling = left > 0;
 		super.update();
-		float p = left / lifespan;
-		// Fade in quickly, fade out at end
-		am = p < 0.2f ? p * 5f : (p > 0.8f ? (1f - p) * 5f : 0.5f);
-
-		int cell = (int)(this.x / DungeonTilemap.SIZE) + (int)(this.y / DungeonTilemap.SIZE) * Dungeon.level.width();
-		if (cell < 0 || cell >= Dungeon.level.heroFOV.length || !Dungeon.level.heroFOV[cell]) {
-			am = 0;
+		if (falling && left <= 0) {
+			if (WeatherSprites.visible(x, y) && parent instanceof Group) {
+				SplashParticle.splash((Group) parent, x, y, tint, 0.55f);
+			}
+			return;
 		}
+		am = envelope(0.2f, 0.05f, 0.6f);
+		fov();
 	}
 }

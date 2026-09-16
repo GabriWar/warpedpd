@@ -89,6 +89,7 @@ public class EnchantingScene extends PixelScene {
 	private static Item target = null;
 
 	public static final int INFUSE_COST = 40;
+	public static final int DISENCHANT_ENERGY = 20;
 
 	public static int empowerCost( int level ){
 		//10/20/30/40/50 energy for levels 1..5
@@ -397,6 +398,14 @@ public class EnchantingScene extends PixelScene {
 			RedButton btn = new RedButton( label, 6 ){
 				@Override
 				protected void onClick() {
+					//Recheck on activation: queued clicks may refer to an outdated button.
+					if (!Dungeon.hero.belongings.contains(wep) || wep.cursed
+							|| wep.hasCurseEnchant() || !java.util.Arrays.asList(wep.enchantments()).contains(ench)
+							|| ench.level() >= Weapon.Enchantment.MAX_LEVEL
+							|| empowerCost(ench.level()) != cost || Dungeon.energy < cost){
+						updateState();
+						return;
+					}
 					Dungeon.energy -= cost;
 					ench.level( ench.level() + 1 );
 					onWeave();
@@ -426,6 +435,21 @@ public class EnchantingScene extends PixelScene {
 			pos = reroll.bottom() + GAP;
 		}
 
+		if (wep.hasGoodEnchant()) {
+			RedButton disenchant = new RedButton(Messages.get(EnchantingStation.class,
+					"disenchant", DISENCHANT_ENERGY), 6) {
+				@Override
+				protected void onClick() {
+					confirmDisenchant(wep);
+				}
+			};
+			disenchant.multiline = true;
+			disenchant.setRect(left, pos, pw, BTN_HEIGHT);
+			add(disenchant);
+			actionElems.add(disenchant);
+			pos = disenchant.bottom() + GAP;
+		}
+
 		//weave a new enchantment when a slot is free
 		if (wep.enchantment == null || wep.enchantment2 == null){
 			final boolean first = wep.enchantment == null;
@@ -447,6 +471,46 @@ public class EnchantingScene extends PixelScene {
 		}
 
 		return pos;
+	}
+
+	private void confirmDisenchant(final Weapon wep) {
+		addToFront(new WndOptions(new ItemSprite(wep), Messages.titleCase(wep.name()),
+				Messages.get(EnchantingStation.class, "disenchant_msg", DISENCHANT_ENERGY),
+				Messages.get(EnchantingStation.class, "disenchant", DISENCHANT_ENERGY),
+				Messages.get(EnchantingStation.class, "cancel")) {
+			@Override
+			protected void onSelect(int index) {
+				if (index != 0 || !Dungeon.hero.belongings.contains(wep)
+						|| wep.cursed || wep.hasCurseEnchant() || !wep.hasGoodEnchant()) return;
+				wep.enchant(null);
+				wep.pendingWeaveOpts = null;
+				wep.pendingRerollOpts = null;
+				wep.pendingRerollSlot = -1;
+				Dungeon.energy += DISENCHANT_ENERGY;
+				createEnergy();
+				Item.updateQuickslot();
+			}
+		});
+	}
+
+	private void confirmDisenchant(final Armor arm) {
+		addToFront(new WndOptions(new ItemSprite(arm), Messages.titleCase(arm.name()),
+				Messages.get(EnchantingStation.class, "disenchant_armor_msg", DISENCHANT_ENERGY),
+				Messages.get(EnchantingStation.class, "disenchant_armor", DISENCHANT_ENERGY),
+				Messages.get(EnchantingStation.class, "cancel")) {
+			@Override
+			protected void onSelect(int index) {
+				if (index != 0 || !Dungeon.hero.belongings.contains(arm)
+						|| arm.cursed || arm.hasCurseGlyph() || !arm.hasGoodGlyph()) return;
+				arm.inscribe(null);
+				arm.pendingWeaveOpts = null;
+				arm.pendingRerollOpts = null;
+				arm.pendingRerollSlot = -1;
+				Dungeon.energy += DISENCHANT_ENERGY;
+				createEnergy();
+				Item.updateQuickslot();
+			}
+		});
 	}
 
 	private float buildArmorActions( final Armor arm, float pos ){
@@ -471,6 +535,14 @@ public class EnchantingScene extends PixelScene {
 			RedButton btn = new RedButton( label, 6 ){
 				@Override
 				protected void onClick() {
+					//Recheck on activation: queued clicks may refer to an outdated button.
+					if (!Dungeon.hero.belongings.contains(arm) || arm.cursed
+							|| arm.hasCurseGlyph() || !java.util.Arrays.asList(arm.glyphs()).contains(gl)
+							|| gl.level() >= Armor.Glyph.MAX_LEVEL
+							|| empowerCost(gl.level()) != cost || Dungeon.energy < cost){
+						updateState();
+						return;
+					}
 					Dungeon.energy -= cost;
 					gl.level( gl.level() + 1 );
 					onWeave();
@@ -479,7 +551,16 @@ public class EnchantingScene extends PixelScene {
 			btn.textColor( gl.glowing().color );
 			btn.enable( enabled );
 			btn.multiline = true;
-			btn.setRect( left, pos, pw, BTN_HEIGHT );
+			btn.setRect( left, pos, pw - BTN_HEIGHT - GAP, BTN_HEIGHT );
+			IconButton glyphInfo = new IconButton(Icons.get(Icons.INFO)) {
+				@Override protected void onClick() {
+					EnchantingScene.this.addToFront(new xyz.gabriwar.warpedpixeldungeon.windows.WndTitledMessage(
+							new ItemSprite(arm), gl.name(), gl.desc()));
+				}
+			};
+			glyphInfo.setRect(btn.right() + GAP, pos, BTN_HEIGHT, BTN_HEIGHT);
+			add(glyphInfo);
+			actionElems.add(glyphInfo);
 			add( btn );
 			actionElems.add( btn );
 			pos = btn.bottom() + GAP;
@@ -498,6 +579,21 @@ public class EnchantingScene extends PixelScene {
 			add( reroll );
 			actionElems.add( reroll );
 			pos = reroll.bottom() + GAP;
+		}
+
+		if (arm.hasGoodGlyph()) {
+			RedButton disenchant = new RedButton(Messages.get(EnchantingStation.class,
+					"disenchant_armor", DISENCHANT_ENERGY), 6) {
+				@Override
+				protected void onClick() {
+					confirmDisenchant(arm);
+				}
+			};
+			disenchant.multiline = true;
+			disenchant.setRect(left, pos, pw, BTN_HEIGHT);
+			add(disenchant);
+			actionElems.add(disenchant);
+			pos = disenchant.bottom() + GAP;
 		}
 
 		//weave a new glyph when a slot is free
@@ -563,9 +659,15 @@ public class EnchantingScene extends PixelScene {
 				opts[2].name(),
 				Messages.get(EnchantingStation.class, "cancel") ){
 
+			@Override protected boolean hasInfo(int index) { return index >= 0 && index < 3; }
+			@Override protected void onInfo(int index) {
+				EnchantingScene.this.addToFront(new xyz.gabriwar.warpedpixeldungeon.windows.WndTitledMessage(
+						new ItemSprite(wep), opts[index].name(), opts[index].desc()));
+			}
+
 			@Override
 			protected void onSelect( int index ) {
-				if (index < 3 && Dungeon.energy >= INFUSE_COST){
+				if (index >= 0 && index < 3 && Dungeon.energy >= INFUSE_COST){
 					Dungeon.energy -= INFUSE_COST;
 					wep.pendingWeaveOpts = null;
 					wep.addEnchant( opts[index] );
@@ -595,9 +697,15 @@ public class EnchantingScene extends PixelScene {
 				opts[2].name(),
 				Messages.get(EnchantingStation.class, "cancel") ){
 
+			@Override protected boolean hasInfo(int index) { return index >= 0 && index < 3; }
+			@Override protected void onInfo(int index) {
+				EnchantingScene.this.addToFront(new xyz.gabriwar.warpedpixeldungeon.windows.WndTitledMessage(
+						new ItemSprite(wep), opts[index].name(), opts[index].desc()));
+			}
+
 			@Override
 			protected void onSelect( int index ) {
-				if (index < 3 && Dungeon.energy >= cost){
+				if (index >= 0 && index < 3 && Dungeon.energy >= cost){
 					Dungeon.energy -= cost;
 					wep.pendingRerollOpts = null;
 					wep.pendingRerollSlot = -1;
@@ -650,9 +758,15 @@ public class EnchantingScene extends PixelScene {
 				opts[2].name(),
 				Messages.get(EnchantingStation.class, "cancel") ){
 
+			@Override protected boolean hasInfo(int index) { return index >= 0 && index < 3; }
+			@Override protected void onInfo(int index) {
+				EnchantingScene.this.addToFront(new xyz.gabriwar.warpedpixeldungeon.windows.WndTitledMessage(
+						new ItemSprite(arm), opts[index].name(), opts[index].desc()));
+			}
+
 			@Override
 			protected void onSelect( int index ) {
-				if (index < 3 && Dungeon.energy >= INFUSE_COST){
+				if (index >= 0 && index < 3 && Dungeon.energy >= INFUSE_COST){
 					Dungeon.energy -= INFUSE_COST;
 					arm.pendingWeaveOpts = null;
 					arm.addGlyph( opts[index] );
@@ -681,9 +795,15 @@ public class EnchantingScene extends PixelScene {
 				opts[2].name(),
 				Messages.get(EnchantingStation.class, "cancel") ){
 
+			@Override protected boolean hasInfo(int index) { return index >= 0 && index < 3; }
+			@Override protected void onInfo(int index) {
+				EnchantingScene.this.addToFront(new xyz.gabriwar.warpedpixeldungeon.windows.WndTitledMessage(
+						new ItemSprite(arm), opts[index].name(), opts[index].desc()));
+			}
+
 			@Override
 			protected void onSelect( int index ) {
-				if (index < 3 && Dungeon.energy >= cost){
+				if (index >= 0 && index < 3 && Dungeon.energy >= cost){
 					Dungeon.energy -= cost;
 					arm.pendingRerollOpts = null;
 					arm.pendingRerollSlot = -1;

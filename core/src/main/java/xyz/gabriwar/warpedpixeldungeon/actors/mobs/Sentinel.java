@@ -55,6 +55,9 @@ public class Sentinel extends Mob {
 		resistances.add(Grim.class);
 
 		immunities.add(Vampiric.class);
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	protected MeleeWeapon weapon;
@@ -106,8 +109,12 @@ public class Sentinel extends Mob {
 	}
 
 	@Override
+	protected boolean extraLootIgnoresLevel() {
+		return true;
+	}
+
+	@Override
 	protected void dropExtraLoot() {
-		explodeDew(pos);
 		trackedDrop(weapon, 0);
 	}
 

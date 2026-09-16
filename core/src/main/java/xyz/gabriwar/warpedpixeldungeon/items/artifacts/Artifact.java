@@ -93,7 +93,8 @@ public class Artifact extends KindofMisc {
 			passiveBuff = null;
 		}
 		passiveBuff = passiveBuff();
-		passiveBuff.attachTo(ch);
+		//Some artifacts, such as the quiver, act through item hooks without a passive buff.
+		if (passiveBuff != null) passiveBuff.attachTo(ch);
 	}
 
 	@Override

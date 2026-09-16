@@ -176,6 +176,16 @@ public class CellSelector extends ScrollArea {
 			
 		} else {
 			
+			//an online game that will not answer a tap is nearly impossible to read from
+			//the outside, so say which gate closed on it
+			if (xyz.gabriwar.warpedpixeldungeon.net.NetManager.isActive()) {
+				xyz.gabriwar.warpedpixeldungeon.net.NetManager.log("[NET] tap dropped on CellSelector #"
+						+ System.identityHashCode(this) + " cell=" + cell
+						+ " enabled=" + enabled
+						+ " ready=" + (Dungeon.hero != null && Dungeon.hero.ready)
+						+ " blocking=" + GameScene.interfaceBlockingHero()
+						+ " listener=" + (listener == null ? "null" : listener.getClass().getSimpleName()));
+			}
 			GameScene.cancel();
 			
 		}

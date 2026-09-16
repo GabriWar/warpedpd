@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.TileTemperature;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -114,7 +115,7 @@ public class Freezing extends Blob {
 	@Override
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
-		emitter.start( SnowParticle.FACTORY, 0.05f, 0 );
+		emitter.start( WeatherBlobFX.layered( SnowParticle.FACTORY, WeatherBlobFX.FROST, 5 ), 0.05f, 0 );
 	}
 	
 	@Override

@@ -40,7 +40,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Regeneration;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.effects.TargetedCell;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
@@ -62,7 +61,7 @@ public class ChaoticCenser extends Trinket {
 
 	@Override
 	protected int upgradeEnergyCost() {
-		//6 -> 8(14) -> 10(24) -> 12(36)
+		//6 -> 6(12) -> 8(20) -> 10(30)
 		return 6+2*level();
 	}
 
@@ -222,7 +221,7 @@ public class ChaoticCenser extends Trinket {
 				Buff.affect(Dungeon.hero, GasSpewer.class, Dungeon.hero.cooldown()).set(targetCell, gasToSpawn, (int)gasQuantity);
 				GLog.w(Messages.get(ChaoticCenser.class, "spew", Messages.titleCase(Messages.get(gasToSpawn, "name")) ));
 				if (target.sprite != null && target.sprite.parent != null) {
-					target.sprite.parent.addToBack(new TargetedCell(targetCell, 0xFF0000));
+					GameScene.targetedCell(targetCell, Dungeon.hero.cooldown());
 				}
 				return true;
 			}
@@ -300,24 +299,25 @@ public class ChaoticCenser extends Trinket {
 
 	private static final float[][] GAS_CAT_CHANCES = new float[4][3];
 	static {
-		GAS_CAT_CHANCES[0] = new float[]{70, 25, 5};
-		GAS_CAT_CHANCES[1] = new float[]{60, 30, 10};
-		GAS_CAT_CHANCES[2] = new float[]{50, 35, 15};
-		GAS_CAT_CHANCES[3] = new float[]{40, 40, 20};
+		GAS_CAT_CHANCES[0] = new float[]{80, 10, 10};
+		GAS_CAT_CHANCES[1] = new float[]{67, 13, 20};
+		GAS_CAT_CHANCES[2] = new float[]{54, 16, 30};
+		GAS_CAT_CHANCES[3] = new float[]{40, 20, 40};
 	}
 
 	private static final HashMap<Class<? extends Blob>, Float> COMMON_GASSES = new HashMap<>();
 	static {
 		COMMON_GASSES.put(ToxicGas.class, 300f);
 		COMMON_GASSES.put(ConfusionGas.class, 300f);
-		COMMON_GASSES.put(Regrowth.class, 200f);
+		COMMON_GASSES.put(StenchGas.class, 200f);
 	}
 
+	//all non-harmful, don't scale as well as rares
 	private static final HashMap<Class<? extends Blob>, Float> UNCOMMON_GASSES = new HashMap<>();
 	static {
 		UNCOMMON_GASSES.put(StormCloud.class, 300f);
 		UNCOMMON_GASSES.put(SmokeScreen.class, 300f);
-		UNCOMMON_GASSES.put(StenchGas.class, 200f);
+		UNCOMMON_GASSES.put(Regrowth.class, 200f);
 	}
 
 	private static final HashMap<Class<? extends Blob>, Float> RARE_GASSES = new HashMap<>();

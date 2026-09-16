@@ -1,4 +1,28 @@
 /*
+ * Pixel Dungeon
+ * Copyright (C) 2012-2015 Oleg Dolya
+ *
+ * Shattered Pixel Dungeon
+ * Copyright (C) 2014-2026 Evan Debenham
+ *
+ * Warped Pixel Dungeon
+ * Copyright (C) 2026 Gabriel Duarte Guerra (gabriwar)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ */
+
+/*
  * Warped Pixel Dungeon
  *
  * Portal gate UI. Dispatches by PortalGate state:
@@ -55,7 +79,7 @@ public class WndPortal extends WndOptions {
 	private static String message(PortalGate p) {
 		switch (p.state) {
 			case ACTIVE:
-				List<Integer> dests = Portals.travelable(Dungeon.depth);
+				List<Integer> dests = Portals.travelable(Portals.keyHere());
 				if (dests.isEmpty()) {
 					return "This gate is humming with energy, but no other portals are active. Discover and unlock more to travel between them.\n\nEach trip costs 150 hunger.";
 				}
@@ -72,7 +96,7 @@ public class WndPortal extends WndOptions {
 	private static String[] options(PortalGate p) {
 		switch (p.state) {
 			case ACTIVE: {
-				List<Integer> dests = Portals.travelable(Dungeon.depth);
+				List<Integer> dests = Portals.travelable(Portals.keyHere());
 				if (dests.isEmpty()) {
 					return new String[]{ "Leave" };
 				}
@@ -97,7 +121,11 @@ public class WndPortal extends WndOptions {
 		}
 	}
 
-	private static String depthLabel(int depth) {
+	public static String depthLabel(int key) {
+		int depth = Portals.depthOf(key);
+		if (Portals.branchOf(key) == xyz.gabriwar.warpedpixeldungeon.levels.SpiderNestLevel.SPIDER_BRANCH) {
+			return "Spider Nest — Floor " + depth;
+		}
 		String region;
 		switch ((depth - 1) / 5) {
 			case 0: region = "Sewers";  break;
@@ -113,13 +141,13 @@ public class WndPortal extends WndOptions {
 	// Read state from registry rather than this.portal — these callbacks fire
 	// inside WndOptions super-ctor before the instance field assignment runs.
 	private static PortalGate.State currentState() {
-		return Portals.getState(Dungeon.depth);
+		return Portals.getState(Portals.keyHere());
 	}
 
 	@Override
 	protected boolean hasIcon(int index) {
 		return currentState() == PortalGate.State.ACTIVE
-				&& index < Portals.travelable(Dungeon.depth).size();
+				&& index < Portals.travelable(Portals.keyHere()).size();
 	}
 
 	@Override
@@ -154,12 +182,12 @@ public class WndPortal extends WndOptions {
 		int cost = Portals.costForDepth(Dungeon.depth);
 		if (Dungeon.gold < cost) return;
 		Dungeon.gold -= cost;
-		Portals.discover(Dungeon.depth);
+		Portals.discover(Portals.keyHere());
 		portal.setState(PortalGate.State.ACTIVE);
 	}
 
 	private void handleTravel(int index) {
-		List<Integer> dests = Portals.travelable(Dungeon.depth);
+		List<Integer> dests = Portals.travelable(Portals.keyHere());
 		if (index >= dests.size()) return; // "Leave"
 		final int destDepth = dests.get(index);
 
@@ -216,8 +244,8 @@ public class WndPortal extends WndOptions {
 		Game.runOnRenderThread(() -> {
 			Level.beforeTransition();
 			InterlevelScene.mode = InterlevelScene.Mode.RETURN;
-			InterlevelScene.returnDepth = destDepth;
-			InterlevelScene.returnBranch = 0;
+			InterlevelScene.returnDepth = Portals.depthOf(destDepth);
+			InterlevelScene.returnBranch = Portals.branchOf(destDepth);
 			InterlevelScene.returnPos = r.cell;
 			Game.switchScene(InterlevelScene.class);
 		});
@@ -235,13 +263,13 @@ public class WndPortal extends WndOptions {
 
 	/** A client opened the gate UI — register discovery so it shows in travel lists. */
 	public static void hostOpen(Hero h) {
-		Portals.discover(Dungeon.depth);
+		Portals.discover(Portals.keyHere());
 	}
 
 	// Anti-cheese: a routed pay/travel is only honored if the hero is standing next to
 	// (or on) the gate, mirroring how the local UI only opens via adjacent interaction.
 	private static boolean atGate(Hero h) {
-		Portals.Record r = Portals.get(Dungeon.depth);
+		Portals.Record r = Portals.get(Portals.keyHere());
 		if (r == null || r.cell < 0 || Dungeon.level == null) return false;
 		return h.pos == r.cell || Dungeon.level.adjacent(h.pos, r.cell);
 	}
@@ -251,10 +279,10 @@ public class WndPortal extends WndOptions {
 		if (!atGate(h)) return;
 		int cost = Portals.costForDepth(Dungeon.depth);
 		if (Dungeon.gold < cost) return;
-		if (Portals.getState(Dungeon.depth) != PortalGate.State.LOCKED) return;
+		if (Portals.getState(Portals.keyHere()) != PortalGate.State.LOCKED) return;
 		Dungeon.gold -= cost;
-		Portals.discover(Dungeon.depth);
-		Portals.setState(Dungeon.depth, PortalGate.State.ACTIVE);
+		Portals.discover(Portals.keyHere());
+		Portals.setState(Portals.keyHere(), PortalGate.State.ACTIVE);
 		// flip the live gate NPC (and its sprite) on the render thread
 		final PortalGate gate = findGate();
 		if (gate != null) {

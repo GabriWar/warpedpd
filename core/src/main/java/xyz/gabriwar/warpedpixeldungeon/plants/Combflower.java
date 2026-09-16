@@ -100,10 +100,6 @@ public class Combflower extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect( Char attacker, Char defender, int damage ) {
-			Buff.prolong(defender, Honeyed.class, Honeyed.DURATION);
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
@@ -140,7 +141,7 @@ public class Alter extends Blob {
 	@Override
 	public void use(BlobEmitter emitter) {
 		super.use(emitter);
-		emitter.start(Speck.factory(Speck.LIGHT), 0.4f, 0);
+		emitter.start(WeatherBlobFX.layered(Speck.factory(Speck.LIGHT), WeatherBlobFX.sparkles( 0xFFE8FF ), 2), 0.3f, 0);
 	}
 
 	@Override

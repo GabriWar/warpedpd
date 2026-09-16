@@ -21,6 +21,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.TileTemperature;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
@@ -54,19 +56,28 @@ public class Blizzard extends Blob {
 						continue;
 					}
 
-					TileTemperature.depositHeat(cell, cur[cell] * -0.30f);
+					//the chill it lays down is capped, so a thick patch does not freeze the map
+					TileTemperature.depositHeat(cell, Math.min(cur[cell], 8) * -0.30f);
 					Freezing.freeze(cell);
 					Freezing.freeze(cell);
 					
 				}
 			}
 		}
+
+		//when the air warms or the snow stops, the blizzard blows itself out
+		xyz.gabriwar.warpedpixeldungeon.actors.PrecipType pt = ClimateManager.localPrecipType();
+		boolean snowing = ClimateManager.localPrecipRate() > 0.05f
+				&& (pt == xyz.gabriwar.warpedpixeldungeon.actors.PrecipType.SNOW
+					|| pt == xyz.gabriwar.warpedpixeldungeon.actors.PrecipType.BLIZZARD
+					|| pt == xyz.gabriwar.warpedpixeldungeon.actors.PrecipType.HAIL);
+		if (ClimateManager.localTemp() > 4f || !snowing) dissipate(0.7f);
 	}
 	
 	@Override
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
-		emitter.pour( Speck.factory( Speck.BLIZZARD, true ), 0.4f );
+		emitter.pour( WeatherBlobFX.BLIZZARD, 0.07f );
 	}
 	
 	@Override

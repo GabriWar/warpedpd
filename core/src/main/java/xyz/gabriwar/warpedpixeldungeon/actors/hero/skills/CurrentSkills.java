@@ -31,7 +31,6 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Bundle;
 
 import java.util.ArrayList;
@@ -85,6 +84,29 @@ public enum CurrentSkills {
 
 	public Skill lastUsed = null;
 
+	private final String[] quickslots = new String[xyz.gabriwar.warpedpixeldungeon.QuickSlot.SIZE];
+
+	private CrownSkill crownSkill;
+
+	private CrownSkill crownSkill(Hero hero){
+		if (hero == null || hero.armorAbility == null) return null;
+		if (crownSkill == null || crownSkill.ability != hero.armorAbility)
+			crownSkill = new CrownSkill(hero.armorAbility);
+		return crownSkill;
+	}
+
+	public Skill quickslot(int index){
+		if (CrownSkill.TAG.equals(quickslots[index])) return crownSkill(Dungeon.hero);
+		for (Skill skill : allSkills){
+			if (skill.level > 0 && skill.tag.equals(quickslots[index])) return skill;
+		}
+		return null;
+	}
+
+	public void quickslot(int index, Skill skill){
+		quickslots[index] = skill == null ? null : skill.tag;
+	}
+
 	CurrentSkills(){
 		//eagerly build the tree so the fields are never null, even before
 		//a run properly init()s them (e.g. status pane peeking at a hero
@@ -99,6 +121,13 @@ public enum CurrentSkills {
 	public void init(Hero hero){
 		hero.heroSkills = this;
 		lastUsed = null;
+		java.util.Arrays.fill(quickslots, null);
+		//enum constants outlive a run, so the per-turn dodge cache has to be cleared
+		//with the rest of the state or the first roll of a new game reads the last one
+		lastDodgeTurn = -1f;
+		lastDodgeAttacker = -1;
+		lastDodgeResult = false;
+		killDispatch = 0;
 		buildTree();
 	}
 
@@ -112,7 +141,7 @@ public enum CurrentSkills {
 				branchPB = new WarriorPassiveB();
 				setBranch(passiveBSkills, new FirmHand(), new Aggression(), new Mastery(), new Warbreaker());
 				branchA = new WarriorActive();
-				setBranch(activeSkills, new Smash(), new KnockBack(), new Rampage(), new Earthshatter(), iron, reckless);
+				setBranch(activeSkills, new Smash(), new KnockBack(), new Rampage(), new Earthshatter(), new Leap(), iron, reckless);
 				branchD = new WarriorFourth();
 				setBranch(fourthSkills, new Hamstring(), new Demoralize(), new Shieldbearer());
 				linkExclusive(stone, blood);
@@ -128,7 +157,7 @@ public enum CurrentSkills {
 				branchPB = new MagePassiveB();
 				setBranch(passiveBSkills, new Wizard(), new Sorcerer(), new Summoner(), new SoulTether());
 				branchA = new MageActive();
-				setBranch(activeSkills, new SummonRat(), new Spark(), new SummonSkeleton(), new SoulDetonation());
+				setBranch(activeSkills, new SummonRat(), new Spark(), new SummonSkeleton(), new SoulDetonation(), new MeteorCall());
 				branchD = new MageFourth();
 				setBranch(fourthSkills, new CinderTrail(), new FrostNova(), new StormCall(), pyre, rime);
 				linkExclusive(serene, willOfIron);
@@ -146,7 +175,7 @@ public enum CurrentSkills {
 				branchA = new RogueActive();
 				setBranch(activeSkills, new DoubleStab(), new NinjaBomb(), new ShadowClone(), new PhantomStrike(), ash, bloodDance);
 				branchD = new RogueFourth();
-				setBranch(fourthSkills, new CreepingDread(), new Predation(), new Blackout(), panic, howl);
+				setBranch(fourthSkills, new CreepingDread(), new Predation(), new Blackout(), new TengusArsenal(), panic, howl);
 				linkExclusive(ash, bloodDance);
 				linkExclusive(panic, howl);
 				break;
@@ -160,7 +189,7 @@ public enum CurrentSkills {
 				branchPB = new HuntressPassiveB();
 				setBranch(passiveBSkills, new Accuracy(), new KneeShot(), new IronTip(), new Heartseeker());
 				branchA = new HuntressActive();
-				setBranch(activeSkills, new AimedShot(), new DoubleShot(), new Bombvoyage(), new ArrowStorm(), frost, ember);
+				setBranch(activeSkills, new AimedShot(), new DoubleShot(), new Bombvoyage(), new ArrowStorm(), new ChargedShot(), frost, ember);
 				branchD = new HuntressFourth();
 				setBranch(fourthSkills, new Groundwork(), new BearTrap(), new Deadfall());
 				linkExclusive(lone, poacher);
@@ -176,7 +205,7 @@ public enum CurrentSkills {
 				branchPB = new DuelistPassiveB();
 				setBranch(passiveBSkills, new Precision(), new WeaponBond(), new BladeMastery(), new TrueEdge(), finesse, brutal);
 				branchA = new DuelistActive();
-				setBranch(activeSkills, new Lunge(), new RiposteStance(), new WhirlingFlurry(), new ImpalingThrust());
+				setBranch(activeSkills, new Lunge(), new RiposteStance(), new WhirlingFlurry(), new ImpalingThrust(), new Hurl());
 				branchD = new DuelistFourth();
 				setBranch(fourthSkills, new Sidestep(), new Fleche(), new CounterTime(), pirouette, bind);
 				linkExclusive(finesse, brutal);
@@ -192,7 +221,7 @@ public enum CurrentSkills {
 				branchPB = new ClericPassiveB();
 				setBranch(passiveBSkills, new RighteousStrikes(), new ZealPassive(), new SacredWeapon(), new DivineWrath(), zeal, faithShield);
 				branchA = new ClericActive();
-				setBranch(activeSkills, new HolySmite(), new HealingPrayer(), new GuardianSpirit(), new AvatarOfLight());
+				setBranch(activeSkills, new HolySmite(), new HealingPrayer(), new GuardianSpirit(), new AvatarOfLight(), new PillarOfLight());
 				branchD = new ClericFourth();
 				setBranch(fourthSkills, new Condemn(), new ScouringFlame(), new Reckoning());
 				linkExclusive(zeal, faithShield);
@@ -254,53 +283,64 @@ public enum CurrentSkills {
 
 	/** builds the 4th branch once a subclass is chosen (or on restore) */
 	public void initSubclassBranch( Hero hero ){
-		SubBranch b = new SubBranch();
-		switch (hero.subClass){
-			case BERSERKER:
-				setBranch(subSkills, new Carnage(), new BloodRush(), new UndyingWill());
-				break;
-			case GLADIATOR:
-				setBranch(subSkills, new ComboOpener(), new WarCry(), new FinishingBlow());
-				break;
-			case BATTLEMAGE:
-				setBranch(subSkills, new SpellBlade(), new ManaShield(), new ArcaneEcho());
-				break;
-			case WARLOCK:
-				setBranch(subSkills, new SoulDrain(), new Hex(), new DarkPact());
-				break;
-			case ASSASSIN:
-				setBranch(subSkills, new Ambush(), new Garrote(), new Vanish());
-				break;
-			case FREERUNNER:
-				setBranch(subSkills, new Slipstream(), new Parkour(), new MomentumMaster());
-				break;
-			case SNIPER:
-				setBranch(subSkills, new Overwatch(), new HeadShot(), new PiercingFocus());
-				break;
-			case WARDEN:
-				setBranch(subSkills, new Thorns(), new Symbiosis(), new WildCall());
-				break;
-			case CHAMPION:
-				setBranch(subSkills, new Banner(), new SecondWind(), new Challenge());
-				break;
-			case MONK:
-				setBranch(subSkills, new PressurePoint(), new InnerPeace(), new DragonKick());
-				break;
-			case PRIEST:
-				setBranch(subSkills, new Litany(), new MassHeal(), new Purify());
-				break;
-			case PALADIN:
-				setBranch(subSkills, new Aegis(), new HolyCharge(), new Retribution());
-				break;
-			default:
-				subSkills.clear();
-				indexSub();
-				return;
+		subSkills.clear();
+		subSkills.addAll(subclassSkills(hero.subClass));
+		if (subSkills.isEmpty()){
+			branchS = null;
+			indexSub();
+			return;
 		}
+		SubBranch b = new SubBranch();
 		b.name = Messages.get(SubBranch.class, hero.subClass.name() + ".name");
 		b.desc = Messages.get(SubBranch.class, hero.subClass.name() + ".desc");
 		branchS = b;
 		indexSub();
+	}
+
+	/** Fresh preview skills; never changes the current hero's learned branch. */
+	public static List<Skill> subclassSkills(xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass subClass){
+		List<Skill> skills = new ArrayList<>();
+		switch (subClass){
+			case BERSERKER:
+				Collections.addAll(skills, new Carnage(), new BloodRush(), new UndyingWill());
+				break;
+			case GLADIATOR:
+				Collections.addAll(skills, new ComboOpener(), new WarCry(), new FinishingBlow());
+				break;
+			case BATTLEMAGE:
+				Collections.addAll(skills, new SpellBlade(), new ManaShield(), new ArcaneEcho());
+				break;
+			case WARLOCK:
+				Collections.addAll(skills, new SoulDrain(), new Hex(), new DarkPact());
+				break;
+			case ASSASSIN:
+				Collections.addAll(skills, new Ambush(), new Garrote(), new Vanish());
+				break;
+			case FREERUNNER:
+				Collections.addAll(skills, new Slipstream(), new Parkour(), new MomentumMaster());
+				break;
+			case SNIPER:
+				Collections.addAll(skills, new Overwatch(), new HeadShot(), new PiercingFocus());
+				break;
+			case WARDEN:
+				Collections.addAll(skills, new Thorns(), new Symbiosis(), new WildCall());
+				break;
+			case CHAMPION:
+				Collections.addAll(skills, new Banner(), new SecondWind(), new Challenge());
+				break;
+			case MONK:
+				Collections.addAll(skills, new PressurePoint(), new InnerPeace(), new DragonKick());
+				break;
+			case PRIEST:
+				Collections.addAll(skills, new Litany(), new MassHeal(), new Purify());
+				break;
+			case PALADIN:
+				Collections.addAll(skills, new Aegis(), new HolyCharge(), new Retribution());
+				break;
+			default:
+				break;
+		}
+		return skills;
 	}
 
 	// ---- aggregates so hero hooks can query the subclass branch as one ----
@@ -330,17 +370,38 @@ public enum CurrentSkills {
 		return m;
 	}
 
-	public int allIncomingDamage( int dmg ){
-		for (Skill s : allSkills){
-			if (dmg <= 0) break;                 //mirrors Hero's `if (dmg > 0)` guard: don't burn mana on 0 dmg
-			dmg = Math.round(dmg * s.incomingDamageModifier());
-			dmg -= s.incomingDamageReduction(dmg);
+	public int allIncomingDamage( int dmg, Object source ){
+		//damage over time always lands; only a death-saving skill may answer the tick that would kill
+		boolean tick = Skill.isTickDamage(source);
+		Hero hero = Dungeon.hero;
+		if (tick && (hero == null || dmg < hero.HP + hero.shielding())) return dmg;
+		//two passes: rallies and death saves judge the blow only after everything else has shrunk it
+		for (int pass = 0; pass < 2 && dmg > 0; pass++){
+			for (Skill s : allSkills){
+				if (dmg <= 0) break;                 //mirrors Hero's `if (dmg > 0)` guard: don't burn mana on 0 dmg
+				if (resolvesLast(s) != (pass == 1)) continue;
+				if (tick){
+					if (s.savesFromDeath()) dmg -= s.incomingDamageReduction(dmg, source);
+					continue;
+				}
+				dmg = Math.round(dmg * s.incomingDamageModifier());
+				dmg -= s.incomingDamageReduction(dmg, source);
+			}
 		}
 		return Math.max(0, dmg);
 	}
 
+	private static boolean resolvesLast( Skill s ){
+		return s.resolvesIncomingLast() || s instanceof Conditioning || s instanceof LastRites;
+	}
+
 	public int allOnHit( Char enemy, int damage, boolean ranged ){
-		for (Skill s : allSkills) damage = s.onHitProc(enemy, damage, ranged);
+		return allOnHit(enemy, damage, ranged, false);
+	}
+
+	public int allOnHit( Char enemy, int damage, boolean ranged, boolean linkPrepared ){
+		// Shadow Link is paid before weapon/talent procs in Hero.attackProc.
+		for (Skill s : allSkills) if (!linkPrepared || !(s instanceof DoubleStab)) damage = s.onHitProc(enemy, damage, ranged);
 		return damage;
 	}
 
@@ -373,6 +434,8 @@ public enum CurrentSkills {
 	 */
 	public List<Skill> usableNow( Hero hero ){
 		List<Skill> out = new ArrayList<>();
+		CrownSkill crown = crownSkill(hero);
+		if (crown != null) out.add(crown);
 		for (Skill s : allSkills){
 			if (s.level <= 0) continue;
 			if (!s.actions( hero ).isEmpty() || s.mana > 0) out.add(s);
@@ -441,12 +504,6 @@ public enum CurrentSkills {
 		return b;
 	}
 
-	public int allHunting(){
-		int b = 0;
-		for (Skill s : allSkills) b += s.hunting();
-		return b;
-	}
-
 	// ---- chance procs: skip un-learned skills (they yell on failed rolls), stop at the first hit ----
 
 	public boolean anyKnocksBack(){
@@ -459,13 +516,141 @@ public enum CurrentSkills {
 		return false;
 	}
 
-	public boolean anyInstantKill(){
-		for (Skill s : allSkills) if (s.level > 0 && s.instantKill()) return true;
+	//FloatingText asks the defender for its evasion two or three more times per swing to
+	//fill in the damage breakdown, and every one of those used to be a fresh dodge roll with
+	//a fresh buff on the end of it. The answer is decided once per turn and then reused
+	private float lastDodgeTurn = -1f;
+	private int lastDodgeAttacker = -1;
+	private boolean lastDodgeResult = false;
+
+	/** keyed on game time and attacker: two attackers in the same instant each get their own roll */
+	public boolean anyDodge( Char attacker ){
+		if (attacker == null) return false;
+		float now = xyz.gabriwar.warpedpixeldungeon.actors.Actor.now();
+		if (now == lastDodgeTurn && attacker.id() == lastDodgeAttacker) return lastDodgeResult;
+		lastDodgeTurn = now;
+		lastDodgeAttacker = attacker.id();
+		lastDodgeResult = false;
+		List<Skill> asked = new ArrayList<>();
+		for (Skill s : allSkills){
+			if (s.level <= 0) continue;
+			asked.add(s);
+			if (s.dodgeChance(attacker)){
+				s.onDodge(attacker);
+				lastDodgeResult = true;
+				break;
+			}
+		}
+		if (!lastDodgeResult) for (Skill s : asked) s.onDodgeFailed(attacker);
+		return lastDodgeResult;
+	}
+
+	public boolean anySureHit( Char target ){
+		for (Skill s : allSkills) if (s.level > 0 && s.sureHit(target)) return true;
 		return false;
 	}
 
-	public boolean anyDodge(){
-		for (Skill s : allSkills) if (s.level > 0 && s.dodgeChance()) return true;
+	public boolean anyIgnoresArmor( Char target ){
+		for (Skill s : allSkills) if (s.level > 0 && s.ignoresArmor(target)) return true;
+		return false;
+	}
+
+	/** the hero's copy of a skill, by class, or null */
+	@SuppressWarnings("unchecked")
+	public <T extends Skill> T get( Class<T> cls ){
+		for (Skill s : allSkills) if (cls.isInstance( s )) return (T) s;
+		return null;
+	}
+
+	//>0 while kill payoffs run: a skill-sourced kill made by a payoff is not credited again (no chains)
+	private int killDispatch = 0;
+
+	public void onKill( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob mob, boolean ranged ){
+		killDispatch++;
+		try {
+			for (Skill s : allSkills) if (s.level > 0) s.onKill( mob, ranged );
+		} finally {
+			killDispatch--;
+		}
+	}
+
+	/** Mob.die: the hero's own blows, and every hero skill damage source, count as the hero's kills */
+	public void creditKill( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob mob, Object cause ){
+		Hero hero = Dungeon.hero;
+		if (hero == null) return;
+		if (cause == hero){
+			onKill( mob, hero.belongings.thrownWeapon != null );
+		} else if (killDispatch == 0 && SkillInteractions.heroSkillSource( cause )){
+			onKill( mob, SkillInteractions.rangedSource( cause ) );
+		}
+	}
+
+	public void onEnemyDeath( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob mob, Object cause ){
+		for (Skill s : allSkills) if (s.level > 0) s.onEnemyDeath( mob, cause );
+	}
+
+	public boolean anyInstantKill( Char enemy, int damage ){
+		for (Skill s : allSkills) if (s.level > 0 && s.instantKill( enemy, damage )) return true;
+		return false;
+	}
+
+	public void onHeroMissed( Char attacker, boolean melee ){
+		for (Skill s : allSkills) if (s.level > 0) s.onHeroMissed( attacker, melee );
+	}
+
+	public void onEnemyStepsAdjacent( Char enemy, int from ){
+		for (Skill s : allSkills) if (s.level > 0) s.onEnemyStepsAdjacent( enemy, from );
+	}
+
+	public void onCharMoved( Char ch, int from, boolean travelling ){
+		for (Skill s : allSkills) if (s.level > 0) s.onCharMoved( ch, from, travelling );
+	}
+
+	public boolean anyPreventsWaking( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob mob ){
+		for (Skill s : allSkills) if (s.level > 0 && s.preventsWaking( mob )) return true;
+		return false;
+	}
+
+	public void onHeroNoticed( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob mob, boolean wasSleeping ){
+		for (Skill s : allSkills) if (s.level > 0) s.onHeroNoticed( mob, wasSleeping );
+	}
+
+	public void onDamageTaken( int hpLost, int shieldLost, Object source ){
+		for (Skill s : allSkills) if (s.level > 0) s.onDamageTaken( hpLost, shieldLost, source );
+	}
+
+	public void beforeMagicHit( Char target, Object source ){
+		for (Skill s : allSkills) if (s.level > 0) s.beforeMagicHit( target, source );
+	}
+
+	public void onMagicDamage( Char target, int damage, Object source ){
+		for (Skill s : allSkills) if (s.level > 0) s.onMagicDamage( target, damage, source );
+	}
+
+	public boolean anyShrugsOffDebuff( xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff buff ){
+		for (Skill s : allSkills) if (s.level > 0 && s.shrugsOffDebuff( buff )) return true;
+		return false;
+	}
+
+	public boolean anyHeroBump( Hero hero, Char enemy ){
+		for (Skill s : allSkills) if (s.level > 0 && s.onHeroBump( hero, enemy )) return true;
+		return false;
+	}
+
+	public void onSkillMarkEnded( Char ch, SkillInteractions.Mark mark ){
+		for (Skill s : allSkills) if (s.level > 0) s.onSkillMarkEnded( ch, mark );
+	}
+
+	public void onFieldTick( xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField field ){
+		for (Skill s : allSkills) if (s.level > 0) s.onFieldTick( field );
+	}
+
+	public void onSkillCast( Skill skill ){
+		for (Skill s : allSkills) if (s.level > 0) s.onSkillCast( skill );
+	}
+
+	public boolean coverManaShortfall( Hero hero, Skill casting, int missing, boolean commit ){
+		for (Skill s : allSkills) if (s.level > 0 && s.coversManaShortfall( hero, casting, missing, commit )) return true;
 		return false;
 	}
 
@@ -542,6 +727,23 @@ public enum CurrentSkills {
 		return spent;
 	}
 
+	/** points spent on skills across every branch, the subclass included */
+	public int totalSpentAll(){
+		int spent = 0;
+		for (BRANCHES b : BRANCHES.values()) spent += totalSpent(b);
+		return spent;
+	}
+
+	/** points spent on talents, which come out of the same pool as the skills */
+	public static int talentPointsSpent(){
+		int spent = 0;
+		if (Dungeon.hero == null || Dungeon.hero.talents == null) return 0;
+		for (java.util.LinkedHashMap<xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent, Integer> tier : Dungeon.hero.talents){
+			for (Integer v : tier.values()) spent += v;
+		}
+		return spent;
+	}
+
 	/** a skill is up for advancement unless it is maxed or its fork sibling was taken */
 	private static boolean upgradeable( Skill s ){
 		return s.level < Skill.MAX_LEVEL && !(s.exclusiveWith != null && s.exclusiveWith.level > 0);
@@ -559,34 +761,9 @@ public enum CurrentSkills {
 		return b.get(b.size()-1).upgradeCost();
 	}
 
-	/** an untouched fork: picking a half is permanent, so only the player may resolve it */
-	private static boolean pendingChoice( Skill s ){
-		return s.exclusiveWith != null && s.level == 0 && s.exclusiveWith.level == 0;
-	}
-
-	public void advance(BRANCHES branch){
-		List<Skill> b = branchSkills(branch);
-		if (b.isEmpty()) return;
-		Skill fork = null;
-		for (Skill s : b){
-			if (!upgradeable(s)) continue;
-			if (pendingChoice(s)){
-				//never spend into a fork on the player's behalf, look for something else first
-				if (fork == null) fork = s;
-				continue;
-			}
-			s.requestUpgrade();
-			return;
-		}
-		if (fork != null){
-			GLog.i( Messages.get(Skill.class, "pending_choice", fork.name(), fork.exclusiveWith.name()) );
-			return;
-		}
-		b.get(b.size()-1).requestUpgrade();
-	}
-
 	public void storeInBundle( Bundle bundle ){
 		bundle.put( TYPE, toString() );
+		for (int i = 0; i < quickslots.length; i++) bundle.put("skill_quickslot_" + i, quickslots[i] == null ? "" : quickslots[i]);
 		for (Skill s : allSkills) s.storeInBundle(bundle);
 	}
 
@@ -600,6 +777,7 @@ public enum CurrentSkills {
 	}
 
 	public void restoreSkillsFromBundle( Bundle bundle ){
+		for (int i = 0; i < quickslots.length; i++) quickslots[i] = bundle.getString("skill_quickslot_" + i);
 		//a save from before a skill was added to a branch simply has no key for it
 		for (Skill s : allSkills){
 			if (bundle.contains( Skill.SKILL_LEVEL + " " + s.tag )){

@@ -258,7 +258,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfTransfusion;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfAmok;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfAvalanche;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlink;
-import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfDisintegration2;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfFirebolt;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfFlock;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfPoison;
@@ -790,14 +789,13 @@ public class Generator {
 					WandOfAmok.class,
 					WandOfAvalanche.class,
 					WandOfBlink.class,
-					WandOfDisintegration2.class,
 					WandOfFirebolt.class,
 					WandOfFlock.class,
 					WandOfPoison.class,
 					WandOfSlowness.class,
 					WandOfTelekinesis.class,
 					WandOfTeleportation.class };
-			WAND.defaultProbs = new float[]{ 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3 };
+			WAND.defaultProbs = new float[]{ 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3 };
 			WAND.probs = WAND.defaultProbs.clone();
 			
 			//see generator.randomWeapon
@@ -997,7 +995,9 @@ public class Generator {
 					ToastedNut.class,
 					PixieParasol.class,
 					PotionOfConstitution.class };
-			FOOD.defaultProbs = new float[]{ 4, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+			//Nut: 6/456 = 1/76, one quarter of its former 1/19 chance.
+			//Integer weights also preserve this ratio when drawing without replacement.
+			FOOD.defaultProbs = new float[]{ 100, 25, 0, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 6, 25, 25, 25 };
 			FOOD.probs = FOOD.defaultProbs.clone();
 			
 			RING.classes = new Class<?>[]{
@@ -1170,7 +1170,8 @@ public class Generator {
 			case ARTIFACT:
 				Item item = randomArtifact();
 				//if we're out of artifacts, return a ring instead.
-				return item != null ? item : random(Category.RING);
+				//do not use decks for that ring, as the # of artifacts genned can vary by gameplay
+				return item != null ? item : randomUsingDefaults(Category.RING);
 			default:
 				if (cat.defaultProbs != null && cat.seed != null){
 					Random.pushGenerator(cat.seed);
@@ -1435,24 +1436,18 @@ public class Generator {
 					cat.dropped = bundle.getInt(cat.name().toLowerCase() + CATEGORY_DROPPED);
 				}
 
-				//pre-v3.0.0 and pre-v3.3.0 conversion for artifacts (addition of tome and key)
+				//pre-v3.3.0 conversion for artifacts (addition of tome and key)
 				if (cat == Category.ARTIFACT && probs.length != cat.defaultProbs.length){
-					int tomeIDX = 5;
 					int keyIDX = 9;
 					int j = 0;
 					for (int i = 0; i < probs.length; i++){
-						//we do a specific check here for holy tome pre-v3.0.0
-						if (j == tomeIDX && probs.length == cat.defaultProbs.length-2){
-							cat.probs[j] = 0;
-							j++;
-						} else if (j == keyIDX){
+						if (j == keyIDX){
 							cat.probs[j] = 1;
 							j++;
 						}
 						cat.probs[j] = probs[i];
 						j++;
 					}
-
 				}
 
 			}

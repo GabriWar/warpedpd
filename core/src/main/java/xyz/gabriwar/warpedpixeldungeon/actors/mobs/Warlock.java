@@ -30,20 +30,18 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Degrade;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
-import xyz.gabriwar.warpedpixeldungeon.items.food.MonsterMeat;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
+import xyz.gabriwar.warpedpixeldungeon.items.food.MonsterMeat;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfHealing;
-import xyz.gabriwar.warpedpixeldungeon.items.stones.StoneOfAggression;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.WarlockSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.audio.Sample;
-import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
 
-public class Warlock extends Mob implements Callback {
+public class Warlock extends Mob {
 	
 	private static final float TIME_TO_ZAP	= 1f;
 	
@@ -60,7 +58,7 @@ public class Warlock extends Mob implements Callback {
 		lootChance = 0.83f;
 
 		lootOther = new MonsterMeat();
-		lootChanceOther = 0.05f;
+		lootChanceOther = 0.05f / 4f;
 
 		properties.add(Property.UNDEAD);
 
@@ -125,13 +123,6 @@ public class Warlock extends Mob implements Callback {
 			int dmg = Random.NormalIntRange( 12, 18 );
 			dmg = Math.round(dmg * AscensionChallenge.statModifier(this));
 
-			//logic for DK taking 1/2 damage from aggression stoned minions
-			if ( enemy.buff(StoneOfAggression.Aggression.class) != null
-					&& enemy.alignment == alignment
-					&& (Char.hasProp(enemy, Property.BOSS) || Char.hasProp(enemy, Property.MINIBOSS))){
-				dmg *= 0.5f;
-			}
-
 			enemy.damage( dmg, new DarkBolt() );
 			
 			if (enemy == Dungeon.hero && !enemy.isAlive()) {
@@ -146,11 +137,6 @@ public class Warlock extends Mob implements Callback {
 	
 	public void onZapComplete() {
 		zap();
-		next();
-	}
-	
-	@Override
-	public void call() {
 		next();
 	}
 

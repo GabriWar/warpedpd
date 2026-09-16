@@ -65,7 +65,7 @@ public class Light extends FlavourBuff {
 		if (super.attachTo( target )) {
 			if (Dungeon.level != null) {
 				target.viewDistance = Math.max( Dungeon.level.viewDistance, DISTANCE );
-				Dungeon.observe();
+				refreshView( target );
 			}
 			return true;
 		} else {
@@ -75,9 +75,23 @@ public class Light extends FlavourBuff {
 	
 	@Override
 	public void detach() {
-		target.viewDistance = Dungeon.level.viewDistance;
-		Dungeon.observe();
+		if (Dungeon.level != null) {
+			target.viewDistance = Dungeon.level.viewDistance;
+			refreshView( target );
+		}
 		super.detach();
+	}
+
+	/**
+	 * Redrawing what the hero can see only means anything for the hero, and only once
+	 * they stand somewhere. A joining player's hero is handed its starting kit — torch
+	 * included — before it is placed on the level, and observing an unplaced hero reads
+	 * off the end of the map.
+	 */
+	private static void refreshView( Char target ) {
+		if (target == Dungeon.hero && Dungeon.level.insideMap( target.pos )) {
+			Dungeon.observe();
+		}
 	}
 
 	public void weaken( int amount ){

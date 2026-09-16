@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -59,7 +60,7 @@ public class NectarWind extends Blob {
 		super.use( emitter );
 
 		//OV uses a dedicated NECTAR speck; HEALING is the closest WPD equivalent
-		emitter.pour( Speck.factory(Speck.NECTAR), 0.6f );
+		emitter.pour( WeatherBlobFX.NECTAR_WIND, 0.3f );
 	}
 
 	@Override

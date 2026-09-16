@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
@@ -63,7 +64,7 @@ public class MagicFire extends Blob {
 	@Override
 	public void use(BlobEmitter emitter) {
 		super.use(emitter);
-		emitter.pour(FlameParticle.FACTORY, 0.03f);
+		emitter.pour(WeatherBlobFX.layered(FlameParticle.FACTORY, WeatherBlobFX.embers( 0xFFC060 ), 6), 0.03f);
 	}
 
 	@Override

@@ -22,15 +22,17 @@
 package xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.vault.treasure;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.VaultSentry;
-import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfInvisibility;
-import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
+import xyz.gabriwar.warpedpixeldungeon.items.quest.DwarfToken;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
+import xyz.gabriwar.warpedpixeldungeon.levels.VaultLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.painters.Painter;
+import com.watabou.utils.PathFinder;
 import com.watabou.utils.Point;
+import com.watabou.utils.Random;
 
 import java.util.ArrayList;
 
@@ -71,16 +73,12 @@ public class VaultManyScansRoom extends VaultTreasureRoom {
 		}
 
 		Painter.set(level, c, Terrain.PEDESTAL);
-		Item treasureItem = Generator.randomUsingDefaults(Generator.Category.WEP_T5);
-		if (treasureItem.cursed){
-			treasureItem.cursed = false;
-			if (((MeleeWeapon) treasureItem).hasCurseEnchant()){
-				((MeleeWeapon) treasureItem).enchant(null);
-			}
-		}
-		//not true ID
-		treasureItem.levelKnown = treasureItem.cursedKnown = true;
+		Item treasureItem = ((VaultLevel)level).createEquipment(3);
 		level.drop(treasureItem, c.x + w*c.y).type = Heap.Type.CHEST;
+
+		treasureItem = ((VaultLevel)level).createConsumabe(3);
+		level.drop(treasureItem, c.x + w*c.y + PathFinder.NEIGHBOURS8[Random.Int(PathFinder.NEIGHBOURS8.length)]);
+		level.drop(new DwarfToken(), c.x + w*c.y + PathFinder.NEIGHBOURS8[Random.Int(PathFinder.NEIGHBOURS8.length)]);
 
 		level.addItemToSpawn(new PotionOfInvisibility());
 

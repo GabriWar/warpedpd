@@ -27,9 +27,17 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.PoisonParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
+import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
 public class Necrotoxin extends Skill {
@@ -45,15 +53,32 @@ public class Necrotoxin extends Skill {
 	@Override
 	protected boolean upgrade(){ return true; }
 
+	//a hit can rupture the poison in an enemy: what was left of it lands at once, and half again
 	@Override
 	public int onHitProc( Char enemy, int damage, boolean ranged ){
-		if (level > 0 && enemy != null && enemy.buff( Poison.class ) != null){
-			if (Random.Int( 100 ) < 20 * level){
-				Buff.affect( enemy, Poison.class ).extend( 2 + level );
-				castTextYell();
+		if (level <= 0 || enemy == null) return damage;
+		Poison poison = enemy.buff( Poison.class );
+		if (poison == null || Random.Int( 100 ) >= 5 + 15 * level) return damage;
+
+		int burst = Math.round( poison.totalIncomingDMG() * 1.5f );
+		poison.detach();
+
+		castTextYell();
+		CellEmitter.center( enemy.pos ).burst( PoisonParticle.SPLASH, 10 );
+		CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.TOXIC ), 6 );
+		if (enemy.sprite != null) new Flare( 6, 20 ).color( 0x66DD44, true ).show( enemy.sprite, 0.6f );
+		Sample.INSTANCE.play( Assets.Sounds.GAS, 0.9f, 0.8f );
+
+		//at mastery the rupture sprays onto every enemy next to it
+		if (level >= MAX_LEVEL){
+			for (int n : PathFinder.NEIGHBOURS8){
+				Char ch = Actor.findChar( enemy.pos + n );
+				if (ch != null && ch.isAlive() && ch.alignment == Char.Alignment.ENEMY){
+					Buff.affect( ch, Poison.class ).set( 5f );
+					CellEmitter.center( ch.pos ).burst( PoisonParticle.SPLASH, 4 );
+				}
 			}
-			return damage + Math.round( damage * 0.05f * level );
 		}
-		return damage;
+		return damage + burst;
 	}
 }

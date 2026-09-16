@@ -1,10 +1,36 @@
+/*
+ * Pixel Dungeon
+ * Copyright (C) 2012-2015 Oleg Dolya
+ *
+ * Shattered Pixel Dungeon
+ * Copyright (C) 2014-2026 Evan Debenham
+ *
+ * Warped Pixel Dungeon
+ * Copyright (C) 2026 Gabriel Duarte Guerra (gabriwar)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ */
+
 package xyz.gabriwar.warpedpixeldungeon.net.ui;
 
 import xyz.gabriwar.warpedpixeldungeon.Chrome;
 import xyz.gabriwar.warpedpixeldungeon.WPDSettings;
 import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.net.NetHeroFile;
 import xyz.gabriwar.warpedpixeldungeon.net.NetManager;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.TitleScene;
@@ -19,6 +45,8 @@ import xyz.gabriwar.warpedpixeldungeon.ui.Window;
 import xyz.gabriwar.warpedpixeldungeon.windows.IconTitle;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndHeroInfo;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndKeyBindings;
+import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
+import com.watabou.utils.Bundle;
 
 import com.watabou.noosa.Camera;
 import com.watabou.noosa.Game;
@@ -65,6 +93,9 @@ public class PlayerLobbyScene extends PixelScene {
 
 	private HeroClass selectedClass = null;
 	private volatile JSONObject stashedHero = null;
+	//the hero this player keeps on their own device, from their last host
+	private Bundle localHero = null;
+	private StyledButton btnNewHero;
 
 	@Override
 	public void create() {
@@ -177,8 +208,59 @@ public class PlayerLobbyScene extends PixelScene {
 		align(joinHint);
 		add(joinHint);
 
+		btnNewHero = new StyledButton(Chrome.Type.GREY_BUTTON_TR, "Start a new hero", 6) {
+			@Override protected void onClick() {
+				if (localHero == null) return;
+				final String n = WPDSettings.multiplayerName();
+				HeroClass[] all = HeroClass.values();
+				int ord = NetHeroFile.heroClass(localHero);
+				String what = Messages.titleCase(all[ord < 0 || ord >= all.length ? 0 : ord].title())
+						+ " (Lvl " + NetHeroFile.level(localHero) + ")";
+				WarpedPixelDungeon.scene().addToFront(new WndOptions(
+						Icons.get(Icons.WARNING),
+						"Start over?",
+						"Your saved " + what + " will be deleted from this device. "
+								+ "A host that still has it can give it back.",
+						"Delete", "Keep") {
+					@Override protected void onSelect(int index) {
+						if (index != 0) return;
+						NetHeroFile.delete(n);
+						localHero = null;
+						for (HeroBtn b : classButtons) b.lockedReclaim = false;
+						setSelected(null);
+						btnNewHero.visible = btnNewHero.active = false;
+						updateSubtitle("Pick a class to join", NetUi.MUTED);
+						updateJoinHint("Pick a class to join", NetUi.MUTED);
+					}
+				});
+			}
+		};
+		float newW = btnNewHero.reqWidth() + 12;
+		btnNewHero.setRect(insets.left + (w - newW) / 2f, joinHint.bottom() + 4, newW, 14);
+		align(btnNewHero);
+		add(btnNewHero);
+		btnNewHero.visible = btnNewHero.active = false;
+
 		fadeIn();
+		loadLocalHero();
 		runPeek();
+	}
+
+	/** The hero saved on this device under our name, if any, shown ready to continue. */
+	private void loadLocalHero() {
+		localHero = NetHeroFile.load(WPDSettings.multiplayerName());
+		if (localHero == null) return;
+		HeroClass[] all = HeroClass.values();
+		int ord = NetHeroFile.heroClass(localHero);
+		HeroClass hc = all[ord < 0 || ord >= all.length ? 0 : ord];
+		setSelected(hc);
+		for (HeroBtn b : classButtons) b.lockedReclaim = true;
+		String host = NetHeroFile.host(localHero);
+		updateSubtitle("Your saved hero: " + Messages.titleCase(hc.title())
+				+ " Lvl " + NetHeroFile.level(localHero)
+				+ (host == null || host.isEmpty() ? "" : " - last played with " + host), NetUi.GREEN);
+		updateJoinHint("Click Join to continue", NetUi.GREEN);
+		btnNewHero.visible = btnNewHero.active = true;
 	}
 
 	private float buildHostCard(float x, float y, float w) {
@@ -189,7 +271,7 @@ public class PlayerLobbyScene extends PixelScene {
 		card.size(w, cardH);
 		add(card);
 
-		String ip = WndMultiplayer.pendingHostIP;
+		String ip = target();
 		if (ip == null || ip.isEmpty()) ip = "?";
 
 		String myName = WPDSettings.multiplayerName();
@@ -270,7 +352,8 @@ public class PlayerLobbyScene extends PixelScene {
 			StringBuilder sb = new StringBuilder();
 			sb.append("Lvl ").append(lvl);
 			if (ht > 0) sb.append(" · HP ").append(hp).append("/").append(ht);
-			if (depth > 0) sb.append(" · Floor ").append(depth);
+			if (depth == OverworldLevel.DEPTH) sb.append(" · Overworld");
+			else if (depth > 0) sb.append(" · Floor ").append(depth);
 			sb.append(" · ").append(items).append(items == 1 ? " item" : " items");
 			displayDesc = sb.toString();
 			heroName.hardlight(NetUi.GREEN);
@@ -294,10 +377,16 @@ public class PlayerLobbyScene extends PixelScene {
 
 	/** Async lobby peek. Updates host card subtitle + hero card on response. */
 	private void runPeek() {
+		//peeking dials the host directly, which a relay room has no equivalent for:
+		//asking would burn one of the room's peer slots just to preview a hero
+		if (WndMultiplayer.pendingRoomCode != null) {
+			if (localHero == null) updateSubtitle("Pick a class to join", NetUi.MUTED);
+			return;
+		}
 		final String ip = WndMultiplayer.pendingHostIP;
 		final String name = WPDSettings.multiplayerName();
 		if (ip == null || ip.isEmpty()) {
-			updateSubtitle("Pick a class to join", NetUi.MUTED);
+			if (localHero == null) updateSubtitle("Pick a class to join", NetUi.MUTED);
 			return;
 		}
 		NetManager.peekCharacter(ip, name, info -> Game.runOnRenderThread(() -> {
@@ -312,7 +401,8 @@ public class PlayerLobbyScene extends PixelScene {
 				int depth = info.optInt("depth", 0);
 				if (hostMetaLabel != null) {
 					String s = "Stashed hero: Lvl " + lvl
-							+ (depth > 0 ? " · Floor " + depth : "");
+							+ (depth == OverworldLevel.DEPTH ? " · Overworld"
+								: depth > 0 ? " · Floor " + depth : "");
 					hostMetaLabel.text(s);
 					float cardW = heroPanelBg.width();
 					hostMetaLabel.setPos(heroPanelBg.x + (cardW - hostMetaLabel.width()) / 2f,
@@ -320,7 +410,7 @@ public class PlayerLobbyScene extends PixelScene {
 					PixelScene.align(hostMetaLabel);
 				}
 				for (HeroBtn b : classButtons) b.lockedReclaim = true;
-			} else {
+			} else if (localHero == null) {
 				updateSubtitle("No saved hero — pick a class to start fresh", NetUi.YELLOW);
 				if (hostMetaLabel != null) {
 					hostMetaLabel.text("Fresh spawn at the host's current floor.");
@@ -352,8 +442,15 @@ public class PlayerLobbyScene extends PixelScene {
 		align(joinHint);
 	}
 
+	/** What this lobby is joining: a room code online, an address on a LAN. */
+	private static String target() {
+		return WndMultiplayer.pendingRoomCode != null
+				? WndMultiplayer.pendingRoomCode
+				: WndMultiplayer.pendingHostIP;
+	}
+
 	private void joinAsPlayer() {
-		String ip = WndMultiplayer.pendingHostIP;
+		String ip = target();
 		if (ip == null || ip.isEmpty()) {
 			WarpedPixelDungeon.switchNoFade(TitleScene.class);
 			return;
@@ -367,7 +464,21 @@ public class PlayerLobbyScene extends PixelScene {
 			heroData.put("lvl", 1);
 			heroData.put("exp", 0);
 			heroData.put("name", WPDSettings.multiplayerName());
-			NetManager.startPlayer(ip, heroData);
+			if (localHero != null) {
+				//the copy our last host sent us. The host we are joining prefers its
+				//own stash of this name, and falls back to this
+				JSONObject hero = NetHeroFile.hero(localHero);
+				if (hero != null) {
+					heroData.put("hero", hero);
+					heroData.put("cls", NetHeroFile.heroClass(localHero));
+					heroData.put("lvl", NetHeroFile.level(localHero));
+				}
+			}
+			if (WndMultiplayer.pendingRoomCode != null) {
+				NetManager.startPlayerOnline(WndMultiplayer.pendingRoomCode, heroData);
+			} else {
+				NetManager.startPlayer(ip, heroData);
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 			WarpedPixelDungeon.switchNoFade(TitleScene.class);

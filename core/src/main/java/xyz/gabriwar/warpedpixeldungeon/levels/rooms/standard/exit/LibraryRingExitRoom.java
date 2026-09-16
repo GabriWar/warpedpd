@@ -26,6 +26,7 @@ import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.features.LevelTransition;
 import xyz.gabriwar.warpedpixeldungeon.levels.painters.Painter;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.standard.LibraryRingRoom;
+import xyz.gabriwar.warpedpixeldungeon.tiles.custom.Carpet;
 import com.watabou.utils.Point;
 import com.watabou.utils.Random;
 
@@ -60,6 +61,11 @@ public class LibraryRingExitRoom extends LibraryRingRoom {
 		Point p = center();
 		Painter.set(level, p, Terrain.EXIT);
 		level.transitions.add(new LevelTransition(level, level.pointToCell(p), LevelTransition.Type.REGULAR_EXIT));
+
+		Carpet carpet = new Carpet();
+		carpet.setRect(left+5, top+5, width()-10, height()-10);
+		carpet.overrideTile(level, p.x, p.y, Carpet.SKIP);
+		level.customTiles.add(carpet);
 
 		int dirX = 0, dirY = 0;
 		if (Random.Int(2) == 0){

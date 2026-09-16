@@ -54,6 +54,14 @@ public class ForestProtector extends Mob implements Callback {
 		lootChance = 1f;
 
 		resistances.add(Electricity.class);
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
+	}
+
+	@Override
+	protected boolean lootIgnoresLevel() {
+		return true;
 	}
 
 	@Override

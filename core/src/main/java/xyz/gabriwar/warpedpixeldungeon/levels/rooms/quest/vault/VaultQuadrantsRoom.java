@@ -21,20 +21,21 @@
 
 package xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.vault;
 
-import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.VaultLaser;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Elemental;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.items.Heap;
+import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
+import xyz.gabriwar.warpedpixeldungeon.levels.VaultLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.painters.Painter;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.Room;
-import xyz.gabriwar.warpedpixeldungeon.levels.rooms.standard.StandardRoom;
 import com.watabou.utils.Point;
+import com.watabou.utils.Random;
 
-public class VaultQuadrantsRoom extends StandardRoom {
+import java.util.ArrayList;
 
-	@Override
-	public float[] sizeCatProbs() {
-		return new float[]{0, 1, 0};
-	}
+public class VaultQuadrantsRoom extends VaultRoom {
 
 	@Override
 	public void paint(Level level) {
@@ -47,20 +48,69 @@ public class VaultQuadrantsRoom extends StandardRoom {
 		Painter.drawInside( level, this, new Point(c.x, top), 3, Terrain.WALL);
 		Painter.drawInside( level, this, new Point(c.x, bottom), 3, Terrain.WALL);
 
-		//TODO 4x laser?
 		Painter.set( level, c, Terrain.STATUE);
-
-		VaultLaser laser = new VaultLaser();
-		//laser.laserDirs = new int[];
 
 		for (Room.Door door : connected.values()) {
 			door.set( Room.Door.Type.REGULAR );
 		}
-	}
 
-	@Override
-	public boolean canMerge(Level l, Room other, Point p, int mergeTerrain) {
-		return false;
+		ArrayList<Point> spawnPositions = new ArrayList<>();
+		spawnPositions.add(new Point(left + 2, top + 2));
+		spawnPositions.add(new Point(right - 2, top + 2));
+		spawnPositions.add(new Point(right - 2, bottom - 2));
+		spawnPositions.add(new Point(left + 2, bottom - 2));
+
+		for (Point p : spawnPositions.toArray(new Point[0])){
+			for (Room.Door door : connected.values()) {
+				if (Point.distance(p, door) <= 3){
+					spawnPositions.remove(p);
+				}
+			}
+		}
+
+		if (!spawnPositions.isEmpty()) {
+			Mob enemy = level.createMob();
+			Point enemyCorner = Random.element(spawnPositions);
+			enemy.pos = level.pointToCell(enemyCorner);
+			enemy.state = enemy.WANDERING;
+			level.mobs.add(enemy);
+
+			int tier = 1;
+			for (Class<?extends Mob> cls : VaultLevel.T1Mobs){
+				if (cls.equals(enemy.getClass())){
+					tier = 1;
+				}
+			}
+			for (Class<?extends Mob> cls : VaultLevel.T2Mobs){
+				if (cls.equals(enemy.getClass())){
+					tier = 2;
+				}
+			}
+			for (Class<?extends Mob> cls : VaultLevel.T3Mobs){
+				if (cls.equals(enemy.getClass())){
+					tier = 3;
+				}
+			}
+			//special case for elementals
+			if (enemy instanceof Elemental){
+				tier = 3;
+			}
+
+			Item treasure = ((VaultLevel)level).createEquipment(tier);
+			int treasurePos = enemy.pos;
+			if (enemyCorner.x < c.x){
+				treasurePos--;
+			} else {
+				treasurePos++;
+			}
+			if (enemyCorner.y < c.y){
+				treasurePos -= level.width();
+			} else {
+				treasurePos += level.width();
+			}
+			level.drop(treasure, treasurePos).type = Heap.Type.CHEST;
+		}
+
 	}
 
 	@Override

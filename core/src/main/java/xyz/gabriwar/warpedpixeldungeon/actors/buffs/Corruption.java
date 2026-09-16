@@ -22,21 +22,22 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
+import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import com.watabou.utils.Bundle;
 
-public class Corruption extends AllyBuff {
+public class Corruption extends AllyBuff implements Buff.DOTbuff {
 
 	{
 		type = buffType.NEGATIVE;
 		announced = true;
 	}
 
-	private float buildToDamage = 0f;
+	private float partialDamage = 0f;
 
 	//corrupted enemies are usually fully healed and cleansed of most debuffs
 	public static void corruptionHeal(Char target){
@@ -55,6 +56,15 @@ public class Corruption extends AllyBuff {
 	private int lastHP = -1;
 
 	@Override
+	public boolean attachTo(Char target) {
+		if (super.attachTo(target)){
+			target.needsIncomingDOTUpdate = true;
+			return true;
+		}
+		return false;
+	}
+
+	@Override
 	public boolean act() {
 		if (target instanceof Hero){
 			if (lastHP != -1 && target.HP > lastHP){
@@ -64,13 +74,14 @@ public class Corruption extends AllyBuff {
 			}
 		}
 
-		buildToDamage += target.HT/100f;
+		partialDamage += target.HT/100f;
 
-		int damage = (int)buildToDamage;
-		buildToDamage -= damage;
+		int damage = (int)partialDamage;
+		partialDamage -= damage;
 
-		if (damage > 0)
+		if (damage > 0) {
 			target.damage(damage, this);
+		}
 
 		lastHP = target.HP;
 
@@ -89,17 +100,20 @@ public class Corruption extends AllyBuff {
 	}
 
 	private static final String LAST_HP = "last_hp";
+	public static final String PARTIAL_DAMAGE = "partial_damage";
 
 	@Override
 	public void storeInBundle( com.watabou.utils.Bundle bundle ) {
 		super.storeInBundle( bundle );
 		bundle.put( LAST_HP, lastHP );
+		bundle.put( PARTIAL_DAMAGE, partialDamage );
 	}
 
 	@Override
 	public void restoreFromBundle( com.watabou.utils.Bundle bundle ) {
 		super.restoreFromBundle( bundle );
 		lastHP = bundle.contains( LAST_HP ) ? bundle.getInt( LAST_HP ) : -1;
+		partialDamage = bundle.getInt( PARTIAL_DAMAGE );
 	}
 
 	@Override
@@ -111,6 +125,11 @@ public class Corruption extends AllyBuff {
 	@Override
 	public int icon() {
 		return BuffIndicator.CORRUPT;
+	}
+
+	@Override
+	public int totalIncomingDMG() {
+		return target.HT;
 	}
 
 }

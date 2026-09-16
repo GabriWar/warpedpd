@@ -26,6 +26,11 @@
 
 package xyz.gabriwar.warpedpixeldungeon.windows;
 
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.ui.Icons;
+import com.watabou.noosa.Game;
+import com.watabou.glwrap.Blending;
+import xyz.gabriwar.warpedpixeldungeon.ui.SkillTreeArt;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill;
@@ -48,121 +53,225 @@ import java.util.List;
  */
 public class WndQuickSkills extends Window {
 
-	private static final int SLOT   = 20;
-	private static final int MARGIN = 2;
-	private static final int COLS   = 4;
+	private static final int SLOT    = SkillTreeArt.SOCKET;   //20
+	private static final int PIPS    = 3;
+	private static final int CELL_W  = SLOT + 4;
+	private static final int CELL_H  = SLOT + PIPS + 4;
+	private static final int COLS    = 4;
 	private static final int TITLE_H = 14;
 
-	public WndQuickSkills(){
+	private final java.util.function.Consumer<Skill> selection;
 
+	public WndQuickSkills(){
+		this(null);
+	}
+
+	public WndQuickSkills(java.util.function.Consumer<Skill> selection){
 		super();
+		this.selection = selection;
 
 		Hero hero = Dungeon.hero;
 		List<Skill> usable = hero.heroSkills.usableNow( hero );
 
-		int width = COLS * SLOT + (COLS - 1) * MARGIN;
+		int width = COLS * CELL_W;
 
-		RenderedTextBlock title = PixelScene.renderTextBlock( "Skills", 9 );
+		//the same strip as the tree: icon, title, and the points waiting if any
+		ColorBlock strip = new ColorBlock( width, TITLE_H, 0xFF000000 );
+		strip.alpha( 0.35f );
+		add( strip );
+		Image icon = Icons.get( Icons.TALENT );
+		icon.x = 2;
+		icon.y = (TITLE_H - icon.height()) / 2f;
+		PixelScene.align( icon );
+		add( icon );
+		RenderedTextBlock title = PixelScene.renderTextBlock( Messages.get( this, selection == null ? "title" : "assign" ), 8 );
 		title.hardlight( TITLE_COLOR );
-		title.setPos( (width - title.width()) / 2f, (TITLE_H - title.height()) / 2f );
+		title.setPos( icon.x + icon.width() + 3, (TITLE_H - title.height()) / 2f );
+		PixelScene.align( title );
 		add( title );
+		if (selection == null && Skill.availableSkill > 0){
+			RenderedTextBlock pts = PixelScene.renderTextBlock( Messages.get( this, "points", Skill.availableSkill ), 6 );
+			pts.hardlight( 0x8ce08c );
+			pts.setPos( width - pts.width() - 2, (TITLE_H - pts.height()) / 2f );
+			PixelScene.align( pts );
+			add( pts );
+		}
+		ColorBlock line = new ColorBlock( width, 1, 0xFF3a3a44 );
+		line.y = TITLE_H;
+		add( line );
 
 		if (usable.isEmpty()){
-			RenderedTextBlock none = PixelScene.renderTextBlock(
-					"You have not learned a skill you can use yet.", 6 );
-			none.maxWidth( width );
-			none.setPos( 0, TITLE_H );
+			RenderedTextBlock none = PixelScene.renderTextBlock( Messages.get( this, "none" ), 6 );
+			none.maxWidth( width - 4 );
+			none.setPos( 2, TITLE_H + 3 );
 			add( none );
-			resize( width, (int)(none.bottom() + 2) );
+			resize( width, (int)(none.bottom() + 3) );
+			addClearButton(width);
 			return;
 		}
 
 		int rows = (usable.size() + COLS - 1) / COLS;
 		for (int i = 0; i < usable.size(); i++){
 			SkillButton btn = new SkillButton( usable.get(i) );
-			btn.setRect( (i % COLS) * (SLOT + MARGIN),
-					TITLE_H + (i / COLS) * (SLOT + MARGIN), SLOT, SLOT );
+			btn.setRect( (i % COLS) * CELL_W + 2, TITLE_H + 3 + (i / COLS) * CELL_H, SLOT, SLOT );
 			add( btn );
 		}
-
-		resize( width, TITLE_H + rows * SLOT + (rows - 1) * MARGIN );
+		resize( width, TITLE_H + 3 + rows * CELL_H );
+		addClearButton(width);
 	}
 
+	private void addClearButton(int width){
+		if (selection == null) return;
+		xyz.gabriwar.warpedpixeldungeon.ui.RedButton clear = new xyz.gabriwar.warpedpixeldungeon.ui.RedButton(Messages.get(this, "clear")){
+			@Override protected void onClick(){
+				hide();
+				selection.accept(null);
+			}
+		};
+		clear.setRect(0, height + 2, width, 18);
+		add(clear);
+		resize(width, (int)clear.bottom());
+	}
+
+	/** a glow is added to what is under it, so it reads as light rather than paint */
+	private static class Glow extends Image {
+		Glow( int[] frame ){
+			super( SkillTreeArt.get() );
+			SkillTreeArt.frame( this, frame );
+		}
+		@Override
+		public void draw() {
+			Blending.setLightMode();
+			super.draw();
+			Blending.setNormalMode();
+		}
+	}
+
+	/**
+	 * A socket off the tree, in the state the skill is in right now: the rim is the
+	 * metal of its points, the fill runs green while a toggle is on, a green ring
+	 * breathes round it while it runs, and the whole thing goes dark when it cannot be
+	 * used this turn. Pips under it count the points; the mana price sits top-left.
+	 */
 	private class SkillButton extends Button {
 
 		private Skill skill;
-
-		private ColorBlock bg;
+		private Glow ring;
+		private Image socket;
 		private Image icon;
+		private Image pips;
+		private Image plate;
 		private BitmapText cost;
 
 		public SkillButton( Skill skill ){
 			super();
 			this.skill = skill;
 
-			icon = new SkillSprite( skill.image() );
+			icon = skill.quickslotIcon();
 			add( icon );
+			bringToFront( plate );
+			bringToFront( cost );
 
 			boolean ready = !skill.actions( Dungeon.hero ).isEmpty();
-			icon.alpha( ready ? 1f : 0.35f );
+			int level = Math.max( 1, Math.min( Skill.MAX_LEVEL, skill.level ) );
+			int metal = level >= Skill.MAX_LEVEL ? 2 : level - 1;
 
-			if (skill.active){
-				bg.hardlight( 0x1d3a1d );
-			} else if (!ready){
-				bg.hardlight( 0x2a1414 );
+			int frame;
+			if (!ready && !skill.active){
+				frame = SkillTreeArt.LOCKED;
+			} else {
+				frame = (skill.active ? SkillTreeArt.L1A : SkillTreeArt.L1) + metal;
+			}
+			SkillTreeArt.frame( socket, SkillTreeArt.socket( frame ) );
+			SkillTreeArt.frame( pips, SkillTreeArt.pips( Skill.MAX_LEVEL, skill.level ) );
+			pips.visible = !(skill instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.CrownSkill);
+
+			icon.alpha( ready || skill.active ? 1f : 0.35f );
+			//same rule as the tree: a switchable skill keeps its colour only while it runs
+			if (skill.toggleable() && icon instanceof SkillSprite){
+				((SkillSprite) icon).grey( !skill.active );
 			}
 
-			if (skill.getManaCost() > 0){
-				cost.text( Integer.toString( skill.getManaCost() ) );
-				cost.hardlight( ready ? 0x8ac0ff : 0xcc6666 );
+			ring.visible = skill.active;
+
+			if (!skill.quickslotStatus().isEmpty()){
+				cost.text( skill.quickslotStatus() );
+				cost.hardlight( ready ? 0x8ac0ff : 0xdd8877 );
 				cost.measure();
+				plate.visible = cost.visible = true;
+			} else {
+				plate.visible = cost.visible = false;
 			}
 		}
 
 		@Override
 		protected void createChildren(){
 			super.createChildren();
-
-			bg = new ColorBlock( 1, 1, 0xFF1f1f1f );
-			add( bg );
-
+			ring = new Glow( SkillTreeArt.GLOW );
+			ring.hardlight( 0x66ff66 );
+			add( ring );
+			socket = new Image( SkillTreeArt.get() );
+			add( socket );
+			pips = new Image( SkillTreeArt.get() );
+			add( pips );
+			plate = new Image( SkillTreeArt.get() );
+			SkillTreeArt.frame( plate, SkillTreeArt.PLATE );
+			add( plate );
 			cost = new BitmapText( PixelScene.pixelFont );
 			add( cost );
 		}
 
 		@Override
+		public synchronized void update() {
+			super.update();
+			if (ring.visible){
+				ring.alpha( 0.5f + 0.5f * (float)Math.sin( Game.timeTotal * 4 ) );
+			}
+		}
+
+		@Override
 		protected void layout(){
 			super.layout();
-
-			bg.size( width, height );
-			bg.x = x;
-			bg.y = y;
-
+			socket.x = x;
+			socket.y = y;
+			ring.x = x - 3;
+			ring.y = y - 3;
 			if (icon != null){
 				icon.x = x + (width - icon.width()) / 2;
 				icon.y = y + (height - icon.height()) / 2;
 				PixelScene.align( icon );
 			}
-
-			cost.x = x + width - cost.width() - 1;
-			cost.y = y + height - cost.baseLine() - 1;
+			pips.x = x + (width - pips.width()) / 2;
+			pips.y = y + height + 1;
+			PixelScene.align( pips );
+			plate.x = x - 1;
+			plate.y = y - 1;
+			cost.x = plate.x + (plate.width() - cost.width()) / 2;
+			cost.y = plate.y + 1;
 			PixelScene.align( cost );
 		}
 
 		@Override
-		protected void onClick(){
+		protected String hoverText() {
+			return Messages.titleCase( skill.name() ) + (skill instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.CrownSkill ? "" : " " + skill.level + "/" + Skill.MAX_LEVEL);
+		}
 
+		@Override
+		protected void onClick(){
+			if (selection != null){
+				hide();
+				selection.accept(skill);
+				return;
+			}
 			java.util.ArrayList<String> actions = skill.actions( Dungeon.hero );
 			if (actions.isEmpty()){
 				//not enough mana, or nothing to do with it right now
 				GameScene.show( new WndSkill( WndQuickSkills.this, skill ) );
 				return;
 			}
-
 			String action = actions.get( 0 );
 			boolean leavesTheWindow = action.equals( Skill.AC_CAST )
 					|| action.equals( Skill.AC_SUMMON );
-
 			if (leavesTheWindow){
 				hide();
 				skill.execute( Dungeon.hero, action );

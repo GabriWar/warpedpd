@@ -27,11 +27,19 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import com.watabou.utils.PathFinder;
 
 public class Rampage extends ActiveSkill3 {
 
@@ -59,8 +67,39 @@ public class Rampage extends ActiveSkill3 {
 		else {
 			castTextYell();
 			Dungeon.hero.MP -= getManaCost();
+			sweep();
+			if (level == Skill.MAX_LEVEL){
+				bleedEveryoneAround();
+			}
 			return true;
 		}
+	}
+
+	//a fully trained rampage leaves every swept enemy bleeding, which recoups the
+	//sweep's damage penalty over time. the splash damage never runs through attackProc,
+	//so onHitProc would only ever reach the primary target - the bleed is applied here
+	private void bleedEveryoneAround(){
+		Hero hero = Dungeon.hero;
+		for (int n : PathFinder.NEIGHBOURS8){
+			Char ch = Actor.findChar( hero.pos + n );
+			if (ch != null && ch.alignment == Char.Alignment.ENEMY && ch.isAlive()){
+				Buff.affect( ch, Bleeding.class ).set( 2 );
+			}
+		}
+	}
+
+	//the ring around the hero: dust on every cell, a wound on every enemy in it
+	private void sweep(){
+		Hero hero = Dungeon.hero;
+		for (int n : PathFinder.NEIGHBOURS8){
+			int c = hero.pos + n;
+			if (c < 0 || c >= Dungeon.level.length() || Dungeon.level.solid[c]) continue;
+			if (Dungeon.level.heroFOV[c]) CellEmitter.get( c ).burst( Speck.factory( Speck.DUST ), 2 );
+			Char ch = Actor.findChar( c );
+			if (ch != null && ch.alignment == Char.Alignment.ENEMY && ch.isAlive()) Wound.hit( ch );
+		}
+		Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 1f, 0.8f );
+		Camera.main.shake( 1, 0.15f );
 	}
 
 	@Override
@@ -68,6 +107,7 @@ public class Rampage extends ActiveSkill3 {
 		super.execute(hero, action);
 		if (action.equals(Skill.AC_ACTIVATE)){
 			hero.heroSkills.deactivateOtherToggles( this );
+			Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 0.8f, 1.3f );
 		}
 	}
 
@@ -79,15 +119,5 @@ public class Rampage extends ActiveSkill3 {
 	@Override
 	protected boolean upgrade(){
 		return true;
-	}
-
-	//a fully trained rampage leaves every swept enemy bleeding, which recoups the
-	//sweep's damage penalty over time
-	@Override
-	public int onHitProc( Char enemy, int damage, boolean ranged ){
-		if (active && level == Skill.MAX_LEVEL && !ranged && enemy != null && enemy.isAlive()){
-			Buff.affect( enemy, Bleeding.class ).set( 2 );
-		}
-		return damage;
 	}
 }

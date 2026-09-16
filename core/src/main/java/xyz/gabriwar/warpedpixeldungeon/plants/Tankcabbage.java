@@ -75,10 +75,6 @@ public class Tankcabbage extends Plant {
 			plantClass = Tankcabbage.class;
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			Buff.affect(defender, HalomethaneBurning.class).reignite(defender);
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

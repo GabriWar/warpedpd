@@ -63,6 +63,16 @@ public class ClimateManager {
 
 	private static ArrayList<WeatherFront> frontQueue = new ArrayList<>();
 	private static int frontIndex = 0;       // index of current/next front in queue
+
+	//the front that is here now or the next one on its way; null when the queue is
+	//empty. what the town gossip calls tomorrow's weather
+	public static WeatherFront nextFront() {
+		for (int i = frontIndex; i < frontQueue.size(); i++) {
+			WeatherFront f = frontQueue.get(i);
+			if (!f.isExpired(Dungeon.cycleTurn)) return f;
+		}
+		return null;
+	}
 	private static long frontGenSeed = 0;    // RNG seed for front generation
 	private static int lastFrontGenTurn = 0; // last cycleTurn we generated fronts for
 
@@ -404,6 +414,9 @@ public class ClimateManager {
 	 * Determines what ambient (non-precipitation) particle effect should play.
 	 * Based on season, time of day, weather state, and depth.
 	 */
+	/** the felt temperature at which the air starts to shimmer visibly */
+	public static final float HEAT_RAY_TEMP = 32f;
+
 	public static WeatherOverlayAmbient ambientType() {
 		// Special events take priority
 		if (solarEclipseActive && currentDepth < 16) {
@@ -414,6 +427,12 @@ public class ClimateManager {
 		}
 		if (isRainbow() && currentDepth < 16) {
 			return WeatherOverlayAmbient.RAINBOW;
+		}
+
+		//Heat that hurts is shown before anything else: once it feels like the low
+		//thirties the air itself stands up in rays, so the danger is on screen
+		if (feelsLikeTemp() >= HEAT_RAY_TEMP && localPrecipRate < 0.2f) {
+			return WeatherOverlayAmbient.HEAT_RAYS;
 		}
 
 		// Depth-specific ambient (underground regions)
@@ -486,7 +505,7 @@ public class ClimateManager {
 	 * GameScene maps this to the overlay's enum.
 	 */
 	public enum WeatherOverlayAmbient {
-		NONE, FIREFLIES, AUTUMN_LEAVES, SPRING_PETALS, MIST, DUST, ASH, STEAM, AURORA, CORONA, DRIP, RAINBOW
+		NONE, FIREFLIES, AUTUMN_LEAVES, SPRING_PETALS, MIST, DUST, ASH, STEAM, AURORA, CORONA, DRIP, RAINBOW, HEAT_RAYS
 	}
 
 	// =====================================================================
@@ -1099,18 +1118,30 @@ public class ClimateManager {
 		float tempBias = regionalTempBias(currentDepth);
 		float humBias = regionalHumidityBias(currentDepth);
 
-		localTemp = DUNGEON_BASELINE_TEMP
+		//indoors on the surface - the town's buildings and the village houses - the
+		//weather stays outside: the room is at an ideal temperature, and neither the
+		//wind nor the rain gets in (the hero is Comfy there)
+		boolean indoors = xyz.gabriwar.warpedpixeldungeon.actors.buffs.Comfy.indoors();
+
+		localTemp = indoors ? xyz.gabriwar.warpedpixeldungeon.actors.buffs.Comfy.IDEAL_TEMP
+				: DUNGEON_BASELINE_TEMP
 				+ (surfaceTemp - DUNGEON_BASELINE_TEMP) * exposure
 				+ tempBias
 				+ overworldBiomeTempBias();
+		//These floors share depth numbers with the volcanic Halls, but have their
+		//own frozen climate. Surface weather only slightly shifts the deep ice.
+		if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.FrozenLevel
+				|| Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.FrozenBossLevel) {
+			localTemp = -15f + clamp((surfaceTemp - DUNGEON_BASELINE_TEMP) * 0.05f, -3f, 3f);
+		}
 		localHumidity = clamp(
 				DUNGEON_BASELINE_HUMIDITY
 						+ (surfaceHumidity - DUNGEON_BASELINE_HUMIDITY) * exposure
 						+ humBias
 						+ overworldBiomeHumidityBias(),
 				0f, 1f);
-		localWindSpeed = surfaceWindSpeed * exposure;
-		localPrecipRate = precipRate * exposure;
+		localWindSpeed = indoors ? 0f : surfaceWindSpeed * exposure;
+		localPrecipRate = indoors ? 0f : precipRate * exposure;
 
 		// No surface precipitation deep underground
 		if (currentDepth >= 16 || localPrecipRate < 0.01f) {

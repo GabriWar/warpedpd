@@ -94,12 +94,6 @@ public class Cornwheat extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect( Char attacker, Char defender, int damage ) {
-			if (Random.Float() < 0.1f) {
-				Dungeon.level.drop(new Cornwheatshaft(), defender.pos).sprite.drop(attacker.pos);
-			}
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

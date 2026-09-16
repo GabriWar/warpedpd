@@ -1,3 +1,27 @@
+/*
+ * Pixel Dungeon
+ * Copyright (C) 2012-2015 Oleg Dolya
+ *
+ * Shattered Pixel Dungeon
+ * Copyright (C) 2014-2026 Evan Debenham
+ *
+ * Warped Pixel Dungeon
+ * Copyright (C) 2026 Gabriel Duarte Guerra (gabriwar)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ */
+
 package xyz.gabriwar.warpedpixeldungeon.net.ui;
 
 import xyz.gabriwar.warpedpixeldungeon.Chrome;
@@ -8,6 +32,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.net.Discovery;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
 import xyz.gabriwar.warpedpixeldungeon.net.NetManager;
 import xyz.gabriwar.warpedpixeldungeon.scenes.HeroSelectScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
@@ -31,6 +56,8 @@ import com.watabou.noosa.NinePatch;
 import com.watabou.utils.RectF;
 
 import java.util.ArrayList;
+import xyz.gabriwar.warpedpixeldungeon.net.relay.RelayHost;
+import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 
 /**
  * Host-side multiplayer lobby, styled after StartScene: title background,
@@ -89,9 +116,26 @@ public class LobbyScene extends PixelScene {
 		String startErr = null;
 		if (!NetManager.isHost()) {
 			try {
-				NetManager.startHost();
+				if (WndMultiplayer.hostOnline) {
+					//opening the room talks to the relay, so it can fail for reasons a
+					//local port never does: no network, relay busy, already hosting
+					NetManager.startHostOnline(new RelayHost.Listener() {
+						@Override
+						public void onRoomOpen(String code) {
+							Game.runOnRenderThread(() -> GLog.p("Room open: " + code));
+						}
+
+						@Override
+						public void onRoomClosed(String reason) {
+							Game.runOnRenderThread(() ->
+									GLog.w("The online room closed (" + WndNetError.explain(reason) + ")."));
+						}
+					});
+				} else {
+					NetManager.startHost();
+				}
 			} catch (Exception e) {
-				startErr = e.getMessage();
+				startErr = WndNetError.explain(e);
 			}
 		}
 
@@ -110,6 +154,10 @@ public class LobbyScene extends PixelScene {
 
 		// ---- Save slot picker ----
 		ArrayList<GamesInProgress.Info> games = GamesInProgress.checkAll();
+		//only heroes made here: a single-player save hosted online would carry the
+		//other players' heroes in its levels and drop them the next time it is saved
+		//alone, so the two kinds of save do not mix
+		games.removeIf(g -> !g.multiplayer);
 		int slotGap = 4;
 		for (GamesInProgress.Info game : games) {
 			SaveSlotButton existing = new SaveSlotButton();
@@ -119,7 +167,7 @@ public class LobbyScene extends PixelScene {
 			align(existing);
 			add(existing);
 		}
-		if (games.size() < GamesInProgress.MAX_SLOTS) {
+		if (GamesInProgress.firstEmpty() != -1 && games.size() < GamesInProgress.SLOTS_PER_MODE) {
 			SaveSlotButton newGame = new SaveSlotButton();
 			newGame.set(GamesInProgress.firstEmpty());
 			newGame.setRect(colX, yPos, colW, SLOT_HEIGHT);
@@ -161,8 +209,14 @@ public class LobbyScene extends PixelScene {
 		if (name == null || name.isEmpty()) name = "Host";
 
 		cardRow(x, y + 4, w, "Hosting as", name, 0xFFFFFF);
-		cardRow(x, y + 15, w, "LAN address",
-				Discovery.getLocalIP() + ":" + NetManager.PORT, NetUi.GREEN);
+		String code = NetManager.onlineRoomCode();
+		if (code != null && !code.isEmpty()) {
+			//the code is the whole invitation: no address, no port, nothing to forward
+			cardRow(x, y + 15, w, "Room code", code, NetUi.GREEN);
+		} else {
+			cardRow(x, y + 15, w, "LAN address",
+					Discovery.getLocalIP() + ":" + NetManager.PORT, NetUi.GREEN);
+		}
 
 		// If startHost() blew up, show the error in red beneath the card.
 		if (startErr != null) {
@@ -223,7 +277,9 @@ public class LobbyScene extends PixelScene {
 	public void update() {
 		super.update();
 
-		int players = NetManager.getPlayerCount();
+		java.util.List<NetManager.PendingPlayer> pending = NetManager.getPendingPlayers();
+		//a claim held until the game starts is a player, not a spectator
+		int players = NetManager.getPlayerCount() + pending.size();
 		int specs   = NetManager.getSpectatorCount();
 
 		// Animated dots while empty — same idiom as the other waiting screens.
@@ -244,6 +300,9 @@ public class LobbyScene extends PixelScene {
 		for (Hero h : NetManager.getNetHeroes()) {
 			sigB.append('|').append(h.id()).append(':')
 					.append(h.netOwnerName).append(':').append(h.heroClass);
+		}
+		for (NetManager.PendingPlayer p : pending) {
+			sigB.append("|?").append(p.name).append(':').append(p.cls);
 		}
 		String sig = sigB.toString();
 		if (sig.equals(lastConnSig)) return;
@@ -291,6 +350,32 @@ public class LobbyScene extends PixelScene {
 
 			RenderedTextBlock cls = PixelScene.renderTextBlock(
 					Messages.titleCase(h.heroClass.title()), 6);
+			cls.hardlight(NetUi.MUTED);
+			cls.setPos(name.right() + 4, ry + (15 - cls.height()) / 2f);
+			align(cls);
+			add(cls);
+			rosterItems.add(cls);
+
+			ry += 16;
+		}
+
+		for (NetManager.PendingPlayer p : pending) {
+			Image spr = new Image(p.cls.spritesheet(), 0, 90, 12, 15);
+			spr.x = connPanelX + 7;
+			spr.y = ry;
+			align(spr);
+			add(spr);
+			rosterItems.add(spr);
+
+			RenderedTextBlock name = PixelScene.renderTextBlock(p.name, 8);
+			name.hardlight(NetUi.YELLOW);
+			name.setPos(spr.x + 16, ry + (15 - name.height()) / 2f);
+			align(name);
+			add(name);
+			rosterItems.add(name);
+
+			RenderedTextBlock cls = PixelScene.renderTextBlock(
+					Messages.titleCase(p.cls.title()) + " - ready", 6);
 			cls.hardlight(NetUi.MUTED);
 			cls.setPos(name.right() + 4, ry + (15 - cls.height()) / 2f);
 			align(cls);
@@ -404,7 +489,8 @@ public class LobbyScene extends PixelScene {
 					lastPlayed.text((diff / (24 * 60 * 60_000)) + "d ago");
 				}
 
-				depth.text(Integer.toString(info.depth));
+				//the overworld sits at a slot number, not a floor: the surface is depth zero
+				depth.text(Integer.toString(info.depth == OverworldLevel.DEPTH ? 0 : info.depth));
 				depth.measure();
 
 				level.text(Integer.toString(info.level));

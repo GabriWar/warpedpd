@@ -73,13 +73,6 @@ public class Peanutpetal extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect( Char attacker, Char defender, int damage ) {
-			int d = defender.HP;
-			if (d - damage <= 0){
-				Dungeon.level.drop(new Peanut(), defender.pos).sprite.drop(defender.pos);
-			}
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

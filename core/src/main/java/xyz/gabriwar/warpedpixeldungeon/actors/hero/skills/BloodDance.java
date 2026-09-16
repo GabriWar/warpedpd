@@ -27,6 +27,11 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Adrenaline;
@@ -61,10 +66,14 @@ public class BloodDance extends Skill {
 		if (action.equals(Skill.AC_CAST) && level > 0 && hero.MP >= getManaCost()){
 
 			Buff.prolong( hero, Adrenaline.class, 4 + 3 * level );
-			Buff.affect( hero, Barrier.class ).setShield( 3 * level );
+			//at mastery the dance opens behind a blood-red guard
+			if (level >= MAX_LEVEL) Buff.affect( hero, Barrier.class ).setShield( SkillInteractions.ofHealth( hero.HT, 0.03f * level ) );
 
 			hero.MP -= getManaCost();
 			castTextYell();
+			Sample.INSTANCE.play( Assets.Sounds.HIT_STAB, 1f, 0.9f );
+			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.RED_LIGHT ), 6 );
+			new Flare( 6, 20 ).color( 0xCC2222, true ).show( hero.sprite, 0.6f ).angularSpeed = 120;
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
 			hero.busy();
@@ -77,7 +86,8 @@ public class BloodDance extends Skill {
 		if (level > 0 && !ranged && enemy != null
 				&& Dungeon.hero != null && Dungeon.hero.buff( Adrenaline.class ) != null){
 			Buff.affect( enemy, Bleeding.class ).set( 1 + level );
-			return damage + Math.round( damage * 0.05f * level );
+			Splash.at( enemy.pos, 0xCC1111, 3 );
+			Sample.INSTANCE.play( Assets.Sounds.HIT_STAB, 0.8f, 1.1f );
 		}
 		return damage;
 	}

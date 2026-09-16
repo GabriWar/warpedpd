@@ -26,8 +26,35 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
+import com.watabou.noosa.audio.Sample;
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FletchingFeathers;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+
+import java.util.ArrayList;
+
+/**
+ * Huntress: every ranged hit plucks a feather into a ring that circles her. When the
+ * ring is full, the next ranged hit bursts it: the feathers become splinters that
+ * fly off the target at the enemies around it. One more splinter per level; fully
+ * trained, a splinter that kills plucks its feather back into the ring.
+ */
 public class Fletching extends PassiveSkillA1 {
+
+	//its damage is already a share of a blow, a hit or a health pool, so it grows with the hero on its own
+	@Override
+	public boolean weaponScaled(){ return true; }
+
+
+	private static final float SPLINTER_DAMAGE = 0.3f;
+	private static final int SPLINTER_REACH = 3;
 
 	{
 		name = "Fletching";
@@ -36,10 +63,54 @@ public class Fletching extends PassiveSkillA1 {
 	}
 
 	@Override
-	protected boolean upgrade(){
-		return true;
+	public int onHitProc( Char enemy, int damage, boolean ranged ){
+		Hero hero = Dungeon.hero;
+		if (!ranged || level <= 0 || enemy == null || hero == null) return damage;
+
+		FletchingFeathers ring = Buff.affect( hero, FletchingFeathers.class );
+		if (!ring.full()){
+			ring.pluck();
+			return damage;
+		}
+
+		ArrayList<Char> targets = splinterTargets( enemy, level + 1 );
+		//no one near the target: the feathers wait for a crowd
+		if (targets.isEmpty()) return damage;
+
+		ring.empty();
+		castTextYell();
+		if (enemy.sprite != null) enemy.sprite.emitter().burst( Speck.factory( Speck.WOOL ), 6 );
+		Sample.INSTANCE.play( Assets.Sounds.HIT_ARROW, 1f, 1.4f );
+
+		int splinter = Math.max( 1, Math.round( damage * SPLINTER_DAMAGE ) );
+		for (Char victim : targets){
+			victim.damage( splinter, this );
+			SkillFX.streak( enemy.pos, victim.pos, new xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.Dart(), () -> SkillFX.flash( victim ) );
+			if (!victim.isAlive() && level >= MAX_LEVEL) ring.pluck();
+		}
+		return damage;
+	}
+
+	/** the nearest enemies around the struck one, each with a clear line from it */
+	private static ArrayList<Char> splinterTargets( Char struck, int count ){
+		ArrayList<Char> found = new ArrayList<>();
+		for (Mob m : Dungeon.level.mobs){
+			if (m == struck || m.alignment != Char.Alignment.ENEMY || !m.isAlive()
+					|| Dungeon.level.distance( struck.pos, m.pos ) > SPLINTER_REACH
+					|| !Dungeon.level.heroFOV[m.pos] || !SkillInteractions.clear( struck.pos, m.pos )) continue;
+			found.add( m );
+		}
+		found.sort( (a, b) -> Float.compare( Dungeon.level.trueDistance( struck.pos, a.pos ),
+				Dungeon.level.trueDistance( struck.pos, b.pos ) ) );
+		while (found.size() > count) found.remove( found.size() - 1 );
+		return found;
 	}
 
 	@Override
-	public int fletching(){ return level; }
+	public boolean rangedSource(){ return true; }
+
+	@Override
+	protected boolean upgrade(){
+		return true;
+	}
 }

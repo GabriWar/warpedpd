@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -62,7 +63,7 @@ public class AltarShrine extends Blob {
 	@Override
 	public void use(BlobEmitter emitter) {
 		super.use(emitter);
-		emitter.start(Speck.factory(Speck.LIGHT), 0.6f, 0);
+		emitter.start(WeatherBlobFX.layered(Speck.factory(Speck.LIGHT), WeatherBlobFX.sparkles( 0xFFF8D0 ), 2), 0.45f, 0);
 	}
 
 	@Override

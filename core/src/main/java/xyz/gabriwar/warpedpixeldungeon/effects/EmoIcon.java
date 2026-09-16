@@ -21,6 +21,10 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects;
 
+import com.badlogic.gdx.graphics.Pixmap;
+import com.watabou.gltextures.SmartTexture;
+import com.watabou.gltextures.TextureCache;
+import com.watabou.glwrap.Texture;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -75,6 +79,53 @@ public class EmoIcon extends Image {
 		return new PointF(width()/2f, height()/2f);
 	};
 	
+	public static class Wandering extends EmoIcon {
+
+		private static final int FRAME_WIDTH = 9;
+		private static final int FRAME_HEIGHT = 3;
+		private float elapsed;
+		private int currentFrame;
+
+		public Wandering(CharSprite owner) {
+			super(owner);
+			SmartTexture dots = TextureCache.create(Wandering.class, FRAME_WIDTH * 3, FRAME_HEIGHT);
+			// Build a shared three-frame pixel sprite, including an outline for dark floors.
+			if (dots.bitmap.getPixel(0, 0) == 0) {
+				Pixmap pixels = dots.bitmap;
+				for (int frame = 0; frame < 3; frame++) {
+					for (int dot = 0; dot <= frame; dot++) {
+						int left = frame * FRAME_WIDTH + dot * 3;
+						pixels.setColor(0x20202AFF);
+						pixels.fillRectangle(left, 0, 3, 3);
+						pixels.setColor(0xEEEEFFFF);
+						pixels.drawPixel(left + 1, 1);
+					}
+				}
+				dots.filter(Texture.NEAREST, Texture.NEAREST);
+			}
+			texture(dots);
+			frame(0, 0, FRAME_WIDTH, FRAME_HEIGHT);
+			maxSize = 1;
+			timeScale = 0;
+		}
+
+		@Override
+		public void update() {
+			super.update();
+			if (!visible) return;
+			elapsed = (elapsed + Game.elapsed) % 1.2f;
+			int nextFrame = (int)(elapsed / 0.4f);
+			if (nextFrame != currentFrame) {
+				currentFrame = nextFrame;
+				frame(currentFrame * FRAME_WIDTH, 0, FRAME_WIDTH, FRAME_HEIGHT);
+			}
+			if (camera != null) {
+				x = PixelScene.align(camera, owner.x + (owner.width() - width()) / 2f);
+				y = PixelScene.align(camera, owner.y - height() - 3);
+			}
+		}
+	}
+
 	public static class Sleep extends EmoIcon {
 		
 		public Sleep( CharSprite owner ) {

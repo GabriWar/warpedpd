@@ -31,6 +31,8 @@ import com.badlogic.gdx.utils.Os;
 import com.badlogic.gdx.utils.SharedLibraryLoader;
 import xyz.gabriwar.warpedpixeldungeon.WPDSettings;
 import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
+import xyz.gabriwar.warpedpixeldungeon.debug.ScreenshotTour;
+import xyz.gabriwar.warpedpixeldungeon.debug.TrailerTour;
 import xyz.gabriwar.warpedpixeldungeon.services.news.News;
 import xyz.gabriwar.warpedpixeldungeon.services.news.NewsImpl;
 import xyz.gabriwar.warpedpixeldungeon.services.updates.UpdateImpl;
@@ -172,12 +174,37 @@ public class DesktopLauncher {
 			baseFileType = Files.FileType.Absolute;
 		}
 
+		//automated screenshots: isolated data dir under the output dir, fixed render size
+		String screenshots = System.getProperty("wpd.screenshots");
+		String trailer = System.getProperty("wpd.trailer");
+		if (screenshots != null || trailer != null) {
+			String[] size = System.getProperty("wpd.screenshots.size", "1920x1080").split("x");
+			int w = Integer.parseInt(size[0]), h = Integer.parseInt(size[1]);
+			if (trailer != null) {
+				TrailerTour.instance = new TrailerTour( trailer, w, h );
+				screenshots = new java.io.File( trailer ).getAbsoluteFile().getParent();
+			} else {
+				ScreenshotTour.instance = new ScreenshotTour( screenshots, w, h );
+			}
+			basePath = screenshots + "/.data/";
+			baseFileType = Files.FileType.Absolute;
+		}
+
 		config.setPreferencesConfig( basePath, baseFileType );
 		WPDSettings.set( new Lwjgl3Preferences( new Lwjgl3FileHandle(basePath + WPDSettings.DEFAULT_PREFS_FILE, baseFileType) ));
 		FileUtils.setDefaultFileProperties( baseFileType, basePath );
+		if (screenshots != null && System.getProperty("wpd.screenshots.lang") != null) {
+			WPDSettings.language( xyz.gabriwar.warpedpixeldungeon.messages.Languages.matchCode(
+					System.getProperty("wpd.screenshots.lang") ) );
+		}
 		
 		config.setWindowSizeLimits( 720, 400, -1, -1 );
 		Point p = WPDSettings.windowResolution();
+		if (ScreenshotTour.instance != null) {
+			p = new Point( ScreenshotTour.instance.width, ScreenshotTour.instance.height );
+		} else if (TrailerTour.instance != null) {
+			p = new Point( TrailerTour.instance.width, TrailerTour.instance.height );
+		}
 		config.setWindowedMode( p.x, p.y );
 
 		config.setMaximized(WPDSettings.windowMaximized());

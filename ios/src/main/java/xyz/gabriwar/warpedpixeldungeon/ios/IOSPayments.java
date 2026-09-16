@@ -201,13 +201,32 @@ public class IOSPayments extends PaymentService {
 		return "App Store";
 	}
 
+	/**
+	 * The App Store receipt as Apple wrote it. Unlike Google's, it is a single signed
+	 * blob with no detached signature, and it carries its own expiry — so the relay can
+	 * tell a lapsed subscription from a live one without asking the device.
+	 */
+	@Override
+	public Receipt receipt() {
+		try {
+			NSURL url = NSBundle.getMainBundle().getAppStoreReceiptURL();
+			if (url == null) return null;
+			File f = new File(url.getPath());
+			if (!f.exists()) return null;
+			String blob = java.util.Base64.getEncoder().encodeToString(Files.readAllBytes(f.toPath()));
+			return new Receipt(STORE_APPSTORE, blob, "");
+		} catch (Exception e) {
+			return null;
+		}
+	}
+
 	@Override
 	public String manageSubscriptionsLink() {
 		return "https://apps.apple.com/account/subscriptions";
 	}
 
 	@Override
-	public void donate(String tierId, DonateResult callback) {
+	public void subscribe(String tierId, DonateResult callback) {
 		SKProduct product = products.get(tierId);
 		if (product == null) {
 			callback.onResult(false, "product unavailable");

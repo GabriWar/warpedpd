@@ -65,6 +65,7 @@ public class Sunbloom extends Plant {
 
 	@Override
 	public void spiceEffect( Char ch ) {
+		xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff.prolong(ch, xyz.gabriwar.warpedpixeldungeon.actors.buffs.Light.class, 20f);
 		ch.sprite.burst(new SunbloomPoisonParticle().getColor(), 10);
 	}
 
@@ -84,15 +85,6 @@ public class Sunbloom extends Plant {
 			plantClass = Sunbloom.class;
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			if (defender instanceof Mob && defender.properties().contains(Char.Property.UNDEAD)){
-				defender.die(this);
-				if (Dungeon.level.heroFOV[defender.pos]){
-					defender.sprite.emitter().start( ShadowParticle.UP, 0.05f, 10 );
-				}
-			}
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

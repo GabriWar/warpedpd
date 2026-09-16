@@ -57,7 +57,7 @@ public class Fish extends Food {
 
 	@Override
 	public String desc() {
-		return Messages.get( this, "desc_" + seasonKey() );
+		return Messages.get( this, "desc_" + seasonKey() ) + spiceDescription();
 	}
 
 	@Override

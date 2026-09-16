@@ -26,12 +26,11 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AscensionChallenge;
-import xyz.gabriwar.warpedpixeldungeon.items.food.MonsterMeat;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Light;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.PurpleParticle;
-import xyz.gabriwar.warpedpixeldungeon.items.stones.StoneOfAggression;
+import xyz.gabriwar.warpedpixeldungeon.items.food.MonsterMeat;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfDisintegration;
 import xyz.gabriwar.warpedpixeldungeon.levels.traps.DisintegrationTrap;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
@@ -63,13 +62,16 @@ public class Eye extends Mob {
 		lootChance = 0.1f;
 
 		lootOther = new MonsterMeat();
-		lootChanceOther = 0.05f;
+		lootChanceOther = 0.05f / 4f;
 
 		properties.add(Property.DEMONIC);
 
 		immunities.add(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror.class);
 		resistances.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim.class);
 		resistances.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Vampiric.class);
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	@Override
@@ -197,16 +199,6 @@ public class Eye extends Mob {
 			if (hit( this, ch, true )) {
 				int dmg = Random.NormalIntRange( 30, 50 );
 				dmg = Math.round(dmg * AscensionChallenge.statModifier(this));
-
-				//logic for fists or Yog-Dzewa taking 1/2 or 1/4 damage from aggression stoned minions
-				if ( ch.buff(StoneOfAggression.Aggression.class) != null
-						&& ch.alignment == alignment
-						&& (Char.hasProp(ch, Property.BOSS) || Char.hasProp(ch, Property.MINIBOSS))){
-					dmg *= 0.5f;
-					if (ch instanceof YogDzewa){
-						dmg *= 0.5f;
-					}
-				}
 
 				ch.damage( dmg, new DeathGaze() );
 

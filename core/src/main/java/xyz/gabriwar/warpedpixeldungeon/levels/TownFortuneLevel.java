@@ -49,9 +49,9 @@ public class TownFortuneLevel extends TownInteriorLevel {
 		return new TownInteriors.FortuneRoof();
 	}
 
+	//Remixed's BlackCat is not ported (no sprite); deliberately omitted
 	@Override
-	protected void spawnFolk() {
-		place( new FortuneTellerFolk(), 102 );
-		//Remixed's BlackCat is not ported (no sprite); deliberately omitted
+	public Object[][] folk() {
+		return new Object[][]{ { FortuneTellerFolk.class, 102 } };
 	}
 }

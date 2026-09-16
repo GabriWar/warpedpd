@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -95,7 +96,7 @@ public class CorrosiveGas extends Blob {
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
 
-		emitter.pour( Speck.factory(Speck.CORROSION), 0.4f );
+		emitter.pour( WeatherBlobFX.layered( Speck.factory(Speck.CORROSION), WeatherBlobFX.drips( 0xA8FF48 ), 3 ), 0.3f );
 	}
 
 	@Override

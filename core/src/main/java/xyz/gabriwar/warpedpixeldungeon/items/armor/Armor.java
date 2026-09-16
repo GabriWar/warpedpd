@@ -330,7 +330,7 @@ public class Armor extends EquipableItem {
 				if (seal != null && (!cursed || (seal.getGlyph() != null && seal.getGlyph().curse()))){
 
 					GameScene.show(new WndOptions(new ItemSprite(ItemSpriteSheet.SEAL),
-							Messages.titleCase(seal.title()),
+							Messages.titleCase(seal.trueName()),
 							Messages.get(Armor.class, "seal_transfer"),
 							Messages.get(Armor.class, "seal_transfer_yes"),
 							Messages.get(Armor.class, "seal_transfer_no")){
@@ -401,7 +401,8 @@ public class Armor extends EquipableItem {
 				degrade();
 			}
 			if (detaching.canTransferGlyph()){
-				inscribe(null);
+				//at +3 the seal copies the glyph rather than taking it
+				if (Dungeon.hero == null || Dungeon.hero.pointsInTalent(Talent.RUNIC_TRANSFERENCE) < 3) inscribe(null);
 			} else {
 				detaching.setGlyph(null);
 			}

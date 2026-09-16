@@ -32,6 +32,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
 import xyz.gabriwar.warpedpixeldungeon.effects.TargetedCell;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.RipperSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
@@ -60,6 +61,9 @@ public class RipperDemon extends Mob {
 
 		properties.add(Property.DEMONIC);
 		properties.add(Property.UNDEAD);
+
+		//built for the heat: the chill is what hurts
+		thermal = Thermal.HEAT_DWELLER;
 	}
 
 	@Override
@@ -257,10 +261,11 @@ public class RipperDemon extends Mob {
 						//get ready to leap
 						leapPos = targetPos;
 						//don't want to overly punish players with slow move or attack speed
-						spend(GameMath.gate(attackDelay(), (int)Math.ceil(enemy.cooldown()), 3*attackDelay()));
+						float delay = GameMath.gate(attackDelay(), (int)Math.ceil(enemy.cooldown()), 3*attackDelay());
+						spend(delay);
 						if (Dungeon.level.heroFOV[pos] || Dungeon.level.heroFOV[leapPos]){
 							GLog.w(Messages.get(RipperDemon.this, "leap"));
-							sprite.parent.addToBack(new TargetedCell(leapPos, 0xFF0000));
+							GameScene.targetedCell(leapPos, delay);
 							((RipperSprite)sprite).leapPrep( leapPos );
 							Dungeon.hero.interrupt();
 						}

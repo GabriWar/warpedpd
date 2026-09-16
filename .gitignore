@@ -47,3 +47,6 @@ __pycache__/
 # Play service-account keys (never commit)
 warped-pd-*.json
 *.gserviceaccount*.json
+
+# splash generation scratch: 189MB of intermediates, the finished art lives in core assets
+output/

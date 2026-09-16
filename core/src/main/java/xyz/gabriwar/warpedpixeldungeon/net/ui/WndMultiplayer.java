@@ -1,3 +1,27 @@
+/*
+ * Pixel Dungeon
+ * Copyright (C) 2012-2015 Oleg Dolya
+ *
+ * Shattered Pixel Dungeon
+ * Copyright (C) 2014-2026 Evan Debenham
+ *
+ * Warped Pixel Dungeon
+ * Copyright (C) 2026 Gabriel Duarte Guerra (gabriwar)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ */
+
 package xyz.gabriwar.warpedpixeldungeon.net.ui;
 
 import xyz.gabriwar.warpedpixeldungeon.WPDSettings;
@@ -24,6 +48,9 @@ import com.watabou.noosa.TextInput;
 import com.watabou.utils.DeviceCompat;
 
 import java.util.ArrayList;
+import xyz.gabriwar.warpedpixeldungeon.net.relay.RelayJoin;
+import xyz.gabriwar.warpedpixeldungeon.scenes.SupporterScene;
+import xyz.gabriwar.warpedpixeldungeon.services.payments.Payments;
 
 /**
  * Entry dialog for multiplayer, laid out like the game's other settings-style
@@ -166,6 +193,7 @@ public class WndMultiplayer extends Window {
 			@Override
 			protected void onClick() {
 				hide();
+				hostOnline = false;
 				WarpedPixelDungeon.switchScene(LobbyScene.class);
 			}
 		};
@@ -173,6 +201,23 @@ public class WndMultiplayer extends Window {
 		btnHost.setRect(x, pos, w, BTN_HEIGHT);
 		add(btnHost);
 		pos = btnHost.bottom() + GAP;
+
+		RedButton btnOnline = new RedButton("Host Online", 9) {
+			@Override
+			protected void onClick() {
+				if (!canPlayOnline()) {
+					offerSupporter();
+					return;
+				}
+				hide();
+				hostOnline = true;
+				WarpedPixelDungeon.switchScene(LobbyScene.class);
+			}
+		};
+		btnOnline.icon(Icons.get(Icons.CHALLENGE_COLOR));
+		btnOnline.setRect(x, pos, w, BTN_HEIGHT);
+		add(btnOnline);
+		pos = btnOnline.bottom() + GAP;
 
 		// Muted hint with the IP picked out in green — colors must be set
 		// before text(), as hardlight() recolors highlighted words too.
@@ -184,10 +229,10 @@ public class WndMultiplayer extends Window {
 			// An iOS host doesn't broadcast, so it's never auto-discovered — friends
 			// must type this address in.
 			hint.text("Share your address so friends can join: _"
-					+ Discovery.getLocalIP() + "_");
+					+ Discovery.getLocalIP() + "_. _Host Online_ works anywhere with a room code, for supporters.");
 		} else {
 			hint.text("Players on your LAN find your game automatically, or can type your address: _"
-					+ Discovery.getLocalIP() + "_");
+					+ Discovery.getLocalIP() + "_. _Host Online_ works anywhere with a room code, for supporters.");
 		}
 		hint.setPos(x + (w - hint.width()) / 2f, pos);
 		add(hint);
@@ -229,12 +274,101 @@ public class WndMultiplayer extends Window {
 			protected void onClick() {
 				String input = manualIpInput.getText().trim();
 				if (input.isEmpty()) return;
-				connectTo(input);
+				//one field for both: six characters from the room alphabet is a code,
+				//anything else is an address. A player should not have to know which
+				//box their invitation belongs in.
+				String code = RelayJoin.normalise(input);
+				if (code != null) {
+					connectOnline(code);
+				} else {
+					connectTo(input);
+				}
 			}
 		};
 		btnConnect.setRect(x + w - 40, pos, 40, 16);
 		add(btnConnect);
-		return pos + 16;
+		pos += 16 + GAP;
+
+		RenderedTextBlock codeHint = PixelScene.renderTextBlock(
+				"An address joins a game on this network, always free. A _six-character room code_ joins one anywhere, for supporters.", 6);
+		codeHint.hardlight(NetUi.MUTED);
+		codeHint.setHightlighting(true, NetUi.GREEN);
+		codeHint.maxWidth((int) w);
+		codeHint.setPos(x, pos);
+		add(codeHint);
+		return codeHint.bottom();
+	}
+
+	/**
+	 * Online play runs through a relay the project pays for, so it is what a supporter
+	 * subscription buys. Playing with someone on the same network never touches it and is
+	 * always free — including in builds with no store at all.
+	 */
+	static boolean canPlayOnline() {
+		//a build with no store cannot sell a subscription, so a developer testing online
+		//play would be stopped by a door they can never open. The relay's own test secret
+		//opens it instead - the relay is what actually checks it, and refuses anything
+		//that is not the token it was started with.
+		//
+		//This branch cannot reach a released build: isDebug() is the -INDEV version
+		//suffix, which only a debug build carries, and the token is empty in every
+		//shipped copy anyway
+		if (DeviceCompat.isDebug() && !WPDSettings.relayDevToken().isEmpty()) {
+			return true;
+		}
+		return Payments.receipt() != null;
+	}
+
+	private void offerSupporter() {
+		com.watabou.noosa.Scene current = Game.scene();
+		if (current == null) return;
+		String reason = Payments.service == null
+				? "Connecting distant players runs through a server the game pays for, and this build has no store to subscribe through. Playing with someone on your own network works here and is always free."
+				: "Playing with a distant friend runs through a server the game pays for every month, so it comes with being a supporter. Playing with someone on your own network is always free.";
+		current.addToFront(new WndOptions(
+				Icons.GOLD.get(),
+				"Play with distant friends",
+				reason,
+				Payments.service == null ? "OK" : "See supporter tiers",
+				"Not now"
+		) {
+			@Override
+			protected void onSelect(int index) {
+				if (index == 0 && Payments.service != null) {
+					WndMultiplayer.this.hide();
+					WarpedPixelDungeon.switchScene(SupporterScene.class);
+				}
+			}
+		});
+	}
+
+	private void connectOnline(String code) {
+		if (!canPlayOnline()) {
+			offerSupporter();
+			return;
+		}
+		hide();
+		com.watabou.noosa.Scene current = Game.scene();
+		if (current == null) return;
+		current.addToFront(new WndOptions(
+				Icons.CONTROLLER.get(),
+				"Room " + code,
+				"How do you want to join this game?",
+				"Play (control your own hero)",
+				"Spectate (watch only)"
+		) {
+			@Override
+			protected void onSelect(int index) {
+				Discovery.stopAll();
+				if (index == 0) {
+					pendingHostIP = null;
+					pendingRoomCode = code;
+					WarpedPixelDungeon.switchScene(PlayerLobbyScene.class);
+				} else {
+					NetManager.startSpectatorOnline(code);
+				}
+			}
+		});
 	}
 
 	private void connectTo(String ip) {
@@ -253,6 +387,7 @@ public class WndMultiplayer extends Window {
 					Discovery.stopAll();
 					if (index == 0) {
 						pendingHostIP = ip;
+						pendingRoomCode = null;
 						WarpedPixelDungeon.switchScene(PlayerLobbyScene.class);
 					} else {
 						NetManager.startSpectator(ip);
@@ -263,6 +398,10 @@ public class WndMultiplayer extends Window {
 	}
 
 	public static String pendingHostIP = null;
+	/** Non-null when the next lobby should join through the relay instead of a LAN dial. */
+	public static String pendingRoomCode = null;
+	/** Set by "Host Online" so LobbyScene opens a relay room instead of a local port. */
+	public static boolean hostOnline = false;
 
 	@Override
 	public void update() {

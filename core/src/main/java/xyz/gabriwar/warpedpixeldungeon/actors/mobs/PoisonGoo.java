@@ -77,6 +77,11 @@ public class PoisonGoo extends Mob {
 	}
 
 	@Override
+	protected boolean lootIgnoresLevel() {
+		return true;
+	}
+
+	@Override
 	public void storeInBundle( Bundle bundle ) {
 		super.storeInBundle( bundle );
 		bundle.put( GOO_GENERATION, gooGeneration );

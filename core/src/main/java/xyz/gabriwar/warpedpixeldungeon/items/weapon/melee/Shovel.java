@@ -24,6 +24,13 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.weapon.melee;
 
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
+import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
+import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
+import com.watabou.utils.Callback;
+import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import static xyz.gabriwar.warpedpixeldungeon.Dungeon.hero;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
@@ -75,12 +82,6 @@ public class Shovel extends MeleeWeapon {
         return actions;
     }
 
-    //Re-ARranged weapon: no Duelist ability was ever designed for it
-    @Override
-    public boolean hasDuelistAbility() {
-        return false;
-    }
-
     @Override
     public void execute(Hero hero, String action) {
         super.execute(hero, action);
@@ -128,4 +129,60 @@ public class Shovel extends MeleeWeapon {
         Sample.INSTANCE.play(Assets.Sounds.TRAMPLE, 2, 1.1f);
         curUser.sprite.operate(curUser.pos);
     }
+
+	// ---- Duelist ability: a shovelful of dirt in the face ----
+
+	@Override
+	public String targetingPrompt() {
+		return Messages.get(this, "prompt");
+	}
+
+	@Override
+	protected void duelistAbility(Hero hero, Integer target) {
+		dirtAbility(hero, target, this);
+	}
+
+	@Override
+	public String abilityInfo() {
+		int turns = levelKnown ? 4 + buffedLvl() : 4;
+		return Messages.get(this, levelKnown ? "ability_desc" : "typical_ability_desc", turns);
+	}
+
+	@Override
+	public String upgradeAbilityStat(int level) {
+		return Integer.toString(4 + level);
+	}
+
+	/** dirt flung 3 tiles: the target is blinded, and one standing on grass or soil is dug in as well */
+	public static void dirtAbility(Hero hero, Integer target, MeleeWeapon wep){
+		if (target == null) return;
+		Ballistica toss = new Ballistica(hero.pos, target, Ballistica.PROJECTILE);
+		int cell = toss.collisionPos;
+		Char enemy = Actor.findChar(cell);
+		if (enemy == null || enemy == hero || hero.isCharmedBy(enemy) || !Dungeon.level.heroFOV[cell]){
+			GLog.w(Messages.get(wep, "ability_no_target"));
+			return;
+		}
+		if (Dungeon.level.distance(hero.pos, cell) > 3){
+			GLog.w(Messages.get(wep, "ability_target_range"));
+			return;
+		}
+		wep.beforeAbilityUsed(hero, enemy);
+		int turns = 4 + wep.buffedLvl();
+		Buff.prolong(enemy, Blindness.class, turns);
+		int t = Dungeon.level.map[cell];
+		if (t == Terrain.GRASS || t == Terrain.HIGH_GRASS || t == Terrain.FURROWED_GRASS || Dungeon.level.water[cell]){
+			Buff.prolong(enemy, Roots.class, 2f);
+		}
+		hero.sprite.zap(cell);
+		for (int c : toss.subPath(1, toss.dist)){
+			if (Dungeon.level.heroFOV[c]) CellEmitter.get(c).burst(Speck.factory(Speck.DUST), 2);
+		}
+		CellEmitter.center(cell).burst(Speck.factory(Speck.DUST), 10);
+		SkillFX.flash(enemy);
+		Sample.INSTANCE.play(Assets.Sounds.TRAMPLE, 1f, 1.2f);
+		Invisibility.dispel();
+		hero.spendAndNext(hero.attackDelay());
+		wep.afterAbilityUsed(hero);
+	}
 }

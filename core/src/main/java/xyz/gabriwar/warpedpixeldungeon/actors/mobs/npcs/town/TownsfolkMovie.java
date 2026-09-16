@@ -25,6 +25,11 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town;
 
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
+import xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle;
+import xyz.gabriwar.warpedpixeldungeon.actors.WeatherFront;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.TownsfolkMovieSprite;
 
 //Remixed PD town flavour NPC, no mechanics.
@@ -32,6 +37,35 @@ public class TownsfolkMovie extends FlavorNPC {
 
 	{
 		spriteClass = TownsfolkMovieSprite.class;
+	}
+
+	@Override
+	protected int bedtime() { return 80; }
+
+	@Override
+	protected int lineCount() { return 6; }
+
+	//the rumour is real: after the gossip comes the weather, read off the next front
+	//in the queue - what kind it is, when it lands and how long it stays
+	@Override
+	protected void offer( String greeting ) {
+		WeatherFront front = ClimateManager.nextFront();
+		String forecast;
+		if (front == null) {
+			forecast = Messages.get( this, "forecast_none" );
+		} else {
+			float turnsPerHour = DayNightCycle.FULL_CYCLE / 24f;
+			String kind = Messages.get( this, "front_" + front.type.name().toLowerCase() );
+			int lasts = Math.max( 1, Math.round( front.duration / turnsPerHour ) );
+			int until = Math.round( (front.arrivalTurn - Dungeon.cycleTurn) / turnsPerHour );
+			if (until <= 0) {
+				int left = Math.max( 1, Math.round( (front.arrivalTurn + front.duration - Dungeon.cycleTurn) / turnsPerHour ) );
+				forecast = Messages.get( this, "forecast_now", kind, left );
+			} else {
+				forecast = Messages.get( this, "forecast_soon", kind, until, lasts );
+			}
+		}
+		say( greeting + "\n\n" + forecast );
 	}
 
 }

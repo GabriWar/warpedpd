@@ -25,8 +25,15 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillSequence;
+import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
 
 
+import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -59,6 +66,11 @@ public class BearTrap extends Skill {
 		mana = 6;
 	}
 
+	//how long set jaws wait for prey
+	private static final int JAWS_TURNS = 200;
+	//marks the chain as the bear trap's own, so the thorn bed answers only its snap
+	private static final int JAWS_CHAIN = -7;
+
 	@Override
 	public ArrayList<String> actions( Hero hero ){
 		ArrayList<String> actions = new ArrayList<>();
@@ -87,26 +99,24 @@ public class BearTrap extends Skill {
 			Ballistica shot = new Ballistica( curUser.pos, target, Ballistica.PROJECTILE );
 			int cell = shot.collisionPos;
 
-			//plain ground only - Level.set would otherwise wipe out stairs, a door or a pedestal
-			int terr = Dungeon.level.map[cell];
-			if (!(terr == Terrain.EMPTY || terr == Terrain.GRASS ||
-					terr == Terrain.EMBERS || terr == Terrain.EMPTY_SP ||
-					terr == Terrain.HIGH_GRASS || terr == Terrain.FURROWED_GRASS
-					|| terr == Terrain.EMPTY_DECO)){
+			//the jaws are set on the ground itself: the tile stays walkable, so prey walks straight in
+			if (!SkillInteractions.valid( cell ) || Dungeon.level.solid[cell] || !Dungeon.level.passable[cell]
+					|| Dungeon.level.pit[cell] || Actor.findChar( cell ) != null){
 				GLog.w( Messages.get(BearTrap.this, "no_ground") );
 				return;
 			}
-			if (Dungeon.level.traps.get(cell) != null){
+			if (Dungeon.level.traps.get(cell) != null || jawsAt( curUser, cell ) != null){
 				GLog.w( Messages.get(BearTrap.this, "occupied") );
 				return;
 			}
 
-			Level.set( cell, Terrain.TRAP );
-			Dungeon.level.setTrap( new BearTrapHazard(level), cell ).reveal();
-			GameScene.updateMap( cell );
-
+			xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField.place( curUser, xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField.JAWS, level,
+					JAWS_TURNS, java.util.Collections.singletonList( cell ) ).origin = cell;
+			CellEmitter.get( cell ).burst( Speck.factory( Speck.DUST ), 4 );
+			SkillSpectacleFX.show(SkillSpectacleFX.JAW,cell);
 			curUser.MP -= getManaCost();
 			castTextYell();
+			Sample.INSTANCE.play( Assets.Sounds.STURDY, 1f, 1.3f );
 			curUser.spend( TIME_TO_USE );
 			curUser.busy();
 			curUser.sprite.operate( curUser.pos );
@@ -114,8 +124,65 @@ public class BearTrap extends Skill {
 
 		@Override
 		public String prompt(){
-			return "Choose where to set the trap";
+			return Messages.get(BearTrap.class, "prompt");
 		}
+	}
+
+	private static xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField jawsAt( Hero hero, int cell ){
+		for (xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField f : hero.buffs( xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField.class )){
+			if (f.kind == xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField.JAWS && f.contains( cell )) return f;
+		}
+		return null;
+	}
+
+	//the first grounded enemy to step onto set jaws springs them
+	@Override
+	public void onCharMoved( Char ch, int from, boolean travelling ){
+		Hero hero = Dungeon.hero;
+		if (level <= 0 || hero == null || ch == null || ch == hero || ch.flying
+				|| ch.alignment != Char.Alignment.ENEMY) return;
+		final xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField jaws = jawsAt( hero, ch.pos );
+		if (jaws == null) return;
+		final int cell = ch.pos;
+		final int rank = jaws.rank;
+		jaws.detach();
+		SkillInteractions.defer( () -> spring( ch, cell, rank ) );
+	}
+
+	private static void spring( Char c, int pos, int rank ){
+		SkillSpectacleFX.show(SkillSpectacleFX.JAW,pos);
+		Sample.INSTANCE.play( Assets.Sounds.TRAP, 1f, 0.8f );
+		Camera.main.shake( 1, 0.2f );
+		CellEmitter.center( pos ).burst( Speck.factory( Speck.STAR ), 4 );
+		if (c != null && c.isAlive() && c.pos == pos){
+			SkillInteractions.Mark chain = SkillInteractions.mark( c, SkillInteractions.Mark.CHAIN, 1, 5 + 2 * rank );
+			chain.cell = pos;
+			chain.power = 0;
+			chain.other = JAWS_CHAIN;
+			Buff.affect( c, Bleeding.class ).set( 2 + 2 * rank );
+			Buff.prolong( c, Cripple.class, 5f );
+			Wound.hit( c );
+			if (c.sprite != null) c.sprite.flash();
+		} else {
+			Wound.hit( pos );
+		}
+	}
+
+	//set jaws glint so the Huntress can see where she left them
+	@Override
+	public void onFieldTick( xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField field ){
+		if (field.kind != xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField.JAWS) return;
+		for (int c : field.cells) SkillInteractions.flare( c, 0xB0B4BE );
+	}
+
+	//+3: when the chain finally snaps, a thorn bed wakes where the jaws bit
+	@Override
+	public void onSkillMarkEnded( Char ch, SkillInteractions.Mark mark ){
+		Hero hero = Dungeon.hero;
+		if (level < MAX_LEVEL || hero == null || !hero.isAlive() || mark.kind != SkillInteractions.Mark.CHAIN
+				|| mark.other != JAWS_CHAIN || !SkillInteractions.valid( mark.cell )) return;
+		final int cell = mark.cell;
+		SkillInteractions.defer( () -> SkillSequence.start( hero, SkillSequence.BRIAR, 3, cell, 5, 3, java.util.Collections.emptyList() ) );
 	}
 
 	@Override
@@ -128,6 +195,7 @@ public class BearTrap extends Skill {
 		return true;
 	}
 
+	/** traps set before the jaws became a field: kept so older saves still load and still bite */
 	public static class BearTrapHazard extends Trap {
 
 		private static final String BUILT_AT = "builtAt";
@@ -150,25 +218,17 @@ public class BearTrap extends Skill {
 
 		@Override
 		public void activate(){
-			Char c = Actor.findChar( pos );
-			if (c != null && !c.flying){
-				Buff.prolong( c, Roots.class, 3 + 2 * builtAt );
-				Buff.affect( c, Bleeding.class ).set( 2 + 2 * builtAt );
-				Buff.prolong( c, Cripple.class, 5f );
-				Wound.hit( c );
-			} else {
-				Wound.hit( pos );
-			}
+			spring( Actor.findChar( pos ), pos, builtAt );
 		}
 
 		@Override
 		public String name(){
-			return "bear trap";
+			return Messages.get( BearTrap.class, "trap_name" );
 		}
 
 		@Override
 		public String desc(){
-			return "A set of steel jaws held open under tension. Anything heavy enough to trip the plate gets its leg caught and torn.";
+			return Messages.get( BearTrap.class, "trap_desc" );
 		}
 
 		@Override

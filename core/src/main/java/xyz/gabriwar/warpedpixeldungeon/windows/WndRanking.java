@@ -52,12 +52,16 @@ import xyz.gabriwar.warpedpixeldungeon.ui.TalentButton;
 import xyz.gabriwar.warpedpixeldungeon.ui.TalentsPane;
 import xyz.gabriwar.warpedpixeldungeon.ui.Window;
 import xyz.gabriwar.warpedpixeldungeon.utils.DungeonSeed;
+import xyz.gabriwar.warpedpixeldungeon.items.quest.EscapeCrystal;
+import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import com.watabou.noosa.ColorBlock;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.ui.Component;
+import com.watabou.utils.Bundle;
 import com.watabou.utils.DeviceCompat;
 
 import java.text.NumberFormat;
@@ -409,6 +413,21 @@ public class WndRanking extends WndTabbed {
 
 				}
 			}
+
+			EscapeCrystal crystal = Dungeon.hero.belongings.getItem(EscapeCrystal.class);
+			if (crystal != null){
+				IconButton vaultInv = new IconButton(new ItemSprite(ItemSpriteSheet.ESCAPE)){
+					@Override
+					protected void onClick() {
+						Bundle items = crystal.storedItems;
+						crystal.restoreHeroBelongings(Dungeon.hero, null);
+						crystal.storedItems = items; //want to preserve this
+						WarpedPixelDungeon.scene().addToFront(new WndVaultItems());
+					}
+				};
+				vaultInv.setRect(width-16, 2, 16, 16);
+				add(vaultInv);
+			}
 		}
 		
 		private void addItem( Item item ) {
@@ -418,6 +437,16 @@ public class WndRanking extends WndTabbed {
 			
 			pos += slot.height() + 1;
 		}
+	}
+
+	private class WndVaultItems extends Window {
+
+		public WndVaultItems(){
+			resize(WIDTH, HEIGHT);
+
+			add(new ItemsTab());
+		}
+
 	}
 	
 	private class BadgesTab extends Group {

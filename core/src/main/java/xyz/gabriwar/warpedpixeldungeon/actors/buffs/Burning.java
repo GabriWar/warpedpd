@@ -38,6 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.food.ChargrilledMeat;
 import xyz.gabriwar.warpedpixeldungeon.items.food.FrozenCarpaccio;
 import xyz.gabriwar.warpedpixeldungeon.items.food.MysteryMeat;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.Scroll;
+import xyz.gabriwar.warpedpixeldungeon.levels.VaultLevel;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -48,17 +49,19 @@ import com.watabou.utils.Random;
 
 import java.util.ArrayList;
 
-public class Burning extends Buff implements Hero.Doom {
+public class Burning extends Buff implements Hero.Doom, Buff.DOTbuff {
 	
 	private static final float DURATION = 8f;
 	
 	private float left;
 	private boolean acted = false; //whether the debuff has done any damage at all yet
 	private int burnIncrement = 0; //for tracking burning of hero items
+	private int nextHit = 0; //we pre-caulcate the incoming hit for a bit more accuracy in totalIncomingDMG()
 	
 	private static final String LEFT	= "left";
 	private static final String ACTED	= "acted";
 	private static final String BURN	= "burnIncrement";
+	private static final String NEXT_DMG= "next_dmg";
 
 	{
 		type = buffType.NEGATIVE;
@@ -71,6 +74,7 @@ public class Burning extends Buff implements Hero.Doom {
 		bundle.put( LEFT, left );
 		bundle.put( ACTED, acted );
 		bundle.put( BURN, burnIncrement );
+		bundle.put( NEXT_DMG, nextHit );
 	}
 	
 	@Override
@@ -79,6 +83,7 @@ public class Burning extends Buff implements Hero.Doom {
 		left = bundle.getFloat( LEFT );
 		acted = bundle.getBoolean( ACTED );
 		burnIncrement = bundle.getInt( BURN );
+		nextHit = bundle.getInt( NEXT_DMG );
 	}
 
 	@Override
@@ -96,7 +101,11 @@ public class Burning extends Buff implements Hero.Doom {
 		} else if (target.isAlive() && !target.isImmune(getClass())) {
 
 			acted = true;
-			int damage = Random.NormalIntRange( 1, 3 + Dungeon.scalingDepth()/4 );
+			if (nextHit == 0){
+				nextHit = Random.NormalIntRange( 1, 3 + Dungeon.scalingDepth()/4 );
+			}
+			int damage = nextHit;
+			nextHit = Random.NormalIntRange( 1, 3 + Dungeon.scalingDepth()/4 );
 			if (target.buff(ButterBuff.class) != null) {
 				damage *= 3;
 			}
@@ -112,7 +121,8 @@ public class Burning extends Buff implements Hero.Doom {
 				burnIncrement++;
 
 				//at 4+ turns, there is a (turns-3)/3 chance an item burns
-				if (Random.Int(3) < (burnIncrement - 3)){
+				//...except in the vault level, as the player can't access the scroll holder there
+				if (Random.Int(3) < (burnIncrement - 3) && !(Dungeon.level instanceof VaultLevel)){
 					burnIncrement = 0;
 
 					ArrayList<Item> burnable = new ArrayList<>();
@@ -173,8 +183,15 @@ public class Burning extends Buff implements Hero.Doom {
 			
 			detach();
 		}
+		target.needsIncomingDOTUpdate = true;
 		
 		return true;
+	}
+
+	@Override
+	public void detach() {
+		target.needsIncomingDOTUpdate = true;
+		super.detach();
 	}
 	
 	public void reignite( Char ch ) {
@@ -198,12 +215,16 @@ public class Burning extends Buff implements Hero.Doom {
 				}
 			}
 		}
-		if (left < duration) left = duration;
+		if (left < duration) {
+			left = duration;
+			ch.needsIncomingDOTUpdate = true;
+		}
 		acted = false;
 	}
 
 	public void extend( float duration ) {
 		left += duration;
+		if (target != null) target.needsIncomingDOTUpdate = true;
 	}
 	
 	@Override
@@ -239,5 +260,14 @@ public class Burning extends Buff implements Hero.Doom {
 		
 		Dungeon.fail( this );
 		GLog.n( Messages.get(this, "ondeath") );
+	}
+
+	@Override
+	public int totalIncomingDMG() {
+		if (nextHit == 0){
+			nextHit = Random.NormalIntRange( 1, 3 + Dungeon.scalingDepth()/4 );
+		}
+		float avgDmg = 2 + Dungeon.scalingDepth()/8f;
+		return (int)Math.round(nextHit + Math.ceil(left-1)*avgDmg);
 	}
 }

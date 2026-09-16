@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -77,12 +78,15 @@ public class Moonbeam extends Blob {
 				}
 			}
 		}
+	
+		//cloud coming over the moon dims the beam away
+		if (ClimateManager.cloudCover() > 0.7f) dissipate(0.7f);
 	}
 
 	@Override
 	public void use(BlobEmitter emitter) {
 		super.use(emitter);
-		emitter.start(ShaftParticle.FACTORY, 0.6f, 0);
+		emitter.start(WeatherBlobFX.MOONBEAM, 0.4f, 0);
 	}
 
 	@Override

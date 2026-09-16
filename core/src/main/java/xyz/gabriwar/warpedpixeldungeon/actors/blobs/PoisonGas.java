@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -65,7 +66,7 @@ public class PoisonGas extends Blob {
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
 
-		emitter.pour( Speck.factory( Speck.TOXIC ), 0.4f );
+		emitter.pour( WeatherBlobFX.layered( Speck.factory( Speck.TOXIC ), WeatherBlobFX.bubbles( 0xA0FF70 ), 3 ), 0.3f );
 	}
 
 	@Override

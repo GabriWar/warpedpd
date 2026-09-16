@@ -39,6 +39,9 @@ public class Yeti extends Mob {
 
 		EXP = 10;
 		maxLvl = 32;
+
+		//built for the cold: the deep freeze is home, the thaw is what hurts
+		thermal = Thermal.COLD_DWELLER;
 	}
 
 	@Override

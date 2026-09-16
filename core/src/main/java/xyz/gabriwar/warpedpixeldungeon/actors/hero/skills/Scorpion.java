@@ -27,10 +27,16 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.PoisonParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
 import com.watabou.utils.Random;
 
 public class Scorpion extends PassiveSkillB2 {
@@ -49,15 +55,19 @@ public class Scorpion extends PassiveSkillB2 {
 	@Override
 	public int venomBonus(){ return level * 2; }
 
-	//the cripple() hook is only rolled on the ranged path, which the Rogue rarely
-	//takes, so the sting rides the generic on-hit hook instead
+	//the sting: hits on a poisoned enemy may cripple it; at mastery a sting on
+	//a mark that is already crippled pins it in place
 	@Override
 	public int onHitProc( Char enemy, int damage, boolean ranged ){
-		if (level > 0 && enemy != null && enemy.isAlive()){
-			int chance = enemy.buff( Poison.class ) != null ? 16 * level : 8 * level;
-			if (Random.Int( 100 ) < chance){
-				Buff.prolong( enemy, Cripple.class, 3 + level );
+		if (level > 0 && enemy != null && enemy.isAlive() && enemy.buff( Poison.class ) != null
+				&& Random.Int( 100 ) < 10 * level){
+			if (level >= Skill.MAX_LEVEL && enemy.buff( Cripple.class ) != null){
+				SkillInteractions.affectAfterHit( enemy, xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis.class, 1f );
+				CellEmitter.center( enemy.pos ).burst( Speck.factory( Speck.STAR ), 4 );
 			}
+			Buff.prolong( enemy, Cripple.class, 2 + level );
+			CellEmitter.center( enemy.pos ).burst( PoisonParticle.SPLASH, 5 );
+			Sample.INSTANCE.play( Assets.Sounds.DEBUFF, 0.8f, 0.8f );
 		}
 		return damage;
 	}

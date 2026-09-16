@@ -27,83 +27,82 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle;
 import xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Electricity;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Fire;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.StormCloud;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Adrenaline;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.BeetleInfected;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cocoshield;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AllyBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Amok;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ArcaneArmor;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AscensionChallenge;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barkskin;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.BeetleInfected;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Berserk;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bless;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ChampionEnemy;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Charm;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Chill;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cocoshield;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Corrosion;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Corruption;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Dehydrated;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Honeyed;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MarkOfTheNut;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ParasiticInfection;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SpaceTimePowers;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Sprouting;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Stunned;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Daze;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Dehydrated;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Doom;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Dread;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Feelers;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Drunk;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Feelers;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FireImbue;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SoulFire;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Frost;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FrostImbue;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Fury;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Haste;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.HeatAura;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.IceAura;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hex;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Honeyed;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.IceAura;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invulnerability;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.IronSkin;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.LifeLink;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.LostInventory;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MagicalSleep;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MarkOfTheNut;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Momentum;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ParasiticSymbiosis;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.IronSkin;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.RoseBarrier;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Shield;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Slippery;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SuperBalling;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SugarRush;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.TrailOfFire;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Wither;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MonkEnergy;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Ooze;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ParasiticInfection;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ParasiticSymbiosis;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Preparation;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.RoseBarrier;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Shield;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ShieldBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Sleep;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Slippery;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Slow;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SoakedShoes;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SnipersMark;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SoakedShoes;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SoulFire;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SpaceTimePowers;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Speed;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Sprouting;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Stamina;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Stunned;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SugarRush;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SuperBalling;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.TrailOfFire;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vulnerable;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Wither;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
@@ -124,10 +123,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Elemental;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.GnollGeomancer;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Necromancer;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Tengu;
-import xyz.gabriwar.warpedpixeldungeon.actors.mobs.YogDzewa;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.MirrorImage;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.PrismaticImage;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.BrokenSeal;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
@@ -149,7 +149,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfRetribution;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTeleportation;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfChallenge;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPsionicBlast;
-import xyz.gabriwar.warpedpixeldungeon.items.stones.StoneOfAggression;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.FerretTuft;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfFireblast;
@@ -161,6 +160,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Blazing;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Kinetic;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Shocking;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Vorpal;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Sickle;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.MissileWeapon;
@@ -186,6 +186,7 @@ import com.watabou.utils.BArray;
 import com.watabou.utils.Bundlable;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
+import com.watabou.utils.PointF;
 import com.watabou.utils.Random;
 
 import java.util.ArrayList;
@@ -364,6 +365,7 @@ public abstract class Char extends Actor {
 	}
 	
 	protected static final String POS       = "pos";
+	protected static final String PREV_POS  = "prev_pos";
 	protected static final String TAG_HP    = "HP";
 	protected static final String TAG_HT    = "HT";
 	protected static final String TAG_SHLD  = "SHLD";
@@ -376,6 +378,7 @@ public abstract class Char extends Actor {
 		super.storeInBundle( bundle );
 		
 		bundle.put( POS, pos );
+		bundle.put( PREV_POS, previousPos );
 		bundle.put( TAG_HP, HP );
 		bundle.put( TAG_HT, HT );
 		bundle.put( BUFFS, buffs );
@@ -388,6 +391,7 @@ public abstract class Char extends Actor {
 		super.restoreFromBundle( bundle );
 		
 		pos = bundle.getInt( POS );
+		previousPos = bundle.getInt( PREV_POS );
 		HP = bundle.getInt( TAG_HP );
 		HT = bundle.getInt( TAG_HT );
 		
@@ -437,6 +441,11 @@ public abstract class Char extends Actor {
 				}
 
 				if (h.buff(MonkEnergy.MonkAbility.UnarmedAbilityTracker.class) != null){
+					dr = 0;
+				}
+
+				//skill tree: Precision-style gaps in the target's guard
+				if (h.heroSkills != null && h.heroSkills.anyIgnoresArmor(enemy)){
 					dr = 0;
 				}
 			}
@@ -531,18 +540,9 @@ public abstract class Char extends Actor {
 			if ( buff(Feelers.class) != null ) dmg *= 2f;
 			if ( buff(Wither.class) != null )  dmg /= 2f;
 
-			//characters influenced by aggression deal 1/2 damage to bosses
-			if ( enemy.buff(StoneOfAggression.Aggression.class) != null
-					&& enemy.alignment == alignment
-					&& (Char.hasProp(enemy, Property.BOSS) || Char.hasProp(enemy, Property.MINIBOSS))){
-				dmg *= 0.5f;
-				//yog-dzewa specifically takes 1/4 damage
-				if (enemy instanceof YogDzewa){
-					dmg *= 0.5f;
-				}
-			}
-			
 			int effectiveDamage = enemy.defenseProc( this, Math.round(dmg) );
+			//the defender's reaction (riposte, thorns, a glyph) killed the attacker: its blow never lands
+			if (!isAlive()) return true;
 			//do not trigger on-hit logic if defenseProc returned a negative value
 			if (effectiveDamage >= 0) {
 				effectiveDamage = Math.max(effectiveDamage - dr, 0);
@@ -579,8 +579,8 @@ public abstract class Char extends Actor {
 
 			if (enemy.isAlive() && enemy.alignment != alignment && prep != null && prep.canKO(enemy)){
 				enemy.HP = 0;
-				if (enemy.buff(Brute.BruteRage.class) != null){
-					enemy.buff(Brute.BruteRage.class).detach();
+				for (Buff b : enemy.buffs(Brute.BruteRage.class)){
+					b.detach();
 				}
 				if (!enemy.isAlive()) {
 					enemy.die(this);
@@ -600,8 +600,8 @@ public abstract class Char extends Actor {
 						&& !Char.hasProp(enemy, Property.MINIBOSS) &&
 						(enemy.HP/(float)enemy.HT) <= 0.4f*((Hero)this).pointsInTalent(Talent.COMBINED_LETHALITY)/3f) {
 					enemy.HP = 0;
-					if (enemy.buff(Brute.BruteRage.class) != null){
-						enemy.buff(Brute.BruteRage.class).detach();
+					for (Buff b : enemy.buffs(Brute.BruteRage.class)){
+						b.detach();
 					}
 					if (!enemy.isAlive()) {
 						enemy.die(this);
@@ -643,7 +643,7 @@ public abstract class Char extends Actor {
 			
 			return true;
 			
-		} else {
+		} else if (!Char.hasProp(enemy, Property.OBJECT)) {
 
 			if (enemy.sprite != null){
 				if (hitMissIcon != -1){
@@ -663,9 +663,16 @@ public abstract class Char extends Actor {
 				//TODO enemy.defenseSound? currently miss plays for monks/crab even when they parry
 				Sample.INSTANCE.play(Assets.Sounds.MISS);
 			}
+
+			//skill tree: answers to a swing that missed the hero (deferred until this attack is over)
+			if (enemy == Dungeon.hero && alignment != enemy.alignment){
+				xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.heroMissedBy(this);
+			}
 			
 			return false;
 			
+		} else {
+			return false;
 		}
 
 	}
@@ -683,6 +690,11 @@ public abstract class Char extends Actor {
 
 		float acuStat = attacker.attackSkill( defender );
 		float defStat = defender.defenseSkill( attacker );
+
+		//the cold stiffens whoever is caught in it: they dodge a third less
+		if (defender.buff(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hypothermia.class) != null){
+			defStat *= xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hypothermia.EVASION_FACTOR;
+		}
 
 		if (defender instanceof Hero && ((Hero) defender).damageInterrupt){
 			((Hero) defender).interrupt();
@@ -894,6 +906,25 @@ public abstract class Char extends Actor {
 		needsShieldUpdate = false;
 		return cachedShield;
 	}
+
+	//just as above, used to avoid excess calls to buffs()
+	protected int cachedIncomingDOT = 0;
+	public boolean needsIncomingDOTUpdate = true;
+
+	public int incomingDOT(){
+		if (!needsIncomingDOTUpdate){
+			return cachedIncomingDOT;
+		}
+
+		cachedIncomingDOT = 0;
+		for (Buff b : buffs()){
+			if (b instanceof Buff.DOTbuff){
+				cachedIncomingDOT += Math.round(resist(b.getClass()) * ((Buff.DOTbuff) b).totalIncomingDMG());
+			}
+		}
+		needsIncomingDOTUpdate = false;
+		return cachedIncomingDOT;
+	}
 	
 	public void damage( int dmg, Object src ) {
 		
@@ -935,6 +966,8 @@ public abstract class Char extends Actor {
 				}
 			}
 		}
+
+		dmg = xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.beforeDamage(this, dmg, src);
 
 		//IronSkin (Overgrown): the hardened skin caps each incoming hit at 1
 		//damage (distinct from RoseBarrier's full invulnerability above).
@@ -992,26 +1025,36 @@ public abstract class Char extends Actor {
 		if (this.buff(Doom.class) != null && !isImmune(Doom.class)){
 			damage *= 1.67f;
 		}
+		//flat skill damage grows with the hero's own damage (weapon-based skills already do)
+		if (this != Dungeon.hero && xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.levelScaledSource(src)){
+			damage = Math.round( damage * xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.heroPower() );
+		}
+		//Vulnerable is applied in Char.attack for weapon blows; hero skills dealing damage directly get it here
+		if (this.buff(Vulnerable.class) != null && xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.heroSkillSource(src)){
+			damage *= 1.33f;
+		}
 		if (alignment != Alignment.ALLY && this.buff(DeathMark.DeathMarkTracker.class) != null){
 			damage *= 1.25f;
 		}
 
 		if (this.buff(BeetleInfected.class) != null) damage += 2;
 
-		if (buff(Sickle.HarvestBleedTracker.class) != null){
-			buff(Sickle.HarvestBleedTracker.class).detach();
-
+		//two separate things can convert dmg to bleed, we handle that here
+		//we do this before modifiers are applied back to dmg as we don't want to stack them twice (from this and bleed)
+		float bleedAmt = 0;
+		Class bleedSrc = null;
+		if (src instanceof Char && ((Char) src).buff(Sickle.HarvestBleedTracker.class) != null){
 			if (!isImmune(Bleeding.class)){
-				Bleeding b = buff(Bleeding.class);
-				if (b == null){
-					b = new Bleeding();
-				}
-				b.announced = false;
-				b.set(dmg, Sickle.HarvestBleedTracker.class);
-				b.attachTo(this);
-				sprite.showStatus(CharSprite.WARNING, Messages.titleCase(b.name()) + " " + (int)b.level());
-				return;
+				bleedAmt = dmg;
+				bleedSrc = Sickle.HarvestBleedTracker.class;
 			}
+			((Char) src).buff(Sickle.HarvestBleedTracker.class).detach();
+		} else if (src instanceof Char && ((Char) src).buff(Vorpal.VorpalTracker.class) != null){
+			if (!isImmune(Bleeding.class)){
+				bleedAmt = ((Char) src).buff(Vorpal.VorpalTracker.class).powerMulti*(2+dmg/2f);
+				bleedSrc = Vorpal.class;
+			}
+			((Char) src).buff(Vorpal.VorpalTracker.class).detach();
 		}
 
 		Class<?> srcClass = src.getClass();
@@ -1053,14 +1096,40 @@ public abstract class Char extends Actor {
 			shield.activate();
 		}
 
+		//cancel bleed if the vorpal hit is going to kill
+		if (bleedSrc == Vorpal.class && dmg > (shielding() + HP)){
+			bleedAmt = 0;
+		}
+
+		if (bleedAmt > 0){
+			Bleeding b = buff(Bleeding.class);
+			if (b == null){
+				b = new Bleeding();
+			}
+			b.announced = false;
+			b.attachTo(this);
+			b.set(bleedAmt, bleedSrc);
+			sprite.showStatus(CharSprite.WARNING, Messages.titleCase(b.name()) + " " + dmg);
+			Splash.at( sprite.center(), -PointF.PI / 2, PointF.PI / 6, sprite.blood(), 10 );
+			return;
+		}
+
 		int shielded = dmg;
 		dmg = ShieldBuff.processDamage(this, dmg, src);
 		shielded -= dmg;
+		//Last Rites-style saves: the promised health survives every multiplier applied after the skill ran
+		if (this instanceof Hero) dmg = ((Hero)this).applyHealthHold(dmg);
+        int linkedHealthLoss=Math.min(Math.max(0,HP),Math.max(0,dmg));
 		HP -= dmg;
+        boolean aliveBeforeLink = isAlive();
+        xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.shareLinkedDamage(this,linkedHealthLoss,src);
+        // A focused echo can finish this target inside its nested damage call.
+        // That call already handled death and loot; never run them a second time.
+        if (aliveBeforeLink && !isAlive()) return;
 
-		if (HP > 0 && buff(Grim.GrimTracker.class) != null){
+		if (HP > 0 && src instanceof Char && ((Char) src).buff(Grim.GrimTracker.class) != null){
 
-			float finalChance = buff(Grim.GrimTracker.class).maxChance;
+			float finalChance = ((Char) src).buff(Grim.GrimTracker.class).maxChance;
 			finalChance *= (float)Math.pow( ((HT - HP) / (float)HT), 2);
 
 			if (Random.Float() < finalChance) {
@@ -1069,22 +1138,26 @@ public abstract class Char extends Actor {
 				HP -= extraDmg;
 
 				sprite.emitter().burst( ShadowParticle.UP, 5 );
-				if (!isAlive() && buff(Grim.GrimTracker.class).qualifiesForBadge){
+				if (!isAlive() && ((Char) src).buff(Grim.GrimTracker.class).qualifiesForBadge){
 					Badges.validateGrimWeapon();
 				}
 			}
 		}
 
-		if (HP < 0 && src instanceof Char && alignment == Alignment.ENEMY){
-			if (((Char) src).buff(Kinetic.KineticTracker.class) != null){
-				int dmgToAdd = -HP;
+		if (src instanceof Char && ((Char) src).buff(Kinetic.KineticTracker.class) != null){
+			int dmgToAdd = 0;
+			//hitting an ally can spend conserved dmg, but not build it
+			if (HP < 0 && alignment != ((Char) src).alignment){
+				dmgToAdd = -HP;
 				dmgToAdd -= ((Char) src).buff(Kinetic.KineticTracker.class).conservedDamage;
 				dmgToAdd = Math.round(dmgToAdd * Weapon.Enchantment.genericProcChanceMultiplier((Char) src));
-				if (dmgToAdd > 0) {
-					Buff.affect((Char) src, Kinetic.ConservedDamage.class).setBonus(dmgToAdd);
-				}
-				((Char) src).buff(Kinetic.KineticTracker.class).detach();
 			}
+			if (dmgToAdd > 0){
+				Buff.affect((Char) src, Kinetic.ConservedDamage.class).setBonus(dmgToAdd);
+			} else if (((Char) src).buff(Kinetic.ConservedDamage.class) != null){
+				((Char) src).buff(Kinetic.ConservedDamage.class).detach();
+			}
+			((Char) src).buff(Kinetic.KineticTracker.class).detach();
 		}
 		
 		if (sprite != null) {
@@ -1187,6 +1260,10 @@ public abstract class Char extends Actor {
 	}
 	
 	public void die( Object src ) {
+		//something else is forcing death, so remove death mark to prevent conflicts
+		if (buff(DeathMark.DeathMarkTracker.class) != null){
+			buff(DeathMark.DeathMarkTracker.class).detachOnDeath();
+		}
 		destroy();
 		if (src != Chasm.class) {
 			sprite.die();
@@ -1298,10 +1375,16 @@ public abstract class Char extends Actor {
 			return false; //can't add buffs while frozen and game is loaded
 		}
 
+		//skill tree: a debuff shrugged off as it lands (only while playing, never while a save loads)
+		if (sprite != null && this == Dungeon.hero && buff.type == Buff.buffType.NEGATIVE
+				&& ((Hero)this).heroSkills != null && ((Hero)this).heroSkills.anyShrugsOffDebuff(buff)){
+			return false;
+		}
+
 		buffs.add( buff );
 		if (Actor.chars().contains(this)) Actor.add( buff );
 
-		if (sprite != null && buff.announced) {
+		if (sprite != null && sprite.alive && buff.announced) {
 			switch (buff.type) {
 				case POSITIVE:
 					sprite.showStatus(CharSprite.POSITIVE, Messages.titleCase(buff.name()));
@@ -1376,6 +1459,9 @@ public abstract class Char extends Actor {
 		move( step, true );
 	}
 
+	//used in various bits of gameplay logic to determine the direction of movement
+	protected int previousPos = -1;
+
 	//travelling may be false when a character is moving instantaneously, such as via teleportation
 	public void move( int step, boolean travelling ) {
 
@@ -1396,6 +1482,11 @@ public abstract class Char extends Actor {
 			Door.leave( pos );
 		}
 
+		if (travelling){
+			previousPos = pos;
+		} else {
+			previousPos = -1;
+		}
 		int prevPos = pos;
 		pos = step;
 
@@ -1404,6 +1495,7 @@ public abstract class Char extends Actor {
 		}
 
 		Dungeon.level.occupyCell(this );
+		xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.onMove(this, prevPos, travelling);
 
 		if (travelling) {
 			// TrailOfFire: leave fire on the previous tile
@@ -1564,6 +1656,9 @@ public abstract class Char extends Actor {
 		PLANT,
 		IMMOVABLE ( new HashSet<Class>(),
 				new HashSet<Class>( Arrays.asList(Vertigo.class) )),
+		//A character that is functionally an interactable object or piece of scenery
+		// (or a mimic that is effectively pretending to be one with the help of a mimic tooth)
+		OBJECT,
 		//A character that acts in an unchanging manner. immune to AI state debuffs or stuns/slows
 		STATIC( new HashSet<Class>(),
 				new HashSet<Class>( Arrays.asList(AllyBuff.class, Dread.class, Terror.class, Amok.class, Charm.class, Sleep.class,

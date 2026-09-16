@@ -1,4 +1,28 @@
 /*
+ * Pixel Dungeon
+ * Copyright (C) 2012-2015 Oleg Dolya
+ *
+ * Shattered Pixel Dungeon
+ * Copyright (C) 2014-2026 Evan Debenham
+ *
+ * Warped Pixel Dungeon
+ * Copyright (C) 2026 Gabriel Duarte Guerra (gabriwar)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ */
+
+/*
  * Warped Pixel Dungeon
  *
  * Global portal registry. Tracks per-depth fast-travel state so the player
@@ -25,7 +49,27 @@ public class Portals {
 		public boolean discovered = false;
 	}
 
+	//records are keyed by depth + branch*BRANCH_STRIDE, so a branch shop (the spider
+	//nest's floor 6) gets its own gate instead of sharing the main-dungeon one.
+	//Branch 0 keys equal the depth, so older saves and net snapshots read unchanged.
+	private static final int BRANCH_STRIDE = 1000;
 	private static final HashMap<Integer, Record> records = new HashMap<>();
+
+	public static int key(int depth, int branch) {
+		return depth + branch * BRANCH_STRIDE;
+	}
+
+	public static int keyHere() {
+		return key(Dungeon.depth, Dungeon.branch);
+	}
+
+	public static int depthOf(int key) {
+		return key % BRANCH_STRIDE;
+	}
+
+	public static int branchOf(int key) {
+		return key / BRANCH_STRIDE;
+	}
 
 	// Activation cost by shop-depth. Indices map: 6→1000, 11→1500, 16→2300, 20→3500.
 	public static int costForDepth(int depth) {
@@ -51,7 +95,15 @@ public class Portals {
 			records.put(depth, r);
 		}
 		r.cell = cell;
+		unlockFirstShop(depth, r);
 		return r;
+	}
+
+	//The main dungeon's first shop starts unlocked, including existing saves.
+	private static void unlockFirstShop(int key, Record record) {
+		if (key == key(6, 0) && record.state == PortalGate.State.LOCKED) {
+			record.state = PortalGate.State.ACTIVE;
+		}
 	}
 
 	public static Record get(int depth) {
@@ -105,7 +157,8 @@ public class Portals {
 		}
 		boolean wasNew = !r.discovered;
 		r.discovered = true;
-		if (wasNew) {
+		//journal notes only know branch 0 (see Notes.Record.depth)
+		if (wasNew && branchOf(depth) == 0) {
 			xyz.gabriwar.warpedpixeldungeon.journal.Notes.add(
 					xyz.gabriwar.warpedpixeldungeon.journal.Notes.Landmark.PORTAL,
 					depth);
@@ -164,6 +217,7 @@ public class Portals {
 			r.state = vals[states[i]];
 			r.cell  = cells[i];
 			r.discovered = discovered[i];
+			unlockFirstShop(depths[i], r);
 			records.put(depths[i], r);
 		}
 	}

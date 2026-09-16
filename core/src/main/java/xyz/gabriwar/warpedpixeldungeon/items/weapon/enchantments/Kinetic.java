@@ -41,7 +41,6 @@ public class Kinetic extends Weapon.Enchantment {
 		int conservedDamage = 0;
 		if (attacker.buff(ConservedDamage.class) != null) {
 			conservedDamage = Math.round(attacker.buff(ConservedDamage.class).damageBonus() * power()); //scales with enchantment level
-			attacker.buff(ConservedDamage.class).detach();
 		}
 
 		//use a tracker so that we can know the true final damage

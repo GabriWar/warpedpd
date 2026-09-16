@@ -87,15 +87,67 @@ public class SummonedPet extends NPC {
 		}
 	}
 
-	public static final int DEGRADE_RATE = 15;
+	//how long any summon lasts before it fades: one in-game day
+	public static final int LIFETIME = xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle.FULL_CYCLE;
 
-	public static int summonedPets = 0;
+	private int lifeLeft = LIFETIME;
+
+	//summons always grow with their master: max health is a share of the hero's own, damage
+	//follows the hero's damage, and accuracy and evasion keep pace with the hero's own growth
+	private float healthShare = 0f;
+	//damage as a share of the hero's average hit
+	private float damageShare = 0f;
+
+	public void setDamageShare( float share ){
+		damageShare = share;
+	}
+
+	private static int heroBonus(){
+		return Dungeon.hero != null ? Math.max( 0, Dungeon.hero.lvl - 1 ) : 0;
+	}
+
+	/** max health as a fraction of the hero's max health, kept in step for as long as it lives */
+	public void setHealthShare( float share ){
+		healthShare = share;
+		if (Dungeon.hero != null){
+			HT = HP = Math.max( 1, Math.round( share * Dungeon.hero.HT ) );
+		}
+	}
+
+	private static float pick( float[] shares, int level ){
+		return shares[Math.max( 0, Math.min( shares.length - 1, level - 1 ) )];
+	}
+
+	//max health follows the hero's; a rise also heals the new health in
+	private void scaleWithHero(){
+		if (healthShare <= 0 || Dungeon.hero == null) return;
+		int target = Math.max( 1, Math.round( healthShare * Dungeon.hero.HT ) );
+		if (target != HT){
+			int delta = target - HT;
+			HT = target;
+			HP = Math.min( HT, HP + Math.max( 0, delta ) );
+		}
+	}
+
+	public int lifeLeft(){
+		return lifeLeft;
+	}
+
+	/** Compatibility mirror only. Limits always recount the live floor instead of trusting it. */
+    @Deprecated public static int summonedPets = 0;
+
+    public static int activeCount(){
+        int count=0;
+        if(Dungeon.level!=null&&Dungeon.level.mobs!=null)for(Mob mob:Dungeon.level.mobs)
+            if(mob instanceof SummonedPet&&mob.isAlive()&&mob.alignment==Alignment.ALLY)count++;
+        summonedPets=count;
+        return count;
+    }
 
 	public PET_TYPES petType = PET_TYPES.RAT;
 
 	public String name = null;
 
-	public int degradeCounter = 1;
 
 	private int level = 0;
 
@@ -115,7 +167,6 @@ public class SummonedPet extends NPC {
 
 	public SummonedPet(){
 		super();
-		summonedPets++;
 	}
 
 	public SummonedPet( PET_TYPES type ){
@@ -133,9 +184,13 @@ public class SummonedPet extends NPC {
 
 	public void spawn( int level ){
 		this.level = level;
-		HT = petType.getHealth( level );
-		HP = HT;
 		defenseSkill = 3 + level;
+		switch (petType){
+			case RAT:      setHealthShare( pick( new float[]{ 0.08f, 0.10f, 0.12f }, level ) ); setDamageShare( pick( new float[]{ 0.25f, 0.30f, 0.35f }, level ) ); break;
+			case CRAB:     setHealthShare( pick( new float[]{ 0.20f, 0.30f, 0.40f }, level ) ); setDamageShare( pick( new float[]{ 0.35f, 0.40f, 0.45f }, level ) ); break;
+			case SKELETON: setHealthShare( pick( new float[]{ 0.50f, 0.60f, 0.70f }, level ) ); setDamageShare( pick( new float[]{ 0.50f, 0.60f, 0.70f }, level ) ); break;
+			default:       HT = HP = petType.getHealth( level ); break;
+		}
 	}
 
 	public void setLevel( int level ){
@@ -150,28 +205,79 @@ public class SummonedPet extends NPC {
 
 	@Override
 	protected boolean act(){
-		//summons wither away with time - they are borrowed life
-		if (degradeCounter++ % DEGRADE_RATE == 0){
-			damage(1, this);
-			if (!isAlive()) return true;
+        if(guardianEye())viewDistance=6;
+		scaleWithHero();
+		//borrowed life: a summon lasts one in-game day at full strength, then fades
+		if (--lifeLeft <= 0){
+			die( this );
+			return true;
 		}
 		return super.act();
 	}
 
+    @Override
+    public void damage( int dmg, Object src ){
+        if(guardianEye()&&dmg>0&&isAlive()&&Dungeon.hero!=null){
+            xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.Mark guard=
+                    xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.get(this,
+                    xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.Mark.GUARD);
+            if(guard!=null)guard.power=Math.min(xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.ofHealth(Dungeon.hero.HT,0.3f),guard.power+dmg);
+        }
+        super.damage(dmg,src);
+    }
+    private boolean guardianEye(){
+        return spriteClass==xyz.gabriwar.warpedpixeldungeon.sprites.SeraphGuardianSprite.class;
+    }
+    @Override protected boolean canAttack(Char enemy){
+        if(!guardianEye())return super.canAttack(enemy);
+        return enemy!=null&&enemy.isAlive()&&Dungeon.level.distance(pos,enemy.pos)<=6
+                &&new xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica(pos,enemy.pos,
+                xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica.MAGIC_BOLT).collisionPos==enemy.pos;
+    }
+    public static class GuardianLaser {}
+    @Override protected boolean doAttack(Char enemy){
+        if(!guardianEye())return super.doAttack(enemy);
+        spend(attackDelay());
+        if(hit(this,enemy,true))enemy.damage(damageRoll(),GuardianLaser.class);
+        final int cell=enemy.pos;
+        if(sprite instanceof xyz.gabriwar.warpedpixeldungeon.sprites.SeraphGuardianSprite){
+            final xyz.gabriwar.warpedpixeldungeon.sprites.SeraphGuardianSprite eye=
+                    (xyz.gabriwar.warpedpixeldungeon.sprites.SeraphGuardianSprite)sprite;
+            com.watabou.noosa.Game.runOnRenderThread(()->{if(eye.exists)eye.laser(cell);});
+        }
+        return true;
+    }
+
 	@Override
 	public int attackSkill( Char target ){
-		return 10 + level * 3;
+		return 10 + level * 3 + heroBonus();
+	}
+
+	@Override
+	public int defenseSkill( Char enemy ){
+		return super.defenseSkill( enemy ) + heroBonus() / 2;
 	}
 
 	@Override
 	public int damageRoll(){
+		if (damageShare > 0){
+			float hit = xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.heroAverageHit() * damageShare;
+			return Math.max( 1, Random.NormalIntRange( Math.round( hit * 0.7f ), Math.round( hit * 1.3f ) ) );
+		}
 		if (maxDamage >= 0) return Random.NormalIntRange( minDamage, maxDamage );
 		return petType.getDamage( level );
 	}
 
 	@Override
 	public int drRoll(){
-		return super.drRoll() + Random.NormalIntRange(0, defence >= 0 ? defence : petType.getDefence( level ));
+		int block;
+		if (defence >= 0){
+			block = Math.round( defence * xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.heroPower() );
+		} else {
+			float perLevel = petType == PET_TYPES.RAT ? 0.02f : 0.05f;
+			block = Math.round( HT * perLevel * Math.max( 1, Math.min( 3, level ) ) );
+		}
+		return super.drRoll() + Random.NormalIntRange( 0, block );
 	}
 
 	@Override
@@ -181,15 +287,17 @@ public class SummonedPet extends NPC {
 
 	@Override
 	public void die( Object cause ){
-		summonedPets = Math.max(0, summonedPets - 1);
 		super.die( cause );
 	}
 
 	@Override
 	public String description(){
-		return "A summoned creature bound to its master's will. It slowly withers away as the magic that binds it fades.";
+		return "A summoned creature bound to its master's will. Its strength is drawn from its master's, and it holds together for " + lifeLeft + " more turns before the magic that binds it fades.";
 	}
 
+	private static final String PET_LIFE   = "petlife";
+	private static final String PET_SHARE  = "petshare";
+	private static final String PET_DMG_SHARE = "petdmgshare";
 	private static final String PET_SPRITE = "petsprite";
 	private static final String PET_TYPE  = "pettype";
 	private static final String PET_LEVEL = "petlevel";
@@ -201,6 +309,9 @@ public class SummonedPet extends NPC {
 	@Override
 	public void storeInBundle( Bundle bundle ){
 		super.storeInBundle( bundle );
+		bundle.put( PET_LIFE, lifeLeft );
+		bundle.put( PET_SHARE, healthShare );
+		bundle.put( PET_DMG_SHARE, damageShare );
 		bundle.put( PET_TYPE, petType );
 		bundle.put( PET_LEVEL, level );
 		if (name != null) bundle.put( PET_NAME, name );
@@ -215,6 +326,10 @@ public class SummonedPet extends NPC {
 	@Override
 	public void restoreFromBundle( Bundle bundle ){
 		super.restoreFromBundle( bundle );
+		//older saves carried no timer: they get a fresh day
+		lifeLeft = bundle.contains( PET_LIFE ) ? bundle.getInt( PET_LIFE ) : LIFETIME;
+		healthShare = bundle.contains( PET_SHARE ) ? bundle.getFloat( PET_SHARE ) : 0f;
+		damageShare = bundle.contains( PET_DMG_SHARE ) ? bundle.getFloat( PET_DMG_SHARE ) : 0f;
 		petType = bundle.getEnum( PET_TYPE, PET_TYPES.class );
 		level = bundle.getInt( PET_LEVEL );
 		if (bundle.contains( PET_NAME )) name = bundle.getString( PET_NAME );

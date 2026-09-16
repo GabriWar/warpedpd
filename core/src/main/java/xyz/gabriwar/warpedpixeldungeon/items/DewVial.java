@@ -59,7 +59,7 @@ public class DewVial extends Item {
 	private static final int EXT_VOLUME = 300;
 
 	private int maxVolume() {
-		return Dungeon.wings ? EXT_VOLUME : MAX_VOLUME;
+		return Dungeon.skinCapacity ? EXT_VOLUME : MAX_VOLUME;
 	}
 
 	private static final String AC_SIP    = "SIP";
@@ -107,20 +107,12 @@ public class DewVial extends Item {
 		ArrayList<String> actions = super.actions(hero);
 		if (volume > 99) {
 			actions.add(AC_DRINK);
-			if (Dungeon.dewWater) {
-				actions.add(AC_WATER);
-			} else {
-				actions.add(AC_SIP);
-			}
+			actions.add(AC_SIP);
 			actions.add(AC_SPLASH);
 			actions.add(AC_BLESS);
 		} else if (volume > 49) {
 			actions.add(AC_DRINK);
-			if (Dungeon.dewWater) {
-				actions.add(AC_WATER);
-			} else {
-				actions.add(AC_SIP);
-			}
+			actions.add(AC_SIP);
 			actions.add(AC_SPLASH);
 		} else if (volume > 29) {
 			actions.add(AC_DRINK);
@@ -216,50 +208,9 @@ public class DewVial extends Item {
 				GLog.w(Messages.get(this, "empty"));
 			}
 
-		} else if (action.equals(AC_WATER)) {
-
-			int length = Dungeon.level.length();
-			for (int i = 0; i < length; i++) {
-				if (Dungeon.level.heroFOV[i]) {
-					int c = Dungeon.level.map[i];
-					if (c == Terrain.GRASS) {
-						GameScene.add(Blob.seed(i, 40, Water.class));
-					}
-				}
-			}
-			volume -= 2;
-
-			GLog.i(Messages.get(this, "watered"));
-
-			hero.sprite.operate(hero.pos);
-			hero.busy();
-			hero.spend(TIME_TO_WATER);
-
-			updateQuickslot();
-
-		} else if (action.equals(AC_SPLASH)) {
-
-			Buff.affect(hero, Haste.class, Haste.DURATION);
-			Buff.affect(hero, Invisibility.class, Invisibility.DURATION);
-			if (Dungeon.wings && Dungeon.depth < 51) {
-				Buff.affect(hero, Levitation.class, Levitation.DURATION);
-				GLog.i(Messages.get(this, "float"));
-			}
-			GLog.i(Messages.get(this, "refreshed"));
-
-			volume -= 10;
-
-			hero.spend(TIME_TO_DRINK);
-			hero.busy();
-
-			Sample.INSTANCE.play(Assets.Sounds.DRINK);
-			hero.sprite.operate(hero.pos);
-
-			updateQuickslot();
-
 		} else if (action.equals(AC_BLESS)) {
 
-			if (!Dungeon.dewDraw) {
+			{
 				// Uncurse mode
 				boolean procced = ScrollOfRemoveCurse.uncurse(hero,
 						hero.belongings.weapon,
@@ -306,10 +257,6 @@ public class DewVial extends Item {
 				}
 
 				volume -= 50;
-			} else {
-				// Draw mode — let player choose which item to upgrade
-				GameScene.selectItem(blessItemSelector);
-				return; // don't spend time yet, wait for selection
 			}
 
 			hero.spend(TIME_TO_BLESS);
@@ -411,47 +358,4 @@ public class DewVial extends Item {
 		return Messages.format("%d/%d", volume, maxVolume());
 	}
 
-	private final WndBag.ItemSelector blessItemSelector = new WndBag.ItemSelector() {
-
-		@Override
-		public String textPrompt() {
-			return Messages.get(DewVial.class, "select_item");
-		}
-
-		@Override
-		public Class<? extends Bag> preferredBag() {
-			return Belongings.Backpack.class;
-		}
-
-		@Override
-		public boolean itemSelectable(Item item) {
-			int levelLimit = 5 + Dungeon.scalingDepth() / 3;
-			if (Dungeon.hero.heroClass == HeroClass.MAGE) {
-				levelLimit++;
-			}
-			return item.isUpgradable() && item.buffedLvl() < levelLimit;
-		}
-
-		@Override
-		public void onSelect(Item item) {
-			if (item != null) {
-				Hero hero = Dungeon.hero;
-
-				item.upgrade();
-				GLog.p(Messages.get(DewVial.class, "looks_better", item.name()));
-				hero.sprite.emitter().start(Speck.factory(Speck.UP), 0.2f, 3);
-				Badges.validateItemLevelAquired(item);
-
-				volume -= 90;
-
-				hero.spend(TIME_TO_BLESS);
-				hero.busy();
-
-				Sample.INSTANCE.play(Assets.Sounds.DRINK);
-				hero.sprite.operate(hero.pos);
-
-				updateQuickslot();
-			}
-		}
-	};
 }

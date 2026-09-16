@@ -103,26 +103,6 @@ public class Blueeyedsusan extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect( Char attacker, Char defender, int damage ) {
-			if (attacker instanceof Hero){
-				if (((Hero) attacker).subClass == HeroSubClass.WARDEN){
-					boolean uncursed = false;
-					for (Item item : ((Hero) attacker).belongings){
-						if (item.cursed){
-							uncursed = ScrollOfRemoveCurse.uncurse((Hero) attacker, item);
-						}
-					}
-					if (uncursed){
-						new Flare( 6, 32 ).show( attacker.sprite, 1f );
-					}
-				} else
-				if (((Hero) attacker).belongings.weapon != null && ((Hero) attacker).belongings.weapon.cursed){
-					boolean bool = ScrollOfRemoveCurse.uncurse((Hero) attacker, ((Hero) attacker).belongings.weapon);
-					if (bool) new Flare( 6, 32 ).show( attacker.sprite, 1f );
-				}
-			}
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

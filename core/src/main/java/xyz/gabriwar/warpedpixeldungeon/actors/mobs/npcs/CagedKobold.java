@@ -38,6 +38,8 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CagedKoboldSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndQuest;
 import com.watabou.utils.Bundle;
+import com.watabou.noosa.Game;
+import com.watabou.utils.Callback;
 
 //ported from Remixed PD's Ice Caves: a kobold locked in a cage that trades its
 //candle for the ice key carried by the branch's boss.
@@ -66,10 +68,10 @@ public class CagedKobold extends NPC {
 			return true;
 		}
 
-		if (Quest.given) {
-			IceKey key = hero.belongings.getItem( IceKey.class );
-			if (key != null) {
-				key.detach( hero.belongings.backpack );
+		boolean unlocked = IceKey.consume(hero);
+		if (Quest.given || unlocked) {
+			if (unlocked) {
+				GameScene.updateKeyDisplay();
 
 				CandleOfMindVision candle = new CandleOfMindVision();
 				if (!candle.collect()) {
@@ -77,7 +79,14 @@ public class CagedKobold extends NPC {
 				}
 
 				Quest.complete();
-				GameScene.show( new WndQuest( this, Messages.get( this, "end" ) ) );
+				//only the render thread may measure a window's text; interact() is the
+				//actor thread's
+				Game.runOnRenderThread( new Callback() {
+					@Override
+					public void call() {
+						GameScene.show( new WndQuest( CagedKobold.this, Messages.get( CagedKobold.this, "end" ) ) );
+					}
+				} );
 				CellEmitter.get( pos ).start( Speck.factory( Speck.LIGHT ), 0.2f, 3 );
 
 				destroy();
@@ -86,7 +95,12 @@ public class CagedKobold extends NPC {
 				GLog.i( Messages.get( this, "reminder" ) );
 			}
 		} else {
-			GameScene.show( new WndQuest( this, Messages.get( this, "intro" ) ) );
+			Game.runOnRenderThread( new Callback() {
+				@Override
+				public void call() {
+					GameScene.show( new WndQuest( CagedKobold.this, Messages.get( CagedKobold.this, "intro" ) ) );
+				}
+			} );
 			Quest.given = true;
 			Notes.add( Notes.Landmark.CAGED_KOBOLD );
 		}

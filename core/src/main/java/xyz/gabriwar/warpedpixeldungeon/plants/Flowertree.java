@@ -71,8 +71,7 @@ public class Flowertree extends Plant {
 	public void spiceEffect( Char ch ) {
 		ch.sprite.burst(new FlowertreePoisonParticle().getColor(), 10);
 		try {
-			Plant.Seed seed = (Plant.Seed) Generator.random(Generator.Category.SEED);
-			Reflection.newInstance(seed.getPlantClass()).spiceEffect(ch);
+			Plant.randomEffectPlant(ch.pos).spiceEffect(ch);
 		} catch (Exception e){
 			Game.reportException(e);
 		}
@@ -91,10 +90,6 @@ public class Flowertree extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			plantRandomSeed(defender.pos);
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

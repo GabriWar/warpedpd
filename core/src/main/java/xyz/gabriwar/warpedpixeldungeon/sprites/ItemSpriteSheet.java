@@ -99,13 +99,13 @@ public class ItemSpriteSheet {
 	static{
 		assignItemRect(GOLD             , 15, 13);
 		assignItemRect(ENERGY           , 16, 16);
-		assignItemRect(DEWDROP          , 10, 10);
+		assignItemRect(DEWDROP          , 10,  9);
 		assignItemRect(PETAL            ,  8,  8);
 		assignItemRect(SANDBAG          , 10, 10);
 		assignItemRect(SPIRIT_ARROW     , 11, 11);
 		assignItemRect(TENGU_BOMB       , 10, 10);
 		assignItemRect(TENGU_SHOCKER    , 10, 10);
-		assignItemRect(GEO_BOULDER      , 16, 14);
+		assignItemRect(GEO_BOULDER      , 16, 15);
 		assignItemRect(UPGRADEGOO_YELLOW, 14, 11);
 		assignItemRect(UPGRADEGOO_RED   , 14, 11);
 		assignItemRect(UPGRADEGOO_VIOLET, 14, 11);
@@ -528,6 +528,9 @@ public class ItemSpriteSheet {
 	public static final int ARTIFACT_KEY            = ARTIFACTS+24;
 	public static final int ARTIFACT_DISINTEGRATION = ARTIFACTS+25;
 	public static final int ARTIFACT_FROST          = ARTIFACTS+26;
+	public static final int ARTIFACT_CLIMATE_CRYSTAL= ARTIFACTS+27;
+	public static final int ICE_KEY                 = ARTIFACTS+28;   //the caged kobold's key; no free slot among the keys
+	public static final int ARTIFACT_MIND_CANDLE    = ARTIFACTS+29;
 	static{
 		assignItemRect(ARTIFACT_CLOAK         ,  9, 15);
 		assignItemRect(ARTIFACT_ARMBAND       , 16, 13);
@@ -556,6 +559,9 @@ public class ItemSpriteSheet {
 		assignItemRect(ARTIFACT_KEY           ,  8, 16);
 		assignItemRect(ARTIFACT_DISINTEGRATION, 12, 11);
 		assignItemRect(ARTIFACT_FROST         , 10, 10);
+		assignItemRect(ARTIFACT_CLIMATE_CRYSTAL, 10, 14);
+		assignItemRect(ICE_KEY                 ,  8, 14);
+		assignItemRect(ARTIFACT_MIND_CANDLE    , 15, 14);
 	}
 
 	private static final int TRINKETS            =                               xy(1, 20);   //32 slots
@@ -579,8 +585,8 @@ public class ItemSpriteSheet {
 	static{
 		assignItemRect(RAT_SKULL      , 16, 11);
 		assignItemRect(PARCHMENT_SCRAP, 10, 14);
-		assignItemRect(PETRIFIED_SEED , 10, 10);
-		assignItemRect(EXOTIC_CRYSTALS, 14, 13);
+		assignItemRect(PETRIFIED_SEED ,  9,  9);
+		assignItemRect(EXOTIC_CRYSTALS, 15, 13);
 		assignItemRect(MOSSY_CLUMP    , 12, 11);
 		assignItemRect(SUNDIAL        , 16, 12);
 		assignItemRect(CLOVER         , 11, 15);
@@ -773,12 +779,12 @@ public class ItemSpriteSheet {
 	public static final int BREW_AQUA     = BREWS+4;
 	public static final int BREW_UNSTABLE = BREWS+5;
 	static{
-		assignItemRect(BREW_INFERNAL, 12, 14);
-		assignItemRect(BREW_BLIZZARD, 12, 14);
+		assignItemRect(BREW_INFERNAL, 11, 13);
+		assignItemRect(BREW_BLIZZARD, 11, 13);
 		assignItemRect(BREW_SHOCKING, 12, 14);
 		assignItemRect(BREW_CAUSTIC , 12, 14);
 		assignItemRect(BREW_AQUA    ,  9, 11);
-		assignItemRect(BREW_UNSTABLE, 12, 14);
+		assignItemRect(BREW_UNSTABLE, 11, 13);
 	}
 
 	private static final int ELIXIRS             =                               xy(9, 41);   //8 slots
@@ -807,6 +813,11 @@ public class ItemSpriteSheet {
 	public static final int RECLAIM_TRAP   = SPELLS+10;
 	public static final int RETURN_BEACON  = SPELLS+11;
 	public static final int SUMMON_ELE     = SPELLS+12;
+	//Shattered v4.0 elemental variants: the free spell cells (SPELLS+4, +9) and the two spare cells of the ported spell row
+	public static final int SUMMON_ELE_FIRE  = SPELLS+4;
+	public static final int SUMMON_ELE_FROST = SPELLS+9;
+	public static final int SUMMON_ELE_SHOCK = xy(5, 43);
+	public static final int SUMMON_ELE_CHAOS = xy(6, 43);
 	public static final int AQUA_BLAST       = SPELLS+1;
 	public static final int MAGIC_PORTER     = SPELLS+3;
 	public static final int FEATHER_FALL     = SPELLS+5;
@@ -817,17 +828,21 @@ public class ItemSpriteSheet {
 	public static final int DOOMCALL         = SPELLS+14;
 	public static final int SEASONCHANGE     = SPELLS+15;
 	static{
-		assignItemRect(WILD_ENERGY   , 12, 11);
-		assignItemRect(PHASE_SHIFT   , 12, 11);
-		assignItemRect(TELE_GRAB     , 12, 11);
+		assignItemRect(WILD_ENERGY   ,  6, 15);
+		assignItemRect(PHASE_SHIFT   , 12, 10);
+		assignItemRect(TELE_GRAB     , 10, 10);
 		assignItemRect(UNSTABLE_SPELL, 12, 13);
-		assignItemRect(CURSE_INFUSE  , 10, 15);
-		assignItemRect(MAGIC_INFUSE  , 10, 15);
-		assignItemRect(ALCHEMIZE     , 10, 15);
-		assignItemRect(RECYCLE       , 10, 15);
-		assignItemRect(RECLAIM_TRAP  ,  8, 16);
+		assignItemRect(CURSE_INFUSE  , 10, 16);
+		assignItemRect(MAGIC_INFUSE  , 10, 14);
+		assignItemRect(ALCHEMIZE     , 12, 12);
+		assignItemRect(RECYCLE       , 12, 13);
+		assignItemRect(RECLAIM_TRAP  , 14, 11);
 		assignItemRect(RETURN_BEACON ,  8, 16);
 		assignItemRect(SUMMON_ELE    ,  8, 16);
+		assignItemRect(SUMMON_ELE_FIRE ,  8, 16);
+		assignItemRect(SUMMON_ELE_FROST,  8, 16);
+		assignItemRect(SUMMON_ELE_SHOCK,  8, 16);
+		assignItemRect(SUMMON_ELE_CHAOS,  8, 16);
 		// AQUA_BLAST=SPELLS+1, MAGIC_PORTER=SPELLS+3, FEATHER_FALL=SPELLS+5,
 		// ENCHANT_INFUSE=SPELLS+10, CRIMSON_EPITHET=SPELLS+11, FORCEFIELD=SPELLS+12
 		// share tiles with the originals above — no separate assignItemRect needed
@@ -949,6 +964,7 @@ public class ItemSpriteSheet {
 	public static final int SANCHIKARAH_DEATH     = QUEST+16;
 	public static final int SANCHIKARAH_LIFE      = QUEST+17;
 	public static final int SANCHIKARAH_TRANSCEND = QUEST+18;
+	public static final int STATUE                = QUEST+19;
 	static{
 		assignItemRect(DUST                 , 12, 11);
 		assignItemRect(CANDLE               , 12, 12);
@@ -968,6 +984,7 @@ public class ItemSpriteSheet {
 		assignItemRect(SANCHIKARAH_DEATH    , 16, 10);
 		assignItemRect(SANCHIKARAH_LIFE     , 16, 10);
 		assignItemRect(SANCHIKARAH_TRANSCEND, 16, 10);
+		assignItemRect(STATUE               , 10, 16);
 	}
 
 	private static final int BAGS                =                               xy(1, 53);   //16 slots
@@ -1446,8 +1463,10 @@ public class ItemSpriteSheet {
 
 	private static final int PORT_QUEST                     =                                xy(1, 52);   //2 slots
 	public static final int SKULL                                    = PORT_QUEST+0;
+	public static final int SPIDER_CHARM                             = PORT_QUEST+1;
 	static {
 		assignItemRect(SKULL                         , 16, 11);
+		assignItemRect(SPIDER_CHARM                  , 10, 13);
 	}
 
 	//for smaller 8x8 icons that often accompany an item sprite

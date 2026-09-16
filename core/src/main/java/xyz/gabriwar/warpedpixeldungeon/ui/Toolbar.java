@@ -23,6 +23,10 @@ package xyz.gabriwar.warpedpixeldungeon.ui;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill;
+import xyz.gabriwar.warpedpixeldungeon.sprites.SkillSprite;
+import xyz.gabriwar.warpedpixeldungeon.windows.WndQuickSkills;
+import xyz.gabriwar.warpedpixeldungeon.windows.WndSkill;
 import xyz.gabriwar.warpedpixeldungeon.QuickSlot;
 import xyz.gabriwar.warpedpixeldungeon.WPDAction;
 import xyz.gabriwar.warpedpixeldungeon.WPDSettings;
@@ -64,6 +68,7 @@ public class Toolbar extends Component {
 	private Tool btnSearch;
 	private Tool btnInventory;
 	private QuickslotTool[] btnQuick;
+	private SkillQuickslotTool[] btnSkills;
 	private SlotSwapTool btnSwap;
 
 	private PickedUpItem pickedUp;
@@ -84,7 +89,7 @@ public class Toolbar extends Component {
 
 		instance = this;
 
-		height = btnInventory.height();
+		height = btnInventory.height() + 24;
 	}
 
 	@Override
@@ -98,9 +103,11 @@ public class Toolbar extends Component {
 
 		add(btnSwap = new SlotSwapTool(128, 0, 21, 23));
 
+		btnSkills = new SkillQuickslotTool[QuickSlot.SIZE];
 		btnQuick = new QuickslotTool[QuickSlot.SIZE];
 		for (int i = 0; i < btnQuick.length; i++){
 			add( btnQuick[i] = new QuickslotTool(64, 0, 22, 24, i) );
+			add(btnSkills[i] = new SkillQuickslotTool(i));
 		}
 
 		//hidden button for quickslot selector keybind
@@ -121,12 +128,14 @@ public class Toolbar extends Component {
 
 				if (Dungeon.hero != null && Dungeon.hero.ready && !GameScene.cancel()) {
 
+					//the radial menu holds six: it offers the hotbar page that is showing
+					final int base = Math.max( 0, Math.min( visibleStart, QuickSlot.SIZE - 6 ) );
 					String[] slotNames = new String[6];
 					Image[] slotIcons = new Image[6];
 					for (int i = 0; i < 6; i++){
-						Item item = Dungeon.quickslot.getItem(i);
+						Item item = Dungeon.quickslot.getItem(base + i);
 
-						if (item != null && !Dungeon.quickslot.isPlaceholder(i) &&
+						if (item != null && !Dungeon.quickslot.isPlaceholder(base + i) &&
 								(!Dungeon.hero.belongings.lostInventory() || item.keptThroughLostInventory())){
 							slotNames[i] = Messages.titleCase(item.name());
 							slotIcons[i] = new ItemSprite(item);
@@ -150,9 +159,10 @@ public class Toolbar extends Component {
 					Game.scene().addToFront(new RadialMenu(Messages.get(Toolbar.class, "quickslot_prompt"), info, slotNames, slotIcons) {
 						@Override
 						public void onSelect(int idx, boolean alt) {
-							Item item = Dungeon.quickslot.getItem(idx);
+							final int slot = base + idx;
+							Item item = Dungeon.quickslot.getItem(slot);
 
-							if (item == null || Dungeon.quickslot.isPlaceholder(idx)
+							if (item == null || Dungeon.quickslot.isPlaceholder(slot)
 									|| (Dungeon.hero.belongings.lostInventory() && !item.keptThroughLostInventory())
 									|| alt){
 								//TODO would be nice to use a radial menu for this too
@@ -171,7 +181,7 @@ public class Toolbar extends Component {
 									@Override
 									public void onSelect(Item item) {
 										if (item != null) {
-											QuickSlotButton.set(idx, item);
+											QuickSlotButton.set(slot, item);
 										}
 									}
 								});
@@ -179,7 +189,7 @@ public class Toolbar extends Component {
 
 								xyz.gabriwar.warpedpixeldungeon.items.Item.executeNetAware(item, Dungeon.hero);
 								if (item.usesTargeting) {
-									QuickSlotButton.useTargeting(idx);
+									QuickSlotButton.useTargeting(slot);
 								}
 							}
 							super.onSelect(idx, alt);
@@ -364,6 +374,31 @@ public class Toolbar extends Component {
 
 			private Image arrow;
 
+			//equipped artifacts in the corners: the artifact slot on the left, an artifact worn in the
+			//misc slot on the right, each with its icon on top and its charge underneath
+			//built in createChildren, which the constructor runs before field initializers: no initializer
+			//here, or it would run afterwards and wipe the children already created
+			private xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite[] artIcon;
+			private com.watabou.noosa.BitmapText[] artCharge;
+			private final xyz.gabriwar.warpedpixeldungeon.items.Item[] artShown = new xyz.gabriwar.warpedpixeldungeon.items.Item[2];
+			private final String[] artText = { "", "" };
+			private float artOpacity = 1f;
+
+			private xyz.gabriwar.warpedpixeldungeon.items.artifacts.Artifact equipped( int slot ){
+				if (Dungeon.hero == null || Dungeon.hero.belongings == null) return null;
+				if (slot == 0) return Dungeon.hero.belongings.artifact;
+				return Dungeon.hero.belongings.misc instanceof xyz.gabriwar.warpedpixeldungeon.items.artifacts.Artifact
+						? (xyz.gabriwar.warpedpixeldungeon.items.artifacts.Artifact) Dungeon.hero.belongings.misc : null;
+			}
+
+			//just the number: "50%" reads 50, "3/5" reads 3, so two fit side by side on the button
+			private String compactCharge( String status ){
+				if (status == null) return "";
+				int slash = status.indexOf( '/' );
+				if (slash > 0) status = status.substring( 0, slash );
+				return status.replace( "%", "" ).trim();
+			}
+
 			@Override
 			protected void onClick() {
 				if (Dungeon.hero != null && (Dungeon.hero.ready || !Dungeon.hero.isAlive())) {
@@ -407,19 +442,81 @@ public class Toolbar extends Component {
 				arrow.tint(0x3D2E18, 1f);
 				add(arrow);
 
+				artIcon = new xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite[2];
+				artCharge = new com.watabou.noosa.BitmapText[2];
+				for (int i = 0; i < 2; i++){
+					artIcon[i] = new xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite();
+					artIcon[i].scale.set( 0.5f );
+					artIcon[i].visible = false;
+					add( artIcon[i] );
+					artCharge[i] = new com.watabou.noosa.BitmapText( PixelScene.pixelFont );
+					artCharge[i].visible = false;
+					add( artCharge[i] );
+				}
+
 				ind = new CurrencyIndicator();
 				add(ind);
+			}
+
+			@Override
+			public void update() {
+				super.update();
+				refreshDisplay();
+			}
+
+			@Override
+			protected void refreshDisplay() {
+				if (artIcon == null) return;
+				boolean changed = false;
+				for (int i = 0; i < 2; i++){
+					xyz.gabriwar.warpedpixeldungeon.items.artifacts.Artifact art = equipped( i );
+					if (art != artShown[i]){
+						artShown[i] = art;
+						if (art != null) artIcon[i].view( art.image(), art.glowing() );
+						changed = true;
+					}
+					String text = art == null ? "" : compactCharge( art.status() );
+					if (!text.equals( artText[i] )){
+						artText[i] = text;
+						artCharge[i].text( text );
+						artCharge[i].measure();
+						changed = true;
+					}
+					artIcon[i].visible = art != null;
+					artCharge[i].visible = art != null && !text.isEmpty();
+				}
+				if (changed) layout();
 			}
 
 			@Override
 			protected void layout() {
 				super.layout();
 				ind.fill(this);
+
+				if (artIcon != null && artIcon[0] != null){
+					artIcon[0].x = left() + 1;
+					artIcon[0].y = top() + 1;
+					artIcon[1].x = right() - artIcon[1].width() - 1;
+					artIcon[1].y = top() + 1;
+					artCharge[0].x = left() + 1;
+					artCharge[0].y = bottom() - artCharge[0].height() - 1;
+					artCharge[1].x = right() - artCharge[1].width() - 1;
+					artCharge[1].y = bottom() - artCharge[1].height() - 1;
+					for (int i = 0; i < 2; i++){
+						PixelScene.align( artIcon[i] );
+						PixelScene.align( artCharge[i] );
+						artIcon[i].alpha( artOpacity );
+						artCharge[i].alpha( artOpacity );
+						bringToFront( artIcon[i] );
+						bringToFront( artCharge[i] );
+					}
+				}
 				bringToFront(ind);
 
 				arrow.x = left() + (width - arrow.width())/2;
 				arrow.y = bottom()-arrow.height-1;
 				arrow.angle = bottom() == camera().height ? 0 : 180;
+				PixelScene.align(arrow);
 			}
 
 			@Override
@@ -428,6 +525,16 @@ public class Toolbar extends Component {
 					arrow.alpha( value ? 1f : 0.4f );
 				}
 				super.enable(value);
+			}
+
+			@Override
+			public void alpha( float value ) {
+				super.alpha( value );
+				artOpacity = value;
+				for (int i = 0; artIcon != null && i < 2; i++){
+					if (artIcon[i] != null) artIcon[i].alpha( value );
+					if (artCharge[i] != null) artCharge[i].alpha( value );
+				}
 			}
 		});
 		btnInventory.icon( 160, 0, 16, 16 );
@@ -471,6 +578,7 @@ public class Toolbar extends Component {
 								if (b.misc() != null) items.add(0, b.misc());
 								if (b.artifact() != null) items.add(0, b.artifact());
 								if (b.armor() != null) items.add(0, b.armor());
+								if (b.secondWep() != null) items.add(0, b.secondWep());
 								if (b.weapon() != null) items.add(0, b.weapon());
 							}
 
@@ -529,24 +637,19 @@ public class Toolbar extends Component {
 	protected void layout() {
 
 		float right = width;
+		float y = this.y + 24;
 
 		int quickslotsToShow = 4;
 		if (PixelScene.uiCamera.width > 152) quickslotsToShow ++;
 		if (PixelScene.uiCamera.width > 170) quickslotsToShow ++;
 
-		int startingSlot;
-		if (WPDSettings.quickSwapper() && quickslotsToShow < 6){
-			quickslotsToShow = 3;
-			startingSlot = swappedQuickslots ? 3 : 0;
-			btnSwap.visible = true;
-			btnSwap.active = lastEnabled;
-			QuickSlotButton.lastVisible = 6;
-		} else {
-			startingSlot = 0;
-			btnSwap.visible = btnSwap.active = false;
-			btnSwap.setPos(0, PixelScene.uiCamera.height);
-			QuickSlotButton.lastVisible = quickslotsToShow;
-		}
+		//the swap button always shows: it flips to a second page as wide as the visible hotbar
+		int startingSlot = swappedQuickslots ? quickslotsToShow : 0;
+		pageSize = quickslotsToShow;
+		visibleStart = startingSlot;
+		btnSwap.visible = true;
+		btnSwap.active = lastEnabled;
+		QuickSlotButton.lastVisible = Math.min( QuickSlot.SIZE, quickslotsToShow * 2 );
 		int endingSlot = startingSlot+quickslotsToShow-1;
 
 		for (int i = 0; i < btnQuick.length; i++){
@@ -567,7 +670,8 @@ public class Toolbar extends Component {
 				if (i == endingSlot){
 					btnQuick[i].border(0, 2);
 					btnQuick[i].frame(106, 0, 19, 24);
-				} else if (i == 0){
+				} else if (i == startingSlot){
+					//the leftmost slot of whichever page is showing keeps the left border
 					btnQuick[i].border(2, 1);
 					btnQuick[i].frame(86, 0, 20, 24);
 				} else {
@@ -578,7 +682,11 @@ public class Toolbar extends Component {
 				right = btnQuick[i].left();
 			}
 
-			//swap button never appears on larger interface sizes
+			//flush beside the hotbar, never over its left border
+			btnSwap.setPos( right - btnSwap.width(), y + 3 );
+			btnSwap.updateVisuals();
+
+			layoutSkillSlots();
 
 			return;
 		}
@@ -684,7 +792,18 @@ public class Toolbar extends Component {
 
 		}
 
+		layoutSkillSlots();
+	}
 
+	private void layoutSkillSlots(){
+		for (int i = 0; i < btnSkills.length; i++){
+			QuickslotTool item = btnQuick[i];
+			SkillQuickslotTool skill = btnSkills[i];
+			skill.visible = item.visible;
+			skill.frame(item.borderLeft == 2 ? 86 : item.borderRight == 2 ? 106 : 88, 0, (int)item.width(), 24);
+			skill.setPos(item.left(), item.top() - 24);
+			skill.enable(lastEnabled);
+		}
 	}
 
 	public static void updateLayout(){
@@ -718,6 +837,14 @@ public class Toolbar extends Component {
 		if (!Dungeon.hero.isAlive()) {
 			btnInventory.enable(true);
 		}
+
+		//disabled tools are inactive and skip update(): keep their charges and costs moving anyway,
+		//so they tick along while the hero sleeps, rests or is otherwise busy
+		for (Gizmo tool : members.toArray(new Gizmo[0])) {
+			if (tool instanceof Tool && tool.visible && !tool.active) {
+				((Tool)tool).refreshDisplay();
+			}
+		}
 	}
 
 	public void alpha( float value ){
@@ -727,6 +854,7 @@ public class Toolbar extends Component {
 		for (QuickslotTool tool : btnQuick){
 			tool.alpha(value);
 		}
+		for (SkillQuickslotTool tool : btnSkills) tool.alpha(value);
 		btnSwap.alpha( value );
 	}
 
@@ -770,6 +898,11 @@ public class Toolbar extends Component {
 
 			this.width = width;
 			this.height = height;
+		}
+
+		/** refreshes what the tool shows (icons, numbers). A disabled tool is inactive and skipped by
+		 *  update(), e.g. every turn the hero sleeps or rests, so the toolbar calls this directly */
+		protected void refreshDisplay(){
 		}
 
 		public void icon( int x, int y, int width, int height){
@@ -827,6 +960,92 @@ public class Toolbar extends Component {
 		}
 	}
 	
+	private static class SkillQuickslotTool extends Tool {
+		private final int index;
+		private com.watabou.noosa.Image sprite;
+		private Skill displayedSkill;
+		private com.watabou.noosa.BitmapText cost;
+		private float opacity = 1f;
+
+		SkillQuickslotTool(int index){
+			super(64, 0, 22, 24);
+			this.index = index;
+			sprite = new SkillSprite(0);
+			add(sprite);
+			cost = new com.watabou.noosa.BitmapText(PixelScene.pixelFont);
+			add(cost);
+		}
+
+		private Skill skill(){
+			return Dungeon.hero.heroSkills.quickslot(index);
+		}
+
+		@Override protected void layout(){
+			super.layout();
+			if (sprite == null) return;
+			sprite.x = x + (width - sprite.width()) / 2;
+			sprite.y = y + (height - sprite.height()) / 2;
+			PixelScene.align(sprite);
+			cost.x = x + 2;
+			cost.y = y + 2;
+		}
+
+		@Override public void update(){
+			super.update();
+			refreshDisplay();
+		}
+
+		@Override protected void refreshDisplay(){
+			Skill skill = skill();
+			if (skill != displayedSkill){
+				erase(sprite);
+				sprite.destroy();
+				sprite = skill == null ? new SkillSprite(0) : skill.quickslotIcon();
+				add(sprite);
+				bringToFront(cost);
+				displayedSkill = skill;
+				layout();
+			}
+			sprite.visible = skill != null;
+			cost.visible = skill != null && !skill.quickslotStatus().isEmpty();
+			if (skill != null){
+				if (sprite instanceof SkillSprite) ((SkillSprite)sprite).view(skill.image()).grey(skill.toggleable() && !skill.active);
+				boolean ready = active && !skill.actions(Dungeon.hero).isEmpty();
+				sprite.alpha(opacity * (ready || skill.active ? 1f : 0.35f));
+				cost.text(skill.quickslotStatus());
+				cost.measure();
+				cost.hardlight(ready ? 0x8ac0ff : 0xdd8877);
+				cost.alpha(opacity);
+			}
+		}
+
+		@Override public void enable(boolean value){ super.enable(value && visible); }
+		@Override public void alpha(float value){ super.alpha(value); opacity = value; }
+
+		private void select(){
+			GameScene.show(new WndQuickSkills(skill -> Dungeon.hero.heroSkills.quickslot(index, skill)));
+		}
+
+		@Override protected void onClick(){
+			if (!Dungeon.hero.ready || !Dungeon.hero.isAlive()) return;
+			Skill skill = skill();
+			if (skill != null && skill.confirmTarget(Dungeon.hero)) return;
+			if (GameScene.cancel()) return;
+			if (skill == null) select();
+			else {
+				ArrayList<String> actions = skill.actions(Dungeon.hero);
+				if (actions.isEmpty()) GameScene.show(new WndSkill(null, skill));
+				else skill.execute(Dungeon.hero, actions.get(0));
+			}
+		}
+
+		@Override protected boolean onLongClick(){ select(); return true; }
+		@Override protected void onRightClick(){ select(); }
+		@Override protected String hoverText(){
+			return skill() == null ? Messages.get(Toolbar.class, "skill_slot") : Messages.titleCase(skill().name());
+		}
+	}
+
 	private static class QuickslotTool extends Tool {
 		
 		private QuickSlotButton slot;
@@ -867,6 +1086,9 @@ public class Toolbar extends Component {
 	}
 
 	public static boolean swappedQuickslots = false;
+	//slots per hotbar page, and the first slot on the page showing now
+	public static int pageSize = 3;
+	public static int visibleStart = 0;
 	public static SlotSwapTool SWAP_INSTANCE;
 
 	public static class SlotSwapTool extends Tool {
@@ -901,13 +1123,15 @@ public class Toolbar extends Component {
 				add(icons[0]);
 			}
 
+			//preview the first three items of the page the button would flip to
+			int otherStart = swappedQuickslots ? 0 : pageSize;
 			int slot;
 			int slotDir;
 			if (WPDSettings.flipToolbar()){
-				slot = swappedQuickslots ? 0 : 3;
+				slot = otherStart;
 				slotDir = +1;
 			} else {
-				slot = swappedQuickslots ? 2 : 5;
+				slot = otherStart + Math.min( 3, pageSize ) - 1;
 				slotDir = -1;
 			}
 

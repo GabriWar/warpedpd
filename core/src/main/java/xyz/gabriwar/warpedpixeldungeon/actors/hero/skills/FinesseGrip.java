@@ -26,13 +26,28 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
-
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
 import com.watabou.utils.Random;
 
 public class FinesseGrip extends Skill {
+
+	//damage comes from the weapon or strength, which already grow with the hero
+	@Override
+	public boolean weaponScaled(){ return true; }
+
+
+	private static final int SLIP_CHANCE = 15;
 
 	{
 		tag = "CA";
@@ -55,18 +70,31 @@ public class FinesseGrip extends Skill {
 		return true;
 	}
 
+	//a light melee hit can flick in a quick second cut: 15% / 25% / 35% chance for 40% of the hit.
+	//the cut stops one short of killing, so the finishing blow (and every on-kill effect) stays the hero's
 	@Override
-	public float damageModifier(){
-		return qualifies() ? 1f + 0.05f * level : 1f;
+	public int onHitProc( Char enemy, int damage, boolean ranged ){
+		if (ranged || enemy == null || !enemy.isAlive() || damage <= 0 || !qualifies()
+				|| Random.Int( 100 ) >= 5 + 10 * level){
+			return damage;
+		}
+		int cut = Math.min( Math.round( damage * 0.4f ), enemy.HP - 1 );
+		if (cut <= 0){
+			return damage;
+		}
+		enemy.damage( cut, this );
+		Wound.hit( enemy );
+		Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 0.8f, 1.4f );
+		//+3: a second cut that lands can flick in a third at the same odds
+		if (level >= MAX_LEVEL && enemy.isAlive() && enemy.HP > 1 && Random.Int( 100 ) < 5 + 10 * level){
+			int third = Math.min( Math.round( damage * 0.4f ), enemy.HP - 1 );
+			if (third > 0){
+				enemy.damage( third, this );
+				Wound.hit( enemy );
+				Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 0.8f, 1.6f );
+			}
+		}
+		return damage;
 	}
 
-	@Override
-	public int toHitBonus(){
-		return qualifies() ? 3 * level : 0;
-	}
-
-	@Override
-	public boolean dodgeChance(){
-		return qualifies() && Random.Int( 100 ) < 3 * level;
-	}
 }

@@ -38,7 +38,7 @@ public class Albino extends Rat {
 		EXP = 2;
 
 		loot = MonsterMeat.class;
-		lootChance = 0.1f;
+		lootChance = 0.1f / 4f;
 	}
 	
 	@Override

@@ -21,45 +21,45 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
-
 package xyz.gabriwar.warpedpixeldungeon.levels;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.DemonLord;
-import xyz.gabriwar.warpedpixeldungeon.actors.mobs.IceDemon;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SnowParticle;
-import xyz.gabriwar.warpedpixeldungeon.items.Heap;
-import xyz.gabriwar.warpedpixeldungeon.items.Item;
-import xyz.gabriwar.warpedpixeldungeon.items.keys.SkeletonKey;
+import xyz.gabriwar.warpedpixeldungeon.levels.features.LevelTransition;
 import xyz.gabriwar.warpedpixeldungeon.levels.painters.Painter;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
-import com.watabou.utils.Bundle;
+import com.watabou.noosa.audio.Music;
+import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
 
-//ported from Unleashed PD: the frozen branch's arena. Pillared ice hall that
-//seals when you step off the entry chamber, then fills with the demon lord and
-//his ice demons. Killing him drops the key that opens the way out.
+//the frozen branch's arena: a round hall of ice with the demon lord waiting on a dais
+//at its heart. Six ice pillars give cover from his breath, frozen pools ring the floor,
+//a short hall leads in from the south and the locked way on sits to the north.
+//Stepping into the hall wakes him and locks the floor; the way back up stays open.
 public class FrozenBossLevel extends Level {
 
 	{
 		color1 = 0x484876;
 		color2 = 0x4b5999;
-		viewDistance = 5;
+		viewDistance = 8;
 	}
 
-	private static final int SIZE = 32;
+	private static final int WIDTH  = 33;
+	private static final int HEIGHT = 33;
 
-	private int arenaLeft, arenaRight, arenaTop, arenaBottom;
-	private int stairs = -1;
-	private boolean enteredArena = false;
-	private boolean keyDropped = false;
+	private static final int CX = 16;
+	private static final int CY = 15;
+	private static final int RADIUS = 8;
 
 	@Override
 	public String tilesTex() {
@@ -71,89 +71,73 @@ public class FrozenBossLevel extends Level {
 		return Assets.Environment.WATER_FROZEN;
 	}
 
-	private static final String STAIRS  = "stairs";
-	private static final String ENTERED = "entered";
-	private static final String DROPPED = "dropped";
-
-	@Override
-	public void storeInBundle( Bundle bundle ) {
-		super.storeInBundle( bundle );
-		bundle.put( STAIRS, stairs );
-		bundle.put( ENTERED, enteredArena );
-		bundle.put( DROPPED, keyDropped );
+	private int cell( int x, int y ) {
+		return x + y * width();
 	}
 
-	@Override
-	public void restoreFromBundle( Bundle bundle ) {
-		super.restoreFromBundle( bundle );
-		stairs = bundle.getInt( STAIRS );
-		enteredArena = bundle.getBoolean( ENTERED );
-		keyDropped = bundle.getBoolean( DROPPED );
+	private boolean insideArena( int pos ) {
+		int dx = pos % width() - CX, dy = pos / width() - CY;
+		return dx * dx + dy * dy <= RADIUS * RADIUS + RADIUS;
 	}
 
 	@Override
 	protected boolean build() {
 
-		setSize( SIZE, SIZE );
+		setSize( WIDTH, HEIGHT );
+		Painter.fill( this, 0, 0, WIDTH, HEIGHT, Terrain.WALL );
 
-		arenaLeft   = width() / 2 - 1;
-		arenaRight  = width() / 2 + 1;
-		arenaTop    = height() / 2 - 1;
-		arenaBottom = height() / 2 + 1;
-
-		int exitPos = -1;
-
-		//five vertical ice galleries, the middle one carrying the way out
-		for (int i = 0; i < 5; i++) {
-			int top    = Random.IntRange( 2, arenaTop - 1 );
-			int bottom = Random.IntRange( arenaBottom + 1, height() - 4 );
-			Painter.fill( this, 2 + i * 5, top, 4, bottom - top + 1, Terrain.EMPTY );
-
-			if (i == 2) {
-				exitPos = (2 + i * 5 + 1) + (top - 1) * width();
-			}
-
-			//seams of ice in the gallery walls
-			for (int j = 0; j < 4; j++) {
-				if (Random.Int( 2 ) == 0) {
-					int y = Random.IntRange( top + 1, bottom - 1 );
-					map[2 + i * 5 + j + y * width()] = Terrain.WALL_DECO;
+		boolean[] pools = Patch.generate( WIDTH, HEIGHT, 0.35f, 4, true );
+		for (int y = 0; y < HEIGHT; y++) {
+			for (int x = 0; x < WIDTH; x++) {
+				int dx = x - CX, dy = y - CY, d2 = dx * dx + dy * dy;
+				if (d2 > RADIUS * RADIUS + RADIUS) continue;
+				if (d2 <= 5) {
+					map[cell( x, y )] = Terrain.EMPTY_SP;
+				} else if (d2 >= 16 && pools[cell( x, y )]) {
+					map[cell( x, y )] = Terrain.FROZEN_WATER;
+				} else {
+					map[cell( x, y )] = Terrain.EMPTY;
 				}
 			}
 		}
 
-		map[exitPos] = Terrain.LOCKED_EXIT;
-		transitions.add( new xyz.gabriwar.warpedpixeldungeon.levels.features.LevelTransition(
-				this, exitPos,
-				xyz.gabriwar.warpedpixeldungeon.levels.features.LevelTransition.Type.REGULAR_EXIT ) );
-
-		//the sealed entry chamber in the middle
-		Painter.fill( this, arenaLeft - 1, arenaTop - 1,
-				arenaRight - arenaLeft + 3, arenaBottom - arenaTop + 3, Terrain.WALL );
-		Painter.fill( this, arenaLeft, arenaTop,
-				arenaRight - arenaLeft + 1, arenaBottom - arenaTop + 1, Terrain.EMPTY );
-
-		int entrancePos = Random.IntRange( arenaLeft, arenaRight )
-				+ Random.IntRange( arenaTop, arenaBottom ) * width();
-		map[entrancePos] = Terrain.ENTRANCE;
-		transitions.add( new xyz.gabriwar.warpedpixeldungeon.levels.features.LevelTransition(
-				this, entrancePos,
-				xyz.gabriwar.warpedpixeldungeon.levels.features.LevelTransition.Type.REGULAR_ENTRANCE ) );
-
-		//meltwater pooling across the floor
-		boolean[] patch = Patch.generate( width(), height(), 0.45f, 6, true );
-		for (int i = 0; i < length(); i++) {
-			if (map[i] == Terrain.EMPTY && patch[i]) {
-				map[i] = Terrain.WATER;
-			}
+		//six ice pillars in a ring around the dais
+		for (int i = 0; i < 6; i++) {
+			double a = Math.toRadians( 30 + 60 * i );
+			int px = CX + (int) Math.round( 5 * Math.cos( a ) );
+			int py = CY + (int) Math.round( 5 * Math.sin( a ) );
+			map[cell( px, py )] = Terrain.WALL_DECO;
 		}
+
+		//frozen braziers at the four points of the compass, just inside the wall
+		map[cell( CX - RADIUS + 1, CY )] = Terrain.STATUE_SP;
+		map[cell( CX + RADIUS - 1, CY )] = Terrain.STATUE_SP;
+
+		//south: a short hall and the chamber holding the way back up
+		for (int y = CY + RADIUS; y <= CY + RADIUS + 2; y++) {
+			map[cell( CX, y )] = Terrain.EMPTY;
+		}
+		Painter.fill( this, CX - 2, CY + RADIUS + 3, 5, 4, Terrain.EMPTY );
+		int entrancePos = cell( CX, CY + RADIUS + 5 );
+		map[entrancePos] = Terrain.ENTRANCE;
+		transitions.add( new LevelTransition( this, entrancePos, LevelTransition.Type.REGULAR_ENTRANCE ) );
+
+		//north: the locked way on, at the end of a short passage behind the dais
+		for (int y = CY - RADIUS - 2; y <= CY - RADIUS; y++) {
+			map[cell( CX, y )] = Terrain.EMPTY;
+		}
+		int exitPos = cell( CX, CY - RADIUS - 3 );
+		map[exitPos] = Terrain.LOCKED_EXIT;
+		transitions.add( new LevelTransition( this, exitPos, LevelTransition.Type.REGULAR_EXIT ) );
 
 		return true;
 	}
 
 	@Override
 	protected void createMobs() {
-		//the arena stays empty until the hero steps out of the entry chamber
+		DemonLord boss = new DemonLord();
+		boss.pos = cell( CX, CY );
+		mobs.add( boss );
 	}
 
 	@Override
@@ -170,73 +154,69 @@ public class FrozenBossLevel extends Level {
 		return -1;
 	}
 
-	private boolean insideEntryChamber( int cell ) {
-		int x = cell % width(), y = cell / width();
-		return x >= arenaLeft && x <= arenaRight && y >= arenaTop && y <= arenaBottom;
-	}
-
 	@Override
 	public void occupyCell( Char ch ) {
 		super.occupyCell( ch );
 
-		if (!enteredArena && ch == Dungeon.hero && !insideEntryChamber( ch.pos )) {
-			enteredArena = true;
-			seal();
-
-			//the chamber walls freeze over behind you
-			for (int i = arenaLeft - 1; i <= arenaRight + 1; i++) {
-				freeze( (arenaTop - 1) * width() + i );
-				freeze( (arenaBottom + 1) * width() + i );
-			}
-			for (int i = arenaTop; i <= arenaBottom; i++) {
-				freeze( i * width() + arenaLeft - 1 );
-				freeze( i * width() + arenaRight + 1 );
-			}
-
-			GameScene.updateMap();
-			Dungeon.observe();
-
-			DemonLord boss = new DemonLord();
-			boss.state = boss.HUNTING;
-			int tries = 0;
-			do {
-				boss.pos = Random.Int( length() );
-			} while (!passable[boss.pos]
-					|| insideEntryChamber( boss.pos )
-					|| (heroFOV[boss.pos] && tries++ < 20));
-			GameScene.add( boss );
-
-			for (int i = 0; i < 8; i++) {
-				Mob mob = new IceDemon();
-				mob.state = mob.HUNTING;
-				int t = 0;
-				do {
-					mob.pos = Random.Int( length() );
-					if (t++ > 50) break;
-				} while (!passable[mob.pos]
-						|| insideEntryChamber( mob.pos )
-						|| Actor.findChar( mob.pos ) != null);
-				if (passable[mob.pos] && Actor.findChar( mob.pos ) == null) {
-					GameScene.add( mob );
+		if (ch == Dungeon.hero && !locked && insideArena( ch.pos )) {
+			for (Mob mob : mobs.toArray( new Mob[0] )) {
+				if (mob instanceof DemonLord && mob.isAlive() && mob.state != mob.HUNTING) {
+					mob.state = mob.HUNTING;
+					mob.notice();
+					break;
 				}
 			}
 		}
 	}
 
-	private void freeze( int cell ) {
-		set( cell, Terrain.EMPTY_SP );
-		CellEmitter.get( cell ).start( SnowParticle.FACTORY, 0.1f, 3 );
+	private boolean bossAlive() {
+		for (Mob mob : mobs) {
+			if (mob instanceof DemonLord && mob.isAlive()) return true;
+		}
+		return false;
 	}
 
 	@Override
-	public Heap drop( Item item, int cell ) {
-		if (!keyDropped && item instanceof SkeletonKey) {
-			keyDropped = true;
-			unseal();
-			GameScene.updateMap();
-			Dungeon.observe();
+	public void playLevelMusic() {
+		if (locked) {
+			Music.INSTANCE.play( Assets.Music.HALLS_BOSS, true );
+		} else if (bossAlive()) {
+			Music.INSTANCE.end();
+		} else {
+			Music.INSTANCE.playTracks( CavesLevel.CAVES_TRACK_LIST, CavesLevel.CAVES_TRACK_CHANCES, false );
 		}
-		return super.drop( item, cell );
+	}
+
+	@Override
+	public void seal() {
+		if (locked) return;
+		super.seal();
+		Statistics.qualifiedForBossChallengeBadge = true;
+
+		Game.runOnRenderThread( new Callback() {
+			@Override
+			public void call() {
+				Music.INSTANCE.play( Assets.Music.HALLS_BOSS, true );
+			}
+		} );
+	}
+
+	@Override
+	public void unseal() {
+		if (!locked) return;
+		super.unseal();
+
+		Game.runOnRenderThread( new Callback() {
+			@Override
+			public void call() {
+				Music.INSTANCE.fadeOut( 5f, new Callback() {
+					@Override
+					public void call() {
+						Music.INSTANCE.end();
+					}
+				} );
+			}
+		} );
 	}
 
 	@Override
@@ -249,6 +229,12 @@ public class FrozenBossLevel extends Level {
 	@Override
 	public String tileName( int tile ) {
 		switch (tile) {
+			case Terrain.REGION_DECO:
+			case Terrain.REGION_DECO_ALT:
+				return Messages.get(FrozenLevel.class, "region_deco_name");
+			case Terrain.STATUE:
+			case Terrain.STATUE_SP:
+				return Messages.get(FrozenLevel.class, "statue_name");
 			case Terrain.WATER:
 				return Messages.get(FrozenLevel.class, "water_name");
 			default:
@@ -259,6 +245,12 @@ public class FrozenBossLevel extends Level {
 	@Override
 	public String tileDesc( int tile ) {
 		switch (tile) {
+			case Terrain.REGION_DECO:
+			case Terrain.REGION_DECO_ALT:
+				return Messages.get(FrozenLevel.class, "region_deco_desc");
+			case Terrain.STATUE:
+			case Terrain.STATUE_SP:
+				return Messages.get(FrozenLevel.class, "statue_desc");
 			case Terrain.WATER:
 				return Messages.get(FrozenLevel.class, "water_desc");
 			case Terrain.WALL_DECO:

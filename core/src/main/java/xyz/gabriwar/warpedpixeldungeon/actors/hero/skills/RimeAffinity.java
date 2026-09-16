@@ -27,6 +27,8 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Chill;
@@ -37,6 +39,11 @@ import com.watabou.utils.Random;
 
 public class RimeAffinity extends Skill {
 
+	//its damage is already a share of a blow, a hit or a health pool, so it grows with the hero on its own
+	@Override
+	public boolean weaponScaled(){ return true; }
+
+
 	{
 		tag = "D4B";
 		name = "Cryomancy";
@@ -45,27 +52,42 @@ public class RimeAffinity extends Skill {
 		level = 0;
 	}
 
+	//the target was frozen solid before the zap landed (the zap's own damage thaws it)
+	private Char frozenBefore = null;
+
 	@Override
 	protected boolean upgrade(){
 		return true;
 	}
 
 	@Override
-	public int onHitProc( Char enemy, int damage, boolean ranged ){
-		if (level > 0 && enemy != null && enemy.isAlive() && Random.Int(100) < 15 * level){
-			if (level >= MAX_LEVEL && Random.Int(100) < 20)
-				Buff.affect( enemy, Frost.class, 3f );
-			else
-				Buff.prolong( enemy, Chill.class, 4f );
-			if (enemy.sprite != null)
-				enemy.sprite.emitter().burst( SnowParticle.FACTORY, 3 );
+	public void beforeMagicHit( Char target, Object source ){
+		frozenBefore = target != null && target.buff( Frost.class ) != null ? target : null;
+	}
+
+	//wand zaps and bolt spells that hurt an enemy can freeze it solid; at mastery a zap on a frozen
+	//enemy shatters the ice for half the zap again
+	@Override
+	public void onMagicDamage( Char target, int damage, Object source ){
+		boolean shatter = level >= MAX_LEVEL && target != null && target == frozenBefore;
+		frozenBefore = null;
+		if (level <= 0 || target == null) return;
+		if (shatter){
+			if (target.isAlive()) target.damage( Math.max( 1, damage / 2 ), this );
+			xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.get( target.pos ).burst( SnowParticle.FACTORY, 10 );
+			Sample.INSTANCE.play( Assets.Sounds.SHATTER, 1f, 1.1f );
+			return;
 		}
-		return damage;
+		if (!target.isAlive() || Random.Int(100) >= 10 * level) return;
+		SkillInteractions.affectAfterHit( target, Frost.class, 2f );
+		if (target.sprite != null)
+			target.sprite.emitter().burst( SnowParticle.FACTORY, 3 + level );
+		Sample.INSTANCE.play( Assets.Sounds.SHATTER, 0.5f, 1.4f );
 	}
 
 	@Override
 	public String info(){
-		return Messages.get(this, "desc", 15 * Math.max(1, level)) + "\n"
+		return Messages.get(this, "desc", 10 * Math.max(1, level)) + "\n"
 				+ costUpgradeInfo();
 	}
 }

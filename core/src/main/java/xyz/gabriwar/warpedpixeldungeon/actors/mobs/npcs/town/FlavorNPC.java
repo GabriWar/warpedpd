@@ -52,6 +52,9 @@ public abstract class FlavorNPC extends NPC {
 	protected boolean sleepsAtNight() { return true; }
 
 	@Override
+	public boolean sleepsAtInn() { return sleepsAtNight(); }
+
+	@Override
 	public int defenseSkill( Char enemy ) {
 		return INFINITE_EVASION;
 	}
@@ -75,20 +78,28 @@ public abstract class FlavorNPC extends NPC {
 		sprite.turnTo( pos, c.pos );
 		if (c != Dungeon.hero) return true;
 
-		final String text;
 		if (sleepsAtNight() && Shopkeeper.closedForNight()) {
-			text = Messages.get( this, "asleep" );
+			say( Messages.get( this, "asleep" ) );
 		} else {
 			final String key = lineCount() > 1 ? "greet" + (1 + Random.Int( lineCount() )) : "greet";
-			text = Messages.get( this, key );
+			offer( Messages.get( this, key ) );
 		}
+		return true;
+	}
+
+	//what an awake townsperson does with their greeting: say it. The folk who also
+	//sell something override this and put the line at the top of their offer
+	protected void offer( String greeting ) {
+		say( greeting );
+	}
+
+	protected void say( final String text ) {
 		Game.runOnRenderThread( new Callback() {
 			@Override
 			public void call() {
 				GameScene.show( new WndQuest( FlavorNPC.this, text ) );
 			}
 		} );
-		return true;
 	}
 
 	@Override

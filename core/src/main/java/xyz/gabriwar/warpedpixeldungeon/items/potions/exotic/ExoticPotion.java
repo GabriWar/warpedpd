@@ -307,13 +307,15 @@ public class ExoticPotion extends Potion {
 
 	@Override
 	public boolean isKnown() {
-		return anonymous || (handler != null && handler.isKnown( exoToReg.get(this.getClass()) ));
+		Class<? extends Potion> reg = exoToReg.get(this.getClass());
+		return anonymous || (handler != null && reg != null && handler.isKnown( reg ));
 	}
 
 	@Override
 	public void setKnown() {
-		if (!isKnown()) {
-			handler.know(exoToReg.get(this.getClass()));
+		Class<? extends Potion> reg = exoToReg.get(this.getClass());
+		if (!isKnown() && handler != null && reg != null) {
+			handler.know(reg);
 			updateQuickslot();
 		}
 	}
@@ -321,16 +323,24 @@ public class ExoticPotion extends Potion {
 	@Override
 	public void reset() {
 		super.reset();
-		if (handler != null && handler.contains(exoToReg.get(this.getClass()))) {
-			image = handler.image(exoToReg.get(this.getClass())) + 16;
-			color = handler.label(exoToReg.get(this.getClass()));
+		//a class with no regular counterpart (the base class a debug picker can build) keeps its default look
+		Class<? extends Potion> reg = exoToReg.get(this.getClass());
+		if (handler != null && reg != null && handler.contains(reg)) {
+			image = handler.image(reg) + 16;
+			// The corn-yellow exotic frame is blank in the atlas. This appearance
+			// can be assigned to any potion, including Iron Skin, in a saved run.
+			if (image == xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet.EXOTIC_CORN_YELLOW) {
+				image = xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet.EXOTIC_GOLDEN;
+			}
+			color = handler.label(reg);
 		}
 	}
 
 	@Override
 	//20 gold more than its none-exotic equivalent
 	public int value() {
-		return (Reflection.newInstance(exoToReg.get(getClass())).value() + 20) * quantity;
+		Class<? extends Potion> reg = exoToReg.get(getClass());
+		return reg == null ? 20 * quantity : (Reflection.newInstance(reg).value() + 20) * quantity;
 	}
 
 	@Override

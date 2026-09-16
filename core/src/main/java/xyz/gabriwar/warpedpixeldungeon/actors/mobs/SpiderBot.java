@@ -39,6 +39,9 @@ public class SpiderBot extends Mob {
 
 		EXP = 10;
 		maxLvl = 20;
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	@Override

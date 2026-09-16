@@ -49,6 +49,7 @@ public class Witherfennel extends Plant {
 	public void activate( Char ch ) {
 		if (ch == null) {
 			for (int p : PathFinder.NEIGHBOURS8){
+				if (!Dungeon.level.insideMap( pos+p )) continue;
 				if (Dungeon.level.map[pos+p] == Terrain.HIGH_GRASS || Dungeon.level.map[pos+p] == Terrain.GRASS){
 					Level.set(pos+p, Terrain.FURROWED_GRASS);
 					GameScene.updateMap(pos+p);
@@ -80,10 +81,6 @@ public class Witherfennel extends Plant {
 			plantClass = Witherfennel.class;
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			Buff.prolong(defender, Wither.class, Wither.DURATION);
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

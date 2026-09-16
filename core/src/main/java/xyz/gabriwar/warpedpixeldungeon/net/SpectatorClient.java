@@ -1,10 +1,33 @@
+/*
+ * Pixel Dungeon
+ * Copyright (C) 2012-2015 Oleg Dolya
+ *
+ * Shattered Pixel Dungeon
+ * Copyright (C) 2014-2026 Evan Debenham
+ *
+ * Warped Pixel Dungeon
+ * Copyright (C) 2026 Gabriel Duarte Guerra (gabriwar)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ */
+
 package xyz.gabriwar.warpedpixeldungeon.net;
 
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetSocketAddress;
 import java.net.Socket;
 
 public class SpectatorClient {
@@ -25,6 +48,7 @@ public class SpectatorClient {
 	private volatile long lastPingMs = -1;
 	private volatile long pendingPingTime = -1;
 	private int reconnectAttempts = 0;
+	private final SocketSource source;
 
 	public interface MessageHandler {
 		void onMessage(Protocol.Message message);
@@ -36,14 +60,24 @@ public class SpectatorClient {
 	public SpectatorClient(String host, int port) {
 		this.host = host;
 		this.port = port;
+		this.source = new SocketSource.Direct(host, port, CONNECT_TIMEOUT_MS);
+	}
+
+	/**
+	 * Online: the socket comes from a relay room instead of a direct dial. Reconnecting
+	 * re-presents the room code, which is why this is a source rather than a socket.
+	 */
+	public SpectatorClient(SocketSource source) {
+		this.host = source.describe();
+		this.port = 0;
+		this.source = source;
 	}
 
 	public void connect() {
 		intentionalDisconnect = false;
 		readThread = new Thread(() -> {
 			try {
-				socket = new Socket();
-				socket.connect(new InetSocketAddress(host, port), CONNECT_TIMEOUT_MS);
+				socket = source.open();
 				connected = true;
 				reconnectAttempts = 0;
 
@@ -84,8 +118,26 @@ public class SpectatorClient {
 		readThread.start();
 	}
 
+	/** Refusals the relay will keep giving, however long we knock: the room is gone, or
+	 *  it will not have us. Retrying one of these is a loop with no exit. */
+	private static boolean permanent(String error) {
+		if (error == null) return false;
+		return error.startsWith("no_such_room")
+				|| error.startsWith("room_full")
+				|| error.startsWith("already_joined")
+				|| error.startsWith("already_hosting")
+				|| error.startsWith("supporter_required");
+	}
+
 	private void attemptReconnect(String originalError) {
 		if (intentionalDisconnect) return;
+
+		//a host who closed the game took the room with them: knocking again cannot bring
+		//it back, and the old code will never be valid once the relay has forgotten it
+		if (permanent(originalError)) {
+			if (handler != null) handler.onDisconnected(originalError);
+			return;
+		}
 
 		while (reconnectAttempts < MAX_RECONNECT_ATTEMPTS && !intentionalDisconnect) {
 			reconnectAttempts++;
@@ -100,12 +152,15 @@ public class SpectatorClient {
 			if (intentionalDisconnect) return;
 
 			try {
-				socket = new Socket();
-				socket.connect(new InetSocketAddress(host, port), CONNECT_TIMEOUT_MS);
+				socket = source.open();
 				connected = true;
-				reconnectAttempts = 0;
 
 				Protocol.writeMessage(socket.getOutputStream(), getJoinType(), getJoinData());
+
+				//only now is the attempt spent rather than merely started. Resetting on
+				//the open alone meant a refusal reset the counter too, so five tries
+				//became an endless one - the log filled with "Reconnecting... (1/5)"
+				reconnectAttempts = 0;
 
 				if (handler != null) {
 					handler.onConnected();
@@ -128,6 +183,14 @@ public class SpectatorClient {
 			} catch (IOException e) {
 				connected = false;
 				stopPingLoop();
+				//the relay answering "that room is gone" is an answer, not a dropped
+				//connection: stop rather than spend the remaining tries on it
+				if (permanent(e.getMessage())) {
+					if (!intentionalDisconnect && handler != null) {
+						handler.onDisconnected(e.getMessage());
+					}
+					return;
+				}
 			}
 		}
 

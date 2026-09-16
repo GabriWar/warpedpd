@@ -26,6 +26,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Golem;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ElmoParticle;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.quest.vault.VaultGolem;
 import com.watabou.noosa.TextureFilm;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
@@ -113,7 +114,9 @@ public class GolemSprite extends MobSprite {
 				new Callback() {
 					@Override
 					public void call() {
-						((Golem)ch).onZapComplete();
+						if (ch instanceof Golem) {
+							((Golem) ch).onZapComplete();
+						}
 					}
 				} );
 		Sample.INSTANCE.play( Assets.Sounds.ZAP );

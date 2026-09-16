@@ -85,10 +85,6 @@ public class Nightshadeonion extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect( Char attacker, Char defender, int damage ) {
-			Buff.prolong( defender, Blindness.class, Random.Int( 2, 5 ) );
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

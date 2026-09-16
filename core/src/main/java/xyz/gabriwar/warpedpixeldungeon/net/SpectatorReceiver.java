@@ -1,3 +1,27 @@
+/*
+ * Pixel Dungeon
+ * Copyright (C) 2012-2015 Oleg Dolya
+ *
+ * Shattered Pixel Dungeon
+ * Copyright (C) 2014-2026 Evan Debenham
+ *
+ * Warped Pixel Dungeon
+ * Copyright (C) 2026 Gabriel Duarte Guerra (gabriwar)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ */
+
 package xyz.gabriwar.warpedpixeldungeon.net;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -148,10 +172,22 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 					break;
 				}
 				String hostName = message.data.optString("hostName", "Host");
+				xyz.gabriwar.warpedpixeldungeon.net.ui.SpectatorLobbyScene.pendingHostName = hostName;
+				//a held player claim comes back on this channel too, and that waiting
+				//screen must not call them a spectator
+				xyz.gabriwar.warpedpixeldungeon.net.ui.SpectatorLobbyScene.pendingRole = message.data.optString("role", "");
+				xyz.gabriwar.warpedpixeldungeon.net.ui.SpectatorLobbyScene.pendingClass = message.data.optInt("cls", -1);
 				Game.runOnRenderThread(() ->
 					Game.switchScene(xyz.gabriwar.warpedpixeldungeon.net.ui.SpectatorLobbyScene.class)
 				);
-				xyz.gabriwar.warpedpixeldungeon.net.ui.SpectatorLobbyScene.pendingHostName = hostName;
+				break;
+			case Protocol.HERO_SAVE:
+				NetHeroFile.save(message.data);
+				String saveToken = message.data.optString("token", "");
+				if (!saveToken.isEmpty()) NetManager.storeClientSessionToken(saveToken);
+				break;
+			case Protocol.HOST_CLOSED:
+				NetManager.handleHostClosed(message.data.optString("reason", ""));
 				break;
 			case Protocol.YOUR_TURN:
 				handleYourTurn(message.data);
@@ -296,9 +332,14 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 			NetManager.setMyTurn(true);
 			if (Game.scene() instanceof GameScene) {
 				GameScene.enablePlayerInput();
+				//the toolbar, the quickslots and the inventory all ask hero.ready before
+				//they answer a tap, and a client has no actor thread to ever set it
+				if (Dungeon.hero != null) Dungeon.hero.ready = true;
 				xyz.gabriwar.warpedpixeldungeon.net.NetManager.log("[NET-CLI] enabledPlayerInput (scene ready)");
 			} else {
-				xyz.gabriwar.warpedpixeldungeon.net.NetManager.log("[NET-CLI] YOUR_TURN before scene ready, input deferred");
+				//nothing to do here: setMyTurn kept the grant, and the next GameScene
+				//applies it as it is built
+				xyz.gabriwar.warpedpixeldungeon.net.NetManager.log("[NET-CLI] YOUR_TURN before scene ready, deferred to scene create");
 			}
 		});
 	}

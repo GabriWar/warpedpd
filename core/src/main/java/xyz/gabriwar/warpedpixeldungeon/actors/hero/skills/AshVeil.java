@@ -27,6 +27,10 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -70,15 +74,19 @@ public class AshVeil extends Skill {
 			Buff.affect( hero, Invisibility.class, 3 + 2 * level );
 			Buff.prolong( hero, Haste.class, 2 + level );
 
-			for (Char ch : Actor.chars()){
+			//at mastery the ash gets in their eyes
+			if (level >= MAX_LEVEL) for (Char ch : Actor.chars()){
 				if (!(ch instanceof Mob) || ch.alignment != Char.Alignment.ENEMY) continue;
 				if (Dungeon.level.distance( hero.pos, ch.pos ) > 3) continue;
 				if (!Dungeon.level.heroFOV[ch.pos]) continue;
 				Buff.prolong( ch, Blindness.class, 2 + level );
+				CellEmitter.get( ch.pos ).burst( Speck.factory( Speck.SMOKE ), 4 );
 			}
 
 			hero.MP -= getManaCost();
 			castTextYell();
+			Sample.INSTANCE.play( Assets.Sounds.PUFF, 1f, 1.0f );
+			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.SMOKE ), 6 );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
 			hero.busy();

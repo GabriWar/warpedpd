@@ -44,6 +44,28 @@ public abstract class PaymentService {
 		void onResult(boolean success, String message);
 	}
 
+	/**
+	 * The store's signed proof that a subscription exists, passed to the relay so online
+	 * play can be limited to supporters. It is the store's bytes verbatim: the relay
+	 * checks the signature, so anything we changed on the way would stop verifying.
+	 */
+	public static class Receipt {
+		/** Which store signed it: the two are checked in completely different ways. */
+		public final String store;
+		public final String payload;
+		/** Google's detached signature. Empty for Apple, whose blob signs itself. */
+		public final String signature;
+
+		public Receipt(String store, String payload, String signature) {
+			this.store = store;
+			this.payload = payload;
+			this.signature = signature;
+		}
+	}
+
+	public static final String STORE_PLAY = "play";
+	public static final String STORE_APPSTORE = "appstore";
+
 	//kick off the store connection + product query; onReady fires once tiers() has data
 	public abstract void connect(Runnable onReady);
 
@@ -51,7 +73,12 @@ public abstract class PaymentService {
 
 	public abstract ArrayList<Tier> tiers();
 
-	public abstract void donate(String tierId, DonateResult callback);
+	public abstract void subscribe(String tierId, DonateResult callback);
+
+	/** Null when there is nothing to prove: no subscription, or a store we cannot verify. */
+	public Receipt receipt() {
+		return null;
+	}
 
 	//re-checks the store for a previously bought supporter badge (non-consumable),
 	//re-verifying its signature - the secure cross-device restore path

@@ -61,6 +61,9 @@ public class MagicEye extends Mob implements Callback {
 		resistances.add(WandOfDisintegration.class);
 		resistances.add(Grim.class);
 		resistances.add(Vampiric.class);
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	@Override

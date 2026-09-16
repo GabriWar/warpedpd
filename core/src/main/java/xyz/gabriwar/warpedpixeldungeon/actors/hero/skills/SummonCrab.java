@@ -27,6 +27,8 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
@@ -61,7 +63,7 @@ public class SummonCrab extends ActiveSkill2 {
 	public void execute( Hero hero, String action ){
 		if (action.equals(Skill.AC_SUMMON)){
 
-			if (SummonedPet.summonedPets >= 3 + hero.heroSkills.allSummonLimit()){
+			if (SummonedPet.activeCount() >= 3 + hero.heroSkills.allSummonLimit()){
 				GLog.w( "You cannot control more summons." );
 				return;
 			}
@@ -87,6 +89,7 @@ public class SummonCrab extends ActiveSkill2 {
 
 				hero.MP -= getManaCost();
 				castTextYell();
+				Sample.INSTANCE.play( Assets.Sounds.PUFF, 1f, 0.9f );
 				hero.spend( TIME_TO_USE );
 				hero.busy();
 				hero.sprite.operate( hero.pos );

@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.ForestDart;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.HeavyBoomerang;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.Javelin;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.Kunai;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.MindArrow;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.Shuriken;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.ThrowingKnife;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.ThrowingSpear;
@@ -111,6 +112,7 @@ public class MissileSprite extends ItemSprite implements Tweener.Listener {
 		ANGULAR_SPEEDS.put(ForestDart.class,    0);
 		ANGULAR_SPEEDS.put(ThrowingSpear.class, 0);
 		ANGULAR_SPEEDS.put(Kunai.class,         0);
+		ANGULAR_SPEEDS.put(MindArrow.class,     0);
 		ANGULAR_SPEEDS.put(Javelin.class,       0);
 		ANGULAR_SPEEDS.put(Trident.class,       0);
 		

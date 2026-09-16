@@ -27,13 +27,23 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import com.watabou.noosa.audio.Sample;
+import com.watabou.utils.PathFinder;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vulnerable;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 
 public class Aggression extends PassiveSkillB2 {
+
+	//its damage is already a share of a blow, a hit or a health pool, so it grows with the hero on its own
+	@Override
+	public boolean weaponScaled(){ return true; }
+
 
 	{
 		name = "Aggression";
@@ -41,27 +51,56 @@ public class Aggression extends PassiveSkillB2 {
 		tier = 2;
 	}
 
+	//the target of the melee swing being resolved, when it was struck, and the blow it took
+	private Char struck = null;
+	private float struckAt = -1f;
+	private int struckDamage = 0;
+
 	@Override
 	protected boolean upgrade(){
 		return true;
 	}
 
-	@Override
-	public float damageModifier(){
-		return 1f + 0.1f * level;
+	private float cleaveShare(){
+		return 0.2f + 0.2f * level;
 	}
 
-	//fully trained, aggression becomes the payoff for everything the tree breaks:
-	//melee swings hit an already-broken foe 10% harder
 	@Override
 	public int onHitProc( Char enemy, int damage, boolean ranged ){
-		if (ranged || level < Skill.MAX_LEVEL || enemy == null) return damage;
-		if (enemy.buff( Vulnerable.class ) != null
-				|| enemy.buff( Cripple.class ) != null
-				|| enemy.buff( Weakness.class ) != null
-				|| enemy.buff( Bleeding.class ) != null){
-			return Math.round( damage * 1.10f );
-		}
+		if (ranged || level <= 0 || enemy == null) return damage;
+		struck = enemy;
+		struckAt = Actor.now();
+		struckDamage = damage;
 		return damage;
+	}
+
+	//a swing whose target dies, however the kill came about in that swing, cleaves into another enemy
+	//beside the hero. Fully trained, a cleave that kills is itself a kill: the swing chains
+	@Override
+	public void onKill( Mob mob, boolean ranged ){
+		Hero hero = Dungeon.hero;
+		if (ranged || hero == null || mob == null || mob != struck || Actor.now() != struckAt) return;
+		struck = null;
+		int dmg = Math.round( struckDamage * cleaveShare() );
+		if (dmg <= 0) return;
+		for (int n : PathFinder.NEIGHBOURS8){
+			Char ch = Actor.findChar( hero.pos + n );
+			if (ch != null && ch != mob && ch.alignment == Char.Alignment.ENEMY && ch.isAlive()){
+				if (level >= MAX_LEVEL){
+					struck = ch;
+					struckAt = Actor.now();
+					struckDamage = dmg;
+				}
+				Wound.hit( ch );
+				if (ch.sprite != null && ch.sprite.visible){
+					ch.sprite.flash();
+					ch.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
+				}
+				Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 1f, 0.9f );
+				ch.damage( dmg, hero );
+				if (struck == ch && ch.isAlive()) struck = null;
+				return;
+			}
+		}
 	}
 }

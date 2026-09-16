@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.TileTemperature;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -59,7 +60,7 @@ public class Steam extends Blob {
 	@Override
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
-		emitter.pour( Speck.factory( Speck.STEAM, true ), 0.4f );
+		emitter.pour( WeatherBlobFX.layered( Speck.factory( Speck.STEAM, true ), WeatherBlobFX.MIST, 3 ), 0.3f );
 	}
 
 	@Override

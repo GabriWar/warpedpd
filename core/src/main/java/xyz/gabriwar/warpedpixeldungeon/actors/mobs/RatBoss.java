@@ -46,7 +46,7 @@ public class RatBoss extends Mob {
 		EXP = 1;
 
 		loot = new Berry();
-		lootChance = 0.5f;
+		lootChance = 0.5f / 4f;
 	}
 
 	private boolean spawnedRats = false;

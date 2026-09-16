@@ -88,9 +88,5 @@ public class Stormvine extends Plant {
 			return new StormvinePoisonParticle();
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			new Stormvine().attackProc(defender, damage);
-		}
 	}
 }

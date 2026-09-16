@@ -27,6 +27,11 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
@@ -45,18 +50,85 @@ public class CrusadersZeal extends Skill {
 	@Override
 	protected boolean upgrade(){ return true; }
 
-	@Override
-	public float damageModifier(){
-		return 1f + 0.05f * level;
+	/** flames of zeal at most: 2 / 3 / 4 */
+	private int cap(){
+		return 1 + level;
 	}
 
-	//the hero's cripple() roll only fires on the ranged path, so the melee cripple is applied here instead
+	//zeal builds while you strike unopposed: each melee hit you land adds a flame, and each flame
+	//makes your blows 10% heavier
 	@Override
 	public int onHitProc( Char enemy, int damage, boolean ranged ){
-		if (level > 0 && !ranged && enemy != null && enemy.isAlive()
-				&& Random.Int(100) < 8 * level){
-			Buff.prolong( enemy, Cripple.class, Cripple.DURATION );
+		xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero = xyz.gabriwar.warpedpixeldungeon.Dungeon.hero;
+		if (level <= 0 || ranged || enemy == null || hero == null) return damage;
+		Zeal zeal = Buff.affect( hero, Zeal.class );
+		boolean full = zeal.flames >= cap();
+		if (!full) zeal.flames++;
+		int bonus = Math.round( damage * 0.1f * zeal.flames );
+		if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.YELLOW_LIGHT ), zeal.flames );
+
+		//+3: a blow struck at full zeal bursts in light, blinding the enemies beside you
+		if (level >= MAX_LEVEL && full){
+			for (int n : com.watabou.utils.PathFinder.NEIGHBOURS8){
+				Char ch = xyz.gabriwar.warpedpixeldungeon.actors.Actor.findChar( hero.pos + n );
+				if (ch == null || ch.alignment != Char.Alignment.ENEMY || !ch.isAlive()) continue;
+				Buff.prolong( ch, xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness.class, 2f );
+				if (ch.sprite != null) ch.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 4 );
+			}
+			if (hero.sprite != null){
+				new xyz.gabriwar.warpedpixeldungeon.effects.Flare( 8, 26 ).color( 0xFFE070, true ).show( hero.sprite, 0.6f );
+				hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "crippled" ) );
+			}
+			Sample.INSTANCE.play( Assets.Sounds.RAY, 1f, 1.1f );
+			zeal.flames = 0;
 		}
-		return damage;
+		return damage + bonus;
+	}
+
+	//taking a blow snuffs the flames
+	@Override
+	public void onDamageTaken( int hpLost, int shieldLost, Object source ){
+		xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero = xyz.gabriwar.warpedpixeldungeon.Dungeon.hero;
+		if (level <= 0 || hero == null) return;
+		Zeal zeal = hero.buff( Zeal.class );
+		if (zeal == null || zeal.flames <= 0) return;
+		zeal.detach();
+		if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.SMOKE ), 3 );
+	}
+
+	/** flames of zeal gathered by unopposed blows */
+	public static class Zeal extends Buff {
+
+		{
+			type = buffType.POSITIVE;
+		}
+
+		int flames = 0;
+
+		@Override
+		public int icon(){ return xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator.FIRE; }
+
+		@Override
+		public void tintIcon( com.watabou.noosa.Image icon ){ icon.hardlight( 1f, 0.9f, 0.4f ); }
+
+		@Override
+		public String iconTextDisplay(){ return Integer.toString( flames ); }
+
+		@Override
+		public String desc(){
+			return Messages.get( this, "desc", flames );
+		}
+
+		@Override
+		public void storeInBundle( com.watabou.utils.Bundle bundle ){
+			super.storeInBundle( bundle );
+			bundle.put( "flames", flames );
+		}
+
+		@Override
+		public void restoreFromBundle( com.watabou.utils.Bundle bundle ){
+			super.restoreFromBundle( bundle );
+			flames = bundle.getInt( "flames" );
+		}
 	}
 }

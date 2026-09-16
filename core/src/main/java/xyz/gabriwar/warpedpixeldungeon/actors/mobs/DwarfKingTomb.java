@@ -53,6 +53,9 @@ public class DwarfKingTomb extends Mob {
 
 		loot = xyz.gabriwar.warpedpixeldungeon.items.RedDewdrop.class;
 		lootChance = 0.05f;
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	@Override

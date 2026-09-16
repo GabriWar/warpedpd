@@ -30,6 +30,8 @@ import com.watabou.utils.Bundle;
 import com.watabou.utils.Rect;
 import com.watabou.utils.Reflection;
 
+import java.util.ArrayList;
+
 public class Blob extends Actor {
 
 	{
@@ -141,6 +143,8 @@ public class Blob extends Actor {
 
 		}
 	}
+
+	protected ArrayList<Integer> cellsToFlagUpdate = new ArrayList<>();
 	
 	@Override
 	public boolean act() {
@@ -158,6 +162,11 @@ public class Blob extends Actor {
 			int[] tmp = off;
 			off = cur;
 			cur = tmp;
+
+			for (int i : cellsToFlagUpdate){
+				Dungeon.level.updateCellFlags(i);
+			}
+			cellsToFlagUpdate.clear();
 			
 		} else {
 			if (!area.isEmpty()) {
@@ -251,6 +260,26 @@ public class Blob extends Actor {
 		cur[cell] = 0;
 	}
 
+	/**
+	 * Thins the cloud faster than it fades on its own, for weather that has passed:
+	 * every cell keeps this share of what evolve() left it, less one. Call at the end
+	 * of evolve(), once off[] holds the turn's result.
+	 */
+	protected void dissipate( float keep ){
+		if (Dungeon.level == null || off == null) return;
+		volume = 0;
+		for (int i = area.left; i < area.right; i++){
+			for (int j = area.top; j < area.bottom; j++){
+				int cell = i + j * Dungeon.level.width();
+				if (cell < 0 || cell >= off.length) continue;
+				if (off[cell] > 0){
+					off[cell] = Math.max( 0, Math.round( off[cell] * keep ) - 1 );
+					volume += off[cell];
+				}
+			}
+		}
+	}
+
 	public void fullyClear(){
 		volume = 0;
 		area.setEmpty();
@@ -260,6 +289,10 @@ public class Blob extends Actor {
 
 	public void onBuildFlagMaps( Level l ){
 		//do nothing by default, only some blobs affect flags
+	}
+
+	public void onUpdateCellFlags( Level l, int cell){
+		//applies terrain flags to just one cell (e.g. right after terrain changes)
 	}
 
 	//some blobs have an associated landmark entry, which is added when the hero sees them

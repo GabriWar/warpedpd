@@ -36,7 +36,16 @@ import xyz.gabriwar.warpedpixeldungeon.items.keys.IceKey;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfFrost;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.IceGuardianSprite;
+import xyz.gabriwar.warpedpixeldungeon.sprites.IceGuardianCoreSprite;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
+import com.watabou.utils.Bundle;
+import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.ui.BossHealthBar;
 import com.watabou.utils.Random;
 
@@ -46,7 +55,7 @@ import com.watabou.utils.Random;
 public class IceGuardianCore extends Mob {
 
 	{
-		spriteClass = IceGuardianSprite.class;
+		spriteClass = IceGuardianCoreSprite.class;
 
 		HP = HT = 1000;
 		defenseSkill = 10;
@@ -70,7 +79,9 @@ public class IceGuardianCore extends Mob {
 		immunities.add( MagicalSleep.class );
 		immunities.add( Grim.class );
 
-		state = PASSIVE;
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	@Override
@@ -86,6 +97,69 @@ public class IceGuardianCore extends Mob {
 	@Override
 	public int drRoll() {
 		return super.drRoll() + Random.NormalIntRange( 0, 11 );
+	}
+
+	public static final int MAX_GUARDIANS = 4;
+	private static final int FORM_EVERY = 10;
+
+	//turns until the core shapes another guardian while it is fighting
+	private int formIn = FORM_EVERY;
+
+	public static int guardians() {
+		int n = 0;
+		for (Mob mob : Dungeon.level.mobs) {
+			if (mob instanceof IceGuardian && mob.isAlive()) n++;
+		}
+		return n;
+	}
+
+	@Override
+	protected boolean act() {
+		if (state == HUNTING && paralysed <= 0 && --formIn <= 0) {
+			formIn = FORM_EVERY;
+			if (guardians() < MAX_GUARDIANS) formGuardian();
+		}
+		return super.act();
+	}
+
+	private void formGuardian() {
+		for (int n : PathFinder.NEIGHBOURS8) {
+			int cell = pos + n;
+			if (!Dungeon.level.passable[cell] || Actor.findChar( cell ) != null) continue;
+			IceGuardian guardian = new IceGuardian();
+			guardian.pos = cell;
+			guardian.state = guardian.HUNTING;
+			GameScene.add( guardian );
+			CellEmitter.get( cell ).burst( Speck.factory( Speck.LIGHT ), 6 );
+			Sample.INSTANCE.play( Assets.Sounds.SHATTER, 0.6f, 1.3f );
+			if (Dungeon.level.heroFOV[pos]) GLog.w( Messages.get( this, "form" ) );
+			return;
+		}
+	}
+
+	@Override
+	public void notice() {
+		super.notice();
+		if (!BossHealthBar.isAssigned()) {
+			BossHealthBar.assignBoss( this );
+		}
+	}
+
+	private static final String FORM_IN = "form_in";
+
+	@Override
+	public void storeInBundle( Bundle bundle ) {
+		super.storeInBundle( bundle );
+		bundle.put( FORM_IN, formIn );
+	}
+
+	@Override
+	public void restoreFromBundle( Bundle bundle ) {
+		super.restoreFromBundle( bundle );
+		if (bundle.contains( FORM_IN )) formIn = bundle.getInt( FORM_IN );
+		//older saves left the core passive, where it never fought back
+		if (state == PASSIVE) state = WANDERING;
+		if (state == HUNTING) BossHealthBar.assignBoss( this );
 	}
 
 	@Override

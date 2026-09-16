@@ -127,7 +127,7 @@ public class HeroSelectScene extends PixelScene {
 				}
 			}
 		};
-		background.scale.set(Camera.main.height/background.height);
+		background.scale.set(Math.max(w/background.width, h/background.height));
 
 		background.x = (Camera.main.width - background.width())/2f;
 		background.y = (Camera.main.height - background.height())/2f;
@@ -452,13 +452,14 @@ public class HeroSelectScene extends PixelScene {
 		GamesInProgress.randomizedClass = false;
 
 		try {
-			//loading these big jpgs fails sometimes, so we have a catch for it
+			// Keep the selection usable if a splash cannot be loaded.
 			background.texture(cl.splashArt());
 		} catch (Exception e){
 			Game.reportException(e);
 			background.texture(TextureCache.createSolid(0xFF2d2f31));
 			background.frame(0, 0, 800, 450);
 		}
+		fitSplash();
 		background.visible = true;
 		background.hardlight(1.5f,1.5f,1.5f);
 
@@ -569,27 +570,26 @@ public class HeroSelectScene extends PixelScene {
 		renameButton.enable(alpha != 0);
 		renameButton.icon().alpha(alpha);
 
-		if (landscape()){
-
-			int w = (int)(Camera.main.width - insets.left - insets.right);
-
-			background.x = insets.left + (w - background.width())/2f;
-
-			float leftPortion = Math.max(100, w/3f);
-
-			background.x += (leftPortion/2f)*alpha;
-
-			float fadeLeftScale = 47 * (leftPortion - (background.x - insets.left))/leftPortion;
-			fadeLeft.scale.x = 3 + Math.max(fadeLeftScale, 0)*alpha;
-			fadeLeft.x = background.x-4;
-			fadeRight.x = background.x + background.width() + 4;
-		}
+		fitSplash();
 
 		fadeLeft.x = background.x-5;
 		fadeRight.x = background.x + background.width() + 5;
 
 		fadeLeft.visible = background.x > 0 || (alpha > 0 && landscape());
 		fadeRight.visible = background.x + background.width() < Camera.main.width;
+	}
+
+	private void fitSplash(){
+		float w = Camera.main.width - insets.left - insets.right;
+		float h = Camera.main.height - insets.top - insets.bottom;
+		// Fill the viewport and keep the hero centered. Recalculate for each texture.
+		background.scale.set(Math.max(w/background.width, h/background.height));
+		background.x = insets.left + (w - background.width())/2f;
+		background.y = insets.top + (h - background.height())/2f;
+		fadeLeft.scale.set(3, background.height());
+		fadeRight.scale.set(3, background.height());
+		fadeLeft.y = background.y;
+		fadeRight.y = background.y + background.height();
 	}
 
 	private void resetFade(){
@@ -784,9 +784,9 @@ public class HeroSelectScene extends PixelScene {
 								if (diff <= 0) {
 									long time = Game.realTime - (Game.realTime % DAY);
 
-									//earliest possible daily for v3.0.1 is Mar 01 2025
-									//which is 20,148 days days after Jan 1 1970
-									time = Math.max(time, 20_148 * DAY);
+									//earliest possible daily for v4.0 is Apr 01 2026
+									//which is 20,544 days after Jan 1 1970
+									time = Math.max(time, 20_544 * DAY);
 
 									WPDSettings.lastDaily(time);
 									Dungeon.dailyReplay = false;

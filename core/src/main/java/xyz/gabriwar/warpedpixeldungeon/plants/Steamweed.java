@@ -67,10 +67,6 @@ public class Steamweed extends Plant {
 			plantClass = Steamweed.class;
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			Buff.affect(defender, Steaming.class).set(damage);
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

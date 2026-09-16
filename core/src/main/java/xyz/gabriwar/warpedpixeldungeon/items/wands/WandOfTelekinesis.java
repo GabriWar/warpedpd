@@ -52,6 +52,11 @@ public class WandOfTelekinesis extends Wand {
 	}
 
 	@Override
+	public String statsDesc() {
+		return Messages.get(this, "stats_desc", 4 + (levelKnown ? buffedLvl() : 0));
+	}
+
+	@Override
 	public void onZap(Ballistica bolt) {
 
 		boolean mapUpdated = false;

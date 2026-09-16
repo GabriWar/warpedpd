@@ -53,6 +53,9 @@ public class BlueWraith extends Wraith {
 
 		loot = new RedDewdrop();
 		lootChance = 1f;
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	@Override

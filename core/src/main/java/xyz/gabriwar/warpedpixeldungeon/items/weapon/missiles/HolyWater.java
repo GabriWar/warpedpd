@@ -24,6 +24,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -91,6 +93,38 @@ public class HolyWater extends MissileWeapon {
 		return super.proc(attacker, defender, damage);
 	}
 
+	/**
+	 * The blessing on its own, for anything that carries holy water without being
+	 * a vial: the thrower is mended and the splash goes out around the target.
+	 */
+	public static void blessProc(Char attacker, Char defender, int damage){
+		HolyWater water = new HolyWater();
+		int healAmt = Math.min(damage / 5, attacker.HT - attacker.HP);
+		if (healAmt > 0 && attacker.isAlive()) {
+			attacker.HP += healAmt;
+			attacker.sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(healAmt), FloatingText.HEALING);
+		}
+		water.shatter(defender.pos, attacker, defender, damage);
+	}
+
+	//from +6 the blessing is strong enough that the vial comes back together after
+	//every throw and returns to the pack; below that it is a fragile vial that is
+	//spent whether it hits, misses or lands on bare ground
+	private boolean reconstitutes(){
+		return buffedLvl() >= 6;
+	}
+
+	private void returnToPack(){
+		if (spawnedForEffect) return;
+		parent = null;
+		Hero hero = Dungeon.hero;
+		if (collect( hero.belongings.backpack )){
+			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 3 );
+		} else {
+			Dungeon.level.drop( this, hero.pos ).sprite.drop();
+		}
+	}
+
 	@Override
 	protected void onThrow(int cell) {
 		if (Actor.findChar(cell) != null){
@@ -98,8 +132,25 @@ public class HolyWater extends MissileWeapon {
 		} else {
 			//no target: the vial still shatters and soaks the ground
 			shatter(cell, null, null, 0);
-			detach(Dungeon.hero.belongings.backpack);
+			if (reconstitutes()) returnToPack();
 		}
+	}
+
+	//a hit: the splash already happened in proc(); the vial is gone, or back in the pack
+	@Override
+	protected void rangedHit(Char enemy, int cell) {
+		if (reconstitutes()){
+			returnToPack();
+		} else {
+			super.rangedHit(enemy, cell);
+		}
+	}
+
+	//a miss still shatters the vial where it lands; a plain missile would just drop
+	@Override
+	protected void rangedMiss(int cell) {
+		shatter(cell, Dungeon.hero, null, 0);
+		if (reconstitutes()) returnToPack();
 	}
 
 	private void shatter(int center, Char attacker, Char target, int damage){
@@ -127,8 +178,7 @@ public class HolyWater extends MissileWeapon {
 		}
 	}
 
-	//at +6 the blessing is strong enough that the vial reconstitutes
-	//itself after shattering - infinite uses
+	//no wear at +6, to match reconstitutes(): the stack never thins
 	@Override
 	public float durabilityPerUse(int level){
 		if (level >= 6) return 0;

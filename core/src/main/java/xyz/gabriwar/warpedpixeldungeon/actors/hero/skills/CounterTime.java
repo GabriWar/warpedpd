@@ -27,8 +27,15 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfForce;
@@ -36,6 +43,11 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import com.watabou.utils.Random;
 
 public class CounterTime extends Skill {
+
+	//damage comes from the weapon or strength, which already grow with the hero
+	@Override
+	public boolean weaponScaled(){ return true; }
+
 
 	{
 		tag = "D3";
@@ -49,22 +61,30 @@ public class CounterTime extends Skill {
 		return true;
 	}
 
+	//an enemy that steps back out of your reach gets cut as it goes: 20% / 35% / 50%
 	@Override
-	public int onDefendProc( Char enemy, int damage ){
-		if (level <= 0 || enemy == null || !enemy.isAlive() || enemy == Dungeon.hero){
-			return damage;
+	public void onCharMoved( Char ch, int from, boolean travelling ){
+		Hero hero = Dungeon.hero;
+		if (level <= 0 || hero == null || ch == null || ch == hero || !travelling || !ch.isAlive()
+				|| ch.alignment != Char.Alignment.ENEMY || hero.paralysed > 0
+				|| !Dungeon.level.adjacent( from, hero.pos ) || Dungeon.level.adjacent( ch.pos, hero.pos )) return;
+		if (Random.Int( 100 ) >= 5 + 15 * level) return;
+		final Char fleeing = ch;
+		SkillInteractions.defer( () -> strike( hero, fleeing ) );
+	}
+
+	private void strike( Hero hero, Char enemy ){
+		if (!enemy.isAlive() || !hero.isAlive()) return;
+		enemy.damage( Math.max( 1, Math.round( weaponRoll() * 0.5f ) ), this );
+		Wound.hit( enemy );
+		if (level >= MAX_LEVEL && enemy.isAlive()){
+			Buff.prolong( enemy, Cripple.class, 2f );
 		}
-		if (!Dungeon.level.adjacent( enemy.pos, Dungeon.hero.pos )){
-			return damage;
+		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 1f, 1.0f );
+		if (hero.sprite != null){
+			hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "cast" ) );
+			hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
 		}
-		if (Random.Int( 100 ) < 10 * level){
-			enemy.damage( Math.round( weaponRoll() * 0.5f ), this );
-			if (Dungeon.hero.sprite != null){
-				Dungeon.hero.sprite.showStatus( CharSprite.POSITIVE, "counter!" );
-			}
-			return Math.round( damage * 0.5f );
-		}
-		return damage;
 	}
 
 	//a raw roll of whatever is in hand. Deliberately not Hero.damageRoll(): that path runs the

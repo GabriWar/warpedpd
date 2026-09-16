@@ -47,8 +47,6 @@ import xyz.gabriwar.warpedpixeldungeon.WPDSettings;
 import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
 import xyz.gabriwar.warpedpixeldungeon.services.news.News;
 import xyz.gabriwar.warpedpixeldungeon.services.news.NewsImpl;
-import xyz.gabriwar.warpedpixeldungeon.services.updates.UpdateImpl;
-import xyz.gabriwar.warpedpixeldungeon.services.updates.Updates;
 import xyz.gabriwar.warpedpixeldungeon.ui.Button;
 import com.watabou.input.KeyEvent;
 import com.watabou.noosa.Game;
@@ -121,9 +119,8 @@ public class AndroidLauncher extends AndroidApplication {
 			}
 
 			Gdx.app = this;
-			if (UpdateImpl.supportsUpdates()) {
-				Updates.service = UpdateImpl.getUpdateService();
-			}
+			//flavor-specific: github checks the public releases, playstore asks Play itself
+			UpdatesSetup.setup(this);
 			if (NewsImpl.supportsNews()) {
 				News.service = NewsImpl.getNewsService();
 			}

@@ -44,7 +44,7 @@ import com.watabou.utils.Random;
 
 //ported from Remixed PD's Ice Caves. Half of an interlocking pair: killing a
 //guardian wounds the core it serves, and while that core lives the ice simply
-//forms two more guardians. Killing the core is the only way to stop them.
+//reforms one, up to four at a time. Every guardian broken tears into the core.
 public class IceGuardian extends Mob {
 
 	public static final int CORE_DAMAGE_ON_DEATH = 150;
@@ -61,7 +61,7 @@ public class IceGuardian extends Mob {
 		maxLvl = 10;
 
 		loot = MysteryMeat.class;
-		lootChance = 0.2f;
+		lootChance = 0.2f / 4f;
 
 		properties.add( Property.ICY );
 		properties.add( Property.INORGANIC );
@@ -73,6 +73,9 @@ public class IceGuardian extends Mob {
 		immunities.add( Blindness.class );
 		immunities.add( MagicalSleep.class );
 		immunities.add( Grim.class );
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	@Override
@@ -106,8 +109,8 @@ public class IceGuardian extends Mob {
 
 		core.damage( CORE_DAMAGE_ON_DEATH, this );
 
-		if (core.isAlive()) {
-			resurrect();
+		//the core reshapes a fallen guardian, but never keeps more than four standing
+		if (core.isAlive() && IceGuardianCore.guardians() < IceGuardianCore.MAX_GUARDIANS) {
 			resurrect();
 		}
 	}

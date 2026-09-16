@@ -25,8 +25,16 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillSequence;
 
 
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
+import xyz.gabriwar.warpedpixeldungeon.items.bombs.Bomb;
+import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -44,10 +52,11 @@ import com.watabou.utils.PathFinder;
 import java.util.ArrayList;
 
 public class NinjaBomb extends ActiveSkill2 {
+    @Override public boolean toggleable(){return false;}
 
 	{
 		name = "Ninja Bomb";
-		castText = "Go to sleep";
+		castText = "Into the smoke!";
 		tier = 2;
 		image = 65;
 		mana = 8;
@@ -72,36 +81,51 @@ public class NinjaBomb extends ActiveSkill2 {
 	private static CellSelector.Listener thrower = new CellSelector.Listener() {
 		@Override
 		public void onSelect( Integer target ){
-			if (target != null){
-				Hero curUser = Dungeon.hero;
-				Skill skill = curUser.heroSkills.active2;
-				Ballistica shot = new Ballistica( curUser.pos, target, Ballistica.PROJECTILE );
-				int cell = shot.collisionPos;
-				curUser.sprite.zap(cell);
-				curUser.MP -= skill.getManaCost();
-				skill.castTextYell();
-
-				//a burst of sleeping gas around the impact point
+			if (target == null) return;
+			final Hero curUser = Dungeon.hero;
+			final Skill skill = curUser.heroSkills.get( NinjaBomb.class );
+			if (skill.level <= 0 || curUser.MP < skill.getManaCost()) return;
+			Ballistica shot = new Ballistica( curUser.pos, target, Ballistica.PROJECTILE );
+			final int cell = shot.collisionPos;
+			curUser.MP -= skill.getManaCost();
+			skill.castTextYell();
+			Dungeon.hero.heroSkills.lastUsed = skill;
+			Invisibility.dispel();
+			//the bomb is seen flying, and the gas goes off where it lands
+			curUser.busy();
+			curUser.sprite.zap( cell );
+			Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 1.3f );
+			SkillFX.streak( curUser.sprite, cell, new Bomb(), () -> {
+				Sample.INSTANCE.play( Assets.Sounds.PUFF, 1f, 1.0f );
+                for(int c:SkillInteractions.area(cell,skill.level)) GameScene.add(
+                        xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob.seed(c,4+skill.level,
+                        xyz.gabriwar.warpedpixeldungeon.actors.blobs.SmokeScreen.class));
+                //at mastery the smoke leaves a clone behind to draw enemies off
+                if(skill.level>=MAX_LEVEL) for(int c:SkillInteractions.area(cell,1)) if(Dungeon.level.passable[c]&&xyz.gabriwar.warpedpixeldungeon.actors.Actor.findChar(c)==null){
+                    xyz.gabriwar.warpedpixeldungeon.actors.mobs.SkillDecoy decoy=new xyz.gabriwar.warpedpixeldungeon.actors.mobs.SkillDecoy();
+                    decoy.pos=c;decoy.rank=skill.level;decoy.left=2+skill.level;decoy.blinding=false;GameScene.add(decoy);decoy.sprite.alpha(.55f);break;
+                }
 				CellEmitter.get( cell ).burst( Speck.factory( Speck.STEAM ), 10 );
 				for (int n : PathFinder.NEIGHBOURS9){
 					int c = cell + n;
 					if (c < 0 || c >= Dungeon.level.length()) continue;
-					Char ch = Actor.findChar( c );
-					if (ch != null && ch != curUser && ch instanceof Mob){
-						Buff.affect( ch, MagicalSleep.class );
-					}
 					if (Dungeon.level.heroFOV[c]){
 						CellEmitter.get( c ).burst( Speck.factory( Speck.STEAM ), 3 );
 					}
 				}
+				for (int c : SkillInteractions.area(cell, skill.level)) {
+					Char enemy = Actor.findChar(c);
+					if (enemy instanceof Mob && enemy.alignment == Char.Alignment.ENEMY
+							&& enemy.isAlive() && !enemy.properties().contains(Char.Property.BOSS)) {
+						Buff.affect(enemy, MagicalSleep.class);
+					}
+				}
 				curUser.spendAndNext( TIME_TO_USE );
-				curUser.busy();
-			}
+			} );
 		}
-
 		@Override
 		public String prompt(){
-			return "Choose where to throw the bomb";
+			return Messages.get(NinjaBomb.class, "prompt");
 		}
 	};
 

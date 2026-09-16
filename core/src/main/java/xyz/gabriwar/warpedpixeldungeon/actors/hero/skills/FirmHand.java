@@ -27,6 +27,17 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import com.watabou.noosa.Camera;
+import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+
 public class FirmHand extends PassiveSkillB1 {
 
 	{
@@ -40,8 +51,44 @@ public class FirmHand extends PassiveSkillB1 {
 		return true;
 	}
 
+	private int staggerTurns(){
+		return 1 + 2 * level;
+	}
+
+	//the opening melee blow on an unhurt enemy staggers it: the next shove that moves it throws it
+	//further and bursts it against whatever stops it (SkillInteractions.push reads the mark)
 	@Override
-	public int toHitBonus(){
-		return level * 2;
+	public int onHitProc( Char enemy, int damage, boolean ranged ){
+		if (ranged || level <= 0 || enemy == null || !enemy.isAlive() || enemy.HP < enemy.HT) return damage;
+		if (damage >= enemy.HP + enemy.shielding()) return damage;
+		if (enemy.properties().contains( Char.Property.IMMOVABLE )) return damage;
+
+		SkillInteractions.mark( enemy, SkillInteractions.Mark.STAGGER, level, staggerTurns() );
+		if (enemy.sprite != null && enemy.sprite.visible){
+			enemy.sprite.emitter().burst( Speck.factory( Speck.FORGE ), 3 + level );
+			enemy.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "stagger" ) );
+			Camera.main.shake( 1, 0.15f );
+		}
+		Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 0.8f, 0.9f );
+		return damage;
+	}
+
+	//+3: an enemy killed while staggered sends the stagger through every enemy beside it
+	@Override
+	public void onKill( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob mob, boolean ranged ){
+		if (level < MAX_LEVEL || mob == null || SkillInteractions.get( mob, SkillInteractions.Mark.STAGGER ) == null) return;
+		boolean spread = false;
+		for (int n : com.watabou.utils.PathFinder.NEIGHBOURS8){
+			Char ch = xyz.gabriwar.warpedpixeldungeon.actors.Actor.findChar( mob.pos + n );
+			if (ch == null || ch == mob || ch.alignment != Char.Alignment.ENEMY || !ch.isAlive()
+					|| ch.properties().contains( Char.Property.IMMOVABLE )) continue;
+			SkillInteractions.mark( ch, SkillInteractions.Mark.STAGGER, level, staggerTurns() );
+			if (ch.sprite != null && ch.sprite.visible) ch.sprite.emitter().burst( Speck.factory( Speck.FORGE ), 4 );
+			spread = true;
+		}
+		if (spread){
+			Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 0.9f, 0.7f );
+			Camera.main.shake( 1, 0.2f );
+		}
 	}
 }

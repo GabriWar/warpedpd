@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -55,7 +56,7 @@ public class HarvestWind extends Blob {
 	@Override
 	public void use(BlobEmitter emitter) {
 		super.use(emitter);
-		emitter.pour(Speck.factory(Speck.DUST), 0.6f);
+		emitter.pour(WeatherBlobFX.HARVEST_WIND, 0.3f);
 	}
 
 	@Override

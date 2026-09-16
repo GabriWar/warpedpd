@@ -40,7 +40,7 @@ public class Crab extends Mob {
 		maxLvl = 9;
 
 		loot = MysteryMeat.class;
-		lootChance = 0.5f;
+		lootChance = 0.5f / 4f;
 	}
 	
 	@Override

@@ -109,9 +109,5 @@ public class Firebloom extends Plant {
 			return new FirebloomPoisonParticle();
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			new Firebloom().attackProc(defender, damage);
-		}
 	}
 }

@@ -63,6 +63,13 @@ public class RingOfSearching extends Ring {
 		return searchDistanceBonus(getBuffedBonus(target, EasySearch.class));
 	}
 
+	//the base class hands back null here, and equipping the ring attaches whatever
+	//this returns - without it the ring crashed the game the moment it was put on
+	@Override
+	protected RingBuff buff( ) {
+		return new EasySearch();
+	}
+
 	public class EasySearch extends RingBuff {
 	}
 }

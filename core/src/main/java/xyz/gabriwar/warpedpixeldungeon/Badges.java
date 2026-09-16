@@ -118,8 +118,6 @@ public class Badges {
 		ITEMS_CRAFTED_3             ( 47 ),
 		BOSS_SLAIN_2                ( 48 ),
 		BOSS_SLAIN_3                ( 49 ),
-		ALL_POTIONS_IDENTIFIED      , //still exists internally for pre-2.5 saves
-		ALL_SCROLLS_IDENTIFIED      , //still exists internally for pre-2.5 saves
 		CATALOG_POTIONS_SCROLLS     ( 50 ),
 		DEATH_FROM_ENEMY_MAGIC      ( 51 ),
 		DEATH_FROM_FRIENDLY_MAGIC   ( 52 ),
@@ -156,8 +154,6 @@ public class Badges {
 		ITEMS_CRAFTED_4             ( 77 ),
 		ITEMS_CRAFTED_5             ( 78 ),
 		BOSS_SLAIN_4                ( 79 ),
-		ALL_RINGS_IDENTIFIED        , //still exists internally for pre-2.5 saves
-		ALL_ARTIFACTS_IDENTIFIED    , //still exists internally for pre-2.5 saves
 		ALL_RARE_ENEMIES            ( 80, BadgeType.JOURNAL ), //no longer all, just 10 as of v3.1
 		DEATH_FROM_GRIM_TRAP        ( 81 ), //also disintegration traps
 		VICTORY                     ( 82 ),
@@ -175,10 +171,6 @@ public class Badges {
 		VICTORY_RANDOM              ( 100 ),
 		HAPPY_END_REMAINS           ( 101 ),
 		RODNEY                      ( 102, BadgeType.JOURNAL ),
-		ALL_WEAPONS_IDENTIFIED      , //still exists internally for pre-2.5 saves
-		ALL_ARMOR_IDENTIFIED        , //still exists internally for pre-2.5 saves
-		ALL_WANDS_IDENTIFIED        , //still exists internally for pre-2.5 saves
-		ALL_ITEMS_IDENTIFIED        , //still exists internally for pre-2.5 saves
 		VICTORY_WARRIOR,
 		VICTORY_MAGE,
 		VICTORY_ROGUE,
@@ -218,17 +210,35 @@ public class Badges {
 		CHAMPION_3                  ( 127 ),
 
 		//sprouted legacy badges
-		POTIONS_COOKED_1            ( 25 ),  //3 items crafted (legacy alias)
+		POTIONS_COOKED_1            ( 95 ),  //3 items crafted (legacy alias)
 		POTIONS_COOKED_2            ( 26 ),  //6 items crafted
 		POTIONS_COOKED_3            ( 27 ),  //9 items crafted
 		POTIONS_COOKED_4            ( 28 ),  //12 items crafted
 		DEATH_FROM_GLYPH            ( 29 ),
 		YASD                        ( 58, BadgeType.GLOBAL ), //all 4 classic deaths
-		ORB                         ( 68 ),  //Orb of Zot obtained
-		OTILUKE                     ( 65 ),  //Otiluke rescued
-		NIGHT_HUNTER,                        //dormant: needs nighttime kill tracking
+		ORB                         ( 93 ),  //Orb of Zot obtained
+		OTILUKE                     ( 94 ),  //Otiluke rescued
+		NIGHT_HUNTER                ( 88 ),  //15 kills after dark
 		RING_OF_HAGGLER,                     //dormant: ring doesn't exist in modern
 		RING_OF_THORNS,                      //dormant: ring doesn't exist in modern
+
+		//warped: the surface and its town
+		INN_GUEST                   ( 30 ),  //slept at the inn
+		CAME_IN_FROM_COLD           ( 31 ),  //walked indoors with hypothermia
+		DRILLED                     ( 59 ),  //took the mercenary's lesson
+		WELL_READ                   ( 60 ),  //read a diary page on its floor
+		HIGH_ROLLER                 ( 61 ),  //won a coin toss of 100 gold or more
+		BOUNTY_HUNTER               ( 62 ),  //collected the guard's bounty
+		MOONLIT_READING             ( 63 ),  //a fortune read under the full moon
+		STORM_CHASER                ( 89 ),  //out in a storm
+		AURORA_WATCHER              ( 90 ),  //saw the aurora
+		VILLAGER                    ( 91 ),  //stepped into a village house
+		TOWN_REGULAR                ( 92 ),  //used five of the town's services in one run
+		SEASON_SPRING,                       //hidden: a season seen, across runs
+		SEASON_SUMMER,
+		SEASON_AUTUMN,
+		SEASON_WINTER,
+		FOUR_SEASONS                ( 112, BadgeType.GLOBAL ),  //all four seen
 		SUPPORTER;
 
 		public boolean meta;
@@ -273,7 +283,15 @@ public class Badges {
 	
 	private static final HashSet<String> removedBadges = new HashSet<>();
 	static{
-		//no removed badges currently
+		//used only for save conversion since v2.5.0, actually removed in v4.0.0
+		removedBadges.add("ALL_WEAPONS_IDENTIFIED");
+		removedBadges.add("ALL_ARMOR_IDENTIFIED");
+		removedBadges.add("ALL_WANDS_IDENTIFIED");
+		removedBadges.add("ALL_RINGS_IDENTIFIED");
+		removedBadges.add("ALL_ARTIFACTS_IDENTIFIED");
+		removedBadges.add("ALL_POTIONS_IDENTIFIED");
+		removedBadges.add("ALL_SCROLLS_IDENTIFIED");
+		removedBadges.add("ALL_ITEMS_IDENTIFIED");
 	}
 
 	private static final HashMap<String, String> renamedBadges = new HashMap<>();
@@ -885,6 +903,63 @@ public class Badges {
 		return local.contains(Badge.OTILUKE);
 	}
 
+	//a one-off local badge: earned once per run, endorsed after
+	private static void validateLocal( Badge badge ) {
+		if (!local.contains(badge)) {
+			local.add(badge);
+			displayBadge(badge);
+		}
+	}
+
+	public static void validateInnGuest()        { validateLocal(Badge.INN_GUEST); }
+	public static void validateCameInFromCold()  { validateLocal(Badge.CAME_IN_FROM_COLD); }
+	public static void validateDrilled()         { validateLocal(Badge.DRILLED); }
+	public static void validateWellRead()        { validateLocal(Badge.WELL_READ); }
+	public static void validateBountyHunter()    { validateLocal(Badge.BOUNTY_HUNTER); }
+	public static void validateMoonlitReading()  { validateLocal(Badge.MOONLIT_READING); }
+
+	public static void validateHighRoller( int stake ) {
+		if (stake >= 100) validateLocal(Badge.HIGH_ROLLER);
+	}
+
+	public static void validateNightHunter() {
+		if (Statistics.nightKills >= 15) validateLocal(Badge.NIGHT_HUNTER);
+	}
+
+	//five different services of the town in one run: TownLedger keeps the bits
+	public static void validateTownRegular() {
+		if (Integer.bitCount(xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town.TownLedger.servicesUsed) >= 5) {
+			validateLocal(Badge.TOWN_REGULAR);
+		}
+	}
+
+	//once a hero turn: what the surface is doing around the hero
+	public static void validateWorldTurn() {
+		if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) {
+			if (xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager.isStorming()) validateLocal(Badge.STORM_CHASER);
+			if (xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager.isAurora())   validateLocal(Badge.AURORA_WATCHER);
+		} else if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.VillageHouseLevel) {
+			validateLocal(Badge.VILLAGER);
+		}
+
+		//the seasons are seen across runs: one hidden badge each, and the real one
+		//once all four are in the profile
+		Badge season;
+		switch (xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar.season()) {
+			case SPRING: season = Badge.SEASON_SPRING; break;
+			case SUMMER: season = Badge.SEASON_SUMMER; break;
+			case AUTUMN: season = Badge.SEASON_AUTUMN; break;
+			default:     season = Badge.SEASON_WINTER; break;
+		}
+		if (!isUnlocked(season)) {
+			unlock(season);
+			if (isUnlocked(Badge.SEASON_SPRING) && isUnlocked(Badge.SEASON_SUMMER)
+					&& isUnlocked(Badge.SEASON_AUTUMN) && isUnlocked(Badge.SEASON_WINTER)) {
+				displayBadge(Badge.FOUR_SEASONS);
+			}
+		}
+	}
+
 	private static LinkedHashMap<HeroClass, Badge> firstBossClassBadges = new LinkedHashMap<>();
 	static {
 		firstBossClassBadges.put(HeroClass.WARRIOR, Badge.BOSS_SLAIN_1_WARRIOR);
@@ -1296,6 +1371,8 @@ public class Badges {
 		if (!isUnlocked(badge) && (badge.type == BadgeType.JOURNAL || Dungeon.customSeedText.isEmpty())){
 			global.add( badge );
 			saveNeeded = true;
+			//the same badge on Google Play, where the build has Play Games
+			com.watabou.noosa.Game.platform.unlockAchievement( badge.name() );
 		}
 	}
 
@@ -1357,16 +1434,7 @@ public class Badges {
 			{Badge.DEATH_FROM_ENEMY_MAGIC, Badge.DEATH_FROM_ALL},
 			{Badge.DEATH_FROM_FRIENDLY_MAGIC, Badge.DEATH_FROM_ALL},
 			{Badge.DEATH_FROM_SACRIFICE, Badge.DEATH_FROM_ALL},
-			{Badge.DEATH_FROM_GRIM_TRAP, Badge.DEATH_FROM_ALL},
-			{Badge.DEATH_FROM_GLYPH, Badge.DEATH_FROM_ALL},
-
-			{Badge.ALL_WEAPONS_IDENTIFIED, Badge.ALL_ITEMS_IDENTIFIED},
-			{Badge.ALL_ARMOR_IDENTIFIED, Badge.ALL_ITEMS_IDENTIFIED},
-			{Badge.ALL_WANDS_IDENTIFIED, Badge.ALL_ITEMS_IDENTIFIED},
-			{Badge.ALL_RINGS_IDENTIFIED, Badge.ALL_ITEMS_IDENTIFIED},
-			{Badge.ALL_ARTIFACTS_IDENTIFIED, Badge.ALL_ITEMS_IDENTIFIED},
-			{Badge.ALL_POTIONS_IDENTIFIED, Badge.ALL_ITEMS_IDENTIFIED},
-			{Badge.ALL_SCROLLS_IDENTIFIED, Badge.ALL_ITEMS_IDENTIFIED}
+			{Badge.DEATH_FROM_GRIM_TRAP, Badge.DEATH_FROM_ALL}
 	};
 	
 	public static List<Badge> filterReplacedBadges( List<Badge> badges ) {

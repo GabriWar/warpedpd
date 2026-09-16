@@ -24,24 +24,28 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
+import xyz.gabriwar.warpedpixeldungeon.Challenges;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.LockedFloor;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
+import xyz.gabriwar.warpedpixeldungeon.items.SpiderCharm;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfHealing;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.SpiderQueenSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.BossHealthBar;
+import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
-//ported from Remixed PD's Spider Nest: the mother of the brood. A miniboss set-piece
-//on the deepest nest floor - it lays eggs, poisons heavily, and skitters away once
-//wounded. Not the branch's descent boss; the nest loops rather than ending.
+//ported from Remixed PD's Spider Nest: the mother of the brood and the nest's boss,
+//holding its deepest floor. It lays eggs, poisons heavily, and skitters away once
+//wounded; engaging it seals the floor until it dies.
 public class SpiderQueen extends Mob {
 
 	{
@@ -53,7 +57,9 @@ public class SpiderQueen extends Mob {
 		EXP = 11;
 		maxLvl = 12;
 
-		properties.add( Property.MINIBOSS );
+		properties.add( Property.BOSS );
+
+		declareExtraLoot( SpiderCharm.class, 1f );
 
 		immunities.add( Burning.class );
 	}
@@ -77,8 +83,18 @@ public class SpiderQueen extends Mob {
 	public void damage( int dmg, Object src ) {
 		if (isAlive() && !BossHealthBar.isAssigned()) {
 			BossHealthBar.assignBoss( this );
+			Dungeon.level.seal();
 		}
+		boolean bleeding = (HP*2 <= HT);
 		super.damage( dmg, src );
+		if ((HP*2 <= HT) && !bleeding) {
+			BossHealthBar.bleed( true );
+		}
+		LockedFloor lock = Dungeon.hero.buff( LockedFloor.class );
+		if (lock != null && !isImmune( src.getClass() ) && !isInvulnerable( src.getClass() )) {
+			if (Dungeon.isChallenged( Challenges.STRONGER_BOSSES )) lock.addTime( dmg );
+			else                                                    lock.addTime( dmg*1.5f );
+		}
 	}
 
 	@Override
@@ -125,11 +141,17 @@ public class SpiderQueen extends Mob {
 
 	@Override
 	public void die( Object cause ) {
-		GameScene.bossSlain();
 		Dungeon.level.drop( new PotionOfHealing(), pos ).sprite.drop();
 		Dungeon.level.drop( Generator.random( Generator.Category.WAND ), pos ).sprite.drop();
 		super.die( cause );
+		Dungeon.level.unseal();
+		GameScene.bossSlain();
 		yell( Messages.get( this, "die" ) );
+	}
+
+	@Override
+	protected void dropExtraLoot() {
+		trackedDrop( new SpiderCharm(), 0 );
 	}
 
 	@Override
@@ -137,7 +159,15 @@ public class SpiderQueen extends Mob {
 		super.notice();
 		if (!BossHealthBar.isAssigned()) {
 			BossHealthBar.assignBoss( this );
+			Dungeon.level.seal();
 			yell( Messages.get( this, "notice" ) );
 		}
+	}
+
+	@Override
+	public void restoreFromBundle( Bundle bundle ) {
+		super.restoreFromBundle( bundle );
+		if (state != SLEEPING) BossHealthBar.assignBoss( this );
+		if ((HP*2 <= HT)) BossHealthBar.bleed( true );
 	}
 }

@@ -27,8 +27,13 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ManaShieldWard;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 
 import java.util.ArrayList;
@@ -38,10 +43,13 @@ public class ManaShield extends SubSkill2 {
 	{
 		name = "Mana Shield";
 		castText = "Arcane ward";
-		image = 27;
+		image = 176;
 		mana = 8;
 		tier = 2;
 	}
+
+	@Override
+	public boolean toggleable(){ return false; }
 
 	@Override
 	public ArrayList<String> actions( Hero hero ){
@@ -54,14 +62,40 @@ public class ManaShield extends SubSkill2 {
 	@Override
 	public void execute( Hero hero, String action ){
 		if (action.equals(Skill.AC_CAST) && level > 0 && hero.MP >= getManaCost()){
-			Buff.affect( hero, xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barrier.class ).setShield( 4 + 4 * level );
+			Buff.affect( hero, ManaShieldWard.class ).raise( SkillInteractions.ofHealth( hero.HT, 0.04f + 0.04f * level ) );
 			hero.MP -= getManaCost();
 			castTextYell();
+			Sample.INSTANCE.play( Assets.Sounds.MELD, 1f, 1.2f );
+			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 6 );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
 			hero.busy();
 			hero.sprite.operate( hero.pos );
 		}
+	}
+
+	/** a blow (never a tick of poison, fire or the like) is landing right now: the ward may break on it.
+	 *  Skills are asked before shields in Hero.damage, so this runs just ahead of the ward's absorbDamage */
+	@Override
+	public int incomingDamageReduction( int damage, Object source ){
+		if (level > 0 && !Skill.isTickDamage( source )) ManaShieldWard.blowAt = Actor.now();
+		return 0;
+	}
+
+	//a broken ward's shards sit in the weapon: each melee hit spends one as extra magic damage
+	@Override
+	public int onHitProc( xyz.gabriwar.warpedpixeldungeon.actors.Char enemy, int damage, boolean ranged ){
+		Hero hero = Dungeon.hero;
+		if (ranged || level <= 0 || hero == null || enemy == null) return damage;
+		Charged charged = hero.buff( Charged.class );
+		if (charged == null || charged.hits <= 0) return damage;
+		charged.use();
+		if (enemy.sprite != null){
+			enemy.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 6 );
+			enemy.sprite.flash();
+		}
+		Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 1f, 1.1f );
+		return damage + Math.round( com.watabou.utils.Random.NormalIntRange( 3, 8 ) * SkillInteractions.heroPower() );
 	}
 
 	@Override
@@ -71,4 +105,50 @@ public class ManaShield extends SubSkill2 {
 
 	@Override
 	protected boolean upgrade(){ return true; }
+
+	/** crystal shards of a broken ward, charged into the Battlemage's weapon */
+	public static class Charged extends Buff {
+
+		{
+			type = buffType.POSITIVE;
+		}
+
+		int hits = 0;
+
+		public void set( int hits ){
+			this.hits = Math.max( this.hits, hits );
+		}
+
+		void use(){
+			if (--hits <= 0) detach();
+		}
+
+		@Override
+		public int icon(){ return xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator.RECHARGING; }
+
+		@Override
+		public void tintIcon( com.watabou.noosa.Image icon ){ icon.hardlight( 0.35f, 0.65f, 1f ); }
+
+		@Override
+		public String iconTextDisplay(){ return Integer.toString( hits ); }
+
+		@Override
+		public String desc(){
+			return xyz.gabriwar.warpedpixeldungeon.messages.Messages.get( this, "desc", hits );
+		}
+
+		private static final String HITS = "hits";
+
+		@Override
+		public void storeInBundle( com.watabou.utils.Bundle bundle ){
+			super.storeInBundle( bundle );
+			bundle.put( HITS, hits );
+		}
+
+		@Override
+		public void restoreFromBundle( com.watabou.utils.Bundle bundle ){
+			super.restoreFromBundle( bundle );
+			hits = bundle.getInt( HITS );
+		}
+	}
 }

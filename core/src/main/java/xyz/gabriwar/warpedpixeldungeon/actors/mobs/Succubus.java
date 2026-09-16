@@ -66,6 +66,9 @@ public class Succubus extends Mob {
 		lootChance = 0.33f;
 
 		properties.add(Property.DEMONIC);
+
+		//built for the heat: the chill is what hurts
+		thermal = Thermal.HEAT_DWELLER;
 	}
 	
 	@Override

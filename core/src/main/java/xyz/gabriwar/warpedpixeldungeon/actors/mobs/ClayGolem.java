@@ -39,6 +39,9 @@ public class ClayGolem extends Mob {
 
 		EXP = 8;
 		maxLvl = 18;
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	@Override

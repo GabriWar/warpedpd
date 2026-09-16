@@ -57,6 +57,7 @@ public class Waterweed extends Plant {
 
 	//converts one cell as OV does: EMPTY/GRASS to water, EMPTY_WELL to a random well
 	private void convertCell( int cell ){
+		if (!Dungeon.level.insideMap( cell )) return;
 		if (Dungeon.level.map[cell] == Terrain.EMPTY || Dungeon.level.map[cell] == Terrain.GRASS){
 			Level.set(cell, Terrain.WATER);
 			GameScene.updateMap(cell);
@@ -97,10 +98,6 @@ public class Waterweed extends Plant {
 			plantClass = Waterweed.class;
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			new Waterweed().attackProc(defender, damage);
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

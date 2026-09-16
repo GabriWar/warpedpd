@@ -27,6 +27,13 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Haste;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.items.Gold;
@@ -34,6 +41,8 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import com.watabou.utils.Random;
 
 public class LockSmith extends PassiveSkillA3 {
+
+	private static final int READ_RANGE = 3;
 
 	{
 		name = "Lock Smith";
@@ -43,30 +52,34 @@ public class LockSmith extends PassiveSkillA3 {
 
 	@Override
 	public boolean disableTrap(){
-		if (Random.Int(100) < 33 * level){
-			castText = Messages.get(this, "cast");
-			castTextYell();
-			if (level >= Skill.MAX_LEVEL) stripForParts();
-			return true;
-		}
-		castText = Messages.get(this, "cast_fail", name());
+		if (Random.Int(100) >= 33 * level) return false;
 		castTextYell();
-		return false;
-	}
-
-	//at mastery the jammed mechanism is not just neutralised, it is robbed:
-	//the salvaged coin then runs through Bandit's and Master Thief's loot bonus
-	private void stripForParts(){
+		//the mechanism is seen and heard giving up
 		Hero hero = Dungeon.hero;
-		if (hero == null) return;
-		Dungeon.level.drop( new Gold( 8 + 4 * CurrentSkills.skillLevel(Bandit.class) ), hero.pos ).sprite.drop();
-		hero.MP = Math.min( hero.MT, hero.MP + 2 );
+		if (hero != null && hero.sprite != null){
+			CellEmitter.center( hero.pos ).burst( SparkParticle.FACTORY, 6 );
+		}
+		Sample.INSTANCE.play( Assets.Sounds.UNLOCK, 1f, 1.1f );
+		if (level >= Skill.MAX_LEVEL && hero != null) readMechanism( hero );
+		return true;
 	}
 
-	//the shout swaps between hit and miss lines, so the live field wins over the bundle
-	@Override
-	public String castText(){
-		return castText;
+	//at mastery the jammed plate tells how the whole floor was rigged: hidden traps nearby show themselves
+	private void readMechanism( Hero hero ){
+		boolean found = false;
+		for (int i = 0; i < Dungeon.level.length(); i++){
+			if (Dungeon.level.distance( hero.pos, i ) > READ_RANGE) continue;
+			xyz.gabriwar.warpedpixeldungeon.levels.traps.Trap trap = Dungeon.level.traps.get( i );
+			if (trap == null || trap.visible) continue;
+			Dungeon.level.discover( i );
+			xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfMagicMapping.discover( i );
+			CellEmitter.get( i ).burst( SparkParticle.FACTORY, 5 );
+			found = true;
+		}
+		if (found){
+			if (hero.sprite != null) hero.sprite.showStatus( xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite.NEUTRAL, Messages.get( this, "found" ) );
+			Sample.INSTANCE.play( Assets.Sounds.SECRET, 0.8f, 1.2f );
+		}
 	}
 
 	@Override

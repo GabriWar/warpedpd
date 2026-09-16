@@ -36,13 +36,13 @@ import com.watabou.utils.Bundle;
 
 import java.util.ArrayList;
 
-public class Skill {
+public class Skill implements SkillInteractions.HeroDamageSource {
 
-	public static final String AC_ADVANCE    = "Advance";
 	public static final String AC_ACTIVATE   = "Activate";
 	public static final String AC_DEACTIVATE = "Deactivate";
 	public static final String AC_SUMMON     = "Summon";
 	public static final String AC_CAST       = "Cast";
+	public static final String AC_MARK       = "Mark target";
 
 	public static final String SKILL_LEVEL = "LEVEL";
 	public static final String SKILL_ACTIVE = "ACTIVE";
@@ -67,6 +67,10 @@ public class Skill {
 	public int image = 159;
 
 	public boolean active = false;
+
+	/** true for the skills you switch on and off: the tree drains the colour
+	 *  out of their icon while they are off, so "on" is visible at a glance */
+	public boolean toggleable(){ return false; }
 
 	public boolean multiTargetActive = false;
 
@@ -118,8 +122,6 @@ public class Skill {
 
 	public int fletching(){ return 0; }
 
-	public int hunting(){ return 0; }
-
 	public boolean knocksBack(){ return false; }
 
 	public boolean AoEDamage(){ return false; }
@@ -128,7 +130,42 @@ public class Skill {
 
 	public int incomingDamageReduction(int damage){ return 0; }
 
+	public int incomingDamageReduction(int damage, Object source){
+		return incomingDamageReduction(damage);
+	}
+
+	//true for skills that only step in against a killing blow; they are the only ones
+	//still allowed to touch a tick of damage over time, and only the tick that would kill
+	public boolean savesFromDeath(){ return false; }
+
+	/** true for skills whose incomingDamageReduction must see the blow after every other skill has
+	 *  shrunk it (a rally or a death save judged on what is really left). CurrentSkills runs these in a
+	 *  second pass, in tree order; Conditioning and Last Rites are always treated as last */
+	public boolean resolvesIncomingLast(){ return savesFromDeath(); }
+
+	/** kills and Vulnerable: a kill made with this skill as the damage source is credited to the hero
+	 *  (Mob.die -> onKill); this says whether that kill counts as a ranged one */
+	@Override
+	public boolean rangedSource(){ return false; }
+
+	//poison, bleeding, burning, ooze, corrosion, gas and starvation: small repeated ticks
+	//that any flat or percentage reduction would erase, so skill mitigation leaves them alone
+	public static boolean isTickDamage(Object source){
+		return source instanceof xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff.DOTbuff
+				|| source instanceof xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger
+				|| source instanceof xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas
+				|| source instanceof xyz.gabriwar.warpedpixeldungeon.actors.blobs.CorruptGas;
+	}
+
 	public int image(){ return image; }
+
+	public com.watabou.noosa.Image quickslotIcon(){
+		return new xyz.gabriwar.warpedpixeldungeon.sprites.SkillSprite(image());
+	}
+
+	public String quickslotStatus(){
+		return getManaCost() > 0 ? Integer.toString(getManaCost()) : "";
+	}
 
 	/** bundle-backed display name, falling back to the hardcoded field when no key exists */
 	public String name(){
@@ -147,6 +184,13 @@ public class Skill {
 	public ArrayList<String> actions( Hero hero ){
 		return new ArrayList<>();
 	}
+
+	/** true for skills whose damage comes from the weapon or strength: those already grow with the
+	 *  hero, so the hero-damage bonus on flat skill damage leaves them alone */
+	public boolean weaponScaled(){ return false; }
+
+	/** Quickslot second tap, handled before the toolbar cancels cell selection. */
+	public boolean confirmTarget(Hero hero) { return false; }
 
 	public void execute( Hero hero, String action ){
 	}
@@ -173,6 +217,7 @@ public class Skill {
 	public int getManaCost(){ return mana; }
 
 	public void castTextYell(){
+        xyz.gabriwar.warpedpixeldungeon.effects.SkillCastFX.play(this,Dungeon.hero);
 		if (!castText().equals("") && Dungeon.hero.sprite != null){
 			Dungeon.hero.sprite.showStatus( CharSprite.NEUTRAL, castText() );
 		}
@@ -190,13 +235,42 @@ public class Skill {
 
 	public boolean disableTrap(){ return false; }
 
+	/** the hero just killed an enemy; ranged is true when a thrown weapon or arrow did it */
+	public void onKill( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob mob, boolean ranged ){}
+
 	public boolean venomousAttack(){ return false; }
 
 	public int venomBonus(){ return 0; }
 
 	public boolean instantKill(){ return false; }
 
+	/** melee blow on a mob that was asleep before this blow (boss/miniboss already excluded), with the
+	 *  blow's final damage; true kills it outright, credited to the hero. Default keeps the no-arg roll */
+	public boolean instantKill( xyz.gabriwar.warpedpixeldungeon.actors.Char enemy, int damage ){ return instantKill(); }
+
 	public boolean dodgeChance(){ return false; }
+	/** asked by Hero.defenseSkill for every attacker, adjacent or not; true turns the attack into a
+	 *  real miss (INFINITE_EVASION). The answer is rolled once per attacker per game time and cached.
+	 *  The default keeps the old rule: only attackers beyond arm's reach reach the no-arg roll */
+	public boolean dodgeChance( xyz.gabriwar.warpedpixeldungeon.actors.Char attacker ){
+		Hero hero = Dungeon.hero;
+		return attacker != null && hero != null && Dungeon.level != null
+				&& !Dungeon.level.adjacent( hero.pos, attacker.pos ) && dodgeChance();
+	}
+	/** fired once when this skill's dodge is the one that turned an attack aside. The roll
+	 *  itself must stay a pure predicate: defenseSkill() is asked several times per swing,
+	 *  twice of them only so the damage tooltip can show a breakdown */
+	public void onDodge(){}
+	public void onDodge( xyz.gabriwar.warpedpixeldungeon.actors.Char attacker ){ onDodge(); }
+	/** and once when it rolled to turn the attack aside and did not */
+	public void onDodgeFailed(){}
+	public void onDodgeFailed( xyz.gabriwar.warpedpixeldungeon.actors.Char attacker ){ onDodgeFailed(); }
+
+	/** pure predicate, asked by Hero.attackSkill (several times per swing): true makes the hero's attack on target never miss */
+	public boolean sureHit( xyz.gabriwar.warpedpixeldungeon.actors.Char target ){ return false; }
+
+	/** pure predicate, asked once per hero weapon blow in Char.attack: true sets the target's armour roll to 0 */
+	public boolean ignoresArmor( xyz.gabriwar.warpedpixeldungeon.actors.Char target ){ return false; }
 
 	public float toHitModifier(){ return 1f; }
 
@@ -217,6 +291,79 @@ public class Skill {
 
 	/** generic on-defend hook for subclass skills; return the (possibly shrunk) damage */
 	public int onDefendProc( xyz.gabriwar.warpedpixeldungeon.actors.Char enemy, int damage ){ return damage; }
+
+	// ---- event hooks (see sanity/apply/HOOKS.md for ordering and deferral) ----
+
+	/** deferred: an attack from attacker just missed the hero; melee = the attacker stood adjacent when it swung */
+	public void onHeroMissed( xyz.gabriwar.warpedpixeldungeon.actors.Char attacker, boolean melee ){}
+
+	/** deferred: an enemy's own step (not a push or teleport) ended adjacent to the hero from a tile that was not */
+	public void onEnemyStepsAdjacent( xyz.gabriwar.warpedpixeldungeon.actors.Char enemy, int from ){}
+
+	/** synchronous, inside Char.move: any char (hero included) changed tiles. Only read state or
+	 *  queue work with SkillInteractions.defer here; never damage, move or kill directly */
+	public void onCharMoved( xyz.gabriwar.warpedpixeldungeon.actors.Char ch, int from, boolean travelling ){}
+
+	/** synchronous, inside a sleeping mob's turn: it just rolled to wake up because it noticed the hero; true keeps it asleep */
+	public boolean preventsWaking( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob mob ){ return false; }
+
+	/** deferred: mob just noticed the hero (woke up facing it, or spotted it while wandering) */
+	public void onHeroNoticed( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob mob, boolean wasSleeping ){}
+
+	/** synchronous, end of Hero.damage: the hero is alive and really lost hpLost health and shieldLost
+	 *  shielding to this source. Never fired for damage over time or hunger */
+	public void onDamageTaken( int hpLost, int shieldLost, Object source ){}
+
+	/** synchronous, just before a hero wand zap or bolt spell resolves on target */
+	public void beforeMagicHit( xyz.gabriwar.warpedpixeldungeon.actors.Char target, Object source ){}
+
+	/** synchronous, right after a hero wand zap or bolt spell took damage (> 0) off an enemy target (it may be dead) */
+	public void onMagicDamage( xyz.gabriwar.warpedpixeldungeon.actors.Char target, int damage, Object source ){}
+
+	/** synchronous, in Mob.die, after kill credit: any enemy died, whoever killed it */
+	public void onEnemyDeath( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob mob, Object cause ){}
+
+	/** synchronous, in Char.add while the game is running: a NEGATIVE buff is about to attach to the hero; true stops it */
+	public boolean shrugsOffDebuff( xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff buff ){ return false; }
+
+	/** synchronous, in Hero.actAttack: the hero bumps an adjacent enemy to attack it. Return true only after
+	 *  taking the action over completely, including hero.spendAndNext(...); the attack is then not made */
+	public boolean onHeroBump( Hero hero, xyz.gabriwar.warpedpixeldungeon.actors.Char enemy ){ return false; }
+
+	/** synchronous: a SkillInteractions.Mark was detached from ch (expired, spent or removed; not on death) */
+	public void onSkillMarkEnded( xyz.gabriwar.warpedpixeldungeon.actors.Char ch, SkillInteractions.Mark mark ){}
+
+	/** synchronous, once per turn from SkillField.act, for the skill-driven kinds (RIGGED, JAWS) only */
+	public void onFieldTick( xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField field ){}
+
+	/** a skill was cast and paid for through payMana (never for toggles) */
+	public void onSkillCast( Skill skill ){}
+
+	/** Blood Tithe-style: the hero is missing mana to cast casting; return true if this skill can pay the
+	 *  missing amount another way. Pay it only when commit is true; with commit false only answer */
+	public boolean coversManaShortfall( Hero hero, Skill casting, int missing, boolean commit ){ return false; }
+
+	/** whether the hero can pay cost now, counting skills that cover a shortfall */
+	public boolean canPayMana( Hero hero, int cost ){
+		if (hero == null) return false;
+		if (hero.MP >= cost) return true;
+		return hero.heroSkills != null && hero.heroSkills.coverManaShortfall( hero, this, cost - hero.MP, false );
+	}
+
+	/** spends cost mana, the missing part through a covering skill; false and nothing spent when it
+	 *  can't be paid. A successful payment by a non-toggle fires onSkillCast on every skill */
+	public boolean payMana( Hero hero, int cost ){
+		if (!canPayMana( hero, cost )) return false;
+		if (hero.MP >= cost){
+			hero.MP -= cost;
+		} else {
+			int missing = cost - hero.MP;
+			if (!hero.heroSkills.coverManaShortfall( hero, this, missing, true )) return false;
+			hero.MP = 0;
+		}
+		if (!toggleable() && hero.heroSkills != null) hero.heroSkills.onSkillCast( this );
+		return true;
+	}
 
 	public void storeInBundle(Bundle bundle){
 		bundle.put( SKILL_LEVEL + " " + tag, level );

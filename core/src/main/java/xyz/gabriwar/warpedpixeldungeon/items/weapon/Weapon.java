@@ -88,6 +88,12 @@ import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.curses.Pressurized;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.curses.Wondrous;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Crystal;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Eldritch;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Venomous;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Vorpal;
 import com.watabou.utils.Bundlable;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
@@ -148,8 +154,6 @@ abstract public class Weapon extends KindOfWeapon {
 	@Override
 	public int proc( Char attacker, Char defender, int damage ) {
 
-		boolean becameAlly = false;
-		boolean wasAlly = defender.alignment == Char.Alignment.ALLY;
 		if (attacker.buff(MagicImmune.class) == null) {
 			Enchantment trinityEnchant = null;
 			//only when it's the hero or a char that uses the hero's weapon
@@ -169,21 +173,15 @@ abstract public class Weapon extends KindOfWeapon {
 				if (enchantment != null &&
 						(((Hero) attacker).subClass == HeroSubClass.PALADIN || enchantment.curse())){
 					damage = enchantment.proc(this, attacker, defender, damage);
-					if (defender.alignment == Char.Alignment.ALLY && !wasAlly){
-						becameAlly = true;
-					}
 				}
-				if (defender.isAlive() && !becameAlly && enchantment2 != null &&
+				if (defender.isAlive() && enchantment2 != null &&
 						(((Hero) attacker).subClass == HeroSubClass.PALADIN || enchantment2.curse())){
 					damage = enchantment2.proc(this, attacker, defender, damage);
-					if (defender.alignment == Char.Alignment.ALLY && !wasAlly){
-						becameAlly = true;
-					}
 				}
-				if (defender.isAlive() && !becameAlly && trinityEnchant != null){
+				if (defender.isAlive() && trinityEnchant != null){
 					damage = trinityEnchant.proc(this, attacker, defender, damage);
 				}
-				if (defender.isAlive() && !becameAlly) {
+				if (defender.isAlive()) {
 					int dmg = ((Hero) attacker).subClass == HeroSubClass.PALADIN ? 6 : 2;
 					defender.damage(Math.round(dmg * Enchantment.genericProcChanceMultiplier(attacker)), HolyWeapon.INSTANCE);
 				}
@@ -191,25 +189,19 @@ abstract public class Weapon extends KindOfWeapon {
 			} else {
 				if (enchantment != null) {
 					damage = enchantment.proc(this, attacker, defender, damage);
-					if (defender.alignment == Char.Alignment.ALLY && !wasAlly) {
-						becameAlly = true;
-					}
 				}
 
-				if (defender.isAlive() && !becameAlly && enchantment2 != null) {
+				if (defender.isAlive() && enchantment2 != null) {
 					damage = enchantment2.proc(this, attacker, defender, damage);
-					if (defender.alignment == Char.Alignment.ALLY && !wasAlly) {
-						becameAlly = true;
-					}
 				}
 
-				if (defender.isAlive() && !becameAlly && trinityEnchant != null){
+				if (defender.isAlive() && trinityEnchant != null){
 					damage = trinityEnchant.proc(this, attacker, defender, damage);
 				}
 			}
 
 			if (attacker instanceof Hero && isEquipped((Hero) attacker) &&
-					attacker.buff(Smite.SmiteTracker.class) != null && !becameAlly){
+					attacker.buff(Smite.SmiteTracker.class) != null && defender.isAlive()){
 				defender.damage(Smite.bonusDmg((Hero) attacker, defender), Smite.INSTANCE);
 			}
 		}
@@ -466,6 +458,11 @@ abstract public class Weapon extends KindOfWeapon {
 			if (hasCurseEnchant()) {
 				if (Random.Int(3) == 0) removeCurseEnchants();
 			}
+
+			//if we still have a crystal enchant, repair it (just like thrown weapon repair)
+			if (enchantment instanceof Crystal){
+				((Crystal) enchantment).repair(this, false, 100);
+			}
 		}
 		
 		cursed = false;
@@ -668,32 +665,32 @@ abstract public class Weapon extends KindOfWeapon {
 	public static abstract class Enchantment implements Bundlable {
 
 		public static final Class<?>[] common = new Class<?>[]{
-				Blazing.class, Chilling.class, Kinetic.class, Shocking.class};
+				Blazing.class, Chilling.class, Kinetic.class, Shocking.class, Venomous.class
+		};
 
 		public static final Class<?>[] uncommon = new Class<?>[]{
-				Blocking.class, Blooming.class, Elastic.class,
-				Lucky.class, Projecting.class, Unstable.class,
+				Blocking.class, Blooming.class, Eldritch.class, Elastic.class,
+				Lucky.class, Projecting.class, Unstable.class, Vorpal.class,
 				Horror.class, Luck.class, Paralysis.class, Poison.class, Slashing.class,
 				Surging.class,
 				//Unleashed PD ports
 				Midas.class, Hunting.class, Holy.class};
 
 		public static final Class<?>[] rare = new Class<?>[]{
-				Corrupting.class, Grim.class, Vampiric.class, Parasitic.class,
+				Corrupting.class, Crystal.class, Grim.class, Vampiric.class, Parasitic.class,
 				//Unleashed PD ports
 				Vicious.class, Ancient.class};
 
 		public static final float[] typeChances = new float[]{
-				50, //12.5% each
-				40, //6.67% each
-				10  //3.33% each
+				50, //10% each
+				40, //5%  each
+				10  //2.5% each
 		};
 
 		public static final Class<?>[] curses = new Class<?>[]{
-				Annoying.class, Displacing.class, Dazzling.class, Explosive.class,
-				Sacrificial.class, Wayward.class, Polarized.class, Friendly.class
+				Annoying.class, Displacing.class, Dazzling.class, Explosive.class, Friendly.class,
+				Polarized.class, Pressurized.class, Sacrificial.class, Wayward.class, Wondrous.class
 		};
-		
 			
 		public abstract int proc( Weapon weapon, Char attacker, Char defender, int damage );
 

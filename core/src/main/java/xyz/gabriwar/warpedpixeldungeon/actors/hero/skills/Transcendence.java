@@ -27,8 +27,28 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
+import com.watabou.utils.Bundle;
+import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
+import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import com.watabou.utils.Random;
 
+/**
+ * Mage: while active the hero is half light. Walking into an enemy carries him straight through
+ * it (and more behind it as he trains) to the free tile beyond, and the light he leaves inside
+ * each body bursts as a lance. At level 3 the lance splits into three as it leaves his back.
+ */
 public class Transcendence extends ActiveSkill {
 
 	{
@@ -39,18 +59,114 @@ public class Transcendence extends ActiveSkill {
 		level = 0;
 	}
 
+	//the mana one pass through bodies costs
+	private static final int PASS_MANA = 3;
+
 	@Override
 	protected boolean upgrade(){
 		return true;
 	}
 
-	//upkeep is paid here rather than through manaRegenerationBonus(): that hook is an
-	//exponent on the regeneration delay, so a negative value would simply be discarded
 	@Override
-	public float incomingDamageModifier(){
-		if (!active || level <= 0 || Dungeon.hero == null || Dungeon.hero.MP <= 0)
-			return 1f;
-		Dungeon.hero.MP--;
-		return 1f - 0.05f * level;
+	public void execute( Hero hero, String action ){
+		super.execute( hero, action );
+		if (action.equals(Skill.AC_ACTIVATE)){
+			//one mana ward at a time; switching Spirit Armor off from here clears its motes too
+			Skill other = hero.heroSkills.get( SpiritArmor.class );
+			if (other != null && other.active){
+				other.active = false;
+				xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff.detach( hero, xyz.gabriwar.warpedpixeldungeon.actors.buffs.SpiritArmorMotes.class );
+			}
+		}
+		if (action.equals(Skill.AC_ACTIVATE) && hero.sprite != null){
+			Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 1f, 1.4f );
+			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
+		}
+	}
+
+	//half light: walking into an enemy carries the hero straight through it to the free tile beyond,
+	//and the light left behind inside every body passed bursts as a lance
+	@Override
+	public boolean onHeroBump( Hero hero, Char enemy ){
+		if (!active || level <= 0 || hero == null || enemy == null || hero.rooted || hero.MP < PASS_MANA
+				|| !Dungeon.level.adjacent( hero.pos, enemy.pos )) return false;
+		int dir = enemy.pos - hero.pos;
+		java.util.ArrayList<Char> passed = new java.util.ArrayList<>();
+		int cell = enemy.pos;
+		while (true){
+			Char ch = Actor.findChar( cell );
+			if (ch == null) break;
+			if (ch.alignment != Char.Alignment.ENEMY || passed.size() >= level
+					|| ch.properties().contains( Char.Property.BOSS )
+					|| ch.properties().contains( Char.Property.IMMOVABLE )) return false;
+			passed.add( ch );
+			int next = cell + dir;
+			if (!SkillInteractions.valid( next ) || !Dungeon.level.adjacent( cell, next )) return false;
+			cell = next;
+		}
+		if (Dungeon.level.solid[cell] || !Dungeon.level.passable[cell] || Dungeon.level.pit[cell]
+				|| (Char.hasProp( hero, Char.Property.LARGE ) && !Dungeon.level.openSpace[cell])) return false;
+
+		hero.MP -= PASS_MANA;
+		final int from = hero.pos;
+		final int land = cell;
+		CellEmitter.center( from ).burst( Speck.factory( Speck.LIGHT ), 6 );
+		hero.move( land, false );
+		if (hero.sprite != null){
+			hero.sprite.place( land );
+			if (hero.sprite.parent != null){
+				hero.sprite.parent.add( new Beam.LightRay( DungeonTilemap.raisedTileCenterToWorld( from ),
+						DungeonTilemap.raisedTileCenterToWorld( land ) ) );
+			}
+			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 8 );
+		}
+		Dungeon.level.occupyCell( hero );
+		Dungeon.observe();
+		xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.updateFog();
+
+		int min = 2 + level, max = 4 + 2 * level;
+		for (Char ch : passed){
+			if (!ch.isAlive()) continue;
+			ch.damage( Random.NormalIntRange( min, max ), this );
+			if (ch.sprite != null) ch.sprite.flash();
+			CellEmitter.center( ch.pos ).burst( Speck.factory( Speck.LIGHT ), 5 );
+		}
+		//+3: the lance splits into three as it leaves the hero's back
+		if (level >= MAX_LEVEL) splitLance( hero, land, dir, min, max );
+		Sample.INSTANCE.play( Assets.Sounds.RAY, 0.8f, 1.3f );
+		hero.spendAndNext( Actor.TICK );
+		return true;
+	}
+
+	private void splitLance( Hero hero, int land, int dir, int min, int max ){
+		int w = Dungeon.level.width();
+		int dx = dir % w, dy = dir / w;
+		//a diagonal step reads as dx = +-1 with dy carrying the row; normalise to -1..1 each
+		if (dx > 1) { dx -= w; dy += 1; }
+		if (dx < -1){ dx += w; dy -= 1; }
+		int[][] dirs = {
+				{ dx, dy },
+				{ Integer.signum( dx - dy ), Integer.signum( dx + dy ) },
+				{ Integer.signum( dx + dy ), Integer.signum( dy - dx ) }
+		};
+		for (int[] d : dirs){
+			int x = land % w, y = land / w, end = land;
+			for (int step = 0; step < 2; step++){
+				x += d[0]; y += d[1];
+				if (x < 0 || x >= w || y < 0 || y >= Dungeon.level.height()) break;
+				int c = x + y * w;
+				if (Dungeon.level.solid[c]) break;
+				end = c;
+				Char ch = Actor.findChar( c );
+				if (ch != null && ch != hero && ch.alignment == Char.Alignment.ENEMY && ch.isAlive()){
+					ch.damage( Math.max( 1, Random.NormalIntRange( min, max ) / 2 ), this );
+					if (ch.sprite != null) ch.sprite.flash();
+				}
+			}
+			if (end != land && hero.sprite != null && hero.sprite.parent != null){
+				hero.sprite.parent.add( new Beam.LightRay( DungeonTilemap.raisedTileCenterToWorld( land ),
+						DungeonTilemap.raisedTileCenterToWorld( end ) ) );
+			}
+		}
 	}
 }

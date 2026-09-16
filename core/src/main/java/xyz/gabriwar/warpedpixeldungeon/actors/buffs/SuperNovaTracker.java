@@ -26,7 +26,6 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
-import xyz.gabriwar.warpedpixeldungeon.effects.TargetedCell;
 import xyz.gabriwar.warpedpixeldungeon.items.bombs.Bomb;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.ShadowCaster;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -118,8 +117,8 @@ public class SuperNovaTracker extends Buff {
 
 		} else {
 			for (int i = 0; i < Dungeon.level.length(); i++){
-				if (fieldOfView[i]){
-					target.sprite.parent.add(new TargetedCell(i, 0xFF0000));
+				if (fieldOfView[i] && !Dungeon.level.solid[i]){
+					GameScene.targetedCell(i, Actor.TICK);
 				}
 			}
 		}

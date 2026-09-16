@@ -54,6 +54,9 @@ public class SeekingClusterBomb extends Mob {
 
 		resistances.add( Grim.class );
 		resistances.add( Vampiric.class );
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	private static final float SPAWN_DELAY = 0.1f;

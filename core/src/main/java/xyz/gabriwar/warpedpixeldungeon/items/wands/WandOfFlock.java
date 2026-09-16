@@ -53,6 +53,11 @@ public class WandOfFlock extends Wand {
 	}
 
 	@Override
+	public String statsDesc() {
+		return Messages.get(this, "stats_desc", levelKnown ? Math.max(0, buffedLvl() + 2) : 2);
+	}
+
+	@Override
 	public void onZap(Ballistica bolt) {
 
 		//no conjuring sheep on the deep journal/sokoban floors — the puzzles are made

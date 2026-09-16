@@ -27,6 +27,21 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vulnerable;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
@@ -38,10 +53,13 @@ public class Hex extends SubSkill2 {
 	{
 		name = "Hex";
 		castText = "Suffer";
-		image = 59;
+		image = 188;
 		mana = 8;
 		tier = 2;
 	}
+
+	@Override
+	public boolean toggleable(){ return false; }
 
 	@Override
 	public ArrayList<String> actions( Hero hero ){
@@ -54,26 +72,45 @@ public class Hex extends SubSkill2 {
 	@Override
 	public void execute( Hero hero, String action ){
 		if (action.equals(Skill.AC_CAST) && level > 0 && hero.MP >= getManaCost()){
-			xyz.gabriwar.warpedpixeldungeon.actors.Char nearest = null;
-			for (xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob mob : Dungeon.level.mobs.toArray(new xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob[0])){
-				if (Dungeon.level.heroFOV[mob.pos] && mob.alignment == xyz.gabriwar.warpedpixeldungeon.actors.Char.Alignment.ENEMY){
-					if (nearest == null || Dungeon.level.distance(hero.pos, mob.pos) < Dungeon.level.distance(hero.pos, nearest.pos)){
-						nearest = mob;
-					}
-				}
-			}
-			if (nearest == null){
-				xyz.gabriwar.warpedpixeldungeon.utils.GLog.w( "No target in sight." );
+			GameScene.selectCell( new Curser() );
+			Dungeon.hero.heroSkills.lastUsed = this;
+		}
+	}
+
+	private class Curser extends CellSelector.Listener {
+
+		@Override
+		public void onSelect( Integer target ){
+			if (target == null) return;
+			Hero hero = Dungeon.hero;
+			if (level <= 0 || hero.MP < getManaCost()) return;
+			int cell = new Ballistica( hero.pos, target, Ballistica.MAGIC_BOLT ).collisionPos;
+			final Char ch = Actor.findChar( cell );
+			if (ch == null || ch == hero || ch.alignment != Char.Alignment.ENEMY || !Dungeon.level.heroFOV[cell]){
+				GLog.w( Messages.get(Hex.class, "no_target") );
 				return;
 			}
-			Buff.prolong( nearest, xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness.class, 3 + 2 * level );
-			Buff.prolong( nearest, xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vulnerable.class, 3 + 2 * level );
+			//the curse lands now; the bolt only shows it travelling
+			Buff.prolong( ch, Weakness.class, 3 + 2 * level );
+			Buff.prolong( ch, Vulnerable.class, 3 + 2 * level );
+			if (level >= MAX_LEVEL) Buff.prolong( ch, Cripple.class, 2 + level );
 			hero.MP -= getManaCost();
 			castTextYell();
-			Dungeon.hero.heroSkills.lastUsed = this;
-			hero.spend( TIME_TO_USE );
-			hero.busy();
-			hero.sprite.operate( hero.pos );
+			Sample.INSTANCE.play( Assets.Sounds.CURSED, 1f, 1.1f );
+			hero.sprite.zap( cell );
+			MagicMissile.boltFromChar( hero.sprite.parent, MagicMissile.SHADOW, hero.sprite, cell, () -> {
+				if (ch.sprite != null){
+					ch.sprite.emitter().burst( ShadowParticle.CURSE, 6 );
+					ch.sprite.flash();
+				}
+			} );
+			Dungeon.hero.heroSkills.lastUsed = Hex.this;
+			hero.spendAndNext( TIME_TO_USE );
+		}
+
+		@Override
+		public String prompt(){
+			return Messages.get(Hex.class, "prompt");
 		}
 	}
 

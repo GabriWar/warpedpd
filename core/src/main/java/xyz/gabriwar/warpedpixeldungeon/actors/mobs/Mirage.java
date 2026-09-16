@@ -55,6 +55,9 @@ public class Mirage extends Mob {
 		maxLvl = -1;
 
 		state = HUNTING;
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	//the mob this hallucination pretends to be
@@ -145,7 +148,7 @@ public class Mirage extends Mob {
 		boolean starving = hu != null && hu.isStarving();
 		if (!tired && !starving) return;
 
-		if (Random.Int( tired && starving ? 20 : 60 ) != 0) return;
+		if (Random.Int( tired && starving ? 100 : 300 ) != 0) return;
 
 		int mirages = 0;
 		for (Mob m : Dungeon.level.mobs){

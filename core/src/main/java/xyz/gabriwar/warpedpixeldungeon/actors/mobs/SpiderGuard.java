@@ -46,7 +46,7 @@ public class SpiderGuard extends Mob {
 		maxLvl = 10;
 
 		loot = MysteryMeat.class;
-		lootChance = 0.067f;
+		lootChance = 0.067f / 4f;
 
 	}
 

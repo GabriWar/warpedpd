@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -60,8 +61,7 @@ public class WaterOfHealth extends WellWater {
 
 		if (VialOfBlood.delayBurstHealing()){
 			Healing healing = Buff.affect(hero, Healing.class);
-			healing.setHeal(hero.HT, 0, VialOfBlood.maxHealPerTurn());
-			healing.applyVialEffect();
+			healing.setHeal(hero.HT, 0, VialOfBlood.maxHealPerTurn(), true);
 		} else {
 			hero.HP = hero.HT;
 			hero.sprite.emitter().start(Speck.factory(Speck.HEALING), 0.4f, 4);
@@ -107,7 +107,7 @@ public class WaterOfHealth extends WellWater {
 	@Override
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
-		emitter.start( Speck.factory( Speck.HEALING ), 0.5f, 0 );
+		emitter.start( WeatherBlobFX.layered( Speck.factory( Speck.HEALING ), WeatherBlobFX.sparkles( 0x90FF90 ), 3 ), 0.4f, 0 );
 	}
 	
 	@Override

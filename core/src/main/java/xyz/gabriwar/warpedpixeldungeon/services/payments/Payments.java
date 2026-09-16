@@ -44,9 +44,9 @@ public class Payments {
 		return supportsDonations() ? service.tiers() : new ArrayList<>();
 	}
 
-	public static void donate(String tierId, PaymentService.DonateResult callback) {
+	public static void subscribe(String tierId, PaymentService.DonateResult callback) {
 		if (supportsDonations()) {
-			service.donate(tierId, callback);
+			service.subscribe(tierId, callback);
 		} else {
 			callback.onResult(false, "no payment provider");
 		}
@@ -58,6 +58,15 @@ public class Payments {
 		} else {
 			callback.onResult(false, "no payment provider");
 		}
+	}
+
+	/**
+	 * Whether this build can prove a supporter subscription to the relay. Builds without
+	 * a store (desktop, the GitHub APK) never can, which is why online play is a store
+	 * feature and local network play is not.
+	 */
+	public static PaymentService.Receipt receipt() {
+		return service != null ? service.receipt() : null;
 	}
 
 	public static String storeName() {

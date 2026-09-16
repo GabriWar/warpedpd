@@ -68,6 +68,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.HolyDart;
 import xyz.gabriwar.warpedpixeldungeon.levels.traps.DisintegrationTrap;
 import xyz.gabriwar.warpedpixeldungeon.levels.traps.GrimTrap;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Crystal;
 import com.watabou.utils.Random;
 
 import java.util.HashSet;
@@ -121,6 +122,7 @@ public class AntiMagic extends Armor.Glyph {
 		RESISTS.add( Blazing.class );
 		RESISTS.add( Shocking.class );
 		RESISTS.add( Grim.class );
+		RESISTS.add( Crystal.class );
 
 		RESISTS.add( WarpBeacon.class );
 		

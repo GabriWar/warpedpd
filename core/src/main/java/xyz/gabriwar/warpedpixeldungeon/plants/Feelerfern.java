@@ -76,10 +76,6 @@ public class Feelerfern extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			Buff.prolong(attacker, Feelers.class, Feelers.DURATION);
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

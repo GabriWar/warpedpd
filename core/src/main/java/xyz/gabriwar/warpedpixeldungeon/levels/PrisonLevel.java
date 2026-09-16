@@ -84,13 +84,15 @@ public class PrisonLevel extends RegularLevel {
 
 	//the spider nest hangs off this prison floor
 	public static final int SPIDER_BRANCH_DEPTH = 6;
+	//the nest is switched off for now: no entrance is generated
+	public static final boolean SPIDER_NEST_ENABLED = false;
 
 	@Override
 	protected ArrayList<Room> initRooms() {
 		ArrayList<Room> rooms = Wandmaker.Quest.spawnRoom(super.initRooms());
 
 		//web-choked hole down into the spider nest (Remixed PD reimplementation)
-		if (Dungeon.depth == SPIDER_BRANCH_DEPTH && Dungeon.branch == 0) {
+		if (SPIDER_NEST_ENABLED && Dungeon.depth == SPIDER_BRANCH_DEPTH && Dungeon.branch == 0) {
 			rooms.add(new SpiderNestEntranceRoom());
 		}
 

@@ -203,23 +203,23 @@ public class Pasty extends Food {
 			case NONE: default:
 				return super.desc();
 			case LUNAR_NEW_YEAR:
-				return Messages.get(this, "fish_desc");
+				return Messages.get(this, "fish_desc") + spiceDescription();
 			case APRIL_FOOLS:
-				return Messages.get(this, "amulet_desc");
+				return Messages.get(this, "amulet_desc") + spiceDescription();
 			case EASTER:
-				return Messages.get(this, "egg_desc");
+				return Messages.get(this, "egg_desc") + spiceDescription();
 			case PRIDE:
-				return Messages.get(this, "rainbow_desc");
+				return Messages.get(this, "rainbow_desc") + spiceDescription();
 			case SHATTEREDPD_BIRTHDAY:
-				return Messages.get(this, "shattered_desc");
+				return Messages.get(this, "shattered_desc") + spiceDescription();
 			case HALLOWEEN:
-				return Messages.get(this, "pie_desc");
+				return Messages.get(this, "pie_desc") + spiceDescription();
 			case PD_BIRTHDAY:
-				return Messages.get(this, "vanilla_desc");
+				return Messages.get(this, "vanilla_desc") + spiceDescription();
 			case WINTER_HOLIDAYS:
-				return Messages.get(this, "cane_desc");
+				return Messages.get(this, "cane_desc") + spiceDescription();
 			case NEW_YEARS:
-				return Messages.get(this, "sparkling_desc");
+				return Messages.get(this, "sparkling_desc") + spiceDescription();
 		}
 	}
 	

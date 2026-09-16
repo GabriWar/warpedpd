@@ -25,73 +25,45 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillSequence;
 
-
-import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
-import xyz.gabriwar.warpedpixeldungeon.actors.Char;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
-import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import java.util.*;
+import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.*;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.*;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.effects.*;
+import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
+import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfForce;
 
 public class WhirlingFlurry extends ActiveSkill3 {
 
-	{
-		name = "Whirling Flurry";
-		castText = "Flurry!";
-		image = 99;
-		mana = 5;
-	}
-
+	//damage comes from the weapon or strength, which already grow with the hero
 	@Override
-	public float damageModifier(){
-		if (!active || Dungeon.hero.MP < getManaCost())
-			return 1f;
-		else {
-			return 0.4f + 0.2f * level;
-		}
-	}
+	public boolean weaponScaled(){ return true; }
 
-	@Override
-	public boolean AoEDamage(){
-		if (!active || Dungeon.hero.MP < getManaCost())
-			return false;
-		else {
-			castTextYell();
-			Dungeon.hero.MP -= getManaCost();
-			bleedEveryoneAround();
-			return true;
-		}
-	}
-
-	//the whirl opens a cut on every enemy in reach, the one you swung at included.
-	//the splash damage the hero deals afterwards never runs through attackProc, so
-	//onHitProc would only ever reach the primary target - the bleed is applied here
-	private void bleedEveryoneAround(){
-		Hero hero = Dungeon.hero;
-		for (int n : PathFinder.NEIGHBOURS8){
-			Char ch = Actor.findChar( hero.pos + n );
-			if (ch != null && ch.alignment == Char.Alignment.ENEMY && ch.isAlive()){
-				Buff.affect( ch, Bleeding.class ).set( level );
-			}
-		}
-	}
-
-	@Override
-	public void execute( Hero hero, String action ){
-		super.execute(hero, action);
-		if (action.equals(Skill.AC_ACTIVATE)){
-			hero.heroSkills.active1.active = false;
-			hero.heroSkills.active2.active = false;
-		}
-	}
-
-	@Override
-	public int getManaCost(){
-		return (int)Math.ceil(mana * (1 + 1 * level));
-	}
-
-	@Override
-	protected boolean upgrade(){ return true; }
+    {name="Whirling Flurry";castText="Flurry!";image=99;mana=5;tier=3;}
+    @Override public boolean toggleable(){return false;}
+    @Override public void restoreInBundle(com.watabou.utils.Bundle bundle){super.restoreInBundle(bundle);active=false;}
+    @Override public ArrayList<String> actions(Hero hero){ArrayList<String> out=new ArrayList<>();if(level>0&&hero.MP>=getManaCost())out.add(AC_CAST);return out;}
+    @Override public void execute(Hero hero,String action){
+        if(!AC_CAST.equals(action)||level<=0||hero.MP<getManaCost())return;
+        KindOfWeapon weapon=hero.belongings.weapon();
+        int damage=Math.round((weapon==null?RingOfForce.damageRoll(hero):weapon.damageRoll(hero))*(.5f+.2f*level));
+        for(int n:PathFinder.NEIGHBOURS8){
+            int c=hero.pos+n;if(!SkillInteractions.valid(c)||!SkillInteractions.clear(hero.pos,c))continue;
+            WhirlHitFX.show(c);
+            Char enemy=Actor.findChar(c);if(enemy==null||enemy.alignment!=Char.Alignment.ENEMY)continue;
+            enemy.damage(damage,hero);
+            if(level>=2&&enemy.isAlive())Buff.affect(enemy,Bleeding.class).set(level);
+        }
+        if(level>=MAX_LEVEL)SkillSequence.start(hero,SkillSequence.BLADESTORM,1,hero.pos,Math.max(1,damage/3),3,java.util.Collections.emptyList());
+        Sample.INSTANCE.play(Assets.Sounds.MISS,1f,0.8f);
+        hero.MP-=getManaCost();castTextYell();Invisibility.dispel();hero.heroSkills.lastUsed=this;hero.spendAndNext(TIME_TO_USE);
+    }
+    @Override public int getManaCost(){return (int)Math.ceil(mana*(1+.4*level));}
+    @Override protected boolean upgrade(){return true;}
 }

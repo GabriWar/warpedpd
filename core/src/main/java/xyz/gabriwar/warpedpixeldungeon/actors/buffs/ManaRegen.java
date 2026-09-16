@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfMagic;
@@ -32,29 +33,49 @@ import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 
 public class ManaRegen extends Buff {
 
-	private static final float REGENERATION_DELAY = 100;
+	//a share of the pool comes back every turn: 1% while you stand still or rest,
+	//half that while you move or fight, so a full pool is 100 turns of stillness
+	//or 200 turns of walking. Small pools get a floor so they are not stuck at
+	//fractions: at least one point every 6 turns still, every 12 on the move
+	private static final float STILL_RATE = 0.010f;
+	private static final float MOVING_RATE = 0.005f;
+	private static final float STILL_FLOOR = 1 / 6f;
+	private static final float MOVING_FLOOR = 1 / 12f;
 
 	{
 		actPriority = HERO_PRIO - 1;
 	}
+
+	private float partial = 0;
+	private int lastPos = -1;
 
 	@Override
 	public boolean act() {
 		if (target.isAlive()) {
 			Hero hero = (Hero) target;
 			int effectiveMT = hero.MT + RingOfMagic.manaBonus(hero);
+
+			boolean still = hero.resting || (lastPos == hero.pos);
+			lastPos = hero.pos;
+
 			if (hero.MP < effectiveMT && !hero.isStarving()) {
-				hero.MP += 1;
+				float rate = still ? STILL_RATE : MOVING_RATE;
+				float gain = Math.max( effectiveMT * rate, still ? STILL_FLOOR : MOVING_FLOOR );
+				//what speeds it: the magic level, the ring, and Meditation's points
+				gain *= 1f + 0.15f * Dungeon.hero.magicLevel;
+				gain *= RingOfMagic.manaRegenMultiplier(hero);
+				int skillRegen = hero.heroSkills.allManaRegen();
+				if (skillRegen > 0) gain *= Math.pow( 1.2, skillRegen );
+				partial += gain;
+				if (partial >= 1){
+					int whole = (int) partial;
+					partial -= whole;
+					hero.MP = Math.min( effectiveMT, hero.MP + whole );
+				}
+			} else {
+				partial = 0;
 			}
-
-			int mLevel = Dungeon.hero.magicLevel + 1;
-			float regenDelay = REGENERATION_DELAY / mLevel;
-			regenDelay /= RingOfMagic.manaRegenMultiplier(hero);
-
-			//skill tree: Mage's Meditation
-			int skillRegen = hero.heroSkills.allManaRegen();
-			if (skillRegen > 0) regenDelay /= Math.pow( 1.2, skillRegen );
-			spend(regenDelay);
+			spend(TICK);
 		} else {
 			detach();
 		}
@@ -69,5 +90,22 @@ public class ManaRegen extends Buff {
 	@Override
 	public String desc() {
 		return Messages.get(this, "desc");
+	}
+
+	private static final String PARTIAL = "partial";
+
+	@Override
+	public void storeInBundle( com.watabou.utils.Bundle bundle ) {
+		super.storeInBundle( bundle );
+		bundle.put( PARTIAL, partial );
+	}
+
+	@Override
+	public void restoreFromBundle( com.watabou.utils.Bundle bundle ) {
+		super.restoreFromBundle( bundle );
+		partial = bundle.getFloat( PARTIAL );
+		//a save from the old scheme could be parked up to a hundred turns ahead: act soon
+		float ahead = cooldown();
+		if (ahead > 1) spendConstant( 1 - ahead );
 	}
 }

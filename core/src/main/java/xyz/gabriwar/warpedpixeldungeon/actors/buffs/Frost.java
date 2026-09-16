@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.food.FrozenCarpaccio;
 import xyz.gabriwar.warpedpixeldungeon.items.food.MysteryMeat;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.Potion;
+import xyz.gabriwar.warpedpixeldungeon.levels.VaultLevel;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
@@ -56,7 +57,8 @@ public class Frost extends FlavourBuff {
 			target.paralysed++;
 			Buff.detach( target, Chill.class );
 
-			if (target instanceof Hero) {
+			//potions don't shatter in the vault level, as hero cannot access bandolier there
+			if (target instanceof Hero && !(Dungeon.level instanceof VaultLevel)) {
 
 				Hero hero = (Hero)target;
 				ArrayList<Item> freezable = new ArrayList<>();

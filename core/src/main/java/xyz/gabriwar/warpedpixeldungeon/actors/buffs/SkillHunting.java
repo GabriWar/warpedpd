@@ -33,21 +33,11 @@ import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 
 public class SkillHunting extends Buff {
 
+	//retired: the skill now works off kills. An old save still carries this buff,
+	//so it steps aside on its first turn
 	@Override
 	public boolean act() {
-		if (target.isAlive()) {
-			Hero hero = (Hero)target;
-			if (hero.heroSkills.allHunting() < 1){
-				spend( 100 );
-				return true;
-			}
-			GLog.p("Hunted... something...");
-			MysteryMeat steak = new MysteryMeat();
-			Dungeon.level.drop( steak, hero.pos ).sprite.drop();
-			spend( 100 - 10 * hero.heroSkills.allHunting() );
-		} else {
-			diactivate();
-		}
+		detach();
 		return true;
 	}
 }

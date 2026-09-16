@@ -689,12 +689,12 @@ public class OverworldLevel extends Level {
 		}
 		//swapped on request: the north gate is the dungeon's front door, and
 		//the real staircase on the plaza descends into the kupua mines
-		int gate = localTownCell( WorldStructures.TOWN_MINE_GATE );
+		int gate = localTownCell( WorldStructures.TOWN_DUNGEON_GATE );
 		if (gate != -1){
 			transitions.add( new LevelTransition( this, gate, LevelTransition.Type.REGULAR_EXIT,
 					1, 0, LevelTransition.Type.SURFACE ) );
 		}
-		int stairs = localTownCell( WorldStructures.TOWN_STAIRS );
+		int stairs = localTownCell( WorldStructures.TOWN_MINE_GATE );
 		if (stairs != -1 && !xyz.gabriwar.warpedpixeldungeon.Badges.checkOtilukeRescued()){
 			transitions.add( new LevelTransition( this, stairs, LevelTransition.Type.BRANCH_EXIT,
 					56, 0, LevelTransition.Type.REGULAR_ENTRANCE ) );
@@ -751,8 +751,11 @@ public class OverworldLevel extends Level {
 		if (townArt == null){
 			townArt = new TownRemixedTiles.Layer[]{
 					new TownRemixedTiles.Base(), new TownRemixedTiles.Deco(),
-					new TownRemixedTiles.Deco2() };
-			for (TownRemixedTiles.Layer layer : townArt) customTiles.add( layer );
+					new TownRemixedTiles.Deco2(),
+					new TownRemixedTiles.RoofBase(), new TownRemixedTiles.RoofDeco() };
+			for (int i = 0; i < townArt.length; i++){
+				(i < 3 ? customTiles : customWalls).add( townArt[i] );
+			}
 		}
 		int tx = WorldStructures.TOWN_X0 - worldX, ty = WorldStructures.TOWN_Y0 - worldY;
 		for (TownRemixedTiles.Layer layer : townArt){
@@ -979,26 +982,13 @@ public class OverworldLevel extends Level {
 			}
 		}
 
-		//the villages' dressing: the stone well at the settlement's heart, in
-		//every season - its masonry carries no snow, so one piece of art serves
-		//the whole year. Houses use their terrain art directly, without the
-		//oversized roof canopy.
+		//the villages' own dressing layer pair: nothing to paint at present (the
+		//houses use their terrain art directly), kept so saves that carry the
+		//layers restore cleanly
 		int[] vGround = new int[length()];
 		int[] vCanopy = new int[length()];
 		java.util.Arrays.fill( vGround, -1 );
 		java.util.Arrays.fill( vCanopy, -1 );
-		for (int sy = sector0Y(); sy <= sector1Y(); sy++){
-			for (int sx = sector0X(); sx <= sector1X(); sx++){
-				if (WorldStructures.siteType( worldSeed, sx, sy ) != WorldStructures.Site.VILLAGE) continue;
-				int cx = WorldStructures.siteX( worldSeed, sx, sy );
-				int cy = WorldStructures.siteY( worldSeed, sx, sy );
-				int wellCell = localCell( cx, cy );
-				if (wellCell == -1) continue;
-				vGround[wellCell] = xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.WELL_BASE;
-				int above = localCell( cx, cy - 1 );
-				if (above != -1) vCanopy[above] = xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.WELL_TOP;
-			}
-		}
 
 		if (dressGround == null){
 			dressGround = new xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.Layer();
@@ -1027,14 +1017,23 @@ public class OverworldLevel extends Level {
 	//(the 'thief' blue cat that used to lurk at 372 was cut - it read as a
 	//forced spawn in the middle of the plaza)
 	private static final Object[][] TOWN_FOLK = {
+			//the enchanting pedestal in the temple's alcove. The people are in
+			//TOWN_SLEEPERS: they come and go with the sun
+			{ xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.EnchantingStation.class, WorldStructures.TOWN_PEDESTAL },
+	};
+	private static final int[] TOWN_CHESTS = { 131, 197, 107, 289, 283, 732, 891, 740, 1022 };
+
+	//everyone who lives in the town: the quest folk and Remixed PD's own street folk,
+	//at their authored positions (Healer and Plague Doctor deliberately not ported).
+	//Not in TOWN_FOLK: they sleep at the inn, so TownCommute brings them out each
+	//morning and they walk themselves in at dusk
+	private static final Object[][] TOWN_SLEEPERS = {
 			{ xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Tinkerer4.class, 564 },
 			{ xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Tinkerer5.class, 523 },
 			{ xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TownGuard.class, 176 },
 			{ xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Tinkerer1.class, 324 },
 			{ xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Tinkerer2.class, 366 },
 			{ xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Blacksmith2.class, 247 },
-			//Remixed PD's own street folk, at its authored positions (Healer and
-			//Plague Doctor deliberately not ported). The rest live in the buildings.
 			{ xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town.TownGuardFolk.class, 687 },
 			{ xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town.TownGuardFolk.class, 689 },
 			{ xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town.TownGuardFolk.class, 174 },
@@ -1042,10 +1041,31 @@ public class OverworldLevel extends Level {
 			{ xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town.TownsfolkMovie.class, 525 },
 			{ xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town.TownsfolkSilent.class, 357 },
 			{ xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town.Townsfolk.class, 214 },
-			//the enchanting pedestal in the temple's alcove
-			{ xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.EnchantingStation.class, WorldStructures.TOWN_PEDESTAL },
 	};
-	private static final int[] TOWN_CHESTS = { 131, 197, 107, 289, 283, 732, 891, 740, 1022 };
+
+	//Otiluke only lives here once rescued from the mines
+	public Object[][] sleeperHomes(){
+		if (!xyz.gabriwar.warpedpixeldungeon.Badges.checkOtilukeRescued()) return TOWN_SLEEPERS;
+		Object[][] all = java.util.Arrays.copyOf( TOWN_SLEEPERS, TOWN_SLEEPERS.length + 1 );
+		all[TOWN_SLEEPERS.length] = new Object[]{ xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.OtilukeNPC.class, TOWN_OTILUKE };
+		return all;
+	}
+
+	//a town layout cell as a window cell, -1 when the window does not hold it
+	public int townLocal( int layoutCell ){ return localTownCell( layoutCell ); }
+
+	//the inn's doorway, where the street folk go in at dusk and come out at dawn
+	public int innDoorCell(){ return localTownCell( WorldStructures.TOWN_DOORS[6] ); }
+
+	//a sleeper the window left behind still holds their post: nobody is sent to
+	//fill it while they wait to be unparked
+	public boolean parkedFolk( Class<?> cls, int home ){
+		for (Mob m : parkedMobs.values()){
+			if (m.getClass() == cls
+					&& ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.NPC) m).home == home) return true;
+		}
+		return false;
+	}
 	private static final int TOWN_OTILUKE = 756;
 
 	//everything the town keeps alive, idempotent: run whenever the window
@@ -1079,6 +1099,23 @@ public class OverworldLevel extends Level {
 			drop( townChestPrize(), cell ).type = Heap.Type.CHEST;
 		}
 
+		//the adventurer's guide lies beside the arrival tile, so a new player has it
+		//before the first stairs. Same rule as the floor-1 copy (EntranceRoom): only
+		//while the intro page is unread or the tutorial is on. The plaza cell is its
+		//own spawn marker, nothing else in the town claims it
+		int plaza = localTownCell( WorldStructures.TOWN_PLAZA );
+		if (plaza != -1 && !townSpawned.contains( WorldStructures.TOWN_PLAZA )
+				&& (!xyz.gabriwar.warpedpixeldungeon.journal.Document.ADVENTURERS_GUIDE.isPageRead(
+						xyz.gabriwar.warpedpixeldungeon.journal.Document.GUIDE_INTRO )
+					|| xyz.gabriwar.warpedpixeldungeon.WPDSettings.intro())){
+			townSpawned.add( WorldStructures.TOWN_PLAZA );
+			int at = freeSpotWithin( plaza + 1, 2 );
+			if (at == -1) at = plaza;
+			drop( new xyz.gabriwar.warpedpixeldungeon.items.journal.Guidebook(), at );
+			xyz.gabriwar.warpedpixeldungeon.journal.Document.ADVENTURERS_GUIDE.deletePage(
+					xyz.gabriwar.warpedpixeldungeon.journal.Document.GUIDE_INTRO );
+		}
+
 		//the norn-stone altar: a blob, re-seeded whenever its cell is back in
 		//the window (sliding out of the window empties it)
 		int altar = localTownCell( WorldStructures.TOWN_ALTAR );
@@ -1091,13 +1128,13 @@ public class OverworldLevel extends Level {
 			}
 		}
 
-		//Otiluke joins the town once rescued in the mines, and the rescue
-		//seals the mine staircase for good
+		//the rescue of Otiluke seals the mine staircase for good (he himself
+		//joins the town through sleeperHomes)
 		if (xyz.gabriwar.warpedpixeldungeon.Badges.checkOtilukeRescued()){
 			//a memorial stone stands over the sealed stairwell: solid, but not a
 			//wall - the fog and wall-blocking passes leave STATUE alone, so the
 			//seal reads as something that was DONE here instead of a blank gap
-			int mineStairs = localTownCell( WorldStructures.TOWN_STAIRS );
+			int mineStairs = localTownCell( WorldStructures.TOWN_MINE_GATE );
 			if (mineStairs != -1 && map[mineStairs] != Terrain.STATUE){
 				if (Dungeon.level == this
 						&& com.watabou.noosa.Game.scene() instanceof xyz.gabriwar.warpedpixeldungeon.scenes.GameScene){
@@ -1106,11 +1143,6 @@ public class OverworldLevel extends Level {
 				} else {
 					map[mineStairs] = Terrain.STATUE;
 				}
-			}
-			int cell = localTownCell( TOWN_OTILUKE );
-			if (cell != -1 && !townSpawned.contains( TOWN_OTILUKE )){
-				townSpawned.add( TOWN_OTILUKE );
-				addFolk( new xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.OtilukeNPC(), cell );
 			}
 		}
 	}
@@ -2723,16 +2755,20 @@ public class OverworldLevel extends Level {
 		int[] spawned = bundle.getIntArray( TOWN_SPAWNED );
 		if (spawned != null) for (int c : spawned) townSpawned.add( c );
 
-		//Old saves may still contain the removed roof layers. Drop them while
-		//recovering the three roofless town-art layers.
+		//Recover the five town-art layers from the save (ground under the hero,
+		//roofs over). Saves from the roofless builds only carry three; placeTownArt
+		//then rebuilds the full set.
 		java.util.ArrayList<TownRemixedTiles.Layer> found = new java.util.ArrayList<>();
 		for (xyz.gabriwar.warpedpixeldungeon.tiles.CustomTilemap c : customTiles){
 			if (c instanceof TownRemixedTiles.Base || c instanceof TownRemixedTiles.Deco
 					|| c instanceof TownRemixedTiles.Deco2) found.add( (TownRemixedTiles.Layer) c );
 		}
-		customWalls.removeIf( c -> c instanceof TownRemixedTiles.RoofBase
-				|| c instanceof TownRemixedTiles.RoofDeco );
-		if (found.size() == 3) townArt = found.toArray( new TownRemixedTiles.Layer[0] );
+		for (xyz.gabriwar.warpedpixeldungeon.tiles.CustomTilemap c : customWalls){
+			if (c instanceof TownRemixedTiles.RoofBase || c instanceof TownRemixedTiles.RoofDeco)
+				found.add( (TownRemixedTiles.Layer) c );
+		}
+		if (found.size() == 5) townArt = found.toArray( new TownRemixedTiles.Layer[0] );
+		else { customTiles.removeAll( found ); customWalls.removeAll( found ); }
 		customTiles.removeAll( bundledDress( customTiles ) );
 		customWalls.removeAll( bundledDress( customWalls ) );
 		waypointActive = bundle.getBoolean( WP_ACTIVE );

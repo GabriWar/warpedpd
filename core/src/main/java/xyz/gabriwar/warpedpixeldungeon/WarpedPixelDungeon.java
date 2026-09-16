@@ -21,6 +21,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon;
 
+import xyz.gabriwar.warpedpixeldungeon.debug.ScreenshotTour;
+import xyz.gabriwar.warpedpixeldungeon.debug.TrailerTour;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.TitleScene;
@@ -36,16 +38,22 @@ public class WarpedPixelDungeon extends Game {
 	//rankings from v1.2.3 and older use a different score formula, so this reference is kept
 	public static final int v1_2_3 = 628;
 
-	//savegames from versions older than v2.5.4 are no longer supported, and data from them is ignored
-	public static final int v2_5_4 = 802;
-
-	public static final int v3_0_2 = 833;
+	//savegames from versions older than v3.1.1 are no longer supported, and data from them is ignored
 	public static final int v3_1_1 = 850;
+	public static final int v3_2_1 = 861; //last version for Android 4.4- and Java 8
 	public static final int v3_2_5 = 877;
 	public static final int v3_3_0 = 883;
+
+	//starting here we are doing 2 version codes per public update, so use code-1 to get both
+	public static final int v4_0_0 = 909;
 	
 	public WarpedPixelDungeon( PlatformSupport platform ) {
 		super( sceneClass == null ? WelcomeScene.class : sceneClass, platform );
+
+		// Merge the old second disintegration wand, including imbued staves.
+		com.watabou.utils.Bundle.addAlias(
+				xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfDisintegration.class,
+				"xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfDisintegration2" );
 
 		//pre-v3.3.0
 		com.watabou.utils.Bundle.addAlias(
@@ -116,9 +124,30 @@ public class WarpedPixelDungeon extends Game {
 	}
 	
 	@Override
+	protected void update() {
+		if (TrailerTour.instance != null) {
+			TrailerTour.instance.frame(); //fixed-step stand-in for the whole update
+			return;
+		}
+		super.update();
+		if (ScreenshotTour.instance != null) {
+			ScreenshotTour.instance.update();
+		}
+	}
+
+	@Override
 	public void resize( int width, int height ) {
 		if (width == 0 || height == 0){
 			return;
+		}
+
+		//the tour renders offscreen at its own size, whatever the window is
+		if (ScreenshotTour.instance != null) {
+			width = ScreenshotTour.instance.width;
+			height = ScreenshotTour.instance.height;
+		} else if (TrailerTour.instance != null) {
+			width = TrailerTour.instance.width;
+			height = TrailerTour.instance.height;
 		}
 
 		if (scene instanceof PixelScene &&
@@ -135,8 +164,14 @@ public class WarpedPixelDungeon extends Game {
 	
 	@Override
 	public void destroy(){
+		if (TrailerTour.instance != null) {
+			TrailerTour.instance.finish();
+		}
 		super.destroy();
 		GameScene.endActorThread();
+		//closing the window is leaving the game: the other players get the goodbye
+		//and their hero copies instead of a dead socket
+		xyz.gabriwar.warpedpixeldungeon.net.NetManager.stop();
 	}
 	
 	public void updateDisplaySize(){

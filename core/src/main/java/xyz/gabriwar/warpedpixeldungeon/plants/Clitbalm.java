@@ -98,10 +98,6 @@ public class Clitbalm extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect( Char attacker, Char defender, int damage ) {
-			Buff.prolong(defender, Charm.class, 10f).object = attacker.id();
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

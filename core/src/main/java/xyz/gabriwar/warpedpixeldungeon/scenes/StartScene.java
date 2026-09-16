@@ -38,6 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.ui.StyledButton;
 import xyz.gabriwar.warpedpixeldungeon.ui.Window;
 import xyz.gabriwar.warpedpixeldungeon.windows.IconTitle;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndGameInProgress;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
 import com.watabou.noosa.BitmapText;
 import com.watabou.noosa.Camera;
 import com.watabou.noosa.Game;
@@ -85,8 +86,10 @@ public class StartScene extends PixelScene {
 		add(title);
 		
 		ArrayList<GamesInProgress.Info> games = GamesInProgress.checkAll();
+		//a hero made online stays online: those saves are offered by the host lobby
+		games.removeIf(g -> g.multiplayer);
 		
-		int slotCount = Math.min(GamesInProgress.MAX_SLOTS, games.size()+1);
+		int slotCount = Math.min(GamesInProgress.SLOTS_PER_MODE, games.size()+1);
 		int slotGap = 10 - slotCount;
 		int slotsHeight = slotCount*SLOT_HEIGHT + (slotCount-1)* slotGap;
 		slotsHeight += 14;
@@ -110,7 +113,7 @@ public class StartScene extends PixelScene {
 			
 		}
 		
-		if (games.size() < GamesInProgress.MAX_SLOTS){
+		if (GamesInProgress.firstEmpty() != -1 && games.size() < GamesInProgress.SLOTS_PER_MODE){
 			SaveSlotButton newGame = new SaveSlotButton();
 			newGame.set(GamesInProgress.firstEmpty());
 			newGame.setRect(slotLeft, yPos, SLOT_WIDTH, SLOT_HEIGHT);
@@ -256,7 +259,9 @@ public class StartScene extends PixelScene {
 					lastPlayed.text(Messages.get(StartScene.class, "months_ago", diff / (30L * 24 * 60 * 60_000)));
 				}
 				
-				depth.text(Integer.toString(info.depth));
+				//the surface sits at slot 97 so its monsters scale like the deep floors; on
+			//the save card that is depth zero
+			depth.text(Integer.toString(info.depth == OverworldLevel.DEPTH ? 0 : info.depth));
 				depth.measure();
 				
 				level.text(Integer.toString(info.level));

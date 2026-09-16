@@ -26,46 +26,52 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
-
+import java.util.ArrayList;
+import com.watabou.utils.Bundle;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.*;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.effects.WarriorImpactFX;
+import xyz.gabriwar.warpedpixeldungeon.scenes.*;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 
 public class Smash extends ActiveSkill1 {
-
-	{
-		name = "Smash";
-		castText = "Smash!";
-		tier = 1;
-		image = 17;
-		mana = 3;
-	}
-
-	@Override
-	public void execute( Hero hero, String action ){
-		super.execute(hero, action);
-		if (action.equals(Skill.AC_ACTIVATE)){
-			hero.heroSkills.deactivateOtherToggles( this );
-		}
-	}
-
-	@Override
-	public int getManaCost(){
-		return (int)Math.ceil(mana * (1 + 0.55 * level));
-	}
-
-	@Override
-	protected boolean upgrade(){
-		return true;
-	}
-
-	@Override
-	public float damageModifier(){
-		if (!active || Dungeon.hero.MP < getManaCost())
-			return 1f;
-		else {
-			castTextYell();
-			Dungeon.hero.MP -= getManaCost();
-			return 1f + 0.1f * level;
-		}
-	}
+    {name="Smash";castText="Smash!";tier=1;image=17;mana=3;}
+    @Override public boolean toggleable(){return false;}
+    @Override public void restoreInBundle(Bundle b){super.restoreInBundle(b);active=false;}
+    public float hitMultiplier(){return 1.25f+.25f*level;}
+    @Override public ArrayList<String> actions(Hero hero){
+        ArrayList<String> out=new ArrayList<>();if(level>0&&hero.MP>=getManaCost())out.add(AC_CAST);return out;
+    }
+    @Override public void execute(Hero hero,String action){
+        if(!AC_CAST.equals(action)||level<=0||hero.MP<getManaCost())return;
+        GameScene.selectCell(new CellSelector.Listener(){
+            @Override public String prompt(){return Messages.get(Smash.class,"prompt");}
+            @Override public void onSelect(Integer cell){
+                if(cell==null)return;
+                Char enemy=Actor.findChar(cell);
+                if(enemy==null||!enemy.isAlive()||enemy.alignment!=Char.Alignment.ENEMY
+                        ||!Dungeon.level.heroFOV[cell]||!hero.canAttack(enemy)||hero.isCharmedBy(enemy)){
+                    GLog.w(Messages.get(Smash.class,"no_target"));return;
+                }
+                if(hero.MP<getManaCost())return;
+                int depth=Dungeon.depth,branch=Dungeon.branch;
+                hero.MP-=getManaCost();hero.heroSkills.lastUsed=Smash.this;hero.busy();Invisibility.dispel();
+                hero.sprite.attack(cell,()->{
+                    if(hero.isAlive()&&depth==Dungeon.depth&&branch==Dungeon.branch&&enemy.isAlive()&&hero.canAttack(enemy)){
+                        int impact=enemy.pos,before=enemy.HP;
+                        //at +3 whatever the target is slammed into makes it take half the blow again
+                        if(hero.attack(enemy,hitMultiplier(),0,Float.POSITIVE_INFINITY)&&enemy.isAlive())
+                            SkillInteractions.push(enemy,hero.pos,level,level>=MAX_LEVEL?Math.max(0,before-enemy.HP)/2:0);
+                        WarriorImpactFX.show(impact,true);
+                    }
+                    hero.spendAndNext(TIME_TO_USE);
+                });
+            }
+        });
+    }
+    @Override public int getManaCost(){return (int)Math.ceil(mana*(1+.55*level));}
+    @Override protected boolean upgrade(){return true;}
 }

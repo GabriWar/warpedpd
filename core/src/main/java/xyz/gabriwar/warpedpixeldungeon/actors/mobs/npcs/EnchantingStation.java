@@ -52,6 +52,11 @@ public class EnchantingStation extends NPC {
 	}
 
 	@Override
+	public xyz.gabriwar.warpedpixeldungeon.journal.Notes.Landmark landmark() {
+		return xyz.gabriwar.warpedpixeldungeon.journal.Notes.Landmark.ENCHANTING;
+	}
+
+	@Override
 	public void damage( int dmg, Object src ) {
 		//the pedestal is ancient stone, nothing chips it
 	}

@@ -21,6 +21,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -71,24 +73,54 @@ public class StormCloud extends Blob {
 						}
 					}
 
-					// Lightning strike chance per cell per turn
-					if (Random.Float() < 0.02f) {
+					// Lightning strike chance per cell per turn, harder in a real storm
+					float odds = 0.012f;
+					if (ClimateManager.isStorming()) odds *= 2.5f;
+					odds *= 0.6f + ClimateManager.localPrecipRate();
+					if (Random.Float() < odds) {
 						strike(cell);
 					}
 				}
 			}
 		}
+
+		//a storm cloud with no rain left in the sky rains itself out
+		xyz.gabriwar.warpedpixeldungeon.actors.PrecipType pt = ClimateManager.localPrecipType();
+		boolean wet = ClimateManager.localPrecipRate() > 0.05f
+				&& (pt == xyz.gabriwar.warpedpixeldungeon.actors.PrecipType.RAIN
+					|| pt == xyz.gabriwar.warpedpixeldungeon.actors.PrecipType.SLEET
+					|| pt == xyz.gabriwar.warpedpixeldungeon.actors.PrecipType.HAIL);
+		if (!wet) dissipate(0.75f);
 	}
 
 	private void strike(int cell) {
 		// Visual: lightning arc from sky to tile
-		PointF sky = DungeonTilemap.tileCenterToWorld(cell);
-		sky.y -= Random.IntRange(30, 50);
-		sky.x += Random.IntRange(-8, 8);
 		PointF ground = DungeonTilemap.tileCenterToWorld(cell);
+		//it comes out of the cloud deck the blob draws two cells up, not from nowhere
+		PointF sky = new PointF(ground.x + Random.IntRange(-10, 10), ground.y - Random.IntRange(34, 52));
 
+		//a channel that zigzags down, with a fork off one of the upper joints
 		ArrayList<Lightning.Arc> arcs = new ArrayList<>();
-		arcs.add(new Lightning.Arc(sky, ground));
+		int steps = 4 + Random.Int(3);
+		PointF prev = sky;
+		PointF forkFrom = null;
+		for (int i = 1; i <= steps; i++) {
+			float t = i / (float)steps;
+			PointF next = i == steps ? ground : new PointF(
+					sky.x + (ground.x - sky.x) * t + Random.Float(-7f, 7f),
+					sky.y + (ground.y - sky.y) * t + Random.Float(-3f, 3f));
+			arcs.add(new Lightning.Arc(prev, next));
+			if (i == 1 + Random.Int(2)) forkFrom = next;
+			prev = next;
+		}
+		if (forkFrom != null) {
+			PointF a = forkFrom;
+			for (int i = 0; i < 2; i++) {
+				PointF b = new PointF(a.x + Random.Float(-14f, 14f), a.y + Random.Float(6f, 14f));
+				arcs.add(new Lightning.Arc(a, b));
+				a = b;
+			}
+		}
 
 		if (Dungeon.hero.fieldOfView[cell]) {
 			Dungeon.hero.sprite.parent.addToFront(new Lightning(arcs, null));
@@ -126,7 +158,7 @@ public class StormCloud extends Blob {
 	@Override
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
-		emitter.pour( Speck.factory( Speck.STORM ), 0.4f );
+		emitter.pour( WeatherBlobFX.STORM_CLOUD, 0.07f );
 	}
 
 	@Override

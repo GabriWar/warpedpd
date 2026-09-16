@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.SmokeScreen;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.StenchGas;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.StormCloud;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
+import xyz.gabriwar.warpedpixeldungeon.actors.blobs.VaultFlameTraps;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Web;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Tengu;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.special.MagicalFireRoom;
@@ -76,6 +77,8 @@ public class BlobImmunity extends FlavourBuff {
 		immunities.add( Web.class );
 
 		immunities.add(Tengu.FireAbility.FireBlob.class);
+
+		immunities.add(VaultFlameTraps.class);
 	}
 
 }

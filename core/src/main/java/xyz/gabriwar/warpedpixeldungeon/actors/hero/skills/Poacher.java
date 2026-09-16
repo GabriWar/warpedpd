@@ -26,9 +26,21 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
+import com.watabou.noosa.audio.Sample;
 
-import com.watabou.utils.Random;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.PoacherBait;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 
+/**
+ * Huntress: a ranged kill leaves the carcass as bait. Its scent draws in the enemies
+ * that cannot see her, further each level; fully trained, a snare hides in the carcass
+ * and roots the first enemy to reach it.
+ */
 public class Poacher extends Skill {
 
 	{
@@ -44,12 +56,18 @@ public class Poacher extends Skill {
 	}
 
 	@Override
-	public int fletching(){
-		return level;
-	}
+	public void onKill( Mob mob, boolean ranged ){
+		if (!ranged || level <= 0 || mob == null || Dungeon.hero == null) return;
+		int cell = mob.pos;
+		if (!SkillInteractions.valid( cell ) || Dungeon.level.solid[cell] || Dungeon.level.pit[cell]) return;
 
-	@Override
-	public boolean disableTrap(){
-		return Random.Int(100) < 25 * level;
+		//one carcass at a time: a fresh kill moves the bait
+		Buff.affect( Dungeon.hero, PoacherBait.class ).set( cell, level );
+		castTextYell();
+		if (Dungeon.level.heroFOV[cell]){
+			CellEmitter.get( cell ).burst( Speck.factory( Speck.STENCH ), 6 );
+			SkillInteractions.flare( cell, 0xB5D67A );
+		}
+		Sample.INSTANCE.play( Assets.Sounds.PUFF, 0.8f, 0.8f );
 	}
 }

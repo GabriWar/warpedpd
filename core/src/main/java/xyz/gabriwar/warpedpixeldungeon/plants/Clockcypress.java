@@ -84,11 +84,6 @@ public class Clockcypress extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect( Char attacker, Char defender, int damage ) {
-			TimekeepersHourglass timekeepersHourglass = new TimekeepersHourglass();
-			timekeepersHourglass.activateTimeFreeze(damage);
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

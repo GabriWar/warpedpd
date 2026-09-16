@@ -26,6 +26,18 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Slow;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
+import com.watabou.utils.PathFinder;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfMagic;
+
 
 public class SereneFocus extends Skill {
 
@@ -42,14 +54,33 @@ public class SereneFocus extends Skill {
 		return true;
 	}
 
-	//this is an exponent on the mana regeneration delay, not a flat gain
-	@Override
-	public int manaRegenerationBonus(){
-		return level;
+	/** Wand's zapper calls this once the bolt has landed, with whoever stood where it was aimed.
+	 *  A steady mind (mana at least three quarters full) makes the zap slow what it hit */
+	public static void onZap( Char target ){
+		Hero hero = Dungeon.hero;
+		if (hero == null || hero.heroSkills == null) return;
+		SereneFocus skill = hero.heroSkills.get( SereneFocus.class );
+		if (skill == null || skill.level <= 0) return;
+		if (target == null || target == hero || !target.isAlive() || target.alignment != Char.Alignment.ENEMY) return;
+		int effectiveMT = hero.MT + RingOfMagic.manaBonus( hero );
+		if (hero.MP * 4 < effectiveMT * 3) return;
+
+		float duration = 1 + skill.level;
+		calm( target, duration );
+		if (skill.level >= MAX_LEVEL){
+			for (int n : PathFinder.NEIGHBOURS8){
+				Char ch = Actor.findChar( target.pos + n );
+				if (ch != null && ch != hero && ch.isAlive() && ch.alignment == Char.Alignment.ENEMY) calm( ch, duration );
+			}
+		}
+		if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 3 );
+		Sample.INSTANCE.play( Assets.Sounds.MELD, 0.6f, 1.4f );
 	}
 
-	@Override
-	public float incomingDamageModifier(){
-		return 1f + 0.05f * level;
+	private static void calm( Char ch, float duration ){
+		Buff.prolong( ch, Slow.class, duration );
+		if (ch.sprite != null && Dungeon.level.heroFOV[ch.pos]){
+			ch.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 5 );
+		}
 	}
 }

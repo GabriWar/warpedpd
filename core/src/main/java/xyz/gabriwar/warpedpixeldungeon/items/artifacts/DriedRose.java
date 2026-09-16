@@ -73,6 +73,7 @@ import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndInfoItem;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndQuest;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndUseItem;
+import xyz.gabriwar.warpedpixeldungeon.levels.VaultLevel;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
@@ -126,7 +127,8 @@ public class DriedRose extends Artifact {
 		if (ghostID != 0){
 			actions.add(AC_DIRECT);
 		}
-		if (isIdentified() && !cursed){
+		//cannot outfit a rose that's cursed, unIDed, or in the vault to prevent smuggling exploits
+		if (isIdentified() && !cursed && !(Dungeon.level instanceof VaultLevel)){
 			actions.add(AC_OUTFIT);
 		}
 		
@@ -593,12 +595,16 @@ public class DriedRose extends Artifact {
 			//same dodge as the hero
 			defenseSkill = (Dungeon.hero.lvl+4);
 			if (rose == null) return;
-			HT = 20 + 8*rose.level();
+			HT = 40 + 10*rose.level();
 		}
 
 		public Weapon weapon(){
 			if (rose != null)   return rose.weapon;
 			else                return null;
+		}
+
+		public void clearWeapon(){
+			if (rose != null) rose.weapon = null;
 		}
 
 		public Armor armor(){
@@ -655,8 +661,15 @@ public class DriedRose extends Artifact {
 			int dmg = 0;
 			if (weapon() != null){
 				dmg += weapon().damageRoll(this);
-			} else {
-				dmg += Random.NormalIntRange(0, 5);
+				if (rose != null){
+					int excessStr = rose.ghostStrength()-weapon().STRReq();
+					if (excessStr > 0){
+						dmg += Random.NormalIntRange(0, excessStr);
+					}
+				}
+			} else if (rose != null) {
+				//1-5 to 1-10
+				dmg += Random.NormalIntRange(1, rose.ghostStrength()-8);
 			}
 			
 			return dmg;

@@ -27,17 +27,76 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import com.watabou.noosa.audio.Sample;
+import com.watabou.utils.PathFinder;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Daze;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
+import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
+import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+
+import java.util.ArrayList;
+
+//class name and tag kept for saves: the skill is now the Gladiator's Opening Blow
 public class ComboOpener extends SubSkill1 {
 
 	{
-		name = "Combo Opener";
-		image = 10;
+		name = "Opening Blow";
+		image = 167;
 		tier = 1;
+	}
+
+	//a passive: nothing to switch on, so it stays out of the quick panel
+	@Override
+	public boolean toggleable(){ return false; }
+
+	@Override
+	public ArrayList<String> actions( Hero hero ){
+		return new ArrayList<>();
 	}
 
 	@Override
 	protected boolean upgrade(){ return true; }
 
+	//the first blow of a fight lands as a shockwave: the enemy, still at full health, is Dazed
+	//2 / 3 / 4 turns and thrown 1 / 2 / 2 tiles; at +3 the wave throws every other adjacent enemy 1 tile
 	@Override
-	public int toHitBonus(){ return level * 2; }
+	public int onHitProc( Char enemy, int damage, boolean ranged ){
+		Hero hero = Dungeon.hero;
+		if (ranged || level <= 0 || hero == null || enemy == null || !enemy.isAlive() || enemy.HP < enemy.HT)
+			return damage;
+		Buff.prolong( enemy, Daze.class, 1 + level );
+		if (enemy.sprite != null){
+			enemy.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "stagger" ) );
+			new Flare( 8, 20 ).color( 0xFFB060, true ).show( enemy.sprite, 0.5f );
+		}
+		SkillFX.land( enemy.pos );
+		Sample.INSTANCE.play( Assets.Sounds.BLAST, 0.8f, 1.2f );
+
+		if (Dungeon.level.adjacent( hero.pos, enemy.pos )){
+			shove( hero, enemy, level >= 2 ? 2 : 1 );
+			if (level >= MAX_LEVEL){
+				for (int n : PathFinder.NEIGHBOURS8){
+					Char other = Actor.findChar( hero.pos + n );
+					if (other != null && other != enemy && other.isAlive() && other.alignment == Char.Alignment.ENEMY){
+						shove( hero, other, 1 );
+					}
+				}
+			}
+		}
+		return damage;
+	}
+
+	//straight away from the Gladiator, the way Knock Back throws
+	private static void shove( Hero hero, Char ch, int power ){
+		SkillInteractions.push( ch, hero.pos, power, 0 );
+	}
 }

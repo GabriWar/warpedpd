@@ -62,9 +62,9 @@ public class Bunny extends Mob {
 	@Override
 	public void die( Object cause ) {
 		super.die( cause );
-		//fauna always yields dinner - rollToDropLoot is gated by hero level,
+		//fauna can yield dinner - rollToDropLoot is gated by hero level,
 		//which a high-level hero fails on purpose for real enemies
-		if (com.watabou.utils.Random.Int( 2 ) == 0){
+		if (com.watabou.utils.Random.Int( 8 ) == 0){
 			xyz.gabriwar.warpedpixeldungeon.Dungeon.level.drop( new MysteryMeat(), pos ).sprite.drop();
 		}
 	}

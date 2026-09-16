@@ -77,6 +77,18 @@ public class Updates {
 		service.initializeUpdate( data );
 	}
 
+	public static boolean isInstallable(){
+		return supportsUpdates() && service.isInstallable();
+	}
+
+	public static void launchInstall(){
+		service.initializeInstall();
+	}
+
+	//the title screen opens the update window on its own once per launch; after
+	//that the flashing button is the reminder
+	public static boolean prompted = false;
+
 	private static AvailableUpdateData updateData = null;
 
 	public static boolean updateAvailable(){

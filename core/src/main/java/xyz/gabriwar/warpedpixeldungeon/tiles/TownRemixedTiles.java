@@ -64,7 +64,7 @@ public class TownRemixedTiles {
 
 	private static boolean crumbleRoll( int cell ){
 		int x = cell % MAP_WIDTH, y = cell / MAP_WIDTH;
-		int sx = WorldStructures.TOWN_STAIRS % MAP_WIDTH, sy = WorldStructures.TOWN_STAIRS / MAP_WIDTH;
+		int sx = WorldStructures.TOWN_MINE_GATE % MAP_WIDTH, sy = WorldStructures.TOWN_MINE_GATE / MAP_WIDTH;
 		int d = Math.max( Math.abs( x - sx ), Math.abs( y - sy ) );
 		//the whole south-west ruin quarter, not a neat ring: the straight
 		//authored ramparts there read as walls, not a collapsed mine mouth
@@ -87,8 +87,8 @@ public class TownRemixedTiles {
 		//a survivor left standing alone at the rim falls too - no floating
 		//single blocks in the middle of the snow
 		int x = cell % MAP_WIDTH, y = cell / MAP_WIDTH;
-		int dx = Math.abs( x - WorldStructures.TOWN_STAIRS % MAP_WIDTH );
-		int dy = Math.abs( y - WorldStructures.TOWN_STAIRS / MAP_WIDTH );
+		int dx = Math.abs( x - WorldStructures.TOWN_MINE_GATE % MAP_WIDTH );
+		int dy = Math.abs( y - WorldStructures.TOWN_MINE_GATE / MAP_WIDTH );
 		int d = Math.max( dx, dy );
 		boolean inZone = d <= 7 || (y >= 28 && x <= 13);
 		if (d < 3 || !inZone) return false;
@@ -103,6 +103,54 @@ public class TownRemixedTiles {
 			}
 		}
 		return true;
+	}
+
+	//the fence piece the road passes through, south of the plaza
+	private static final int GATE_DECO = 15;
+
+	private static boolean[] insideWalls;
+
+	/** Enclosed by the town: the fence, the buildings and the tree line around the
+	 *  settlement, with the gate counted as closed. Anything the outside can reach
+	 *  on foot from the edge of the map is not inside. */
+	public static synchronized boolean insideWalls( int cell ){
+		if (insideWalls == null){
+			int n = MAP_WIDTH * MAP_WIDTH;
+			int[] layout = xyz.gabriwar.warpedpixeldungeon.levels.TownLayouts.TOWN_LAYOUT_REMIXED;
+			boolean[] blocks = new boolean[n];
+			boolean[] reached = new boolean[n];
+			for (int c = 0; c < n; c++){
+				blocks[c] = layout[c] == xyz.gabriwar.warpedpixeldungeon.levels.Terrain.WALL
+						|| DECO[c] == GATE_DECO;
+			}
+			java.util.ArrayDeque<Integer> queue = new java.util.ArrayDeque<>();
+			for (int c = 0; c < n; c++){
+				int x = c % MAP_WIDTH, y = c / MAP_WIDTH;
+				boolean edge = x == 0 || y == 0 || x == MAP_WIDTH-1 || y == MAP_WIDTH-1;
+				if (edge && !blocks[c]){
+					reached[c] = true;
+					queue.add( c );
+				}
+			}
+			while (!queue.isEmpty()){
+				int c = queue.poll();
+				int x = c % MAP_WIDTH, y = c / MAP_WIDTH;
+				int[][] steps = { {1,0}, {-1,0}, {0,1}, {0,-1} };
+				for (int[] s : steps){
+					int nx = x + s[0], ny = y + s[1];
+					if (nx < 0 || ny < 0 || nx >= MAP_WIDTH || ny >= MAP_WIDTH) continue;
+					int next = nx + ny * MAP_WIDTH;
+					if (!reached[next] && !blocks[next]){
+						reached[next] = true;
+						queue.add( next );
+					}
+				}
+			}
+			boolean[] inside = new boolean[n];
+			for (int c = 0; c < n; c++) inside[c] = !reached[c] && !blocks[c];
+			insideWalls = inside;
+		}
+		return cell >= 0 && cell < insideWalls.length && insideWalls[cell];
 	}
 
 	/** Open snow with a pine (or nothing) on it: nothing built there. */
@@ -130,7 +178,7 @@ public class TownRemixedTiles {
 			//the plaza staircase down into the mines: every art layer steps
 			//aside so the terrain's real staircase tile shows, and the ruin
 			//around it sheds its crumbled blocks
-			d[WorldStructures.TOWN_STAIRS] = -1;
+			d[WorldStructures.TOWN_MINE_GATE] = -1;
 			for (int c = 0; c < d.length; c++){
 				if (brokenNearMine( c )) d[c] = -1;
 			}

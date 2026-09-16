@@ -21,19 +21,15 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
-import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.Random;
 
-/**
- * Rising white wisps that expand and fade — hot steam from vents.
- * Used in Dwarven City depth ambiance.
- */
-public class SteamParticle extends PixelParticle {
+import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherSprites;
+
+/** Steam: wisps that rise, spread as they climb, and thin into nothing. */
+public class SteamParticle extends WeatherParticle {
 
 	public static final Emitter.Factory FACTORY = new Emitter.Factory() {
 		@Override
@@ -42,7 +38,7 @@ public class SteamParticle extends PixelParticle {
 		}
 	};
 
-	private float initialSize;
+	private int stage;
 
 	public SteamParticle() {
 		super();
@@ -54,40 +50,31 @@ public class SteamParticle extends PixelParticle {
 		revive();
 		this.x = x;
 		this.y = y;
-		left = lifespan;
+		left = lifespan = Random.Float(2f, 4f);
+		stage = -1;
+		grow(0);
 
-		initialSize = Random.Float(1.5f, 3f);
-		size = initialSize;
-
-		// Rises and drifts with wind
 		float wind = ClimateManager.localWindSpeed() * 0.4f;
 		speed.set(Random.Float(-1, 1) + wind, Random.Float(-12, -6)); // rises
 		acc.set(0, -2); // gentle upward acceleration (buoyancy)
+	}
+
+	private void grow(int s) {
+		if (s != stage) {
+			stage = s;
+			frame(s == 0 ? WeatherSprites.WISP_S : (s == 1 ? WeatherSprites.WISP_L : WeatherSprites.WISP_XL));
+		}
 	}
 
 	@Override
 	public void update() {
 		super.update();
 		float p = left / lifespan;
-		float age = 1f - p; // 0 → 1
-
-		// Expand as it rises (steam disperses)
-		size(initialSize * (1f + age * 2f));
-
-		// Wind pushes it sideways over time
+		float age = 1f - p;
+		grow(age < 0.35f ? 0 : (age < 0.7f ? 1 : 2));
 		float wind = ClimateManager.localWindSpeed() * 0.4f;
 		speed.x += wind * Game.elapsed * 0.5f;
-
-		// Fade out as it expands
-		if (p > 0.85f) {
-			am = (1f - p) * 6.7f * 0.25f;
-		} else {
-			am = p * 0.25f;
-		}
-
-		int cell = (int)(this.x / DungeonTilemap.SIZE) + (int)(this.y / DungeonTilemap.SIZE) * Dungeon.level.width();
-		if (cell < 0 || cell >= Dungeon.level.heroFOV.length || !Dungeon.level.heroFOV[cell]) {
-			am = 0;
-		}
+		am = p > 0.85f ? (1f - p) * 6.7f * 0.3f : p * 0.3f;
+		fov();
 	}
 }

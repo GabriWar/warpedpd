@@ -158,7 +158,7 @@ public class ShopRoom extends SpecialRoom {
 
 		PortalGate portal = new PortalGate();
 		portal.pos = chosen;
-		xyz.gabriwar.warpedpixeldungeon.Portals.register(Dungeon.depth, chosen);
+		xyz.gabriwar.warpedpixeldungeon.Portals.register(xyz.gabriwar.warpedpixeldungeon.Portals.keyHere(), chosen);
 		portal.syncFromRegistry();
 		if (xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon.scene() instanceof GameScene) {
 			GameScene.add(portal);
@@ -285,13 +285,16 @@ public class ShopRoom extends SpecialRoom {
 			//DM300 on 15, which pushes Sokoban, Town and the Vault two chapters back.
 			//The LimitedDrop is only spent on pickup, not here: a journal you cannot afford
 			//must not lock the boss fallbacks out.
-			if (Dungeon.depth == 6 && !Dungeon.LimitedDrops.JOURNAL.dropped()) {
+			if (Dungeon.depth == 6 && Dungeon.branch == 0 && !Dungeon.LimitedDrops.JOURNAL.dropped()) {
 				itemsToSpawn.add( new OtilukesJournal() );
 			}
-			//first of the three portable storage chests
-			itemsToSpawn.add( new PortableChest( PortableChest.WOOD ) );
-			//the sickle: harvests seeds from safe-zone crops
-			itemsToSpawn.add( new xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Sickle() );
+			//the one-off tools belong to the prison shop, not the spider nest's floor-6 shop
+			if (Dungeon.depth == 6 && Dungeon.branch == 0) {
+				//first of the three portable storage chests
+				itemsToSpawn.add( new PortableChest( PortableChest.WOOD ) );
+				//the sickle: harvests seeds from safe-zone crops
+				itemsToSpawn.add( new xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Sickle() );
+			}
 			break;
 			
 		case 11:
@@ -422,11 +425,18 @@ public class ShopRoom extends SpecialRoom {
 		rare.cursedKnown = true;
 		itemsToSpawn.add( rare );
 
-		//bulk ammo for the guns and bows, one belt per chapter of the run
-		itemsToSpawn.add( new BulletBelt().quantity(Dungeon.depth/5) );
+		//bulk ammo for the guns and bows: a shop carries it now and then, not always
+		if (Random.Int(3) == 0){
+			itemsToSpawn.add( new BulletBelt().quantity(Math.max(1, Dungeon.depth/5)) );
+		}
 
-		//the quiver is one of a kind, so only restock it while the hero has none
-		if (Dungeon.hero.belongings.getItem(ArrowBag.class) == null){
+		//the quiver is one of a kind and no longer a fixture of every shop: it shows
+		//up once the run is a few chapters in, and only while the hero has none
+		if (Dungeon.depth >= 6
+				&& Dungeon.hero.belongings.getItem(ArrowBag.class) == null
+				&& !Dungeon.LimitedDrops.ARCHERS_QUIVER.dropped()
+				&& Random.Int(3) == 0){
+			Dungeon.LimitedDrops.ARCHERS_QUIVER.drop();
 			itemsToSpawn.add( new ArrowBag() );
 		}
 

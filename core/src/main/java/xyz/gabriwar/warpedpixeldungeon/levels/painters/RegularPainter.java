@@ -182,9 +182,8 @@ public abstract class RegularPainter extends Painter {
 			}
 		}
 	}
-	
-	protected void paintDoors( Level l, ArrayList<Room> rooms ) {
 
+	public float hiddenDoorChance( Level l ){
 		float hiddenDoorChance = 0;
 		if (Dungeon.depth > 1){
 			//chance for a hidden door scales from 2/20 on floor 2 to 20/20 on floor 20
@@ -194,6 +193,12 @@ public abstract class RegularPainter extends Painter {
 			//pull the value of extra secret doors toward 50% on secrets level feel
 			hiddenDoorChance = (0.5f + hiddenDoorChance)/2f;
 		}
+		return hiddenDoorChance;
+	}
+	
+	protected void paintDoors( Level l, ArrayList<Room> rooms ) {
+
+		float hiddenDoorChance = hiddenDoorChance(l);
 
 		HashMap<Room, Room> roomMerges = new HashMap<>();
 
@@ -260,11 +265,11 @@ public abstract class RegularPainter extends Painter {
 
 				}
 
-				//unlocked entrance doors on floor 1 are hidden during tutorial
-				//unlocked entrance doors on floor 2 are hidden if the player hasn't picked up 2nd guidebook page
+				//unlocked entrance doors on floor 1 are hidden during the tutorial, and
+				//until the searching page (which lies in that room) has been picked up
 				if (d.type == Room.Door.Type.UNLOCKED && (r.isEntrance() || n.isEntrance())){
-					if ((Dungeon.depth == 1 && WPDSettings.intro())
-							|| (Dungeon.depth == 2 && !Document.ADVENTURERS_GUIDE.isPageFound(Document.GUIDE_SEARCHING))) {
+					if (Dungeon.depth == 1
+							&& (WPDSettings.intro() || !Document.ADVENTURERS_GUIDE.isPageFound(Document.GUIDE_SEARCHING))) {
 						d.type = Room.Door.Type.HIDDEN;
 					}
 				}

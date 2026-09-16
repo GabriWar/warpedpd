@@ -40,6 +40,7 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.ui.QuickSlotButton;
 import xyz.gabriwar.warpedpixeldungeon.ui.Toolbar;
 import xyz.gabriwar.warpedpixeldungeon.utils.DungeonSeed;
+import xyz.gabriwar.warpedpixeldungeon.items.quest.EscapeCrystal;
 import com.watabou.noosa.Game;
 import com.watabou.utils.Bundlable;
 import com.watabou.utils.Bundle;
@@ -92,6 +93,15 @@ public enum Rankings {
 			rec.version = "v" + m.group();
 		} else {
 			rec.version = "";
+		}
+
+		EscapeCrystal crystal = Dungeon.hero.belongings.getItem(EscapeCrystal.class);
+		EscapeCrystal tempStore = new EscapeCrystal(); //yes we just use a second crystal to store current belongings lmao
+		if (crystal != null){
+			crystal.detachAll(Dungeon.hero.belongings.backpack);
+			tempStore.storeHeroBelongings(Dungeon.hero);
+			crystal.restoreHeroBelongings(Dungeon.hero, null);
+			tempStore.collect();
 		}
 
 		DateFormat format = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT);
@@ -164,6 +174,10 @@ public enum Rankings {
 		Badges.validateGamesPlayed();
 		
 		save();
+
+		if (crystal != null){
+			tempStore.restoreHeroBelongings(Dungeon.hero, null);
+		}
 	}
 
 	private int score( boolean win ) {
@@ -178,6 +192,15 @@ public enum Rankings {
 			Statistics.progressScore = Math.min(Statistics.progressScore, 50_000);
 
 			if (Statistics.heldItemValue == 0) {
+				EscapeCrystal crystal = Dungeon.hero.belongings.getItem(EscapeCrystal.class);
+				if (crystal != null && crystal.storedItems != null){
+					Belongings stored = new Belongings(Dungeon.hero);
+					stored.restoreFromBundle(crystal.storedItems.getBundle(EscapeCrystal.BELONGINGS));
+
+					for (Item i : stored) {
+
+					}
+				}
 				for (Item i : Dungeon.hero.belongings) {
 					Statistics.heldItemValue += i.value();
 					if (i instanceof CorpseDust && Statistics.deepestFloor >= 10){
@@ -267,7 +290,9 @@ public enum Rankings {
 					}
 				}
 			}
-			if (!(item instanceof Trinket) && !Dungeon.quickslot.contains(item)) {
+			if (!(item instanceof Trinket)
+					&& !(item instanceof EscapeCrystal)
+					&& !Dungeon.quickslot.contains(item)) {
 				belongings.backpack.items.remove(item);
 			}
 		}

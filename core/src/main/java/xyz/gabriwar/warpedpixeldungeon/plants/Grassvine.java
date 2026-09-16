@@ -26,6 +26,7 @@ package xyz.gabriwar.warpedpixeldungeon.plants;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.poisonparticles.GrassvinePoisonParticle;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -50,8 +51,11 @@ public class Grassvine extends Plant {
 	@Override
 	public void activate( Char ch ) {
 		if (ch == null) {
-			Level.set( pos,  Terrain.HIGH_GRASS );
-			GameScene.updateMap( pos );
+			//a planted cell can be on the map edge, where set() would read past it
+			if (Dungeon.level.insideMap( pos )) {
+				Level.set( pos,  Terrain.HIGH_GRASS );
+				GameScene.updateMap( pos );
+			}
 			return;
 		}
 		Level.set( ch.pos,  Terrain.HIGH_GRASS );
@@ -78,11 +82,6 @@ public class Grassvine extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			Level.set( defender.pos,  Terrain.HIGH_GRASS );
-			GameScene.updateMap( defender.pos );
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

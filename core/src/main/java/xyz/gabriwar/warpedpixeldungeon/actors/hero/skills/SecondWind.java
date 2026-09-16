@@ -27,9 +27,17 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 
 import java.util.ArrayList;
 
@@ -37,11 +45,14 @@ public class SecondWind extends SubSkill2 {
 
 	{
 		name = "Second Wind";
-		castText = "Not yet!";
-		image = 1;
+		castText = "Second wind!";
+		image = 161;
 		mana = 12;
 		tier = 2;
 	}
+
+	@Override
+	public boolean toggleable(){ return false; }
 
 	@Override
 	public ArrayList<String> actions( Hero hero ){
@@ -51,18 +62,26 @@ public class SecondWind extends SubSkill2 {
 		return actions;
 	}
 
+	//catch your breath: your weapon abilities regain 1 / 2 / 3 charges at once; +3 overfills one more
 	@Override
 	public void execute( Hero hero, String action ){
 		if (action.equals(Skill.AC_CAST) && level > 0 && hero.MP >= getManaCost()){
-			if (hero.HP >= hero.HT){
-				xyz.gabriwar.warpedpixeldungeon.utils.GLog.w( "You are already at full health." );
+			xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon.Charger charger =
+					hero.buff( xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon.Charger.class );
+			int cap = charger == null ? 0 : charger.chargeCap() + (level >= MAX_LEVEL ? 1 : 0);
+			if (charger == null || charger.charges >= cap){
+				xyz.gabriwar.warpedpixeldungeon.utils.GLog.w( Messages.get( this, "full_hp" ) );
 				return;
 			}
-			int healed = Math.min( Math.round( hero.HT * 0.1f * level ), hero.HT - hero.HP );
-			hero.HP += healed;
-			hero.sprite.emitter().start( xyz.gabriwar.warpedpixeldungeon.effects.Speck.factory( xyz.gabriwar.warpedpixeldungeon.effects.Speck.HEALING ), 0.4f, 4 );
+			int before = charger.charges;
+			charger.charges = Math.min( cap, charger.charges + level );
+			xyz.gabriwar.warpedpixeldungeon.items.Item.updateQuickslot();
+			hero.sprite.showStatus( xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite.POSITIVE, "+" + (charger.charges - before) );
+			new Flare( 6, 24 ).color( 0x88FF88, true ).show( hero.sprite, 0.6f );
+			hero.sprite.emitter().burst( xyz.gabriwar.warpedpixeldungeon.effects.Speck.factory( xyz.gabriwar.warpedpixeldungeon.effects.Speck.UP ), 5 );
 			hero.MP -= getManaCost();
 			castTextYell();
+			Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 1f, 0.8f );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
 			hero.busy();

@@ -122,6 +122,7 @@ import xyz.gabriwar.warpedpixeldungeon.ui.Toolbar;
 import xyz.gabriwar.warpedpixeldungeon.utils.DungeonSeed;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndResurrect;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town.TownLedger;
 import com.watabou.noosa.Game;
 import com.watabou.utils.BArray;
 import com.watabou.utils.Bundlable;
@@ -186,6 +187,8 @@ public class Dungeon {
 		ANKH_CHAIN,
 		KEY_RING,
 		FOOD_POUCH,
+		//the archer's quiver: one to a run, and not in every shop
+		ARCHERS_QUIVER,
 
 		//Sprouted-specific limited drops
 		NORNSTONES,
@@ -288,17 +291,19 @@ public class Dungeon {
 
 	public static boolean daily;
 	public static boolean dailyReplay;
+	//started from the host lobby. A hero made online stays online: the single-player
+	//slot list does not offer this save, and the lobby offers only saves like it
+	public static boolean multiplayer;
 	public static String customSeedText = "";
 	public static long seed;
 	public static long lastPlayed;
 
-	// Sprouted-specific flags
-	public static boolean dewDraw;
-	//depths that already granted a dew charge this game, so revisiting a floor
-	//(going up and back down) doesn't re-trigger the charge window
-	public static HashSet<Integer> dewChargedDepths = new HashSet<>();
-	public static boolean dewWater;
-	public static boolean wings;
+	// Tinkerer waterskin upgrades: it condenses dew from humid air, and it can
+	// pour a measured draught that restores health and mana
+	public static boolean dewCondenser;
+	public static boolean measuredDraught;
+	//the third tinkerer's upgrade: the waterskin holds three times as much
+	public static boolean skinCapacity;
 	public static boolean sporkAvail;
 	public static boolean sanchikarah;
 	public static boolean sanchikarahdeath;
@@ -306,6 +311,9 @@ public class Dungeon {
 	public static boolean sanchikarahtranscend;
 	public static boolean orbofzotdropped;
 	public static boolean orbofzotshopsold;
+	//how many scrolls of upgrade the town shop has already sold this run: each one
+	//it sells raises the price of the next
+	public static int scrollsOfUpgradeBought;
 	public static boolean shadowyogkilled;
 	public static boolean crabkingkilled;
 	public static boolean banditkingkilled;
@@ -353,6 +361,7 @@ public class Dungeon {
 		initialVersion = version = Game.versionCode;
 		challenges = WPDSettings.challenges();
 		mobsToChampion = 1;
+		multiplayer = xyz.gabriwar.warpedpixeldungeon.net.NetManager.isHost();
 
 		Actor.clear();
 		Actor.resetNextID();
@@ -372,6 +381,7 @@ public class Dungeon {
 		Random.resetGenerators();
 		
 		Statistics.reset();
+		TownLedger.reset();
 		Notes.reset();
 		Portals.reset();
 
@@ -392,10 +402,9 @@ public class Dungeon {
 		energy = 0;
 
 		// Sprouted flags
-		dewDraw = false;
-		dewChargedDepths.clear();
-		dewWater = false;
-		wings = false;
+		dewCondenser = false;
+		measuredDraught = false;
+		skinCapacity = false;
 		sporkAvail = false;
 		sanchikarah = false;
 		sanchikarahdeath = false;
@@ -403,6 +412,7 @@ public class Dungeon {
 		sanchikarahtranscend = false;
 		orbofzotdropped = false;
 		orbofzotshopsold = false;
+		scrollsOfUpgradeBought = 0;
 		shadowyogkilled = false;
 		crabkingkilled = false;
 		banditkingkilled = false;
@@ -454,6 +464,11 @@ public class Dungeon {
 	public static boolean isChallenged( int mask ) {
 		return (challenges & mask) != 0;
 	}
+
+	//was the level the hero just stepped onto made for them, or loaded from the save?
+	//the arrival log asks, to tell "you arrive at" from "you return to". Set by
+	//newLevel and loadLevel, which every transition goes through
+	public static boolean firstArrival = false;
 
 	public static boolean levelHasBeenGenerated(int depth, int branch){
 		return generatedLevels.contains(depth + 1000*branch);
@@ -681,11 +696,14 @@ public class Dungeon {
 			level = new DeadEndLevel();
 		}
 
-		//dead end levels (and vault levels for now!) get cleared, don't count as generated
-		if (!(level instanceof DeadEndLevel || level instanceof VaultLevel)){
+		//dead end levels get cleared, don't count as generated
+		if (!(level instanceof DeadEndLevel)){
 			//this assumes that we will never have a depth value outside the range 0 to 999
 			// or -500 to 499, etc.
-			if (!generatedLevels.contains(depth + 1000*branch)) {
+			//first time here, as opposed to a warp or a reset rebuilding a level the
+			//hero already knows: the difference between arriving and coming back
+			firstArrival = !generatedLevels.contains(depth + 1000*branch);
+			if (firstArrival) {
 				generatedLevels.add(depth + 1000 * branch);
 			}
 
@@ -714,7 +732,9 @@ public class Dungeon {
 
 		level.create();
 		
-		if (branch == 0) Statistics.qualifiedForNoKilling = !bossLevel();
+		//the pacifist floor badge is for the dungeon proper: the surface is not a floor
+		//you descend from, so arriving on floor 1 from the town earns nothing
+		if (branch == 0) Statistics.qualifiedForNoKilling = depth <= 26 && !bossLevel();
 		Statistics.qualifiedForBossChallengeBadge = false;
 		
 		return level;
@@ -845,6 +865,13 @@ public class Dungeon {
 	//postgame these descend by staircase, so they need to opt out of the depth < 26 gating.
 	/** The name of where the hero stands, for the HUD: region of the dungeon,
 	 *  biome (or settlement) on the surface, building name in the town. */
+	//the dungeon proper is counted in floors; the surface, the town's rooms and the
+	//branches are named instead. The HUD and the arrival log both ask this
+	public static boolean numberedFloor() {
+		return (branch == 0 && depth >= 1 && depth <= 26)
+				|| (depth >= 56 && depth <= 65);
+	}
+
 	public static String placeName() {
 		if (level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel){
 			return ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) level)
@@ -860,6 +887,7 @@ public class Dungeon {
 				case 6: return "Inn";
 			}
 		}
+		if (branch == SpiderNestLevel.SPIDER_BRANCH) return "Spider Nest";
 		if (depth >= 1 && depth <= 5)   return "Sewers";
 		if (depth >= 6 && depth <= 10)  return "Prison";
 		if (depth >= 11 && depth <= 15) return "Caves";
@@ -891,7 +919,7 @@ public class Dungeon {
 
 	public static boolean interfloorTeleportAllowed(){
 		if (Dungeon.level.locked
-				|| Dungeon.level instanceof MiningLevel
+				|| Dungeon.level instanceof MiningLevel || Dungeon.level instanceof VaultLevel
 				|| (Dungeon.hero != null && Dungeon.hero.belongings.getItem(Amulet.class) != null)){
 			return false;
 		}
@@ -922,14 +950,6 @@ public class Dungeon {
 			hero.buff(AscensionChallenge.class).onLevelSwitch();
 		}
 
-		// Sprouted: grant Dewcharge buff the FIRST time you reach each floor when
-		// dewDraw is active. Only once per depth per game - revisiting a floor no
-		// longer re-charges it. Duration 30 (base) + kills last floor, capped at 70.
-		if (dewDraw && depth >= 1 && depth <= 24 && !bossLevel() && dewChargedDepths.add(depth)) {
-			int charge = Math.min(70, 30 + Statistics.prevfloormoves);
-			Buff.prolong(hero, Dewcharge.class, charge);
-			GLog.p("You feel the dungeon charge with dew!");
-		}
 
 		Mob.restoreAllies( level, pos );
 
@@ -1065,6 +1085,7 @@ public class Dungeon {
 	private static final String CUSTOM_SEED	= "custom_seed";
 	private static final String DAILY	    = "daily";
 	private static final String DAILY_REPLAY= "daily_replay";
+	private static final String MULTIPLAYER	= "multiplayer";
 	private static final String LAST_PLAYED = "last_played";
 	private static final String CHALLENGES	= "challenges";
 	private static final String MOBS_TO_CHAMPION	= "mobs_to_champion";
@@ -1085,10 +1106,13 @@ public class Dungeon {
 	private static final String BADGES		= "badges";
 
 	// Sprouted bundle keys
-	private static final String DEW_DRAW          = "dewDraw";
-	private static final String DEW_CHARGED       = "dew_charged_depths";
-	private static final String DEW_WATER         = "dewWater";
-	private static final String WINGS             = "wings";
+	private static final String DEW_CONDENSER     = "dewCondenser";
+	private static final String MEASURED_DRAUGHT  = "measuredDraught";
+	//pre-climate saves: the tinkerer's old dew upgrades map onto the new ones
+	private static final String LEGACY_DEW_DRAW   = "dewDraw";
+	private static final String LEGACY_DEW_WATER  = "dewWater";
+	private static final String SKIN_CAPACITY     = "skinCapacity";
+	private static final String LEGACY_WINGS      = "wings";
 	private static final String SPORK_AVAIL       = "sporkAvail";
 	private static final String SANCHIKARAH       = "sanchikarah";
 	private static final String SANCHIKARAH_DEATH = "sanchikarahDeath";
@@ -1096,6 +1120,7 @@ public class Dungeon {
 	private static final String SANCHIKARAH_TRANS = "sanchikarahTranscend";
 	private static final String ORB_OF_ZOT_DROPPED = "orb_of_zot_dropped";
 	private static final String ORB_OF_ZOT_SHOP    = "orb_of_zot_shop";
+	private static final String SOU_BOUGHT        = "scrolls_of_upgrade_bought";
 	private static final String SHADOW_YOG_KILLED = "shadowYogKilled";
 	private static final String CRAB_KING_KILLED  = "crabKingKilled";
 	private static final String BANDIT_KING_KILLED= "banditKingKilled";
@@ -1127,6 +1152,7 @@ public class Dungeon {
 			bundle.put( CUSTOM_SEED, customSeedText );
 			bundle.put( DAILY, daily );
 			bundle.put( DAILY_REPLAY, dailyReplay );
+			bundle.put( MULTIPLAYER, multiplayer );
 			bundle.put( LAST_PLAYED, lastPlayed = Game.realTime);
 			bundle.put( CHALLENGES, challenges );
 			bundle.put( MOBS_TO_CHAMPION, mobsToChampion );
@@ -1141,13 +1167,9 @@ public class Dungeon {
 			bundle.put( ENERGY, energy );
 
 			// Sprouted flags
-			bundle.put( DEW_DRAW, dewDraw );
-			int[] charged = new int[dewChargedDepths.size()];
-			int ci = 0;
-			for (int d : dewChargedDepths) charged[ci++] = d;
-			bundle.put( DEW_CHARGED, charged );
-			bundle.put( DEW_WATER, dewWater );
-			bundle.put( WINGS, wings );
+			bundle.put( DEW_CONDENSER, dewCondenser );
+			bundle.put( MEASURED_DRAUGHT, measuredDraught );
+			bundle.put( SKIN_CAPACITY, skinCapacity );
 			bundle.put( SPORK_AVAIL, sporkAvail );
 			bundle.put( SANCHIKARAH, sanchikarah );
 			bundle.put( SANCHIKARAH_DEATH, sanchikarahdeath );
@@ -1155,6 +1177,7 @@ public class Dungeon {
 			bundle.put( SANCHIKARAH_TRANS, sanchikarahtranscend );
 			bundle.put( ORB_OF_ZOT_DROPPED, orbofzotdropped );
 			bundle.put( ORB_OF_ZOT_SHOP, orbofzotshopsold );
+			bundle.put( SOU_BOUGHT, scrollsOfUpgradeBought );
 			bundle.put( SHADOW_YOG_KILLED, shadowyogkilled );
 			bundle.put( CRAB_KING_KILLED, crabkingkilled );
 			bundle.put( BANDIT_KING_KILLED, banditkingkilled );
@@ -1205,6 +1228,7 @@ public class Dungeon {
 			SecretRoom.storeRoomsInBundle( bundle );
 			
 			Statistics.storeInBundle( bundle );
+			TownLedger.storeInBundle( bundle );
 			Notes.storeInBundle( bundle );
 			Generator.storeInBundle( bundle );
 			Portals.storeInBundle( bundle );
@@ -1268,6 +1292,7 @@ public class Dungeon {
 		customSeedText = bundle.getString( CUSTOM_SEED );
 		daily = bundle.getBoolean( DAILY );
 		dailyReplay = bundle.getBoolean( DAILY_REPLAY );
+		multiplayer = bundle.getBoolean( MULTIPLAYER );
 
 		Actor.clear();
 		Actor.restoreNextID( bundle );
@@ -1365,13 +1390,9 @@ public class Dungeon {
 		energy = bundle.getInt( ENERGY );
 
 		// Sprouted flags
-		dewDraw             = bundle.getBoolean( DEW_DRAW );
-		dewChargedDepths.clear();
-		if (bundle.contains( DEW_CHARGED )){
-			for (int d : bundle.getIntArray( DEW_CHARGED )) dewChargedDepths.add( d );
-		}
-		dewWater            = bundle.getBoolean( DEW_WATER );
-		wings               = bundle.getBoolean( WINGS );
+		dewCondenser        = bundle.getBoolean( DEW_CONDENSER ) || bundle.getBoolean( LEGACY_DEW_WATER );
+		measuredDraught     = bundle.getBoolean( MEASURED_DRAUGHT ) || bundle.getBoolean( LEGACY_DEW_DRAW );
+		skinCapacity        = bundle.getBoolean( SKIN_CAPACITY ) || bundle.getBoolean( LEGACY_WINGS );
 		sporkAvail          = bundle.getBoolean( SPORK_AVAIL );
 		sanchikarah         = bundle.getBoolean( SANCHIKARAH );
 		sanchikarahdeath    = bundle.getBoolean( SANCHIKARAH_DEATH );
@@ -1379,6 +1400,7 @@ public class Dungeon {
 		sanchikarahtranscend= bundle.getBoolean( SANCHIKARAH_TRANS );
 		orbofzotdropped     = bundle.getBoolean( ORB_OF_ZOT_DROPPED );
 		orbofzotshopsold = bundle.getBoolean( ORB_OF_ZOT_SHOP );
+		scrollsOfUpgradeBought = bundle.getInt( SOU_BOUGHT );
 		shadowyogkilled     = bundle.getBoolean( SHADOW_YOG_KILLED );
 		crabkingkilled      = bundle.getBoolean( CRAB_KING_KILLED );
 		banditkingkilled    = bundle.getBoolean( BANDIT_KING_KILLED );
@@ -1405,6 +1427,7 @@ public class Dungeon {
 		ClimateManager.restoreFromBundle( bundle );
 
 		Statistics.restoreFromBundle( bundle );
+		TownLedger.restoreFromBundle( bundle );
 		Generator.restoreFromBundle( bundle );
 		Portals.restoreFromBundle( bundle );
 
@@ -1414,6 +1437,7 @@ public class Dungeon {
 		
 		Dungeon.level = null;
 		Actor.clear();
+		firstArrival = false;
 
 		Bundle bundle = FileUtils.bundleFromFile( GamesInProgress.depthFile( save, depth, branch ));
 
@@ -1444,12 +1468,14 @@ public class Dungeon {
 	
 	public static void preview( GamesInProgress.Info info, Bundle bundle ) {
 		info.depth = bundle.getInt( DEPTH );
+		info.branch = bundle.getInt( BRANCH );
 		info.version = bundle.getInt( VERSION );
 		info.challenges = bundle.getInt( CHALLENGES );
 		info.seed = bundle.getLong( SEED );
 		info.customSeed = bundle.getString( CUSTOM_SEED );
 		info.daily = bundle.getBoolean( DAILY );
 		info.dailyReplay = bundle.getBoolean( DAILY_REPLAY );
+		info.multiplayer = bundle.getBoolean( MULTIPLAYER );
 		info.lastPlayed = bundle.getLong( LAST_PLAYED );
 
 		Hero.preview( info, bundle.getBundle( HERO ) );
@@ -1497,10 +1523,17 @@ public class Dungeon {
 	//debug toggles: the hero's invisibility never dispels; every hero attack lands and kills
 	public static boolean debugInvisible = false;
 	public static boolean debugOneHitKill = false;
+	public static boolean debugInfiniteMana = false;
 
 	public static void observe( int dist ) {
 
 		if (level == null) {
+			return;
+		}
+		//a hero that is not standing anywhere has nothing to see, and the neighbour walk
+		//below would index off the end of the map. A joining player's hero is built and
+		//equipped before it is placed, so this really does happen.
+		if (hero == null || !level.insideMap( hero.pos )) {
 			return;
 		}
 		
@@ -1543,6 +1576,9 @@ public class Dungeon {
 				if (m instanceof Mimic && m.alignment == Char.Alignment.NEUTRAL && ((Mimic) m).stealthy()){
 					continue;
 				}
+				if (Char.hasProp(m, Char.Property.OBJECT)){
+					continue;
+				}
 
 				BArray.or( level.visited, level.heroFOV, m.pos - 1 - level.width(), 3, level.visited );
 				BArray.or( level.visited, level.heroFOV, m.pos - 1, 3, level.visited );
@@ -1563,7 +1599,7 @@ public class Dungeon {
 
 		for (TalismanOfForesight.CharAwareness c : hero.buffs(TalismanOfForesight.CharAwareness.class)){
 			Char ch = (Char) Actor.findById(c.charID);
-			if (ch == null || !ch.isAlive()) continue;
+			if (ch == null || !ch.isAlive() || Char.hasProp(ch, Char.Property.OBJECT)) continue;
 			BArray.or( level.visited, level.heroFOV, ch.pos - 1 - level.width(), 3, level.visited );
 			BArray.or( level.visited, level.heroFOV, ch.pos - 1, 3, level.visited );
 			BArray.or( level.visited, level.heroFOV, ch.pos - 1 + level.width(), 3, level.visited );
@@ -1590,6 +1626,8 @@ public class Dungeon {
 			if (ch instanceof WandOfWarding.Ward
 					|| ch instanceof WandOfRegrowth.Lotus
 					|| ch instanceof SpiritHawk.HawkAlly
+                    || (ch instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.RogueShadow
+                        && ch.isAlive() && ch.alignment == Char.Alignment.ALLY)
 					|| ch.buff(PowerOfMany.PowerBuff.class) != null){
 				x = ch.pos % level.width();
 				y = ch.pos / level.width();

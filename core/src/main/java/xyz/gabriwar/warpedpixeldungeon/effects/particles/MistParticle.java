@@ -21,19 +21,15 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
-import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.Random;
 
-/**
- * Soft fog/mist blobs — large, very translucent, drift slowly with wind.
- * Used for FOG weather state and sewer ambiance.
- */
-public class MistParticle extends PixelParticle {
+import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherSprites;
+
+/** Ground mist: long soft wisps that creep along low, swelling as they go. */
+public class MistParticle extends WeatherParticle {
 
 	public static final Emitter.Factory FACTORY = new Emitter.Factory() {
 		@Override
@@ -43,6 +39,7 @@ public class MistParticle extends PixelParticle {
 	};
 
 	private float driftPhase;
+	private boolean swollen;
 
 	public MistParticle() {
 		super();
@@ -54,10 +51,10 @@ public class MistParticle extends PixelParticle {
 		revive();
 		this.x = x;
 		this.y = y;
-		left = lifespan;
-
-		// Large soft blobs
-		size = Random.Float(3f, 6f);
+		left = lifespan = Random.Float(4f, 8f);
+		swollen = false;
+		frame(Random.Float() < 0.5f ? WeatherSprites.WISP_L : WeatherSprites.WISP_XL);
+		color(Random.Float() < 0.5f ? 0xDDDDE4 : 0xC8D0D8);
 
 		// Mist drifts mostly horizontally, pushed by wind
 		float wind = ClimateManager.localWindSpeed();
@@ -70,28 +67,15 @@ public class MistParticle extends PixelParticle {
 	public void update() {
 		super.update();
 		float p = left / lifespan;
-
 		// Slow undulating drift
 		driftPhase += Game.elapsed * 0.8f;
 		speed.y = (float) Math.sin(driftPhase) * 1.5f;
-
-		// Very transparent — fog is subtle
-		float envelope;
-		if (p > 0.8f) {
-			envelope = (1f - p) * 5f;
-		} else if (p < 0.2f) {
-			envelope = p * 5f;
-		} else {
-			envelope = 1f;
+		//it spreads: a small wisp becomes a long one halfway through
+		if (!swollen && p < 0.55f && frame == WeatherSprites.WISP_L) {
+			swollen = true;
+			frame(WeatherSprites.WISP_XL);
 		}
-		am = envelope * 0.15f;
-
-		// Grow slightly over lifetime (fog expands)
-		size(size * (0.8f + 0.4f * (1f - p)));
-
-		int cell = (int)(this.x / DungeonTilemap.SIZE) + (int)(this.y / DungeonTilemap.SIZE) * Dungeon.level.width();
-		if (cell < 0 || cell >= Dungeon.level.heroFOV.length || !Dungeon.level.heroFOV[cell]) {
-			am = 0;
-		}
+		am = envelope(0.2f, 0.2f, 0.3f);
+		fov();
 	}
 }

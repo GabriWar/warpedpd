@@ -72,7 +72,7 @@ public class PotionOfMindVision extends Potion {
 
 	@Override
 	public void potionProc(Hero hero, Char enemy, float damage) {
-		Buff.append(curUser, TalismanOfForesight.CharAwareness.class, 50f).charID = enemy.id();
+		Buff.append(hero, TalismanOfForesight.CharAwareness.class, 50f).charID = enemy.id();
 		Dungeon.observe();
 		Dungeon.hero.checkVisibleMobs();
 		GameScene.updateFog();

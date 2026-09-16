@@ -21,6 +21,9 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle;
+import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.TileTemperature;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -48,13 +51,14 @@ public class HeatHaze extends Blob {
 				cell = i + j * Dungeon.level.width();
 				if (cur[cell] > 0) {
 
-					TileTemperature.depositHeat(cell, cur[cell] * 0.10f);
+					//the heat it lays down is capped, so a wide patch does not bake the map
+					TileTemperature.depositHeat(cell, Math.min(cur[cell], 8) * 0.10f);
 
 					// Chance to ignite grass tiles
 					int terrain = Dungeon.level.map[cell];
 					if ((terrain == Terrain.GRASS || terrain == Terrain.HIGH_GRASS
 							|| terrain == Terrain.FURROWED_GRASS)
-							&& Random.Float() < 0.05f) {
+							&& Random.Float() < 0.012f) { //a patch is many cells now: grass catches at the old pace overall
 						Level.set(cell, Terrain.EMBERS);
 						GameScene.updateMap(cell);
 						GameScene.add(Blob.seed(cell, 2, Fire.class));
@@ -71,12 +75,18 @@ public class HeatHaze extends Blob {
 				}
 			}
 		}
+	
+		//the shimmer needs a hot sun on it: it goes with cloud, rain, cool air or night
+		boolean hot = ClimateManager.localTemp() > 26f && ClimateManager.localPrecipRate() < 0.05f
+				&& DayNightCycle.phase() == DayNightCycle.Phase.DAY && ClimateManager.cloudCover() < 0.6f;
+		if (!hot) dissipate(0.7f);
 	}
 
 	@Override
 	public void use(BlobEmitter emitter) {
 		super.use(emitter);
-		emitter.pour(Speck.factory(Speck.INFERNO, true), 0.6f);
+		//when it is merely warm this shimmers; when it is baking, it stands up in rays
+		emitter.pour(WeatherBlobFX.layered(WeatherBlobFX.HEAT_HAZE, WeatherBlobFX.HEAT_RAYS, 2), 0.12f);
 	}
 
 	@Override

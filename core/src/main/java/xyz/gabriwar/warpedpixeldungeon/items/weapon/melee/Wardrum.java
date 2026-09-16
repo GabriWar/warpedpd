@@ -24,6 +24,20 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.weapon.melee;
 
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Haste;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
+import com.watabou.utils.Callback;
+import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -67,8 +81,44 @@ public class Wardrum extends MeleeWeapon {
 	}
 
 	//SPS-PD weapon: no Duelist ability was ever designed for it
+
+	private int beatTurns(){ return Math.min( 4, 2 + buffedLvl() / 3 ); }
+
+	/** a war beat: every ally in sight is hasted, every enemy beside the drummer is terrified, and the ground shakes */
 	@Override
-	public boolean hasDuelistAbility() {
-		return false;
+	protected void duelistAbility( Hero hero, Integer target ){
+		beforeAbilityUsed( hero, null );
+		int turns = beatTurns();
+		Buff.prolong( hero, Haste.class, turns );
+		for (Mob m : Dungeon.level.mobs.toArray( new Mob[0] )){
+			if (!m.isAlive() || !Dungeon.level.heroFOV[m.pos]) continue;
+			if (m.alignment == Char.Alignment.ALLY){
+				Buff.prolong( m, Haste.class, turns );
+				if (m.sprite != null) m.sprite.emitter().burst( Speck.factory( Speck.STAR ), 3 );
+			} else if (m.alignment == Char.Alignment.ENEMY && Dungeon.level.distance( hero.pos, m.pos ) <= 2){
+				Buff.prolong( m, Terror.class, 2f ).object = hero.id();
+				if (m.sprite != null) m.sprite.emitter().burst( Speck.factory( Speck.SCREAM ), 2 );
+			}
+		}
+		for (int n : PathFinder.NEIGHBOURS8){
+			if (Dungeon.level.heroFOV[hero.pos + n]) CellEmitter.bottom( hero.pos + n ).burst( Speck.factory( Speck.DUST ), 2 );
+		}
+		Camera.main.shake( 3, 0.4f );
+		Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 1f, 0.6f );
+		Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 1f, 0.9f );
+		hero.sprite.operate( hero.pos );
+		Invisibility.dispel();
+		hero.spendAndNext( 1f );
+		afterAbilityUsed( hero );
+	}
+
+	@Override
+	public String abilityInfo() {
+		return Messages.get(this, levelKnown ? "ability_desc" : "typical_ability_desc", beatTurns());
+	}
+
+	@Override
+	public String upgradeAbilityStat(int level) {
+		return Integer.toString( Math.min( 4, 2 + level / 3 ) );
 	}
 }

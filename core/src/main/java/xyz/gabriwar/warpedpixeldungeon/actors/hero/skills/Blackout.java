@@ -25,8 +25,13 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
 
 
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -82,13 +87,32 @@ public class Blackout extends Skill {
 			int cell = shot.collisionPos;
 
 			curUser.sprite.zap( cell );
+            //at mastery the dark feeds your shadows
+            if(level>=MAX_LEVEL)for(xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.RogueShadow shadow:PhantomStrike.shadows()){
+                if(Dungeon.level.distance(shadow.pos,cell)<=4+level){
+                    shadow.HP=Math.min(shadow.HT,shadow.HP+SkillInteractions.ofHealth(shadow.HT,0.02f+0.02f*level));
+                    SkillSpectacleFX.fly(SkillSpectacleFX.SHADOW,cell,shadow.pos,0,.45f);
+                }
+            }
+            xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField.place(curUser,
+                    xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField.SMOKE,level,2+level,SkillInteractions.area(cell,2)).origin=cell;
+            for(int c:SkillInteractions.area(cell,2)) GameScene.add(
+                    xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob.seed(c,3+level,
+                    xyz.gabriwar.warpedpixeldungeon.actors.blobs.SmokeScreen.class));
 			curUser.MP -= getManaCost();
 			castTextYell();
+			Sample.INSTANCE.play( Assets.Sounds.PUFF, 1f, 0.8f );
 
 			CellEmitter.get( cell ).burst( Speck.factory( Speck.SMOKE ), 6 );
+			Sample.INSTANCE.play( Assets.Sounds.MELD, 0.7f, 0.6f );
+			for (int c = 0; c < Dungeon.level.length(); c++){
+				if (Dungeon.level.distance( cell, c ) <= 2 && Dungeon.level.heroFOV[c] && !Dungeon.level.solid[c]){
+					CellEmitter.get( c ).burst( ShadowParticle.MISSILE, 3 );
+				}
+			}
 			for (Char ch : Actor.chars()){
 				if (!(ch instanceof Mob) || ch.alignment != Char.Alignment.ENEMY) continue;
-				if (Dungeon.level.distance( cell, ch.pos ) > 2) continue;
+				if (Dungeon.level.distance( cell, ch.pos ) > 2 || !SkillInteractions.clear(cell,ch.pos)) continue;
 				Buff.prolong( ch, Blindness.class, 4 + 2 * level );
 				Buff.affect( ch, Terror.class, 2 + level ).object = curUser.id();
 				if (Dungeon.level.heroFOV[ch.pos]){
@@ -101,7 +125,7 @@ public class Blackout extends Skill {
 		}
 
 		@Override
-		public String prompt(){ return "Choose where to snuff the light"; }
+		public String prompt(){ return Messages.get(Blackout.class, "prompt"); }
 	};
 
 	@Override

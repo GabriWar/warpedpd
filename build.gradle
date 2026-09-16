@@ -14,11 +14,11 @@ allprojects {
         appName = 'Warped Pixel Dungeon'
         appPackageName = 'xyz.gabriwar.warpedpixeldungeon'
 
-        //CI passes the commit count. Play already holds code 9410 from a branch whose
-        //history was later rewritten, so the raw count (9393 on master) would go
+        //CI passes the commit count. Play already holds code 9476 from a branch whose
+        //history was later rewritten, so the raw count (9411 on master) would go
         //backwards and Play refuses lower codes. Every build adds this offset; raise
         //it again if history is ever rewritten below the highest code on Play.
-        appVersionCodeBump = 20
+        appVersionCodeBump = 72
         appVersionCode = (project.hasProperty('appVersionCode') ? project.appVersionCode.toInteger() : 894) + appVersionCodeBump
         //versionName auto-bumps +1 per commit, each slot rolling 0-9 with carry
         //(commit 9127 -> 3.4.0, 9128 -> 3.4.1, ..., 9129 -> 3.4.2, 9139 -> 3.5.2).
@@ -40,7 +40,7 @@ allprojects {
     repositories {
         google()
         mavenCentral()
-        maven { url 'https://central.sonatype.com/repository/maven-snapshots/' }
+        maven { url = 'https://central.sonatype.com/repository/maven-snapshots/' }
     }
 
 }

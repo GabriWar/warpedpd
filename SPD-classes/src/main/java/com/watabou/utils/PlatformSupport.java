@@ -76,6 +76,11 @@ public abstract class PlatformSupport {
 		//does nothing by default
 	}
 
+	//an achievement on the platform's own service (Google Play Games), keyed by the
+	//badge's name; platforms without one ignore it
+	public void unlockAchievement( String badge ){
+	}
+
 	public boolean openURI( String uri ){
 		return Gdx.net.openURI( uri );
 	}

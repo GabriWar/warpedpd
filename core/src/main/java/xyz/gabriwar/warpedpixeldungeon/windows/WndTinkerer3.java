@@ -79,15 +79,9 @@ public class WndTinkerer3 extends Window {
 		Mushroom mushroom = Dungeon.hero.belongings.getItem( Mushroom.class );
 		mushroom.detach( Dungeon.hero.belongings.backpack );
 
-		Dungeon.dewWater = true;
-		Dungeon.wings = true;
-
-		if (!Dungeon.dewDraw) {
-			Dungeon.dewDraw = true;
-			Statistics.prevfloormoves = 500;
-			Buff.prolong( Dungeon.hero, Dewcharge.class, Dewcharge.DURATION + 50 );
-			GLog.p( Messages.get(WndTinkerer.class, "dew_charged") );
-		}
+		Dungeon.skinCapacity = true;
+		Dungeon.dewCondenser = true;
+		Dungeon.measuredDraught = true;
 
 		tinkerer.yell( Messages.get(this, "farewell", Dungeon.hero.name()) );
 		tinkerer.destroy();

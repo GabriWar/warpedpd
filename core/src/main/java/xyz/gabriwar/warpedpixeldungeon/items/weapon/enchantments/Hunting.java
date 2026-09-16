@@ -58,7 +58,7 @@ public class Hunting extends Weapon.Enchantment {
 
 		//butchering a kill sometimes yields meat
 		if (damage + bonus >= defender.HP) {
-			float meatChance = (1f / (level + 5f)) * procChanceMultiplier( attacker );
+			float meatChance = (1f / (4f * (level + 5f))) * procChanceMultiplier( attacker );
 			if (Random.Float() < meatChance) {
 				Dungeon.level.drop( new MysteryMeat(), defender.pos ).sprite.drop();
 			}

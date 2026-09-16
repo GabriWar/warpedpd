@@ -80,12 +80,6 @@ public class Sourpitcher extends Plant {
 			plantClass = Sourpitcher.class;
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			attacker.HP += Math.round(damage/2);
-			if (attacker.HP > attacker.HT) attacker.HP = attacker.HT;
-			defender.damage(Math.round(damage/2), attacker);
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

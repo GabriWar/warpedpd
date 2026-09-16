@@ -74,6 +74,9 @@ public class BrokenRobot extends Mob implements Callback {
 		resistances.add(Vampiric.class);
 
 		declareExtraLoot(RedDewdrop.class, 0.5f);
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	@Override

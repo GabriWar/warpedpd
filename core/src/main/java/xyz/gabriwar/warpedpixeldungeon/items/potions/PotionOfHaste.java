@@ -56,6 +56,7 @@ public class PotionOfHaste extends Potion {
 
 	@Override
 	public void potionProc(Hero hero, Char enemy, float damage) {
+		Buff.prolong(hero, Haste.class, 3f);
 		new FlavourBuff() {
 			{
 				actPriority = VFX_PRIO;

@@ -26,16 +26,10 @@ import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.painters.Painter;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.Room;
-import xyz.gabriwar.warpedpixeldungeon.levels.rooms.standard.StandardRoom;
 import com.watabou.utils.Point;
 import com.watabou.utils.Random;
 
-public class VaultLasersRoom extends StandardRoom {
-
-	@Override
-	public float[] sizeCatProbs() {
-		return new float[]{0, 1, 0};
-	}
+public class VaultLasersRoom extends VaultRoom {
 
 	@Override
 	public void paint(Level level) {
@@ -89,6 +83,11 @@ public class VaultLasersRoom extends StandardRoom {
 			}
 		}
 
+	}
+
+	@Override
+	public boolean canPlaceCharacter(Point p, Level l) {
+		return false;
 	}
 
 }

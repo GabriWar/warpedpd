@@ -59,7 +59,7 @@ public class Snowwhirlwind extends Blob {
 	@Override
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
-		emitter.start( SnowStormParticle.FACTORY, 0.3f, 20 );
+		emitter.start( SnowStormParticle.WHIRL, 0.3f, 20 );
 	}
 
 	@Override

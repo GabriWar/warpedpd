@@ -26,8 +26,17 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bless;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+
 
 public class AsceticVow extends Skill {
+
+	//at max rank an answered vow also blesses the cleric
+	private static final float BLESS_TURNS = 5f;
 
 	{
 		name = "Ascetic Vow";
@@ -40,13 +49,18 @@ public class AsceticVow extends Skill {
 	@Override
 	protected boolean upgrade(){ return true; }
 
-	@Override
-	public int manaRegenerationBonus(){
-		return level;
-	}
-
-	@Override
-	public float damageModifier(){
-		return 1f - 0.05f * level;
+	/** the vow: health you pray back returns mana. 1 MP per 6 HP at level 1, per 5 at level 2, per 4 at level 3 */
+	public static void tithe( Hero hero, int healed ){
+		int lvl = CurrentSkills.skillLevel( AsceticVow.class );
+		if (lvl <= 0 || healed <= 0 || hero == null) return;
+		int back = healed / (7 - lvl);
+		if (back <= 0) return;
+		hero.MP = Math.max( hero.MP, Math.min( hero.MT + xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfMagic.manaBonus( hero ), hero.MP + back ) );
+		if (lvl >= MAX_LEVEL) Buff.prolong( hero, Bless.class, BLESS_TURNS );
+		if (hero.sprite != null){
+			hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), Math.min( 6, back ) );
+			if (lvl >= MAX_LEVEL) hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 4 );
+			hero.sprite.showStatus( CharSprite.NEUTRAL, "+" + back + " MP" );
+		}
 	}
 }

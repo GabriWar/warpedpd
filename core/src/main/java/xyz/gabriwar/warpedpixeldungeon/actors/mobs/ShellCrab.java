@@ -56,7 +56,7 @@ public class ShellCrab extends Mob implements Callback {
 		EXP = 6;
 
 		loot = Berry.class;
-		lootChance = 0.33f;
+		lootChance = 0.33f / 4f;
 
 		properties.add(Property.ELECTRIC);
 
@@ -155,6 +155,11 @@ public class ShellCrab extends Mob implements Callback {
 	@Override
 	public void die( Object cause ) {
 		super.die(cause);
+	}
+
+	@Override
+	protected boolean extraLootIgnoresLevel() {
+		return true;
 	}
 
 	@Override

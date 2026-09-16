@@ -27,127 +27,73 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import java.util.*;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
-import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.*;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
-import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTeleportation;
-import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.*;
+import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
-import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.utils.PathFinder;
-import com.watabou.utils.Random;
+import xyz.gabriwar.warpedpixeldungeon.scenes.*;
 
-import java.util.ArrayList;
-
+/** Keeps the old class/tag so purchased Phantom Strike levels remain valid. */
 public class PhantomStrike extends Skill {
-
-	{
-		tag = "A4";
-		name = "Phantom Strike";
-		castText = "Nowhere to run";
-		image = 118;
-		tier = 4;
-		mana = 12;
-	}
-
-	private static final int RANGE = 8;
-
-	@Override
-	public ArrayList<String> actions( Hero hero ){
-		ArrayList<String> actions = new ArrayList<>();
-		if (level > 0 && hero.MP >= getManaCost())
-			actions.add(AC_CAST);
-		return actions;
-	}
-
-	@Override
-	public void execute( Hero hero, String action ){
-		if (action.equals(Skill.AC_CAST) && level > 0 && hero.MP >= getManaCost()){
-			Dungeon.hero.heroSkills.lastUsed = this;
-			GameScene.selectCell( targeter );
-		}
-	}
-
-	private final CellSelector.Listener targeter = new CellSelector.Listener() {
-		@Override
-		public void onSelect( Integer target ){
-			if (target == null) return;
-
-			Hero curUser = Dungeon.hero;
-			//the selector stays live across other casts, so re-check before spending
-			if (level <= 0 || curUser.MP < getManaCost()) return;
-
-			if (Dungeon.level.distance( curUser.pos, target ) > RANGE){
-				GLog.w( Messages.get(PhantomStrike.this, "too_far") );
-				return;
-			}
-
-			Ballistica path = new Ballistica( curUser.pos, target, Ballistica.PROJECTILE );
-			Char ch = Actor.findChar( path.collisionPos );
-			if (ch == null || ch == curUser){
-				GLog.w( Messages.get(PhantomStrike.this, "no_target") );
-				return;
-			}
-
-			ArrayList<Integer> spots = new ArrayList<>();
-			for (int i = 0; i < PathFinder.NEIGHBOURS8.length; i++){
-				int p = ch.pos + PathFinder.NEIGHBOURS8[i];
-				if (p < 0 || p >= Dungeon.level.length()) continue;
-				if (Actor.findChar( p ) == null && Dungeon.level.passable[p]){
-					spots.add( p );
-				}
-			}
-			if (spots.isEmpty()){
-				GLog.w( Messages.get(PhantomStrike.this, "no_room") );
-				return;
-			}
-
-			int oldPos = curUser.pos;
-			ScrollOfTeleportation.appear( curUser, Random.element( spots ) );
-			CellEmitter.get( oldPos ).burst( Speck.factory( Speck.SMOKE ), 6 );
-
-			float mult = 1f + 0.15f * level;
-			if (ch instanceof Mob){
-				Mob mob = (Mob) ch;
-				if (mob.state == mob.SLEEPING || mob.state == mob.WANDERING){
-					mult *= 1.5f;
-				}
-			}
-			//no accuracy roll, but the rest of the tree still gets its on-hit pass
-			int dmg = Math.round( curUser.damageRoll() * mult );
-			dmg = curUser.heroSkills.allOnHit( ch, dmg, false );
-			ch.damage( dmg, curUser );
-
-			curUser.MP -= getManaCost();
-			castTextYell();
-			curUser.sprite.attack( ch.pos );
-			Invisibility.dispel();
-			curUser.spendAndNext( TIME_TO_USE );
-			curUser.busy();
-		}
-
-		@Override
-		public String prompt(){ return "Choose your mark"; }
-	};
-
-	@Override
-	public int getManaCost(){
-		return (int)Math.ceil(mana * (1 + 0.5 * level));
-	}
-
-	@Override
-	protected boolean upgrade(){ return true; }
-
-	@Override
-	public String info(){
-		return Messages.get(this, "desc", RANGE) + "\n"
-				+ costUpgradeInfo();
-	}
+    {tag="A4";name="Shadow Company";castText="Out of the dark";image=118;tier=4;mana=12;}
+    public static ArrayList<RogueShadow> shadows(){
+        ArrayList<RogueShadow> result=new ArrayList<>();
+        if(Dungeon.level!=null)for(Mob mob:Dungeon.level.mobs)
+            if(mob instanceof RogueShadow&&mob.isAlive()&&mob.alignment==Char.Alignment.ALLY)result.add((RogueShadow)mob);
+        return result;
+    }
+    public static boolean safe(Char ch,int cell){
+        return SkillInteractions.valid(cell)&&Dungeon.level.passable[cell]&&!Dungeon.level.pit[cell]
+                &&(!Char.hasProp(ch,Char.Property.LARGE)||Dungeon.level.openSpace[cell]);
+    }
+    public static boolean canSwap(Hero hero,RogueShadow shadow){
+        return hero.isAlive()&&shadow.isAlive()&&shadow.alignment==Char.Alignment.ALLY&&Dungeon.level.mobs.contains(shadow)
+                &&!hero.rooted&&!shadow.rooted&&safe(hero,shadow.pos)&&safe(shadow,hero.pos);
+    }
+    @Override public ArrayList<String> actions(Hero hero){
+        ArrayList<String> out=new ArrayList<>();if(level>0&&(level>=MAX_LEVEL&&!shadows().isEmpty()||hero.MP>=getManaCost()))out.add(AC_CAST);return out;
+    }
+    @Override public void execute(Hero hero,String action){
+        if(!AC_CAST.equals(action)||level<=0)return;
+        GameScene.selectCell(new CellSelector.Listener(){
+            @Override public String prompt(){return Messages.get(PhantomStrike.class,"prompt");}
+            @Override public void onSelect(Integer cell){
+                if(cell==null||!hero.isAlive()||!SkillInteractions.valid(cell))return;
+                ArrayList<RogueShadow> allies=shadows();Char occupant=Actor.findChar(cell);
+                if(occupant instanceof RogueShadow&&allies.contains(occupant)){
+                    //at mastery you can step into one of your shadows and trade places
+                    RogueShadow shadow=(RogueShadow)occupant;
+                    if(level<MAX_LEVEL)return;
+                    if(!canSwap(hero,shadow))return;
+                    int old=hero.pos;hero.pos=cell;shadow.pos=old;
+                    hero.sprite.place(hero.pos);shadow.sprite.place(shadow.pos);
+                    SkillSpectacleFX.fly(SkillSpectacleFX.SHADOW,old,cell,0,.4f);
+                    SkillSpectacleFX.fly(SkillSpectacleFX.SHADOW,cell,old,0,.4f);
+                    Dungeon.level.occupyCell(shadow);Dungeon.level.occupyCell(hero);
+                }else{
+                    if(!Dungeon.level.heroFOV[cell]||Dungeon.level.distance(hero.pos,cell)>6||!SkillInteractions.clear(hero.pos,cell)
+                            ||hero.MP<getManaCost()||allies.size()>=level+1)return;
+                    int slots=Math.min(level+1-allies.size(),Math.max(3+hero.heroSkills.allSummonLimit(),level+1)-SummonedPet.activeCount());
+                    int created=0;
+                    for(int dest:SkillInteractions.area(cell,1)){
+                        if(created>=slots)break;
+                        if(!Dungeon.level.passable[dest]||Dungeon.level.pit[dest]||Actor.findChar(dest)!=null)continue;
+                        RogueShadow shadow=new RogueShadow();shadow.setRank(level);shadow.pos=dest;
+                        GameScene.add(shadow);SkillSpectacleFX.show(SkillSpectacleFX.SHADOW,dest);created++;
+                    }
+                    if(created==0)return;
+                    hero.MP-=getManaCost();castTextYell();
+                }
+                Invisibility.dispel();Dungeon.observe();GameScene.updateFog();
+                hero.heroSkills.lastUsed=PhantomStrike.this;hero.spendAndNext(TIME_TO_USE);
+            }
+        });
+    }
+    @Override public int getManaCost(){return (int)Math.ceil(mana*(1+.5*level));}
+    @Override protected boolean upgrade(){return true;}
 }

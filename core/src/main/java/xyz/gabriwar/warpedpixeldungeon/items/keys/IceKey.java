@@ -25,14 +25,15 @@
 package xyz.gabriwar.warpedpixeldungeon.items.keys;
 
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 
 //ported from Remixed PD's Ice Caves: the caged kobold's price for its candle.
-//Remixed had the ice guardian core drop it; that boss is unported, so the frozen
-//branch's own boss carries it instead.
+//The Ice Guardian Core drops it two floors below the cage.
 public class IceKey extends Key {
 
 	{
-		image = ItemSpriteSheet.ARTIFACT_FROST;
+		image = ItemSpriteSheet.ICE_KEY;
 		unique = true;
 	}
 
@@ -43,5 +44,18 @@ public class IceKey extends Key {
 	public IceKey( int depth ) {
 		super();
 		this.depth = depth;
+	}
+
+	/** The cage accepts a key from any floor, including legacy inventory keys. */
+	public static boolean consume(Hero hero) {
+		for (Notes.KeyRecord record : Notes.getRecords(Notes.KeyRecord.class)) {
+			if (record.type() == IceKey.class && record.quantity() > 0) {
+				return Notes.remove(new IceKey(record.depth()));
+			}
+		}
+		IceKey key = hero.belongings.getItem(IceKey.class);
+		if (key == null) return false;
+		key.detach(hero.belongings.backpack);
+		return true;
 	}
 }

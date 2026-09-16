@@ -24,7 +24,9 @@ package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import com.watabou.noosa.Image;
@@ -51,7 +53,17 @@ public class HoldFast extends Buff {
 
 	public int armorBonus(){
 		if (pos == target.pos && target instanceof Hero){
-			return Random.NormalIntRange(((Hero) target).pointsInTalent(Talent.HOLD_FAST), 2*((Hero) target).pointsInTalent(Talent.HOLD_FAST));
+			int max = 0;
+			if (((Hero) target).heroClass == HeroClass.WARRIOR){
+				max = 6;
+			} else {
+				Armor armor = ((Hero) target).belongings.armor();
+				if (armor != null) {
+					max = armor.tier + armor.buffedLvl();
+				}
+			}
+			int block = Random.NormalIntRange(((Hero) target).pointsInTalent(Talent.HOLD_FAST), 2*((Hero) target).pointsInTalent(Talent.HOLD_FAST));
+			return Math.min(block, max);
 		} else {
 			detach();
 			return 0;

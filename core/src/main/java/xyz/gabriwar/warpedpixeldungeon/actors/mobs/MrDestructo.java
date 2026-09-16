@@ -63,6 +63,9 @@ public class MrDestructo extends Mob {
 		properties.add( Property.IMMOVABLE );
 
 		declareExtraLoot(InactiveMrDestructo.class, 1f);
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	private static final float SPAWN_DELAY = 0.1f;

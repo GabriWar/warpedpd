@@ -21,6 +21,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.scenes;
 
+import com.watabou.noosa.Game;
+
 import xyz.gabriwar.warpedpixeldungeon.Chrome;
 import xyz.gabriwar.warpedpixeldungeon.WPDSettings;
 import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
@@ -31,9 +33,11 @@ import xyz.gabriwar.warpedpixeldungeon.services.payments.Payments;
 import xyz.gabriwar.warpedpixeldungeon.ui.ExitButton;
 import xyz.gabriwar.warpedpixeldungeon.ui.Icons;
 import xyz.gabriwar.warpedpixeldungeon.ui.RenderedTextBlock;
+import xyz.gabriwar.warpedpixeldungeon.ui.ScrollPane;
 import xyz.gabriwar.warpedpixeldungeon.ui.StyledButton;
 import xyz.gabriwar.warpedpixeldungeon.ui.TitleBackground;
 import xyz.gabriwar.warpedpixeldungeon.ui.Window;
+import xyz.gabriwar.warpedpixeldungeon.windows.WndSupporterThanks;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.IconTitle;
 import com.watabou.noosa.Camera;
@@ -83,9 +87,17 @@ public class SupporterScene extends PixelScene {
 		align(title);
 		add(title);
 
+		//the pitch plus five perks plus three tiers plus the legal line does not fit a
+		//phone screen. The ways to give are what the page is for, so they stay pinned
+		//at the bottom where they can always be seen and tapped; only the pitch above
+		//them scrolls
+		ScrollPane column = new ScrollPane(new Component());
+		add(column);
+		Component content = column.content();
+
 		PerksCard perks = new PerksCard();
 		perks.setSize(elementWidth, 0);
-		add(perks);
+		content.add(perks);
 
 		//a store connection that failed at launch gets another go when the page opens
 		Payments.reconnect();
@@ -100,15 +112,21 @@ public class SupporterScene extends PixelScene {
 					@Override
 					protected void onClick() {
 						super.onClick();
-						Payments.donate(tier.id, (success, message) -> {
-							if (success) {
-								if (icon() != null) {
-									new Flare(6, 48).color(0xFFDD44, true).show(icon(), 2f);
+						Payments.subscribe(tier.id, (success, message) -> {
+							//the store answers on the platform's own thread, so anything
+							//that touches the scene has to hop to the render thread first
+							Game.runOnRenderThread(() -> {
+								if (success) {
+									if (icon() != null) {
+										new Flare(6, 48).color(0xFFDD44, true).show(icon(), 2f);
+									}
+									//somebody just chose to pay for a game they could keep
+									//playing for free; that deserves more than a log line
+									WndSupporterThanks.request(tierRank(tier.id), tier.name);
+								} else if (message != null) {
+									GLog.w(Messages.get(SupporterScene.class, "donate_fail"));
 								}
-								GLog.p(Messages.get(SupporterScene.class, "donate_thanks"));
-							} else if (message != null) {
-								GLog.w(Messages.get(SupporterScene.class, "donate_fail"));
-							}
+							});
 						});
 					}
 				};
@@ -197,20 +215,30 @@ public class SupporterScene extends PixelScene {
 			btnsHeight = BTN_HEIGHT + GAP;
 		}
 
-		float elementHeight = perks.height() + btnsHeight;
-
-		float top = insets.top + 16 + (h - 16 - elementHeight) / 2f;
 		float left = insets.left + (w - elementWidth) / 2f;
 
-		perks.setPos(left, top);
-		align(perks);
-
-		float btnY = perks.bottom() + GAP;
+		//the footer: every way to give, stacked up from the bottom edge
+		float footerTop = insets.top + h - btnsHeight + GAP;
+		float btnY = footerTop;
 		for (Component c : waysToGive) {
 			c.setPos(left, btnY);
 			align(c);
 			btnY += c.height() + GAP;
 		}
+
+		//the pitch gets what is left between the title and the footer, and scrolls
+		//inside it; centred while it fits, pinned to the top once it has to scroll
+		float viewTop = insets.top + 20;
+		float viewHeight = Math.max(20, footerTop - GAP - viewTop);
+		float top = perks.height() < viewHeight ? (viewHeight - perks.height()) / 2f : 0;
+		perks.setPos(left, top);
+		align(perks);
+
+		content.setSize(Camera.main.width, Math.max(viewHeight, perks.bottom() + GAP));
+		column.setRect(0, viewTop, Camera.main.width, viewHeight);
+
+		//a thank-you owed from a purchase that a scene rebuild interrupted
+		WndSupporterThanks.showIfPending(this);
 	}
 
 	@Override
@@ -228,10 +256,10 @@ public class SupporterScene extends PixelScene {
 		RenderedTextBlock outro;
 
 		private static final Icons[] ICONS = {
-				Icons.TALENT, Icons.CHANGES, Icons.WARNING, Icons.PREFS
+				Icons.CONTROLLER, Icons.TALENT, Icons.CHANGES, Icons.WARNING, Icons.PREFS
 		};
 		private static final String[] KEYS = {
-				"perk_vote", "perk_updates", "perk_bugs", "perk_design"
+				"perk_online", "perk_vote", "perk_updates", "perk_bugs", "perk_design"
 		};
 
 		@Override
@@ -330,5 +358,11 @@ public class SupporterScene extends PixelScene {
 			terms.setRect(x + half + GAP, y, half, height);
 			PixelScene.align(terms);
 		}
+	}
+	/** the tier's rank, 1 to 3, off the end of its product id (wpd_supporter_monthly_N) */
+	public static int tierRank( String productId ){
+		if (productId == null || productId.isEmpty()) return 1;
+		char c = productId.charAt( productId.length() - 1 );
+		return c >= '1' && c <= '3' ? c - '0' : 1;
 	}
 }

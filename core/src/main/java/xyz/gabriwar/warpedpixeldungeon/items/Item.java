@@ -222,19 +222,25 @@ public class Item implements Bundlable {
 						return Messages.get(Item.class, "prompt");
 					}
 				});
+			} else if (item.usesTargeting) {
+				// Wands, aimed scrolls and the like ask for a cell. The host cannot ask
+				// for it - its selectCell would prompt the host's own screen - so the
+				// aiming happens here, on the screen of the player doing it, and the
+				// chosen cell rides along with the action
+				GameScene.selectCell(new xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector.Listener() {
+					@Override public void onSelect(Integer target) {
+						if (target != null) {
+							xyz.gabriwar.warpedpixeldungeon.net.NetManager.sendItemUse(
+									item.name(), action, target);
+						}
+					}
+					@Override public String prompt() {
+						return Messages.get(Item.class, "prompt");
+					}
+				});
 			} else {
-				// Cell-targeting actions (wand ZAP, scrolls, EtherealChains, etc.) call
-				// GameScene.selectCell() on the host side, which prompts the HOST not the
-				// remote player. Until the client-side targeted-use pipeline is wired
-				// (analogous to the AC_THROW branch above), block these and surface a
-				// clear warning instead of silently mis-targeting on the host.
-				if (item.usesTargeting) {
-					xyz.gabriwar.warpedpixeldungeon.utils.GLog.w(
-							Messages.get(Item.class, "mp_target_unsupported", item.name(), action));
-					return;
-				}
 				xyz.gabriwar.warpedpixeldungeon.net.NetManager.sendItemUse(
-						item.name(), action);
+						item.name(), action, -1);
 			}
 			return;
 		}
@@ -452,10 +458,12 @@ public class Item implements Bundlable {
 		}
 	}
 
-	public void level( int value ){
+	public Item level( int value ){
 		level = value;
 
 		updateQuickslot();
+
+		return this;
 	}
 	
 	public Item reinforce() {
@@ -750,7 +758,7 @@ public class Item implements Bundlable {
 								if (enemy != null && enemy.alignment != curUser.alignment){
 									Sample.INSTANCE.play(Assets.Sounds.HIT);
 									Buff.affect(enemy, Blindness.class, 1f + curUser.pointsInTalent(Talent.IMPROVISED_PROJECTILES));
-									Buff.affect(curUser, Talent.ImprovisedProjectileCooldown.class, 50f);
+									Buff.affect(curUser, Talent.ImprovisedProjectileCooldown.class, curUser.pointsInTalent(Talent.IMPROVISED_PROJECTILES) >= 3 ? 30f : 50f);
 								}
 							}
 							if (user.buff(Talent.LethalMomentumTracker.class) != null){

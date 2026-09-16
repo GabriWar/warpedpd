@@ -27,9 +27,21 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Daze;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MindVision;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 import java.util.ArrayList;
 
@@ -38,10 +50,13 @@ public class PiercingFocus extends SubSkill3 {
 	{
 		name = "Piercing Focus";
 		castText = "Focus...";
-		image = 83;
+		image = 194;
 		mana = 10;
 		tier = 3;
 	}
+
+	@Override
+	public boolean toggleable(){ return false; }
 
 	@Override
 	public ArrayList<String> actions( Hero hero ){
@@ -51,12 +66,30 @@ public class PiercingFocus extends SubSkill3 {
 		return actions;
 	}
 
+	//a piercing stare: a ray of light to every enemy in view, dazing each for 5/7/9 turns
 	@Override
 	public void execute( Hero hero, String action ){
 		if (action.equals(Skill.AC_CAST) && level > 0 && hero.MP >= getManaCost()){
-			Buff.prolong( hero, xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bless.class, 5 + 5 * level );
+			float turns = 3 + 2 * level;
+			for (Mob m : Dungeon.level.mobs){
+				if (m.alignment != Char.Alignment.ENEMY || !m.isAlive() || !Dungeon.level.heroFOV[m.pos]) continue;
+				Buff.prolong( m, Daze.class, turns );
+				if (m.sprite != null){
+					m.sprite.emitter().burst( Speck.factory( Speck.STAR ), 2 );
+					xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.center( m.pos ).burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle.FACTORY, 3 );
+					m.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "dazed" ) );
+				}
+			}
+			//+3: the focus reaches past the walls, sensing every enemy on the floor for a while
+			if (level >= 3){
+				Buff.prolong( hero, MindVision.class, 10f );
+				Dungeon.observe();
+				GameScene.updateFog();
+			}
 			hero.MP -= getManaCost();
 			castTextYell();
+			Sample.INSTANCE.play( Assets.Sounds.ATK_SPIRITBOW, 1f, 0.6f );
+			hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 3 );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
 			hero.busy();

@@ -69,6 +69,9 @@ public class Shell extends Mob implements Callback {
 		resistances.add(Grim.class);
 		resistances.add(Doom.class);
 		resistances.add(Electricity.class);
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	@Override
@@ -207,6 +210,10 @@ public class Shell extends Mob implements Callback {
 	public void die(Object cause) {
 		Dungeon.shellCharge = 0;
 		super.die(cause);
+		if (alignment != Alignment.ENEMY) {
+			Dungeon.level.drop(new xyz.gabriwar.warpedpixeldungeon.items.RedDewdrop(), pos).sprite.drop();
+		}
+
 	}
 
 	@Override

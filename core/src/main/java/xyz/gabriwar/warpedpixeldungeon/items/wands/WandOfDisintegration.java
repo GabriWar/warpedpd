@@ -25,8 +25,6 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
-import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
-import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Web;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
@@ -34,6 +32,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.PurpleParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MagesStaff;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
+import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
@@ -57,7 +56,8 @@ public class WandOfDisintegration extends DamageWand {
 	}
 
 	public int max(int lvl){
-		return 8+4*lvl;
+		// Keep the original early damage and II's stronger late scaling.
+		return 8 + Math.max(4 * lvl, lvl * lvl / 3);
 	}
 	
 	@Override
@@ -79,8 +79,6 @@ public class WandOfDisintegration extends DamageWand {
 		int maxDistance = Math.min(distance(), beam.dist);
 		
 		ArrayList<Char> chars = new ArrayList<>();
-
-		Blob web = Dungeon.level.blobs.get(Web.class);
 
 		int terrainPassed = 2, terrainBonus = 0;
 		for (int c : beam.subPath(1, maxDistance)) {
@@ -105,7 +103,13 @@ public class WandOfDisintegration extends DamageWand {
 				terrainPassed++;
 			}
 
-			if (Dungeon.level.flamable[c]) {
+			if (Dungeon.level.map[c] == Terrain.HIGH_GRASS
+					|| Dungeon.level.map[c] == Terrain.FURROWED_GRASS) {
+				Dungeon.level.destroy(c);
+				Dungeon.level.set(c, Terrain.GRASS);
+				GameScene.updateMap(c);
+				terrainAffected = true;
+			} else if (Dungeon.level.flamable[c]) {
 
 				Dungeon.level.destroy( c );
 				GameScene.updateMap( c );
@@ -120,7 +124,7 @@ public class WandOfDisintegration extends DamageWand {
 			Dungeon.observe();
 		}
 		
-		int lvl = level + (chars.size()-1) + terrainBonus;
+		int lvl = level + chars.size() + terrainBonus;
 		for (Char ch : chars) {
 			wandProc(ch, chargesPerCast());
 			ch.damage( damageRoll(lvl), this );

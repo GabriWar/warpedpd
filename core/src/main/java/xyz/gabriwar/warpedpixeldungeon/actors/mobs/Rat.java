@@ -40,7 +40,7 @@ public class Rat extends Mob {
 		maxLvl = 5;
 
 		loot = MonsterMeat.class;
-		lootChance = 0.05f;
+		lootChance = 0.05f / 4f;
 	}
 
 	@Override

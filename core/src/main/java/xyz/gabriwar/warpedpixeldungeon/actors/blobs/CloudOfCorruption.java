@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -59,7 +60,7 @@ public class CloudOfCorruption extends Blob {
 		super.use( emitter );
 
 		//OV uses a dedicated dark CLOUDOFCORR speck; SMOKE is the closest existing WPD speck
-		emitter.pour( Speck.factory(Speck.CLOUDOFCORR), 0.6f );
+		emitter.pour( WeatherBlobFX.layered( Speck.factory(Speck.CLOUDOFCORR), WeatherBlobFX.motes( 0x9050C0 ), 3 ), 0.45f );
 	}
 
 	@Override

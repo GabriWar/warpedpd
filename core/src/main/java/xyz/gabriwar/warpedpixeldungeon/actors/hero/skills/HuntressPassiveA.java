@@ -28,9 +28,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
-
-import java.util.ArrayList;
 
 public class HuntressPassiveA extends BranchSkill {
 
@@ -38,20 +35,6 @@ public class HuntressPassiveA extends BranchSkill {
 		name = "Huntress";
 		image = 72;
 		level = 0;
-	}
-
-	@Override
-	public ArrayList<String> actions( Hero hero ){
-		ArrayList<String> actions = new ArrayList<>();
-		if (canUpgrade())
-			actions.add(AC_ADVANCE);
-		return actions;
-	}
-
-	@Override
-	public void execute( Hero hero, String action ){
-		if (action.equals(Skill.AC_ADVANCE))
-			hero.heroSkills.advance(CurrentSkills.BRANCHES.PASSIVEA);
 	}
 
 	@Override

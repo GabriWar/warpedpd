@@ -58,6 +58,9 @@ public class ZotPhase extends Mob implements Callback {
 		lootChance = 0.33f;
 
 		resistances.add(Electricity.class);
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	@Override

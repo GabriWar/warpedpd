@@ -34,4 +34,10 @@ public class TownsfolkSilent extends FlavorNPC {
 		spriteClass = TownsfolkSilentSprite.class;
 	}
 
+	@Override
+	protected int bedtime() { return 10; }
+
+	@Override
+	protected int lineCount() { return 4; }
+
 }

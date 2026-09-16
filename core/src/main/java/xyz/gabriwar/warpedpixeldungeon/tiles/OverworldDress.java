@@ -81,9 +81,6 @@ public class OverworldDress {
 	//overworld_villages.png (tools/village_sheet.py): 5x3 roofs; +c +16*r
 	public static final int ROOF_SUMMER = 0;
 	public static final int ROOF_WINTER = 6;
-	//the settlement well, re-cut to sit centred in one tile column. bare stone,
-	//so the same two tiles serve every season
-	public static final int WELL_TOP = 48, WELL_BASE = 49;
 
 	private OverworldDress(){}
 

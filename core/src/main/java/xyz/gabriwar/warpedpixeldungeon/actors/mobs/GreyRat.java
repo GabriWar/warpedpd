@@ -56,7 +56,7 @@ public class GreyRat extends Mob {
 		EXP = 2;
 
 		loot = new MonsterMeat();
-		lootChance = 0.05f;
+		lootChance = 0.05f / 4f;
 
 immunities.add( Amok.class );
 		immunities.add( Sleep.class );

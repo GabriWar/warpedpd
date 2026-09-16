@@ -27,12 +27,19 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.DivineWrathGround;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 
-public class DivineWrath extends Skill {
+import java.util.ArrayList;
+import java.util.List;
+
+public class DivineWrath extends ActiveSkill {
 
 	{
 		name = "Divine Wrath";
@@ -44,11 +51,27 @@ public class DivineWrath extends Skill {
 	}
 
 	@Override
-	protected boolean upgrade(){ return true; }
+	public int getManaCost(){
+		return (int)Math.ceil(mana * (1 + 0.5 * level));
+	}
 
 	@Override
+	protected boolean upgrade(){ return true; }
+
+	//one holy stance at a time: raising Divine Wrath lowers Holy Smite
+	@Override
+	public void execute( xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero, String action ){
+		super.execute( hero, action );
+		if (action.equals( Skill.AC_ACTIVATE )){
+			Skill smite = hero.heroSkills.get( HolySmite.class );
+			if (smite != null) smite.active = false;
+		}
+	}
+
+	//each paid blow consecrates the ground: the target's tile, and from +2 every tile around it
+	@Override
 	public int onHitProc( Char enemy, int damage, boolean ranged ){
-		if (level <= 0)
+		if (level <= 0 || !active || ranged || enemy == null)
 			return damage;
 
 		Hero hero = Dungeon.hero;
@@ -57,18 +80,19 @@ public class DivineWrath extends Skill {
 
 		hero.MP -= getManaCost();
 
-		int bonus = 2 + 2 * level;
-		if (Char.hasProp( enemy, Char.Property.UNDEAD ) || Char.hasProp( enemy, Char.Property.DEMONIC ))
-			bonus *= 2;
-		if (ranged)
-			bonus /= 2;
+		List<Integer> cells;
+		if (level >= 2){
+			cells = SkillInteractions.area( enemy.pos, 1 );
+		} else {
+			cells = new ArrayList<>();
+			cells.add( enemy.pos );
+		}
+		Buff.affect( hero, DivineWrathGround.class ).consecrate( cells, level );
 
-		return damage + bonus;
-	}
+		if (enemy.sprite != null) enemy.sprite.emitter().burst( Speck.factory( Speck.YELLOW_LIGHT ), 5 );
+		Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 0.8f, 1.3f );
+		Sample.INSTANCE.play( Assets.Sounds.BURNING, 0.5f, 1.4f );
 
-	@Override
-	public String info(){
-		return Messages.get(this, "desc", getManaCost()) + "\n"
-				+ costUpgradeInfo();
+		return damage;
 	}
 }

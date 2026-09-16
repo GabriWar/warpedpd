@@ -236,6 +236,7 @@ public class WPDSettings extends GameSettings {
 
 	public static final String KEY_SUPPORT_NAGGED= "support_nagged";
 	public static final String KEY_VICTORY_NAGGED= "victory_nagged";
+	public static final String KEY_VAULT_INJURE_WARNS = "vault_injure_warns";
 	
 	//debug-only overlay inspector (debug/SpriteInspector), toggle only shown on INDEV builds
 	public static final String KEY_INSPECTOR = "inspector";
@@ -269,6 +270,24 @@ public class WPDSettings extends GameSettings {
 
 	public static boolean supporter() {
 		return getBoolean( KEY_SUPPORTER, false );
+	}
+
+	//a thank-you owed to a new supporter: kept until they close the window, because
+	//the store sheet closing can resize the surface and rebuild the scene under it
+	public static final String KEY_THANKS_TIER = "supporter_thanks_tier";
+	public static final String KEY_THANKS_NAME = "supporter_thanks_name";
+
+	public static void supporterThanks( int tier, String tierName ){
+		put( KEY_THANKS_TIER, tier );
+		put( KEY_THANKS_NAME, tierName == null ? "" : tierName );
+	}
+
+	public static int supporterThanksTier() {
+		return getInt( KEY_THANKS_TIER, 0, 0, 3 );
+	}
+
+	public static String supporterThanksName() {
+		return getString( KEY_THANKS_NAME, "", 64 );
 	}
 
 	public static void intro( boolean value ) {
@@ -313,6 +332,38 @@ public class WPDSettings extends GameSettings {
 		return getString( KEY_MP_NAME, "", 20);
 	}
 
+	public static final String KEY_RELAY_CLIENT_ID = "relay_client_id";
+	public static final String KEY_RELAY_HOST      = "relay_host";
+	public static final String KEY_RELAY_DEV_TOKEN = "relay_dev_token";
+
+	public static void relayClientId( String value ){
+		put( KEY_RELAY_CLIENT_ID, value );
+	}
+
+	public static String relayClientId() {
+		return getString( KEY_RELAY_CLIENT_ID, "", 32);
+	}
+
+	//empty means the shipped relay; set only to point a test build at another one
+	public static void relayHost( String value ){
+		put( KEY_RELAY_HOST, value );
+	}
+
+	public static String relayHost() {
+		return getString( KEY_RELAY_HOST, "", 64);
+	}
+
+	//the relay's own test secret, typed in on the device that needs it. Empty here and
+	//in every shipped copy: the secret lives on the relay, which can rotate it, and not
+	//in the game, where it could be read out of the package and never taken back
+	public static void relayDevToken( String value ){
+		put( KEY_RELAY_DEV_TOKEN, value );
+	}
+
+	public static String relayDevToken() {
+		return getString( KEY_RELAY_DEV_TOKEN, "", 128);
+	}
+
 	public static void lastDaily( long value ){
 		put( KEY_LAST_DAILY, value );
 	}
@@ -335,6 +386,14 @@ public class WPDSettings extends GameSettings {
 
 	public static boolean victoryNagged() {
 		return getBoolean(KEY_VICTORY_NAGGED, false);
+	}
+
+	public static void vaultInjureWarns( int value ) {
+		put( KEY_VAULT_INJURE_WARNS, value );
+	}
+
+	public static int vaultInjureWarns() {
+		return getInt(KEY_VAULT_INJURE_WARNS, 0);
 	}
 
 	//Input
@@ -371,8 +430,10 @@ public class WPDSettings extends GameSettings {
 		put(KEY_NEWS, value);
 	}
 
+	public static boolean newsDefault = true;
+
 	public static boolean news(){
-		return getBoolean(KEY_NEWS, true);
+		return getBoolean(KEY_NEWS, newsDefault);
 	}
 
 	public static void updates(boolean value){

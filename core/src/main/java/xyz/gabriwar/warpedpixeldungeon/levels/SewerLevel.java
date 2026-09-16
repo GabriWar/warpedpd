@@ -171,7 +171,7 @@ public class SewerLevel extends RegularLevel {
 				//no amulet yet: the stairs climb back up into the town, just
 				//inside its north gate (the dungeon's front door)
 				xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel.arriveInTown(
-						xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldStructures.TOWN_MINE_GATE + 32 );
+						xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldStructures.TOWN_DUNGEON_GATE + 32 );
 				xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel.travelToSurface();
 				return true;
 			} else {

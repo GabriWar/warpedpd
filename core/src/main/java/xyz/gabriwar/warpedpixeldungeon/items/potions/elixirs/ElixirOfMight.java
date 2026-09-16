@@ -64,7 +64,8 @@ public class ElixirOfMight extends Elixir {
 	}
 	
 	public String desc() {
-		return Messages.get(this, "desc", HTBoost.boost(Dungeon.hero != null ? Dungeon.hero.HT : 20));
+		return Messages.get(this, "desc", HTBoost.boost(Dungeon.hero != null ? Dungeon.hero.HT : 20))
+				+ "\n\n" + infusionDesc();
 	}
 	
 	public static class Recipe extends xyz.gabriwar.warpedpixeldungeon.items.Recipe.SimpleRecipe {

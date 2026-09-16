@@ -21,6 +21,11 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs;
 
+import com.watabou.utils.Random;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
 import xyz.gabriwar.warpedpixeldungeon.Statistics;
@@ -36,6 +41,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ElmoParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
+import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfUpgrade;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.MissileWeapon;
 import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
@@ -184,7 +190,14 @@ public class Shopkeeper extends NPC {
 	private static final String LAST_RESTOCK = "last_restock";
 
 	@Override
+	public boolean isImmune(Class effect) {
+		return Blob.class.isAssignableFrom(effect) || super.isImmune(effect);
+	}
+
+	@Override
 	public void damage( int dmg, Object src ) {
+		//Environmental blobs must not warn the shopkeeper or make them flee.
+		if (src instanceof Blob || src instanceof Class && Blob.class.isAssignableFrom((Class) src)) return;
 		processHarm();
 	}
 	
@@ -268,7 +281,7 @@ public class Shopkeeper extends NPC {
 		}
 
 		// Portal at this depth is permanently disabled when its guardian is gone.
-		xyz.gabriwar.warpedpixeldungeon.Portals.markDead(Dungeon.depth);
+		xyz.gabriwar.warpedpixeldungeon.Portals.markDead(xyz.gabriwar.warpedpixeldungeon.Portals.keyHere());
 		if (Dungeon.level != null) {
 			for (xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob m :
 					Dungeon.level.mobs.toArray(new xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob[0])) {
@@ -303,7 +316,22 @@ public class Shopkeeper extends NPC {
 	}
 
 	//shopkeepers are greedy!
+	//the scroll of upgrade is the one thing the town shop restocks forever, so it
+	//is not priced like stock and does not care how deep the hero has been: it
+	//starts dear and rises by a third with every one already bought, until the
+	//fifteenth, where it meets its ceiling and stays there
+	public static final int   SOU_BASE_PRICE = 1000;
+	public static final float SOU_PER_PURCHASE = 1.3f;
+	public static final int   SOU_MAX_PRICE = 50000;
+
+	public static int upgradeScrollPrice(){
+		double price = SOU_BASE_PRICE * Math.pow( SOU_PER_PURCHASE, Dungeon.scrollsOfUpgradeBought );
+		return (int)Math.min( SOU_MAX_PRICE, Math.round( price ) );
+	}
+
 	public static int sellPrice(Item item){
+		if (item instanceof ScrollOfUpgrade) return upgradeScrollPrice();
+
 		//special surface levels sit at huge depth numbers (overworld = 97);
 		//price them like the late-game city instead of 100x base value.
 		//keyed off depth/branch, not the level class, so a multiplayer client
@@ -380,6 +408,19 @@ public class Shopkeeper extends NPC {
 		Dungeon.gold += amount;
 		Statistics.goldCollected += amount;
 		xyz.gabriwar.warpedpixeldungeon.Badges.validateGoldCollected();
+	}
+
+	/**
+	 * What a sale pays. Straight into the purse, never through Gold.doPickUp: that
+	 * path adds Bandit's loot bonus, and a bonus on the sale while the buyback charged
+	 * plain value was a gold pump (sell, buy back, sell again, richer every lap).
+	 */
+	public static void paySale(Hero hero, int amount) {
+		credit(amount);
+		if (hero != null && hero.sprite != null) {
+			hero.sprite.showStatusWithIcon( CharSprite.NEUTRAL, Integer.toString(amount), FloatingText.GOLD );
+		}
+		Sample.INSTANCE.play( Assets.Sounds.GOLD, 1f, Random.Float( 0.9f, 1.1f ) );
 	}
 
 	private void stashForBuyback(Item item) {

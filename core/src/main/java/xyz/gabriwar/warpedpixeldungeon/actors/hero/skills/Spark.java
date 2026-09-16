@@ -31,18 +31,16 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
@@ -54,11 +52,17 @@ public class Spark extends ActiveSkill2 {
 
 	{
 		name = "Spark";
-		castText = "Basic training";
+		castText = "Spark!";
 		tier = 2;
 		image = 45;
 		mana = 3;
 	}
+
+	@Override
+	public boolean toggleable(){ return false; }
+
+	@Override
+	public boolean rangedSource(){ return true; }
 
 	@Override
 	public ArrayList<String> actions( Hero hero ){
@@ -79,73 +83,70 @@ public class Spark extends ActiveSkill2 {
 	private static CellSelector.Listener zapper = new CellSelector.Listener() {
 		@Override
 		public void onSelect( Integer target ){
-			if (target != null){
-				Hero curUser = Dungeon.hero;
-				Skill skill = curUser.heroSkills.active2;
-				final Ballistica shot = new Ballistica( curUser.pos, target, Ballistica.MAGIC_BOLT );
-				final int cell = shot.collisionPos;
-				curUser.sprite.zap(cell);
-				curUser.MP -= skill.getManaCost();
-				skill.castTextYell();
-				curUser.busy();
-				Sample.INSTANCE.play( Assets.Sounds.ZAP );
-				MagicMissile.boltFromChar( curUser.sprite.parent,
-						MagicMissile.MAGIC_MISSILE,
-						curUser.sprite,
-						cell,
-						new Callback() {
-							@Override
-							public void call(){
-								Char ch = Actor.findChar( cell );
-								Skill sk = Dungeon.hero.heroSkills.active2;
-								if (ch != null){
-									ch.damage(roll(sk), Dungeon.hero);
-									if (ch.isAlive() && Random.Int(100) < 15 * sk.level){
-										Buff.prolong( ch, Blindness.class, Random.Int( 1, 2 ) );
-										ch.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 4 );
-										ch.sprite.showStatus(CharSprite.WARNING, "Blinded!");
-									}
-									if (sk.level >= MAX_LEVEL)
-										fork( cell, ch, sk );
-								} else {
-									GLog.i( "nothing happened" );
-								}
-								Dungeon.hero.spendAndNext( TIME_TO_USE );
-							}
-						} );
-				Invisibility.dispel();
+			if (target == null) return;
+			Hero curUser = Dungeon.hero;
+			Spark skill = curUser.heroSkills.get( Spark.class );
+			if (skill == null || skill.level <= 0 || curUser.MP < skill.getManaCost()) return;
+			if (target == curUser.pos){
+				GLog.i( xyz.gabriwar.warpedpixeldungeon.messages.Messages.get( xyz.gabriwar.warpedpixeldungeon.items.wands.Wand.class, "self_target" ) );
+				return;
 			}
+			//at mastery the bolt passes through allies and every enemy on its line, up to the first wall
+			final boolean pierce = skill.level >= MAX_LEVEL;
+			final Ballistica shot = new Ballistica( curUser.pos, target, pierce ? Ballistica.STOP_SOLID : Ballistica.MAGIC_BOLT );
+			final int cell = shot.collisionPos;
+			curUser.sprite.zap(cell);
+			curUser.MP -= skill.getManaCost();
+			skill.castTextYell();
+			curUser.busy();
+			Sample.INSTANCE.play( Assets.Sounds.ZAP );
+			MagicMissile.boltFromChar( curUser.sprite.parent,
+					MagicMissile.MAGIC_MISSILE,
+					curUser.sprite,
+					cell,
+					new Callback() {
+						@Override
+						public void call(){
+							Spark sk = Dungeon.hero.heroSkills.get( Spark.class );
+							CellEmitter.center( cell ).burst( SparkParticle.FACTORY, 4 + 2 * sk.level );
+							boolean hit = false;
+							if (pierce){
+								for (int c : shot.subPath( 1, shot.dist )){
+									Char ch = Actor.findChar( c );
+									if (ch == null || ch.alignment != Char.Alignment.ENEMY || !ch.isAlive()) continue;
+									strike( ch, sk );
+									hit = true;
+								}
+							} else {
+								Char ch = Actor.findChar( cell );
+								if (ch != null && ch != Dungeon.hero){
+									strike( ch, sk );
+									hit = true;
+								}
+							}
+							if (!hit) GLog.i( xyz.gabriwar.warpedpixeldungeon.messages.Messages.get( Spark.class, "no_target" ) );
+							Dungeon.hero.spendAndNext( TIME_TO_USE );
+						}
+					} );
+			Invisibility.dispel();
 		}
 
 		@Override
 		public String prompt(){
-			return "Choose direction to cast";
+			return xyz.gabriwar.warpedpixeldungeon.messages.Messages.get( Spark.class, "prompt" );
 		}
 	};
 
 	private static int roll( Skill sk ){
-		return Random.Int(sk.level + Dungeon.hero.lvl / (6 - sk.level),
-				sk.level * 3 + Dungeon.hero.lvl / (5 - sk.level));
+		return Random.IntRange( sk.level, 3 * sk.level );
 	}
 
-	//forked spark: the bolt jumps from the impact to the closest other enemy for half a roll
-	private static void fork( int cell, Char struck, Skill sk ){
-		Char arc = null;
-		int closest = Integer.MAX_VALUE;
-		for (Mob mob : Dungeon.level.mobs.toArray(new Mob[0])){
-			if (mob == struck || mob.alignment != Char.Alignment.ENEMY || !mob.isAlive())
-				continue;
-			int dist = Dungeon.level.distance( cell, mob.pos );
-			if (dist <= 3 && dist < closest){
-				closest = dist;
-				arc = mob;
-			}
-		}
-		if (arc == null)
-			return;
-		Dungeon.hero.sprite.parent.add( new Lightning( cell, arc.pos, null ) );
-		Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
-		arc.damage( Math.round( roll(sk) * 0.5f ), Dungeon.hero );
+	private static void strike( Char ch, Spark sk ){
+		int before = SkillInteractions.beforeMagicHit( ch, sk );
+		ch.damage( roll( sk ), sk );
+		SkillInteractions.afterMagicHit( ch, before, sk );
+		if (ch.sprite != null) ch.sprite.flash();
+		CellEmitter.center( ch.pos ).burst( SparkParticle.FACTORY, 6 );
 	}
 
 	@Override

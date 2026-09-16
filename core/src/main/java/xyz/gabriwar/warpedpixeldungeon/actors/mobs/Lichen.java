@@ -30,7 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.sprites.MrDestructoSprite;
+import xyz.gabriwar.warpedpixeldungeon.sprites.LichenSprite;
 import com.watabou.utils.Random;
 
 public class Lichen extends Mob {
@@ -38,7 +38,7 @@ public class Lichen extends Mob {
 	private static final float SPAWN_DELAY = 0.1f;
 
 	{
-		spriteClass = MrDestructoSprite.class;
+		spriteClass = LichenSprite.class;
 
 		alignment = Alignment.ALLY;
 		state = HUNTING;

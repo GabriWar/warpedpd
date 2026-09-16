@@ -88,13 +88,6 @@ public class Lavenderlantern extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect( Char attacker, Char defender, int damage ) {
-			GameScene.flash( FLASH_COLOR );
-			for (Mob mob : Dungeon.level.mobs){
-				if (mob != null) Buff.prolong( mob, Blindness.class, Random.Int( 2, 5 ) );
-			}
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

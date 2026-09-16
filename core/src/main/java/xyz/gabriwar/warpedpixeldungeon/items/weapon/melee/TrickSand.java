@@ -24,6 +24,19 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.weapon.melee;
 
+import com.watabou.utils.PathFinder;
+import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
+import com.watabou.utils.Callback;
+import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
@@ -62,4 +75,53 @@ public class TrickSand extends MeleeWeapon {
 		return super.proc(attacker, defender, damage);
 	}
 
+
+	// ---- Duelist ability: a fistful of the sand thrown up in a cloud ----
+
+	@Override
+	public String targetingPrompt() {
+		return Messages.get(this, "prompt");
+	}
+
+	@Override
+	protected void duelistAbility(Hero hero, Integer target) {
+		cloudAbility(hero, target, this);
+	}
+
+	@Override
+	public String abilityInfo() {
+		int turns = levelKnown ? 4 + buffedLvl() : 4;
+		return Messages.get(this, levelKnown ? "ability_desc" : "typical_ability_desc", turns);
+	}
+
+	@Override
+	public String upgradeAbilityStat(int level) {
+		return Integer.toString(4 + level);
+	}
+
+	/** a cloud on a tile within reach: every enemy in it and beside it is blinded, no damage */
+	public static void cloudAbility(Hero hero, Integer target, MeleeWeapon wep){
+		if (target == null) return;
+		if (!Dungeon.level.heroFOV[target] || Dungeon.level.distance(hero.pos, target) > wep.reachFactor(hero)){
+			GLog.w(Messages.get(wep, "ability_target_range"));
+			return;
+		}
+		wep.beforeAbilityUsed(hero, null);
+		int turns = 4 + wep.buffedLvl();
+		hero.sprite.zap(target);
+		for (int n : PathFinder.NEIGHBOURS9){
+			int c = target + n;
+			if (c < 0 || c >= Dungeon.level.length() || Dungeon.level.solid[c]) continue;
+			if (Dungeon.level.heroFOV[c]) CellEmitter.get(c).burst(Speck.factory(Speck.DUST), 6);
+			Char ch = Actor.findChar(c);
+			if (ch != null && ch != hero && ch.alignment == Char.Alignment.ENEMY){
+				Buff.prolong(ch, Blindness.class, turns);
+				SkillFX.flash(ch);
+			}
+		}
+		Sample.INSTANCE.play(Assets.Sounds.PUFF, 1f, 0.8f);
+		Invisibility.dispel();
+		hero.spendAndNext(hero.attackDelay());
+		wep.afterAbilityUsed(hero);
+	}
 }

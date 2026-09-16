@@ -27,21 +27,37 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.UndyingWillWard;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 import java.util.ArrayList;
 
+/**
+ * Berserker: a crimson ward. When blows break it (not when it fades) it shatters, cutting
+ * every enemy close by and turning the enemies around on the hero. Fully trained, a killing
+ * blow that breaks the ward leaves him on 1 HP instead.
+ */
 public class UndyingWill extends SubSkill3 {
 
 	{
 		name = "Undying Will";
 		castText = "I will not fall";
-		image = 3;
+		image = 166;
 		mana = 12;
 		tier = 3;
 	}
+
+	@Override
+	public boolean toggleable(){ return false; }
 
 	@Override
 	public ArrayList<String> actions( Hero hero ){
@@ -54,14 +70,40 @@ public class UndyingWill extends SubSkill3 {
 	@Override
 	public void execute( Hero hero, String action ){
 		if (action.equals(Skill.AC_CAST) && level > 0 && hero.MP >= getManaCost()){
-			Buff.affect( hero, xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barrier.class ).setShield( 5 + 5 * level );
+			Buff.affect( hero, UndyingWillWard.class ).raise( SkillInteractions.ofHealth( hero.HT, 0.05f + 0.05f * level ) );
 			hero.MP -= getManaCost();
 			castTextYell();
+			Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 1f, 0.7f );
+			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.RED_LIGHT ), 5 );
+			new Flare( 6, 22 ).color( 0xFF5544, true ).show( hero.sprite, 0.8f );
+			Camera.main.shake( 1, 0.2f );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
 			hero.busy();
 			hero.sprite.operate( hero.pos );
 		}
+	}
+
+	@Override
+	public boolean savesFromDeath(){ return true; }
+
+	//fully trained, the blow that breaks the ward cannot kill: the hero is left on 1 HP
+	@Override
+	public int incomingDamageReduction( int damage, Object source ){
+		Hero hero = Dungeon.hero;
+		if (level < MAX_LEVEL || hero == null) return 0;
+		UndyingWillWard ward = hero.buff( UndyingWillWard.class );
+		int endurance = hero.HP + hero.shielding();
+		if (ward == null || ward.shielding() <= 0 || damage < endurance) return 0;
+
+		if (hero.sprite != null){
+			hero.sprite.flash();
+			new Flare( 8, 26 ).color( 0xFF2222, true ).show( hero.sprite, 1f );
+			hero.sprite.showStatus( CharSprite.NEGATIVE, Messages.get( this, "hold" ) );
+		}
+		Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 1f, 0.5f );
+		Camera.main.shake( 2, 0.3f );
+		return damage - (endurance - 1);
 	}
 
 	@Override

@@ -42,11 +42,18 @@ public class Phaseshift extends Plant {
 		seedClass = Seed.class;
 	}
 
+	/** Repair the root well for intact plants, including ones loaded from older saves. */
+	public void ensureWater(Level level) {
+		WellWater water = (WellWater) level.blobs.get(WaterOfTransmutation.class);
+		if (water == null || water.cur == null || water.cur[pos] <= 0) {
+			Blob seeded = Blob.seed(pos, 1, WaterOfTransmutation.class, level);
+			if (level == Dungeon.level) GameScene.add(seeded);
+		}
+	}
+
 	@Override
 	public void activate(Char ch) {
-		if (ch == null) {
-			WellWater.affectCellPlant(pos);
-		}
+		//Level.pressCell handles the well water, even after this plant withers.
 	}
 
 	@Override
@@ -75,9 +82,14 @@ public class Phaseshift extends Plant {
 
 		@Override
 		public Plant couch(int pos, Level level) {
-			//seed into the given level: during worldgen Dungeon.level is null/stale
-			Blob water = Blob.seed(pos, 1, WaterOfTransmutation.class, level);
-			if (level == Dungeon.level) GameScene.add(water);
+			//seed into the given level: during worldgen Dungeon.level is null/stale.
+			//A null level means the current one - that is how the Sandals of Nature
+			//plant, and seeding into null crashed the game
+			Level into = level != null ? level : Dungeon.level;
+			if (into != null) {
+				Blob water = Blob.seed(pos, 1, WaterOfTransmutation.class, into);
+				if (into == Dungeon.level) GameScene.add(water);
+			}
 			return super.couch(pos, level);
 		}
 	}

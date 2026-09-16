@@ -21,6 +21,9 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle;
+import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -60,7 +63,8 @@ public class MistCloud extends Blob {
 					Char ch = Actor.findChar(cell);
 					if (ch != null && !ch.isImmune(getClass())) {
 						// Thick mist blinds
-						if (cur[cell] > 3) {
+						//only the thick heart of the cloud takes your sight
+						if (cur[cell] > 15) {
 							Buff.prolong(ch, Blindness.class, 2f);
 						}
 						// Mist dampens — applies Drenched
@@ -69,12 +73,19 @@ public class MistCloud extends Blob {
 				}
 			}
 		}
+	
+		//mist burns off under a clear day sky, and goes when the air dries
+		boolean twilight = DayNightCycle.phase() == DayNightCycle.Phase.DAWN || DayNightCycle.phase() == DayNightCycle.Phase.DUSK;
+		boolean sunny = DayNightCycle.phase() == DayNightCycle.Phase.DAY && ClimateManager.cloudCover() < 0.3f;
+		boolean holds = ClimateManager.isFoggy() || (twilight && ClimateManager.localHumidity() > 0.5f) || ClimateManager.localHumidity() > 0.8f;
+		if (sunny) dissipate(0.75f);
+		else if (!holds) dissipate(0.94f);
 	}
 
 	@Override
 	public void use(BlobEmitter emitter) {
 		super.use(emitter);
-		emitter.pour(Speck.factory(Speck.STEAM), 0.4f);
+		emitter.pour(WeatherBlobFX.MIST, 0.08f);
 	}
 
 	@Override

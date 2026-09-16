@@ -95,14 +95,6 @@ public class Ballcrop extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect( Char attacker, Char defender, int damage ) {
-			if (defender instanceof Hero && ((Hero) defender).subClass == HeroSubClass.WARDEN){
-				Buff.prolong(defender, SuperBalling.class, SuperBalling.DURATION);
-			} else {
-				Buff.prolong(defender, Balling.class, Balling.DURATION);
-			}
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

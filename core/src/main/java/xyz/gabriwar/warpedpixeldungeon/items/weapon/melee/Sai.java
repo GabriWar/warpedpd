@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Corruption;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
@@ -137,11 +138,15 @@ public class Sai extends MeleeWeapon {
 
 		public static int DURATION = 5;
 		private float comboTime = 0f;
+		private float initialTime = 5f;
 		public int hits = 0;
 
 		@Override
 		public int icon() {
-			if (Dungeon.hero.belongings.weapon() instanceof Gloves
+			if ((Dungeon.hero.heroSkills != null
+                    && Dungeon.hero.heroSkills.get(xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Hurl.class) != null
+                    && Dungeon.hero.heroSkills.get(xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Hurl.class).level > 0)
+                    || Dungeon.hero.belongings.weapon() instanceof Gloves
 					|| Dungeon.hero.belongings.weapon() instanceof Sai
 					|| Dungeon.hero.belongings.weapon() instanceof Gauntlet
 					|| Dungeon.hero.belongings.secondWep() instanceof Gloves
@@ -163,9 +168,17 @@ public class Sai extends MeleeWeapon {
 			return true;
 		}
 
-		public void addHit(){
+		public void addHit( Char enemy ){
 			hits++;
-			comboTime = 5f;
+			if (comboTime <= 5f) {
+				comboTime = 5f;
+				initialTime = 5f;
+			}
+
+			if (!enemy.isAlive() || (enemy.buff(Corruption.class) != null && enemy.HP == enemy.HT)){
+				comboTime = 15f;
+				initialTime = 15f;
+			}
 
 			if (hits >= 2 && icon() != BuffIndicator.NONE){
 				GLog.p( Messages.get(Combo.class, "combo", hits) );
@@ -174,7 +187,7 @@ public class Sai extends MeleeWeapon {
 
 		@Override
 		public float iconFadePercent() {
-			return Math.max(0, (DURATION - comboTime)/ DURATION);
+			return Math.max(0, (initialTime - comboTime)/ initialTime);
 		}
 
 		@Override
@@ -188,12 +201,14 @@ public class Sai extends MeleeWeapon {
 		}
 
 		private static final String TIME  = "combo_time";
+		private static final String INITIAL_TIME  = "initial_time";
 		public static String RECENT_HITS = "recent_hits";
 
 		@Override
 		public void storeInBundle(Bundle bundle) {
 			super.storeInBundle(bundle);
 			bundle.put(TIME, comboTime);
+			bundle.put(INITIAL_TIME, initialTime);
 			bundle.put(RECENT_HITS, hits);
 		}
 
@@ -201,6 +216,7 @@ public class Sai extends MeleeWeapon {
 		public void restoreFromBundle(Bundle bundle) {
 			super.restoreFromBundle(bundle);
 			comboTime = bundle.getInt(TIME);
+			initialTime = bundle.getInt(INITIAL_TIME);
 			hits = bundle.getInt(RECENT_HITS);
 		}
 	}

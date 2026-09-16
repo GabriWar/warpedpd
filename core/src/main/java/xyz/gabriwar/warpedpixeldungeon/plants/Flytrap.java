@@ -26,59 +26,83 @@ package xyz.gabriwar.warpedpixeldungeon.plants;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
-import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
-import xyz.gabriwar.warpedpixeldungeon.actors.blobs.WaterOfUpgradeEating;
-import xyz.gabriwar.warpedpixeldungeon.actors.blobs.WellWater;
-import xyz.gabriwar.warpedpixeldungeon.levels.Level;
-import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import xyz.gabriwar.warpedpixeldungeon.items.Generator;
+import xyz.gabriwar.warpedpixeldungeon.items.Heap;
+import xyz.gabriwar.warpedpixeldungeon.items.Item;
+import xyz.gabriwar.warpedpixeldungeon.items.UpgradeBlobRed;
+import xyz.gabriwar.warpedpixeldungeon.items.UpgradeBlobViolet;
+import xyz.gabriwar.warpedpixeldungeon.items.UpgradeBlobYellow;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.Potion;
+import xyz.gabriwar.warpedpixeldungeon.items.scrolls.Scroll;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
 public class Flytrap extends Plant {
 
-	{
-		image = 16;
-		seedClass = Seed.class;
-	}
+    {
+        image = 16;
+        seedClass = Seed.class;
+    }
 
-	@Override
-	public void activate(Char ch) {
-		if (ch == null) {
-			WellWater.affectCellPlant(pos);
-		}
-	}
+    @Override
+    public void trigger() {
+        // Stay visible when stepped on; only feeding consumes this plant.
+        activate(null);
+    }
 
-	@Override
-	public void spiceEffect( Char ch ) {
-		int newpos;
-		int trys = 8;
-		do {
-			newpos = ch.pos + PathFinder.NEIGHBOURS8[Random.Int(8)];
-			trys--;
-			if (trys <= 0) return;
-		} while (!Dungeon.level.passable[newpos]);
-		GameScene.add(Blob.seed(newpos, 1, WaterOfUpgradeEating.class));
-	}
+    @Override
+    public void activate(Char ch) {
+        // Random plant effects must not feed an absent upgrade eater.
+        if (Dungeon.level.plants.get(pos) != this) return;
+        Heap heap = Dungeon.level.heaps.get(pos);
+        if (heap == null) return;
+        Item item = heap.peek();
+        Item result;
+        if (item.isUpgradable()) {
+            int ups = item.level();
+            if (Random.Float() < ups / 10f) {
+                result = new UpgradeBlobViolet();
+            } else if (Random.Float() < ups / 5f) {
+                result = new UpgradeBlobRed();
+            } else if (Random.Float() < ups / 3f) {
+                result = new UpgradeBlobYellow();
+            } else {
+                result = Generator.random(Generator.Category.SEED);
+            }
+        } else if (item instanceof Scroll || item instanceof Potion) {
+            result = Random.Float() < 0.1f ? new UpgradeBlobYellow()
+                    : Generator.random(Generator.Category.SEED);
+        } else {
+            return;
+        }
+        if (item.quantity() > 1) {
+            item.quantity(item.quantity() - 1);
+            heap.drop(result);
+        } else {
+            heap.replace(item, result);
+        }
+        heap.sprite.link();
+        wither();
+    }
 
-	public static boolean checkWater() {
-		WellWater water = (WellWater) Dungeon.level.blobs.get(WaterOfUpgradeEating.class);
-		return water != null && water.volume > 0;
-	}
+    @Override
+    public void spiceEffect(Char ch) {
+        if (ch == null) return;
+        for (int tries = 0; tries < 8; tries++) {
+            int cell = ch.pos + PathFinder.NEIGHBOURS8[Random.Int(8)];
+            if (Dungeon.level.insideMap(cell) && Dungeon.level.passable[cell]
+                    && Dungeon.level.plants.get(cell) == null) {
+                Dungeon.level.plant(new Seed(), cell);
+                return;
+            }
+        }
+    }
 
-	public static class Seed extends Plant.Seed {
-		{
-			image = ItemSpriteSheet.SEED_FLYTRAP;
-
-			plantClass = Flytrap.class;
-		}
-
-		@Override
-		public Plant couch(int pos, Level level) {
-			//seed into the given level: during worldgen Dungeon.level is null/stale
-			Blob water = Blob.seed(pos, 1, WaterOfUpgradeEating.class, level);
-			if (level == Dungeon.level) GameScene.add(water);
-			return super.couch(pos, level);
-		}
-	}
+    public static class Seed extends Plant.Seed {
+        {
+            image = ItemSpriteSheet.SEED_FLYTRAP;
+            plantClass = Flytrap.class;
+        }
+    }
 }

@@ -28,6 +28,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barkskin;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
@@ -82,6 +83,9 @@ public abstract class Plant implements Bundlable {
 
 		if (ch instanceof Hero){
 			((Hero) ch).interrupt();
+			if(((Hero) ch).hasTalent(Talent.BARKSKIN)){
+				Barkskin.conditionallyAppend(ch, (((Hero) ch).lvl* ((Hero) ch).pointsInTalent(Talent.BARKSKIN))/3, 1 );
+			}
 		}
 
 		if (Dungeon.level.heroFOV[pos] && Dungeon.hero.hasTalent(Talent.NATURES_AID)){
@@ -140,10 +144,26 @@ public abstract class Plant implements Bundlable {
 		return false;
 	}
 	
+	/** Random plant effects must not recursively choose another random-effect plant. */
+	public static Plant randomEffectPlant(int pos){
+		for (int i = 0; i < 100; i++) {
+			Plant.Seed seed = (Plant.Seed) xyz.gabriwar.warpedpixeldungeon.items.Generator.random(
+					xyz.gabriwar.warpedpixeldungeon.items.Generator.Category.SEED);
+			if (seed == null || seed.getPlantClass() == null) continue;
+			Plant plant = Reflection.newInstance(seed.getPlantClass());
+			if (plant == null || plant instanceof Flowertree || plant instanceof Grasslilly) continue;
+			plant.pos = pos;
+			return plant;
+		}
+		Plant plant = new Firebloom();
+		plant.pos = pos;
+		return plant;
+	}
+
 	public abstract void activate( Char ch );
 
 	// Called when the LivingPlant version of this plant attacks an enemy
-	public void attackProc( Char enemy, int damage ) { }
+	public void attackProc( Char enemy, int damage ) { spiceEffect(enemy); }
 
 	// Called when the seed is eaten as a spice
 	public void spiceEffect( Char ch ) { }
@@ -236,21 +256,32 @@ public abstract class Plant implements Bundlable {
 		}
 
 		// Called when a weapon coated with this seed hits a target
-		public void onProc( Char attacker, Char defender, int damage ){
-			//poison can not affect inorganic, acidic and fiery actors for obvious reasons
-			if (!defender.properties().contains(Char.Property.INORGANIC)
-					&& !defender.properties().contains(Char.Property.ACIDIC)
-					&& !defender.properties().contains(Char.Property.FIERY)){
-				if (Dungeon.level.heroFOV[defender.pos] && poisonEmitterClass() != null) {
-					defender.sprite.burst(poisonEmitterClass().getColor(), damage);
-				}
-				procEffect(attacker, defender, damage);
+		public void onProc(Char attacker, Char defender, int damage){
+			if (attacker == null || defender == null || plantClass == null || defender.isImmune(plantClass)) return;
+			if (Dungeon.level.heroFOV[defender.pos] && defender.sprite != null && poisonEmitterClass() != null) {
+				defender.sprite.burst(poisonEmitterClass().getColor(), Math.max(1, damage));
+			}
+			procEffect(attacker, defender, damage);
+		}
+
+		public void procEffect(Char attacker, Char defender, int damage){
+			Plant plant = Reflection.newInstance(plantClass);
+			if (plant == null) return;
+			plant.pos = attacker.pos;
+			if (plant instanceof Apricobush || plant instanceof Blueeyedsusan
+					|| plant instanceof Chandaliertail || plant instanceof Earthroot
+					|| plant instanceof Dewcatcher || plant instanceof Mageroyal) {
+				plant.spiceEffect(attacker);
+			} else if (plant instanceof Phaseshift || plant instanceof Flytrap) {
+				plant.spiceEffect(defender);
+			} else if (plant instanceof Clitbalm) {
+				Buff.prolong(defender, xyz.gabriwar.warpedpixeldungeon.actors.buffs.Charm.class, 10f).object = attacker.id();
+			} else {
+				plant.attackProc(defender, damage);
 			}
 		}
 
-		public void procEffect( Char attacker, Char defender, int damage ){
-
-		}
+		public String coatingDesc(){ return Messages.get(plantClass, "poison_desc"); }
 
 		@Override
 		public ArrayList<String> actions( Hero hero ) {
@@ -344,7 +375,7 @@ public abstract class Plant implements Bundlable {
 
 		@Override
 		public int energyVal() {
-			return 2 * quantity;
+			return quantity;
 		}
 
 		@Override
@@ -353,6 +384,7 @@ public abstract class Plant implements Bundlable {
 			if (Dungeon.hero != null && Dungeon.hero.subClass == HeroSubClass.WARDEN){
 				desc += "\n\n" + Messages.get(plantClass, "warden_desc");
 			}
+			desc += "\n\n" + Messages.get(plantClass, "spice_desc") + "\n\n" + coatingDesc();
 			//farming profile: this seed's behaviour when sown on tilled safe-zone soil
 			int[] farm = xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.FarmCrop.profileFor(plantClass);
 			desc += "\n\n" + Messages.get(Seed.class, "farm_desc", farm[0], farm[1], farm[2]);

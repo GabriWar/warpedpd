@@ -189,7 +189,8 @@ public class Chillisnapper extends Plant {
 				}
 			}
 		} else {
-			if (ch.fieldOfView[Dungeon.hero.pos]){
+			//a mob that has not acted yet has no field of view at all
+			if (ch.fieldOfView != null && ch.fieldOfView[Dungeon.hero.pos]){
 				shoot(ch, Dungeon.hero.pos);
 				return;
 			} else {
@@ -232,10 +233,6 @@ public class Chillisnapper extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect( Char attacker, Char defender, int damage ) {
-			GameScene.add(Blob.seed(defender.pos, 3, Fire.class));
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

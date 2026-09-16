@@ -88,10 +88,6 @@ public class Crimsoncrown extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect( Char attacker, Char defender, int damage ) {
-			GameScene.add(Blob.seed(defender.pos, damage+1, Firewind.class));
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

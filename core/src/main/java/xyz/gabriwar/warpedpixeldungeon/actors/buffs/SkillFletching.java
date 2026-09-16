@@ -33,22 +33,11 @@ import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 
 public class SkillFletching extends Buff {
 
+	//retired: the skill now works off kills. An old save still carries this buff,
+	//so it steps aside on its first turn
 	@Override
 	public boolean act() {
-		if (target.isAlive()) {
-			Hero hero = (Hero)target;
-			if (hero.heroSkills.allFletching() < 1){
-				spend( 100 );
-				return true;
-			}
-			GLog.p("Fletched a dart!");
-			Dart dart = new Dart();
-			if (!dart.collect())
-				Dungeon.level.drop( dart, hero.pos ).sprite.drop();
-			spend( 100 - hero.heroSkills.allFletching() * 10 );
-		} else {
-			diactivate();
-		}
+		detach();
 		return true;
 	}
 }

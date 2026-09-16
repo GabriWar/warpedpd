@@ -27,12 +27,20 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 public class AimedShot extends ActiveSkill1 {
-
-	private boolean cast;
 
 	{
 		name = "Aimed Shot";
@@ -42,33 +50,53 @@ public class AimedShot extends ActiveSkill1 {
 		mana = 3;
 	}
 
+	//when the last pin was paid for, so a kill in that same shot can hand the mana back
+	private float paidAt = -1;
+
 	@Override
 	public void execute( Hero hero, String action ){
 		super.execute(hero, action);
 		if (action.equals(Skill.AC_ACTIVATE)){
+			Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 1f, 1.5f );
+			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 3 );
 			hero.heroSkills.active2.active = false; // Disable Double shot
 			hero.heroSkills.active3.active = false; // Disable Bombvoyage
 		}
 	}
 
+	//while on, each ranged hit spends mana to pin its target to the ground for 2/3/4 turns
 	@Override
-	public float rangedDamageModifier(){
-		float toReturn = 1f;
-		toReturn += cast ? 0.2f * level : 0;
-		cast = false;
-		return toReturn;
+	public int onHitProc( Char enemy, int damage, boolean ranged ){
+		Hero hero = Dungeon.hero;
+		if (!ranged || !active || level <= 0 || enemy == null || hero == null) return damage;
+		//nothing to pin: a flyer or a fixture keeps your mana
+		if (enemy.flying || Char.hasProp( enemy, Char.Property.IMMOVABLE )) return damage;
+		if (hero.MP < getManaCost()) return damage;
+
+		hero.MP -= getManaCost();
+		paidAt = Actor.now();
+		castTextYell();
+		Buff.prolong( enemy, Roots.class, 1 + level );
+		if (Dungeon.level.heroFOV[enemy.pos]){
+			CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.ROCK ), 4 );
+			if (enemy.sprite != null) enemy.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 2 );
+		}
+		Sample.INSTANCE.play( Assets.Sounds.HIT_ARROW, 1f, 0.7f );
+		return damage;
 	}
 
+	//+3: an aimed shot that kills gives its mana back
 	@Override
-	public boolean aimedShot(){
-		if (!active || Dungeon.hero.MP < getManaCost()){
-			cast = false;
-			return false;
+	public void onKill( Mob mob, boolean ranged ){
+		if (!ranged || level < 3 || paidAt != Actor.now()) return;
+		paidAt = -1;
+		Hero hero = Dungeon.hero;
+		hero.MP = Math.min( hero.MT, hero.MP + getManaCost() );
+		if (hero.sprite != null){
+			hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 4 );
+			hero.sprite.showStatus( CharSprite.POSITIVE, "+" + getManaCost() );
 		}
-		cast = true;
-		castTextYell();
-		Dungeon.hero.MP -= getManaCost();
-		return true;
+		Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 0.6f, 2f );
 	}
 
 	@Override

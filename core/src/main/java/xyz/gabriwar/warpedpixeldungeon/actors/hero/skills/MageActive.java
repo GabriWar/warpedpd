@@ -28,10 +28,7 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-
-import java.util.ArrayList;
 
 public class MageActive extends BranchSkill {
 
@@ -39,20 +36,6 @@ public class MageActive extends BranchSkill {
 		name = "Summoning";
 		image = 40;
 		level = 0;
-	}
-
-	@Override
-	public ArrayList<String> actions( Hero hero ){
-		ArrayList<String> actions = new ArrayList<>();
-		if (canUpgrade())
-			actions.add(AC_ADVANCE);
-		return actions;
-	}
-
-	@Override
-	public void execute( Hero hero, String action ){
-		if (action.equals(Skill.AC_ADVANCE))
-			hero.heroSkills.advance(CurrentSkills.BRANCHES.ACTIVE);
 	}
 
 	@Override

@@ -70,6 +70,9 @@ public class Wraith extends Mob {
 		immunities.add(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots.class);
 		immunities.add(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Frost.class);
 		immunities.add(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Doom.class);
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 	
 	private static final String LEVEL = "level";

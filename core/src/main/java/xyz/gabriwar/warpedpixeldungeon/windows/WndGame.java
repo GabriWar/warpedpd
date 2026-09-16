@@ -165,6 +165,11 @@ public class WndGame extends Window {
 					} catch (IOException e) {
 						WarpedPixelDungeon.reportException(e);
 					}
+					//the game the room was for is over: the players are told so,
+					//rather than left knocking on a host that is on the title screen
+					if (xyz.gabriwar.warpedpixeldungeon.net.NetManager.isHost()) {
+						xyz.gabriwar.warpedpixeldungeon.net.NetManager.stop();
+					}
 				}
 				Game.switchScene(TitleScene.class);
 			}

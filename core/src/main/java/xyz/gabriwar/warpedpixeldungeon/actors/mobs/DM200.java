@@ -53,6 +53,9 @@ public class DM200 extends Mob {
 		properties.add(Property.LARGE);
 
 		HUNTING = new Hunting();
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	@Override

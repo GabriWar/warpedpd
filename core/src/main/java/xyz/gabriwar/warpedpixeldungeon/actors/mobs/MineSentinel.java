@@ -77,6 +77,9 @@ public class MineSentinel extends Mob {
 		resistances.add( Poison.class );
 
 		// HallsKey drop is handled conditionally in dropExtraLoot() (depth 24 only)
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 
 	protected MeleeWeapon weapon;
@@ -211,8 +214,12 @@ public class MineSentinel extends Mob {
 	}
 
 	@Override
+	protected boolean extraLootIgnoresLevel() {
+		return true;
+	}
+
+	@Override
 	protected void dropExtraLoot() {
-		explodeDew(pos);
 		trackedDrop(weapon, 0);
 		if (!Dungeon.LimitedDrops.HALLS_KEY.dropped() && Dungeon.depth == 65) {
 			Dungeon.LimitedDrops.HALLS_KEY.drop();

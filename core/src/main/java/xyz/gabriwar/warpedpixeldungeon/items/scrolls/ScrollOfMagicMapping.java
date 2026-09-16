@@ -52,6 +52,24 @@ public class ScrollOfMagicMapping extends Scroll {
 		}
 
 		detach(curUser.belongings.backpack);
+		boolean noticed = mapCurrentLevel();
+		
+		GLog.i( Messages.get(this, "layout") );
+		if (noticed) {
+			Sample.INSTANCE.play( Assets.Sounds.SECRET );
+		}
+		
+		SpellSprite.show( curUser, SpellSprite.MAP );
+		Sample.INSTANCE.play( Assets.Sounds.READ );
+
+		identify();
+
+		readAnimation();
+	}
+	
+	//marks every discoverable cell of the current floor as mapped and uncovers its
+	//secrets; returns true if a secret in view was revealed. the diary page shares it
+	public static boolean mapCurrentLevel() {
 		int length = Dungeon.level.length();
 		int[] map = Dungeon.level.map;
 		boolean[] mapped = Dungeon.level.mapped;
@@ -80,18 +98,7 @@ public class ScrollOfMagicMapping extends Scroll {
 			}
 		}
 		GameScene.updateFog();
-		
-		GLog.i( Messages.get(this, "layout") );
-		if (noticed) {
-			Sample.INSTANCE.play( Assets.Sounds.SECRET );
-		}
-		
-		SpellSprite.show( curUser, SpellSprite.MAP );
-		Sample.INSTANCE.play( Assets.Sounds.READ );
-
-		identify();
-
-		readAnimation();
+		return noticed;
 	}
 	
 	@Override

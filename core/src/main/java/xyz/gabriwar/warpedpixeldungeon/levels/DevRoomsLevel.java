@@ -201,7 +201,7 @@ public class DevRoomsLevel extends Level {
 			xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.RotGardenRoom.class
 	};
 	private static final Class<?>[] VAULT = {
-			xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.vault.AlternatingTrapsRoom.class,
+			xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.vault.VaultAlternatingFireRoom.class,
 			xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.vault.VaultCircleRoom.class,
 			xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.vault.VaultCrossRoom.class,
 			xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.vault.VaultEnemyCenterRoom.class,

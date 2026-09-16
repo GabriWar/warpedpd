@@ -26,18 +26,94 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AegisRecharge;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.ShieldHalo;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
+import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.Camera;
+import com.watabou.noosa.audio.Sample;
 
+/**
+ * A shield of light that catches a heavy melee blow, swallows half of it and bashes
+ * the attacker away, then needs a few turns to reform. At mastery the half it
+ * swallowed is slammed back into the attacker.
+ */
 public class Aegis extends SubSkill1 {
+
+	//its damage is already a share of a blow, a hit or a health pool, so it grows with the hero on its own
+	@Override
+	public boolean weaponScaled(){ return true; }
+
+
+	public static final float REFORM = 8f;
 
 	{
 		name = "Aegis";
-		image = 3;
+		image = 164;
 		tier = 1;
 	}
 
 	@Override
 	protected boolean upgrade(){ return true; }
 
+	//a passive: nothing to switch on, so it stays out of the quick panel
 	@Override
-	public float incomingDamageModifier(){ return 1f - level * 0.05f; }
+	public boolean toggleable(){ return false; }
+
+	@Override
+	public java.util.ArrayList<String> actions( xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero ){
+		return new java.util.ArrayList<>();
+	}
+
+
+	@Override
+	public int onDefendProc( Char enemy, int damage ){
+		Hero hero = Dungeon.hero;
+		if (level <= 0 || hero == null || enemy == null || !enemy.isAlive()
+				|| damage < Math.max( 1, hero.HT / 10 )
+				|| !Dungeon.level.adjacent( hero.pos, enemy.pos )
+				|| hero.buff( AegisRecharge.class ) != null){
+			return damage;
+		}
+
+		int caught = damage / 2;
+		damage -= caught;
+		Buff.affect( hero, AegisRecharge.class, REFORM );
+
+		if (hero.sprite != null && hero.sprite.parent != null){
+			ShieldHalo halo = new ShieldHalo( hero.sprite );
+			hero.sprite.parent.add( halo );
+			halo.putOut();
+			new Flare( 6, 24 ).color( 0xFFEE88, true ).show( hero.sprite, 0.5f );
+			hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "caught" ) );
+		}
+		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 1f, 0.8f );
+		Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 0.8f, 1.1f );
+		Camera.main.shake( 1, 0.2f );
+
+		//at mastery the swallowed half is slammed back into the attacker
+		if (level >= MAX_LEVEL && caught > 0){
+			enemy.damage( caught, this );
+			if (enemy.sprite != null){
+				enemy.sprite.flash();
+				enemy.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
+			}
+		}
+
+		//the bash itself: 1/2/3 tiles straight away from you
+		if (enemy.isAlive()){
+			Ballistica trajectory = new Ballistica( enemy.pos, enemy.pos + (enemy.pos - hero.pos), Ballistica.MAGIC_BOLT );
+			WandOfBlastWave.throwChar( enemy, trajectory, level, true, false, this );
+		}
+		return damage;
+	}
 }

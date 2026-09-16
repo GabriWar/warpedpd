@@ -27,12 +27,13 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import com.watabou.noosa.TextureFilm;
 
+//remastered from the original Unleashed PD wolf: same frames, brown pelt, clean outline
 public class BrownWolfSprite extends MobSprite {
 
     public BrownWolfSprite() {
         super();
 
-        texture( Assets.Sprites.UL_WOLF );
+        texture( Assets.Sprites.WOLF_BROWN );
 
         TextureFilm frames = new TextureFilm( texture, 16, 16 );
 
@@ -51,4 +52,3 @@ public class BrownWolfSprite extends MobSprite {
         play( idle );
     }
 }
-

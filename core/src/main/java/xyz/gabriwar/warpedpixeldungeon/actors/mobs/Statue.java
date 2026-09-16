@@ -26,8 +26,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.RatSkull;
-import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon.Enchantment;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Corrupting;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
 import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
@@ -45,6 +46,9 @@ public class Statue extends Mob {
 		state = PASSIVE;
 		
 		properties.add(Property.INORGANIC);
+
+		//no metabolism to disturb: only the extremes reach it
+		thermal = Thermal.INSENSATE;
 	}
 	
 	protected Weapon weapon;
@@ -159,8 +163,11 @@ public class Statue extends Mob {
 
 	@Override
 	protected void dropExtraLoot() {
-		weapon.identify(false);
-		trackedDrop(weapon, 0);
+		//silently duplicated in this case, so don't drop original weapon
+		if (buff(Corrupting.CorruptingTracker.class) == null) {
+			weapon.identify(false);
+			trackedDrop(weapon, 0);
+		}
 	}
 
 	@Override

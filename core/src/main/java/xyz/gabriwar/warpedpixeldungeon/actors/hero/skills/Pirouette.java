@@ -27,7 +27,16 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
+import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
+import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barrier;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
@@ -58,16 +67,64 @@ public class Pirouette extends Skill {
 	@Override
 	public void execute( Hero hero, String action ){
 		if (action.equals(Skill.AC_CAST) && level > 0 && hero.MP >= getManaCost()){
-			Buff.affect( hero, Invisibility.class, 2 + level );
-			Buff.affect( hero, Barrier.class ).setShield( 3 * level );
-			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
-			hero.MP -= getManaCost();
-			castTextYell();
-			Dungeon.hero.heroSkills.lastUsed = this;
-			hero.spend( TIME_TO_USE );
-			hero.busy();
-			hero.sprite.operate( hero.pos );
+			if (hero.rooted){
+				xyz.gabriwar.warpedpixeldungeon.utils.GLog.w( xyz.gabriwar.warpedpixeldungeon.messages.Messages.get( Pirouette.class, "rooted" ) );
+				return;
+			}
+			xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.selectCell( new xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector.Listener(){
+				@Override
+				public void onSelect( Integer target ){
+					if (target != null) spin( hero, target );
+				}
+
+				@Override
+				public String prompt(){
+					return xyz.gabriwar.warpedpixeldungeon.messages.Messages.get( Pirouette.class, "prompt" );
+				}
+			} );
 		}
+	}
+
+	//spin away to a chosen tile up to 2 / 3 / 4 away, landing behind a shield of 3 / 6 / 9
+	private void spin( Hero hero, int target ){
+		if (level <= 0 || hero.MP < getManaCost() || hero.rooted) return;
+		if (!SkillInteractions.valid( target ) || target == hero.pos || !Dungeon.level.heroFOV[target]
+				|| Dungeon.level.distance( hero.pos, target ) > 1 + level
+				|| !Dungeon.level.passable[target] || Dungeon.level.pit[target] || Actor.findChar( target ) != null
+				|| !SkillInteractions.clear( hero.pos, target )){
+			xyz.gabriwar.warpedpixeldungeon.utils.GLog.w( xyz.gabriwar.warpedpixeldungeon.messages.Messages.get( Pirouette.class, "no_room" ) );
+			return;
+		}
+		final int from = hero.pos;
+		final ArrayList<Char> left = new ArrayList<>();
+		for (int n : PathFinder.NEIGHBOURS8){
+			Char ch = Actor.findChar( from + n );
+			if (ch != null && ch.isAlive() && ch.alignment == Char.Alignment.ENEMY) left.add( ch );
+		}
+		hero.MP -= getManaCost();
+		castTextYell();
+		hero.busy();
+		CellEmitter.bottom( from ).burst( Speck.factory( Speck.DUST ), 10 );
+		new Flare( 5, 18 ).color( 0xCCE0FF, true ).show( hero.sprite, 0.5f ).angularSpeed = 240;
+		Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 1.2f );
+		Dungeon.hero.heroSkills.lastUsed = this;
+		hero.sprite.jump( from, target, 4f, 0.25f, () -> {
+			hero.move( target, false );
+			Dungeon.level.occupyCell( hero );
+			Dungeon.observe();
+			xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.updateFog();
+			Buff.affect( hero, Barrier.class ).setShield( SkillInteractions.ofHealth( hero.HT, 0.03f * level ) );
+			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
+			//+3: the enemies you spun away from are left reeling
+			if (level >= MAX_LEVEL){
+				for (Char ch : left){
+					if (!ch.isAlive()) continue;
+					Buff.prolong( ch, xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo.class, 2f );
+					if (ch.sprite != null) ch.sprite.emitter().burst( Speck.factory( Speck.STAR ), 3 );
+				}
+			}
+			hero.spendAndNext( TIME_TO_USE );
+		} );
 	}
 
 	@Override

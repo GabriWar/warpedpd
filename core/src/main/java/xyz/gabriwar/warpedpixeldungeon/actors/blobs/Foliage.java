@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Shadows;
@@ -95,7 +96,7 @@ public class Foliage extends Blob {
 	@Override
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
-		emitter.start( ShaftParticle.FACTORY, 0.9f, 0 );
+		emitter.start( WeatherBlobFX.layered( ShaftParticle.FACTORY, WeatherBlobFX.motes( 0xB8F090 ), 2 ), 0.6f, 0 );
 	}
 	
 	@Override

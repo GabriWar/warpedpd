@@ -130,6 +130,7 @@ public class InterlevelScene extends PixelScene {
 		
 		String loadingAsset;
 		int loadingDepth;
+		int loadingBranch = Dungeon.branch;
 		fadeTime = NORM_FADE;
 
 		long seed = Dungeon.seed;
@@ -138,12 +139,16 @@ public class InterlevelScene extends PixelScene {
 				loadingDepth = Dungeon.depth;
 				break;
 			case CONTINUE:
-				loadingDepth = GamesInProgress.check(GamesInProgress.curSlot).depth;
-				seed = GamesInProgress.check(GamesInProgress.curSlot).seed;
+				GamesInProgress.Info saved = GamesInProgress.check(GamesInProgress.curSlot);
+				loadingDepth = saved == null ? Dungeon.depth : saved.depth;
+				loadingBranch = saved == null ? Dungeon.branch : saved.branch;
+				seed = saved == null ? Dungeon.seed : saved.seed;
+				if (loadingDepth == -1 && saved != null) loadingDepth = saved.maxDepth;
 				break;
 			case DESCEND:
 				if (Dungeon.hero == null){
-					loadingDepth = 1;
+					loadingDepth = xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel.DEPTH;
+					loadingBranch = 0;
 					fadeTime = SLOW_FADE;
 				} else {
 					if (curTransition != null)  loadingDepth = curTransition.destDepth;
@@ -157,70 +162,41 @@ public class InterlevelScene extends PixelScene {
 				}
 				break;
 			case FALL:
-				//not accurate, but you can't ever fall into a new region
-				loadingDepth = Dungeon.depth;
+				loadingDepth = Dungeon.depth + 1;
 				break;
 			case ASCEND:
 				fadeTime = FAST_FADE;
 				if (curTransition != null)  loadingDepth = curTransition.destDepth;
 				else                        loadingDepth = Dungeon.depth;
 				break;
-			case RETURN:
+			case RETURN: case RETURNSAVE:
 				loadingDepth = returnDepth;
+				loadingBranch = returnBranch;
 				break;
 		}
 
+		if ((mode == Mode.ASCEND || mode == Mode.DESCEND)
+				&& Dungeon.hero != null && curTransition != null) {
+			loadingBranch = curTransition.destBranch;
+		}
+		int portalDepth = LoadingSplash.portalDepth(mode, journalpage);
+		if (portalDepth != -1) {
+			loadingDepth = portalDepth;
+			loadingBranch = 0;
+		}
+		final LoadingSplash splash = LoadingSplash.forLevel(loadingDepth, loadingBranch);
+		final boolean mainDungeon = loadingBranch == 0 && loadingDepth >= 1 && loadingDepth <= 25;
+
 		//flush the texture cache whenever moving between regions, helps reduce memory load
-		int region = (int)Math.ceil(loadingDepth / 5f);
+		int region = splash.ordinal() + 1;
 		if (region != lastRegion){
 			TextureCache.clear();
 			TitleBackground.reset();
 			lastRegion = region;
 		}
 
-		int loadingCenter = 400;
+		loadingAsset = splash.asset;
 
-		//for portrait users, each run the splashes change what details they focus on
-		Random.pushGenerator(seed+lastRegion);
-			switch (lastRegion){
-				case 1:
-					loadingAsset = Assets.Splashes.SEWERS;
-					switch (Random.Int(2)){
-						case 0: loadingCenter = 180; break; //focus on rats and left side
-						case 1: loadingCenter = 485; break; //focus on center pipe and door
-					}
-					break;
-				case 2:
-					loadingAsset = Assets.Splashes.PRISON;
-					switch (Random.Int(3)){
-						case 0: loadingCenter = 190; break; //focus on left skeleton
-						case 1: loadingCenter = 402; break; //focus on center arch
-					}
-					break;
-				case 3:
-					loadingAsset = Assets.Splashes.CAVES;
-					switch (Random.Int(3)){
-						case 0: loadingCenter = 340; break; //focus on center gnoll groups
-						case 1: loadingCenter = 625; break; //focus on right gnoll
-					}
-					break;
-				case 4:
-					loadingAsset = Assets.Splashes.CITY;
-					switch (Random.Int(3)){
-						case 0: loadingCenter = 275; break; //focus on left bookcases
-						case 1: loadingCenter = 485; break; //focus on center pathway
-					}
-					break;
-				case 5: default:
-					loadingAsset = Assets.Splashes.HALLS;
-					switch (Random.Int(3)){
-						case 0: loadingCenter = 145; break; //focus on left arches
-						case 1: loadingCenter = 400; break; //focus on ripper demon
-					}
-					break;
-			}
-		Random.popGenerator();
-		
 		if (DeviceCompat.isDebug()){
 			fadeTime = 0f;
 		}
@@ -231,21 +207,17 @@ public class InterlevelScene extends PixelScene {
 		int h = (int)(Camera.main.height - insets.top - insets.bottom);
 
 		background = new Image(loadingAsset);
-		background.scale.set(Camera.main.height/background.height);
-
-		if (Camera.main.width >= background.width()){
-			background.x = (Camera.main.width - background.width())/2f;
-		} else {
-			background.x = Camera.main.width/2f - loadingCenter*background.scale.x;
-			background.x = GameMath.gate(Camera.main.width - background.width(), background.x, 0);
-		}
-		background.y = (Camera.main.height - background.height())/2f;
+		// Fill the viewport, cropping the sides on portrait screens.
+		background.scale.set(Math.max(w/background.width, h/background.height));
+		background.x = insets.left + (w - background.width())/2f;
+		background.y = insets.top + (h - background.height())/2f;
 		PixelScene.align(background);
 		add(background);
 
 		Image fadeLeft, fadeRight;
 		fadeLeft = new Image(TextureCache.createGradient(0xFF000000, 0xFF000000, 0x00000000));
 		fadeLeft.x = background.x-2;
+		fadeLeft.y = background.y;
 		fadeLeft.scale.set(3, background.height());
 		fadeLeft.visible = background.x > 0;
 		add(fadeLeft);
@@ -261,8 +233,7 @@ public class InterlevelScene extends PixelScene {
 			@Override
 			public void update() {
 				super.update();
-				if (lastRegion == 6)                aa = 1;
-				else if (phase == Phase.FADE_IN)    aa = Math.max( 0, 2*(timeLeft - (fadeTime - 0.333f)));
+				if (phase == Phase.FADE_IN)         aa = Math.max( 0, 2*(timeLeft - (fadeTime - 0.333f)));
 				else if (phase == Phase.FADE_OUT)   aa = Math.max( 0, 2*(0.333f - timeLeft));
 				//else                                aa = 0;
 			}
@@ -283,7 +254,7 @@ public class InterlevelScene extends PixelScene {
 		align(loadingText);
 		add(loadingText);
 
-		if (mode == Mode.DESCEND && lastRegion <= 5 && !DeviceCompat.isDebug()){
+		if (mode == Mode.DESCEND && mainDungeon && !DeviceCompat.isDebug()){
 			if (Dungeon.hero == null || (loadingDepth > Statistics.deepestFloor && loadingDepth % 5 == 1)){
 					storyMessage = PixelScene.renderTextBlock(Document.INTROS.pageBody(region), 6);
 					storyMessage.maxWidth( PixelScene.landscape() ? 180 : 125);
@@ -449,46 +420,46 @@ public class InterlevelScene extends PixelScene {
 								reset();
 								break;
 							case PORT1:
-								portal(31);
+								portal(LoadingSplash.portalDepth(mode, journalpage));
 								break;
 							case PORT2:
-								portal(32);
+								portal(LoadingSplash.portalDepth(mode, journalpage));
 								break;
 							case PORT3:
-								portal(33);
+								portal(LoadingSplash.portalDepth(mode, journalpage));
 								break;
 							case PORT4:
-								portal(35);
+								portal(LoadingSplash.portalDepth(mode, journalpage));
 								break;
 							case PORTSEWERS:
-								portal(27);
+								portal(LoadingSplash.portalDepth(mode, journalpage));
 								break;
 							case PORTPRISON:
-								portal(28);
+								portal(LoadingSplash.portalDepth(mode, journalpage));
 								break;
 							case PORTCAVES:
-								portal(29);
+								portal(LoadingSplash.portalDepth(mode, journalpage));
 								break;
 							case PORTCITY:
-								portal(30);
+								portal(LoadingSplash.portalDepth(mode, journalpage));
 								break;
 							case PORTHALLS:
-								portal(25);
+								portal(LoadingSplash.portalDepth(mode, journalpage));
 								break;
 							case PORTCRAB:
-								portal(38);
+								portal(LoadingSplash.portalDepth(mode, journalpage));
 								break;
 							case PORTTENGU:
-								portal(36);
+								portal(LoadingSplash.portalDepth(mode, journalpage));
 								break;
 							case PORTCOIN:
-								portal(40);
+								portal(LoadingSplash.portalDepth(mode, journalpage));
 								break;
 							case PORTBONE:
-								portal(37);
+								portal(LoadingSplash.portalDepth(mode, journalpage));
 								break;
 							case PALANTIR:
-								portal(99);
+								portal(LoadingSplash.portalDepth(mode, journalpage));
 								break;
 							case RETURNSAVE:
 								returnTo();
@@ -498,9 +469,11 @@ public class InterlevelScene extends PixelScene {
 								break;
 						}
 						
-					} catch (Exception e) {
+					} catch (Throwable e) {
 						
-						error = e;
+						//Errors (NoClassDefFound, StackOverflow, static init) used to kill the
+						//thread silently and leave the scene waiting forever
+						error = e instanceof Exception ? (Exception) e : new RuntimeException(e);
 						
 					}
 
@@ -605,21 +578,6 @@ public class InterlevelScene extends PixelScene {
 				}
 			}
 
-			//slowly pan the background side to side in portait mode, if story text is displayed
-			if (btnContinue != null && !textFadingIn && Game.width < Game.height){
-				if (background.speed.isZero() && background.acc.isZero()){
-					background.acc.x = background.center().x >= (w+ insets.left) ? -1f : 1f;
-				} else {
-					float margin = 25 - insets.left;
-					background.speed.x = GameMath.gate(-10, background.speed.x, 10);
-					if (background.acc.x > 0 && background.x >= -margin){
-						background.acc.x = -2.5f;
-					} else if (background.acc.x < 0 && background.x + background.width() <= w+margin){
-						background.acc.x = 2.5f;
-					}
-				}
-
-			}
 
 			if (error != null) {
 				String errorMsg;
@@ -898,25 +856,10 @@ public class InterlevelScene extends PixelScene {
 	}
 
 	private void journalPortal() throws IOException {
-		int targetDepth;
-		//journalpage is 0-based (page.room); the case labels must match it. The
-		//port shipped 1-based labels, shifting every destination by one and leaving
-		//DragonCaveLevel (page 7 -> depth 67) unreachable.
-		switch (journalpage) {
-			case 0: targetDepth = 50; break;  // SafeLevel
-			case 1: targetDepth = 51; break;  // SokobanIntroLevel
-			case 2: targetDepth = 52; break;  // SokobanCastle
-			case 3: targetDepth = 53; break;  // SokobanTeleportLevel
-			case 4: targetDepth = 54; break;  // SokobanPuzzlesLevel
-			case 5:
-				//the town lives on the surface now: land on its plaza
-				xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel.arriveInTown(
-						xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldStructures.TOWN_PLAZA );
-				targetDepth = xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel.DEPTH;
-				break;
-			case 6: targetDepth = 66; break;  // SokobanVaultLevel
-			case 7: targetDepth = 67; break;  // DragonCaveLevel
-			default: targetDepth = 50; break;
+		int targetDepth = LoadingSplash.portalDepth(Mode.JOURNAL, journalpage);
+		if (journalpage == 5) {
+			xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel.arriveInTown(
+					xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldStructures.TOWN_PLAZA);
 		}
 
 		//The puzzle floors are rebuilt on every visit, as they were in Sprouted. WPD keeps

@@ -68,6 +68,9 @@ public class ShadowYog extends Mob {
 		immunities.add( Vertigo.class );
 
 		declareExtraLoot(OrbOfZot.class, 1f);
+
+		//built for the heat: the chill is what hurts
+		thermal = Thermal.HEAT_DWELLER;
 	}
 
 	@Override

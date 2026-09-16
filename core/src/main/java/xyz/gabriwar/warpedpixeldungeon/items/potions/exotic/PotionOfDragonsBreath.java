@@ -226,12 +226,21 @@ public class PotionOfDragonsBreath extends ExoticPotion {
 
 	@Override
 	public void potionProc(Hero hero, Char enemy, float damage) {
-		int burnDamage = Random.NormalIntRange( 1, 3 + Dungeon.scalingDepth()/4 );
-		if (burnDamage > 0) {
-			enemy.damage(burnDamage, Blazing.class);
+		int center = enemy.pos;
+		for (int offset : com.watabou.utils.PathFinder.NEIGHBOURS9) {
+			int cell = center + offset;
+			if (cell < 0 || cell >= Dungeon.level.length()
+					|| Dungeon.level.distance(center, cell) > 1 || Dungeon.level.solid[cell]) continue;
+			GameScene.add(Blob.seed(cell, 3, Fire.class));
+			xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.get(cell).burst(
+					xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle.FACTORY, 8);
+			Char target = Actor.findChar(cell);
+			if (target != null && target.alignment == Char.Alignment.ENEMY && !target.isImmune(Fire.class)) {
+				target.damage(Math.max(1, Math.round(damage * 0.35f)), Fire.class);
+				if (target.isAlive()) Buff.affect(target, Burning.class).reignite(target);
+			}
 		}
-		
-		Buff.affect(enemy, Burning.class).reignite(enemy);
+		Sample.INSTANCE.play(Assets.Sounds.BURNING);
 	}
 
 	@Override

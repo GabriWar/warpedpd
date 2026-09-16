@@ -352,4 +352,8 @@ public class AndroidPlatformSupport extends PlatformSupport {
 		}
 	}
 	
+	@Override
+	public void unlockAchievement( String badge ){
+		PlayGamesSetup.unlockAchievement( AndroidLauncher.instance, badge );
+	}
 }

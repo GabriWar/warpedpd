@@ -27,9 +27,15 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.BloodParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
 import com.watabou.utils.Random;
 
 public class Hamstring extends Skill {
@@ -51,10 +57,25 @@ public class Hamstring extends Skill {
 	// proc goes through onHitProc to actually fire on melee swings
 	@Override
 	public int onHitProc( Char enemy, int damage, boolean ranged ){
+		//+3: a hit on legs already cut breaks them, rooting the enemy in place
+		if (!ranged && level >= MAX_LEVEL && enemy != null && enemy.isAlive()
+				&& enemy.buff( Cripple.class ) != null
+				&& !enemy.properties().contains( Char.Property.BOSS )){
+			Buff.prolong( enemy, Roots.class, 2f );
+			if (enemy.sprite != null && enemy.sprite.visible){
+				CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.BONE ), 3 );
+			}
+			Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 1f, 0.7f );
+		}
 		if (!ranged && level > 0 && enemy != null && enemy.isAlive()
 				&& Random.Int( 100 ) < 8 * level){
 			Buff.prolong( enemy, Cripple.class, 3 + level );
 			castTextYell();
+			if (enemy.sprite != null && enemy.sprite.visible){
+				enemy.sprite.emitter().burst( BloodParticle.FACTORY, 3 );
+				CellEmitter.bottom( enemy.pos ).burst( Speck.factory( Speck.DUST ), 2 );
+			}
+			Sample.INSTANCE.play( Assets.Sounds.HIT_STAB, 1f, 0.8f );
 		}
 		return damage;
 	}

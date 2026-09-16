@@ -45,7 +45,19 @@ public abstract class TownInteriorLevel extends Level {
 	//ground layers first, roof layer last (drawn above the hero)
 	protected abstract CustomTilemap[] groundLayers();
 	protected abstract CustomTilemap roofLayer();
-	protected abstract void spawnFolk();
+
+	//who lives here by day: {class, cell}. Placed when the room is built, and kept
+	//straight afterwards by TownCommute, which also walks them to the inn at night
+	public Object[][] folk() { return new Object[0][]; }
+
+	protected void spawnFolk() {
+		for (Object[] f : folk()) {
+			place( (Mob) com.watabou.utils.Reflection.newInstance( (Class<?>) f[0] ), (Integer) f[1] );
+		}
+	}
+
+	//the doorway back to the square: where the townsfolk come in and go out
+	public int doorCell() { return entranceCell(); }
 
 	//the town and its buildings are always fully visible
 	@Override
@@ -127,6 +139,19 @@ public abstract class TownInteriorLevel extends Level {
 	@Override
 	public void restoreFromBundle( com.watabou.utils.Bundle bundle ) {
 		super.restoreFromBundle( bundle );
+		if (width() != mapWidth() || height() != mapHeight()) {
+			//the room was re-authored since this save was made (the inn grew): lay it
+			//out again from scratch. Nothing kept in here belongs to the player, and
+			//the folk find their own way back (TownCommute)
+			mobs.clear();
+			heaps.clear();
+			transitions.clear();
+			customTiles.clear();
+			customWalls.clear();
+			build();
+			createMobs();
+			return;
+		}
 		addArt();
 	}
 

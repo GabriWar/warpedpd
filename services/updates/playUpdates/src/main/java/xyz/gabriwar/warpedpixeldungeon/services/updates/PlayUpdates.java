@@ -31,7 +31,7 @@ import com.watabou.noosa.Game;
 //shows an update prompt; the only thing it knows is where the listing lives.
 public class PlayUpdates extends UpdateService {
 
-	private static final String LISTING_URL =
+	protected static final String LISTING_URL =
 			"https://play.google.com/store/apps/details?id=xyz.gabriwar.warpedpixeldungeon";
 
 	@Override

@@ -27,15 +27,17 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.ShieldHalo;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.Char;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Adrenaline;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barrier;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AvatarOfLightHalo;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bless;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Haste;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
-import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 
 import java.util.ArrayList;
@@ -55,35 +57,32 @@ public class AvatarOfLight extends Skill {
 	@Override
 	public ArrayList<String> actions( Hero hero ){
 		ArrayList<String> actions = new ArrayList<>();
-		if (level > 0 && hero.MP >= getManaCost())
+		if (level > 0 && canPayMana( hero, getManaCost() ))
 			actions.add(AC_CAST);
 		return actions;
 	}
 
 	@Override
 	public void execute( Hero hero, String action ){
-		if (action.equals(Skill.AC_CAST) && level > 0 && hero.MP >= getManaCost()){
-			float duration = 4 + 3 * level;
+		if (action.equals(Skill.AC_CAST) && level > 0 && canPayMana( hero, getManaCost() )){
+			int duration = 4 + 3 * level;
 
+			//blessed, and wrapped in a halo that sears and blinds each enemy the first time it comes inside
 			Buff.prolong( hero, Bless.class, duration );
-			Buff.prolong( hero, Haste.class, duration );
-			Buff.prolong( hero, Adrenaline.class, duration );
-			Buff.affect( hero, Barrier.class ).setShield( 8 + 7 * level );
-			if (hero.sprite != null)
+			Buff.affect( hero, AvatarOfLightHalo.class ).set( level, duration );
+			if (hero.sprite != null){
 				hero.sprite.emitter().start( Speck.factory( Speck.LIGHT ), 0.3f, 12 );
-
-			for (Mob mob : Dungeon.level.mobs.toArray(new Mob[0])){
-				if (mob.alignment == Char.Alignment.ALLY && Dungeon.level.heroFOV[mob.pos]){
-					Buff.prolong( mob, Bless.class, duration );
-					Buff.prolong( mob, Adrenaline.class, duration );
-					mob.HP = Math.min( mob.HT, mob.HP + 3 * level );
-					if (mob.sprite != null)
-						mob.sprite.emitter().start( Speck.factory( Speck.STAR ), 0.3f, 6 );
-				}
+				hero.sprite.emitter().burst( ShaftParticle.FACTORY, 8 );
+				new Flare( 12, 44 ).color( 0xFFEE88, true ).show( hero.sprite, 2f ).angularSpeed = 60;
+				ShieldHalo halo = new ShieldHalo( hero.sprite );
+				hero.sprite.parent.add( halo );
+				halo.putOut();
+				Camera.main.shake( 2, 0.5f );
 			}
 
-			hero.MP -= getManaCost();
+			payMana( hero, getManaCost() );
 			castTextYell();
+			Sample.INSTANCE.play( Assets.Sounds.MASTERY, 1f, 1.0f );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
 			hero.busy();

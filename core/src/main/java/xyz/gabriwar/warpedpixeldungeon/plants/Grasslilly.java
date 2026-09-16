@@ -44,9 +44,7 @@ public class Grasslilly extends Plant {
 	@Override
 	public void attackProc( Char enemy, int damage ) {
 		try {
-			Plant.Seed seed = (Plant.Seed) Generator.random(Generator.Category.SEED);
-			Plant plant = Reflection.newInstance(seed.getPlantClass());
-			plant.pos = enemy.pos;
+			Plant plant = Plant.randomEffectPlant(enemy.pos);
 			plant.attackProc(enemy, damage);
 		} catch (Exception e){
 			Game.reportException(e);
@@ -69,10 +67,8 @@ public class Grasslilly extends Plant {
 	public void spiceEffect( Char ch ) {
 		ch.sprite.burst(new GrasslillyPoisonParticle().getColor(), 10);
 		try {
-			Plant.Seed seed = (Plant.Seed) Generator.random(Generator.Category.SEED);
-			Plant plant = Reflection.newInstance(seed.getPlantClass());
-			plant.pos = ch.pos;
-			plant.activate(ch);
+			Plant plant = Plant.randomEffectPlant(ch.pos);
+			plant.spiceEffect(ch);
 		} catch (Exception e){
 			Game.reportException(e);
 		}
@@ -91,15 +87,6 @@ public class Grasslilly extends Plant {
 			return 30 * quantity;
 		}
 
-		@Override
-		public void procEffect(Char attacker, Char defender, int damage) {
-			try {
-				Plant.Seed seed = (Plant.Seed) Generator.random(Generator.Category.SEED);
-				seed.procEffect(attacker, defender, damage);
-			} catch (Exception e){
-				Game.reportException(e);
-			}
-		}
 
 		@Override
 		public Emitter.Factory getPixelParticle() {

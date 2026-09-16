@@ -26,8 +26,20 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Haste;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import com.watabou.noosa.audio.Sample;
 
 public class Poise extends PassiveSkillA2 {
+
+	//haste triples movement speed: two turns of it is a quick step or three, never a sprint
+	private static final float HASTE_TURNS = 2f;
 
 	{
 		name = "Poise";
@@ -40,10 +52,16 @@ public class Poise extends PassiveSkillA2 {
 		return true;
 	}
 
-	//the regen hooks are exponents (delay /= 1.2^bonus), so this stays small on purpose:
-	//a maxed poise standing on an invested parry stance recovers one step faster still
+	//each kill steadies the breath; heal() draws the green motes and the number
 	@Override
-	public int healthRegenerationBonus(){
-		return level + (level == MAX_LEVEL && CurrentSkills.skillLevel(ParryStance.class) > 0 ? 1 : 0);
+	public void onKill( Mob mob, boolean ranged ){
+		Hero hero = Dungeon.hero;
+		if (hero == null || !hero.isAlive() || hero.sprite == null) return;
+		hero.heal( SkillInteractions.ofHealth( hero.HT, 0.01f * level ) );
+		if (level == MAX_LEVEL){
+			Buff.prolong( hero, Haste.class, HASTE_TURNS );
+			CellEmitter.bottom( hero.pos ).burst( Speck.factory( Speck.DUST ), 5 );
+			Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 1.5f );
+		}
 	}
 }

@@ -25,8 +25,14 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
+import com.watabou.utils.PathFinder;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 
 
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -34,6 +40,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 
 public class Bombvoyage extends ActiveSkill3 {
+
+	//its damage is already a share of a blow, a hit or a health pool, so it grows with the hero on its own
+	@Override
+	public boolean weaponScaled(){ return true; }
+
 
 	{
 		name = "Bombvoyage";
@@ -47,6 +58,9 @@ public class Bombvoyage extends ActiveSkill3 {
 	public void execute( Hero hero, String action ){
 		super.execute(hero, action);
 		if (action.equals(Skill.AC_ACTIVATE)){
+			Sample.INSTANCE.play( Assets.Sounds.PUFF, 1f, 0.8f );
+			hero.sprite.emitter().burst( Speck.factory( Speck.SMOKE ), 3 );
+			hero.heroSkills.active1.active = false; // Disable Aimed Shot
 			hero.heroSkills.active2.active = false; // Disable Double Shot
 		}
 	}
@@ -62,15 +76,39 @@ public class Bombvoyage extends ActiveSkill3 {
 		}
 	}
 
-	//runs just before Hero detonates the bomb, so anything that survives the blast
-	//is already limping - the MP check mirrors the one arrowToBomb() is about to make
 	@Override
-	public int onHitProc( Char enemy, int damage, boolean ranged ){
-		if (ranged && active && level >= 3 && enemy != null && enemy.isAlive()
-				&& Dungeon.hero.MP >= getManaCost()){
-			Buff.prolong( enemy, Cripple.class, 4f );
+	public boolean rangedSource(){ return true; }
+
+	/** Hero.attackProc calls this when a projectile carrying the charge lands on enemyPos */
+	public static void blast( Hero hero, int enemyPos ){
+		Bombvoyage skill = hero.heroSkills.get( Bombvoyage.class );
+		int rank = skill != null ? Math.max( 1, skill.level ) : 1;
+		burst( hero, enemyPos, rank >= 2 ? 1.35f : 1f, rank >= MAX_LEVEL, skill );
+	}
+
+	private static void burst( Hero hero, int c0, float mult, boolean chain, Object source ){
+		Sample.INSTANCE.play( Assets.Sounds.BLAST );
+		if (Dungeon.level.heroFOV[c0]){
+			xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.center( c0 ).burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.BlastParticle.FACTORY, 30 );
+			com.watabou.noosa.Camera.main.shake( 2, 0.3f );
 		}
-		return damage;
+		int killedAt = -1;
+		for (int n : PathFinder.NEIGHBOURS9){
+			int c = c0 + n;
+			if (c < 0 || c >= Dungeon.level.length() || Dungeon.level.solid[c]) continue;
+			if (Dungeon.level.heroFOV[c]) xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.get( c ).burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.SmokeParticle.FACTORY, 3 );
+			Char ch = Actor.findChar( c );
+			if (ch == null || ch == hero || ch.alignment == Char.Alignment.ALLY) continue;
+			int dmg = Math.round( com.watabou.utils.Random.NormalIntRange( 5 + Dungeon.scalingDepth(), 10 + Dungeon.scalingDepth() * 2 ) * mult );
+			dmg -= ch.drRoll();
+			if (dmg > 0) ch.damage( dmg, source != null ? source : xyz.gabriwar.warpedpixeldungeon.items.bombs.Bomb.class );
+			if (!ch.isAlive() && killedAt < 0) killedAt = c;
+		}
+		//+3: a blast that kills sets off a smaller second one where that enemy stood, once per shot
+		if (chain && killedAt >= 0){
+			final int at = killedAt;
+			SkillInteractions.defer( () -> burst( hero, at, mult * 0.5f, false, source ) );
+		}
 	}
 
 	@Override

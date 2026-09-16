@@ -26,6 +26,18 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ParryRiposte;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import com.watabou.noosa.audio.Sample;
+import com.watabou.utils.Random;
 
 public class ParryStance extends PassiveSkillA3 {
 
@@ -40,6 +52,28 @@ public class ParryStance extends PassiveSkillA3 {
 		return true;
 	}
 
+	//chance, in percent, that a blow from an adjacent attacker is caught on the blade: 10 / 15 / 20
+	private int parryChance(){
+		return 5 + 5 * level;
+	}
+
+	//a parried blow does nothing, and the blade comes straight back at the attacker (ParryRiposte)
 	@Override
-	public float incomingDamageModifier(){ return 1f - level * 0.1f; }
+	public int onDefendProc( Char enemy, int damage ){
+		Hero hero = Dungeon.hero;
+		if (level <= 0 || enemy == null || damage <= 0 || hero == null || !enemy.isAlive()
+				|| !Dungeon.level.adjacent( enemy.pos, hero.pos ) || Random.Int( 100 ) >= parryChance()){
+			return damage;
+		}
+		if (hero.sprite != null){
+			hero.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( this, "parry" ) );
+			hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 6 );
+			new Flare( 5, 16 ).color( 0xFFFFFF, true ).show( hero.sprite, 0.4f );
+		}
+		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 1f, 1f );
+		ParryRiposte riposte = Buff.affect( hero, ParryRiposte.class );
+		riposte.enemy = enemy;
+		riposte.sweep = level >= MAX_LEVEL;
+		return 0;
+	}
 }

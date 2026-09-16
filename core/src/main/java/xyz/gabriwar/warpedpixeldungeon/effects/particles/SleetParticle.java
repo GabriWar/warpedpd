@@ -21,19 +21,16 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
-import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.Game;
+import com.watabou.noosa.Group;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.Random;
 
-/**
- * Mixed rain-ice — falls like rain but with a slight wobble and icy tint.
- * Visually between rain and snow: faster than snow, wetter-looking than hail.
- */
-public class SleetParticle extends PixelParticle {
+import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
+import xyz.gabriwar.warpedpixeldungeon.effects.WeatherSprites;
+
+/** Half-frozen rain: a slushy drop, slower than rain, that splats where it lands. */
+public class SleetParticle extends WeatherParticle {
 
 	public static final Emitter.Factory FACTORY = new Emitter.Factory() {
 		@Override
@@ -43,6 +40,7 @@ public class SleetParticle extends PixelParticle {
 	};
 
 	private float wobblePhase;
+	private int tint;
 
 	public SleetParticle() {
 		super();
@@ -53,11 +51,11 @@ public class SleetParticle extends PixelParticle {
 		revive();
 		this.x = x;
 		this.y = y;
-		left = lifespan;
-		size = Random.Float(0.8f, 2.0f);
+		left = lifespan = Random.Float(0.7f, 1.1f);
 
-		// Blue-white translucent (wetter than hail)
-		color(Random.Float() < 0.5f ? 0x99BBDD : 0xBBCCEE);
+		tint = Random.Float() < 0.5f ? 0xA8C4E0 : 0xC8D8F0;
+		color(tint);
+		frame(Random.Float() < 0.5f ? WeatherSprites.RAIN_V : WeatherSprites.FLAKE_2);
 
 		float windRad = (float) Math.toRadians(ClimateManager.surfaceWindDir());
 		float windX = (float) Math.sin(windRad) * ClimateManager.localWindSpeed() * 0.7f;
@@ -68,22 +66,17 @@ public class SleetParticle extends PixelParticle {
 
 	@Override
 	public void update() {
+		boolean falling = left > 0;
 		super.update();
-		float p = left / lifespan;
-
-		// Slight wobble — between rain's straight fall and snow's drift
+		if (falling && left <= 0) {
+			if (Random.Float() < 0.3f && WeatherSprites.visible(x, y) && parent instanceof Group) {
+				SplashParticle.splash((Group) parent, x, y, tint, 0.5f);
+			}
+			return;
+		}
 		wobblePhase += Game.elapsed * 4f;
 		speed.x += (float) Math.sin(wobblePhase) * 1.5f * Game.elapsed;
-
-		if (p < 0.25f) {
-			am = p * 4f * 0.55f;
-		} else {
-			am = 0.55f;
-		}
-
-		int cell = (int)(this.x / DungeonTilemap.SIZE) + (int)(this.y / DungeonTilemap.SIZE) * Dungeon.level.width();
-		if (cell < 0 || cell >= Dungeon.level.heroFOV.length || !Dungeon.level.heroFOV[cell]) {
-			am = 0;
-		}
+		am = envelope(0.25f, 0.02f, 0.6f);
+		fov();
 	}
 }
