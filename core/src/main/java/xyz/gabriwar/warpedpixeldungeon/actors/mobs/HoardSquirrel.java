@@ -27,6 +27,7 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Chill;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Drenched;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Frost;
@@ -78,6 +79,7 @@ public class HoardSquirrel extends Mob {
 		immunities.add( Chill.class );
 		immunities.add( Frost.class );
 		immunities.add( Drenched.class );
+		immunities.add( Burning.class );
 	}
 
 	private static final int GRAB = 2;

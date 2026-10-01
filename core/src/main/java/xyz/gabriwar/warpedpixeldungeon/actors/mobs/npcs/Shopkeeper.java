@@ -35,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AscensionChallenge;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.BlobImmunity;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -72,6 +73,9 @@ public class Shopkeeper extends NPC {
 		spriteClass = ShopkeeperSprite.class;
 
 		properties.add(Property.IMMOVABLE);
+
+		//a grass fire through the shop is weather too, not a reason to pack up
+		immunities.add(Burning.class);
 	}
 
 	public static int MAX_BUYBACK_HISTORY = 3;

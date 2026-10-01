@@ -30,6 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.BlackMarket;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.BlobImmunity;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.net.NetDialogs;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -50,6 +51,8 @@ public class BlackMarketDealer extends NPC {
 		spriteClass = BlackMarketDealerSprite.class;
 
 		properties.add( Property.IMMOVABLE );
+
+		immunities.add( Burning.class );
 	}
 
 	@Override
