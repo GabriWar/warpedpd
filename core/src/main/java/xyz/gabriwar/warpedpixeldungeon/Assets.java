@@ -73,6 +73,8 @@ public class Assets {
 		public static final String TILES_TOWN_REMIXED = "environment/tiles_town_remixed.png";
 		public static final String TILES_TOWN_SUMMER  = "environment/tiles_town_summer.png";
 		public static final String OVERWORLD_DRESS    = "environment/overworld_dress.png";
+		//ice fraying over open water, on every level but the overworld (tools/dress_sheet.py)
+		public static final String ICE_FRINGE         = "environment/ice_fringe.png";
 		public static final String OVERWORLD_VILLAGES = "environment/overworld_villages.png";
 		public static final String TILES_TOWN_INSIDE  = "environment/tiles_town_inside.png";
 		public static final String TILES_TOWN_BLANK   = "environment/tiles_town_blank.png";
@@ -165,6 +167,8 @@ public class Assets {
 		public static final String SKILLS   = "messages/skills/skills";
 		public static final String UI       = "messages/ui/ui";
 		public static final String WINDOWS  = "messages/windows/windows";
+		public static final String RARITY   = "messages/rarity/rarity";
+		public static final String WARPED_ROOMS = "messages/warpedrooms/warpedrooms";
 	}
 
 	public static class Music {
@@ -344,6 +348,7 @@ public class Assets {
 	public static class Sprites {
 		public static final String ITEMS        = "sprites/items.png";
 		public static final String ITEM_ICONS   = "sprites/item_icons.png";
+		public static final String RARITY_ICONS = "sprites/rarity_icons.png";
 
 		public static final String WARRIOR  = "sprites/warrior.png";
 		public static final String MAGE     = "sprites/mage.png";
@@ -379,6 +384,19 @@ public class Assets {
 		public static final String RM_MERCENARY        = "sprites/rm_town_townsfolk_mercenary.png";
 		public static final String RM_INN_SERVANT      = "sprites/rm_town_townsfolk_servant.png";
 		public static final String RM_EMPLOYEE         = "sprites/rm_town_service_man.png";
+		//the bar's roulette table (tools/roulette_table.py)
+		public static final String ROULETTE_TABLE      = "sprites/roulette_table.png";
+		//the Warped rooms' people and furniture (tools/warped_rooms_art.py)
+		public static final String MARKET_DEALER       = "sprites/warped_rooms/market_dealer.png";
+		public static final String MARKET_GUARD        = "sprites/warped_rooms/market_guard.png";
+		public static final String COLLECTOR           = "sprites/warped_rooms/collector.png";
+		public static final String RIVAL_STATUE        = "sprites/warped_rooms/rival_statue.png";
+		public static final String TEMPERING_ANVIL     = "sprites/warped_rooms/anvil.png";
+		public static final String BREAKERS_BENCH      = "sprites/warped_rooms/breakers_bench.png";
+		public static final String ICE_BLOCK           = "sprites/warped_rooms/ice_block.png";
+		public static final String BELLOWS_VALVE       = "sprites/warped_rooms/bellows_valve.png";
+		public static final String BEDROLL             = "sprites/warped_rooms/bedroll.png";
+		public static final String HOARD_SQUIRREL      = "sprites/warped_rooms/squirrel.png";
 		public static final String RM_TOWN_GUARD_RM    = "sprites/rm_guards.png";
 		public static final String RM_TOWNSFOLK_MOVIE  = "sprites/rm_town_townsfolk_man_brown.png";
 		public static final String RM_TOWNSFOLK        = "sprites/rm_town_townsfolk_man.png";
@@ -506,6 +524,7 @@ public class Assets {
 		public static final String ASSASSIN        = "sprites/assassin.png";
 		public static final String ADULT_DRAGON_VIOLET = "sprites/adultdragonviolet.png";
 		public static final String CRAB_KING       = "sprites/crabking.png";
+		public static final String SHELL_CRAB      = "sprites/shellcrab.png";
 		public static final String SKELETON_KING   = "sprites/skeletonking.png";
 		public static final String SKELETON_HAND   = "sprites/skeletonhand.png";
 		public static final String DWARF_LICH      = "sprites/dwarflich.png";

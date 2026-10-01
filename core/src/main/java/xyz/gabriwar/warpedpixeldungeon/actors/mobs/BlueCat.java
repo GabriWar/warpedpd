@@ -60,8 +60,6 @@ public class BlueCat extends Mob {
 		lootChance = 0.01f;
 
 		FLEEING = new Fleeing();
-
-		state = HUNTING;
 	}
 
 	private static final String STOLEN_ITEM = "stolen_item";
@@ -156,6 +154,11 @@ public class BlueCat extends Mob {
 	@Override
 	public void die( Object cause ) {
 		super.die( cause );
+	}
+
+	@Override
+	protected boolean extraLootIgnoresLevel() {
+		return true;
 	}
 
 	@Override

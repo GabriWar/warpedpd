@@ -27,8 +27,15 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Charm;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Light;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfMagicalInfusion;
+import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPsionicBlast;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.sprites.TinkererSprite;
 import com.watabou.utils.Random;
@@ -41,11 +48,19 @@ public class Tinkerer extends Mob {
 
 		HP = HT = 85;
 		defenseSkill = 25;
+		viewDistance = Light.DISTANCE;
 
 		EXP = 11;
 		maxLvl = 25;
 
 		state = HUNTING;
+
+		resistances.add( Grim.class );
+		resistances.add( ScrollOfPsionicBlast.class );
+
+		immunities.add( Terror.class );
+		immunities.add( Vertigo.class );
+		immunities.add( Charm.class );
 	}
 
 	@Override
@@ -98,5 +113,12 @@ public class Tinkerer extends Mob {
 	public void die( Object cause ) {
 		super.die( cause );
 		Dungeon.level.drop( new ScrollOfMagicalInfusion(), pos ).sprite.drop();
+		yell( Messages.get(this, "die") );
+	}
+
+	@Override
+	public void notice() {
+		super.notice();
+		yell( Messages.get(this, "notice") );
 	}
 }

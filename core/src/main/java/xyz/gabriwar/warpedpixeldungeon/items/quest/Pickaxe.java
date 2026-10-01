@@ -63,6 +63,8 @@ public class Pickaxe extends MeleeWeapon {
 		return super.STRReq(lvl) + 2; //tier 3 strength requirement with tier 2 damage stats
 	}
 
+	public static final String AC_DIG = "DIG";
+
 	@Override
 	public ArrayList<String> actions( Hero hero ) {
 		ArrayList<String> actions = super.actions( hero );
@@ -70,9 +72,55 @@ public class Pickaxe extends MeleeWeapon {
 			actions.remove(AC_DROP);
 			actions.remove(AC_THROW);
 		}
+		if (canDigDown( hero )) actions.add( AC_DIG );
 		return actions;
 	}
 
+	//on a slice of the world with a slice under it, standing on plain ground
+	//(not a bridge, not water, not a way between slices, not in the town)
+	private static boolean canDigDown( Hero hero ){
+		if (!(Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel)) return false;
+		xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel ow
+				= (xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level;
+		int cell = hero.pos;
+		if (!ow.fallsThrough( cell ) || ow.inTown( cell ) || !ow.insideMap( cell )) return false;
+		int t = Dungeon.level.map[cell];
+		return (xyz.gabriwar.warpedpixeldungeon.levels.Terrain.flags[t] & xyz.gabriwar.warpedpixeldungeon.levels.Terrain.LIQUID) == 0
+				&& t != xyz.gabriwar.warpedpixeldungeon.levels.Terrain.BRIDGE
+				&& t != xyz.gabriwar.warpedpixeldungeon.levels.Terrain.FROZEN_WATER
+				&& t != xyz.gabriwar.warpedpixeldungeon.levels.Terrain.ENTRANCE
+				&& t != xyz.gabriwar.warpedpixeldungeon.levels.Terrain.EXIT
+				&& t != xyz.gabriwar.warpedpixeldungeon.levels.Terrain.ENTRANCE_SP
+				&& t != xyz.gabriwar.warpedpixeldungeon.levels.Terrain.PEDESTAL
+				&& t != xyz.gabriwar.warpedpixeldungeon.levels.Terrain.DOOR
+				&& t != xyz.gabriwar.warpedpixeldungeon.levels.Terrain.OPEN_DOOR;
+	}
+
+	@Override
+	public void execute( Hero hero, String action ) {
+		if (action.equals( AC_DIG )){
+			if (!canDigDown( hero )) return;
+			final xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel ow
+					= (xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level;
+			//three swings' worth of work, then down the shaft
+			hero.busy();
+			hero.spend( 3 * Actor.TICK );
+			hero.sprite.operate( hero.pos, new Callback() {
+				@Override
+				public void call() {
+					xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene.shake( 0.5f, 0.5f );
+					xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.get( hero.pos ).burst(
+							xyz.gabriwar.warpedpixeldungeon.effects.Speck.factory( xyz.gabriwar.warpedpixeldungeon.effects.Speck.ROCK ), 6 );
+					Sample.INSTANCE.play( Assets.Sounds.MINE );
+					GLog.i( Messages.get( Pickaxe.class, "dug_down" ) );
+					hero.sprite.idle();
+					ow.digDown( hero );
+				}
+			} );
+			return;
+		}
+		super.execute( hero, action );
+	}
 	@Override
 	public boolean keptThroughLostInventory() {
 		//pickaxe is always kept when it's needed for the mining level

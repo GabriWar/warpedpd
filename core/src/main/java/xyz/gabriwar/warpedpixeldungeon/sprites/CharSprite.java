@@ -58,6 +58,7 @@ import com.watabou.noosa.tweeners.PosTweener;
 import com.watabou.noosa.tweeners.Tweener;
 import com.watabou.utils.Callback;
 import com.watabou.utils.PointF;
+import com.watabou.utils.RectF;
 import com.watabou.utils.Random;
 
 import java.nio.Buffer;
@@ -195,14 +196,109 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 		
 		return new PointF(
 			PixelScene.align(Camera.main, ((cell % Dungeon.level.width()) + 0.5f) * csize - width() * 0.5f),
-			PixelScene.align(Camera.main, ((cell / Dungeon.level.width()) + 1.0f) * csize - height() - csize * perspectiveRaise)
+			PixelScene.align(Camera.main, ((cell / Dungeon.level.width()) + 1.0f) * csize - height() - csize * perspectiveRaise
+					+ groundDrop())
 		);
 	}
-	
+
+	//a flier knocked out of the air (frozen or paralysed, see Char.loseFlight) is drawn lying on
+	//the floor: its frame is cut to the solid art (flying frames carry empty rows and often a
+	//faint baked shadow under the body) and the sprite sinks its whole perspective raise, so the
+	//lowest solid pixel of the creature rests on the bottom edge of its cell, on the engine's
+	//shadow, like a walker's feet
+	private float groundDrop(){
+		if (ch == null || !ch.groundedFlier()) return 0;
+		return DungeonTilemap.SIZE * perspectiveRaise;
+	}
+
+	//the frame on show, cut to end under the creature: the empty rows go, and so does a faint
+	//band standing apart from the body below it (a shadow baked into a flying frame). faint
+	//rows that touch the body (translucent wings, a ghost's tail) are part of it and stay
+	private RectF groundedFrame( RectF full ){
+		if (texture == null || texture.bitmap == null || full == null) return full;
+		int x0 = Math.round( full.left * texture.width ), x1 = Math.round( full.right * texture.width );
+		int y0 = Math.round( full.top * texture.height ), y1 = Math.round( full.bottom * texture.height );
+		int lastAny = -1, lastSolid = -1;
+		boolean detached = false;
+		for (int y = y1 - 1; y >= y0 && lastSolid < 0; y--){
+			int peak = 0;
+			for (int x = x0; x < x1; x++) peak = Math.max( peak, texture.getPixel( x, y ) >>> 24 );
+			if (peak >= 128) lastSolid = y;
+			else if (peak > 0 && lastAny < 0) lastAny = y;
+			else if (peak == 0 && lastAny >= 0) detached = true;
+		}
+		if (lastSolid < 0) return full;
+		int end = (lastAny > lastSolid && !detached ? lastAny : lastSolid) + 1;
+		return end == y1 ? full : new RectF( full.left, full.top, full.right, end / (float) texture.height );
+	}
+
+	//whether the sprite is drawn on the floor right now; the char's grounding is polled every
+	//frame (see update), so the drop never depends on a callback reaching the render thread
+	private boolean groundedShown = false;
+	private RectF groundedCut;
+	private PosTweener groundTween;
+
+	//the char lost or regained flight: the sprite drops to the floor or rises back, briefly animated
+	private void followGrounding(){
+		boolean grounded = ch.groundedFlier();
+		if (grounded && groundedCut != null && frame != groundedCut){
+			//the animation put a full frame back (a paused clip can still be re-played): cut it again
+			frame( groundedCut = groundedFrame( frame ) );
+		}
+		if (grounded == groundedShown || isMoving || jumpTweener != null || parent == null
+				|| ch.pos < 0 || Dungeon.level == null || ch.pos >= Dungeon.level.length()) return;
+		groundedShown = grounded;
+		if (grounded){
+			frame( groundedCut = groundedFrame( frame ) );
+		} else {
+			groundedCut = null;
+			if (curAnim != null) frame( curAnim.frames[curFrame] );
+		}
+		if (groundTween != null) groundTween.killAndErase();
+		groundTween = new PosTweener( this, worldToCamera( ch.pos ), grounded ? 0.15f : 0.35f );
+		parent.add( groundTween );
+	}
+
 	public void place( int cell ) {
 		point( worldToCamera( cell ) );
 	}
 	
+	//Lock order. The render thread always reaches a sprite through its group: Group.update
+	//holds the group while it updates each child, and the child then takes its own lock
+	//(MovieClip.updateAnimation, onComplete). A method here that holds the sprite's lock and
+	//then touches the group (parent.add, killAndErase -> parent.erase) takes the two the
+	//other way round, and with the actor thread in it both threads stop for good - the
+	//"render thread stalled" freeze, near certain on a floor with enough sprites to make
+	//Group.update long. So whatever moves the sprite takes the group first, then itself.
+	private void withGroupThenSelf( Runnable body ){
+		for (;;){
+			com.watabou.noosa.Group holder = parent;
+			synchronized (holder != null ? holder : this){
+				//handed to another group while this waited: take that one instead
+				if (parent != holder) continue;
+				synchronized (this){
+					body.run();
+				}
+				return;
+			}
+		}
+	}
+
+	/** Forced movement replaces any visual travel that still points at the old tile. */
+	public void snapToPosition(final int cell){
+		withGroupThenSelf( new Runnable(){
+			@Override
+			public void run(){
+				if (motion != null){ motion.killAndErase(); motion = null; }
+				if (groundTween != null){ groundTween.killAndErase(); groundTween = null; }
+				place(cell);
+				finishJump(false);
+				isMoving = false;
+				CharSprite.this.notifyAll();
+			}
+		} );
+	}
+
 	public void showStatus( int color, String text, Object... args ) {
 		showStatusWithIcon(color, text, FloatingText.NO_ICON, args);
 	}
@@ -228,17 +324,34 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 		play(idle);
 	}
 	
-	public void move( int from, int to ) {
-		turnTo( from , to );
+	public void move( final int from, final int to ) {
+		withGroupThenSelf( new Runnable(){
+			@Override
+			public void run(){
+				finishJump(true);
+				//A new step may arrive before a previous visual step has finished.
+				//Keep exactly one writer of the sprite position.
+				if (motion != null){
+					motion.killAndErase();
+					motion = null;
+				}
+				if (groundTween != null){
+					groundTween.killAndErase();
+					groundTween = null;
+				}
+				turnTo( from , to );
 
-		play( run );
+				play( run );
 
-		motion = new PosTweener( this, worldToCamera( to ), moveInterval );
-		motion.listener = this;
-		parent.add( motion );
+				motion = new PosTweener( CharSprite.this, worldToCamera( to ), moveInterval );
+				motion.listener = CharSprite.this;
+				parent.add( motion );
 
-		isMoving = true;
+				isMoving = true;
+			}
+		} );
 
+		//neither of these touches the sprite's own state: no lock held for them
 		if (visible && Dungeon.level.water[from] && !ch.flying) {
 			GameScene.ripple( from );
 		}
@@ -328,14 +441,46 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 		jump( from, to, distance * 2, distance * 0.1f, callback );
 	}
 
-	public void jump( int from, int to, float height, float duration,  Callback callback ) {
-		jumpCallback = callback;
+	public void jump( final int from, final int to, final float height, final float duration, final Callback callback ) {
+		withGroupThenSelf( new Runnable(){
+			@Override
+			public void run(){
+				finishJump(true);
+				//A walk/grounding tween must not keep writing coordinates during the jump.
+				if (motion != null){
+					motion.killAndErase();
+					motion = null;
+				}
+				if (groundTween != null){
+					groundTween.killAndErase();
+					groundTween = null;
+				}
+				isMoving = true;
+				jumpCallback = callback;
 
-		jumpTweener = new JumpTweener( this, worldToCamera( to ), height, duration );
-		jumpTweener.listener = this;
-		parent.add( jumpTweener );
+				jumpTweener = new JumpTweener( CharSprite.this, worldToCamera( to ), height, duration );
+				jumpTweener.listener = CharSprite.this;
+				parent.add( jumpTweener );
 
-		turnTo( from, to );
+				turnTo( from, to );
+			}
+		} );
+	}
+
+	private synchronized void finishJump(boolean snapToActor){
+		if (jumpTweener == null) return;
+		jumpTweener.killAndErase();
+		jumpTweener = null;
+		Callback completed = jumpCallback;
+		jumpCallback = null;
+		isMoving = false;
+		shadowOffset = 0.25f;
+		try {
+			if (snapToActor && ch != null) place(ch.pos);
+			if (completed != null) completed.call();
+		} finally {
+			notifyAll();
+		}
 	}
 
 	public void die() {
@@ -674,11 +819,12 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 		}
 		
 		super.update();
+
+		if (ch != null) followGrounding();
 		
 		if (flashTime > 0 && (flashTime -= Game.elapsed) <= 0) {
 			resetColor();
 		}
-
 		synchronized (State.class) {
 			for (State s : stateAdditions) {
 				processStateAddition(s);
@@ -935,9 +1081,7 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 			if (visible && Dungeon.level.water[ch.pos] && !ch.flying) {
 				GameScene.ripple( ch.pos );
 			}
-			if (jumpCallback != null) {
-				jumpCallback.call();
-			}
+			finishJump(false);
 			GameScene.sortMobSprites();
 
 		} else if (tweener == motion) {

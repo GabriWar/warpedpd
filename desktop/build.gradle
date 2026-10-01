@@ -23,6 +23,8 @@ tasks.register('debug', JavaExec) {
     systemProperty 'Implementation-Title', appPackageName
     systemProperty 'Specification-Version', appVersionName + "-INDEV"
     systemProperty 'Implementation-Version', appVersionCode
+    //-Pscene=<id> boots a fresh run straight into a debug scene (core DebugScenes)
+    if (project.hasProperty('scene')) systemProperty 'wpd.scene', project.property('scene')
 
     if (osName.contains('mac')) {
         jvmArgs '-XstartOnFirstThread'

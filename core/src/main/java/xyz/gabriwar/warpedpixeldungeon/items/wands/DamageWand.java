@@ -33,23 +33,33 @@ import com.watabou.noosa.audio.Sample;
 public abstract class DamageWand extends Wand{
 
 	public int min(){
-		return min(buffedLvl());
+		return minAt(buffedLvl());
 	}
 
 	public abstract int min(int lvl);
 
 	public int max(){
-		return max(buffedLvl());
+		return maxAt(buffedLvl());
 	}
 
 	public abstract int max(int lvl);
+
+	/** the levelled number with the wand's rarity worked in; the subclasses override
+	 *  min(int)/max(int), so the multiplier is taken here where nothing does */
+	public int minAt( int lvl ){
+		return xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.scale( this, xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.ZAP_DAMAGE, min(lvl) );
+	}
+
+	public int maxAt( int lvl ){
+		return xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.scale( this, xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.ZAP_DAMAGE, max(lvl) );
+	}
 
 	public int damageRoll(){
 		return damageRoll(buffedLvl());
 	}
 
 	public int damageRoll(int lvl){
-		int dmg = Hero.heroDamageIntRange(min(lvl), max(lvl));
+		int dmg = Hero.heroDamageIntRange(minAt(lvl), maxAt(lvl));
 		//skill tree: Mage's Sorcerer - wands hit harder
 		dmg = Math.round(dmg * Dungeon.hero.heroSkills.allWandDamage());
 		WandEmpower emp = Dungeon.hero.buff(WandEmpower.class);

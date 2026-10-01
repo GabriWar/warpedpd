@@ -36,7 +36,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.TileTemperature;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Sleepiness;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invulnerability;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
@@ -107,7 +106,13 @@ public class WndDebug extends WndTabbed {
 		hero.setSize(width, 0);
 		fill(heroScroll, hero, width);
 
+		ScrollPane perfScroll = new ScrollPane(new Component());
+		PerfTab perf = new PerfTab();
+		perf.setSize(width, 0);
+		fill(perfScroll, perf, width);
+
 		float height = fullClimateH;
+		height = Math.max(height, perf.height());
 		height = Math.max(height, items.height());
 		height = Math.max(height, mobs.height());
 		height = Math.max(height, travel.height());
@@ -182,6 +187,19 @@ public class WndDebug extends WndTabbed {
 			}
 		});
 
+		// --- Perf Tab ---
+		add(perfScroll);
+		perfScroll.setRect(0, 0, width, height);
+
+		add(new IconTab(Icons.get(Icons.WARNING)) {
+			@Override
+			protected void select(boolean value) {
+				super.select(value);
+				perfScroll.visible = perfScroll.active = value;
+				if (value) lastTab = 5;
+			}
+		});
+
 		layoutTabs();
 		select(lastTab);
 	}
@@ -198,6 +216,22 @@ public class WndDebug extends WndTabbed {
 
 	private float buildClimateContent(Component c, float width) {
 		float pos = 0;
+		CheckBox heatOverlay = new CheckBox("Heat overlay") {
+			@Override protected void onClick() {
+				super.onClick();
+				xyz.gabriwar.warpedpixeldungeon.debug.HeatOverlay.enabled = checked();
+			}
+		};
+		heatOverlay.checked(xyz.gabriwar.warpedpixeldungeon.debug.HeatOverlay.enabled);
+		c.add(heatOverlay);
+		heatOverlay.setRect(0, pos, width, BTN_HEIGHT);
+		pos = heatOverlay.bottom() + GAP;
+		RenderedTextBlock heatLegend = PixelScene.renderTextBlock(
+				"Tile temperatures in C: blue = cold, orange/red = hot. Bars show freezing (blue) or melting (gold).", 5);
+		heatLegend.maxWidth((int)width);
+		c.add(heatLegend);
+		heatLegend.setPos(0, pos);
+		pos = heatLegend.bottom() + GAP;
 
 		// --- Status readout ---
 		float currentTemp = Dungeon.hero != null
@@ -445,6 +479,16 @@ public class WndDebug extends WndTabbed {
 			spellsBtn.setRect(x, pos, width, BTN_HEIGHT);
 			pos = spellsBtn.bottom() + GAP;
 
+			RedButton enchantBtn = new RedButton("Enchant weapon / armor") {
+				@Override protected void onClick() {
+					hide();
+					WndDebugPicker.forEnchanting();
+				}
+			};
+			add(enchantBtn);
+			enchantBtn.setRect(x, pos, width, BTN_HEIGHT);
+			pos = enchantBtn.bottom() + GAP;
+
 			height = pos - y;
 		}
 	}
@@ -460,6 +504,31 @@ public class WndDebug extends WndTabbed {
 		@Override
 		protected void layout() {
 			float pos = y;
+
+			//debug scenes: a whole test situation around the hero in one tap (DebugScenes)
+			RedButton scenes = new RedButton("Scenes...") {
+				@Override
+				protected void onClick() {
+					hide();
+					final xyz.gabriwar.warpedpixeldungeon.debug.DebugScenes.Scene[] all
+							= xyz.gabriwar.warpedpixeldungeon.debug.DebugScenes.SCENES;
+					String[] titles = new String[all.length];
+					for (int i = 0; i < all.length; i++) titles[i] = all[i].title();
+					GameScene.show(new WndOptions("Debug scenes",
+							"Sets a situation up around the hero: the hero gets infinite health and the fog is lifted. "
+							+ "Also from the command line: ./gradlew :desktop:debug -Pscene=<id>\n\nIds: "
+							+ xyz.gabriwar.warpedpixeldungeon.debug.DebugScenes.ids(), titles) {
+						@Override
+						protected void onSelect(int index) {
+							xyz.gabriwar.warpedpixeldungeon.debug.DebugScenes.run(all[index]);
+						}
+					});
+				}
+			};
+			scenes.textColor(0xFFDD88);
+			add(scenes);
+			scenes.setRect(x, pos, width, BTN_HEIGHT);
+			pos = scenes.bottom() + GAP;
 
 			// All mobs button
 			RedButton allMobs = new RedButton("All Mobs") {
@@ -531,6 +600,163 @@ public class WndDebug extends WndTabbed {
 
 				pos += BTN_HEIGHT + GAP;
 			}
+
+			height = pos - y;
+		}
+
+	}
+
+	// =====================================================================
+	// Perf Tab: the profiler and the lag detector
+	// =====================================================================
+
+	private class PerfTab extends Component {
+
+		private RedButton profBtn, lagToggle, jfrBtn;
+
+		@Override
+		protected void createChildren() { }
+
+		private void showReport( String title, String report ){
+			if (report == null){ GLog.w( "Nothing recorded yet." ); return; }
+			GameScene.show( new WndTitledMessage( Icons.get( Icons.WARNING ), title, report ) );
+		}
+
+		private String profLabel(){
+			return xyz.gabriwar.warpedpixeldungeon.debug.Profiler.running
+					? String.format( java.util.Locale.ROOT, "Stop profiler (%.0fs)", xyz.gabriwar.warpedpixeldungeon.debug.Profiler.seconds() )
+					: "Start profiler";
+		}
+
+		private String lagLabel(){
+			return "Lag detector: " + (xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.enabled ? "ON" : "OFF");
+		}
+
+		private String chunkLabel(){
+			return "Chunked tilemaps: " + (com.watabou.noosa.Tilemap.chunked ? "ON" : "OFF") + " (next level)";
+		}
+
+		private String jfrLabel(){
+			return xyz.gabriwar.warpedpixeldungeon.debug.Profiler.jfrRunning() ? "Stop flight recording" : "Start flight recording (JFR)";
+		}
+
+		@Override
+		public synchronized void update() {
+			super.update();
+			if (profBtn != null && xyz.gabriwar.warpedpixeldungeon.debug.Profiler.running) profBtn.text( profLabel() );
+		}
+
+		@Override
+		protected void layout() {
+			float pos = y;
+			float halfW = (width - GAP) / 2f;
+
+			RenderedTextBlock info = PixelScene.renderTextBlock(
+					"The profiler samples the render and actor threads every 4 ms while it runs: play normally, then stop it and read where the time went. "
+					+ "Frames, GL draw calls, heap, hot paths and slowest actors are in the same report.", 6 );
+			info.maxWidth( (int) width );
+			info.setPos( x, pos );
+			add( info );
+			pos = info.bottom() + GAP;
+
+			profBtn = new RedButton( profLabel() ) {
+				@Override protected void onClick() {
+					if (xyz.gabriwar.warpedpixeldungeon.debug.Profiler.running){
+						String report = xyz.gabriwar.warpedpixeldungeon.debug.Profiler.stop();
+						text( profLabel() );
+						showReport( "Profile", report );
+					} else {
+						xyz.gabriwar.warpedpixeldungeon.debug.Profiler.start();
+						text( profLabel() );
+						hide();
+					}
+				}
+			};
+			profBtn.textColor( Window.TITLE_COLOR );
+			add( profBtn );
+			profBtn.setRect( x, pos, width, BTN_HEIGHT );
+			pos = profBtn.bottom() + GAP;
+
+			RedButton profShow = new RedButton( "Show last profile" ) {
+				@Override protected void onClick() { showReport( "Profile", xyz.gabriwar.warpedpixeldungeon.debug.Profiler.lastReport() ); }
+			};
+			add( profShow );
+			profShow.setRect( x, pos, halfW, BTN_HEIGHT );
+			RedButton profSave = new RedButton( "Save last profile" ) {
+				@Override protected void onClick() {
+					String r = xyz.gabriwar.warpedpixeldungeon.debug.Profiler.lastReport();
+					if (r == null) GLog.w( "Nothing recorded yet." );
+					else xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.save( "profile", r );
+				}
+			};
+			add( profSave );
+			profSave.setRect( x + halfW + GAP, pos, halfW, BTN_HEIGHT );
+			pos = profSave.bottom() + GAP;
+
+			if (xyz.gabriwar.warpedpixeldungeon.debug.Profiler.jfrAvailable()){
+				jfrBtn = new RedButton( jfrLabel() ) {
+					@Override protected void onClick() {
+						if (xyz.gabriwar.warpedpixeldungeon.debug.Profiler.jfrRunning()){
+							String path = xyz.gabriwar.warpedpixeldungeon.debug.Profiler.jfrStop();
+							text( jfrLabel() );
+							if (path != null) showReport( "Flight recording", "Saved to:\n" + path + "\n\nOpen it with JDK Mission Control (jmc) for method-level flame graphs, GC, allocation and lock profiles." );
+						} else {
+							xyz.gabriwar.warpedpixeldungeon.debug.Profiler.jfrStart();
+							text( jfrLabel() );
+							hide();
+						}
+					}
+				};
+				add( jfrBtn );
+				jfrBtn.setRect( x, pos, width, BTN_HEIGHT );
+				pos = jfrBtn.bottom() + GAP;
+			}
+
+			//the renderer's chunked tilemaps (culled, rebuilt per 16x16 block); the legacy
+			//single-buffer path is kept for comparison and takes effect on the next level load
+			RedButton chunkBtn = new RedButton( chunkLabel() ) {
+				@Override protected void onClick() {
+					com.watabou.noosa.Tilemap.chunked = !com.watabou.noosa.Tilemap.chunked;
+					text( chunkLabel() );
+					GLog.i( "Tilemap chunking " + (com.watabou.noosa.Tilemap.chunked ? "on" : "off") + " from the next level load." );
+				}
+			};
+			add( chunkBtn );
+			chunkBtn.setRect( x, pos, width, BTN_HEIGHT );
+			pos = chunkBtn.bottom() + GAP;
+
+			pos += GAP;
+			lagToggle = new RedButton( lagLabel() ) {
+				@Override protected void onClick() {
+					xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.setEnabled( !xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.enabled );
+					text( lagLabel() );
+				}
+			};
+			add( lagToggle );
+			lagToggle.setRect( x, pos, width, BTN_HEIGHT );
+			pos = lagToggle.bottom() + GAP;
+
+			RedButton lagNow = new RedButton( "Lag snapshot now" ) {
+				@Override protected void onClick() {
+					boolean was = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.enabled;
+					if (!was) xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.setEnabled( true );
+					String report = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.capture( "manual snapshot from the debug menu", false );
+					if (!was) xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.setEnabled( false );
+					showReport( "Lag snapshot", report );
+				}
+			};
+			add( lagNow );
+			lagNow.setRect( x, pos, halfW, BTN_HEIGHT );
+			RedButton lagLast = new RedButton( "Save last snapshot" ) {
+				@Override protected void onClick() {
+					String last = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.lastReport();
+					if (last == null) GLog.w( "No lag snapshot captured yet." );
+					else xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.save( last );
+				}
+			};
+			add( lagLast );
+			lagLast.setRect( x + halfW + GAP, pos, halfW, BTN_HEIGHT );
+			pos = lagLast.bottom() + GAP;
 
 			height = pos - y;
 		}
@@ -619,7 +845,12 @@ public class WndDebug extends WndTabbed {
 					}
 				});
 			});
+			hero.migrateDebugGodmode();
 			pos = addHeroBtn("Full Heal", pos, () -> hero.HP = hero.HT);
+			pos = addHeroRefreshBtn("Infinite health: " + (hero.debugInfiniteHealth ? "ON" : "OFF"), pos, () -> {
+				hero.debugInfiniteHealth = !hero.debugInfiniteHealth;
+				if (hero.debugInfiniteHealth) hero.HP = hero.HT;
+			});
 			pos = addHeroBtn("+5 Strength", pos, () -> hero.STR += 5);
 			pos = addHeroBtn("+5 Levels", pos, () -> {
 				for (int i = 0; i < 5; i++) {
@@ -646,8 +877,20 @@ public class WndDebug extends WndTabbed {
 				s.wake(Sleepiness.COMATOSE);
 			});
 
-			pos = addHeroBtnPair("+100,000 Gold", () -> Dungeon.gold += 100000,
-					"+100,000 Energy", () -> Dungeon.energy += 100000, pos);
+			pos = addValueSlider("Gold", () -> Dungeon.gold, v -> Dungeon.gold = v, pos);
+			pos = addValueSlider("Alchemy energy", () -> Dungeon.energy, v -> Dungeon.energy = v, pos);
+			pos = addValueSlider("Skill points",
+					() -> xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.availableSkill,
+					v -> xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.availableSkill = v, pos);
+			pos = addHeroRefreshBtn("Max skill tree", pos, () -> {
+				xyz.gabriwar.warpedpixeldungeon.debug.SkillDebug.maxTree(hero);
+				GLog.p("Current skill tree fully upgraded; all paths unlocked.");
+			});
+			pos = addHeroRefreshBtn(hero.debugAllSkillPaths ? "All skill paths: ON" : "Unlock all skill paths", pos, () -> {
+				hero.debugAllSkillPaths = !hero.debugAllSkillPaths;
+				GLog.p(hero.debugAllSkillPaths ? "All skill paths unlocked, including exclusive choices."
+						: "Normal skill path restrictions restored.");
+			});
 
 			pos = addHeroBtn("Reveal Level", pos, () -> {
 				for (int i = 0; i < Dungeon.level.length(); i++){
@@ -671,24 +914,6 @@ public class WndDebug extends WndTabbed {
 			add(fogBtn);
 			fogBtn.setRect(x, pos, width, BTN_HEIGHT);
 			pos = fogBtn.bottom() + GAP;
-
-			boolean godActive = hero.buff(Invulnerability.class) != null;
-			RedButton godBtn = new RedButton(godActive ? "Godmode (ACTIVE)" : "Godmode (999 turns)") {
-				@Override
-				protected void onClick() {
-					if (hero.buff(Invulnerability.class) != null) {
-						Buff.detach(hero, Invulnerability.class);
-					} else {
-						Buff.affect(hero, Invulnerability.class, 999f);
-					}
-					hide();
-					GameScene.show(new WndDebug());
-				}
-			};
-			if (godActive) godBtn.textColor(0x44FF44);
-			add(godBtn);
-			godBtn.setRect(x, pos, width, BTN_HEIGHT);
-			pos = godBtn.bottom() + GAP;
 
 			boolean invisOn = Dungeon.debugInvisible;
 			RedButton invisBtn = new RedButton(invisOn ? "Invisibility (ON)" : "Invisibility (infinite)") {
@@ -801,6 +1026,30 @@ public class WndDebug extends WndTabbed {
 		}
 
 		//two half-width buttons on one row, to keep the tab short
+		//the amounts a value slider steps through: every decade and its half, up to a million
+		private final int[] VALUE_STEPS = { 0, 10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000, 1000000 };
+
+		//a slider that SETS a value (gold, energy) to one of VALUE_STEPS; its title shows the amount
+		private float addValueSlider(String name, java.util.function.IntSupplier get,
+				java.util.function.IntConsumer set, float pos) {
+			int now = get.getAsInt();
+			int start = 0;
+			for (int i = 0; i < VALUE_STEPS.length; i++) if (VALUE_STEPS[i] <= now) start = i;
+			final OptionSlider[] slider = new OptionSlider[1];
+			slider[0] = new OptionSlider(name + ": " + now, "0", "1M", 0, VALUE_STEPS.length - 1) {
+				@Override
+				protected void onChange() {
+					int v = VALUE_STEPS[getSelectedValue()];
+					set.accept(v);
+					slider[0].setTitle(name + ": " + v);
+				}
+			};
+			slider[0].setSelectedValue(start);
+			add(slider[0]);
+			slider[0].setRect(x, pos, width, 21);
+			return slider[0].bottom() + GAP;
+		}
+
 		private float addHeroBtnPair(String labelA, Runnable actionA, String labelB, Runnable actionB, float pos) {
 			float halfW = (width - GAP) / 2f;
 			RedButton btnA = new RedButton(labelA) {
@@ -911,12 +1160,12 @@ public class WndDebug extends WndTabbed {
 				@Override
 				protected void onClick() {
 					hide();
-					if (Dungeon.depth == 98){
+					if (Dungeon.depth == 85){
 						//already here: regenerate the showcase from scratch
 						InterlevelScene.mode = InterlevelScene.Mode.RESET;
 					} else {
 						InterlevelScene.mode = InterlevelScene.Mode.RETURN;
-						InterlevelScene.returnDepth = 98;
+						InterlevelScene.returnDepth = 85;
 						InterlevelScene.returnBranch = 0;
 						InterlevelScene.returnPos = -1;
 					}
@@ -947,7 +1196,25 @@ public class WndDebug extends WndTabbed {
 			add(overworld);
 			overworld.setRect(x, pos, width, BTN_HEIGHT);
 			pos = overworld.bottom() + GAP;
-
+			//the world's slices: one up or one down from here, on the same world cell
+			for (final int step : new int[]{ 1, -1 }){
+				RedButton slice = new RedButton(step > 0 ? "World slice up (+1)" : "World slice down (-1)") {
+					@Override
+					protected void onClick() {
+						hide();
+						if (!(Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel)) return;
+						xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel ow
+								= (xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level;
+						int dest = ow.altitude() + step;
+						if (!xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldLayers.exists(dest)) return;
+						ow.travelToSlice(Dungeon.hero, dest);
+					}
+				};
+				slice.textColor(Window.TITLE_COLOR);
+				add(slice);
+				slice.setRect(x, pos, width, BTN_HEIGHT);
+				pos = slice.bottom() + GAP;
+			}
 			height = pos - y;
 		}
 	}

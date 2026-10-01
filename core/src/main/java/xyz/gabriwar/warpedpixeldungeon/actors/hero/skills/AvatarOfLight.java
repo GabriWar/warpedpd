@@ -25,6 +25,9 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PillarRiseFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PulseRingFX;
 
 
 import com.watabou.noosa.Camera;
@@ -78,6 +81,12 @@ public class AvatarOfLight extends Skill {
 				hero.sprite.parent.add( halo );
 				halo.putOut();
 				Camera.main.shake( 2, 0.5f );
+				//the light comes down on the cleric, a golden halo beats out, shafts rise in two waves
+				PillarRiseFX.show( hero.pos, 0xFFEE88, () -> Sample.INSTANCE.play( Assets.Sounds.RAY, 0.8f, 1.2f ) );
+				PulseRingFX.around( hero.sprite, 0xFFEE88, 18, 0.6f );
+				FxTimeline.start()
+						.at( 0.3f, () -> { hero.sprite.emitter().burst( ShaftParticle.FACTORY, 5 ); PulseRingFX.around( hero.sprite, 0xFFF6C8, 12, 0.45f ); } )
+						.at( 0.6f, () -> hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 ) );
 			}
 
 			payMana( hero, getManaCost() );

@@ -25,6 +25,7 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PulseRingFX;
 
 
 import com.watabou.utils.PathFinder;
@@ -106,6 +107,7 @@ public class Purify extends SubSkill3 {
 			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
 			Dungeon.hero.sprite.emitter().burst( ShaftParticle.FACTORY, 5 );
 			Splash.around( Dungeon.hero.sprite, 0xFFFFFF, 6 );
+			PulseRingFX.around( hero.sprite, 0xFFFFFF, 14, 0.45f );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
 			hero.busy();

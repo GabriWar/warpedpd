@@ -153,6 +153,7 @@ public class Dungeon {
 		STRENGTH_POTIONS,
 		UPGRADE_SCROLLS,
 		ARCANE_STYLI,
+		TYPE_SHIFTER, //at most one per floor, from the hero's own kills
 		ENCH_STONE,
 		INT_STONE,
 		TRINKET_CATA,
@@ -284,7 +285,8 @@ public class Dungeon {
 	public static HashSet<Integer> chapters;
 
 	public static SparseArray<ArrayList<Item>> droppedItems;
-
+	//monsters that lived through a fall into a chasm, by the depth they landed on (FallenMob)
+	public static SparseArray<ArrayList<xyz.gabriwar.warpedpixeldungeon.levels.features.FallenMob>> fallenMobs = new SparseArray<>();
 	//first variable is only assigned when game is started, second is updated every time game is saved
 	public static int initialVersion;
 	public static int version;
@@ -375,6 +377,7 @@ public class Dungeon {
 
 			SpecialRoom.initForRun();
 			SecretRoom.initForRun();
+			xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.WarpedRooms.initForRun();
 
 			Generator.fullReset();
 
@@ -438,6 +441,7 @@ public class Dungeon {
 		pars = new int[100];
 
 		droppedItems = new SparseArray<>();
+		fallenMobs = new SparseArray<>();
 
 		LimitedDrops.reset();
 		
@@ -605,19 +609,26 @@ public class Dungeon {
 				case 67:
 					level = new DragonCaveLevel();
 					break;
-				case 97:
-					//the overworld (phase 1): infinite streamed world, debug entry
-					level = new xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel();
-					break;
-				case 98:
+				case 85:
 					//dev-only rooms showcase, reached via the debug travel tab
 					level = new DevRoomsLevel();
+					break;
+				case 86:
+					//dev-only: the Warped rooms, live, with the supplies to try them
+					level = new xyz.gabriwar.warpedpixeldungeon.levels.WarpedRoomsLevel();
 					break;
 				case 99:
 					level = new ZotBossLevel();
 					break;
 				default:
-					level = new DeadEndLevel();
+					//the world's slices: the surface (97), the mountains above
+					//it (96 down) and the caves under it (101 up) - see WorldLayers
+					int altitude = xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldLayers.altitudeOf( depth );
+					if (altitude != Integer.MIN_VALUE){
+						level = new xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel( altitude );
+					} else {
+						level = new DeadEndLevel();
+					}
 			}
 		} else if (branch == 6) {
 			//Remixed PD town building interiors, entered from the town square doorways
@@ -850,7 +861,9 @@ public class Dungeon {
 	}
 	
 	public static boolean shopOnLevel() {
-		return depth == 6 || depth == 11 || depth == 16;
+		//one shop per region of the dungeon proper: a branch that shares a depth number
+		//with a shop floor must not hand out a second copy of it
+		return branch == 0 && (depth == 6 || depth == 11 || depth == 16);
 	}
 	
 	public static boolean bossLevel() {
@@ -888,6 +901,7 @@ public class Dungeon {
 			}
 		}
 		if (branch == SpiderNestLevel.SPIDER_BRANCH) return "Spider Nest";
+		if (branch == xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.frozen.FrozenEntranceRoom.FROZEN_BRANCH) return "Frozen Caves";
 		if (depth >= 1 && depth <= 5)   return "Sewers";
 		if (depth >= 6 && depth <= 10)  return "Prison";
 		if (depth >= 11 && depth <= 15) return "Caves";
@@ -952,6 +966,10 @@ public class Dungeon {
 
 
 		Mob.restoreAllies( level, pos );
+		//monsters that fell here alive from the level above
+		xyz.gabriwar.warpedpixeldungeon.levels.features.FallenMob.land( level );
+		//and the black market's collector, for a hero who has drawn too much heat
+		xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.WarpedRooms.onArrive( level );
 
 		Actor.init();
 
@@ -1203,7 +1221,7 @@ public class Dungeon {
 			for (int d : droppedItems.keyArray()) {
 				bundle.put(Messages.format(DROPPED, d), droppedItems.get(d));
 			}
-
+			xyz.gabriwar.warpedpixeldungeon.levels.features.FallenMob.store( bundle, fallenMobs );
 			quickslot.storePlaceholders( bundle );
 
 			Bundle limDrops = new Bundle();
@@ -1226,6 +1244,7 @@ public class Dungeon {
 			
 			SpecialRoom.storeRoomsInBundle( bundle );
 			SecretRoom.storeRoomsInBundle( bundle );
+			xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.WarpedRooms.storeInBundle( bundle );
 			
 			Statistics.storeInBundle( bundle );
 			TownLedger.storeInBundle( bundle );
@@ -1340,12 +1359,14 @@ public class Dungeon {
 			
 			SpecialRoom.restoreRoomsFromBundle(bundle);
 			SecretRoom.restoreRoomsFromBundle(bundle);
+			xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.WarpedRooms.restoreFromBundle(bundle);
 
 			generatedLevels.clear();
 			for (int i : bundle.getIntArray(GENERATED_LEVELS)){
 				generatedLevels.add(i);
 			}
 
+			fallenMobs = xyz.gabriwar.warpedpixeldungeon.levels.features.FallenMob.restore( bundle );
 			droppedItems = new SparseArray<>();
 			for (int i=1; i <= 26; i++) {
 
@@ -1526,6 +1547,12 @@ public class Dungeon {
 	public static boolean debugInfiniteMana = false;
 
 	public static void observe( int dist ) {
+		long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
+		observeImpl( dist );
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "Dungeon.observe", t );
+	}
+
+	private static void observeImpl( int dist ) {
 
 		if (level == null) {
 			return;

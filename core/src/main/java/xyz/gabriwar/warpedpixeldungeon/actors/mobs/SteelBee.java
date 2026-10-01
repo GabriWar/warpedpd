@@ -25,12 +25,15 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Amok;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
 import xyz.gabriwar.warpedpixeldungeon.sprites.SteelBeeSprite;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
+
+import java.util.ArrayList;
 
 public class SteelBee extends Mob {
 
@@ -50,17 +53,23 @@ public class SteelBee extends Mob {
 	private int level;
 
 	private static final String LEVEL = "level";
+	private static final String POTPOS = "potpos";
+	private static final String POTHOLDER = "potholder";
 
 	@Override
 	public void storeInBundle( Bundle bundle ) {
 		super.storeInBundle( bundle );
 		bundle.put( LEVEL, level );
+		bundle.put( POTPOS, potPos );
+		bundle.put( POTHOLDER, potHolder );
 	}
 
 	@Override
 	public void restoreFromBundle( Bundle bundle ) {
 		super.restoreFromBundle( bundle );
 		spawn( bundle.getInt( LEVEL ) );
+		potPos = bundle.getInt( POTPOS );
+		potHolder = bundle.getInt( POTHOLDER );
 	}
 
 	public void spawn( int level ) {
@@ -90,13 +99,14 @@ public class SteelBee extends Mob {
 
 	@Override
 	protected Char chooseEnemy() {
-		if (enemy == null || !enemy.isAlive() || !fieldOfView[enemy.pos]) {
+		if (enemy == null || !enemy.isAlive()) {
+			ArrayList<Mob> enemies = new ArrayList<>();
 			for (Mob mob : Dungeon.level.mobs) {
 				if (mob.alignment == Alignment.ENEMY && fieldOfView[mob.pos]) {
-					return mob;
+					enemies.add( mob );
 				}
 			}
-			return null;
+			enemy = enemies.isEmpty() ? null : Random.element( enemies );
 		}
 		return enemy;
 	}
@@ -111,19 +121,24 @@ public class SteelBee extends Mob {
 	}
 
 	private int potPos = -1;
-	private Char potHolder = null;
+	// -1 for no owner
+	private int potHolder = -1;
 
 	public void setPotInfo(int potPos, Char potHolder) {
 		this.potPos = potPos;
-		this.potHolder = potHolder;
+		if (potHolder == null)
+			this.potHolder = -1;
+		else
+			this.potHolder = potHolder.id();
 	}
 
 	@Override
 	protected boolean getCloser( int target ) {
+		//Warped-specific: the source only ever falls back to the hero
 		if (enemy != null) {
 			target = enemy.pos;
-		} else if (potHolder != null) {
-			target = potHolder.pos;
+		} else if (Actor.findById( potHolder ) != null) {
+			target = ((Char) Actor.findById( potHolder )).pos;
 		} else if (potPos != -1) {
 			target = potPos;
 		} else {

@@ -57,7 +57,7 @@ public class Freezing extends Blob {
 						continue;
 					}
 
-					TileTemperature.depositHeat(cell, cur[cell] * -8.0f);
+					TileTemperature.applyFrostCold(cell);
 					Freezing.freeze(cell);
 
 				// Rising ice crystals on all visible cells as they freeze

@@ -437,7 +437,7 @@ public class SkeletonKey extends Artifact {
 					&& Regeneration.regenOn()) {
 				//120 turns to charge at full, 60 turns to charge at 0/8
 				float chargeGain = 1 / (120f - (chargeCap - charge)*7.5f);
-				chargeGain *= RingOfEnergy.artifactChargeMultiplier(target);
+				chargeGain *= (RingOfEnergy.artifactChargeMultiplier(target) * xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.artifactCharge(SkeletonKey.this));
 				partialCharge += chargeGain;
 
 				while (partialCharge >= 1) {

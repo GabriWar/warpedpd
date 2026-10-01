@@ -25,6 +25,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.MonsterBox;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Wraith;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Shopkeeper;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
@@ -73,6 +74,7 @@ public class Heap implements Bundlable {
 		CHEST,
 		LOCKED_CHEST,
 		CRYSTAL_CHEST,
+		MONSTER_BOX,
 		TOMB,
 		SKELETON,
 		REMAINS
@@ -91,6 +93,14 @@ public class Heap implements Bundlable {
 	
 	public void open( Hero hero ) {
 		switch (type) {
+		case MONSTER_BOX:
+			//looks exactly like a chest until it is opened
+			if (MonsterBox.spawnAt( pos, new ArrayList<>( items ) ) != null) {
+				GLog.n( Messages.get( this, "monster_box" ) );
+				destroy();
+				return;
+			}
+			break;
 		case TOMB:
 			Wraith.spawnAround( hero.pos );
 			break;
@@ -188,9 +198,7 @@ public class Heap implements Bundlable {
 		}
 
 		if (TippedDart.lostDarts > 0){
-			Dart d = new Dart();
-			d.quantity(TippedDart.lostDarts);
-			TippedDart.lostDarts = 0;
+			Dart d = TippedDart.takeLostDarts();
 			drop(d);
 		}
 	}
@@ -439,11 +447,12 @@ public class Heap implements Bundlable {
 			case FOR_SALE:
 				Item i = peek();
 				if (size() == 1) {
-					return Messages.get(this, "for_sale", Shopkeeper.sellPrice(i), i.title());
+					return Messages.get(this, "for_sale", Shopkeeper.sellPrice(i, Dungeon.hero), i.title());
 				} else {
 					return i.title();
 				}
 			case CHEST:
+			case MONSTER_BOX:
 				return Messages.get(this, "chest");
 			case LOCKED_CHEST:
 				return Messages.get(this, "locked_chest");
@@ -463,6 +472,7 @@ public class Heap implements Bundlable {
 	public String info(){
 		switch(type){
 			case CHEST:
+			case MONSTER_BOX:
 				return Messages.get(this, "chest_desc");
 			case LOCKED_CHEST:
 				return Messages.get(this, "locked_chest_desc");

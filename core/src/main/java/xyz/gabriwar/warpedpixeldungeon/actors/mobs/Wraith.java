@@ -24,6 +24,9 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ChallengeParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.RatSkull;
@@ -64,12 +67,12 @@ public class Wraith extends Mob {
 		immunities.add(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Charm.class);
 		immunities.add(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Sleep.class);
 		immunities.add(xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas.class);
+		immunities.add(xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPsionicBlast.class);
 		immunities.add(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo.class);
 		immunities.add(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning.class);
 		immunities.add(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis.class);
 		immunities.add(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots.class);
 		immunities.add(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Frost.class);
-		immunities.add(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Doom.class);
 
 		//no metabolism to disturb: only the extremes reach it
 		thermal = Thermal.INSENSATE;
@@ -99,7 +102,17 @@ public class Wraith extends Mob {
 	public int attackSkill( Char target ) {
 		return 10 + level;
 	}
-	
+
+	@Override
+	public int attackProc( Char enemy, int damage ) {
+		damage = super.attackProc( enemy, damage );
+		if (Random.Int(10) == 0) {
+			Buff.affect( enemy, Vertigo.class, Vertigo.DURATION );
+			Buff.affect( enemy, Terror.class, Terror.DURATION ).object = enemy.id();
+		}
+		return damage;
+	}
+
 	public void adjustStats( int level ) {
 		this.level = level;
 		HP = HT = 1 + level;

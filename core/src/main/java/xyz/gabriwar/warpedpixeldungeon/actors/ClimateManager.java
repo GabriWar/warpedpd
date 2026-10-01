@@ -282,6 +282,11 @@ public class ClimateManager {
 	public static float windProjectileFactor(int fromCell, int toCell, boolean forDamage) {
 		if (Dungeon.level == null || fromCell == toCell) return 1f;
 
+		//a room with a wind of its own (The Bellows) answers for the throws made in it
+		float draft = xyz.gabriwar.warpedpixeldungeon.actors.blobs.BellowsDraft
+				.projectileFactor(fromCell, toCell, forDamage);
+		if (!Float.isNaN(draft)) return draft;
+
 		int w = Dungeon.level.width();
 		int fromCol = fromCell % w, fromRow = fromCell / w;
 		int toCol   = toCell   % w, toRow   = toCell   / w;
@@ -1161,15 +1166,17 @@ public class ClimateManager {
 	private static float overworldBiomeTempBias(){
 		xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldModel.Biome b = heroOverworldBiome();
 		if (b == null) return 0f;
+		//and the peaks: colder with every slice climbed
+		float lapse = -2f * ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).altitude();
 		switch (b){
-			case DESERT:    return 12f;
-			case SNOWFIELD: return -20f;
-			case TUNDRA:    return -15f;
+			case DESERT:    return 12f + lapse;
+			case SNOWFIELD: return -20f + lapse;
+			case TUNDRA:    return -15f + lapse;
 			case MOUNTAIN:
-			case FOOTHILLS: return -8f;
-			case SWAMP:     return 3f;
-			case BEACH:     return 2f;
-			default:        return 0f;
+			case FOOTHILLS: return -8f + lapse;
+			case SWAMP:     return 3f + lapse;
+			case BEACH:     return 2f + lapse;
+			default:        return 0f + lapse;
 		}
 	}
 
@@ -1188,7 +1195,8 @@ public class ClimateManager {
 
 	private static xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldModel.Biome heroOverworldBiome(){
 		if (Dungeon.hero == null
-				|| !(Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel)){
+				|| !(Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel)
+				|| !((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).openSky()){
 			return null;
 		}
 		return ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level)

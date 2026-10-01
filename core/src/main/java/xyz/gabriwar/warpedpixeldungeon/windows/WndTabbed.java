@@ -47,7 +47,12 @@ public class WndTabbed extends Window {
 	private Signal.Listener<KeyEvent> tabListener;
 	
 	public WndTabbed() {
-		super( 0, 0, Chrome.get( Chrome.Type.TAB_SET ) );
+		this( Chrome.Type.TAB_SET );
+	}
+
+	//a tabbed window that may end up with no tabs keeps the plain window chrome
+	protected WndTabbed( Chrome.Type chrome ) {
+		super( 0, 0, Chrome.get( chrome ) );
 
 		KeyEvent.addKeyListener(tabListener = new Signal.Listener<KeyEvent>() {
 			@Override
@@ -114,7 +119,9 @@ public class WndTabbed extends Window {
 			width + chrome.marginHor(),
 			height + chrome.marginVer() );
 		
-		camera.resize( (int)chrome.width, chrome.marginTop() + height + tabHeight() );
+		//never shorter than the frame itself: a tabbed window with no tabs (an item without a
+		//type) would otherwise cut off the bottom edge of its border
+		camera.resize( (int)chrome.width, Math.max( (int)chrome.height, chrome.marginTop() + height + tabHeight() ) );
 		camera.x = (int)(Game.width - camera.screenWidth()) / 2;
 		camera.y = (int)(Game.height - camera.screenHeight()) / 2;
 		camera.y += yOffset * camera.zoom;

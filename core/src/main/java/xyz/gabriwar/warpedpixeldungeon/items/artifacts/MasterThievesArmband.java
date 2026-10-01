@@ -277,7 +277,7 @@ public class MasterThievesArmband extends Artifact {
 			if (charge < chargeCap){
 				//3 charges per hero lvl at +0, scaling to 4.5 per lvl at +10
 				float chargeGain = (3f + 0.15f*level()) * levelPortion;
-				chargeGain *= RingOfEnergy.artifactChargeMultiplier(target);
+				chargeGain *= (RingOfEnergy.artifactChargeMultiplier(target) * xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.artifactCharge(MasterThievesArmband.this));
 
 				partialCharge += chargeGain;
 				while (partialCharge > 1f){

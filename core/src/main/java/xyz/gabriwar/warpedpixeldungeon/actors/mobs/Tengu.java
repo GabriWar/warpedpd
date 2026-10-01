@@ -31,12 +31,14 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Electricity;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Fire;
+import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Doom;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Dread;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.LockedFloor;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
@@ -115,6 +117,14 @@ public class Tengu extends Mob {
 		HP = HT = Dungeon.isChallenged(Challenges.STRONGER_BOSSES) ? 500 : 400;
 		defenseSkill = 30;
 		baseSpeed = 2f;
+		denResistances();
+	}
+
+	//Sprouted's TenguDen resisted ToxicGas, Poison, Death and psionic blast; the last two
+	//are already immunities handed out by Property.BOSS
+	private void denResistances() {
+		resistances.add( ToxicGas.class );
+		resistances.add( Poison.class );
 	}
 
 	@Override
@@ -430,7 +440,8 @@ public class Tengu extends Mob {
 		arenaJumps = bundle.getInt( ARENA_JUMPS );
 		abilityCooldown = bundle.getInt( ABILITY_COOLDOWN );
 		denBoss = bundle.getBoolean( DEN_BOSS );
-		
+		if (denBoss) denResistances();
+
 		BossHealthBar.assignBoss(this);
 		if (HP <= HT/2) BossHealthBar.bleed(true);
 	}

@@ -352,7 +352,7 @@ public class PlayerLobbyScene extends PixelScene {
 			StringBuilder sb = new StringBuilder();
 			sb.append("Lvl ").append(lvl);
 			if (ht > 0) sb.append(" · HP ").append(hp).append("/").append(ht);
-			if (depth == OverworldLevel.DEPTH) sb.append(" · Overworld");
+			if (xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldLayers.isLayerDepth(depth)) sb.append(" · Overworld");
 			else if (depth > 0) sb.append(" · Floor ").append(depth);
 			sb.append(" · ").append(items).append(items == 1 ? " item" : " items");
 			displayDesc = sb.toString();
@@ -401,7 +401,7 @@ public class PlayerLobbyScene extends PixelScene {
 				int depth = info.optInt("depth", 0);
 				if (hostMetaLabel != null) {
 					String s = "Stashed hero: Lvl " + lvl
-							+ (depth == OverworldLevel.DEPTH ? " · Overworld"
+							+ (xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldLayers.isLayerDepth(depth) ? " · Overworld"
 								: depth > 0 ? " · Floor " + depth : "");
 					hostMetaLabel.text(s);
 					float cardW = heroPanelBg.width();

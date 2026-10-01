@@ -159,6 +159,7 @@ public class Armor extends EquipableItem {
 		if (brim != null) {
 			base += 2.0f * brim.power();
 		}
+		base += xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.value( this, xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.WARMTH );
 		return base;
 	}
 
@@ -455,11 +456,8 @@ public class Armor extends EquipableItem {
 		}
 
 		int max = upgradefactor * (2 + lvl) + augment.defenseFactor(lvl);
-		if (lvl > max){
-			return ((lvl - max)+1)/2;
-		} else {
-			return max;
-		}
+		int dr = lvl > max ? ((lvl - max)+1)/2 : max;
+		return xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.scale( this, xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.DEFENSE_MAX, dr );
 	}
 
 	public final int DRMin(){
@@ -472,11 +470,9 @@ public class Armor extends EquipableItem {
 		}
 
 		int max = DRMax(lvl);
-		if (lvl >= max){
-			return (lvl - max);
-		} else {
-			return lvl;
-		}
+		int dr = lvl >= max ? (lvl - max) : lvl;
+		dr = xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.scale( this, xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.DEFENSE_MIN, dr );
+		return Math.min( max, dr + xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.armorMinBonus( this, max ) );
 	}
 
 	//This exists so we can test what a char's base evasion would be without armor affecting it
@@ -491,7 +487,7 @@ public class Armor extends EquipableItem {
 		}
 		
 		if (owner instanceof Hero){
-			int aEnc = STRReq() - ((Hero) owner).STR();
+			int aEnc = STRReq() - ((Hero) owner).STR() - xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.armorStrengthGrace( this );
 			if (aEnc > 0) evasion /= Math.pow(1.5, aEnc);
 			
 			Momentum momentum = owner.buff(Momentum.class);
@@ -502,15 +498,17 @@ public class Armor extends EquipableItem {
 			if (hasGlyph(Afterimage.class, owner)){
 				evasion *= Math.pow(1.2f, this.buffedLvl());
 			}
+
+			evasion *= 1f + xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.armorEvasion( this );
 		}
 
-		return evasion + augment.evasionFactor(buffedLvl());
+		return (evasion + augment.evasionFactor(buffedLvl())) * (1f + xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.value( this, xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.EVASION ));
 	}
 	
 	public float speedFactor( Char owner, float speed ){
 		
 		if (owner instanceof Hero) {
-			int aEnc = STRReq() - ((Hero) owner).STR();
+			int aEnc = STRReq() - ((Hero) owner).STR() - xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.armorStrengthGrace( this );
 			if (aEnc > 0) speed /= Math.pow(1.2, aEnc);
 		}
 		
@@ -567,7 +565,6 @@ public class Armor extends EquipableItem {
 	}
 	
 	public int proc( Char attacker, Char defender, int damage ) {
-
 		if (defender.buff(MagicImmune.class) == null) {
 			Glyph trinityGlyph = null;
 			//only when it's the hero or a char that uses the hero's armor
@@ -797,6 +794,7 @@ public class Armor extends EquipableItem {
 		if (masteryPotionBonus){
 			req -= 2;
 		}
+		req -= xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.strReqBonus( this, req );
 		return req;
 	}
 
@@ -837,6 +835,8 @@ public class Armor extends EquipableItem {
 			//never carry the same glyph twice
 			glyph2 = null;
 		}
+		//a fresh glyph starts at level 0: give a high rarity its empowerment back
+		xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.empower( this );
 		updateQuickslot();
 		//the hero needs runic transference to actually transfer, but we still attach the glyph here
 		// in case they take that talent in the future
@@ -871,6 +871,7 @@ public class Armor extends EquipableItem {
 			return inscribe( gl );
 		}
 		glyph2 = gl;
+		xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.empower( this );
 		updateQuickslot();
 		if (isIdentified() && Dungeon.hero != null
 				&& Dungeon.hero.isAlive() && Dungeon.hero.belongings.contains(this)){

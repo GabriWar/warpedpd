@@ -261,7 +261,7 @@ public class StartScene extends PixelScene {
 				
 				//the surface sits at slot 97 so its monsters scale like the deep floors; on
 			//the save card that is depth zero
-			depth.text(Integer.toString(info.depth == OverworldLevel.DEPTH ? 0 : info.depth));
+			depth.text(Integer.toString(xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldLayers.isLayerDepth(info.depth) ? 0 : info.depth));
 				depth.measure();
 				
 				level.text(Integer.toString(info.level));

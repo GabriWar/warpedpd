@@ -166,7 +166,7 @@ public enum CurrentSkills {
 			}
 
 			case ROGUE: {
-				Skill ash = new AshVeil(), bloodDance = new BloodDance();
+				Skill ash = new Blink(), bloodDance = new BloodDance();
 				Skill panic = new PanicHarvest(), howl = new DreadHowl();
 				branchPA = new RoguePassiveA();
 				setBranch(passiveASkills, new Bandit(), new Stealth(), new LockSmith(), new MasterThief());
@@ -602,6 +602,10 @@ public enum CurrentSkills {
 		for (Skill s : allSkills) if (s.level > 0) s.onEnemyStepsAdjacent( enemy, from );
 	}
 
+	public void onHeroAttackMiss( Char enemy, boolean ranged ){
+		for (Skill s : allSkills) if (s.level > 0) s.onHeroAttackMiss( enemy, ranged );
+	}
+
 	public void onCharMoved( Char ch, int from, boolean travelling ){
 		for (Skill s : allSkills) if (s.level > 0) s.onCharMoved( ch, from, travelling );
 	}
@@ -746,7 +750,7 @@ public enum CurrentSkills {
 
 	/** a skill is up for advancement unless it is maxed or its fork sibling was taken */
 	private static boolean upgradeable( Skill s ){
-		return s.level < Skill.MAX_LEVEL && !(s.exclusiveWith != null && s.exclusiveWith.level > 0);
+		return s.level < Skill.MAX_LEVEL && !s.pathLocked();
 	}
 
 	public boolean canUpgrade(BRANCHES branch){

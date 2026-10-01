@@ -674,6 +674,20 @@ public class Potion extends Item {
 			types.put(Suncarnivore.Seed.class,    PotionOfUltraviolett.class);
 
 			types.put(Butterlion.Seed.class,      PotionOfButter.class);
+
+			//every seed the generator can drop brews into something: these had no potion
+			types.put(xyz.gabriwar.warpedpixeldungeon.plants.Dreamfoil.Seed.class,       PotionOfHypno.class);
+			types.put(xyz.gabriwar.warpedpixeldungeon.plants.Phaseshift.Seed.class,      PotionOfLevitation.class);
+			types.put(xyz.gabriwar.warpedpixeldungeon.plants.Flytrap.Seed.class,         PotionOfMana.class);
+			types.put(xyz.gabriwar.warpedpixeldungeon.plants.Sunbloom.Seed.class,        PotionOfSun.class);
+			types.put(xyz.gabriwar.warpedpixeldungeon.plants.Dirtdaisy.Seed.class,       PotionOfDirt.class);
+			types.put(xyz.gabriwar.warpedpixeldungeon.plants.Grassvine.Seed.class,       PotionOfHarvest.class);
+			types.put(xyz.gabriwar.warpedpixeldungeon.plants.Cornwheat.Seed.class,       PotionOfButter.class);
+			types.put(xyz.gabriwar.warpedpixeldungeon.plants.Goograss.Seed.class,        PotionOfGoo.class);
+			types.put(xyz.gabriwar.warpedpixeldungeon.plants.Blackholeflower.Seed.class, PotionOfShadows.class);
+			types.put(xyz.gabriwar.warpedpixeldungeon.plants.Larvaleaf.Seed.class,       PotionOfInfection.class);
+			types.put(xyz.gabriwar.warpedpixeldungeon.plants.Venusflytrap.Seed.class,    PotionOfDigesting.class);
+			types.put(xyz.gabriwar.warpedpixeldungeon.plants.Waterweed.Seed.class,       PotionOfWater.class);
 			types.put(Dirtdaisy.Seed.class,       PotionOfDirt.class);
 			types.put(Goograss.Seed.class,        PotionOfGoo.class);
 			types.put(Cornwheat.Seed.class,       PotionOfHarvest.class);

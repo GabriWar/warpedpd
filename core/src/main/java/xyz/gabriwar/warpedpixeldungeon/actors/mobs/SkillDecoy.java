@@ -2,7 +2,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
 import com.watabou.utils.Bundle;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
-import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.*;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MirrorSprite;
@@ -16,11 +15,12 @@ public class SkillDecoy extends Mob {
         if(--left<=0){die(this);return true;}
         SkillInteractions.lure(pos,rank);SkillInteractions.flare(pos,0xB8A3DD);spend(TICK);return true;
     }
-    @Override public void die(Object source){
-        if(blinding&&rank>=2)for(int cell:SkillInteractions.area(pos,1)){
-            Char ch=Actor.findChar(cell);if(ch!=null&&ch.alignment==Alignment.ENEMY)Buff.prolong(ch,Blindness.class,2f);
-        }
-        super.die(source);
+    //one hit and it is gone (1 HP); a blinding double (Stealth at mastery) blinds the enemy
+    //that struck it, and only that one - running out of time blinds nobody
+    @Override public void damage(int dmg,Object src){
+        if(blinding&&rank>=3&&src instanceof Char&&((Char)src).alignment==Alignment.ENEMY&&((Char)src).isAlive())
+            Buff.prolong((Char)src,Blindness.class,2f);
+        super.damage(dmg,src);
     }
     @Override public void storeInBundle(Bundle b){super.storeInBundle(b);b.put("blinding",blinding);b.put("rank",rank);b.put("left",left);}
     @Override public void restoreFromBundle(Bundle b){super.restoreFromBundle(b);blinding=!b.contains("blinding")||b.getBoolean("blinding");rank=b.getInt("rank");left=b.getInt("left");}

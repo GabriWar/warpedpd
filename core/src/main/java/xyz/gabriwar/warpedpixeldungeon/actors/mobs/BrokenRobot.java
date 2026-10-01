@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Vampiric;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.BlastParticle;
@@ -59,6 +60,7 @@ public class BrokenRobot extends Mob implements Callback {
 
 		HP = HT = 75 + (Dungeon.depth * Random.NormalIntRange(1, 2));
 		defenseSkill = 20;
+		viewDistance = 4;
 
 		EXP = 13;
 
@@ -110,14 +112,16 @@ public class BrokenRobot extends Mob implements Callback {
 		return beam.path.contains(enemy.pos);
 	}
 
+	private Ballistica ray;
+
 	@Override
 	protected boolean doAttack( Char enemy ) {
 		spend(attackDelay());
 
-		Ballistica beam = new Ballistica(pos, enemy.pos, Ballistica.STOP_SOLID);
+		ray = new Ballistica(pos, enemy.pos, Ballistica.STOP_SOLID);
 
 		boolean rayVisible = false;
-		for (int cell : beam.path) {
+		for (int cell : ray.path) {
 			if (Dungeon.level.heroFOV[cell]) {
 				rayVisible = true;
 				break;
@@ -125,12 +129,23 @@ public class BrokenRobot extends Mob implements Callback {
 		}
 
 		if (rayVisible) {
-			sprite.attack(beam.collisionPos);
+			//damage is dealt once the sprite's attack animation lands
+			sprite.attack(ray.collisionPos);
+			return false;
+		} else {
+			fireRay();
+			return true;
+		}
+	}
+
+	// Piercing beam — hits all chars along the ray
+	private void fireRay() {
+		if (ray == null) {
+			return;
 		}
 
-		// Piercing beam — hits all chars along the ray
-		for (int i = 1; i < beam.path.size(); i++) {
-			int cell = beam.path.get(i);
+		for (int i = 1; i < ray.path.size(); i++) {
+			int cell = ray.path.get(i);
 			Char ch = Actor.findChar(cell);
 			if (ch == null) continue;
 
@@ -146,8 +161,13 @@ public class BrokenRobot extends Mob implements Callback {
 				ch.sprite.showStatus(CharSprite.NEUTRAL, ch.defenseVerb());
 			}
 		}
+	}
 
-		return !rayVisible;
+	@Override
+	public void onAttackComplete() {
+		fireRay();
+		Invisibility.dispel(this);
+		next();
 	}
 
 	@Override
@@ -157,9 +177,9 @@ public class BrokenRobot extends Mob implements Callback {
 				GLog.n( Messages.get(this, "malfunction") );
 				explode(pos);
 				if (HP < 1) {
-					die(this);
+					destroy();
+					return true;
 				}
-				return true;
 			}
 		}
 		return super.act();

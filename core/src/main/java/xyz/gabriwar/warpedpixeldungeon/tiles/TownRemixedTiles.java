@@ -153,6 +153,20 @@ public class TownRemixedTiles {
 		return cell >= 0 && cell < insideWalls.length && insideWalls[cell];
 	}
 
+	/** A cell touching the enclosed town (8 neighbours): the inner face of the
+	 *  tree line, or a pocket in the wall band. */
+	public static boolean bordersInside( int cell ){
+		int x = cell % MAP_WIDTH, y = cell / MAP_WIDTH;
+		for (int dy = -1; dy <= 1; dy++){
+			for (int dx = -1; dx <= 1; dx++){
+				int nx = x + dx, ny = y + dy;
+				if (nx < 0 || ny < 0 || nx >= MAP_WIDTH || ny >= MAP_WIDTH) continue;
+				if (insideWalls( nx + ny * MAP_WIDTH )) return true;
+			}
+		}
+		return false;
+	}
+
 	/** Open snow with a pine (or nothing) on it: nothing built there. */
 	public static boolean outdoor( int cell ){
 		int d = DECO[cell];

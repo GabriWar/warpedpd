@@ -26,14 +26,32 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.DragonVariantSprite;
+import xyz.gabriwar.warpedpixeldungeon.ui.BossHealthBar;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
 public class OverworldDragon extends AdultDragonViolet {
 
+	{
+		//unlike the Sokoban guard it is ported from, the lair dragon is the world's boss
+		properties.add( Property.BOSS );
+	}
+
 	public int tint = Random.Int( 6 );
 	//the lair sector that spawned this dragon; slaying it retires the lair
 	public long homeSector = Long.MIN_VALUE;
+
+	@Override
+	public void notice() {
+		super.notice();
+		if (!BossHealthBar.isAssigned()) BossHealthBar.assignBoss( this );
+	}
+
+	@Override
+	public void damage( int dmg, Object src ) {
+		if (!BossHealthBar.isAssigned()) BossHealthBar.assignBoss( this );
+		super.damage( dmg, src );
+	}
 
 	@Override
 	public void die( Object cause ){
@@ -66,5 +84,6 @@ public class OverworldDragon extends AdultDragonViolet {
 		super.restoreFromBundle( bundle );
 		tint = bundle.getInt( TINT );
 		homeSector = bundle.contains( HOME ) ? bundle.getLong( HOME ) : Long.MIN_VALUE;
+		if (enemySeen || HP < HT) BossHealthBar.assignBoss( this );
 	}
 }

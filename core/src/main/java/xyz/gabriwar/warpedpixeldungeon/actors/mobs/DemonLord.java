@@ -28,8 +28,12 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Chill;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.LockedFloor;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Sleep;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SnowParticle;
@@ -74,6 +78,12 @@ public class DemonLord extends Mob {
 
 		//built for the cold: the deep freeze is home, the thaw is what hurts
 		thermal = Thermal.COLD_DWELLER;
+
+		resistances.add( Burning.class );
+
+		immunities.add( Sleep.class );
+		immunities.add( Terror.class );
+		immunities.add( Vertigo.class );
 	}
 
 	private static final int BREATH_RANGE = 4;

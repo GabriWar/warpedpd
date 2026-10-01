@@ -76,6 +76,9 @@ public class Item implements Bundlable {
 	//TODO should these be private and accessed through methods?
 	public int image = 0;
 	public int icon = -1; //used as an identifier for items with randomized images
+
+	//rarity / type / masterwork state; null for items outside that system
+	public xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality quality = null;
 	
 	public boolean stackable = false;
 	protected int quantity = 1;
@@ -275,6 +278,11 @@ public class Item implements Bundlable {
 			return true;
 		}
 
+		//an item handed straight to the hero (a reward, a purchase) gets its rarity and
+		//type here if nothing rolled them yet. Not the starting kit: that is packed
+		//before any level exists
+		if (Dungeon.level != null) xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.roll( this );
+
 		ArrayList<Item> items = container.items;
 
 		if (items.contains( this )) {
@@ -307,9 +315,7 @@ public class Item implements Bundlable {
 						}
 					}
 					if (TippedDart.lostDarts > 0){
-						Dart d = new Dart();
-						d.quantity(TippedDart.lostDarts);
-						TippedDart.lostDarts = 0;
+						Dart d = TippedDart.takeLostDarts();
 						if (!d.collect()){
 							//have to handle this in an actor as we can't manipulate the heap during pickup
 							Actor.add(new Actor() {
@@ -671,6 +677,7 @@ public class Item implements Bundlable {
 	private static final String CUSTOM_NOTE_ID = "custom_note_id";
 	private static final String REINFORCED     = "reinforced";
 	private static final String CUSTOM_NAME    = "custom_name";
+	private static final String QUALITY        = "quality";
 	
 	@Override
 	public void storeInBundle( Bundle bundle ) {
@@ -686,11 +693,13 @@ public class Item implements Bundlable {
 		if (customNoteID != -1)     bundle.put(CUSTOM_NOTE_ID, customNoteID);
 		bundle.put( REINFORCED, reinforced );
 		if (customName != null)     bundle.put(CUSTOM_NAME, customName);
+		if (quality != null)        bundle.put(QUALITY, quality);
 	}
 	
 	@Override
 	public void restoreFromBundle( Bundle bundle ) {
 		quantity	= bundle.getInt( QUANTITY );
+		if (bundle.contains( QUALITY )) quality = (xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality) bundle.get( QUALITY );
 		levelKnown	= bundle.getBoolean( LEVEL_KNOWN );
 		cursedKnown	= bundle.getBoolean( CURSED_KNOWN );
 		

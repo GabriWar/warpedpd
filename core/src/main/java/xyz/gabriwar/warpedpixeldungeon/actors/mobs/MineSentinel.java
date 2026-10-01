@@ -28,7 +28,6 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Doom;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Vampiric;
@@ -39,7 +38,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Sleep;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.HallsKey;
+import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPsionicBlast;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTeleportation;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.relic.RelicMeleeWeapon;
@@ -48,6 +50,8 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.SentinelSprite;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
+
+import java.util.ArrayList;
 
 public class MineSentinel extends Mob {
 
@@ -72,7 +76,7 @@ public class MineSentinel extends Mob {
 		immunities.add( Vertigo.class );
 		immunities.add( Vampiric.class );
 		immunities.add( Grim.class );
-		immunities.add( Doom.class );
+		immunities.add( ScrollOfPsionicBlast.class );
 
 		resistances.add( Poison.class );
 
@@ -81,6 +85,8 @@ public class MineSentinel extends Mob {
 		//no metabolism to disturb: only the extremes reach it
 		thermal = Thermal.INSENSATE;
 	}
+
+	private static final int REGENERATION = 100;
 
 	protected MeleeWeapon weapon;
 
@@ -133,27 +139,14 @@ public class MineSentinel extends Mob {
 
 	@Override
 	public void damage( int dmg, Object src ) {
+		if (state == PASSIVE) {
+			state = HUNTING;
+		}
+
 		if (!(src instanceof RelicMeleeWeapon) && !(src instanceof JupitersWraith)) {
 			dmg = Random.Int( 1, Math.max( 1, Math.round( dmg * 0.25f ) ) );
 		}
 		super.damage( dmg, src );
-		if (state == PASSIVE) {
-			state = HUNTING;
-			activateNeighbours();
-		}
-	}
-
-	private void activateNeighbours() {
-		for (int n : PathFinder.NEIGHBOURS8) {
-			int cell = pos + n;
-			Char ch = Actor.findChar( cell );
-			if (ch instanceof MineSentinel) {
-				MineSentinel sentinel = (MineSentinel) ch;
-				if (sentinel.state == sentinel.PASSIVE) {
-					sentinel.damage( 1, this );
-				}
-			}
-		}
 	}
 
 	@Override
@@ -164,53 +157,54 @@ public class MineSentinel extends Mob {
 
 	@Override
 	protected boolean act() {
-		if (state == HUNTING && enemy != null && enemy.isAlive()) {
-			// Randomly activate neighboring MineSentinels while hunting
-			if (Random.Int(10) < 2) {
-				for (int n : PathFinder.NEIGHBOURS8) {
-					int cell = pos + n;
-					Char ch = Actor.findChar(cell);
-					if (ch instanceof MineSentinel) {
-						MineSentinel sentinel = (MineSentinel) ch;
-						if (sentinel.state == sentinel.PASSIVE) {
-							sentinel.damage(1, this);
-							sentinel.state = sentinel.HUNTING;
-						}
-						break;
+		if (state == HUNTING) {
+			// one neighbouring sentinel at a time is nudged awake
+			for (int n : PathFinder.NEIGHBOURS8) {
+				int cell = pos + n;
+				Char ch = Actor.findChar( cell );
+				if (ch instanceof MineSentinel && Random.Int( 10 ) < 2) {
+					MineSentinel sentinel = (MineSentinel) ch;
+					sentinel.damage( 1, this );
+					if (sentinel.state == sentinel.PASSIVE) {
+						sentinel.state = sentinel.HUNTING;
 					}
-				}
-			}
-			if (Dungeon.level.distance( pos, enemy.pos ) > 2) {
-				if (Random.Int( 2 ) == 0) {
-					int newPos = -1;
-					for (int i : PathFinder.NEIGHBOURS8) {
-						int cell = enemy.pos + i;
-						if (Dungeon.level.passable[cell] && Actor.findChar( cell ) == null) {
-							newPos = cell;
-							break;
-						}
-					}
-					if (newPos != -1) {
-						ScrollOfTeleportation.appear( this, newPos );
-					}
-				}
-			}
-			if (HP < HT / 4) {
-				if (Random.Int( 2 ) == 0) {
-					int newPos = Dungeon.level.randomRespawnCell( this );
-					if (newPos != -1) {
-						ScrollOfTeleportation.appear( this, newPos );
-						HP = Math.min( HP + 100, HT );
-					}
+					break;
 				}
 			}
 		}
+
+		if (Dungeon.hero != null && !heroNear() && Random.Float() < 0.50f && state == HUNTING) {
+			ArrayList<Integer> spawnPoints = new ArrayList<>();
+			for (int n : PathFinder.NEIGHBOURS8) {
+				int cell = Dungeon.hero.pos + n;
+				if (Actor.findChar( cell ) == null
+						&& (Dungeon.level.passable[cell] || Dungeon.level.avoid[cell])) {
+					spawnPoints.add( cell );
+				}
+			}
+			if (!spawnPoints.isEmpty()) {
+				blink( Random.element( spawnPoints ) );
+			}
+		} else if (HP < HT / 4 && Random.Float() < 0.50f && state != PASSIVE) {
+			int newPos = Dungeon.level.randomRespawnCell( this );
+			if (newPos != -1) {
+				blink( newPos );
+				HP = Math.min( HP + REGENERATION, HT );
+			}
+		}
+
 		return super.act();
 	}
 
-	@Override
-	public void die( Object cause ) {
-		super.die( cause );
+	private void blink( int newPos ) {
+		if (Dungeon.level.heroFOV[pos]) {
+			CellEmitter.get( pos ).start( Speck.factory( Speck.LIGHT ), 0.2f, 3 );
+		}
+		ScrollOfTeleportation.appear( this, newPos );
+	}
+
+	private boolean heroNear() {
+		return Dungeon.level.distance( pos, Dungeon.hero.pos ) <= 2;
 	}
 
 	@Override
@@ -229,9 +223,7 @@ public class MineSentinel extends Mob {
 
 	@Override
 	public void beckon( int cell ) {
-		if (state != PASSIVE) {
-			super.beckon( cell );
-		}
+		// Do nothing
 	}
 
 	private static final String WEAPON = "weapon";

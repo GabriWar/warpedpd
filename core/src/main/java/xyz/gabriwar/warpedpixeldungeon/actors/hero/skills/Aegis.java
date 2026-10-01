@@ -25,6 +25,7 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PulseRingFX;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AegisRecharge;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -94,6 +95,7 @@ public class Aegis extends SubSkill1 {
 			hero.sprite.parent.add( halo );
 			halo.putOut();
 			new Flare( 6, 24 ).color( 0xFFEE88, true ).show( hero.sprite, 0.5f );
+			PulseRingFX.around( hero.sprite, 0xFFEE88, 12, 0.35f );
 			hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "caught" ) );
 		}
 		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 1f, 0.8f );

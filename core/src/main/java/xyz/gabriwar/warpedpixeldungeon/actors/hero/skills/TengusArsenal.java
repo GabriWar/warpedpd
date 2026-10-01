@@ -43,6 +43,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Tengu;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -127,7 +128,7 @@ public class TengusArsenal extends Skill {
 			Item look = kind == SHOCK ? new TenguShockBomb.RogueShockerItem() : new TenguSmokeBomb.RogueBombItem();
 			hero.busy();
 			hero.sprite.zap( cell );
-			Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 1.2f );
+			Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 1.2f + 0.15f * kind );
 			SkillFX.streak( hero.sprite, cell, look, () -> {
 				land( hero, cell );
 				hero.spendAndNext( TIME_TO_USE );
@@ -143,11 +144,18 @@ public class TengusArsenal extends Skill {
 			switch (kind){
 				case FIRE:
 					Sample.INSTANCE.play( Assets.Sounds.BURNING, 1f, 0.9f );
+					//the burst at the centre first, then the ring of flame catching around it
+					if (Dungeon.level.heroFOV[cell]) CellEmitter.center( cell ).burst( FlameParticle.FACTORY, 10 );
+					FxTimeline flames = FxTimeline.start();
+					int order = 0;
 					for (int n : PathFinder.NEIGHBOURS9){
 						int c = cell + n;
 						if (c < 0 || c >= Dungeon.level.length() || Dungeon.level.solid[c]) continue;
 						GameScene.add( Blob.seed( c, 4, Fire.class ) );
-						if (Dungeon.level.heroFOV[c]) CellEmitter.get( c ).burst( FlameParticle.FACTORY, 4 );
+						if (Dungeon.level.heroFOV[c] && n != 0){
+							final int at = c;
+							flames.at( 0.05f + 0.03f * order++, () -> CellEmitter.get( at ).burst( FlameParticle.FACTORY, 4 ) );
+						}
 						Char ch = Actor.findChar( c );
 						if (ch != null && ch.alignment == Char.Alignment.ENEMY){
 							Buff.affect( ch, Burning.class ).reignite( ch );

@@ -142,6 +142,9 @@ public class DungeonTileSheet {
 
 		//water
 		chasmStitcheable.put( Terrain.WATER,        CHASM_WATER );
+		//a frozen pool keeps its fall: the waterfall base, with the icefall laid over it
+		//by IceFringeTilemap
+		chasmStitcheable.put( Terrain.FROZEN_WATER, CHASM_WATER );
 	}
 
 	public static int stitchChasmTile(int above){
@@ -199,7 +202,17 @@ public class DungeonTileSheet {
 			Terrain.PORT_WELL, Terrain.SOKOBAN_PORT_SWITCH
 	));
 
+	//the surface's own grounds: snow, sand, roads and whatever stands on open
+	//ground there. water and ice lying against them get a shore, not a square edge
+	public static HashSet<Integer> OVERWORLD_BANKS = new HashSet<>(Arrays.asList(
+			Terrain.SNOW, Terrain.EMPTY_SP, Terrain.DIRT_PATH, Terrain.SHRUB, Terrain.BOULDER,
+			Terrain.TREE_PINE, Terrain.TREE_OAK, Terrain.FLOWER_PATCH, Terrain.MUSHROOM_PATCH,
+			Terrain.SIGN
+	));
+
 	public static boolean waterStitcheable(int tile){
+		if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
+				&& OVERWORLD_BANKS.contains(tile)) return true;
 		// These ported regions use ground-backed special floors too. Without
 		// treating them as banks, a pool inside a special room is a hard square.
 		if ((tile == Terrain.EMPTY_SP || tile == Terrain.STATUE_SP) && Dungeon.level != null) {
@@ -297,6 +310,8 @@ public class DungeonTileSheet {
 
 	public static final int RAISED_WALL_ALT             = RAISED_WALLS+16;
 	public static final int RAISED_WALL_DECO_ALT        = RAISED_WALLS+20;
+	//a shelf with the books taken out: the same boards and frame, an empty back
+	public static final int RAISED_WALL_BOOKSHELF_EMPTY = RAISED_WALLS+24;
 	public static final int RAISED_WALL_BOOKSHELF_ALT   = RAISED_WALLS+28;
 
 	//we use an array instead of a collection because the small element count
@@ -322,7 +337,8 @@ public class DungeonTileSheet {
 		else if (doorTile(below))                                       result = RAISED_WALL_DOOR;
 		else if (tile == Terrain.WALL || tile == Terrain.SECRET_DOOR)   result = RAISED_WALL;
 		else if (tile == Terrain.WALL_DECO)                             result = RAISED_WALL_DECO;
-		else if (tile == Terrain.BOOKSHELF || tile == Terrain.EMPTY_BOOKSHELF) result = RAISED_WALL_BOOKSHELF;
+		else if (tile == Terrain.BOOKSHELF)                             result = RAISED_WALL_BOOKSHELF;
+		else if (tile == Terrain.EMPTY_BOOKSHELF)                       result = RAISED_WALL_BOOKSHELF_EMPTY;
 		else                                                            return -1;
 
 		result = getVisualWithAlts(result, pos);

@@ -50,6 +50,7 @@ import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
 import java.util.ArrayList;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
 
 public class Deadfall extends Skill {
 
@@ -156,11 +157,28 @@ public class Deadfall extends Skill {
 		Sample.INSTANCE.play( Assets.Sounds.ROCKS, 1f, 1.0f );
 		Camera.main.shake( 2, 0.4f );
 		StoneOfBlast look = new StoneOfBlast();
+		//the rumble first: dust shaken loose in a ring round the rigging, then the weight comes
+		//down cell after cell, and a last lighter shudder as the dust settles
+		FxTimeline t = FxTimeline.start();
+		for (int c : SkillInteractions.area( cell, 2 )){
+			if (Dungeon.level.distance( cell, c ) == 2 && Dungeon.level.heroFOV[c]){
+				final int at = c;
+				t.at( 0.04f, () -> CellEmitter.bottom( at ).burst( Speck.factory( Speck.DUST ), 2 ) );
+			}
+		}
+		t.at( 0.5f, () -> {
+			Camera.main.shake( 1, 0.2f );
+			Sample.INSTANCE.play( Assets.Sounds.ROCKS_LIGHT, 0.7f, 0.9f );
+		} );
+		int order = 0;
 		for (int c : rigged.cells){
 			if (Dungeon.level.heroFOV[c]){
-				SkillFX.rain( c, look, 1 + Random.Int( 2 ), null );
-				CellEmitter.get( c ).burst( Speck.factory( Speck.ROCK ), 4 );
-				CellEmitter.bottom( c ).burst( Speck.factory( Speck.DUST ), 3 );
+				final int at = c;
+				t.at( 0.1f + 0.04f * order++, () -> {
+					SkillFX.rain( at, look, 1 + Random.Int( 2 ), null );
+					CellEmitter.get( at ).burst( Speck.factory( Speck.ROCK ), 4 );
+					CellEmitter.bottom( at ).burst( Speck.factory( Speck.DUST ), 3 );
+				} );
 			}
 			Char ch = Actor.findChar( c );
 			if (ch != null && ch != hero && ch.alignment == Char.Alignment.ENEMY){

@@ -86,6 +86,10 @@ public class PixelScene extends Scene {
 
 	public static Camera uiCamera;
 
+	//the toolbar's own, a zoom step smaller than uiCamera (see create)
+
+	public static Camera toolbarCamera;
+
 	//stylized 3x5 bitmapped pixel font. Only latin characters supported.
 	public static BitmapText.Font pixelFont;
 
@@ -150,6 +154,11 @@ public class PixelScene extends Scene {
 		float uiZoom = defaultZoom;
 		uiCamera = Camera.createFullscreen( uiZoom );
 		Camera.add( uiCamera );
+
+		//the toolbar (and the inventory pane under it) draws a step smaller than the rest
+		//of the UI: one whole zoom step down, so its pixel art stays crisp
+		toolbarCamera = Camera.createFullscreen( uiZoom >= 3 ? uiZoom - 1 : uiZoom );
+		Camera.add( toolbarCamera );
 
 		// 3x5 (6)
 		pixelFont = Font.colorMarked(

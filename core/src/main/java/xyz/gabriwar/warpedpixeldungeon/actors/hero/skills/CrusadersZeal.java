@@ -25,6 +25,7 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PulseRingFX;
 
 
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -77,6 +78,7 @@ public class CrusadersZeal extends Skill {
 			}
 			if (hero.sprite != null){
 				new xyz.gabriwar.warpedpixeldungeon.effects.Flare( 8, 26 ).color( 0xFFE070, true ).show( hero.sprite, 0.6f );
+				PulseRingFX.around( hero.sprite, 0xFFE070, 20, 0.5f );
 				hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "crippled" ) );
 			}
 			Sample.INSTANCE.play( Assets.Sounds.RAY, 1f, 1.1f );

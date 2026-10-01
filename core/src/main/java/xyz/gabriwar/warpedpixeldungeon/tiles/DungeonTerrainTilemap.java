@@ -55,12 +55,18 @@ public class DungeonTerrainTilemap extends DungeonTilemap {
 				&& Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.SafeLevel){
 			return DungeonTileSheet.getVisualWithAlts(DungeonTileSheet.TILLED_SOIL, pos);
 		}
-		//on the surface's frozen ground, whatever grows or lies there sits on snow
+		//a boulder in the world lies on the ground its neighbours show, never on a
+		//square of its own (snow in a green field, grass in a snowfield)
+		if (tile == xyz.gabriwar.warpedpixeldungeon.levels.Terrain.BOULDER
+				&& Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel){
+			int ground = ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).groundUnderRock( pos );
+			return DungeonTileSheet.getVisualWithAlts( DungeonTileSheet.directVisuals.get( ground, DungeonTileSheet.FLOOR ), pos );
+		}
+		//on the surface's frozen ground, whatever grows there sits on snow
 		if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
 				&& (tile == xyz.gabriwar.warpedpixeldungeon.levels.Terrain.TREE_PINE
 					|| tile == xyz.gabriwar.warpedpixeldungeon.levels.Terrain.TREE_OAK
 					|| tile == xyz.gabriwar.warpedpixeldungeon.levels.Terrain.SHRUB
-					|| tile == xyz.gabriwar.warpedpixeldungeon.levels.Terrain.BOULDER
 					|| tile == xyz.gabriwar.warpedpixeldungeon.levels.Terrain.GRASS
 					|| tile == xyz.gabriwar.warpedpixeldungeon.levels.Terrain.SIGN)
 				&& ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).frozenAt( pos )){
@@ -72,6 +78,14 @@ public class DungeonTerrainTilemap extends DungeonTilemap {
 				&& Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel){
 			return DungeonTileSheet.WAYSTONE_TILE;
 		}
+		//a custom decoration has one fixed visual (plain stone floor), so a prop laid on a
+		//special floor or on grass used to sit on a grey square of its own. Take the ground
+		//from the cells around it instead, so the furniture stands on the room's own floor
+		if (tile == Terrain.CUSTOM_DECO || tile == Terrain.CUSTOM_DECO_EMPTY) {
+			int ground = groundAround(pos);
+			if (ground != -1) return DungeonTileSheet.getVisualWithAlts(ground, pos);
+		}
+
 		int visual = DungeonTileSheet.directVisuals.get(tile, -1);
 		if (visual != -1) {
 			if (visual == DungeonTileSheet.FLOOR_DECO && Dungeon.level instanceof MiningLevel) {
@@ -94,6 +108,11 @@ public class DungeonTerrainTilemap extends DungeonTilemap {
 			);
 
 		} else if (tile == Terrain.FROZEN_WATER) {
+			//in the world the ice is drawn plain and the ground around it spills
+			//over its edges (the overworld dressing's blend layers)
+			if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel){
+				return DungeonTileSheet.FROZEN_WATER;
+			}
 			return DungeonTileSheet.stitchFrozenWaterTile(
 					safeTile(pos + PathFinder.CIRCLE4[0]),
 					safeTile(pos + PathFinder.CIRCLE4[1]),
@@ -157,6 +176,27 @@ public class DungeonTerrainTilemap extends DungeonTilemap {
 			return DungeonTileSheet.getVisualWithAlts(flatVisual, pos);
 		}
 
+	}
+
+	//the floor the cells around pos are showing, or -1 when none of them is a plain floor.
+	//The commonest one wins, so a prop by a door keeps the room's floor and not the
+	//corridor's. Only bare ground counts: water, embers, traps and the like are skipped
+	private int groundAround(int pos){
+		int plain = 0, special = 0, grass = 0;
+		for (int i : PathFinder.NEIGHBOURS8){
+			switch (safeTile(pos + i)){
+				case Terrain.EMPTY: case Terrain.EMPTY_DECO:
+					plain++; break;
+				case Terrain.EMPTY_SP:
+					special++; break;
+				case Terrain.GRASS: case Terrain.HIGH_GRASS: case Terrain.FURROWED_GRASS:
+					grass++; break;
+			}
+		}
+		if (grass >= special && grass >= plain && grass > 0) return DungeonTileSheet.GRASS;
+		if (special >= plain && special > 0)                 return DungeonTileSheet.FLOOR_SP;
+		if (plain > 0)                                       return DungeonTileSheet.FLOOR;
+		return -1;
 	}
 
 	//a neighbour read that can fall off the map (water on an edge row) returns

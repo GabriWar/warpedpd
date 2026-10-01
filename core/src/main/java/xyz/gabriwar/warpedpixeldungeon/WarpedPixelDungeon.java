@@ -129,10 +129,23 @@ public class WarpedPixelDungeon extends Game {
 			TrailerTour.instance.frame(); //fixed-step stand-in for the whole update
 			return;
 		}
+		long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
+		if (t == 0L && xyz.gabriwar.warpedpixeldungeon.debug.Profiler.running) t = System.nanoTime();
 		super.update();
+		if (t != 0L) xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.framePhase( true, (System.nanoTime() - t) / 1_000_000f );
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.frame();
+		xyz.gabriwar.warpedpixeldungeon.debug.Profiler.frame();
 		if (ScreenshotTour.instance != null) {
 			ScreenshotTour.instance.update();
 		}
+	}
+
+	@Override
+	protected void draw() {
+		long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
+		if (t == 0L && xyz.gabriwar.warpedpixeldungeon.debug.Profiler.running) t = System.nanoTime();
+		super.draw();
+		if (t != 0L) xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.framePhase( false, (System.nanoTime() - t) / 1_000_000f );
 	}
 
 	@Override

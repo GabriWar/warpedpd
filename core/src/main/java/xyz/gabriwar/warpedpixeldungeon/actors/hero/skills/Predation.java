@@ -40,6 +40,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import com.watabou.utils.Random;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 
 public class Predation extends Skill {
 
@@ -62,6 +64,7 @@ public class Predation extends Skill {
 				&& Random.Int( 100 ) < 15 + 10 * level){
 			Buff.affect( enemy, Bleeding.class ).set( Math.max( 2f, damage / 4f ) );
 			CellEmitter.center( enemy.pos ).burst( BloodParticle.BURST, 8 );
+			Wound.hit( enemy );
 			if (enemy.sprite != null){
 				enemy.sprite.flash();
 				enemy.sprite.showStatus( CharSprite.WARNING, name() );
@@ -81,6 +84,8 @@ public class Predation extends Skill {
 		CellEmitter.center( mob.pos ).burst( BloodParticle.BURST, 10 );
 		if (hero.sprite != null){
 			hero.sprite.emitter().burst( Speck.factory( Speck.HEALING ), 3 );
+			hero.sprite.emitter().burst( BloodParticle.FACTORY, 4 );
+			new Flare( 4, 12 ).color( 0xCC1111, true ).show( hero.sprite, 0.4f );
 			hero.sprite.showStatus( CharSprite.POSITIVE, Integer.toString( heal ) );
 		}
 		Sample.INSTANCE.play( Assets.Sounds.DRINK, 0.7f, 0.8f );

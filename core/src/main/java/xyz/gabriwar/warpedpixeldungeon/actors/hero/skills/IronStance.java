@@ -27,6 +27,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import com.watabou.noosa.Camera;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
@@ -36,7 +37,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAura;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -61,8 +64,15 @@ public class IronStance extends ActiveSkill {
 			// only one stance or attack toggle at a time
 			hero.heroSkills.deactivateOtherToggles( this );
 			Sample.INSTANCE.play( Assets.Sounds.STURDY, 1f, 1.1f );
-			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 3 );
+			//the guard comes up with a steel flash, and glints quietly for as long as it is held
+			if (hero.sprite != null){
+				hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 3 );
+				new Flare( 4, 14 ).color( 0xCCDDEE, true ).show( hero.sprite, 0.4f );
+			}
+		} else if (action.equals(Skill.AC_DEACTIVATE)){
+			Sample.INSTANCE.play( Assets.Sounds.STURDY, 0.5f, 0.8f );
 		}
+		StanceAura.sync( hero );
 	}
 
 	@Override
@@ -79,6 +89,7 @@ public class IronStance extends ActiveSkill {
 	@Override
 	public float damageModifier(){
 		Hero hero = Dungeon.hero;
+		StanceAura.sync( hero );
 		if (!active || level <= 0 || hero == null || hero.MP < getManaCost())
 			return 1f;
 		return 0.85f;
@@ -103,9 +114,13 @@ public class IronStance extends ActiveSkill {
 		hero.MP = Math.max( 0, hero.MP - getManaCost() );
 		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 1f, 1.1f );
 		if (hero.sprite != null){
+			//steel meets steel: a hard white flash off the guard and a jolt of the screen
 			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
+			new Flare( 6, 16 ).color( 0xEEF4FF, true ).show( hero.sprite, 0.3f );
 			hero.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( this, "blocked" ) );
+			if (attacker != null) hero.sprite.turnTo( hero.pos, attacker.pos );
 		}
+		Camera.main.shake( 1, 0.1f );
 		//+3: the attacker reels back from the steel it hit, dizzy
 		if (level >= MAX_LEVEL && attacker != null && !attacker.properties().contains( Char.Property.BOSS )){
 			SkillInteractions.affectAfterHit( attacker, Vertigo.class, DIZZY );

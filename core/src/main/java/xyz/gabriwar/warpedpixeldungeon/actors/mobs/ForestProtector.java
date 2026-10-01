@@ -46,7 +46,7 @@ public class ForestProtector extends Mob implements Callback {
 		spriteClass = ForestProtectorSprite.class;
 		HP = HT = 35;
 		defenseSkill = 10;
-		EXP = 5;
+		EXP = 8;
 		state = HUNTING;
 		flying = true;
 
@@ -81,7 +81,7 @@ public class ForestProtector extends Mob implements Callback {
 
 	@Override
 	protected boolean canAttack(Char enemy) {
-		return new Ballistica(pos, enemy.pos, Ballistica.STOP_SOLID).collisionPos == enemy.pos;
+		return new Ballistica(pos, enemy.pos, Ballistica.PROJECTILE).collisionPos == enemy.pos;
 	}
 
 	@Override
@@ -96,7 +96,7 @@ public class ForestProtector extends Mob implements Callback {
 			spend(TIME_TO_ZAP);
 
 			if (hit(this, enemy, true)) {
-				int dmg = Random.NormalIntRange(5 + Math.round(Statistics.archersKilled / 10), 10 + Math.round(Statistics.archersKilled / 5));
+				int dmg = Random.IntRange(5 + Math.round(Statistics.archersKilled / 10), 9 + Math.round(Statistics.archersKilled / 5));
 				if (Dungeon.level.water[enemy.pos] && !enemy.flying) {
 					dmg *= 1.5f;
 				}

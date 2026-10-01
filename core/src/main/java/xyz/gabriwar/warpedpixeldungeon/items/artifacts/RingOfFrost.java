@@ -134,7 +134,7 @@ public class RingOfFrost extends Artifact {
 		@Override
 		public boolean act() {
 			if (charge < chargeCap) {
-				partialCharge += 1 + (level() * level());
+				partialCharge += (1 + (level() * level())) * xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.artifactCharge(RingOfFrost.this);
 				if (partialCharge >= 10) {
 					charge++;
 					partialCharge -= 10;

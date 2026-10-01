@@ -100,9 +100,14 @@ public class ShieldOfLight extends TargetedClericSpell {
 
 	}
 
+	/** 2/3/4 armor at its low end, growing with the hero's level */
+	public static int minBlock(){
+		return Math.round((1 + Dungeon.hero.pointsInTalent(Talent.SHIELD_OF_LIGHT)) * Talent.levelScale(Dungeon.hero));
+	}
+
 	@Override
 	public String desc() {
-		int min = 1 + Dungeon.hero.pointsInTalent(Talent.SHIELD_OF_LIGHT);
+		int min = minBlock();
 		int max = 2*min;
 		return Messages.get(this, "desc", min, max) + "\n\n" + Messages.get(this, "charge_cost", (int)chargeUse(Dungeon.hero));
 	}

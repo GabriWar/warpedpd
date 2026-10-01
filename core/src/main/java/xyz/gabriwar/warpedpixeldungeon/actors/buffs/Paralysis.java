@@ -42,6 +42,8 @@ public class Paralysis extends FlavourBuff {
 	public boolean attachTo( Char target ) {
 		if (super.attachTo( target )) {
 			target.paralysed++;
+			//a paralysed flier cannot keep itself up
+			target.loseFlight();
 			return true;
 		} else {
 			return false;
@@ -68,6 +70,7 @@ public class Paralysis extends FlavourBuff {
 		super.detach();
 		if (target.paralysed > 0)
 			target.paralysed--;
+		target.regainFlight();
 	}
 	
 	@Override

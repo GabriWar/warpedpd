@@ -34,7 +34,7 @@ import com.watabou.utils.Random;
 public class CapeOfThorns extends Artifact {
 
 	{
-		image = ItemSpriteSheet.ARTIFACT_CAPE;
+		image = ItemSpriteSheet.ARTIFACT_CAPE_THORNS;
 
 		levelCap = 10;
 
@@ -82,6 +82,7 @@ public class CapeOfThorns extends Artifact {
 			if (cooldown > 0) {
 				cooldown--;
 				if (cooldown == 0) {
+					BuffIndicator.refreshHero();
 					GLog.w( Messages.get(this, "inert") );
 				}
 				updateQuickslot();
@@ -97,6 +98,7 @@ public class CapeOfThorns extends Artifact {
 					charge = 0;
 					cooldown = 10+level();
 					GLog.p( Messages.get(this, "radiating") );
+					BuffIndicator.refreshHero();
 				}
 			}
 
@@ -120,6 +122,11 @@ public class CapeOfThorns extends Artifact {
 			}
 			updateQuickslot();
 			return damage;
+		}
+
+		@Override
+		public String toString() {
+				return Messages.get(this, "name");
 		}
 
 		@Override

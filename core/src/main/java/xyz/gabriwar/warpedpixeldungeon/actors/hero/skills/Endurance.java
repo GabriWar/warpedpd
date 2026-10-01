@@ -44,6 +44,8 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.EarthParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
@@ -103,7 +105,6 @@ public class Endurance extends PassiveSkillA1 {
 		Buff.affect( hero, Barrier.class ).incShield( shield );
 		for (int c : SkillInteractions.area( hero.pos, level )){
 			if (c == hero.pos) continue;
-			CellEmitter.get( c ).burst( Speck.factory( Speck.ROCK ), 2 );
 			Char ch = Actor.findChar( c );
 			if (ch != null && ch.alignment == Char.Alignment.ENEMY
 					&& !ch.properties().contains( Char.Property.BOSS )){
@@ -115,6 +116,13 @@ public class Endurance extends PassiveSkillA1 {
 		SkillFX.land( hero.pos );
 		Sample.INSTANCE.play( Assets.Sounds.ROCKS, 1f, 0.8f );
 		Camera.main.shake( 3, 0.3f );
+		//the cracks run out from under his boots one ring at a time
+		StaggerFX.ring( hero.pos, level, 0.1f, ( c, r ) -> {
+			CellEmitter.get( c ).burst( Speck.factory( Speck.ROCK ), 2 );
+			CellEmitter.bottom( c ).burst( EarthParticle.FACTORY, 1 );
+			Char caught = Actor.findChar( c );
+			if (caught != null && caught.alignment == Char.Alignment.ENEMY && caught.sprite != null) caught.sprite.flash();
+		} );
 		if (hero.sprite != null){
 			hero.sprite.emitter().burst( Speck.factory( Speck.FORGE ), 6 );
 			hero.sprite.showStatusWithIcon( CharSprite.POSITIVE, Integer.toString( shield ), FloatingText.SHIELDING );

@@ -31,12 +31,14 @@ import java.util.ArrayList;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.BranchSkill;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.SkillSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.Icons;
 import xyz.gabriwar.warpedpixeldungeon.ui.RedButton;
 import xyz.gabriwar.warpedpixeldungeon.ui.RenderedTextBlock;
+import xyz.gabriwar.warpedpixeldungeon.ui.Toolbar;
 import xyz.gabriwar.warpedpixeldungeon.ui.Window;
 
 public class WndSkill extends Window {
@@ -65,7 +67,7 @@ public class WndSkill extends Window {
 
 	private boolean canUpgradeNow(){
 		return skill.level < Skill.MAX_LEVEL && Skill.availableSkill >= skill.upgradeCost()
-				&& !(skill.exclusiveWith != null && skill.exclusiveWith.level > 0);
+				&& !skill.pathLocked();
 	}
 
 	private <T extends Gizmo> T show( T g ){
@@ -138,6 +140,42 @@ public class WndSkill extends Window {
 			y = btn.bottom();
 		}
 
+		//a learned skill that can be used goes on the hotbar from here too, not only from
+		//the slot itself
+		if (Dungeon.hero.heroSkills.usableNow( Dungeon.hero ).contains( skill )){
+			RedButton btnSlot = new RedButton( Messages.get( this, "quickslot" ) ) {
+				@Override
+				protected void onClick() {
+					chooseSlot();
+				}
+			};
+			btnSlot.setRect( 0, y + GAP, width, BUTTON_HEIGHT );
+			show( btnSlot );
+			y = btnSlot.bottom();
+		}
+
 		resize( width, (int)(y + GAP) );
+	}
+
+	/** offers the skill slots of the hotbar page that is showing */
+	private void chooseSlot(){
+		final int first = Toolbar.visibleStart;
+		String[] slots = new String[Toolbar.pageSize];
+		for (int i = 0; i < slots.length; i++){
+			Skill held = Dungeon.hero.heroSkills.quickslot( first + i );
+			slots[i] = Messages.get( this, "slot", i + 1,
+					held == null ? Messages.get( this, "slot_empty" ) : Messages.titleCase( held.name() ) );
+		}
+		GameScene.show( new WndOptions( skill.quickslotIcon(), Messages.titleCase( skill.name() ),
+				Messages.get( this, "slot_prompt" ), slots ){
+			@Override
+			protected void onSelect( int index ) {
+				//one slot per skill, as with items
+				for (int i = 0; i < xyz.gabriwar.warpedpixeldungeon.QuickSlot.SIZE; i++){
+					if (Dungeon.hero.heroSkills.quickslot( i ) == skill) Dungeon.hero.heroSkills.quickslot( i, null );
+				}
+				Dungeon.hero.heroSkills.quickslot( first + index, skill );
+			}
+		} );
 	}
 }

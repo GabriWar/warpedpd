@@ -82,6 +82,17 @@ public abstract class ExoticScroll extends Scroll {
 		
 		regToExo.put(ScrollOfTransmutation.class, ScrollOfMetamorphosis.class);
 		exoToReg.put(ScrollOfMetamorphosis.class, ScrollOfTransmutation.class);
+
+		//Warped's own scrolls: every regular scroll has an exotic counterpart, or the
+		//unstable spellbook's empowered read has nothing to offer
+		regToExo.put(xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfMagicalInfusion.class, ScrollOfReforging.class);
+		exoToReg.put(ScrollOfReforging.class, xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfMagicalInfusion.class);
+
+		regToExo.put(xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfMultiUpgrade.class, ScrollOfAscension.class);
+		exoToReg.put(ScrollOfAscension.class, xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfMultiUpgrade.class);
+
+		regToExo.put(xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfRegrowth.class, ScrollOfWildGrowth.class);
+		exoToReg.put(ScrollOfWildGrowth.class, xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfRegrowth.class);
 	}
 	
 	@Override

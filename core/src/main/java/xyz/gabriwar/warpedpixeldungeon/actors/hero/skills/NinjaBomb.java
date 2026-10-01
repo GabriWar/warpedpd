@@ -48,6 +48,10 @@ import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import com.watabou.utils.PathFinder;
+import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.SmokeParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 import java.util.ArrayList;
 
@@ -103,21 +107,37 @@ public class NinjaBomb extends ActiveSkill2 {
                 //at mastery the smoke leaves a clone behind to draw enemies off
                 if(skill.level>=MAX_LEVEL) for(int c:SkillInteractions.area(cell,1)) if(Dungeon.level.passable[c]&&xyz.gabriwar.warpedpixeldungeon.actors.Actor.findChar(c)==null){
                     xyz.gabriwar.warpedpixeldungeon.actors.mobs.SkillDecoy decoy=new xyz.gabriwar.warpedpixeldungeon.actors.mobs.SkillDecoy();
-                    decoy.pos=c;decoy.rank=skill.level;decoy.left=2+skill.level;decoy.blinding=false;GameScene.add(decoy);decoy.sprite.alpha(.55f);break;
+                    decoy.pos=c;decoy.rank=skill.level;decoy.left=2+skill.level;decoy.blinding=false;GameScene.add(decoy);decoy.sprite.alpha(.55f);
+                    SkillSpectacleFX.show(SkillSpectacleFX.SHADOW,c);break;
                 }
-				CellEmitter.get( cell ).burst( Speck.factory( Speck.STEAM ), 10 );
-				for (int n : PathFinder.NEIGHBOURS9){
-					int c = cell + n;
-					if (c < 0 || c >= Dungeon.level.length()) continue;
-					if (Dungeon.level.heroFOV[c]){
-						CellEmitter.get( c ).burst( Speck.factory( Speck.STEAM ), 3 );
-					}
+				//the plume: a thick column that keeps pouring for a second and drifts, and the smoke
+				//rolling outward one ring of tiles after another, the sleepers nodding off as it reaches them
+				Camera.main.shake( 1, 0.2f );
+				CellEmitter.get( cell ).burst( SmokeParticle.FACTORY, 8 );
+				CellEmitter.get( cell ).start( SmokeParticle.FACTORY, 0.06f, 20 );
+				FxTimeline t = FxTimeline.start();
+				t.at( 0.25f, () -> Sample.INSTANCE.play( Assets.Sounds.PUFF, 0.7f, 0.8f ) );
+				for (int r = 1; r <= skill.level; r++){
+					final int ring = r;
+					t.at( 0.09f * r, () -> {
+						for (int c : SkillInteractions.area( cell, ring )){
+							if (Dungeon.level.distance( cell, c ) == ring && Dungeon.level.heroFOV[c]){
+								CellEmitter.get( c ).burst( Speck.factory( Speck.SMOKE ), 3 );
+							}
+						}
+					} );
 				}
 				for (int c : SkillInteractions.area(cell, skill.level)) {
 					Char enemy = Actor.findChar(c);
 					if (enemy instanceof Mob && enemy.alignment == Char.Alignment.ENEMY
 							&& enemy.isAlive() && !enemy.properties().contains(Char.Property.BOSS)) {
 						Buff.affect(enemy, MagicalSleep.class);
+						final Char sleeper = enemy;
+						t.at( 0.12f + 0.09f * Dungeon.level.distance( cell, c ), () -> {
+							if (sleeper.sprite != null && sleeper.isAlive() && Dungeon.level.heroFOV[sleeper.pos]){
+								sleeper.sprite.showStatus( CharSprite.NEUTRAL, "Zzz" );
+							}
+						} );
 					}
 				}
 				curUser.spendAndNext( TIME_TO_USE );

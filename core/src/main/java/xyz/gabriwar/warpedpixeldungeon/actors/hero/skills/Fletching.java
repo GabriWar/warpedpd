@@ -83,9 +83,15 @@ public class Fletching extends PassiveSkillA1 {
 		Sample.INSTANCE.play( Assets.Sounds.HIT_ARROW, 1f, 1.4f );
 
 		int splinter = Math.max( 1, Math.round( damage * SPLINTER_DAMAGE ) );
+		int order = 0;
 		for (Char victim : targets){
 			victim.damage( splinter, this );
-			SkillFX.streak( enemy.pos, victim.pos, new xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.Dart(), () -> SkillFX.flash( victim ) );
+			//each splinter lands a note higher than the last
+			final float pitch = 1.2f + 0.1f * order++;
+			SkillFX.streak( enemy.pos, victim.pos, new xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.Dart(), () -> {
+				SkillFX.flash( victim );
+				Sample.INSTANCE.play( Assets.Sounds.HIT_ARROW, 0.6f, pitch );
+			} );
 			if (!victim.isAlive() && level >= MAX_LEVEL) ring.pluck();
 		}
 		return damage;

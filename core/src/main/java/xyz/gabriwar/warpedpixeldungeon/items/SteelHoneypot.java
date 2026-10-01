@@ -131,10 +131,22 @@ public class SteelHoneypot extends Item {
 				return new PotionOfStrength();
 			}
 
-			//already have a pet: keep the pot rather than trading it for an empty
-			//shattered husk and losing the strength reward outright (same trap the
-			//eggs had). Try again once the current pet is gone.
-			return this;
+			//already have a pet: the bee still bursts out of the pot, just untamed.
+			//It is the steel bee the pot is named for, an ally that keeps to its
+			//broken home instead of following the hero like a pet would.
+			SteelBee bee = new SteelBee();
+			bee.spawn( Dungeon.scalingDepth() );
+			bee.setPotInfo( pos, owner );
+			bee.pos = newPos;
+
+			GameScene.add( bee );
+			if (newPos != pos) Actor.addDelayed( new Pushing( bee, pos, newPos ), -1f );
+
+			bee.sprite.alpha( 0 );
+			bee.sprite.parent.add( new AlphaTweener( bee.sprite, 1, 0.15f ) );
+
+			Sample.INSTANCE.play( Assets.Sounds.BEE );
+			return new SteelShatteredPot().setBee( bee );
 		} else {
 			return this;
 		}

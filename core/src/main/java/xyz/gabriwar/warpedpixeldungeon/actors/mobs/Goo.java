@@ -36,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.DriedRose;
 import xyz.gabriwar.warpedpixeldungeon.items.keys.WornKey;
 import xyz.gabriwar.warpedpixeldungeon.items.quest.GooBlob;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.BuzzSaw;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Chainsaw;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -329,9 +330,11 @@ public class Goo extends Mob {
 			}
 		}
 
-		//Chainsaw self-enchants BuzzSaw on its first hit (Chainsaw.proc), reproducing
-		//Sprouted's guaranteed enchanted drop; the Sokoban1 page unlocks its journal room.
-		trackedDrop(new Chainsaw(), 2);
+		//Sprouted drops the Chainsaw already enchanted (enchantBuzz);
+		//the Sokoban1 page unlocks its journal room.
+		Chainsaw chainsaw = new Chainsaw();
+		chainsaw.enchant(new BuzzSaw());
+		trackedDrop(chainsaw, 2);
 		trackedDrop(new xyz.gabriwar.warpedpixeldungeon.items.journalpages.Sokoban1(), 3);
 	}
 
@@ -342,6 +345,8 @@ public class Goo extends Mob {
 			BossHealthBar.assignBoss(this);
 			Dungeon.level.seal();
 			yell(Messages.get(this, "notice"));
+			//Sprouted: Goo squeezes out a ring of mini goos when it first notices the hero
+			PoisonGoo.spawnAround(pos);
 			for (Char ch : Actor.chars()){
 				if (ch instanceof DriedRose.GhostHero){
 					((DriedRose.GhostHero) ch).sayBoss();

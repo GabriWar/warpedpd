@@ -39,8 +39,33 @@ public class WndInfoTalent extends Window {
 	private static final int WIDTH_MIN = 120;
 	private static final int WIDTH_MAX = 220;
 
+	private final Talent talent;
+	private int points;
+	private final TalentButtonCallback buttonCallback;
+	private final java.util.ArrayList<com.watabou.noosa.Gizmo> content = new java.util.ArrayList<>();
+
 	public WndInfoTalent(Talent talent, int points, TalentButtonCallback buttonCallback){
 		super();
+		this.talent = talent;
+		this.points = points;
+		this.buttonCallback = buttonCallback;
+		build();
+	}
+
+	private <T extends com.watabou.noosa.Gizmo> T show( T g ){
+		add( g );
+		content.add( g );
+		return g;
+	}
+
+	/** lays the window out for the talent as it is now; a callback that keeps the window
+	 *  open has it rebuilt after each upgrade, so the numbers and the button stay fresh */
+	private void build(){
+		for (com.watabou.noosa.Gizmo g : content){
+			erase( g );
+			g.destroy();
+		}
+		content.clear();
 
 		int width = WIDTH_MIN;
 
@@ -53,7 +78,7 @@ public class WndInfoTalent extends Window {
 		}
 		titlebar.label( title, Window.TITLE_COLOR );
 		titlebar.setRect( 0, 0, width, 0 );
-		add( titlebar );
+		show( titlebar );
 
 		boolean metaDesc = (buttonCallback != null && buttonCallback.metamorphDesc()) ||
 				(Dungeon.hero != null && Dungeon.hero.metamorphedTalents.containsValue(talent));
@@ -61,7 +86,7 @@ public class WndInfoTalent extends Window {
 		RenderedTextBlock txtInfo = PixelScene.renderTextBlock(talent.desc(metaDesc), 6);
 		txtInfo.maxWidth(width);
 		txtInfo.setPos(titlebar.left(), titlebar.bottom() + 2*GAP);
-		add( txtInfo );
+		show( txtInfo );
 
 		while (PixelScene.landscape()
 				&& txtInfo.height() > 120
@@ -72,18 +97,25 @@ public class WndInfoTalent extends Window {
 		titlebar.setRect( 0, 0, width, 0 );
 		resize( width, (int)(txtInfo.bottom() + GAP) );
 
-		if (buttonCallback != null) {
+		if (buttonCallback != null && buttonCallback.available()) {
 			RedButton button = new RedButton( buttonCallback.prompt() ) {
 				@Override
 				protected void onClick() {
 					super.onClick();
-					hide();
-					buttonCallback.call();
+					if (buttonCallback.staysOpen()){
+						//keep the flow going: the same window, with fresh numbers
+						buttonCallback.call();
+						points = Dungeon.hero != null ? Dungeon.hero.pointsInTalent( talent ) : points + 1;
+						build();
+					} else {
+						hide();
+						buttonCallback.call();
+					}
 				}
 			};
 			button.icon(Icons.get(Icons.TALENT));
 			button.setRect(0, txtInfo.bottom() + 2*GAP, width, 18);
-			add(button);
+			show( button );
 			resize( width, (int)button.bottom()+1 );
 		}
 
@@ -95,6 +127,16 @@ public class WndInfoTalent extends Window {
 
 		public boolean metamorphDesc(){
 			return false;
+		}
+
+		/** whether the window stays open after the button and rebuilds itself */
+		public boolean staysOpen(){
+			return false;
+		}
+
+		/** whether the button can be offered right now; checked again on every rebuild */
+		public boolean available(){
+			return true;
 		}
 
 	}

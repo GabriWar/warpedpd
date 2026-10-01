@@ -64,6 +64,8 @@ public class Hamstring extends Skill {
 			Buff.prolong( enemy, Roots.class, 2f );
 			if (enemy.sprite != null && enemy.sprite.visible){
 				CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.BONE ), 3 );
+				CellEmitter.bottom( enemy.pos ).burst( Speck.factory( Speck.DUST ), 3 );
+				enemy.sprite.flash();
 			}
 			Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 1f, 0.7f );
 		}

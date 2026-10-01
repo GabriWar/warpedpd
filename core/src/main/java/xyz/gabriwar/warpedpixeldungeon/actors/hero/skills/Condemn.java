@@ -66,6 +66,7 @@ public class Condemn extends Skill {
 		CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.LIGHT ), 3 );
 		if (enemy.sprite != null){
 			enemy.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "branded" ) );
+			new xyz.gabriwar.warpedpixeldungeon.effects.Flare( 4, 10 ).color( 0xFFEE88, true ).show( enemy.sprite, 0.35f );
 			if (holy) enemy.sprite.emitter().burst( Speck.factory( Speck.YELLOW_LIGHT ), 4 );
 		}
 		Sample.INSTANCE.play( Assets.Sounds.CURSED, 0.6f, holy ? 1.1f : 1.4f );

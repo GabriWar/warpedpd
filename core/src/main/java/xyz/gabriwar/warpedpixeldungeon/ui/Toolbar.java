@@ -640,8 +640,8 @@ public class Toolbar extends Component {
 		float y = this.y + 24;
 
 		int quickslotsToShow = 4;
-		if (PixelScene.uiCamera.width > 152) quickslotsToShow ++;
-		if (PixelScene.uiCamera.width > 170) quickslotsToShow ++;
+		if (PixelScene.toolbarCamera.width > 152) quickslotsToShow ++;
+		if (PixelScene.toolbarCamera.width > 170) quickslotsToShow ++;
 
 		//the swap button always shows: it flips to a second page as wide as the visible hotbar
 		int startingSlot = swappedQuickslots ? quickslotsToShow : 0;
@@ -656,7 +656,7 @@ public class Toolbar extends Component {
 			btnQuick[i].visible = i >= startingSlot && i <= endingSlot;
 			btnQuick[i].enable(btnQuick[i].visible && lastEnabled);
 			if (i < startingSlot || i > endingSlot){
-				btnQuick[i].setPos(btnQuick[i].left(), PixelScene.uiCamera.height);
+				btnQuick[i].setPos(btnQuick[i].left(), PixelScene.toolbarCamera.height);
 			}
 		}
 
@@ -801,7 +801,10 @@ public class Toolbar extends Component {
 			SkillQuickslotTool skill = btnSkills[i];
 			skill.visible = item.visible;
 			skill.frame(item.borderLeft == 2 ? 86 : item.borderRight == 2 ? 106 : 88, 0, (int)item.width(), 24);
-			skill.setPos(item.left(), item.top() - 24);
+			//a hidden item slot is parked just below the screen, so "one row above it" is the
+			//visible item row: tools block the pointer even while disabled, and the hidden
+			//page's skill slots were swallowing every tap on the items. Park them offscreen too
+			skill.setPos(item.left(), item.visible ? item.top() - 24 : PixelScene.toolbarCamera.height);
 			skill.enable(lastEnabled);
 		}
 	}
@@ -976,8 +979,22 @@ public class Toolbar extends Component {
 			add(cost);
 		}
 
+		private String shownStatus = null;
+
 		private Skill skill(){
 			return Dungeon.hero.heroSkills.quickslot(index);
+		}
+
+		@Override public GameAction keyAction(){
+			switch (index - visibleStart) {
+				case 0: return WPDAction.SKILL_SLOT_1;
+				case 1: return WPDAction.SKILL_SLOT_2;
+				case 2: return WPDAction.SKILL_SLOT_3;
+				case 3: return WPDAction.SKILL_SLOT_4;
+				case 4: return WPDAction.SKILL_SLOT_5;
+				case 5: return WPDAction.SKILL_SLOT_6;
+				default: return null;
+			}
 		}
 
 		@Override protected void layout(){
@@ -1007,15 +1024,22 @@ public class Toolbar extends Component {
 				layout();
 			}
 			sprite.visible = skill != null;
-			cost.visible = skill != null && !skill.quickslotStatus().isEmpty();
 			if (skill != null){
+				//this runs every frame for every slot: only rebuild the label when its text changed
+				String status = skill.quickslotStatus();
+				cost.visible = !status.isEmpty();
 				if (sprite instanceof SkillSprite) ((SkillSprite)sprite).view(skill.image()).grey(skill.toggleable() && !skill.active);
 				boolean ready = active && !skill.actions(Dungeon.hero).isEmpty();
 				sprite.alpha(opacity * (ready || skill.active ? 1f : 0.35f));
-				cost.text(skill.quickslotStatus());
-				cost.measure();
+				if (!status.equals(shownStatus)){
+					shownStatus = status;
+					cost.text(status);
+					cost.measure();
+				}
 				cost.hardlight(ready ? 0x8ac0ff : 0xdd8877);
 				cost.alpha(opacity);
+			} else {
+				cost.visible = false;
 			}
 		}
 

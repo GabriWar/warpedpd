@@ -66,6 +66,8 @@ public class Gold extends Item {
 		//skill tree: Bandit sniffs out extra coin
 		int skillBonus = hero.heroSkills.allLootBonus( quantity );
 		if (skillBonus > 0) quantity += skillBonus;
+		quantity = Math.round(quantity * (1f + xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.heroBonus(hero, xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.Stat.GOLD)));
+		quantity = xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.goldFound( hero, quantity );
 
 		Dungeon.gold += quantity;
 		Statistics.goldCollected += quantity;

@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
+import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -33,6 +34,8 @@ import xyz.gabriwar.warpedpixeldungeon.items.keys.SkeletonKey;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.DwarfKingTombSprite;
+import xyz.gabriwar.warpedpixeldungeon.ui.BossHealthBar;
+import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
 public class DwarfKingTomb extends Mob {
@@ -49,7 +52,7 @@ public class DwarfKingTomb extends Mob {
 		state = PASSIVE;
 
 		properties.add(Property.IMMOVABLE);
-		properties.add(Property.UNDEAD);
+		properties.add(Property.BOSS);
 
 		loot = xyz.gabriwar.warpedpixeldungeon.items.RedDewdrop.class;
 		lootChance = 0.05f;
@@ -97,7 +100,20 @@ public class DwarfKingTomb extends Mob {
 				return;
 			}
 		}
+		if (!BossHealthBar.isAssigned()) BossHealthBar.assignBoss(this);
 		super.damage(dmg, src);
+	}
+
+	@Override
+	public void notice() {
+		super.notice();
+		if (!BossHealthBar.isAssigned()) BossHealthBar.assignBoss(this);
+	}
+
+	@Override
+	public void restoreFromBundle(Bundle bundle) {
+		super.restoreFromBundle(bundle);
+		if (enemySeen || HP < HT) BossHealthBar.assignBoss(this);
 	}
 
 	@Override
@@ -112,8 +128,10 @@ public class DwarfKingTomb extends Mob {
 		GameScene.bossSlain();
 		Dungeon.level.drop(new ArmorKit(), pos).sprite.drop();
 		Dungeon.level.drop(new SkeletonKey(Dungeon.depth), pos).sprite.drop();
-		Dungeon.level.drop(new Gold(Random.IntRange(4900, 10000)), pos).sprite.drop();
+		Dungeon.level.drop(new Gold(Random.IntRange(4900, 9999)), pos).sprite.drop();
 
 		super.die(cause);
+
+		Badges.validateBossSlain();
 	}
 }

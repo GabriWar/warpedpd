@@ -531,6 +531,8 @@ public class ItemSpriteSheet {
 	public static final int ARTIFACT_CLIMATE_CRYSTAL= ARTIFACTS+27;
 	public static final int ICE_KEY                 = ARTIFACTS+28;   //the caged kobold's key; no free slot among the keys
 	public static final int ARTIFACT_MIND_CANDLE    = ARTIFACTS+29;
+	public static final int MASTERWORK_CORE         = ARTIFACTS+30;
+	public static final int TYPE_SHIFTER            = ARTIFACTS+31;
 	static{
 		assignItemRect(ARTIFACT_CLOAK         ,  9, 15);
 		assignItemRect(ARTIFACT_ARMBAND       , 16, 13);
@@ -562,6 +564,8 @@ public class ItemSpriteSheet {
 		assignItemRect(ARTIFACT_CLIMATE_CRYSTAL, 10, 14);
 		assignItemRect(ICE_KEY                 ,  8, 14);
 		assignItemRect(ARTIFACT_MIND_CANDLE    , 15, 14);
+		assignItemRect(MASTERWORK_CORE         , 16, 16);
+		assignItemRect(TYPE_SHIFTER            , 16, 16);
 	}
 
 	private static final int TRINKETS            =                               xy(1, 20);   //32 slots
@@ -1572,6 +1576,9 @@ public class ItemSpriteSheet {
 		public static final int SCROLL_PSIBLAST = EXOTIC_SCROLLS+9;
 		public static final int SCROLL_DREAD    = EXOTIC_SCROLLS+10;
 		public static final int SCROLL_METAMORPH= EXOTIC_SCROLLS+11;
+		public static final int SCROLL_REFORGE  = EXOTIC_SCROLLS+12;
+		public static final int SCROLL_ASCEND   = EXOTIC_SCROLLS+13;
+		public static final int SCROLL_WILDGROWTH= EXOTIC_SCROLLS+14;
 		static {
 			assignIconRect( SCROLL_ENCHANT,     7, 7 );
 			assignIconRect( SCROLL_DIVINATE,    7, 6 );
@@ -1585,6 +1592,9 @@ public class ItemSpriteSheet {
 			assignIconRect( SCROLL_PSIBLAST,    5, 6 );
 			assignIconRect( SCROLL_DREAD,       5, 7 );
 			assignIconRect( SCROLL_METAMORPH,   7, 7 );
+			assignIconRect( SCROLL_REFORGE,     7, 7 );
+			assignIconRect( SCROLL_ASCEND,      7, 7 );
+			assignIconRect( SCROLL_WILDGROWTH,  7, 7 );
 		}
 
 		                                                                                //16 free slots
@@ -1960,5 +1970,29 @@ public class ItemSpriteSheet {
 		assignItemRect(ARROW_BAG           , 14, 15);
 		assignItemRect(GUNSMITHING_TOOL    , 16, 13);
 		assignItemRect(BULLET_BELT         , 15, 15);
+	}
+
+	//combination brews and elixirs (two potions in the pot), plus the cape of thorns
+	private static final int OLD_ALCHEMY  =                            xy(1, 63);   //16 slots
+	public static final int BREW_WICKED         = OLD_ALCHEMY+0;
+	public static final int BREW_FRIGID         = OLD_ALCHEMY+1;
+	public static final int BREW_FROSTFIRE      = OLD_ALCHEMY+2;
+	public static final int BREW_THUNDERHEAD    = OLD_ALCHEMY+3;
+	public static final int BREW_BLINDING       = OLD_ALCHEMY+4;
+	public static final int BREW_OVERGROWTH     = OLD_ALCHEMY+5;
+	public static final int BREW_HYPNO          = OLD_ALCHEMY+6;
+	public static final int BREW_QUICKSAND      = OLD_ALCHEMY+7;
+	public static final int ELIXIR_RESTO        = OLD_ALCHEMY+8;
+	public static final int ELIXIR_VITALITY     = OLD_ALCHEMY+9;
+	public static final int ELIXIR_SHADE        = OLD_ALCHEMY+10;
+	public static final int ELIXIR_HUNT         = OLD_ALCHEMY+11;
+	public static final int ELIXIR_WARMTH       = OLD_ALCHEMY+12;
+	public static final int ELIXIR_BLOOM        = OLD_ALCHEMY+13;
+	public static final int ELIXIR_CLARITY      = OLD_ALCHEMY+14;
+	public static final int ARTIFACT_CAPE_THORNS= OLD_ALCHEMY+15;
+	static {
+		for (int i = OLD_ALCHEMY; i < OLD_ALCHEMY+15; i++)
+			assignItemRect(i, 12, 14);
+		assignItemRect(ARTIFACT_CAPE_THORNS, 16, 14);
 	}
 }

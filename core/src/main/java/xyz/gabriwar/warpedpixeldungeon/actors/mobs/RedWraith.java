@@ -64,7 +64,6 @@ public class RedWraith extends Wraith {
 
 		immunities.add( xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim.class );
 		immunities.add( xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas.class );
-		immunities.add( xyz.gabriwar.warpedpixeldungeon.actors.buffs.Doom.class );
 
 		immunities.add( Amok.class );
 		immunities.add( Terror.class );

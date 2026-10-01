@@ -49,7 +49,7 @@ public class LayOnHands extends TargetedClericSpell {
 
 	@Override
 	public String desc() {
-		return Messages.get(this, "desc", 10 + 5*Dungeon.hero.pointsInTalent(Talent.LAY_ON_HANDS)) + "\n\n" + Messages.get(this, "charge_cost", (int)chargeUse(Dungeon.hero));
+		return Messages.get(this, "desc", heal(Dungeon.hero)) + "\n\n" + Messages.get(this, "charge_cost", (int)chargeUse(Dungeon.hero));
 	}
 
 	@Override
@@ -104,8 +104,14 @@ public class LayOnHands extends TargetedClericSpell {
 
 	}
 
+	/** 18/24/30% of the Paladin's max HP, at least 15/20/25 */
+	private static int heal( Hero hero ){
+		int p = hero.pointsInTalent(Talent.LAY_ON_HANDS);
+		return Math.max(10 + 5*p, Math.round(hero.HT * (0.12f + 0.06f*p)));
+	}
+
 	private void affectChar(Hero hero, Char ch){
-		int totalHeal = 10 + 5*hero.pointsInTalent(Talent.LAY_ON_HANDS);
+		int totalHeal = heal(hero);
 		int totalBarrier = 0;
 		if (ch == hero){
 			Barrier barrier = Buff.affect(ch, Barrier.class);

@@ -55,7 +55,11 @@ public class RingOfMagic extends Ring {
 	}
 
 	public static int manaBonus( Char target ){
-		return getBuffedBonus(target, Magic.class);
+		//the rarity share is of the hero's own pool, so it keeps pace as the pool grows
+		int rarity = target instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero
+				? Math.round( ((xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero) target).MT
+						* xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.heroBonus(target, xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.Stat.MANA) ) : 0;
+		return getBuffedBonus(target, Magic.class) + rarity;
 	}
 
 	public static float manaRegenMultiplier( Char target ){

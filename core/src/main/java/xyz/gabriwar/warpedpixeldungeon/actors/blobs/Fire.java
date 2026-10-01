@@ -60,7 +60,7 @@ public class Fire extends Blob {
 						continue;
 					}
 
-					TileTemperature.depositHeat(cell, cur[cell] * 15.0f);
+					TileTemperature.applyFireHeat(cell);
 					burn( cell );
 
 					fire = cur[cell] - 1;

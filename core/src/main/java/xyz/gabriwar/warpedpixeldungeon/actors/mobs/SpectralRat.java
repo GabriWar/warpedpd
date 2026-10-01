@@ -120,11 +120,6 @@ public class SpectralRat extends Mob {
 		next();
 	}
 
-	@Override
-	public float spawningWeight() {
-		return 0;
-	}
-
 	public static SpectralRat spawnAt( int pos ) {
 		SpectralRat r = new SpectralRat();
 		r.pos = pos;

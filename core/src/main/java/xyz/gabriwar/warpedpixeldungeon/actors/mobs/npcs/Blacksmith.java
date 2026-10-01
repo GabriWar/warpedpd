@@ -43,7 +43,9 @@ import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.Room;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.BlacksmithRoom;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.MasterworkCore;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
 import xyz.gabriwar.warpedpixeldungeon.sprites.BlacksmithSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBlacksmith;
@@ -94,6 +96,33 @@ public class Blacksmith extends NPC {
 			return true;
 		}
 
+		//a hero carrying masterwork cores can have them worked in here, as at the
+		//town's forge; the third option goes on to the smith's usual talk
+		if (!h.isRemote && h.belongings.getItem( MasterworkCore.class ) != null) {
+			Game.runOnRenderThread(new Callback() {
+				@Override
+				public void call() {
+					GameScene.show( new WndOptions( sprite(), Messages.titleCase( name() ),
+							Messages.get( Blacksmith.this, "core_menu" ),
+							MasterworkCore.menuOptions( Messages.get( Blacksmith.this, "opt_talk" ) ) ){
+						@Override
+						protected void onSelect( int index ){
+							if (index == 0) MasterworkCore.choose( h, true );
+							else if (index == 1) MasterworkCore.choose( h, false );
+							else if (index == 2) talk( h );
+						}
+					} );
+				}
+			});
+			return true;
+		}
+
+		talk( h );
+		return true;
+	}
+
+	//the quest's own conversation: the offer, the reminders, the smith's services
+	private void talk( final Hero h ) {
 		Quest.HeroProgress hp = Quest.progressFor( h.id() );
 
 		if (hp == null || !hp.given) {
@@ -111,8 +140,6 @@ public class Blacksmith extends NPC {
 		} else {
 			tell( h, Messages.get(this, "get_lost") );
 		}
-
-		return true;
 	}
 
 	private void showIntro( final Hero h ) {
@@ -244,7 +271,7 @@ public class Blacksmith extends NPC {
 		private static int type = 0;
 		public static final int CRYSTAL = 1;
 		public static final int GNOLL = 2;
-		public static final int FUNGI = 3; //The fungi quest is not implemented, only exists partially in code
+		public static final int FUNGI = 3;
 
 		//world state — the mine is shared geometry, so these stay global
 		private static boolean spawned;
@@ -384,8 +411,7 @@ public class Blacksmith extends NPC {
 				rooms.add(new BlacksmithRoom());
 				spawned = true;
 
-				//Currently cannot roll the fungi quest, as it is not fully implemented
-				type = Random.IntRange(1, 2);
+				type = Random.IntRange(1, 3);
 			}
 			return rooms;
 		}

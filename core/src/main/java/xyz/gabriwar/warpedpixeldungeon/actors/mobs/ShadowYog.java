@@ -24,7 +24,10 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
+import com.watabou.utils.Bundle;
+import xyz.gabriwar.warpedpixeldungeon.ui.BossHealthBar;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
@@ -34,7 +37,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Charm;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Sleep;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.OrbOfZot;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
+import xyz.gabriwar.warpedpixeldungeon.levels.Level;
+import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
+import xyz.gabriwar.warpedpixeldungeon.levels.traps.SummoningTrap;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ShadowYogSprite;
@@ -59,6 +68,7 @@ public class ShadowYog extends Mob {
 		properties.add( Property.BOSS );
 		properties.add( Property.DEMONIC );
 
+		immunities.add( Grim.class );
 		immunities.add( Terror.class );
 		immunities.add( Amok.class );
 		immunities.add( Charm.class );
@@ -100,42 +110,66 @@ public class ShadowYog extends Mob {
 
 	@Override
 	public void damage( int dmg, Object src ) {
-		super.damage( dmg, src );
+		if (!BossHealthBar.isAssigned()) BossHealthBar.assignBoss( this );
+
+		// every hit seeds hidden summoning traps in sight of the hero
+		for (int i = 0; i < 4; i++) {
+			int trapPos;
+			int tries = 20;
+			do {
+				trapPos = Random.Int( Dungeon.level.length() );
+				tries--;
+			} while (tries > 0
+					&& (!Dungeon.level.heroFOV[trapPos] || !Dungeon.level.passable[trapPos]));
+
+			if (Dungeon.level.map[trapPos] == Terrain.INACTIVE_TRAP) {
+				Dungeon.level.setTrap( new SummoningTrap().hide(), trapPos );
+				Level.set( trapPos, Terrain.SECRET_TRAP );
+			}
+		}
 
 		if (HP < HT / 8 && Random.Int( 2 ) == 0) {
 			teleport();
 		}
+
+		super.damage( dmg, src );
 	}
 
 	private void teleport() {
-		int newPos;
-		int tries = 100;
-		do {
-			newPos = Random.Int( Dungeon.level.length() );
-			tries--;
-		} while (tries > 0
-				&& (!Dungeon.level.passable[newPos] || Actor.findChar( newPos ) != null));
+		int newPos = -1;
+		for (int i = 0; i < 20; i++) {
+			newPos = Dungeon.level.randomRespawnCell( this );
+			if (newPos != -1) {
+				break;
+			}
+		}
 
-		if (tries <= 0) return;
+		if (newPos == -1) return;
+
+		CellEmitter.get( pos ).start( Speck.factory( Speck.LIGHT ), 0.2f, 3 );
 
 		pos = newPos;
 		sprite.place( pos );
 		sprite.visible = Dungeon.level.heroFOV[pos];
 
-		// Spawn SpectralRats around new position
-		for (int n : PathFinder.NEIGHBOURS8) {
-			int cell = pos + n;
-			if (Dungeon.level.passable[cell] && Actor.findChar( cell ) == null) {
-				SpectralRat rat = new SpectralRat();
-				rat.pos = cell;
-				rat.state = rat.HUNTING;
-				GameScene.add( rat );
+		GLog.n( Messages.get( this, "vanish" ) );
+
+		// the den only keeps feeding the legion while it is thin
+		if (Dungeon.level.mobs.size() < Dungeon.hero.lvl * 2) {
+			for (int n : PathFinder.NEIGHBOURS4) {
+				int cell = pos + n;
+				if (Dungeon.level.passable[cell] && Actor.findChar( cell ) == null
+						&& Random.Float() < 0.75f) {
+					SpectralRat.spawnAt( cell );
+				}
 			}
 		}
 	}
 
 	@Override
 	public void die( Object cause ) {
+
+		Statistics.shadowYogsKilled++;
 
 		// Check if any other ShadowYog alive on level
 		boolean otherAlive = false;
@@ -181,5 +215,18 @@ public class ShadowYog extends Mob {
 			Dungeon.orbofzotdropped = true;
 			trackedDrop(new OrbOfZot(), 0);
 		}
+	}
+
+	@Override
+	public void notice() {
+		super.notice();
+		if (!BossHealthBar.isAssigned()) BossHealthBar.assignBoss( this );
+		yell( Messages.get( this, "notice" ) );
+	}
+
+	@Override
+	public void restoreFromBundle( Bundle bundle ) {
+		super.restoreFromBundle( bundle );
+		if (enemySeen || HP < HT) BossHealthBar.assignBoss( this );
 	}
 }

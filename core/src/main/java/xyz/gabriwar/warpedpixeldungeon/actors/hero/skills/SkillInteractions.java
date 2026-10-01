@@ -120,6 +120,9 @@ public final class SkillInteractions {
     private static float heroMovedAt=-10f;
     /** the hero changed tiles (any move) during the last game turn */
     public static boolean heroMovedLastTurn(){return Actor.now()-heroMovedAt<=1f;}
+    /** whole turns the hero has stood still, counted from the last tile change: the ramp
+     *  the Guard and Bulwark rarity perks read */
+    public static int turnsStill(){float still=Actor.now()-heroMovedAt;return still<=0f?0:(int)Math.min(99f,still);}
 
     /** Char.attack miss branch, when the defender is the hero */
     public static void heroMissedBy(Char attacker){
@@ -206,7 +209,7 @@ public final class SkillInteractions {
                 flare(ch.pos,0xDEB37C);break;
             }
             if(!Dungeon.level.passable[c] || Dungeon.level.pit[c])break;
-            ch.move(c,false);if(ch.sprite!=null)ch.sprite.place(c);
+            ch.move(c,false);if(ch.sprite!=null)ch.sprite.snapToPosition(c);
         }
     }
     public static void lure(int center,int rank){
@@ -237,7 +240,7 @@ public final class SkillInteractions {
             if(chain==null||chain.rank<2||chain.cell!=cell||!victim.isAlive())continue;
             chain.detach();
             if(valid(cell)&&Dungeon.level.passable[cell]&&Actor.findChar(cell)==null&&clear(victim.pos,cell)){
-                victim.move(cell,false);if(victim.sprite!=null)victim.sprite.place(cell);
+                victim.move(cell,false);if(victim.sprite!=null)victim.sprite.snapToPosition(cell);
             }
             hurt(victim,5+3*chain.rank);flare(cell,0xC6D1DE);return true;
         }
@@ -251,13 +254,16 @@ public final class SkillInteractions {
             hero.heroSkills.onCharMoved(ch,previous,travelling);
             if(ch!=hero&&travelling&&ch.alignment==Char.Alignment.ENEMY&&ch.isAlive()&&Dungeon.level.adjacent(ch.pos,hero.pos)
                     &&!(valid(previous)&&Dungeon.level.adjacent(previous,hero.pos))){
-                final int from=previous;
-                defer(()->{if(hero.isAlive()&&ch.isAlive()&&Dungeon.level.adjacent(ch.pos,hero.pos))hero.heroSkills.onEnemyStepsAdjacent(ch,from);});
+                final int from=previous, arrival=ch.pos, movement=ch.movementVersion();
+                final xyz.gabriwar.warpedpixeldungeon.levels.Level floor=Dungeon.level;
+                defer(()->{if(Dungeon.level==floor&&Dungeon.hero==hero&&hero.isAlive()&&ch.isAlive()
+                        &&ch.pos==arrival&&ch.movementVersion()==movement&&Dungeon.level.adjacent(ch.pos,hero.pos))
+                    hero.heroSkills.onEnemyStepsAdjacent(ch,from);});
             }
         }
         Mark chain=get(ch,Mark.CHAIN);
         if(chain!=null && Dungeon.level.distance(chain.cell,ch.pos)>1){
-            if(valid(previous)&&Actor.findChar(previous)==null){ch.pos=previous;if(ch.sprite!=null)ch.sprite.place(previous);}
+            if(valid(previous)&&Actor.findChar(previous)==null){ch.pos=previous;if(ch.sprite!=null)ch.sprite.snapToPosition(previous);}
             hurt(ch,2+chain.rank);chain.power++;
             if(chain.power>=(ch.properties().contains(Char.Property.BOSS)?1:2+chain.rank))chain.detach();
             flare(ch.pos,0xB1BDCC);

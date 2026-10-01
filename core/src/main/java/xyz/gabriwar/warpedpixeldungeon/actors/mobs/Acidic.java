@@ -24,7 +24,10 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Ooze;
 import xyz.gabriwar.warpedpixeldungeon.sprites.AcidicSprite;
 import com.watabou.utils.Random;
 
@@ -33,12 +36,23 @@ public class Acidic extends Scorpio {
 	{
 		spriteClass = AcidicSprite.class;
 
+		properties.add(Property.ACIDIC);
+
 		//built for the heat: the chill is what hurts
 		thermal = Thermal.HEAT_DWELLER;
 	}
 
 	@Override
+	public int attackProc( Char enemy, int damage ) {
+		Buff.affect( enemy, Ooze.class ).set( Ooze.DURATION );
+		return super.attackProc( enemy, damage );
+	}
+
+	@Override
 	public int defenseProc( Char enemy, int damage ) {
+		if (Dungeon.level.adjacent( pos, enemy.pos )) {
+			Buff.affect( enemy, Ooze.class ).set( Ooze.DURATION );
+		}
 		int dmg = Random.IntRange( 0, damage );
 		if (dmg > 0) {
 			enemy.damage( dmg, this );

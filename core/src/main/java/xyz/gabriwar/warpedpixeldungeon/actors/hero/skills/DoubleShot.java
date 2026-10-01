@@ -43,6 +43,8 @@ import com.watabou.utils.Random;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.RogueHuntressAuras;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraBuff;
 
 public class DoubleShot extends ActiveSkill2 {
 
@@ -75,9 +77,16 @@ public class DoubleShot extends ActiveSkill2 {
 		super.execute(hero, action);
 		if (action.equals(Skill.AC_ACTIVATE)){
 			Sample.INSTANCE.play( Assets.Sounds.ATK_SPIRITBOW, 1f, 1.3f );
-			hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 3 );
+			hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 6 );
 			hero.heroSkills.active1.active = false; // Disable Aimed Shot
 			hero.heroSkills.active3.active = false; // Disable Bombvoyage
+			StanceAuraBuff.sync( hero, RogueHuntressAuras.Aimed.class, false );
+			StanceAuraBuff.sync( hero, RogueHuntressAuras.Fuse.class, false );
+			StanceAuraBuff.sync( hero, RogueHuntressAuras.Double.class, true );
+		} else if (action.equals(Skill.AC_DEACTIVATE)){
+			Sample.INSTANCE.play( Assets.Sounds.ATK_SPIRITBOW, 0.6f, 0.9f );
+			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 2 );
+			StanceAuraBuff.sync( hero, RogueHuntressAuras.Double.class, false );
 		}
 	}
 
@@ -92,6 +101,9 @@ public class DoubleShot extends ActiveSkill2 {
 			return false;
 		castTextYell();
 		Dungeon.hero.MP -= getManaCost();
+		//the second arrow leaving the string: a twang a note higher and two sparks off the bow
+		Sample.INSTANCE.play( Assets.Sounds.ATK_SPIRITBOW, 0.8f, 1.5f );
+		if (Dungeon.hero.sprite != null) Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 2 );
 		return true;
 	}
 

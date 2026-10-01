@@ -23,6 +23,8 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Blacksmith;
 import xyz.gabriwar.warpedpixeldungeon.sprites.FungalCoreSprite;
+import xyz.gabriwar.warpedpixeldungeon.ui.BossHealthBar;
+import com.watabou.utils.Bundle;
 
 public class FungalCore extends Mob {
 
@@ -46,6 +48,23 @@ public class FungalCore extends Mob {
 	@Override
 	public float spawningWeight() {
 		return 0;
+	}
+
+	@Override
+	public void damage(int dmg, Object src) {
+		//the core is passive, so the fight starts when the hero starts hitting it
+		if (isAlive()){
+			BossHealthBar.assignBoss(this);
+		}
+		super.damage(dmg, src);
+	}
+
+	@Override
+	public void restoreFromBundle(Bundle bundle) {
+		super.restoreFromBundle(bundle);
+		if (HP < HT){
+			BossHealthBar.assignBoss(this);
+		}
 	}
 
 	@Override

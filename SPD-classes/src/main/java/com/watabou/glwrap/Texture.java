@@ -64,15 +64,24 @@ public class Texture {
 	public static void clear(){
 		bound_id = 0;
 	}
+
+	//binds for real before an upload or a parameter change. bind() trusts bound_id and
+	//skips the GL call, but libGDX (the font packer, above all) binds textures behind
+	//its back: an upload trusting a stale bound_id lands in whatever texture is really
+	//bound - usually the font atlas - and garbles text all over the game
+	private void bindForWrite(){
+		bound_id = 0;
+		bind();
+	}
 	
 	public void filter( int minMode, int maxMode ) {
-		bind();
+		bindForWrite();
 		Gdx.gl.glTexParameterf( Gdx.gl.GL_TEXTURE_2D, Gdx.gl.GL_TEXTURE_MIN_FILTER, minMode );
 		Gdx.gl.glTexParameterf( Gdx.gl.GL_TEXTURE_2D, Gdx.gl.GL_TEXTURE_MAG_FILTER, maxMode );
 	}
 	
 	public void wrap( int s, int t ) {
-		bind();
+		bindForWrite();
 		Gdx.gl.glTexParameterf( Gdx.gl.GL_TEXTURE_2D, Gdx.gl.GL_TEXTURE_WRAP_S, s );
 		Gdx.gl.glTexParameterf( Gdx.gl.GL_TEXTURE_2D, Gdx.gl.GL_TEXTURE_WRAP_T, t );
 	}
@@ -83,7 +92,7 @@ public class Texture {
 	}
 	
 	public void bitmap( Pixmap pixmap ) {
-		bind();
+		bindForWrite();
 		
 		Gdx.gl.glTexImage2D(
 				Gdx.gl.GL_TEXTURE_2D,
@@ -102,7 +111,7 @@ public class Texture {
 	
 	public void pixels( int w, int h, int[] pixels ) {
 	
-		bind();
+		bindForWrite();
 		
 		IntBuffer imageBuffer = ByteBuffer.
 			allocateDirect( w * h * 4 ).
@@ -125,7 +134,7 @@ public class Texture {
 	
 	public void pixels( int w, int h, byte[] pixels ) {
 		
-		bind();
+		bindForWrite();
 		
 		ByteBuffer imageBuffer = ByteBuffer.
 			allocateDirect( w * h ).

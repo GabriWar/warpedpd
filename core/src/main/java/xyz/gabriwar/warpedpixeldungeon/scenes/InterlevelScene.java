@@ -701,9 +701,18 @@ public class InterlevelScene extends PixelScene {
 		
 		Buff.affect( Dungeon.hero, Chasm.Falling.class );
 		Dungeon.saveAll();
-
 		Level level;
-		Dungeon.depth++;
+		//off one of the world's slices the fall lands on the slice below
+		//(OverworldLevel.fallingFrom); everywhere else one floor down
+		int sliceBelow = xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel.takeFallDepth();
+		if (Dungeon.branch == xyz.gabriwar.warpedpixeldungeon.levels.SpiderNestLevel.SPIDER_BRANCH
+				&& Dungeon.depth >= xyz.gabriwar.warpedpixeldungeon.levels.SpiderNestLevel.LAST_DEPTH) {
+			//the spider nest loops: nothing is built below its deepest floor, so a fall
+			//comes out at the top of the nest, the same way its stairs do
+			Dungeon.depth = xyz.gabriwar.warpedpixeldungeon.levels.SpiderNestLevel.FIRST_DEPTH;
+		} else {
+			Dungeon.depth = sliceBelow > 0 ? sliceBelow : Dungeon.depth + 1;
+		}
 		if (Dungeon.levelHasBeenGenerated(Dungeon.depth, Dungeon.branch)) {
 			level = Dungeon.loadLevel( GamesInProgress.curSlot );
 		} else {

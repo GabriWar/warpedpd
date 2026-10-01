@@ -28,6 +28,8 @@ import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.DwarfKing;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.DwarfKingTomb;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.DwarfLich;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Imp;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
@@ -74,11 +76,14 @@ public class CityBossLevel extends Level {
 	private static final int topDoor = 7 + arena.top*15;
 
 	public static final int throne;
+	//the dwarf king's tomb stands behind the throne, between the north pedestals
+	private static final int tombPos;
 	private static final int[] pedestals = new int[4];
 
 	static {
 		Point c = arena.center();
 		throne = c.x + (c.y) * WIDTH;
+		tombPos = c.x + (c.y-2) * WIDTH;
 		pedestals[0] = c.x-3 + (c.y-3) * WIDTH;
 		pedestals[1] = c.x+3 + (c.y-3) * WIDTH;
 		pedestals[2] = c.x+3 + (c.y+3) * WIDTH;
@@ -338,6 +343,11 @@ public class CityBossLevel extends Level {
 		GameScene.add( boss );
 		boss.beckon(Dungeon.hero.pos);
 
+		//the tomb is immortal for as long as its king still stands
+		DwarfKingTomb tomb = new DwarfKingTomb();
+		tomb.pos = tombPos;
+		GameScene.add( tomb );
+
 		if (heroFOV[boss.pos]) {
 			boss.notice();
 			boss.sprite.alpha( 0 );
@@ -367,6 +377,13 @@ public class CityBossLevel extends Level {
 	@Override
 	public void unseal() {
 		super.unseal();
+
+		//the king's death releases the liches sacrificed to sustain him
+		for (Mob m : mobs.toArray(new Mob[0])){
+			if (m instanceof DwarfKingTomb){
+				DwarfLich.spawnAround(m.pos);
+			}
+		}
 
 		set( bottomDoor, Terrain.DOOR );
 		GameScene.updateMap( bottomDoor );

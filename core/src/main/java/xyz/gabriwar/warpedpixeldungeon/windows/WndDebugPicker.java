@@ -193,6 +193,60 @@ public class WndDebugPicker extends Window {
 		return entries;
 	}
 
+	/** picks a weapon or armor from the pack, then a list of every enchantment or glyph
+	 *  (common, uncommon, rare and the curses) to put on it, or strips it */
+	public static void forEnchanting() {
+		GameScene.selectItem(new WndBag.ItemSelector() {
+			@Override
+			public String textPrompt() { return "Choose a weapon or armor to enchant"; }
+
+			@Override
+			public boolean itemSelectable(Item item) {
+				return item instanceof xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon
+						|| item instanceof xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
+			}
+
+			@Override
+			public void onSelect(Item item) {
+				if (item == null) return;
+				ArrayList<Entry> entries = new ArrayList<>();
+				boolean weapon = item instanceof xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
+				Class<?>[][] tables = weapon
+						? new Class<?>[][]{ xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon.Enchantment.common,
+								xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon.Enchantment.uncommon,
+								xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon.Enchantment.rare,
+								xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon.Enchantment.curses }
+						: new Class<?>[][]{ xyz.gabriwar.warpedpixeldungeon.items.armor.Armor.Glyph.common,
+								xyz.gabriwar.warpedpixeldungeon.items.armor.Armor.Glyph.uncommon,
+								xyz.gabriwar.warpedpixeldungeon.items.armor.Armor.Glyph.rare,
+								xyz.gabriwar.warpedpixeldungeon.items.armor.Armor.Glyph.curses };
+				String[] tiers = { "common", "uncommon", "rare", "curse" };
+				for (int t = 0; t < tables.length; t++) {
+					for (Class<?> cls : tables[t]) {
+						String name = xyz.gabriwar.warpedpixeldungeon.messages.Messages.get(cls, "name");
+						if (name.contains("NO TEXT FOUND")) name = cls.getSimpleName();
+						String label = name + " (" + tiers[t] + ")";
+						Entry e = new Entry(label, null, () -> {
+							Object ench = Reflection.newInstance(cls);
+							if (weapon) ((xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon) item).enchant((xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon.Enchantment) ench);
+							else ((xyz.gabriwar.warpedpixeldungeon.items.armor.Armor) item).inscribe((xyz.gabriwar.warpedpixeldungeon.items.armor.Armor.Glyph) ench);
+							xyz.gabriwar.warpedpixeldungeon.effects.Enchanting.show(Dungeon.hero, item);
+							Item.updateQuickslot();
+						});
+						e.searchText = label + " " + cls.getSimpleName();
+						entries.add(e);
+					}
+				}
+				entries.add(new Entry("- remove enchantment -", null, () -> {
+					if (weapon) ((xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon) item).enchant(null);
+					else ((xyz.gabriwar.warpedpixeldungeon.items.armor.Armor) item).inscribe(null);
+					Item.updateQuickslot();
+				}));
+				GameScene.show(new WndDebugPicker((weapon ? "ENCHANT " : "INSCRIBE ") + item.name().toUpperCase(), entries, false));
+			}
+		});
+	}
+
 	public static WndDebugPicker forTravel() {
 		ArrayList<Entry> entries = new ArrayList<>();
 		// depth, branch, label
@@ -459,27 +513,61 @@ public class WndDebugPicker extends Window {
 
 	// --- Quantity picker helper ---
 
-	private static void askQuantity(String name, IntConsumer callback) {
+	//the most the debug picker places at once: items can pile a hundred deep on a
+	//cell; monsters all stand on the one tapped cell, so they stay at ten
+	private static final int MAX_ITEMS = 100;
+	private static final int MAX_MOBS = 10;
+
+	private static void askQuantity(String name, int max, IntConsumer callback) {
 		final int[] qty = {1};
 		WarpedPixelDungeon.scene().addToFront(new Window() {
 			{
-				int w = 100;
+				int w = 140;
 
-				RenderedTextBlock title = PixelScene.renderTextBlock("Quantity: " + name, 7);
+				RenderedTextBlock title = PixelScene.renderTextBlock("", 7);
 				title.hardlight(TITLE_COLOR);
 				title.maxWidth(w);
 				add(title);
-				title.setPos((w - title.width()) / 2f, 2);
 
-				OptionSlider slider = new OptionSlider("", "1", "10", 1, 10) {
+				final OptionSlider[] slider = new OptionSlider[1];
+				//the count shows in the title, and -/+ nudge it one at a time: a slider
+				//a hundred values wide cannot land on an exact number by touch alone
+				Runnable show = () -> {
+					title.text("Quantity: " + name + "  x" + qty[0]);
+					title.setPos((w - title.width()) / 2f, 2);
+				};
+				slider[0] = new OptionSlider("", "1", String.valueOf(max), 1, max) {
 					@Override
 					protected void onChange() {
 						qty[0] = getSelectedValue();
+						show.run();
 					}
 				};
-				slider.setSelectedValue(1);
-				add(slider);
-				slider.setRect(0, title.bottom() + 2, w, 21);
+				show.run();
+				slider[0].setSelectedValue(1);
+				add(slider[0]);
+				slider[0].setRect(0, title.bottom() + 2, w, 21);
+
+				RedButton less = new RedButton("-") {
+					@Override
+					protected void onClick() {
+						qty[0] = Math.max(1, qty[0] - 1);
+						slider[0].setSelectedValue(qty[0]);
+						show.run();
+					}
+				};
+				add(less);
+				less.setRect(0, slider[0].bottom() + 2, w / 2f - 1, 14);
+				RedButton more = new RedButton("+") {
+					@Override
+					protected void onClick() {
+						qty[0] = Math.min(max, qty[0] + 1);
+						slider[0].setSelectedValue(qty[0]);
+						show.run();
+					}
+				};
+				add(more);
+				more.setRect(w / 2f + 1, slider[0].bottom() + 2, w / 2f - 1, 14);
 
 				RedButton btnOk = new RedButton("Confirm") {
 					@Override
@@ -489,7 +577,7 @@ public class WndDebugPicker extends Window {
 					}
 				};
 				add(btnOk);
-				btnOk.setRect(0, slider.bottom() + 2, w, 14);
+				btnOk.setRect(0, less.bottom() + 2, w, 14);
 
 				resize(w, (int) btnOk.bottom() + 2);
 			}
@@ -499,12 +587,94 @@ public class WndDebugPicker extends Window {
 	// --- Cell selection for placement ---
 
 	private static void selectCellForItem(Class<?> itemCls, String name) {
-		askQuantity(name, count -> GameScene.selectCell(new CellSelector.Listener() {
+		Item probe = (Item) Reflection.newInstance(itemCls);
+		boolean typed = xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.eligible(probe);
+		askQuantity(name, MAX_ITEMS, count -> {
+			if (typed) {
+				askQuality(name, (rarity, type, masterwork) -> dropItems(name, count, cell -> {
+					Item item = (Item) Reflection.newInstance(itemCls);
+					if (item == null) return null;
+					xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.roll(item, rarity, type, masterwork);
+					return item;
+				}));
+			} else {
+				dropItems(name, count, cell -> (Item) Reflection.newInstance(itemCls));
+			}
+		});
+	}
+
+	private interface QualityChoice {
+		void chosen(xyz.gabriwar.warpedpixeldungeon.items.rarity.Rarity rarity,
+					xyz.gabriwar.warpedpixeldungeon.items.rarity.ItemType type, int masterwork);
+	}
+
+	//the extra step for weapons, armor, missiles and wands: rarity, type and masterwork,
+	//each slider's leftmost value meaning "roll it like a real drop"
+	private static void askQuality(String name, QualityChoice callback) {
+		final int[] pick = {0, 0, 0};
+		WarpedPixelDungeon.scene().addToFront(new Window() {
+			{
+				int w = 120;
+
+				RenderedTextBlock title = PixelScene.renderTextBlock("Quality: " + name, 7);
+				title.hardlight(TITLE_COLOR);
+				title.maxWidth(w);
+				add(title);
+				title.setPos((w - title.width()) / 2f, 2);
+
+				OptionSlider rarity = new OptionSlider("Rarity (random, common .. exotic)", "rnd", "exotic", 0, 5) {
+					@Override
+					protected void onChange() { pick[0] = getSelectedValue(); }
+				};
+				rarity.setSelectedValue(0);
+				add(rarity);
+				rarity.setRect(0, title.bottom() + 2, w, 24);
+
+				OptionSlider type = new OptionSlider("Type (random, gamma, beta, alpha)", "rnd", "alpha", 0, 3) {
+					@Override
+					protected void onChange() { pick[1] = getSelectedValue(); }
+				};
+				type.setSelectedValue(0);
+				add(type);
+				type.setRect(0, rarity.bottom() + 2, w, 24);
+
+				OptionSlider masterwork = new OptionSlider("Masterwork steps", "0", "10", 0, 10) {
+					@Override
+					protected void onChange() { pick[2] = getSelectedValue(); }
+				};
+				masterwork.setSelectedValue(0);
+				add(masterwork);
+				masterwork.setRect(0, type.bottom() + 2, w, 24);
+
+				RedButton btnOk = new RedButton("Confirm") {
+					@Override
+					protected void onClick() {
+						hide();
+						callback.chosen(
+								pick[0] == 0 ? null : xyz.gabriwar.warpedpixeldungeon.items.rarity.Rarity.values()[pick[0] - 1],
+								pick[1] == 0 ? null : xyz.gabriwar.warpedpixeldungeon.items.rarity.ItemType.values()[pick[1] - 1],
+								pick[2]);
+					}
+				};
+				btnOk.setRect(0, masterwork.bottom() + 2, w, 16);
+				add(btnOk);
+
+				resize(w, (int) btnOk.bottom() + 2);
+			}
+		});
+	}
+
+	private interface ItemMaker {
+		Item make(int cell);
+	}
+
+	private static void dropItems(String name, int count, ItemMaker maker) {
+		GameScene.selectCell(new CellSelector.Listener() {
 			@Override
 			public void onSelect(Integer cell) {
 				if (cell == null || Dungeon.level == null) return;
 				for (int i = 0; i < count; i++) {
-					Item item = (Item) Reflection.newInstance(itemCls);
+					Item item = maker.make(cell);
 					if (item != null) {
 						item.identify();
 						Dungeon.level.drop(item, cell).sprite.drop();
@@ -516,11 +686,11 @@ public class WndDebugPicker extends Window {
 			public String prompt() {
 				return "Tap to place x" + count + ": " + name;
 			}
-		}));
+		});
 	}
 
 	private static void selectCellForMob(Class<? extends Mob> mobCls, String name) {
-		askQuantity(name, count -> GameScene.selectCell(new CellSelector.Listener() {
+		askQuantity(name, MAX_MOBS, count -> GameScene.selectCell(new CellSelector.Listener() {
 			@Override
 			public void onSelect(Integer cell) {
 				if (cell == null || Dungeon.level == null) return;

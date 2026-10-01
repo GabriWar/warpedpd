@@ -8,4 +8,23 @@ dependencies {
     implementation project(':services')
     //noinspection GradleDependency
     implementation "org.json:json:20170516"
+
+    testImplementation "junit:junit:4.13.2"
+    //CatalogWithoutHeroTest decodes the sprite sheets the item tables load statically
+    testRuntimeOnly "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+}
+
+test {
+    useJUnit()
+    //WorldDump and DressDump: forwarded so `-Dworld.dump=...` / `-Ddress.dump=...` reach the test JVM
+    for (String k : ['world.dump', 'world.seed', 'world.x', 'world.y',
+                     'dress.dump', 'dress.seed', 'dress.x', 'dress.y', 'dress.season']) {
+        if (System.getProperty(k) != null) systemProperty k, System.getProperty(k)
+    }
+    outputs.upToDateWhen { System.getProperty('world.dump') == null && System.getProperty('dress.dump') == null }
+    testLogging {
+        events "failed"
+        exceptionFormat "full"
+        showStandardStreams = true
+    }
 }

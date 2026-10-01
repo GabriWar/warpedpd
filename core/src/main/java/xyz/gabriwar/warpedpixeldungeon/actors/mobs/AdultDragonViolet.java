@@ -27,7 +27,7 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Doom;
+import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPsionicBlast;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
@@ -39,6 +39,8 @@ import com.watabou.utils.Random;
 
 public class AdultDragonViolet extends Mob {
 
+	private static final float TIME_TO_ZAP = 1f;
+
 	{
 		spriteClass = AdultDragonVioletSprite.class;
 
@@ -48,12 +50,10 @@ public class AdultDragonViolet extends Mob {
 
 		EXP = 20;
 
-		properties.add( Property.BOSS );
-
 		resistances.add( ToxicGas.class );
 		resistances.add( Poison.class );
 		resistances.add( Grim.class );
-		resistances.add( Doom.class );
+		resistances.add( ScrollOfPsionicBlast.class );
 	}
 
 	@Override
@@ -98,12 +98,14 @@ public class AdultDragonViolet extends Mob {
 
 	public void onZapComplete() {
 		if (enemy != null && enemy.isAlive()) {
-			spend( attackDelay() );
+			spend( TIME_TO_ZAP );
+
+			yell( Messages.get( this, "zap" ) );
 
 			if (hit( this, enemy, true )) {
 				int dmg = damageRoll() * 2;
 				enemy.damage( dmg, this );
-				Buff.affect( enemy, Poison.class ).set( 8f );
+				Buff.affect( enemy, Poison.class ).set( 1 );
 			} else {
 				enemy.sprite.showStatus( CharSprite.NEUTRAL, enemy.defenseVerb() );
 			}

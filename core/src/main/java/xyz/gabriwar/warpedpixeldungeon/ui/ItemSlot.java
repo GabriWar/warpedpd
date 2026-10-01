@@ -123,6 +123,119 @@ public class ItemSlot extends Button {
 
 		enchLvl = new BitmapText( PixelScene.pixelFont);
 		add(enchLvl);
+
+		qualityFrame = new com.watabou.noosa.ColorBlock[4];
+		for (int i = 0; i < 4; i++){
+			qualityFrame[i] = new com.watabou.noosa.ColorBlock( 1, 1, 0xFFFFFFFF );
+			qualityFrame[i].visible = false;
+			add( qualityFrame[i] );
+		}
+		//three motes circle the frame at different speeds, each with a two-step fading tail
+		qualitySparks = new com.watabou.noosa.ColorBlock[SPARKS * 3];
+		for (int i = 0; i < qualitySparks.length; i++){
+			qualitySparks[i] = new com.watabou.noosa.ColorBlock( 1, 1, 0xFFFFFFFF );
+			qualitySparks[i].visible = false;
+			add( qualitySparks[i] );
+		}
+		typeBadge = new Image( Assets.Sprites.RARITY_ICONS );
+		typeBadge.scale.set( 0.5f );
+		typeBadge.visible = false;
+		add( typeBadge );
+	}
+
+	//rarity: a 1px frame in the tier colour at rare and above (white-gold when masterworked);
+	//type: the gamma/beta/alpha letter at half size, centred on the bottom edge, clear of the
+	//charges (top-left), strength (top-right), level (bottom-right) and enchant level (bottom-left)
+	private com.watabou.noosa.ColorBlock[] qualityFrame;
+	private Image typeBadge;
+
+	private static final int SPARKS = 5;   //the most any tier gets; rarer items light more of them
+	private static final float FRAME_ALPHA = 0.35f;
+	private com.watabou.noosa.ColorBlock[] qualitySparks;
+	private final float[] sparkPos = new float[SPARKS];
+	private final float[] sparkSpeed = new float[SPARKS];   //px per second, negative = counter-clockwise
+	private int sparkCount = 0;
+	private float frameL, frameT, frameW, frameH;
+	private boolean sparksOn = false;
+
+	private void updateQuality(){
+		xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality q = item == null ? null : item.quality;
+		boolean frame = q != null && (q.rarity.ordinal() >= xyz.gabriwar.warpedpixeldungeon.items.rarity.Rarity.RARE.ordinal() || q.fullyMasterworked());
+		for (com.watabou.noosa.ColorBlock b : qualityFrame){
+			b.visible = frame;
+			if (frame){
+				b.hardlight( q.titleColor() );
+				b.alpha( FRAME_ALPHA );
+			}
+		}
+		sparksOn = frame;
+		//rare 2, legendary 3, exotic 4, a full masterwork 5; each mote rolls its own start,
+		//speed and direction so no two slots pulse alike
+		sparkCount = !frame ? 0 : q.fullyMasterworked() ? 5 : 2 + (q.rarity.ordinal() - xyz.gabriwar.warpedpixeldungeon.items.rarity.Rarity.RARE.ordinal());
+		for (int i = 0; i < SPARKS; i++){
+			boolean on = frame && i < sparkCount;
+			for (int k = 0; k < 3; k++){
+				qualitySparks[i * 3 + k].visible = on;
+				if (on) qualitySparks[i * 3 + k].hardlight( q.titleColor() );
+			}
+			if (on){
+				sparkPos[i] = com.watabou.utils.Random.Float( 80f );
+				sparkSpeed[i] = com.watabou.utils.Random.Float( 6f, 16f ) * (com.watabou.utils.Random.Int( 2 ) == 0 ? 1f : -1f);
+			}
+		}
+		typeBadge.visible = q != null;
+		if (q != null){
+			typeBadge.frame( q.type.icon() * 16, 0, 16, 16 );
+		}
+		layoutQuality();
+	}
+
+	//the motes run clockwise around the frame's perimeter; the head is solid, the two
+	//tail steps fade behind it, so the frame reads as a slow current rather than a box
+	private void flowSparks(){
+		float per = 2 * (frameW + frameH - 2);
+		for (int i = 0; i < sparkCount; i++){
+			sparkPos[i] = ((sparkPos[i] + sparkSpeed[i] * Game.elapsed) % per + per) % per;
+			float dir = Math.signum( sparkSpeed[i] );
+			for (int k = 0; k < 3; k++){
+				com.watabou.noosa.ColorBlock b = qualitySparks[i * 3 + k];
+				//the tail trails behind whichever way the mote is going
+				float p = ((sparkPos[i] - k * dir) % per + per) % per;
+				placeOnFrame( b, p );
+				b.alpha( k == 0 ? 1f : k == 1 ? 0.6f : 0.3f );
+			}
+		}
+	}
+
+	//maps a distance along the perimeter (clockwise from the top-left corner) to a pixel
+	private void placeOnFrame( com.watabou.noosa.ColorBlock b, float p ){
+		float w = frameW - 1, h = frameH - 1;
+		float px, py;
+		if (p < w){            px = frameL + p;          py = frameT; }
+		else if (p < w + h){   px = frameL + w;          py = frameT + (p - w); }
+		else if (p < 2*w + h){ px = frameL + w - (p - w - h); py = frameT + h; }
+		else {                 px = frameL;              py = frameT + h - (p - 2*w - h); }
+		b.x = (float) Math.floor( px );
+		b.y = (float) Math.floor( py );
+	}
+
+	private void layoutQuality(){
+		if (qualityFrame == null) return;
+		//the frame is drawn inside the slot, along its inner edge
+		float l = x + margin.left, t = y + margin.top;
+		float w = width - margin.left - margin.right, h = height - margin.top - margin.bottom;
+		frameL = l; frameT = t; frameW = w; frameH = h;
+		qualityFrame[0].size( w, 1 ); qualityFrame[0].x = l;         qualityFrame[0].y = t;
+		qualityFrame[1].size( w, 1 ); qualityFrame[1].x = l;         qualityFrame[1].y = t + h - 1;
+		qualityFrame[2].size( 1, h ); qualityFrame[2].x = l;         qualityFrame[2].y = t;
+		qualityFrame[3].size( 1, h ); qualityFrame[3].x = l + w - 1; qualityFrame[3].y = t;
+		typeBadge.x = x + margin.left + (w - typeBadge.width()) / 2f;
+		typeBadge.y = y + height - margin.bottom - typeBadge.height();
+		PixelScene.align( typeBadge );
+		for (com.watabou.noosa.ColorBlock b : qualityFrame){ PixelScene.align( b ); sendToBack( b ); }
+		for (com.watabou.noosa.ColorBlock b : qualitySparks) bringToFront( b );
+		bringToFront( typeBadge );
+		if (status != null) bringToFront( status );
 	}
 
 	//enchantment empowerment levels, shown in blue and cycling between the
@@ -229,6 +342,9 @@ public class ItemSlot extends Button {
 			PixelScene.align(enchLvl);
 		}
 
+	
+		//last, so the quality frame and plate can read where the texts ended up
+		layoutQuality();
 	}
 
 	public void alpha( float value ){
@@ -260,6 +376,7 @@ public class ItemSlot extends Button {
 			equipmentSparkles.pos(sprite);
 		}
 		super.update();
+		if (sparksOn && qualitySparks != null && frameW > 2 && frameH > 2) flowSparks();
 		//with two empowered enchantments the blue number cycles between them
 		if (enchLvls.length > 1){
 			enchCycle += Game.elapsed;
@@ -307,6 +424,7 @@ public class ItemSlot extends Button {
 			sprite.view( item );
 			updateText();
 		}
+		updateQuality();
 	}
 
 	public void updateText(){

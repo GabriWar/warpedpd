@@ -138,7 +138,7 @@ public final class SkyContext {
 		c.season = GameCalendar.season();
 		c.dayOfSeason = GameCalendar.dayOfSeason();
 
-		if (Dungeon.level instanceof OverworldLevel && Dungeon.hero != null){
+		if (Dungeon.level instanceof OverworldLevel && ((OverworldLevel) Dungeon.level).openSky() && Dungeon.hero != null){
 			OverworldLevel ow = (OverworldLevel) Dungeon.level;
 			c.biome = ow.biomeAtCell( Dungeon.hero.pos );
 			c.town = ow.inTown( Dungeon.hero.pos );

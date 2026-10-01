@@ -99,7 +99,8 @@ public abstract class CustomTilemap implements Bundlable {
 	public Tilemap create( int[] data, int cols ){
 		if (vis != null && vis.alive && vis.parent != null
 				&& cols == visCols && data.length == visLen){
-			vis.map( data, cols );
+			//only the chunks whose content changed are rebuilt
+			vis.refill( data, cols );
 			vis.x = tileX*SIZE;
 			vis.y = tileY*SIZE;
 			return vis;
@@ -115,6 +116,15 @@ public abstract class CustomTilemap implements Bundlable {
 
 	public Tilemap create(){
 		return build();
+	}
+
+	/**
+	 * A streaming level moved its window by (dcx, dcy) cells: slide the tilemap already on
+	 * screen along with it, so the refill that follows finds the overlap unchanged and rebuilds
+	 * only the exposed strips.
+	 */
+	public void shiftVisual( int dcx, int dcy ){
+		if (vis != null && vis.alive) vis.shiftContent( dcx, dcy );
 	}
 
 	private Tilemap build(){

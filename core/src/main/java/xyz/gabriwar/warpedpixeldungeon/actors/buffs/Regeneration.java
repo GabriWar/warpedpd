@@ -54,7 +54,9 @@ public class Regeneration extends Buff {
 				Buff.affect(Dungeon.hero, ChaoticCenser.CenserGasTracker.class);
 			}
 
-			if (regenOn() && target.HP < regencap() && !((Hero)target).isStarving()) {
+			//alpha Mending keeps ticking at full health and banks it as a barrier instead
+			boolean overflow = xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.regenOverflow( (Hero) target );
+			if (regenOn() && (target.HP < regencap() || overflow) && !((Hero)target).isStarving()) {
 				boolean chaliceCursed = false;
 				int chaliceLevel = -1;
 				if (target.buff(MagicImmune.class) == null) {
@@ -86,6 +88,10 @@ public class Regeneration extends Buff {
 				// Weekday healing bonus (Tideday)
 				delay /= GameCalendar.weekdayHealingMultiplier();
 
+				//robes and sustaining gear
+				//capped at x4 so robes, sustaining artifacts and trinkets cannot run away together
+				delay /= 1f + Math.min(2f, xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.heroBonus(target, xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.Stat.REGEN));
+
 				//skill tree: Warrior's Regeneration
 				int skillRegen = Dungeon.hero.heroSkills.allHealthRegen();
 				if (skillRegen > 0) delay /= Math.pow( 1.2, skillRegen );
@@ -93,11 +99,17 @@ public class Regeneration extends Buff {
 				partialRegen += 1f / delay;
 
 				if (partialRegen >= 1) {
-					target.HP += (int)partialRegen;
-					partialRegen -= (int)partialRegen;
-					if (target.HP >= regencap()) {
-						target.HP = regencap();
-						((Hero) target).resting = false;
+					int healed = (int)partialRegen;
+					partialRegen -= healed;
+					if (target.HP < regencap()) {
+						target.HP += healed;
+						if (target.HP >= regencap()) {
+							target.HP = regencap();
+							((Hero) target).resting = false;
+						}
+						xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.regenTick( (Hero) target );
+					} else {
+						xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.bankRegen( (Hero) target, healed );
 					}
 				}
 

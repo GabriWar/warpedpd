@@ -1,0 +1,67 @@
+/*
+ * Pixel Dungeon
+ * Copyright (C) 2012-2015 Oleg Dolya
+ *
+ * Shattered Pixel Dungeon
+ * Copyright (C) 2014-2026 Evan Debenham
+ *
+ * Warped Pixel Dungeon
+ * Copyright (C) 2026 Gabriel Duarte Guerra (gabriwar)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ */
+
+package xyz.gabriwar.warpedpixeldungeon.effects.skillfx;
+
+import com.watabou.noosa.particles.Emitter;
+import com.watabou.noosa.particles.PixelParticle;
+import com.watabou.utils.Random;
+
+/** White fire: a pale gold lick that lifts, whitens and goes out. Scouring, not burning. */
+public class HolyFlameParticle extends PixelParticle.Shrinking {
+
+	public static final Emitter.Factory FACTORY = new Emitter.Factory() {
+		@Override
+		public void emit( Emitter emitter, int index, float x, float y ){
+			((HolyFlameParticle) emitter.recycle( HolyFlameParticle.class )).reset( x, y );
+		}
+		@Override
+		public boolean lightMode(){
+			return true;
+		}
+	};
+
+	public HolyFlameParticle(){
+		super();
+		color( 0xFFF0B8 );
+		lifespan = 0.5f;
+		acc.set( 0, -60 );
+	}
+
+	public void reset( float x, float y ){
+		revive();
+		this.x = x;
+		this.y = y;
+		left = lifespan;
+		size = 4;
+		speed.set( Random.Float( -6, 6 ), Random.Float( -12, -4 ) );
+	}
+
+	@Override
+	public void update(){
+		super.update();
+		float p = left / lifespan;
+		am = p > 0.75f ? (1 - p) * 4 : p / 0.75f;
+	}
+}

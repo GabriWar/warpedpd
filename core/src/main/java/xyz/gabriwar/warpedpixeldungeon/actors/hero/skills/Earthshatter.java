@@ -40,9 +40,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.WarriorImpactFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.EarthParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX;
 import com.watabou.noosa.Camera;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 
 public class Earthshatter extends Skill {
 
@@ -66,39 +70,58 @@ public class Earthshatter extends Skill {
 	@Override
 	public void execute( Hero hero, String action ){
 		if (action.equals(Skill.AC_CAST) && level > 0 && hero.MP >= getManaCost()){
-            xyz.gabriwar.warpedpixeldungeon.effects.WarriorImpactFX.show(hero.pos,true);
-            SkillSequence.start(hero,SkillSequence.QUAKE,level,hero.pos,3+2*level,1+level,java.util.Collections.emptyList());
+			final int center = hero.pos;
+            SkillSequence.start(hero,SkillSequence.QUAKE,level,center,3+2*level,1+level,java.util.Collections.emptyList());
+			//the blow itself lands now; only the cracks take their time crossing the floor
+			final HashSet<Integer> struck = new HashSet<>();
 			for (Mob mob : Dungeon.level.mobs.toArray( new Mob[0] )){
 				if (mob.alignment == Char.Alignment.ENEMY
 						&& mob.isAlive()
 						&& Dungeon.level.heroFOV[mob.pos]
-						&& Dungeon.level.distance( hero.pos, mob.pos ) <= 2){
-					CellEmitter.get( mob.pos ).burst( Speck.factory( Speck.ROCK ), 1 );
+						&& Dungeon.level.distance( center, mob.pos ) <= 2){
+					struck.add( mob.pos );
 					Buff.prolong( mob, Roots.class, 2 + level );
-                    xyz.gabriwar.warpedpixeldungeon.effects.WarriorImpactFX.show(mob.pos);
 					mob.damage( 6 + 4 * level, this );
 				}
 			}
-			for (int c = 0; c < Dungeon.level.length(); c++){
-				if (Dungeon.level.distance( hero.pos, c ) <= 2 && Dungeon.level.heroFOV[c] && !Dungeon.level.solid[c] && c != hero.pos){
-					CellEmitter.bottom( c ).burst( Speck.factory( Speck.DUST ), 1 );
-				}
-			}
-			for (Mob mob : Dungeon.level.mobs.toArray( new Mob[0] )){
-				if (mob.alignment == Char.Alignment.ENEMY && Dungeon.level.distance( hero.pos, mob.pos ) <= 2 && mob.sprite != null && mob.sprite.visible){
-					Wound.hit( mob );
-				}
-			}
-			Camera.main.shake( 3, 0.7f );
 			hero.MP -= getManaCost();
 			castTextYell();
-			Sample.INSTANCE.play( Assets.Sounds.ROCKS, 1f, 0.9f );
 			Dungeon.hero.heroSkills.lastUsed = this;
+			Invisibility.dispel();
 			hero.spend( TIME_TO_USE );
 			hero.busy();
-			hero.sprite.operate( hero.pos );
-			Invisibility.dispel();
+			if (hero.sprite == null || hero.sprite.parent == null){
+				hero.next();
+				return;
+			}
+			//a stamp: the hero hops on the spot and the shockwave leaves his heel as he comes down
+			hero.sprite.jump( center, center, 6f, 0.18f, () -> {
+				quake( center, struck );
+				hero.next();
+			} );
 		}
+	}
+
+	//the cracked earth runs outward one ring at a time: chips of stone and dust on every cell, the
+	//impact mark and a wound on every enemy caught, the rumble dropping in pitch as it gets further
+	private static void quake( final int center, final HashSet<Integer> struck ){
+		WarriorImpactFX.show( center, true );
+		CellEmitter.bottom( center ).burst( Speck.factory( Speck.DUST ), 6 );
+		Camera.main.shake( 3, 0.7f );
+		Sample.INSTANCE.play( Assets.Sounds.ROCKS, 1f, 0.9f );
+		StaggerFX.ring( center, 2, 0.12f, ( c, r ) -> {
+			WarriorImpactFX.show( c );
+			CellEmitter.bottom( c ).burst( EarthParticle.FACTORY, 2 );
+			CellEmitter.bottom( c ).burst( Speck.factory( Speck.DUST ), 2 );
+			if (struck.contains( c )){
+				CellEmitter.get( c ).burst( Speck.factory( Speck.ROCK ), 3 );
+				Wound.hit( c );
+				Char ch = xyz.gabriwar.warpedpixeldungeon.actors.Actor.findChar( c );
+				if (ch != null && ch.sprite != null) ch.sprite.flash();
+			}
+		} );
+		StaggerFX.after( 0.12f, () -> Sample.INSTANCE.play( Assets.Sounds.ROCKS_LIGHT, 0.9f, 0.8f ) );
+		StaggerFX.after( 0.24f, () -> Sample.INSTANCE.play( Assets.Sounds.ROCKS_LIGHT, 0.9f, 0.7f ) );
 	}
 
 	@Override

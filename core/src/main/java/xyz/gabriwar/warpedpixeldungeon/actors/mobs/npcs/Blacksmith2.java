@@ -35,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.AdamantWand;
 import xyz.gabriwar.warpedpixeldungeon.items.AdamantWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.MasterworkCore;
 import xyz.gabriwar.warpedpixeldungeon.items.quest.DarkGold;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.Ring;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.Wand;
@@ -44,6 +45,7 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.BlacksmithSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBlacksmith2;
+import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndQuest;
 import com.watabou.noosa.Game;
 import com.watabou.utils.Callback;
@@ -77,21 +79,44 @@ public class Blacksmith2 extends NPC {
 			return true;
 		}
 
+		Game.runOnRenderThread(new Callback() {
+			@Override
+			public void call() {
+				GameScene.show( new WndOptions( sprite(), Messages.titleCase( name() ),
+						Messages.get( Blacksmith2.this, "menu" ),
+						MasterworkCore.menuOptions( Messages.get( Blacksmith2.this, "opt_reinforce" ) ) ){
+					@Override
+					protected void onSelect( int index ){
+						if (index == 0) coreWork( true );
+						else if (index == 1) coreWork( false );
+						else if (index == 2) reinforce();
+					}
+				} );
+			}
+		});
+
+		return true;
+	}
+
+	//masterwork cores worked into an item: a masterwork step, or a new rarity
+	private void coreWork( final boolean masterwork ){
+		if (Dungeon.hero.belongings.getItem( MasterworkCore.class ) == null){
+			tell( Messages.get( this, "no_cores" ) );
+			return;
+		}
+		MasterworkCore.choose( Dungeon.hero, masterwork );
+	}
+
+	//the adamantite reinforcing he always did: it needs the metal and 50 dark gold
+	private void reinforce(){
 		DarkGold gold = Dungeon.hero.belongings.getItem( DarkGold.class );
 		if (!checkAdamant()) {
 			tell( Messages.get(this, "no_adamant") );
 		} else if (gold == null || gold.quantity() < 50) {
 			tell( Messages.get(this, "need_gold") );
 		} else {
-			Game.runOnRenderThread(new Callback() {
-				@Override
-				public void call() {
-					GameScene.show( new WndBlacksmith2( Blacksmith2.this, Dungeon.hero ) );
-				}
-			});
+			GameScene.show( new WndBlacksmith2( Blacksmith2.this, Dungeon.hero ) );
 		}
-
-		return true;
 	}
 
 	public static String verify( Item item1, Item item2 ) {

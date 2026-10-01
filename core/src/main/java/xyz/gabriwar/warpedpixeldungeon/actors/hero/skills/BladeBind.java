@@ -25,6 +25,9 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.Chains;
+import xyz.gabriwar.warpedpixeldungeon.effects.Effects;
+import com.watabou.utils.PointF;
 
 
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -105,6 +108,18 @@ public class BladeBind extends Skill {
 		if (level >= MAX_LEVEL) Buff.affect( ch, Wrenched.class );
 		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 1f, 1.0f );
 		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 0.8f, 0.7f );
+		//two chains of light snap from her blade onto it and lock
+		if (hero.sprite != null && hero.sprite.parent != null && ch.sprite != null){
+			PointF a = hero.sprite.center(), b = ch.sprite.center();
+			hero.sprite.parent.add( new Chains( new PointF( a.x - 4, a.y - 3 ), new PointF( b.x + 3, b.y - 2 ), Effects.Type.ETHEREAL_CHAIN, null ) );
+			hero.sprite.parent.add( new Chains( new PointF( a.x + 4, a.y + 2 ), new PointF( b.x - 3, b.y + 3 ), Effects.Type.ETHEREAL_CHAIN, () -> {
+				if (ch.sprite != null){
+					ch.sprite.flash();
+					ch.sprite.emitter().burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle.FACTORY, 5 );
+				}
+				Sample.INSTANCE.play( Assets.Sounds.CHAINS, 0.9f, 1.3f );
+			} ) );
+		}
 		if (ch.sprite != null){
 			ch.sprite.showStatus( CharSprite.WARNING, Messages.get( BladeBind.this, "bound" ) );
 			ch.sprite.emitter().burst( Speck.factory( Speck.STAR ), 6 );

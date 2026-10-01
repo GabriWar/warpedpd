@@ -342,6 +342,18 @@ public class GameCalendar {
 		return ((dayOfSeason() - 1) / Weekday.DAYS_PER_WEEK) + 1;
 	}
 
+	/** which week it is: the count ticks over at the start of every Stonesday, the first
+	 *  day of the week. Real-clock runs count real Mondays. */
+	public static int weekIndex() {
+		if (Dungeon.isChallenged(Challenges.REAL_CLOCK)) {
+			Calendar c = Calendar.getInstance();
+			//days since the epoch, shifted so the week turns over on Monday (1970-01-01 was a Thursday)
+			long days = (c.getTimeInMillis() + c.get(Calendar.ZONE_OFFSET) + c.get(Calendar.DST_OFFSET)) / 86_400_000L;
+			return (int) Math.floorDiv(days + 3, (long) Weekday.DAYS_PER_WEEK);
+		}
+		return Math.floorDiv(turnAbsoluteDay(), Weekday.DAYS_PER_WEEK);
+	}
+
 	public static Weekday weekday() {
 		if (Dungeon.isChallenged(Challenges.REAL_CLOCK)) return realWeekday();
 		return turnWeekday();

@@ -24,13 +24,21 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
+import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPsionicBlast;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MonsterBoxSprite;
+import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Bundlable;
+import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
 import java.util.ArrayList;
@@ -43,6 +51,8 @@ public class MonsterBox extends Mob {
 		spriteClass = MonsterBoxSprite.class;
 
 		EXP = 5;
+
+		immunities.add( ScrollOfPsionicBlast.class );
 	}
 
 	public ArrayList<Item> items = new ArrayList<>();
@@ -82,6 +92,12 @@ public class MonsterBox extends Mob {
 	}
 
 	@Override
+	public boolean reset() {
+		state = WANDERING;
+		return true;
+	}
+
+	@Override
 	protected void dropExtraLoot() {
 		for (int i = 0; i < items.size(); i++) {
 			trackedDrop(items.get(i), i);
@@ -110,11 +126,42 @@ public class MonsterBox extends Mob {
 	}
 
 	public static MonsterBox spawnAt(int pos, ArrayList<Item> items) {
+		Char ch = Actor.findChar(pos);
+		if (ch != null) {
+			ArrayList<Integer> candidates = new ArrayList<>();
+			for (int n : PathFinder.NEIGHBOURS8) {
+				int cell = pos + n;
+				if ((Dungeon.level.passable[cell] || Dungeon.level.avoid[cell])
+						&& Actor.findChar(cell) == null) {
+					candidates.add(cell);
+				}
+			}
+			if (candidates.size() > 0) {
+				int newPos = Random.element(candidates);
+				Actor.addDelayed(new Pushing(ch, ch.pos, newPos), -1);
+
+				ch.pos = newPos;
+				Dungeon.level.occupyCell(ch);
+			} else {
+				return null;
+			}
+		}
+
 		MonsterBox box = new MonsterBox();
 		box.items = items;
 		box.pos = pos;
 		box.adjustStats(Dungeon.depth);
-		GameScene.add(box);
+		box.HP = box.HT;
+		box.state = box.HUNTING;
+		GameScene.add(box, 1);
+
+		if (box.sprite != null) box.sprite.turnTo(pos, Dungeon.hero.pos);
+
+		if (Dungeon.level.heroFOV[pos]) {
+			CellEmitter.get(pos).burst(Speck.factory(Speck.STAR), 10);
+			Sample.INSTANCE.play(Assets.Sounds.MIMIC);
+		}
+
 		return box;
 	}
 }

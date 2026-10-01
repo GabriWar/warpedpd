@@ -238,6 +238,18 @@ public class Camera extends Gizmo {
 		panIntensity = 0f;
 	}
 
+	/**
+	 * Moves the view by a delta between two frames, matrix included, keeping any follow or
+	 * pan in place. The matrix is otherwise only rebuilt in update(), which runs AFTER draw():
+	 * a scroll offset applied between frames would leave the next draw one frame behind, and
+	 * a world that re-labelled its coordinates would jump for that frame.
+	 */
+	public synchronized void shiftInstant( float dx, float dy ){
+		scroll.offset( dx, dy );
+		if (followTarget == null && panIntensity > 0f) panTarget.offset( dx, dy );
+		updateMatrix();
+	}
+
 	public synchronized void setCenterOffset( float x, float y ){
 		scroll.x    += x - centerOffset.x;
 		scroll.y    += y - centerOffset.y;

@@ -25,9 +25,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
-import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Freezing;
-import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ColdSpiritSprite;
 import com.watabou.utils.Random;
 
@@ -48,7 +46,6 @@ public class ColdSpirit extends Mob {
 		maxLvl = 20;
 
 		properties.add( Property.ICY );
-		properties.add( Property.UNDEAD );
 
 		//no metabolism to disturb: only the extremes reach it
 		thermal = Thermal.INSENSATE;
@@ -74,7 +71,7 @@ public class ColdSpirit extends Mob {
 		damage = super.attackProc( enemy, damage );
 
 		if (Random.Int( 4 ) == 0) {
-			GameScene.add( Blob.seed( enemy.pos, 10, Freezing.class ) );
+			Freezing.affect( enemy.pos );
 		}
 
 		return damage;

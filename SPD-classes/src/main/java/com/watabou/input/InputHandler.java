@@ -134,10 +134,24 @@ public class InputHandler extends InputAdapter {
 	// *****************
 	// *** Key Input ***
 	// *****************
+	private boolean leftShift, rightShift;
+	private final java.util.HashMap<Integer, Integer> heldKeys = new java.util.HashMap<>();
 	
 	@Override
 	public synchronized boolean keyDown( int keyCode ) {
+		if (keyCode == Input.Keys.SHIFT_LEFT) leftShift = true;
+		if (keyCode == Input.Keys.SHIFT_RIGHT) rightShift = true;
+		boolean modifier = keyCode == Input.Keys.SHIFT_LEFT || keyCode == Input.Keys.SHIFT_RIGHT;
+		if (modifier && KeyBindings.bindingKey) return false;
+		int physicalKey = keyCode;
+		if (heldKeys.containsKey(physicalKey)) {
+			keyCode = heldKeys.get(physicalKey);
+		} else if (!modifier && (leftShift || rightShift)
+				&& KeyBindings.isKeyBound(keyCode | KeyBindings.SHIFT_MODIFIER)) {
+			keyCode |= KeyBindings.SHIFT_MODIFIER;
+		}
 		if (KeyBindings.isKeyBound( keyCode )) {
+			heldKeys.put(physicalKey, keyCode);
 			KeyEvent.addKeyEvent( new KeyEvent( keyCode, true ) );
 			return true;
 		} else {
@@ -147,7 +161,11 @@ public class InputHandler extends InputAdapter {
 	
 	@Override
 	public synchronized boolean keyUp( int keyCode ) {
-		if (KeyBindings.isKeyBound( keyCode )) {
+		if (keyCode == Input.Keys.SHIFT_LEFT) leftShift = false;
+		if (keyCode == Input.Keys.SHIFT_RIGHT) rightShift = false;
+		Integer held = heldKeys.remove(keyCode);
+		if (held != null) keyCode = held;
+		if (held != null || KeyBindings.isKeyBound( keyCode )) {
 			KeyEvent.addKeyEvent( new KeyEvent( keyCode, false ) );
 			return true;
 		} else {

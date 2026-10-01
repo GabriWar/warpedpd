@@ -67,7 +67,7 @@ public class DivineIntervention extends ClericSpell {
 
 		for (Char ch : Actor.chars()){
 			if (ch.alignment == Char.Alignment.ALLY && ch != hero){
-				Buff.affect(ch, DivineShield.class).setShield(100 + 50*hero.pointsInTalent(Talent.DIVINE_INTERVENTION));
+				Buff.affect(ch, DivineShield.class).setShield(Math.max(100 + 50*hero.pointsInTalent(Talent.DIVINE_INTERVENTION), Math.round(hero.HT * (0.8f + 0.4f*hero.pointsInTalent(Talent.DIVINE_INTERVENTION)))));
 				new Flare(6, 32).color(0xFFFF00, true).show(ch.sprite, 2f);
 			}
 		}
@@ -76,7 +76,7 @@ public class DivineIntervention extends ClericSpell {
 		onSpellCast(tome, hero);
 
 		//we apply buffs here so that the 5 charge cost and shield boost do not stack
-		hero.buff(AscendedForm.AscendBuff.class).setShield(100 + 50*hero.pointsInTalent(Talent.DIVINE_INTERVENTION));
+		hero.buff(AscendedForm.AscendBuff.class).setShield(Math.max(100 + 50*hero.pointsInTalent(Talent.DIVINE_INTERVENTION), Math.round(hero.HT * (0.8f + 0.4f*hero.pointsInTalent(Talent.DIVINE_INTERVENTION)))));
 		new Flare(6, 32).color(0xFFFF00, true).show(hero.sprite, 2f);
 
 		hero.buff(AscendedForm.AscendBuff.class).divineInverventionCast = true;
@@ -86,7 +86,7 @@ public class DivineIntervention extends ClericSpell {
 
 	@Override
 	public String desc() {
-		int shield = 100 + 50*Dungeon.hero.pointsInTalent(Talent.DIVINE_INTERVENTION);
+		int shield = Math.max(100 + 50*Dungeon.hero.pointsInTalent(Talent.DIVINE_INTERVENTION), Math.round(Dungeon.hero.HT * (0.8f + 0.4f*Dungeon.hero.pointsInTalent(Talent.DIVINE_INTERVENTION))));
 		int leftBonus = 2+Dungeon.hero.pointsInTalent(Talent.DIVINE_INTERVENTION);
 		return Messages.get(this, "desc", shield, leftBonus) + "\n\n" + Messages.get(this, "charge_cost", (int)chargeUse(Dungeon.hero));
 	}

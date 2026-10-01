@@ -90,7 +90,7 @@ public class Shopkeeper extends NPC {
 	 *  two machines disagree about whether the till is open. depth and branch are
 	 *  both host-authoritative and on the wire, so this reads the same on both. */
 	private static boolean surfaceTradingHours(){
-		return (Dungeon.depth == xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel.DEPTH
+		return (xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldLayers.isLayerDepth( Dungeon.depth )
 					&& Dungeon.branch == 0)
 				|| Dungeon.branch == xyz.gabriwar.warpedpixeldungeon.levels.TownInteriorLevel.BRANCH;
 	}
@@ -103,11 +103,11 @@ public class Shopkeeper extends NPC {
 				&& surfaceTradingHours();
 	}
 
-	//every shop restocks on a timer: mostly once an in-game month (30 days of
-	//2500 turns), some twice or three times. rolled once per shopkeeper
+	//every shop restocks once a week, at the start of the first day of the week
 	public static final float MONTH_TURNS = 30f * 2500f;
 	protected float restockInterval = 0;
 	protected float lastRestock = -1;
+	protected int stockWeek = Integer.MIN_VALUE;
 
 	protected float restockClock(){
 		return xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.FarmCrop.clock();
@@ -116,18 +116,18 @@ public class Shopkeeper extends NPC {
 	@Override
 	protected boolean act() {
 
-		if (restockInterval == 0){
-			int roll = com.watabou.utils.Random.Int( 100 );
-			restockInterval = roll < 60 ? MONTH_TURNS
-					: roll < 85 ? MONTH_TURNS / 2f : MONTH_TURNS / 3f;
-		}
-		if (lastRestock < 0){
-			lastRestock = restockClock();
-		} else if (restockClock() - lastRestock >= restockInterval
-				//the town shop has its own per-purchase rotation system
-				&& !(Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.TownShopLevel)){
-			lastRestock = restockClock();
-			restock();
+		int week = xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar.weekIndex();
+		if (stockWeek == Integer.MIN_VALUE){
+			//the stock a keeper opens with counts as this week's
+			stockWeek = week;
+		} else if (week != stockWeek){
+			stockWeek = week;
+			//the town store rotates both its shops at once on the same clock
+			if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.TownShopLevel){
+				((xyz.gabriwar.warpedpixeldungeon.levels.TownShopLevel) Dungeon.level).rotateStock();
+			} else {
+				restock();
+			}
 		}
 
 		if (turnsSinceHarmed >= 0){
@@ -188,6 +188,7 @@ public class Shopkeeper extends NPC {
 
 	private static final String RESTOCK_INT  = "restock_interval";
 	private static final String LAST_RESTOCK = "last_restock";
+	private static final String STOCK_WEEK   = "stock_week";
 
 	@Override
 	public boolean isImmune(Class effect) {
@@ -203,10 +204,27 @@ public class Shopkeeper extends NPC {
 	
 	@Override
 	public boolean add( Buff buff ) {
-		if (buff.type == Buff.buffType.NEGATIVE){
+		if (buff.type == Buff.buffType.NEGATIVE && !environmental( buff )){
 			processHarm();
 		}
 		return false;
+	}
+
+	//what the weather and the climate lay on everyone in the shop is not an attack: a
+	//smoke or steam cloud drifting through must not send the keeper packing. The black
+	//market's dealer and his guards read the same list, for the same reason
+	public static boolean environmental( Buff buff ){
+		return buff instanceof xyz.gabriwar.warpedpixeldungeon.actors.buffs.Coughing
+				|| buff instanceof xyz.gabriwar.warpedpixeldungeon.actors.buffs.Steaming
+				|| buff instanceof xyz.gabriwar.warpedpixeldungeon.actors.buffs.Slow
+				|| buff instanceof xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness
+				|| buff instanceof xyz.gabriwar.warpedpixeldungeon.actors.buffs.Drenched
+				|| buff instanceof xyz.gabriwar.warpedpixeldungeon.actors.buffs.SnowedIn
+				|| buff instanceof xyz.gabriwar.warpedpixeldungeon.actors.buffs.Chill
+				|| buff instanceof xyz.gabriwar.warpedpixeldungeon.actors.buffs.Frost
+				|| buff instanceof xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hypothermia
+				|| buff instanceof xyz.gabriwar.warpedpixeldungeon.actors.buffs.Heatstroke
+				|| buff instanceof xyz.gabriwar.warpedpixeldungeon.actors.buffs.Sleepiness;
 	}
 
 	public void processHarm(){
@@ -329,15 +347,20 @@ public class Shopkeeper extends NPC {
 		return (int)Math.min( SOU_MAX_PRICE, Math.round( price ) );
 	}
 
-	public static int sellPrice(Item item){
+	/** what the buyer pays; a Fortune trinket's alpha makes it cheaper for its carrier */
+	public static int sellPrice(Item item, Hero buyer){
 		if (item instanceof ScrollOfUpgrade) return upgradeScrollPrice();
+		return xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.shopPrice(buyer, basePrice(item));
+	}
+
+	private static int basePrice(Item item){
 
 		//special surface levels sit at huge depth numbers (overworld = 97);
 		//price them like the late-game city instead of 100x base value.
 		//keyed off depth/branch, not the level class, so a multiplayer client
 		//quotes the same price the host will charge (see surfaceTradingHours)
 		int depth = Dungeon.depth;
-		if (depth == xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel.DEPTH
+		if (xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldLayers.isLayerDepth( depth )
 				&& Dungeon.branch == 0){
 			depth = 21;
 		}
@@ -564,7 +587,7 @@ public class Shopkeeper extends NPC {
 		if (cell != hero.pos && !Dungeon.level.adjacent(cell, hero.pos)) return;
 		Item item = heap.peek();
 		if (item == null) return;
-		int price = sellPrice(item);
+		int price = sellPrice(item, hero);
 		if (Dungeon.gold < price) {
 			GLog.w(Messages.get(WndTradeItem.class, "no_gold"));
 			return;
@@ -696,6 +719,7 @@ public class Shopkeeper extends NPC {
 		super.storeInBundle(bundle);
 		bundle.put( RESTOCK_INT, restockInterval );
 		bundle.put( LAST_RESTOCK, lastRestock );
+		bundle.put( STOCK_WEEK, stockWeek );
 		bundle.put(BUYBACK_ITEMS, buybackItems);
 		bundle.put(TURNS_SINCE_HARMED, turnsSinceHarmed);
 	}
@@ -705,6 +729,8 @@ public class Shopkeeper extends NPC {
 		super.restoreFromBundle(bundle);
 		restockInterval = bundle.getFloat( RESTOCK_INT );
 		lastRestock = bundle.contains( LAST_RESTOCK ) ? bundle.getFloat( LAST_RESTOCK ) : -1;
+		//older saves ran on a turn timer: their current stock becomes this week's
+		stockWeek = bundle.contains( STOCK_WEEK ) ? bundle.getInt( STOCK_WEEK ) : Integer.MIN_VALUE;
 		buybackItems.clear();
 		if (bundle.contains(BUYBACK_ITEMS)){
 			for (Bundlable i : bundle.getCollection(BUYBACK_ITEMS)){

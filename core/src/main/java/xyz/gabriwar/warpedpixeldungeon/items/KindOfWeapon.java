@@ -232,11 +232,21 @@ abstract public class KindOfWeapon extends EquipableItem {
 	}
 
 	public int min(){
-		return min(buffedLvl());
+		return xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.scale( this, xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.DAMAGE_MIN, min(buffedLvl()) );
 	}
 
 	public int max(){
-		return max(buffedLvl());
+		return xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.scale( this, xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.DAMAGE_MAX, max(buffedLvl()) );
+	}
+
+	/** the levelled number with its rarity worked in, for the windows that read a level
+	 *  directly instead of going through min()/max() */
+	public int minAt( int lvl ){
+		return xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.scale( this, xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.DAMAGE_MIN, min(lvl) );
+	}
+
+	public int maxAt( int lvl ){
+		return xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.scale( this, xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.DAMAGE_MAX, max(lvl) );
 	}
 
 	abstract public int min(int lvl);

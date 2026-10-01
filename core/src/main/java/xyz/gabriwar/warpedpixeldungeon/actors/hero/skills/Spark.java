@@ -98,8 +98,11 @@ public class Spark extends ActiveSkill2 {
 			curUser.sprite.zap(cell);
 			curUser.MP -= skill.getManaCost();
 			skill.castTextYell();
+			//the whole cast is one turn; the mage only waits for the last arc to fade
+			curUser.spend( TIME_TO_USE );
 			curUser.busy();
 			Sample.INSTANCE.play( Assets.Sounds.ZAP );
+			curUser.sprite.centerEmitter().burst( SparkParticle.FACTORY, 4 );
 			MagicMissile.boltFromChar( curUser.sprite.parent,
 					MagicMissile.MAGIC_MISSILE,
 					curUser.sprite,
@@ -109,23 +112,24 @@ public class Spark extends ActiveSkill2 {
 						public void call(){
 							Spark sk = Dungeon.hero.heroSkills.get( Spark.class );
 							CellEmitter.center( cell ).burst( SparkParticle.FACTORY, 4 + 2 * sk.level );
-							boolean hit = false;
+							//damage lands now, in bolt order; the arcs then show it body by body
+							ArrayList<Integer> struck = new ArrayList<>();
 							if (pierce){
 								for (int c : shot.subPath( 1, shot.dist )){
 									Char ch = Actor.findChar( c );
 									if (ch == null || ch.alignment != Char.Alignment.ENEMY || !ch.isAlive()) continue;
 									strike( ch, sk );
-									hit = true;
+									struck.add( c );
 								}
 							} else {
 								Char ch = Actor.findChar( cell );
 								if (ch != null && ch != Dungeon.hero){
 									strike( ch, sk );
-									hit = true;
+									struck.add( cell );
 								}
 							}
-							if (!hit) GLog.i( xyz.gabriwar.warpedpixeldungeon.messages.Messages.get( Spark.class, "no_target" ) );
-							Dungeon.hero.spendAndNext( TIME_TO_USE );
+							if (struck.isEmpty()) GLog.i( xyz.gabriwar.warpedpixeldungeon.messages.Messages.get( Spark.class, "no_target" ) );
+							arc( Dungeon.hero, Dungeon.hero.pos, struck, 0, cell );
 						}
 					} );
 			Invisibility.dispel();
@@ -145,8 +149,30 @@ public class Spark extends ActiveSkill2 {
 		int before = SkillInteractions.beforeMagicHit( ch, sk );
 		ch.damage( roll( sk ), sk );
 		SkillInteractions.afterMagicHit( ch, before, sk );
-		if (ch.sprite != null) ch.sprite.flash();
-		CellEmitter.center( ch.pos ).burst( SparkParticle.FACTORY, 6 );
+	}
+
+	//one arc at a time: mage to the first body, then body to body down the line, each snap a little
+	//higher than the last, sparks and a flash on whoever it reaches; the mage is free when the last fades
+	private static void arc( final Hero hero, final int from, final ArrayList<Integer> struck, final int i, final int end ){
+		if (hero.sprite == null || hero.sprite.parent == null){
+			hero.next();
+			return;
+		}
+		if (i >= struck.size()){
+			//nothing (more) to hit: a first arc still grounds itself where the bolt broke
+			if (i == 0 && from != end){
+				hero.sprite.parent.add( new Lightning( from, end, hero::next ) );
+			} else {
+				hero.next();
+			}
+			return;
+		}
+		final int to = struck.get( i );
+		Sample.INSTANCE.play( Assets.Sounds.LIGHTNING, 0.7f, 1.1f + 0.1f * i );
+		CellEmitter.center( to ).burst( SparkParticle.FACTORY, 6 );
+		Char ch = Actor.findChar( to );
+		if (ch != null && ch.sprite != null) ch.sprite.flash();
+		hero.sprite.parent.add( new Lightning( from, to, () -> arc( hero, to, struck, i + 1, end ) ) );
 	}
 
 	@Override

@@ -180,9 +180,10 @@ public class MiniGun extends Weapon {
 				Math.round(augment.damageFactor(max())),
 				STRReq());
 
-		if (STRReq() > Dungeon.hero.STR()) {
+		//no hero on the title screen, where the journal's catalog describes it too
+		if (Dungeon.hero != null && STRReq() > Dungeon.hero.STR()) {
 			info += " " + Messages.get(Weapon.class, "too_heavy");
-		} else if (Dungeon.hero.STR() > STRReq()){
+		} else if (Dungeon.hero != null && Dungeon.hero.STR() > STRReq()){
 			info += " " + Messages.get(Weapon.class, "excess_str", Dungeon.hero.STR() - STRReq());
 		}
 
@@ -214,6 +215,13 @@ public class MiniGun extends Weapon {
 	}
 
 	public class MiniGunShot extends MissileWeapon {
+
+		//a bullet does not stop where it was aimed: it flies on down the line until it
+		//hits someone or a wall
+		@Override
+		public int throwPos( Hero user, int dst ){
+			return new Ballistica( user.pos, dst, Ballistica.MAGIC_BOLT ).collisionPos;
+		}
 
 		{
 			image = ItemSpriteSheet.MINI_GUN_AMMO;

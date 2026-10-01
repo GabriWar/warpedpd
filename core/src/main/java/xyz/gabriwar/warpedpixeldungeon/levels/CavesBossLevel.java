@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.DM300;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Pylon;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Tower;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -335,6 +336,15 @@ public class CavesBossLevel extends Level {
 			boss.pos = pointToCell(Random.element(mainArena.getPoints()));
 		} while (!openSpace[boss.pos] || map[boss.pos] == Terrain.EMPTY_SP || Actor.findChar(boss.pos) != null);
 		GameScene.add( boss );
+
+		//Sprouted stands two of DM-300's towers in the arena alongside it
+		for (int i = 0; i < 2; i++) {
+			Tower tower = new Tower();
+			do {
+				tower.pos = pointToCell(Random.element(mainArena.getPoints()));
+			} while (!openSpace[tower.pos] || map[tower.pos] == Terrain.EMPTY_SP || Actor.findChar(tower.pos) != null);
+			GameScene.add( tower );
+		}
 
 		Game.runOnRenderThread(new Callback() {
 			@Override

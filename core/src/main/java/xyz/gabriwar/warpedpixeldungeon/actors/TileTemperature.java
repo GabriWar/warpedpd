@@ -32,6 +32,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.plants.Plant;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import com.watabou.utils.PathFinder;
 
 import java.util.Arrays;
@@ -54,6 +55,15 @@ public final class TileTemperature {
     private static final float WATER_INERTIA   = 0.7f;
     private static final float EMBERS_BONUS    = 25f;
     private static final float ICE_PENALTY     = 8f;
+    private static final float FREEZE_TEMP     = 0f;
+    private static final float THAW_TEMP       = 5f;
+    // At most one third of a phase change per world turn, regardless of heat intensity.
+    private static final float MAX_PHASE_STEP = 1f / 3f;
+    private static final float PHASE_DEGREES = 60f;
+    // Gameplay tile temperatures, not the temperature inside a flame itself.
+    private static final float FIRE_TARGET_TEMP = 120f;
+    private static final float FROST_TARGET_TEMP = -40f;
+    private static final float THERMAL_SHOCK_RATE = 0.85f;
     private static final float WOOL_RUG_BONUS  = 2f;
     // Sitting beside a campfire (embers or open fire within one cell) counts as warm:
     // a wild camp's fire pit keeps a sleeping hero out of hypothermia.
@@ -82,12 +92,84 @@ public final class TileTemperature {
         dirty = true;
     }
 
+    public static void applyFireHeat(int cell) {
+        approachTemperature(cell, FIRE_TARGET_TEMP, true);
+    }
+
+    public static void applyFrostCold(int cell) {
+        approachTemperature(cell, FROST_TARGET_TEMP, false);
+    }
+
+    private static void approachTemperature(int cell, float target, boolean heating) {
+        if (Dungeon.level == null || Dungeon.level.tileHeat == null
+                || cell < 0 || cell >= Dungeon.level.length()) return;
+        //Use the underlying temperature: a torch's minimum displayed warmth must
+        //not make frost keep depositing cold against an unreachable display value.
+        float gap = target - tileTemp(cell, false);
+        if (heating ? gap > 0 : gap < 0) {
+            depositHeat(cell, gap * THERMAL_SHOCK_RATE);
+        }
+    }
+
+    /** Progress once per world turn. Positive progress melts ice; negative freezes water. */
+    private static void stepWaterPhases(Level level) {
+        if (level != Dungeon.level) return;
+        boolean ambient = level.waterCanFreeze();
+        for (int cell = 0; cell < level.length(); cell++) {
+            int terrain = level.map[cell];
+            boolean freezing = terrain == Terrain.WATER && ambient;
+            boolean melting = terrain == Terrain.FROZEN_WATER
+                    && (ambient || level.tileHeat[cell] > 0);
+            if (!freezing && !melting) {
+                level.waterPhaseProgress[cell] = 0;
+                continue;
+            }
+            float temperature = tileTemp(cell);
+            float drive = freezing ? FREEZE_TEMP - temperature : temperature - THAW_TEMP;
+            if (drive <= 0) {
+                level.waterPhaseProgress[cell] = 0;
+                continue;
+            }
+            float direction = freezing ? -1f : 1f;
+            float progress = Math.max(0, direction * level.waterPhaseProgress[cell]);
+            progress += Math.min(MAX_PHASE_STEP, drive / PHASE_DEGREES);
+            if (progress >= 1f) {
+                Level.set(cell, freezing ? Terrain.FROZEN_WATER : Terrain.WATER, level);
+                level.waterPhaseProgress[cell] = 0;
+                GameScene.updateMap(cell);
+            } else {
+                level.waterPhaseProgress[cell] = direction * progress;
+            }
+        }
+    }
+
+    /** Keep thermal state attached to world cells when the overworld window scrolls. */
+    public static void shift(Level level, int dx, int dy) {
+        level.tileHeat = shifted(level.tileHeat, level.width(), level.height(), dx, dy);
+        level.waterPhaseProgress = shifted(level.waterPhaseProgress, level.width(), level.height(), dx, dy);
+    }
+
+    private static float[] shifted(float[] source, int width, int height, int dx, int dy) {
+        float[] result = new float[width * height];
+        for (int y = 1; y < height - 1; y++) {
+            int oldY = y + dy;
+            if (oldY <= 0 || oldY >= height - 1) continue;
+            for (int x = 1; x < width - 1; x++) {
+                int oldX = x + dx;
+                if (oldX > 0 && oldX < width - 1) result[x + y * width] = source[oldX + oldY * width];
+            }
+        }
+        return result;
+    }
+
     /**
      * In-place decay + neighbor diffusion. Called once per hero turn.
      * Only processes cells with non-zero heat and their immediate neighbors.
      */
     public static void stepDiffusion(Level level) {
         if (level == null || level.tileHeat == null) return;
+        //Run even without deposited heat: ambient cold and warmth act gradually too.
+        stepWaterPhases(level);
 
         int len = level.length();
         int w = level.width();
@@ -162,6 +244,10 @@ public final class TileTemperature {
      * - Plant contributions
      */
     public static float tileTemp(int cell) {
+        return tileTemp(cell, true);
+    }
+
+    private static float tileTemp(int cell, boolean torchWarmth) {
         if (Dungeon.level == null) return ClimateManager.localTemp();
 
         float t = ClimateManager.localTemp();
@@ -193,7 +279,7 @@ public final class TileTemperature {
             t += Dungeon.level.tileHeat[cell];
         }
 
-        if (nearWallTorch(cell)) t = Math.max(t, WALL_TORCH_MIN_TEMP);
+        if (torchWarmth && nearWallTorch(cell)) t = Math.max(t, WALL_TORCH_MIN_TEMP);
         return t;
     }
 
@@ -254,6 +340,9 @@ public final class TileTemperature {
         if (ch != null && ch.buff(SoakedShoes.class) != null) {
             t += SoakedShoes.COLD_PENALTY;
         }
+        // heat carried out of a thermal spring (levels/rooms/standard/ThermalSpringRoom):
+        // it only ever fights the cold, so it can never tip a warm day into a hot one
+        t = xyz.gabriwar.warpedpixeldungeon.actors.buffs.SpringSoak.warm(ch, t);
         if (ch instanceof Hero && cell == ch.pos && ((Hero) ch).belongings.armor != null) {
             t += ((Hero) ch).belongings.armor.thermalOffset();
         }

@@ -43,6 +43,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Frost;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MagicalSleep;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
+import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
 
 public class Groundwork extends Skill {
 
@@ -81,21 +83,28 @@ public class Groundwork extends Skill {
 		int splash = Math.max( 1, Math.round( damage * (0.05f + 0.15f * level) ) );
 		if (Dungeon.level.heroFOV[enemy.pos]){
 			CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.ROCK ), 4 );
+			Camera.main.shake( 1, 0.15f );
 		}
 		Sample.INSTANCE.play( Assets.Sounds.ROCKS, 0.7f, 1.2f );
 
+		//the ground breaks outward: the thorns come up under the neighbours one after another
+		FxTimeline t = FxTimeline.start();
+		int order = 0;
 		for (int n : PathFinder.NEIGHBOURS8){
 			int c = enemy.pos + n;
 			Char ch = Actor.findChar( c );
 			if (ch == null || ch == Dungeon.hero || ch.alignment != Char.Alignment.ENEMY || !ch.isAlive()) continue;
 			if (Dungeon.level.heroFOV[c]){
-				CellEmitter.get( c ).burst( Speck.factory( Speck.ROCK ), 3 );
-				SkillSpectacleFX.show( SkillSpectacleFX.THORN, c );
+				final int at = c, k = order++;
+				t.at( 0.05f * k, () -> {
+					CellEmitter.get( at ).burst( Speck.factory( Speck.ROCK ), 3 );
+					SkillSpectacleFX.show( SkillSpectacleFX.THORN, at );
+					Sample.INSTANCE.play( Assets.Sounds.ROCKS_LIGHT, 0.5f, 1.2f + 0.1f * k );
+				} );
 			}
 			ch.damage( splash, this );
 			if (level >= MAX_LEVEL && ch.isAlive()){
 				Buff.prolong( ch, Cripple.class, 2f );
-				SkillSpectacleFX.show( SkillSpectacleFX.THORN, c );
 			}
 		}
 		return damage;

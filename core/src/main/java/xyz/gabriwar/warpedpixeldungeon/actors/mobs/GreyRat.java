@@ -29,7 +29,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.StenchGas;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Doom;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Amok;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
@@ -64,10 +63,9 @@ immunities.add( Amok.class );
 		immunities.add( Burning.class );
 		immunities.add( Vertigo.class );
 		immunities.add( Poison.class );
-		immunities.add( ToxicGas.class );
 		immunities.add( StenchGas.class );
-		immunities.add( Doom.class );
 
+		resistances.add( ToxicGas.class );
 		resistances.add( Grim.class );
 	}
 

@@ -27,6 +27,9 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
+import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
+import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Web;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
@@ -38,6 +41,8 @@ import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.items.Gold;
 import xyz.gabriwar.warpedpixeldungeon.items.keys.SkeletonKey;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfMending;
+import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPsionicBlast;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.features.Door;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -74,6 +79,10 @@ public class PoisonGoo extends Mob {
 		FLEEING = new Fleeing();
 
 		immunities.add( Roots.class );
+
+		resistances.add( ToxicGas.class );
+		resistances.add( Grim.class );
+		resistances.add( ScrollOfPsionicBlast.class );
 	}
 
 	@Override
@@ -96,6 +105,10 @@ public class PoisonGoo extends Mob {
 	@Override
 	protected boolean act() {
 		boolean result = super.act();
+		if (state == FLEEING && buff( Terror.class ) == null && enemy != null
+				&& enemySeen && enemy.buff( Poison.class ) == null) {
+			state = HUNTING;
+		}
 		if (Dungeon.level.water[pos] && HP < HT) {
 			sprite.emitter().burst( Speck.factory( Speck.HEALING ), 1 );
 			HP++;
@@ -105,6 +118,14 @@ public class PoisonGoo extends Mob {
 			HP = HT;
 		}
 		return result;
+	}
+
+	@Override
+	public void move( int step, boolean travelling ) {
+		if (state == FLEEING) {
+			GameScene.add( Blob.seed( pos, Random.IntRange( 7, 9 ), Web.class ) );
+		}
+		super.move( step, travelling );
 	}
 
 	@Override
@@ -131,7 +152,13 @@ public class PoisonGoo extends Mob {
 
 	@Override
 	public int defenseProc( Char enemy, int damage ) {
-		if (HP >= damage + 2 && gooGeneration < 3) {
+		boolean gooSplit = false;
+		for (Mob mob : Dungeon.level.mobs) {
+			if (mob instanceof Goo) {
+				gooSplit = true;
+			}
+		}
+		if (HP >= damage + 2 && gooSplit) {
 			ArrayList<Integer> candidates = new ArrayList<>();
 			for (int n : PathFinder.NEIGHBOURS4) {
 				if (Dungeon.level.passable[pos + n] && Actor.findChar( pos + n ) == null) {
@@ -193,18 +220,37 @@ public class PoisonGoo extends Mob {
 			}
 		}
 
-		if (goosAlive == 0) {
+		if (goosAlive == 0 && Dungeon.level.locked) {
+			Dungeon.level.unseal();
+			GameScene.bossSlain();
 			Dungeon.level.drop( new SkeletonKey( Dungeon.depth ), pos ).sprite.drop();
 			Dungeon.level.drop( new Gold( Random.IntRange(900, 2000) ), pos ).sprite.drop();
 			Badges.validateBossSlain();
 		} else {
 			Dungeon.level.drop( new Gold( Random.IntRange(100, 200) ), pos ).sprite.drop();
 		}
+
+		yell( Messages.get(this, "dies") );
 	}
 
 	@Override
 	public float spawningWeight() {
 		return 0;
+	}
+
+	//Sprouted has Goo squeeze out a ring of mini goos the first time it notices the hero
+	public static void spawnAround( int pos ) {
+		for (Mob mob : Dungeon.level.mobs) {
+			if (mob instanceof PoisonGoo) {
+				return;
+			}
+		}
+		for (int n : PathFinder.NEIGHBOURS4) {
+			int cell = pos + n;
+			if (Dungeon.level.passable[cell] && Actor.findChar( cell ) == null) {
+				spawnAt( cell );
+			}
+		}
 	}
 
 	public static PoisonGoo spawnAt( int pos ) {

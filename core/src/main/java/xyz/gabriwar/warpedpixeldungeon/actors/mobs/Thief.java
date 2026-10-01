@@ -207,6 +207,7 @@ public class Thief extends Mob {
 				}
 
 				if (item != null) GLog.n( Messages.get(Thief.class, "escapes", item.name()));
+				item = null;
 				state = WANDERING;
 			} else {
 				state = WANDERING;

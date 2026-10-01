@@ -24,6 +24,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
+import com.watabou.utils.Bundle;
+import xyz.gabriwar.warpedpixeldungeon.ui.BossHealthBar;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -33,6 +35,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness;
 import xyz.gabriwar.warpedpixeldungeon.items.AdamantWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.Gold;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfLiquidFlame;
+import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfFireblast;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Blazing;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.SkeletonKingSprite;
@@ -58,6 +62,8 @@ public class SkeletonKing extends Mob {
 		properties.add(Property.UNDEAD);
 
 		immunities.add(Burning.class);
+		immunities.add(Blazing.class);
+		immunities.add(WandOfFireblast.class);
 
 		declareExtraLoot(AdamantWeapon.class, 1f);
 
@@ -88,7 +94,7 @@ public class SkeletonKing extends Mob {
 	@Override
 	public int attackProc(Char enemy, int damage) {
 		damage = super.attackProc(enemy, damage);
-		if (Random.Int(2) == 0) {
+		if (Random.Int(2) == 0 && enemy == Dungeon.hero) {
 			Buff.prolong(enemy, Weakness.class, Weakness.DURATION);
 			state = FLEEING;
 		}
@@ -97,6 +103,7 @@ public class SkeletonKing extends Mob {
 
 	@Override
 	protected boolean act() {
+		boolean result = super.act();
 		if (state == FLEEING
 				&& buff(Terror.class) == null
 				&& enemySeen
@@ -104,20 +111,39 @@ public class SkeletonKing extends Mob {
 				&& enemy.buff(Weakness.class) == null) {
 			state = HUNTING;
 		}
-		return super.act();
+		return result;
 	}
 
 	@Override
 	public void die(Object cause) {
 		Dungeon.skeletonkingkilled = true;
 		GameScene.bossSlain();
-		yell(Messages.get(this, "die"));
 		super.die(cause);
+		yell(Messages.get(this, "die"));
 	}
 
 	@Override
 	protected void dropExtraLoot() {
 		trackedDrop(new Gold(Random.IntRange(1900, 4000)), 0);
 		trackedDrop(new AdamantWeapon(), 1);
+	}
+
+	@Override
+	public void notice() {
+		super.notice();
+		if (!BossHealthBar.isAssigned()) BossHealthBar.assignBoss( this );
+		yell(Messages.get(this, "notice"));
+	}
+
+	@Override
+	public void damage( int dmg, Object src ) {
+		if (!BossHealthBar.isAssigned()) BossHealthBar.assignBoss( this );
+		super.damage( dmg, src );
+	}
+
+	@Override
+	public void restoreFromBundle( Bundle bundle ) {
+		super.restoreFromBundle( bundle );
+		if (enemySeen || HP < HT) BossHealthBar.assignBoss( this );
 	}
 }

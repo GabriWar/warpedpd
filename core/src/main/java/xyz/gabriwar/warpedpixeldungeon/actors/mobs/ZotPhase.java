@@ -104,16 +104,21 @@ public class ZotPhase extends Mob implements Callback {
 
 		} else {
 
+			boolean visible = Dungeon.level.heroFOV[pos] || Dungeon.level.heroFOV[enemy.pos];
+			if (visible) {
+				sprite.zap( enemy.pos );
+			}
+
 			spend( TIME_TO_ZAP );
 
 			Invisibility.dispel( this );
 			int dmg = Random.Int( 80, 160 );
-			if (Dungeon.level.water[enemy.pos]) {
+			if (Dungeon.level.water[enemy.pos] && !enemy.flying) {
 				dmg = Math.round( dmg * 1.5f );
 			}
 
 			if (hit( this, enemy, true )) {
-				enemy.damage( dmg, this );
+				enemy.damage( dmg, new Electricity() );
 
 				enemy.sprite.centerEmitter().burst( SparkParticle.FACTORY, 3 );
 				enemy.sprite.flash();
@@ -131,12 +136,7 @@ public class ZotPhase extends Mob implements Callback {
 				enemy.sprite.showStatus( CharSprite.NEUTRAL, enemy.defenseVerb() );
 			}
 
-			if (sprite != null && (sprite.visible || enemy.sprite.visible)) {
-				sprite.zap( enemy.pos );
-				return false;
-			} else {
-				return true;
-			}
+			return !visible;
 		}
 	}
 

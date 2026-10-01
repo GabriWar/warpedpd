@@ -27,7 +27,6 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Doom;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
@@ -63,8 +62,6 @@ public class Mimic extends Mob {
 		//mimics are neutral when hidden
 		alignment = Alignment.NEUTRAL;
 		state = PASSIVE;
-
-		immunities.add(Doom.class);
 	}
 	
 	public ArrayList<Item> items;

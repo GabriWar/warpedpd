@@ -27,9 +27,9 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Chill;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Slow;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfFrost;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.sprites.KoboldIcemancerSprite;
 import com.watabou.utils.Random;
@@ -51,6 +51,8 @@ public class KoboldIcemancer extends Mob {
 		lootChance = 0.2f;
 
 		properties.add( Property.ICY );
+
+		resistances.add( Grim.class );
 
 		//built for the cold: the deep freeze is home, the thaw is what hurts
 		thermal = Thermal.COLD_DWELLER;
@@ -100,13 +102,10 @@ public class KoboldIcemancer extends Mob {
 		spend( attackDelay() );
 		Char enemy = this.enemy;
 		if (enemy != null && enemy.isAlive() && hit( this, enemy, true )) {
-			int dmg = Random.NormalIntRange( 8, 14 );
-			enemy.damage( dmg, this );
+			enemy.damage( damageRoll(), this );
 
 			if (Random.Int( 2 ) == 0) {
 				Buff.prolong( enemy, Slow.class, 1f );
-			} else {
-				Buff.affect( enemy, Chill.class, 3f );
 			}
 
 			if (!enemy.isAlive() && enemy == Dungeon.hero) {

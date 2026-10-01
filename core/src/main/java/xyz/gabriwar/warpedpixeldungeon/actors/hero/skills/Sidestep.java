@@ -25,6 +25,7 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StreakFX;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -77,6 +78,7 @@ public class Sidestep extends Skill {
 		}
 		if (any){
 			CellEmitter.bottom( from ).burst( Speck.factory( Speck.DUST ), 4 );
+			StreakFX.show( from, hero.pos, 0xDDEEFF, 0.3f, 0.22f );
 			if (hero.sprite != null) hero.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( this, "cast" ) );
 			Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 1.5f );
 		}

@@ -25,6 +25,9 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PillarRiseFX;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 
 import java.util.*;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -72,6 +75,14 @@ public class GuardianSpirit extends ActiveSkill3 {
                     spirit=new SummonedPet(xyz.gabriwar.warpedpixeldungeon.sprites.SeraphGuardianSprite.class);spirit.name=Messages.get(GuardianSpirit.class,"name");
                     spirit.setLevel(level*2);spirit.setStats(2+level,5+3*level,level);spirit.setHealthShare(new float[]{1f,1.5f,2f}[Math.max(0,Math.min(2,level-1))]);spirit.setDamageShare(new float[]{.6f,.8f,1f}[Math.max(0,Math.min(2,level-1))]);spirit.pos=cell;
                     GameScene.add(spirit);
+                    //the guardian fades in under a pillar of pale light, shafts rising round it
+                    if(spirit.sprite!=null&&spirit.sprite.parent!=null){
+                        spirit.sprite.alpha(0);
+                        spirit.sprite.parent.add(new com.watabou.noosa.tweeners.AlphaTweener(spirit.sprite,1f,0.8f));
+                        spirit.sprite.emitter().start(xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle.FACTORY,0.12f,5);
+                    }
+                    PillarRiseFX.show(cell,0xDAE9FF,()->Sample.INSTANCE.play(Assets.Sounds.CHARMS,1f,0.8f));
+                    Sample.INSTANCE.play(Assets.Sounds.CHARGEUP,0.7f,0.9f);
                     // the watch lasts one in-game day
                     SkillInteractions.Mark guard=SkillInteractions.mark(spirit,SkillInteractions.Mark.GUARD,level,WATCH);
                     guard.cell=cell;Buff.prolong(spirit,Roots.class,WATCH);

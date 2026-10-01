@@ -66,13 +66,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.BanditKing;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bandit;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bat;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bee;
-import xyz.gabriwar.warpedpixeldungeon.actors.mobs.BlueCat;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.BlueWraith;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.BrokenRobot;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.BrownBat;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Brute;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.CausticSlime;
-import xyz.gabriwar.warpedpixeldungeon.actors.mobs.ControlPanel;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Crab;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.CrabKing;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.CrystalGuardian;
@@ -96,6 +94,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.FishProtector;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.FlyingProtector;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.ForestProtector;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.FossilSkeleton;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.FungalCore;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.FungalSentry;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.FungalSpinner;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Ghoul;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Gnoll;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.GnollArcher;
@@ -117,7 +118,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Guard;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.HermitCrab;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.ShellCrab;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Kupua;
-import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Lichen;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.LitTower;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.MagicEye;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.MineSentinel;
@@ -131,6 +131,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Necromancer;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Oni;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.OrbOfZotMob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Otiluke;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldDragon;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.PhantomPiranha;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Piranha;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.PoisonGoo;
@@ -396,8 +397,9 @@ public enum Bestiary {
 				Ghoul.class, Elemental.FireElemental.class, Elemental.FrostElemental.class, Elemental.ShockElemental.class, Warlock.class, Monk.class, Golem.class,
 				RipperDemon.class, DemonSpawner.class, Succubus.class, Eye.class, Scorpio.class,
 				BrownBat.class, GreyRat.class, SpectralRat.class,
-				BlueCat.class, GoldThief.class, Assassin.class, BanditKing.class,
+				GoldThief.class, Assassin.class, BanditKing.class,
 				BlueWraith.class, RedWraith.class, FossilSkeleton.class, MossySkeleton.class,
+				Kupua.class, Gullin.class,
 				BrokenRobot.class, MagicEye.class, Oni.class, GreyOni.class,
 				DemonGoo.class, PoisonGoo.class, DwarfLich.class, AlbinoPiranha.class,
 				Sentinel.class, MineSentinel.class, SokobanSentinel.class,
@@ -418,7 +420,7 @@ public enum Bestiary {
 				DwarfKing.class,
 				YogDzewa.Larva.class, YogFist.BurningFist.class, YogFist.SoiledFist.class, YogFist.RottingFist.class, YogFist.RustedFist.class,YogFist.BrightFist.class, YogFist.DarkFist.class, YogDzewa.class,
 				CrabKing.class, SkeletonKing.class, ThiefKing.class,
-				Otiluke.class, Gullin.class, Kupua.class,
+				Otiluke.class,
 				DwarfKingTomb.class, AdultDragonViolet.class,
 				Shell.class, ShellCrab.class, SkeletonHand1.class, SkeletonHand2.class,
 				ShadowYog.class, Zot.class, ZotPhase.class,
@@ -436,10 +438,11 @@ public enum Bestiary {
 		QUEST.addEntities(FetidRat.class, GnollTrickster.class, GreatCrab.class,
 				Elemental.NewbornFireElemental.class, RotLasher.class, RotHeart.class,
 				CrystalWisp.class, CrystalGuardian.class, CrystalSpire.class, GnollGuard.class, GnollSapper.class, GnollGeomancer.class,
+				FungalSpinner.class, FungalSentry.class, FungalCore.class,
 				VaultSkeleton.class, VaultDM100.class, VaultShaman.class, VaultDM200.class, VaultSentry.class, VaultLaser.class, VaultBossElemental.class);
 
 		NEUTRAL.addEntities(CagedKobold.class, Ghost.class, RatKing.class, Shopkeeper.class, Wandmaker.class, Blacksmith.class, Imp.class, Sheep.class, Bee.class,
-				Tower.class, LitTower.class, ControlPanel.class,
+				Tower.class, LitTower.class,
 				Tinkerer1.class, Tinkerer2.class, Tinkerer3.class, Tinkerer4.class, Tinkerer5.class,
 				TownGuard.class, Blacksmith2.class, OtilukeNPC.class,
 				Bard.class, Bishop.class, Drunkard.class, FortuneTellerFolk.class, InnKeeper.class, Librarian.class, Mercenary.class, InnServant.class, Employee.class, TownGuardFolk.class, TownsfolkMovie.class, Townsfolk.class, TownsfolkSilent.class);
@@ -448,7 +451,7 @@ public enum Bestiary {
 				DriedRose.GhostHero.class,
 				WandOfWarding.Ward.class, WandOfWarding.Ward.WardSentry.class, WandOfLivingEarth.EarthGuardian.class,
 				ShadowClone.ShadowAlly.class, SmokeBomb.NinjaLog.class, SpiritHawk.HawkAlly.class, PowerOfMany.LightAlly.class,
-				Lichen.class, MrDestructo.class, MrDestructo2dot0.class, OrbOfZotMob.class, SteelBee.class,
+				MrDestructo.class, MrDestructo2dot0.class, OrbOfZotMob.class, SteelBee.class,
 				SeekingBomb.class, SeekingClusterBomb.class,
 				BlueDragon.class, GreenDragon.class, RedDragon.class, VioletDragon.class, ShadowDragon.class,
 				Fairy.class, SugarplumFairy.class,
@@ -508,9 +511,83 @@ public enum Bestiary {
 		classConversions.put(DwarfKing.DKMonk.class,           Monk.class);
 		classConversions.put(DwarfKing.DKGolem.class,          Golem.class);
 
+		classConversions.put(OverworldDragon.class,            AdultDragonViolet.class);
+
+		//the Sokoban puzzles' sheep are sheep
+		classConversions.put(xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SheepSokoban.class,       Sheep.class);
+		classConversions.put(xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SheepSokobanBlack.class,  Sheep.class);
+		classConversions.put(xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SheepSokobanCorner.class, Sheep.class);
+		classConversions.put(xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SheepSokobanStop.class,   Sheep.class);
+		classConversions.put(xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SheepSokobanSwitch.class, Sheep.class);
+
 		classConversions.put(YogDzewa.YogRipper.class,         RipperDemon.class);
 		classConversions.put(YogDzewa.YogEye.class,            Eye.class);
 		classConversions.put(YogDzewa.YogScorpio.class,        Scorpio.class);
+	}
+
+	//kept out of the journal: the few monsters no player can meet anywhere (or it
+	//could never be completed - the standalone Larva is superseded by YogDzewa's own),
+	//and the actors that are not creatures at all but props, mechanisms, base
+	//classes and network stand-ins wearing a Mob's body
+	private static final java.util.HashSet<Class<?>> HIDDEN = new java.util.HashSet<>( java.util.Arrays.asList(
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.ControlPanel.class,
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.Lichen.class,
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.BlueCat.class,
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.Larva.class,
+			xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.Ratmogrify.TransmogRat.class,
+			xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.duelist.Feint.AfterImage.class,
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.SkillDecoy.class,
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.DirectableAlly.class,
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SummonedPet.class,
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.ClimateCrystalWard.class,
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.EnchantingStation.class,
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.FarmCrop.class,
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.MagicOrb.class,
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.PortalGate.class,
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.StorageChest.class,
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.VaultMirror.class,
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.VaultTokenDoor.class,
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.RouletteTable.class,
+			//the Warped rooms' furniture and mechanisms
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.IceBlock.class,
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Bedroll.class,
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.BellowsValve.class,
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.BreakersBench.class,
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TemperingAnvil.class,
+			xyz.gabriwar.warpedpixeldungeon.net.SpectatorReceiver.NetHeroMob.class,
+			xyz.gabriwar.warpedpixeldungeon.net.SpectatorReceiver.SpectatorMob.class ) );
+
+	//every monster in the game has an entry: the hand-sorted lists above come first,
+	//and whatever they miss (a new mob, a fresh port) is placed by what it is, from
+	//the generated registry that MobRegistryCompleteTest keeps complete
+	static {
+		for (Class<?> cls : MobRegistry.ALL){
+			if (HIDDEN.contains( cls ) || classConversions.containsKey( cls ) || listed( cls )) continue;
+			categoryOf( cls ).addEntities( cls );
+		}
+	}
+
+	/** hidden on purpose, or drawn on another monster's page (tests) */
+	static boolean accountedFor( Class<?> cls ){
+		return HIDDEN.contains( cls ) || classConversions.containsKey( cls );
+	}
+
+	private static boolean listed( Class<?> cls ){
+		for (Bestiary b : values()) if (b.seen.containsKey( cls )) return true;
+		return false;
+	}
+
+	//an unsorted monster's page, judged by its class alone (never by making one: the
+	//Bestiary loads early, and a monster's constructor may reach for things that are
+	//not up yet): townsfolk and quest givers are neutral, companions and summons allies,
+	//everything else a regional foe
+	private static Bestiary categoryOf( Class<?> cls ){
+		if (xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.DirectableAlly.class.isAssignableFrom( cls )
+				|| xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SummonedPet.class.isAssignableFrom( cls )
+				|| cls.getName().contains( ".mobs.pets." )
+				|| cls.getSimpleName().contains( "Ally" )) return ALLY;
+		if (xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.NPC.class.isAssignableFrom( cls )) return NEUTRAL;
+		return REGIONAL;
 	}
 
 	public static boolean isSeen(Class<?> cls){

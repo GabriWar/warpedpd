@@ -221,16 +221,21 @@ public enum Talent {
 
 		@Override
 		public boolean act() {
-			//barrier every 2/1 turns, to a max of 3/5
+			//barrier every 2/1 turns, to a max of 3/5/7; both grow with max HP past 50
 			if (((Hero)target).hasTalent(Talent.PROTECTIVE_SHADOWS) && target.invisible > 0){
+				Hero h = (Hero)target;
+				int p = h.pointsInTalent(Talent.PROTECTIVE_SHADOWS);
+				float scale = Math.max(1f, h.HT / 50f);
+				int cap = Math.round((1 + 2*p) * scale);
 				Barrier barrier = Buff.affect(target, Barrier.class);
-				if (barrier.shielding() < 1 + 2*((Hero)target).pointsInTalent(Talent.PROTECTIVE_SHADOWS)) {
-					barrierInc += 0.5f * ((Hero) target).pointsInTalent(Talent.PROTECTIVE_SHADOWS);
+				if (barrier.shielding() < cap) {
+					barrierInc += 0.5f * p * scale;
 				}
-				if (barrierInc >= 1){
-					//at +3 the gain is one and a half a turn: one now, and the rest carries
-					barrierInc -= 1;
-					barrier.incShield(1);
+				int whole = Math.min((int)barrierInc, Math.max(0, cap - barrier.shielding()));
+				if (whole > 0){
+					//fractions carry to the next turn
+					barrierInc -= whole;
+					barrier.incShield(whole);
 				} else {
 					barrier.incShield(0); //resets barrier decay
 				}
@@ -587,11 +592,29 @@ public enum Talent {
 	public static class CachedRationsDropped extends CounterBuff{{revivePersists = true;}};
 	public static class NatureBerriesDropped extends CounterBuff{{revivePersists = true;}};
 
+	/** how much a talent's flat number grows with the hero: x1.2 at level 3, x1.75 at 12, x2.5 at 24.
+	 *  Kept gentle on purpose: the talent should stay worth its points, not outgrow the gear */
+	public static float levelScale( Hero hero ){
+		return hero == null ? 1f : 1f + hero.lvl / 16f;
+	}
+
+	/** the same for talents that unlock later: x1 up to level 12, growing to about x1.6 at 26 */
+	public static float lateScale( Hero hero ){
+		return hero == null ? 1f : Math.max(1f, 0.5f + hero.lvl / 24f);
+	}
+
+	/** Satiated Spells: 10/15/20% of max HP, at least 3/5/7 */
+	public static int satiatedShield( Hero hero ){
+		int p = hero.pointsInTalent(SATIATED_SPELLS);
+		return Math.max(1 + 2*p, Math.round(hero.HT * 0.05f * (1 + p)));
+	}
+
 	public static void onFoodEaten( Hero hero, float foodVal, Item foodSource ){
 		if (hero.hasTalent(HEARTY_MEAL)){
-			//4/6 HP healed, when hero is below 33% health (with a little rounding up)
+			//15/20/25% of max HP healed (at least 4/6/8), when hero is below 33% health
 			if (hero.HP/(float)hero.HT < 0.334f) {
-				int healing = 2 + 2 * hero.pointsInTalent(HEARTY_MEAL);
+				int p = hero.pointsInTalent(HEARTY_MEAL);
+				int healing = Math.max(2 + 2*p, Math.round(hero.HT * (0.10f + 0.05f*p)));
 				hero.HP = Math.min(hero.HP + healing, hero.HT);
 				hero.sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(healing), FloatingText.HEALING);
 
@@ -605,8 +628,9 @@ public enum Talent {
 			}
 		}
 		if (hero.hasTalent(EMPOWERING_MEAL)){
-			//2/3 bonus wand damage for next 3 zaps
-			Buff.affect( hero, WandEmpower.class).set(1 + hero.pointsInTalent(EMPOWERING_MEAL), 3);
+			//2/3/4 bonus wand damage for next 3 zaps, +1/2/3 per 10 hero levels
+			int p = hero.pointsInTalent(EMPOWERING_MEAL);
+			Buff.affect( hero, WandEmpower.class).set(1 + p + (hero.lvl*p)/10, 3);
 			ScrollOfRecharging.charge( hero );
 		}
 		int wandChargeTurns = 0;
@@ -624,8 +648,8 @@ public enum Talent {
 			Buff.prolong( hero, Haste.class, 0.67f+hero.pointsInTalent(INVIGORATING_MEAL));
 		}
 		if (hero.hasTalent(STRENGTHENING_MEAL)){
-			//3 bonus physical damage for next 2/3 attacks
-			Buff.affect( hero, PhysicalEmpower.class).set(3, 1 + hero.pointsInTalent(STRENGTHENING_MEAL));
+			//2 + a third of the hero's level (at least 3) bonus physical damage for next 2/3/4 attacks
+			Buff.affect( hero, PhysicalEmpower.class).set(Math.max(3, 2 + hero.lvl/3), 1 + hero.pointsInTalent(STRENGTHENING_MEAL));
 		}
 		if (hero.hasTalent(FOCUSED_MEAL)){
 			if (hero.heroClass == HeroClass.DUELIST){
@@ -641,8 +665,8 @@ public enum Talent {
 			if (hero.heroClass == HeroClass.CLERIC) {
 				Buff.affect(hero, SatiatedSpellsTracker.class);
 			} else {
-				//3/5 shielding, delayed up to 10 turns
-				int amount = 1 + 2*hero.pointsInTalent(SATIATED_SPELLS);
+				//10/15/20% of max HP (at least 3/5/7) shielding, delayed up to 10 turns
+				int amount = satiatedShield(hero);
 				Barrier b = Buff.affect(hero, Barrier.class);
 				if (b.shielding() <= amount){
 					b.setShield(amount);
@@ -889,20 +913,26 @@ public enum Talent {
 
 		if (hero.hasTalent(Talent.PROVOKED_ANGER)
 			&& hero.buff(ProvokedAngerTracker.class) != null){
-			dmg += 1 + 2*hero.pointsInTalent(Talent.PROVOKED_ANGER);
+			//3/5/7, +1/2/3 per 6 hero levels
+			dmg += 1 + hero.pointsInTalent(Talent.PROVOKED_ANGER) * (2 + hero.lvl/6);
 			hero.buff(ProvokedAngerTracker.class).detach();
 		}
 
 		if (hero.hasTalent(Talent.LINGERING_MAGIC)
 				&& hero.buff(LingeringMagicTracker.class) != null){
-			dmg += Random.IntRange(hero.pointsInTalent(Talent.LINGERING_MAGIC), Math.max(2, hero.pointsInTalent(Talent.LINGERING_MAGIC)));
+			//1-2/2/3, +1/2/3 per 10 hero levels
+			int p = hero.pointsInTalent(Talent.LINGERING_MAGIC);
+			int b = p + (hero.lvl*p)/10;
+			dmg += Random.IntRange(b, Math.max(2, b));
 			hero.buff(LingeringMagicTracker.class).detach();
 		}
 
 		if (hero.hasTalent(Talent.SUCKER_PUNCH)
 				&& enemy instanceof Mob && ((Mob) enemy).surprisedBy(hero)
 				&& enemy.buff(SuckerPunchTracker.class) == null){
-			dmg += Random.IntRange(hero.pointsInTalent(Talent.SUCKER_PUNCH), Math.max(2, hero.pointsInTalent(Talent.SUCKER_PUNCH)));
+			//15/30/45% of the hit, at least 1-2/2/3
+			int p = hero.pointsInTalent(Talent.SUCKER_PUNCH);
+			dmg += Math.max(Random.IntRange(p, Math.max(2, p)), Math.round(dmg * 0.15f * p));
 			Buff.affect(enemy, SuckerPunchTracker.class);
 		}
 
@@ -911,7 +941,8 @@ public enum Talent {
 				Buff.prolong(hero, FollowupStrikeTracker.class, 5f).object = enemy.id();
 			} else if (hero.buff(FollowupStrikeTracker.class) != null
 					&& hero.buff(FollowupStrikeTracker.class).object == enemy.id()){
-				dmg += 1 + hero.pointsInTalent(FOLLOWUP_STRIKE);
+				//2/3/4, growing with the hero's level
+				dmg += Math.round((1 + hero.pointsInTalent(FOLLOWUP_STRIKE)) * levelScale(hero));
 				hero.buff(FollowupStrikeTracker.class).detach();
 			}
 		}
@@ -927,7 +958,9 @@ public enum Talent {
 			if (hero.buff(PatientStrikeTracker.class) != null
 					&& !(hero.belongings.attackingWeapon() instanceof MissileWeapon)){
 				hero.buff(PatientStrikeTracker.class).detach();
-				dmg += Random.IntRange(hero.pointsInTalent(Talent.PATIENT_STRIKE), Math.max(2, hero.pointsInTalent(Talent.PATIENT_STRIKE)));
+				//10/20/30% of the hit, at least 1-2/2/3
+				int p = hero.pointsInTalent(Talent.PATIENT_STRIKE);
+				dmg += Math.max(Random.IntRange(p, Math.max(2, p)), Math.round(dmg * 0.10f * p));
 			}
 		}
 

@@ -25,6 +25,9 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Sleep;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
+import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPsionicBlast;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ClayGolemSprite;
 import com.watabou.utils.Random;
 
@@ -39,6 +42,11 @@ public class ClayGolem extends Mob {
 
 		EXP = 8;
 		maxLvl = 18;
+
+		immunities.add( Terror.class );
+		immunities.add( Sleep.class );
+		//stand-in for Unleashed's TYPE_MINDLESS
+		immunities.add( ScrollOfPsionicBlast.class );
 
 		//no metabolism to disturb: only the extremes reach it
 		thermal = Thermal.INSENSATE;

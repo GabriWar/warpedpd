@@ -64,7 +64,7 @@ public class Steaming extends Buff {
 	@Override
 	public boolean attachTo(Char target) {
 		if (super.attachTo(target)) {
-			target.flying = true;
+			target.grantFlight();
 			Roots.detach(target, Roots.class);
 			Chill.detach(target, Chill.class);
 			return true;
@@ -105,7 +105,7 @@ public class Steaming extends Buff {
 
 	@Override
 	public void detach() {
-		target.flying = false;
+		target.endFlight();
 		super.detach();
 		Dungeon.level.occupyCell(target);
 	}

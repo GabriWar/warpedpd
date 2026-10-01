@@ -97,15 +97,20 @@ public class BlessSpell extends TargetedClericSpell {
 		onSpellCast(tome, hero);
 	}
 
+	/** 10/15/20 shielding or healing, growing with the hero's level */
+	private static int amount( Hero hero ){
+		return Math.round((5 + 5*hero.pointsInTalent(Talent.BLESS)) * Talent.levelScale(hero));
+	}
+
 	private void affectChar(Hero hero, Char ch){
 		new Flare(6, 32).color(0xFFFF00, true).show(ch.sprite, 2f);
 		if (ch == hero){
 			Buff.prolong(ch, Bless.class, 2f + 4*hero.pointsInTalent(Talent.BLESS));
-			Buff.affect(ch, Barrier.class).setShield(5 + 5*hero.pointsInTalent(Talent.BLESS));
-			ch.sprite.showStatusWithIcon( CharSprite.POSITIVE, Integer.toString(5 + 5*hero.pointsInTalent(Talent.BLESS)), FloatingText.SHIELDING );
+			Buff.affect(ch, Barrier.class).setShield(amount(hero));
+			ch.sprite.showStatusWithIcon( CharSprite.POSITIVE, Integer.toString(amount(hero)), FloatingText.SHIELDING );
 		} else {
 			Buff.prolong(ch, Bless.class, 5f + 5*hero.pointsInTalent(Talent.BLESS));
-			int totalHeal = 5 + 5*hero.pointsInTalent(Talent.BLESS);
+			int totalHeal = amount(hero);
 			if (ch.HT - ch.HP < totalHeal){
 				int barrier = totalHeal - (ch.HT - ch.HP);
 				barrier = Math.max(barrier, 0);
@@ -130,7 +135,7 @@ public class BlessSpell extends TargetedClericSpell {
 
 	public String desc(){
 		int talentLvl = Dungeon.hero.pointsInTalent(Talent.BLESS);
-		return Messages.get(this, "desc", 2+4*talentLvl, 5+5*talentLvl, 5+5*talentLvl, 5+5*talentLvl) + "\n\n" + Messages.get(this, "charge_cost", (int)chargeUse(Dungeon.hero));
+		return Messages.get(this, "desc", 2+4*talentLvl, amount(Dungeon.hero), 5+5*talentLvl, amount(Dungeon.hero)) + "\n\n" + Messages.get(this, "charge_cost", (int)chargeUse(Dungeon.hero));
 	}
 
 }

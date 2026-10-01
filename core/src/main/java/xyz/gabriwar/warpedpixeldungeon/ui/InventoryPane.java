@@ -132,7 +132,7 @@ public class InventoryPane extends Component {
 		bg = Chrome.get(Chrome.Type.TOAST_TR_HEAVY);
 		add(bg);
 
-		blocker = new PointerArea(0, 0, PixelScene.uiCamera.width, PixelScene.uiCamera.height){
+		blocker = new PointerArea(0, 0, PixelScene.toolbarCamera.width, PixelScene.toolbarCamera.height){
 			@Override
 			protected void onClick(PointerEvent event) {
 				if (selector != null && !bg.overlapsScreenPoint((int)event.current.x, (int)event.current.y)){

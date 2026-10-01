@@ -44,6 +44,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import com.watabou.utils.PathFinder;
+import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 
 public class PanicHarvest extends Skill {
 
@@ -72,11 +73,22 @@ public class PanicHarvest extends Skill {
 		int gain = Math.min( level, 2 );
 		hero.MP = Math.min( hero.MT, hero.MP + gain );
 		CellEmitter.get( enemy.pos ).burst( ShadowParticle.UP, 5 );
-		if (hero.sprite != null){
-			hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 3 );
-			hero.sprite.showStatus( MANA_COLOR, Messages.get( this, "harvest", gain ) );
-		}
 		Sample.INSTANCE.play( Assets.Sounds.GHOST, 0.5f, 1.4f );
+		if (hero.sprite != null){
+			//the fear is seen leaving the victim and streaking into the rogue, where it lands as mana
+			final String words = Messages.get( this, "harvest", gain );
+			if (hero.sprite.parent != null && enemy.sprite != null && Dungeon.level.heroFOV[enemy.pos]){
+				((MagicMissile) hero.sprite.parent.recycle( MagicMissile.class )).reset(
+						MagicMissile.SHADOW, enemy.sprite.center(), hero.sprite.center(), () -> {
+							hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 4 );
+							hero.sprite.showStatus( MANA_COLOR, words );
+							Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 0.4f, 1.7f );
+						} );
+			} else {
+				hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 3 );
+				hero.sprite.showStatus( MANA_COLOR, words );
+			}
+		}
 		return damage;
 	}
 

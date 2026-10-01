@@ -51,16 +51,10 @@ public class Gullin extends Mob {
 
 		immunities.add( ToxicGas.class );
 		immunities.add( CorruptGas.class );
-
-		resistances.add( xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim.class );
+		immunities.add( xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim.class );
 
 		loot = new StoneOre();
 		lootChance = 0.0f;
-	}
-
-	@Override
-	public float spawningWeight() {
-		return 0;
 	}
 
 	@Override

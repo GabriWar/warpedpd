@@ -25,12 +25,15 @@
 package xyz.gabriwar.warpedpixeldungeon.levels;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.GnollVillager;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Villager;
 import xyz.gabriwar.warpedpixeldungeon.levels.features.LevelTransition;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldStructures;
 import com.watabou.utils.Bundle;
 
 /**
@@ -135,17 +138,37 @@ public class VillageHouseLevel extends Level {
 		return true;
 	}
 
-	//half the houses are lived in; the family shares the look of the one door
-	//they live behind, so the same house always holds the same face
+	//half the houses are lived in, by the folk of the settlement the door belongs to: a
+	//human family in a human village, a gnoll in a gnoll clan's, nobody in a bandit
+	//camp's houses (the bandits are all outside). the resident shares the look of the one
+	//door they live behind, so the same house always holds the same face
 	@Override
 	protected void createMobs() {
 		long h = houseHash();
 		if ((h & 1L) != 0) return;
-		Villager v = new Villager();
-		v.look = (int)Math.floorMod( h >> 8, 3 );
-		v.tint = (int)Math.floorMod( h >> 16, 8 );
-		v.pos = 4 + 3 * W;
-		mobs.add( v );
+		long seed = OverworldLevel.worldSeedOf( Dungeon.seed );
+		long sector = WorldStructures.houseSector( seed, doorWX, doorWY );
+		WorldStructures.Faction faction = sector == Long.MIN_VALUE ? WorldStructures.Faction.HUMAN
+				: WorldStructures.faction( seed, (int)(sector >> 32), (int)sector );
+		switch (faction){
+			case GNOLL:
+				GnollVillager g = new GnollVillager();
+				g.tint = (int)Math.floorMod( h >> 16, 8 );
+				g.homeSector = sector;
+				g.pos = 4 + 3 * W;
+				mobs.add( g );
+				break;
+			case HUMAN:
+				Villager v = new Villager();
+				v.look = (int)Math.floorMod( h >> 8, 3 );
+				v.tint = (int)Math.floorMod( h >> 16, 8 );
+				v.homeSector = sector;
+				v.pos = 4 + 3 * W;
+				mobs.add( v );
+				break;
+			default:
+				break;
+		}
 	}
 
 	private long houseHash(){

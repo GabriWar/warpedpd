@@ -116,7 +116,7 @@ public class OtilukesJournal extends Item {
 		if (returnDepth > 0
 				&& Dungeon.depth >= 50
 				&& (Dungeon.depth <= 55 || Dungeon.depth == 66 || Dungeon.depth == 67
-					|| Dungeon.depth == xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel.DEPTH)
+					|| xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldLayers.isLayerDepth( Dungeon.depth ))
 				&& !hero.petfollow) {
 			actions.add(AC_RETURN);
 		}

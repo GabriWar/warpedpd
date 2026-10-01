@@ -139,6 +139,11 @@ public class MineGiantRoom extends CaveRoom {
 			FungalCore m = new FungalCore();
 			m.pos = level.pointToCell(p);
 			level.mobs.add(m);
+			Painter.set(level, p, Terrain.GRASS);
+
+			//no high grass directly above the core, it is a tall sprite
+			p.y--;
+			Painter.set(level, p, Terrain.GRASS);
 
 		} else {
 			Painter.fillEllipse(level, this, 3, Terrain.EMPTY);

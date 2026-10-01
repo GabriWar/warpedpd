@@ -25,6 +25,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Light;
 import xyz.gabriwar.warpedpixeldungeon.sprites.SpiderBotSprite;
 import com.watabou.utils.Random;
 
@@ -36,6 +37,7 @@ public class SpiderBot extends Mob {
 
 		HP = HT = 60;
 		defenseSkill = 12;
+		viewDistance = Light.DISTANCE;
 
 		EXP = 10;
 		maxLvl = 20;

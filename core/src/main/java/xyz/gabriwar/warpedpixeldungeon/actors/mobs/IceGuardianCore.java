@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
+import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Amok;
@@ -37,15 +38,8 @@ import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfFrost;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.IceGuardianCoreSprite;
-import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
-import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
-import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.ui.BossHealthBar;
 import com.watabou.utils.Random;
 
@@ -65,11 +59,9 @@ public class IceGuardianCore extends Mob {
 		EXP = 25;
 		maxLvl = 30;
 
-		//a set-piece inside the branch, not the branch's boss - that is the demon lord
-		properties.add( Property.MINIBOSS );
+		properties.add( Property.BOSS );
 		properties.add( Property.ICY );
 		properties.add( Property.INORGANIC );
-		properties.add( Property.IMMOVABLE );
 
 		immunities.add( Paralysis.class );
 		immunities.add( ToxicGas.class );
@@ -100,10 +92,6 @@ public class IceGuardianCore extends Mob {
 	}
 
 	public static final int MAX_GUARDIANS = 4;
-	private static final int FORM_EVERY = 10;
-
-	//turns until the core shapes another guardian while it is fighting
-	private int formIn = FORM_EVERY;
 
 	public static int guardians() {
 		int n = 0;
@@ -114,30 +102,6 @@ public class IceGuardianCore extends Mob {
 	}
 
 	@Override
-	protected boolean act() {
-		if (state == HUNTING && paralysed <= 0 && --formIn <= 0) {
-			formIn = FORM_EVERY;
-			if (guardians() < MAX_GUARDIANS) formGuardian();
-		}
-		return super.act();
-	}
-
-	private void formGuardian() {
-		for (int n : PathFinder.NEIGHBOURS8) {
-			int cell = pos + n;
-			if (!Dungeon.level.passable[cell] || Actor.findChar( cell ) != null) continue;
-			IceGuardian guardian = new IceGuardian();
-			guardian.pos = cell;
-			guardian.state = guardian.HUNTING;
-			GameScene.add( guardian );
-			CellEmitter.get( cell ).burst( Speck.factory( Speck.LIGHT ), 6 );
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER, 0.6f, 1.3f );
-			if (Dungeon.level.heroFOV[pos]) GLog.w( Messages.get( this, "form" ) );
-			return;
-		}
-	}
-
-	@Override
 	public void notice() {
 		super.notice();
 		if (!BossHealthBar.isAssigned()) {
@@ -145,18 +109,9 @@ public class IceGuardianCore extends Mob {
 		}
 	}
 
-	private static final String FORM_IN = "form_in";
-
-	@Override
-	public void storeInBundle( Bundle bundle ) {
-		super.storeInBundle( bundle );
-		bundle.put( FORM_IN, formIn );
-	}
-
 	@Override
 	public void restoreFromBundle( Bundle bundle ) {
 		super.restoreFromBundle( bundle );
-		if (bundle.contains( FORM_IN )) formIn = bundle.getInt( FORM_IN );
 		//older saves left the core passive, where it never fought back
 		if (state == PASSIVE) state = WANDERING;
 		if (state == HUNTING) BossHealthBar.assignBoss( this );
@@ -172,6 +127,8 @@ public class IceGuardianCore extends Mob {
 
 	@Override
 	public void die( Object cause ) {
+		super.die( cause );
+
 		//without the core the ice holding the guardians together lets go
 		for (Mob mob : Dungeon.level.mobs.toArray( new Mob[0] )) {
 			if (mob instanceof IceGuardian && mob.isAlive()) {
@@ -182,7 +139,9 @@ public class IceGuardianCore extends Mob {
 		Dungeon.level.drop( new IceKey( Dungeon.depth ), pos ).sprite.drop();
 		Dungeon.level.drop( new WandOfFrost().upgrade(), pos ).sprite.drop();
 
-		super.die( cause );
+		Dungeon.level.unseal();
+		GameScene.bossSlain();
+		Badges.validateBossSlain();
 
 		yell( Messages.get( this, "die" ) );
 	}

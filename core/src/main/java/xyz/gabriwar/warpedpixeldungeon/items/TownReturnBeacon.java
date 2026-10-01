@@ -80,11 +80,14 @@ public class TownReturnBeacon extends Item {
 	public ArrayList<String> actions(Hero hero) {
 		ArrayList<String> actions = super.actions(hero);
 		//once Otiluke is rescued the mine is sealed off — no returning to it
-		if (Dungeon.depth == xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel.DEPTH
+		if (xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldLayers.isLayerDepth( Dungeon.depth )
 				&& returnDepth > 55 && !Badges.checkOtilukeRescued()) {
 			actions.add(AC_RETURN);
 		}
-		if (Dungeon.depth > 55 && Dungeon.townCheck(Dungeon.depth)) {
+		//every Sprouted depth past the town, as in Sprouted (Otiluke hands this over on Zot's
+		//floor, 99), but not the world's own slices: those sit above 55 too
+		if (Dungeon.depth > 55
+				&& !xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldLayers.isLayerDepth( Dungeon.depth )) {
 			actions.add(AC_RETURNTOWN);
 		}
 		return actions;

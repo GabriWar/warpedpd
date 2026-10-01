@@ -24,12 +24,12 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
+import com.watabou.utils.Bundle;
+import xyz.gabriwar.warpedpixeldungeon.ui.BossHealthBar;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Doom;
-import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Vampiric;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Amok;
@@ -40,6 +40,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Sleep;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.items.misc.AutoPotion;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.relic.RelicMeleeWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.JupitersWraith;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
@@ -47,7 +51,8 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.OtilukeNPC;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ZotSprite;
-import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
@@ -70,10 +75,8 @@ public class Zot extends Mob {
 
 		resistances.add( ToxicGas.class );
 		resistances.add( Poison.class );
-		resistances.add( Grim.class );
-		resistances.add( Vampiric.class );
-		resistances.add( Doom.class );
 
+		immunities.add( Vampiric.class );
 		immunities.add( Terror.class );
 		immunities.add( Amok.class );
 		immunities.add( Charm.class );
@@ -116,14 +119,21 @@ public class Zot extends Mob {
 			if (!checkEyes()) {
 				spawnEye();
 			}
-			HP = Math.min( HP + 200, HT );
+			if (HP < HT) {
+				sprite.emitter().burst( Speck.factory( Speck.HEALING ), 1 );
+				HP = Math.min( HP + 200, HT );
+			}
 		}
 
-		if (HP < HT) {
-			HP = Math.min( HP + Random.IntRange( 50, 100 ), HT );
+		boolean result = super.act();
+
+		int regen = Dungeon.hero.buff( AutoPotion.AutoHealPotion.class ) != null ? 1 : Random.Int( 50, 100 );
+		if (isAlive() && HP < HT) {
+			sprite.emitter().burst( Speck.factory( Speck.HEALING ), 1 );
+			HP = Math.min( HP + regen, HT );
 		}
 
-		return super.act();
+		return result;
 	}
 
 	@Override
@@ -149,6 +159,7 @@ public class Zot extends Mob {
 
 	@Override
 	public void damage( int dmg, Object src ) {
+		if (!BossHealthBar.isAssigned()) BossHealthBar.assignBoss( this );
 		if (!(src instanceof RelicMeleeWeapon) && !(src instanceof JupitersWraith)) {
 			dmg = Random.Int( 1, Math.max( 1, Math.round( dmg * 0.25f ) ) );
 		}
@@ -175,13 +186,17 @@ public class Zot extends Mob {
 			if (tries > 100) break;
 		} while (!Dungeon.level.passable[newPos]
 				|| !Dungeon.level.heroFOV[newPos]
+				|| (enemy != null && Dungeon.level.adjacent( newPos, enemy.pos ))
 				|| Actor.findChar( newPos ) != null);
 
 		if (tries <= 100) {
 			sprite.move( pos, newPos );
-			pos = newPos;
-			sprite.place( pos );
-			sprite.visible = Dungeon.level.heroFOV[pos];
+			move( newPos, false );
+
+			if (Dungeon.level.heroFOV[newPos]) {
+				CellEmitter.get( newPos ).burst( Speck.factory( Speck.WOOL ), 6 );
+				Sample.INSTANCE.play( Assets.Sounds.PUFF );
+			}
 		}
 
 		spend( 1 / speed() );
@@ -191,7 +206,8 @@ public class Zot extends Mob {
 		ArrayList<Integer> candidates = new ArrayList<>();
 		for (int n : PathFinder.NEIGHBOURS8) {
 			int cell = pos + n;
-			if (Dungeon.level.passable[cell] && Actor.findChar( cell ) == null) {
+			if ((Dungeon.level.passable[cell] || Dungeon.level.avoid[cell])
+					&& Actor.findChar( cell ) == null) {
 				candidates.add( cell );
 			}
 		}
@@ -200,6 +216,7 @@ public class Zot extends Mob {
 			phase.pos = Random.element( candidates );
 			phase.state = phase.HUNTING;
 			GameScene.add( phase );
+			Actor.addDelayed( new Pushing( phase, pos, phase.pos ), -1 );
 		}
 	}
 
@@ -207,7 +224,8 @@ public class Zot extends Mob {
 		ArrayList<Integer> candidates = new ArrayList<>();
 		for (int n : PathFinder.NEIGHBOURS8) {
 			int cell = Dungeon.hero.pos + n;
-			if (Dungeon.level.passable[cell] && Actor.findChar( cell ) == null) {
+			if ((Dungeon.level.passable[cell] || Dungeon.level.avoid[cell])
+					&& Actor.findChar( cell ) == null) {
 				candidates.add( cell );
 			}
 		}
@@ -216,6 +234,7 @@ public class Zot extends Mob {
 			eye.pos = Random.element( candidates );
 			eye.state = eye.HUNTING;
 			GameScene.add( eye );
+			Actor.addDelayed( new Pushing( eye, pos, eye.pos ), -1 );
 		}
 	}
 
@@ -245,21 +264,35 @@ public class Zot extends Mob {
 
 	@Override
 	public void die( Object cause ) {
+		Dungeon.level.unseal();
+		GameScene.bossSlain();
+
 		for (Mob mob : (Iterable<Mob>) Dungeon.level.mobs.clone()) {
 			if (mob instanceof ZotPhase || mob instanceof MagicEye) {
 				mob.die( cause );
+				mob.destroy();
+				mob.sprite.killAndErase();
 			}
 		}
 
-		GameScene.bossSlain();
-		Dungeon.level.unseal();
-
-		GLog.p( Messages.get( this, "defeated" ) );
-		yell( Messages.get( this, "die" ) );
-
 		super.die( cause );
+
+		yell( Messages.get( this, "die" ) );
 
 		// Sprouted: spawn OtilukeNPC at Zot's death position
 		OtilukeNPC.spawnAt( pos );
+	}
+
+	@Override
+	public void notice() {
+		super.notice();
+		if (!BossHealthBar.isAssigned()) BossHealthBar.assignBoss( this );
+		yell( Messages.get( this, "notice" ) );
+	}
+
+	@Override
+	public void restoreFromBundle( Bundle bundle ) {
+		super.restoreFromBundle( bundle );
+		if (enemySeen || HP < HT) BossHealthBar.assignBoss( this );
 	}
 }

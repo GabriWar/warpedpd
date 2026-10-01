@@ -26,6 +26,9 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StreakFX;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillSequence;
 
 import java.util.ArrayList;
@@ -71,6 +74,9 @@ public class Lunge extends ActiveSkill1 {
                 int chain=follow==null?1:follow.power+1;
                 if(follow!=null)follow.detach();hero.MP-=getManaCost();hero.busy();Invisibility.dispel();
                 final int land=landing;
+                //the run: a whoosh and a thin white streak shooting ahead of the duelist
+                Sample.INSTANCE.play(Assets.Sounds.MISS,1f,1.3f+0.1f*(chain-1));
+                StreakFX.show(from,land,0xFFFFFF,0.5f,0.35f);
                 hero.sprite.jump(from,land,()->{
                     hero.move(land,false);hero.sprite.place(land);Dungeon.observe();
                     KindOfWeapon weapon=hero.belongings.weapon();
@@ -78,6 +84,11 @@ public class Lunge extends ActiveSkill1 {
                     if(weapon!=null)damage=weapon.proc(hero,enemy,damage);
                     enemy.damage(damage,hero);SkillFX.flash(enemy);
                     SkillSpectacleFX.fly(SkillSpectacleFX.SABER,from,land,0,.4f);
+                    //the landing: a puff of dust under her feet, the point driven home with a stab
+                    CellEmitter.bottom(land).burst(Speck.factory(Speck.DUST),4);
+                    if(enemy.sprite!=null)enemy.sprite.emitter().burst(Speck.factory(Speck.STAR),4);
+                    Sample.INSTANCE.play(Assets.Sounds.HIT_STAB,1f,1.1f+0.1f*(chain-1));
+                    hero.sprite.showStatus(xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite.NEUTRAL,chain>1?castText()+" x"+chain:castText());
                     if(level>=MAX_LEVEL){
                         java.util.ArrayList<Integer> lane=new xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica(from,land,
                                 xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica.STOP_TARGET|xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica.STOP_SOLID).path;

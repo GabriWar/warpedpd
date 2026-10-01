@@ -25,6 +25,7 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.ArcSpinFX;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -69,6 +70,8 @@ public class ParryStance extends PassiveSkillA3 {
 			hero.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( this, "parry" ) );
 			hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 6 );
 			new Flare( 5, 16 ).color( 0xFFFFFF, true ).show( hero.sprite, 0.4f );
+			//the blade turns the blow: a quick arc snapped toward the attacker
+			ArcSpinFX.slash( hero.sprite, 0xFFFFFF, enemy.pos % Dungeon.level.width() >= hero.pos % Dungeon.level.width() );
 		}
 		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 1f, 1f );
 		ParryRiposte riposte = Buff.affect( hero, ParryRiposte.class );

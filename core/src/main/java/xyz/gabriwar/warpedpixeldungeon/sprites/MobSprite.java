@@ -26,6 +26,7 @@ import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.tweeners.AlphaTweener;
 import com.watabou.noosa.tweeners.ScaleTweener;
+import com.watabou.utils.Callback;
 import com.watabou.utils.PointF;
 import com.watabou.utils.Random;
 
@@ -56,7 +57,11 @@ public class MobSprite extends CharSprite {
 	}
 	
 	public void fall() {
-		
+		fall( null );
+	}
+
+	/** Falls into a chasm; `landed` runs where the sprite vanishes, at the bottom of the fall. */
+	public void fall( final Callback landed ) {
 		origin.set( width / 2, height - DungeonTilemap.SIZE / 2 );
 		angularSpeed = Random.Int( 2 ) == 0 ? -720 : 720;
 		am = 1;
@@ -70,6 +75,7 @@ public class MobSprite extends CharSprite {
 		if (parent != null) parent.add( new ScaleTweener( this, new PointF( 0, 0 ), FALL_TIME ) {
 			@Override
 			protected void onComplete() {
+				if (landed != null) landed.call();
 				MobSprite.this.killAndErase();
 				parent.erase( this );
 			}

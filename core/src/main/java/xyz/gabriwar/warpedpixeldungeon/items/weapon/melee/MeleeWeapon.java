@@ -212,7 +212,8 @@ public class MeleeWeapon extends Weapon {
 		if (hero.heroClass == HeroClass.DUELIST
 				&& hero.hasTalent(Talent.AGGRESSIVE_BARRIER)
 				&& (hero.HP / (float)hero.HT) <= 0.5f){
-			int shieldAmt = 1 + 2*hero.pointsInTalent(Talent.AGGRESSIVE_BARRIER);
+			//4/8/12% of max HP, at least 3/5/7
+			int shieldAmt = Math.max(1 + 2*hero.pointsInTalent(Talent.AGGRESSIVE_BARRIER), Math.round(hero.HT * 0.04f * hero.pointsInTalent(Talent.AGGRESSIVE_BARRIER)));
 			Buff.affect(hero, Barrier.class).setShield(shieldAmt);
 			hero.sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(shieldAmt), FloatingText.SHIELDING);
 		}
@@ -283,6 +284,8 @@ public class MeleeWeapon extends Weapon {
 		return this.tier;
 	}
 
+	//rarity is NOT applied here: nearly every weapon overrides these, so it is taken once
+	//in KindOfWeapon.min()/max(), which nothing overrides
 	@Override
 	public int min(int lvl) {
 		return  tier +  //base
@@ -300,6 +303,7 @@ public class MeleeWeapon extends Weapon {
 		if (masteryPotionBonus){
 			req -= 2;
 		}
+		req -= xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.strReqBonus( this, req );
 		return req;
 	}
 

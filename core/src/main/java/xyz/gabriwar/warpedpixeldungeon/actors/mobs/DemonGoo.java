@@ -32,12 +32,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Ooze;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Doom;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Light;
+import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPsionicBlast;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfMending;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.features.Door;
@@ -66,6 +66,7 @@ public class DemonGoo extends Mob {
 		HP = HT = 200;
 		defenseSkill = 10;
 		baseSpeed = 2f;
+		viewDistance = Light.DISTANCE;
 
 		EXP = 10;
 
@@ -75,7 +76,7 @@ public class DemonGoo extends Mob {
 		immunities.add( Roots.class );
 		resistances.add( ToxicGas.class );
 		resistances.add( Grim.class );
-		resistances.add( Doom.class );
+		resistances.add( ScrollOfPsionicBlast.class );
 	}
 
 	@Override
@@ -128,14 +129,14 @@ public class DemonGoo extends Mob {
 	public int attackProc( Char enemy, int damage ) {
 		if (Random.Int( 3 ) == 0) {
 			Buff.affect( enemy, Ooze.class ).set( Ooze.DURATION );
+			enemy.sprite.burst( 0x000000, 5 );
 		}
-		sprite.emitter().burst( ShadowParticle.UP, 5 );
 		return damage;
 	}
 
 	@Override
 	public int defenseProc( Char enemy, int damage ) {
-		if (HP >= damage + 2 && demonGooGeneration < 3) {
+		if (HP >= damage + 2) {
 			ArrayList<Integer> candidates = new ArrayList<>();
 			for (int n : PathFinder.NEIGHBOURS4) {
 				if (Dungeon.level.passable[pos + n] && Actor.findChar( pos + n ) == null) {
@@ -144,6 +145,7 @@ public class DemonGoo extends Mob {
 			}
 
 			if (!candidates.isEmpty()) {
+				GLog.n( Messages.get(this, "split") );
 				DemonGoo clone = split();
 				clone.HP = (HP - damage) / 2;
 				clone.pos = Random.element( candidates );
@@ -157,7 +159,6 @@ public class DemonGoo extends Mob {
 				Actor.addDelayed( new Pushing( clone, pos, clone.pos ), -1 );
 
 				HP -= clone.HP;
-				GLog.w( Messages.get(this, "split") );
 			}
 		}
 		return damage;

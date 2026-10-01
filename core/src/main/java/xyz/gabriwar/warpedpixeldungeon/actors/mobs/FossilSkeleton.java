@@ -54,7 +54,7 @@ public class FossilSkeleton extends Mob {
 		properties.add(Property.UNDEAD);
 		properties.add(Property.INORGANIC);
 
-		resistances.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim.class);
+		immunities.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim.class);
 
 		//no metabolism to disturb: only the extremes reach it
 		thermal = Thermal.INSENSATE;
@@ -96,7 +96,7 @@ public class FossilSkeleton extends Mob {
 		for (int i = 0; i < PathFinder.NEIGHBOURS8.length; i++) {
 			Char ch = findChar( pos + PathFinder.NEIGHBOURS8[i] );
 			if (ch != null && ch.isAlive()) {
-				int damage = Math.max( 0, Random.NormalIntRange(3, 8) - (ch.drRoll() + ch.drRoll()) );
+				int damage = Math.max( 0, Random.NormalIntRange(3, 8) - ch.drRoll() );
 				ch.damage( damage, this );
 				if (ch == Dungeon.hero && !ch.isAlive()) {
 					heroKilled = true;
@@ -112,6 +112,18 @@ public class FossilSkeleton extends Mob {
 			Dungeon.fail( this );
 			GLog.n( Messages.get(this, "explo_kill") );
 		}
+	}
+
+	@Override
+	public Item createLoot() {
+		Item loot = Generator.random( Generator.Category.WEAPON );
+		for (int i = 0; i < 2; i++) {
+			Item l = Generator.random( Generator.Category.WEAPON );
+			if (l.level() < loot.level()) {
+				loot = l;
+			}
+		}
+		return loot;
 	}
 
 }

@@ -45,20 +45,14 @@ public class Kupua extends Mob {
 		defenseSkill = 15;
 		baseSpeed = 2f;
 
-		EXP = 10;
+		EXP = 20;
 
 		loot = new StoneOre();
 		lootChance = 0.9f;
 
 		immunities.add( ToxicGas.class );
 		immunities.add( CorruptGas.class );
-
-		resistances.add( Grim.class );
-	}
-
-	@Override
-	public float spawningWeight() {
-		return 0;
+		immunities.add( Grim.class );
 	}
 
 	@Override

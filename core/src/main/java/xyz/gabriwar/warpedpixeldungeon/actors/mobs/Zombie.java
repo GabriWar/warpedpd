@@ -25,6 +25,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ZombieSprite;
 import com.watabou.utils.Random;
 
@@ -39,6 +40,11 @@ public class Zombie extends Mob {
 
 		EXP = 5;
 		maxLvl = 12;
+
+		properties.add( Property.UNDEAD );
+		properties.add( Property.DEMONIC );
+
+		immunities.add( Grim.class );
 	}
 
 	@Override

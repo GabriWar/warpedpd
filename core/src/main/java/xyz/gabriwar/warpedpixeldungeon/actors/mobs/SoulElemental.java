@@ -24,9 +24,15 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Chill;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Frost;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfChilli;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ElementalSprite;
+import com.watabou.utils.Random;
 
 public class SoulElemental extends Elemental {
 
@@ -38,18 +44,27 @@ public class SoulElemental extends Elemental {
 
 		alignment = Alignment.ALLY;
 
+		properties.add( Property.FIERY );
+
+		harmfulBuffs.add( Frost.class );
+		harmfulBuffs.add( Chill.class );
+
 		//no metabolism to disturb: only the extremes reach it
 		thermal = Thermal.INSENSATE;
 	}
 
 	@Override
 	protected void meleeProc( Char enemy, int damage ) {
-		// soul elemental has no melee effect
+		if (Random.Int( 2 ) == 0 && !Dungeon.level.water[enemy.pos]) {
+			Buff.affect( enemy, Burning.class ).reignite( enemy );
+		}
 	}
 
 	@Override
 	protected void rangedProc( Char enemy ) {
-		// soul elemental has no ranged attack
+		if (!Dungeon.level.water[enemy.pos]) {
+			Buff.affect( enemy, Burning.class ).reignite( enemy, 4f );
+		}
 	}
 
 }

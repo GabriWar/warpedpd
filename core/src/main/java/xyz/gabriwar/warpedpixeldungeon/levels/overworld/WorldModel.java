@@ -260,7 +260,7 @@ public class WorldModel {
 		return smooth( 1f - (d - TOWN_IN) / (edge - TOWN_IN) );
 	}
 
-	private static final float SEA = 0.335f;
+	public static final float SEA = 0.335f;
 
 	/** Everything the generator knows about one world cell. */
 	public static class Sample {
@@ -295,13 +295,37 @@ public class WorldModel {
 		float wvy = 80f * S * (fbm( seed ^ 0xBB2EL, wx/(140f*S), wy/(140f*S), 3 ) - 0.5f);
 		float x = wx + wvx, y = wy + wvy;
 
+		//REGIONAL CLIMATE first: the broad warm/cold field stands in for
+		//latitude, and the mountains below read it (glaciated highlands)
+		float lat = 0.8f * fbm( seed ^ 0x7E3197EAL, wx/(520f*S), wy/(520f*S), 3 )
+				+ 0.2f * fbm( seed ^ 0x31B0B0B0L, wx/(130f*S), wy/(130f*S), 2 );
+		//stretch the contrast: fbm hugs 0.5, which left the frozen band a rarity
+		lat = 0.5f + (lat - 0.5f) * 2.2f;
+
 		float cont  = fbm( seed ^ 0xC047L, x/(640f*S), y/(640f*S), 4 );
 		float hills = fbm( seed ^ 0x8177L, x/(90f*S),  y/(90f*S),  5 );
 		float ridge = ridged( seed ^ 0x51D6E5L, x/(320f*S), y/(320f*S), 4 );
+		//a second, longer family of chains: the ranges that run along coasts
+		float chain = ridged( seed ^ 0xC4A1B2L, x/(210f*S), y/(210f*S), 3 );
 
-		float mountainMask = smooth( (cont - 0.38f) * 3.2f );
-		float eRaw = 0.52f * cont + 0.48f * ridge * mountainMask;
-		float elev = 0.50f * cont + 0.20f * hills + 0.48f * ridge * mountainMask;
+		//WHERE mountains rise, as plates would raise them: the continental
+		//interiors (the old mask), a belt just inland of every coast (where an
+		//ocean plate dives under a continent - the Andes, the Rockies) and the
+		//cold regions (glaciated, rugged highlands)
+		//the interior ranges follow long sinuous belts - the old plate seams,
+		//the isoline of a very broad field - with wide basins between them
+		float seam = Math.abs( fbm( seed ^ 0x0E0C3L, x/(1100f*S), y/(1100f*S), 2 ) - 0.5f );
+		float orogen = 1f - smooth( (seam - 0.03f) / 0.07f );
+		float inland = smooth( (cont - 0.38f) * 3.2f ) * (0.15f + 0.85f * orogen);
+		//(a narrow coastal plain first: the belt starts a little inland)
+		float coastBelt = smooth( (cont - 0.42f) / 0.04f ) * (1f - smooth( (cont - 0.53f) / 0.07f ));
+		float frigid = smooth( (0.40f - lat) / 0.25f );
+		float mountainMask = Math.min( 1f, Math.max( inland, 0.95f * coastBelt ) * (0.85f + 0.35f * frigid) );
+		//ranges, not domes: only the crest lines of the ridge fields stand up
+		float peaks = ridge * ridge * 1.25f * mountainMask
+				+ 0.60f * smooth( (chain - 0.58f) / 0.32f ) * coastBelt;
+		float eRaw = 0.52f * cont + 0.48f * peaks;
+		float elev = 0.50f * cont + 0.20f * hills + 0.48f * peaks;
 
 		float rv = riverness( seed, x, y );
 		float town = townInfluence( seed, wx, wy, TOWN_LAND );
@@ -326,30 +350,45 @@ public class WorldModel {
 		out.elevRaw = clamp01( eRaw );
 		out.river = rv;
 
-		//moisture shares the warp and the river field (rivers are lush at the
-		//exact cells they carve - the old separate warp sampled them offset)
+		//how close the sea is: the continent field near its shoreline value
+		float maritime = 1f - smooth( (cont - 0.36f) / 0.16f );
+
+		//MOISTURE. The prevailing wind blows from the west (the westerlies):
+		//air that has crossed open sea arrives wet, air that has crossed a
+		//continent arrives dry. It rises and rains out on the windward slopes,
+		//and comes down the lee side dry (the rain shadow). Broad belts of high
+		//pressure (the subtropical highs) keep the sky clear and the land dry
 		float m = 0.7f * fbm( seed ^ 0x5EEDF00DL, x/(260f*S), y/(260f*S), 4 )
 				+ 0.3f * fbm( seed ^ 0xDA771E57L, x/(60f*S), y/(60f*S), 3 )
 				+ 0.25f * rv;
-		//rain shadow: continent+ridge sampled upwind along the warped axis -
-		//no second warp evaluation needed at this offset scale
+		float up1 = fbm( seed ^ 0xC047L, (x-70*S)/(640f*S), y/(640f*S), 3 );
+		float up2 = fbm( seed ^ 0xC047L, (x-180*S)/(640f*S), y/(640f*S), 3 );
+		float seaUpwind = 0.6f * (1f - smooth( (up1 - 0.36f) / 0.08f ))
+				+ 0.4f * (1f - smooth( (up2 - 0.36f) / 0.08f ));
+		m += 0.16f * seaUpwind + 0.08f * maritime + 0.03f;
+		//the ground upwind: the rise to here is the windward slope, a range
+		//just upwind casts its shadow
 		float upCont  = fbm( seed ^ 0xC047L, (x-40*S)/(640f*S), y/(640f*S), 4 );
 		float upRidge = ridged( seed ^ 0x51D6E5L, (x-40*S)/(320f*S), y/(320f*S), 4 );
 		float upRaw = clamp01( 0.52f * upCont
-				+ 0.48f * upRidge * smooth( (upCont - 0.38f) * 3.2f ) );
-		m -= 0.18f * smooth( (upRaw - 0.62f) * 4f );
+				+ 0.48f * 1.25f * upRidge * upRidge * smooth( (upCont - 0.38f) * 3.2f ) );
+		m += 0.22f * smooth( (eRaw - upRaw) * 8f ) * smooth( (eRaw - 0.45f) * 5f );
+		m -= 0.22f * smooth( (upRaw - 0.60f) * 4f ) * (1f - smooth( (eRaw - upRaw) * 8f ));
+		float pressure = fbm( seed ^ 0x9A55E7L, wx/(900f*S), wy/(900f*S), 2 );
+		m -= 0.32f * smooth( (pressure - 0.52f) / 0.14f ) * (1f - 0.6f * maritime);
 		if (cold > 0) m = m + cold * (0.70f - m);   //snowfield, not bare tundra
 		out.moisture = clamp01( m );
 
-		//temperature: region noise minus the altitude lapse (eRaw is free now)
-		float t = 0.8f * fbm( seed ^ 0x7E3197EAL, wx/(520f*S), wy/(520f*S), 3 )
-				+ 0.2f * fbm( seed ^ 0x31B0B0B0L, wx/(130f*S), wy/(130f*S), 2 );
-		//stretch the contrast: fbm hugs 0.5, which left the frozen band a rarity
-		t = 0.5f + (t - 0.5f) * 2.2f;
-		t -= 0.45f * smooth( (eRaw - 0.55f) * 3f );
-		//the season: the whole field slides with the calendar (and the
-		//weather), which is what moves the snow line and freezes the lakes
-		t += shift;
+		//TEMPERATURE: the regional climate, pulled toward mild by the sea (the
+		//ocean evens out the year), minus the lapse rate - every step up is
+		//colder, so the high ground carries snow through the year and the
+		//peaks never thaw. The seasons swing inland climates harder than the
+		//coasts: a continental winter bites, a maritime one barely does
+		float t = lat;
+		t = t + 0.22f * maritime * (0.52f - t);
+		float alt = Math.max( 0f, out.elev - 0.50f ) / 0.50f;
+		t -= 0.62f * (float)Math.pow( alt, 1.2f );
+		t += shift * (1f - 0.45f * maritime);
 		if (cold > 0) t = t + cold * (0.10f - t);   //the town is always snowed under
 		out.temperature = clamp01( t );
 
@@ -437,12 +476,13 @@ public class WorldModel {
 			case MOUNTAIN:
 				return Terrain.WALL;
 			case FOOTHILLS:
-				if (scatter % 13 == 0) return Terrain.WALL;
-				if (scatter % 9 == 0)  return Terrain.BOULDER;
-				return Terrain.EMPTY;
+				//the outcrops stand as rocks, not as squares of cliff wall; the
+				//high ground under the freezing line lies under snow
+				if (scatter % 13 == 0 || scatter % 9 == 0) return Terrain.BOULDER;
+				return s.temperature < FREEZE ? Terrain.SNOW : Terrain.EMPTY;
 			case DESERT:
 				if (scatter % 37 == 0) return Terrain.SHRUB;
-				if (scatter % 89 == 0) return Terrain.WALL;
+				if (scatter % 89 == 0) return Terrain.BOULDER;
 				return Terrain.EMPTY_SP;
 			case SWAMP:
 				if (scatter % 5 == 0)  return Terrain.WATER;
@@ -511,5 +551,218 @@ public class WorldModel {
 		int wild = wildTerrainAt( seed, wx, wy );
 		int structure = WorldStructures.terrainAt( seed, wx, wy, wild );
 		return structure != -1 ? structure : wild;
+	}
+
+	/** A per-cell hash for the ways between the world's slices; `layer` keeps the slices' rolls apart. */
+	public static long linkHash( long seed, int wx, int wy, int layer ){
+		return hash( seed ^ (layer * 0x9E3779B97F4A7C15L), wx, wy );
+	}
+
+	// ------------------------------------------------------------ water tiers
+	//open water is banded by how far the floor lies under the sea: the first
+	//band is a wadeable shelf, the rest deepen shade by shade (the dressing's
+	//DEEP_SHADES). one rule for oceans, lakes and river channels, so a flat
+	//coast gets a wide shelf and a cliff drops straight into the deep
+	public static final int WATER_TIERS = 5;
+	private static final float TIER_STEP = 0.012f;
+
+	/** The depth tier of open water standing on ground of this elevation, 1..WATER_TIERS. */
+	public static int waterTier( float elev ){
+		int t = 1 + (int)((SEA - elev) / TIER_STEP);
+		return t < 1 ? 1 : Math.min( WATER_TIERS, t );
+	}
+
+	/** A pool's tier from how far its surface value sits under its own threshold. */
+	private static int poolTier( float below, float step ){
+		int t = 1 + (int)(below / step);
+		return t < 1 ? 1 : Math.min( WATER_TIERS, t );
+	}
+
+	// ------------------------------------------------------------ 3D noise
+	//the caves are cut from a three-dimensional field so that a chamber on
+	//one slice continues into the slices above and below it
+	private static final float[] GRAD3 = {
+			1,1,0, -1,1,0, 1,-1,0, -1,-1,0,
+			1,0,1, -1,0,1, 1,0,-1, -1,0,-1,
+			0,1,1, 0,-1,1, 0,1,-1, 0,-1,-1 };
+
+	private static long hash3( long seed, long x, long y, long z ){
+		long h = seed;
+		h ^= x * 0x9E3779B97F4A7C15L;
+		h = Long.rotateLeft( h, 31 );
+		h ^= y * 0xC2B2AE3D27D4EB4FL;
+		h = Long.rotateLeft( h, 27 );
+		h ^= z * 0x165667B19E3779F9L;
+		h *= 0xFF51AFD7ED558CCDL;
+		h ^= h >>> 33;
+		h *= 0xC4CEB9FE1A85EC53L;
+		h ^= h >>> 33;
+		return h;
+	}
+
+	private static float dot3( long seed, int gx, int gy, int gz, float fx, float fy, float fz ){
+		int g = (int)(hash3( seed, gx, gy, gz ) % 12) * 3;
+		if (g < 0) g += 36;
+		return GRAD3[g]*fx + GRAD3[g+1]*fy + GRAD3[g+2]*fz;
+	}
+
+	/** Perlin-style gradient noise in three dimensions, roughly in [-1, 1]. */
+	private static float grad3( long seed, float x, float y, float z ){
+		int gx = (int)Math.floor( x ), gy = (int)Math.floor( y ), gz = (int)Math.floor( z );
+		float fx = x - gx, fy = y - gy, fz = z - gz;
+		float u = fade( fx ), v = fade( fy ), w = fade( fz );
+		float x00 = dot3( seed, gx, gy,   gz,   fx, fy,   fz   ) + (dot3( seed, gx+1, gy,   gz,   fx-1, fy,   fz   ) - dot3( seed, gx, gy,   gz,   fx, fy,   fz   )) * u;
+		float x10 = dot3( seed, gx, gy+1, gz,   fx, fy-1, fz   ) + (dot3( seed, gx+1, gy+1, gz,   fx-1, fy-1, fz   ) - dot3( seed, gx, gy+1, gz,   fx, fy-1, fz   )) * u;
+		float x01 = dot3( seed, gx, gy,   gz+1, fx, fy,   fz-1 ) + (dot3( seed, gx+1, gy,   gz+1, fx-1, fy,   fz-1 ) - dot3( seed, gx, gy,   gz+1, fx, fy,   fz-1 )) * u;
+		float x11 = dot3( seed, gx, gy+1, gz+1, fx, fy-1, fz-1 ) + (dot3( seed, gx+1, gy+1, gz+1, fx-1, fy-1, fz-1 ) - dot3( seed, gx, gy+1, gz+1, fx, fy-1, fz-1 )) * u;
+		float y0 = x00 + (x10 - x00) * v;
+		float y1 = x01 + (x11 - x01) * v;
+		return (y0 + (y1 - y0) * w) * 1.15f;
+	}
+
+	/** fractal Brownian motion of 3D gradient noise, in [0, 1]. */
+	private static float fbm3( long seed, float x, float y, float z, int octaves ){
+		float sum = 0, amp = 0.5f, tot = 0;
+		for (int o = 0; o < octaves; o++){
+			sum += amp * grad3( seed + o * 0x9E37L, x, y, z );
+			tot += amp;
+			amp *= 0.5f;
+			x *= 2.03f; y *= 2.03f; z *= 2.03f;
+		}
+		return clamp01( 0.5f + 0.5f * sum / tot );
+	}
+
+	// --------------------------------------------------------------- caves
+	//the cave slices under the surface: chambers from the 3D field (they run
+	//on into the neighbouring slices), winding tunnels per slice from the
+	//ridged field, pools where the floor dips, crystal seams along the
+	//tunnel walls. altitude is negative here: -1 is just under the surface
+	private static final float CHAMBER_SCALE = 26f, CHAMBER_Z = 2.6f, TUNNEL_SCALE = 30f, FLOOR_SCALE = 22f;
+	private static final float POOL_LEVEL = 0.36f;
+
+	/** Everything the generator knows about one cave cell. */
+	public static class CaveSample {
+		public float chamber, tunnel, floor;
+		public boolean open;
+	}
+
+	//chambers grow with depth: the deep slices are the great caverns
+	private static float chamberLevel( int altitude ){
+		return 0.565f - 0.008f * Math.min( 8, -altitude );
+	}
+
+	/** Is this cave cell open (a chamber or a tunnel)? The cheap test the links use. */
+	public static boolean caveOpen( long seed, int wx, int wy, int altitude ){
+		float chamber = fbm3( seed ^ 0xCA7E5L, wx/CHAMBER_SCALE, wy/CHAMBER_SCALE, altitude/CHAMBER_Z, 3 );
+		if (chamber > chamberLevel( altitude )) return true;
+		float tunnel = ridged( seed ^ (0x7011E1L + altitude * 0x9E37L), wx/TUNNEL_SCALE, wy/TUNNEL_SCALE, 3 );
+		return tunnel > tunnelLevel( chamber, altitude );
+	}
+
+	//tunnels widen where they run into a chamber, so the two networks join
+	private static float tunnelLevel( float chamber, int altitude ){
+		return 0.80f - 0.12f * smooth( (chamber - chamberLevel( altitude ) + 0.16f) * 6f );
+	}
+
+	/** The cave fields at a cell of the slice at this (negative) altitude. */
+	public static CaveSample caveSample( long seed, int wx, int wy, int altitude, CaveSample out ){
+		if (out == null) out = new CaveSample();
+		out.chamber = fbm3( seed ^ 0xCA7E5L, wx/CHAMBER_SCALE, wy/CHAMBER_SCALE, altitude/CHAMBER_Z, 3 );
+		out.tunnel = ridged( seed ^ (0x7011E1L + altitude * 0x9E37L), wx/TUNNEL_SCALE, wy/TUNNEL_SCALE, 3 );
+		out.open = out.chamber > chamberLevel( altitude ) || out.tunnel > tunnelLevel( out.chamber, altitude );
+		out.floor = out.open ? wetness( seed, wx, wy, altitude ) : 1f;
+		return out;
+	}
+
+	//the water is a VOLUME of the same 3D field the chambers come from: where
+	//it runs low the rock is flooded, and a pool goes on down through every
+	//slice the field stays low in (see WindowGenerator.caves for the depth)
+	private static float wetness( long seed, int wx, int wy, int altitude ){
+		return fbm3( seed ^ 0xF100DL, wx/FLOOR_SCALE, wy/FLOOR_SCALE, altitude/2.2f, 2 );
+	}
+
+	/** Is this cave cell flooded: open rock with the water field low? */
+	public static boolean caveWet( long seed, int wx, int wy, int altitude ){
+		return caveOpen( seed, wx, wy, altitude ) && wetness( seed, wx, wy, altitude ) < POOL_LEVEL;
+	}
+
+	/** Cave terrain from its sample: rock, crystal seams, open floor, pools. */
+	public static int caveTerrain( long seed, int wx, int wy, int altitude, CaveSample s ){
+		int scatter = (int)(hash( seed ^ (0x5CA77E4L + altitude), wx, wy ) >>> 40);
+		if (!s.open){
+			//crystal seams line the tunnels and the chamber walls
+			float t = tunnelLevel( s.chamber, altitude );
+			if (s.tunnel > t - 0.05f && scatter % 3 == 0) return Terrain.MINE_CRYSTAL;
+			if (s.chamber > chamberLevel( altitude ) - 0.05f && scatter % 5 == 0) return Terrain.MINE_CRYSTAL;
+			return Terrain.WALL;
+		}
+		if (s.floor < POOL_LEVEL) return Terrain.WATER;
+		if (scatter % 31 == 0) return Terrain.MINE_BOULDER;
+		if (scatter % 41 == 0) return Terrain.BOULDER;
+		//mushrooms crowd the damp ground by the pools
+		if (s.floor < 0.45f ? scatter % 7 == 0 : scatter % 47 == 0) return Terrain.MUSHROOM_PATCH;
+		if (scatter % 13 == 0) return Terrain.EMPTY_DECO;
+		return Terrain.EMPTY;
+	}
+
+
+	/**
+	 * A tunnel through the rock at this cell of the slice: winding passages
+	 * that run clean through the mountains, from one side of a range to the
+	 * other. Some ranges are riddled with them, others are solid: a broad field
+	 * picks which, the isoline of a finer one draws the passages themselves.
+	 * Every slice has its own network.
+	 */
+	public static boolean tunnelAt( long seed, int wx, int wy, int altitude ){
+		long s = seed ^ (0x7E77E1L + altitude * 0x9E3779B9L);
+		if (fbm( s ^ 0x6A7EL, wx/260f, wy/260f, 2 ) < 0.47f) return false;
+		float n = fbm( s, wx/48f, wy/48f, 2 ) - 0.5f;
+		if (Math.abs( n ) > 0.03f) return false;
+		//distance to the isoline in cells (value over slope), so a passage keeps
+		//its width where the field runs flat instead of swelling into a hall
+		float gx = fbm( s, (wx+1)/48f, wy/48f, 2 ) - fbm( s, (wx-1)/48f, wy/48f, 2 );
+		float gy = fbm( s, wx/48f, (wy+1)/48f, 2 ) - fbm( s, wx/48f, (wy-1)/48f, 2 );
+		float slope = 0.5f * (float)Math.sqrt( gx*gx + gy*gy );
+		return Math.abs( n ) < 1.3f * slope;
+	}
+
+	// ----------------------------------------------------------- mountains
+	//the slices above the surface: a band of the elevation noise each. what
+	//the ground of a band looks like: colder with every step, snow and pines
+	//once frozen, alpine meadow below the snow line, tarns in the hollows
+	private static final float TARN_SCALE = 24f, TARN_LEVEL = 0.72f, TARN_STEP = 0.03f;
+	private static final float LAPSE = 0.05f;
+
+	/** The temperature of a surface sample carried up to a mountain slice. */
+	public static float alpineTemperature( Sample s, int altitude ){
+		return s.temperature - LAPSE * altitude;
+	}
+
+	//the hollows on a slice that hold a tarn (only ground cells, only under the peaks)
+	private static float tarn( long seed, int wx, int wy, int altitude ){
+		return fbm( seed ^ (0x7A24L + altitude * 0x9E37L), wx/TARN_SCALE, wy/TARN_SCALE, 2 );
+	}
+
+	/** Terrain of a ground cell of the slice at this (positive) altitude. */
+	public static int alpineTerrain( long seed, int wx, int wy, int altitude, Sample s ){
+		int scatter = (int)(hash( seed ^ (0xA1B1E7L + altitude), wx, wy ) >>> 40);
+		if (tarn( seed, wx, wy, altitude ) > TARN_LEVEL){
+			return alpineTemperature( s, altitude ) < FREEZE ? Terrain.FROZEN_WATER : Terrain.WATER;
+		}
+		if (alpineTemperature( s, altitude ) < FREEZE){
+			if (scatter % 37 == 0) return Terrain.TREE_PINE;
+			if (scatter % 23 == 0) return Terrain.BOULDER;
+			return Terrain.SNOW;
+		}
+		if (scatter % 3 == 0)  return Terrain.GRASS;
+		if (scatter % 19 == 0) return Terrain.FLOWER_PATCH;
+		if (scatter % 13 == 0) return Terrain.BOULDER;
+		if (scatter % 29 == 0) return Terrain.SHRUB;
+		return Terrain.EMPTY;
+	}
+
+	/** The depth tier of a tarn cell. */
+	public static int tarnTier( long seed, int wx, int wy, int altitude ){
+		return poolTier( tarn( seed, wx, wy, altitude ) - TARN_LEVEL, TARN_STEP );
 	}
 }

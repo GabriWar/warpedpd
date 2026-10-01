@@ -26,10 +26,18 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Frost;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Levitation;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.food.MysteryMeat;
 import xyz.gabriwar.warpedpixeldungeon.sprites.SquidSprite;
+import com.watabou.utils.BArray;
 import com.watabou.utils.Random;
 
 //ported from Unleashed PD: a heavier deep-water ambusher. Like a piranha it
@@ -46,6 +54,12 @@ public class Squid extends Mob {
 		lootChance = 1f / 4f;
 
 		state = SLEEPING;
+
+		immunities.add( Burning.class );
+		immunities.add( Paralysis.class );
+		immunities.add( ToxicGas.class );
+		immunities.add( Roots.class );
+		immunities.add( Frost.class );
 	}
 
 	public Squid() {
@@ -84,6 +98,44 @@ public class Squid extends Mob {
 	@Override
 	public int drRoll() {
 		return super.drRoll() + Random.NormalIntRange( 0, Dungeon.depth );
+	}
+
+	@Override
+	public int attackProc( Char enemy, int damage ) {
+		damage = super.attackProc( enemy, damage );
+
+		if (Random.Int( 4 ) == 0) {
+			Buff.prolong( enemy, Cripple.class, Cripple.DURATION );
+		}
+
+		return damage;
+	}
+
+	//a squid can only path through water, so it never strands itself on land
+	@Override
+	protected boolean getCloser( int target ) {
+		if (rooted) {
+			return false;
+		}
+
+		int step = Dungeon.findStep( this, target, BArray.and(Dungeon.level.water, Dungeon.level.passable, null), fieldOfView, true );
+		if (step != -1) {
+			move( step );
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	@Override
+	protected boolean getFurther( int target ) {
+		int step = Dungeon.flee( this, target, BArray.and(Dungeon.level.water, Dungeon.level.passable, null), fieldOfView, true );
+		if (step != -1) {
+			move( step );
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	@Override

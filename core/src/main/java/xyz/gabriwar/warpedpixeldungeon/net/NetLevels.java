@@ -35,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.levels.TownLibraryLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.TownShopLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.VillageHouseLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.WindowGenerator;
 
 import org.json.JSONObject;
 
@@ -62,6 +63,7 @@ public final class NetLevels {
 		try {
 			if ("OverworldLevel".equals(cls)) {
 				level = OverworldLevel.forNetwork(
+						identity.optInt("alt", 0),
 						identity.optLong("wseed", 0L),
 						identity.optInt("wx", 0),
 						identity.optInt("wy", 0),
@@ -118,7 +120,7 @@ public final class NetLevels {
 	 * render thread only pays for the adoption. Null when this level cannot
 	 * take a staged window (a spectator fallback, or a packet with no origin).
 	 */
-	public static OverworldLevel.Window stageWindow(Level level, JSONObject identity) {
+	public static WindowGenerator.Window stageWindow(Level level, JSONObject identity) {
 		if (identity == null || !(level instanceof OverworldLevel)) return null;
 		if (!identity.has("wseed")) return null;
 		try {
@@ -137,7 +139,7 @@ public final class NetLevels {
 
 	/** applyWindow with the generator pass already done (see stageWindow). */
 	public static boolean applyWindow(Level level, JSONObject identity, int[] map,
-			OverworldLevel.Window staged) {
+			WindowGenerator.Window staged) {
 		if (staged != null && level instanceof OverworldLevel && identity != null && map != null) {
 			try {
 				if (((OverworldLevel) level).adoptNetworkWindow(

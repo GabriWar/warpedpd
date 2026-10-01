@@ -27,7 +27,13 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Charm;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
+import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPsionicBlast;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MinotaurSprite;
 import com.watabou.utils.Random;
 
@@ -45,6 +51,13 @@ public class Minotaur extends Mob {
 
 		state = HUNTING;
 		properties.add( Property.DEMONIC );
+
+		resistances.add( Grim.class );
+		resistances.add( ScrollOfPsionicBlast.class );
+
+		immunities.add( Terror.class );
+		immunities.add( Vertigo.class );
+		immunities.add( Charm.class );
 	}
 
 	@Override
@@ -67,13 +80,19 @@ public class Minotaur extends Mob {
 		damage = super.attackProc( enemy, damage );
 
 		if (Random.Int( 3 ) == 0) {
-			Buff.affect( enemy, Bleeding.class ).set( Random.NormalIntRange( 5, 8 ) );
+			Buff.affect( enemy, Bleeding.class ).set( Random.IntRange( 5, 7 ) );
 			Buff.prolong( enemy, Cripple.class, Cripple.DURATION );
 			//having drawn blood it wheels away, and comes back when the wound closes
 			state = FLEEING;
 		}
 
 		return damage;
+	}
+
+	@Override
+	public void notice() {
+		super.notice();
+		yell( Messages.get(this, "notice") );
 	}
 
 	@Override

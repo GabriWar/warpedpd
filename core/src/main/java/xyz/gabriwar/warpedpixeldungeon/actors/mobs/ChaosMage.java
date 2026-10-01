@@ -25,14 +25,22 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Charm;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Slow;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfExperience;
+import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPsionicBlast;
+import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfDisintegration;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Vampiric;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ChaosMageSprite;
 import com.watabou.utils.Random;
 
@@ -49,10 +57,21 @@ public class ChaosMage extends Mob {
 		EXP = 15;
 		maxLvl = 30;
 
+		viewDistance = 4;
+
 		baseSpeed = 2f;
 		state = HUNTING;
 
 		properties.add( Property.DEMONIC );
+
+		resistances.add( Grim.class );
+		resistances.add( Vampiric.class );
+		resistances.add( WandOfDisintegration.class );
+		resistances.add( ScrollOfPsionicBlast.class );
+
+		immunities.add( Terror.class );
+		immunities.add( Vertigo.class );
+		immunities.add( Charm.class );
 	}
 
 	@Override
@@ -79,7 +98,7 @@ public class ChaosMage extends Mob {
 		}
 
 		if (damage > 0) {
-			int healingAmt = Random.NormalIntRange( 0, damage );
+			int healingAmt = Random.IntRange( 0, damage );
 			HP = Math.min( HT, HP + healingAmt );
 			if (sprite != null) {
 				sprite.emitter().burst( ShadowParticle.UP, 2 );
@@ -87,6 +106,12 @@ public class ChaosMage extends Mob {
 		}
 
 		return damage;
+	}
+
+	@Override
+	public void die( Object cause ) {
+		super.die( cause );
+		Dungeon.level.drop( new PotionOfExperience(), pos ).sprite.drop();
 	}
 
 	private void corrupt( Hero hero ) {

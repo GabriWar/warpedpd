@@ -33,6 +33,8 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.LichenSprite;
 import com.watabou.utils.Random;
 
+import java.util.HashSet;
+
 public class Lichen extends Mob {
 
 	private static final float SPAWN_DELAY = 0.1f;
@@ -88,13 +90,14 @@ public class Lichen extends Mob {
 
 	@Override
 	protected Char chooseEnemy() {
-		if (enemy == null || !enemy.isAlive() || !fieldOfView[enemy.pos]) {
+		if (enemy == null || !enemy.isAlive()) {
+			HashSet<Mob> enemies = new HashSet<>();
 			for (Mob mob : Dungeon.level.mobs) {
 				if (mob.alignment == Alignment.ENEMY && fieldOfView[mob.pos]) {
-					return mob;
+					enemies.add( mob );
 				}
 			}
-			return null;
+			enemy = enemies.isEmpty() ? null : Random.element( enemies );
 		}
 		return enemy;
 	}

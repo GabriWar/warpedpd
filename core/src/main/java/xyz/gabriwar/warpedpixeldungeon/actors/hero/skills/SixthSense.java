@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Daze;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.effects.CircleArc;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
@@ -78,7 +79,9 @@ public class SixthSense extends Skill {
 		Buff.affect( hero, Warned.class ).set( cooldown() );
 		castTextYell();
 		if (hero.sprite != null){
+			//the warning: a green ring closing on her as the flare opens
 			new Flare( 6, 20 ).color( 0x88CC66, true ).show( hero.sprite, 0.6f );
+			if (hero.sprite.parent != null) new CircleArc( 16, 12 ).color( 0x88CC66, true ).show( hero.sprite, 0.45f );
 			hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 6 );
 		}
 		Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 1.5f );

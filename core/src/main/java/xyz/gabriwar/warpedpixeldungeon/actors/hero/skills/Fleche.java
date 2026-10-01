@@ -25,6 +25,8 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.ArcSpinFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StreakFX;
 
 
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
@@ -150,7 +152,10 @@ public class Fleche extends Skill {
 				if (Dungeon.level.heroFOV[c]) CellEmitter.bottom( c ).burst( Speck.factory( Speck.DUST ), 3 );
 			}
 			Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 0.8f );
+			//the run itself: a thin white streak ahead of her, a puff where her feet land
+			StreakFX.show( hero.pos, landing, 0xFFFFFF, 0.5f, 0.3f );
 			ScrollOfTeleportation.appear( hero, landing );
+			CellEmitter.bottom( landing ).burst( Speck.factory( Speck.DUST ), 5 );
 			Dungeon.observe();
 			GameScene.updateFog();
 		}
@@ -161,9 +166,12 @@ public class Fleche extends Skill {
 		int roll = wep != null ? wep.damageRoll( hero ) : RingOfForce.damageRoll( hero );
 		ch.damage( Math.round( roll * 1.3f ), this );
 		Wound.hit( ch );
+		if (ch.sprite != null) ch.sprite.flash();
+		ArcSpinFX.at( ch.pos, 0xFFFFFF, 10, 0.25f, 200, 900, 0.22f );
 
 		//hit and run: back to the tile the run began from, if it is still free
 		if (hero.pos != start && Actor.findChar( start ) == null){
+			StreakFX.show( hero.pos, start, 0xFFFFFF, 0.4f, 0.3f );
 			ScrollOfTeleportation.appear( hero, start );
 			CellEmitter.bottom( start ).burst( Speck.factory( Speck.DUST ), 4 );
 			Dungeon.observe();

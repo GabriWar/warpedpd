@@ -40,6 +40,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.RogueHuntressAuras;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraBuff;
+import com.watabou.noosa.Camera;
 
 public class EmberArrows extends ActiveSkill {
 
@@ -58,10 +62,18 @@ public class EmberArrows extends ActiveSkill {
 		if (action.equals(Skill.AC_ACTIVATE)){
 			Sample.INSTANCE.play( Assets.Sounds.BURNING, 1f, 1.3f );
 			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 3 );
+			hero.sprite.emitter().burst( FlameParticle.FACTORY, 6 );
 			//mutually exclusive with its fork partner
 			for (Skill s : hero.heroSkills.activeSkills){
 				if (s instanceof FrostArrows) s.active = false;
 			}
+			StanceAuraBuff.sync( hero, RogueHuntressAuras.Frost.class, false );
+			StanceAuraBuff.sync( hero, RogueHuntressAuras.Ember.class, true );
+		} else if (action.equals(Skill.AC_DEACTIVATE)){
+			//the pitch pinched out
+			Sample.INSTANCE.play( Assets.Sounds.PUFF, 0.6f, 1.3f );
+			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.SMOKE ), 3 );
+			StanceAuraBuff.sync( hero, RogueHuntressAuras.Ember.class, false );
 		}
 	}
 
@@ -78,7 +90,14 @@ public class EmberArrows extends ActiveSkill {
 
 	private static void ignite( Char ch ){
 		Buff.affect( ch, Burning.class ).reignite( ch );
-		if (Dungeon.level.heroFOV[ch.pos]) CellEmitter.get( ch.pos ).burst( FlameParticle.FACTORY, 6 );
+		flames( ch );
+	}
+
+	/** the catch: a burst of flame, then embers spiralling off the arrow for a beat longer */
+	private static void flames( Char ch ){
+		if (!Dungeon.level.heroFOV[ch.pos] || ch.sprite == null) return;
+		ch.sprite.centerEmitter().burst( FlameParticle.FACTORY, 4 );
+		ch.sprite.emitter().start( FlameParticle.FACTORY, 0.05f, 6 );
 	}
 
 	@Override
@@ -96,7 +115,18 @@ public class EmberArrows extends ActiveSkill {
 				Char ch = Actor.findChar( enemy.pos + n );
 				if (ch != null && ch != Dungeon.hero && ch.alignment == Char.Alignment.ENEMY
 						&& ch.isAlive() && ch.buff( Burning.class ) == null){
-					ignite( ch );
+					Buff.affect( ch, Burning.class ).reignite( ch );
+					//the leap is seen: a tongue of fire jumps across and catches on arrival
+					if (enemy.sprite != null && enemy.sprite.parent != null && ch.sprite != null && Dungeon.level.heroFOV[ch.pos]){
+						final Char next = ch;
+						((MagicMissile) enemy.sprite.parent.recycle( MagicMissile.class )).reset(
+								MagicMissile.FIRE, enemy.sprite.center(), ch.sprite.center(), () -> {
+									flames( next );
+									Sample.INSTANCE.play( Assets.Sounds.BURNING, 0.5f, 1.6f );
+								} );
+					} else {
+						flames( ch );
+					}
 					break;
 				}
 			}
@@ -110,10 +140,16 @@ public class EmberArrows extends ActiveSkill {
 	@Override
 	public void onKill( Mob mob, boolean ranged ){
 		if (!ranged || !active || level < 3 || mob.buff( Burning.class ) == null) return;
+		//the body goes up: a flash at the centre, then fire rolling outward tile by tile
+		if (Dungeon.level.heroFOV[mob.pos]){
+			CellEmitter.center( mob.pos ).burst( FlameParticle.FACTORY, 10 );
+			Camera.main.shake( 1, 0.2f );
+		}
+		int ring = 0;
 		for (int n : PathFinder.NEIGHBOURS8){
 			int c = mob.pos + n;
 			if (c < 0 || c >= Dungeon.level.length() || Dungeon.level.solid[c]) continue;
-			if (Dungeon.level.heroFOV[c]) CellEmitter.get( c ).burst( FlameParticle.FACTORY, 5 );
+			if (Dungeon.level.heroFOV[c]) CellEmitter.get( c ).startDelayed( FlameParticle.FACTORY, 0, 5, 0.05f + 0.03f * ring++ );
 			Char ch = Actor.findChar( c );
 			if (ch != null && ch.alignment == Char.Alignment.ENEMY && ch.isAlive()){
 				Buff.affect( ch, Burning.class ).reignite( ch );

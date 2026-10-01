@@ -22,14 +22,19 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Imp;
+import xyz.gabriwar.warpedpixeldungeon.items.Item;
+import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.food.Food;
 import xyz.gabriwar.warpedpixeldungeon.items.food.MonsterMeat;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MonkSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
+import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
@@ -78,6 +83,26 @@ public class Monk extends Mob {
 		return super.drRoll() + Random.NormalIntRange(0, 2);
 	}
 	
+	@Override
+	public int attackProc( Char enemy, int damage ) {
+		damage = super.attackProc( enemy, damage );
+
+		if (Random.Int( 12 ) == 0 && enemy == Dungeon.hero) {
+
+			Hero hero = Dungeon.hero;
+			KindOfWeapon weapon = hero.belongings.weapon;
+
+			if (weapon != null && !weapon.cursed) {
+				hero.belongings.weapon = null;
+				Dungeon.level.drop( weapon, hero.pos ).sprite.drop();
+				GLog.w( Messages.get( this, "disarm", name(), weapon.name() ) );
+				Item.updateQuickslot();
+			}
+		}
+
+		return damage;
+	}
+
 	@Override
 	public void rollToDropLoot() {
 		Imp.Quest.oldProcess( this );

@@ -490,7 +490,7 @@ public class LobbyScene extends PixelScene {
 				}
 
 				//the overworld sits at a slot number, not a floor: the surface is depth zero
-				depth.text(Integer.toString(info.depth == OverworldLevel.DEPTH ? 0 : info.depth));
+				depth.text(Integer.toString(xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldLayers.isLayerDepth(info.depth) ? 0 : info.depth));
 				depth.measure();
 
 				level.text(Integer.toString(info.level));

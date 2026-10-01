@@ -34,6 +34,8 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SpiritArmorMotes;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAura;
 
 import java.util.ArrayList;
 
@@ -79,12 +81,17 @@ public class SpiritArmor extends PassiveSkillA3 {
 			if (hero.sprite != null){
 				Sample.INSTANCE.play( Assets.Sounds.MELD, 1f, 1.3f );
 				hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 6 );
+				new Flare( 6, 18 ).color( 0x66CCFF, true ).show( hero.sprite, 0.5f );
 			}
 		} else if (action.equals(Skill.AC_DEACTIVATE)){
 			active = false;
 			//the ring scatters when the ward drops
 			Buff.detach( hero, SpiritArmorMotes.class );
+			Sample.INSTANCE.play( Assets.Sounds.MELD, 0.5f, 0.8f );
+			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 3 );
 		}
+		//the ward hums: a faint blue mote now and then while it is up
+		StanceAura.sync( hero );
 	}
 
 	@Override
@@ -92,6 +99,7 @@ public class SpiritArmor extends PassiveSkillA3 {
 		if (!active || level <= 0 || Skill.isTickDamage( source ))
 			return 0;
 		Hero hero = Dungeon.hero;
+		StanceAura.sync( hero );
 		int absorbed = Math.min( Math.max( 1, (int)(damage * 0.1f * level) ), hero.MP );
 		if (absorbed <= 0)
 			return 0;

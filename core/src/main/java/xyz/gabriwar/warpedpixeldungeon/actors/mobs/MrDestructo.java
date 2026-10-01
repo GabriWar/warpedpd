@@ -29,7 +29,6 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.PurpleParticle;
@@ -41,6 +40,8 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MrDestructoSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Random;
+
+import java.util.ArrayList;
 
 public class MrDestructo extends Mob {
 
@@ -86,13 +87,14 @@ public class MrDestructo extends Mob {
 
 	@Override
 	protected Char chooseEnemy() {
-		if (enemy == null || !enemy.isAlive() || !fieldOfView[enemy.pos]) {
+		if (enemy == null || !enemy.isAlive()) {
+			ArrayList<Mob> candidates = new ArrayList<>();
 			for (Mob mob : Dungeon.level.mobs) {
 				if (mob.alignment == Alignment.ENEMY && fieldOfView[mob.pos]) {
-					return mob;
+					candidates.add( mob );
 				}
 			}
-			return null;
+			enemy = candidates.isEmpty() ? null : Random.element( candidates );
 		}
 		return enemy;
 	}

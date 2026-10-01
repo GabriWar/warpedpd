@@ -36,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import com.watabou.utils.Random;
+import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 
 public class SilentDeath extends PassiveSkillB3 {
 
@@ -70,6 +71,7 @@ public class SilentDeath extends PassiveSkillB3 {
 		if (enemy.HP + enemy.shielding() - damage > threshold() * enemy.HT) return false;
 		castTextYell();
 		//the kill is quiet; the shadows are not
+		Wound.hit( enemy );
 		CellEmitter.get( enemy.pos ).burst( ShadowParticle.UP, 8 );
 		if (Dungeon.hero != null && Dungeon.hero.sprite != null){
 			Dungeon.hero.sprite.emitter().burst( ShadowParticle.UP, 6 );

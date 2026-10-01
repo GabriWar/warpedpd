@@ -35,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.plants.Plant;
 import xyz.gabriwar.warpedpixeldungeon.plants.Sorrowmoss;
 import xyz.gabriwar.warpedpixeldungeon.plants.Sungrass;
 import xyz.gabriwar.warpedpixeldungeon.sprites.SpiderExplodingSprite;
+import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 import com.watabou.utils.Reflection;
 
@@ -48,6 +49,8 @@ public class SpiderExploding extends Mob {
 			Sungrass.class, Earthroot.class, Fadeleaf.class, Blindweed.class
 	};
 
+	private int kind;
+
 	{
 		spriteClass = SpiderExplodingSprite.class;
 
@@ -58,6 +61,23 @@ public class SpiderExploding extends Mob {
 
 		EXP = 3;
 		maxLvl = 9;
+
+		//like Remixed's MultiKindMob kind, the plant is fixed when the spider spawns
+		kind = Random.Int( PLANTS.length );
+	}
+
+	private static final String KIND = "kind";
+
+	@Override
+	public void storeInBundle( Bundle bundle ) {
+		super.storeInBundle( bundle );
+		bundle.put( KIND, kind );
+	}
+
+	@Override
+	public void restoreFromBundle( Bundle bundle ) {
+		super.restoreFromBundle( bundle );
+		kind = bundle.getInt( KIND );
 	}
 
 	@Override
@@ -74,7 +94,7 @@ public class SpiderExploding extends Mob {
 	@Override
 	public boolean attack( Char enemy, float dmgMulti, float dmgBonus, float accMulti ) {
 		if (super.attack( enemy, dmgMulti, dmgBonus, accMulti )) {
-			Plant plant = (Plant) Reflection.newInstance( PLANTS[ Random.Int( PLANTS.length ) ] );
+			Plant plant = (Plant) Reflection.newInstance( PLANTS[ kind ] );
 			plant.pos = enemy.pos;
 			plant.activate( enemy );
 			die( this );

@@ -30,6 +30,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfLiquidFlame;
+import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfFireblast;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Blazing;
 import xyz.gabriwar.warpedpixeldungeon.sprites.SkeletonHand1Sprite;
 import com.watabou.utils.Random;
 
@@ -52,6 +54,8 @@ public class SkeletonHand1 extends Mob {
 		properties.add(Property.UNDEAD);
 
 		immunities.add(Burning.class);
+		immunities.add(Blazing.class);
+		immunities.add(WandOfFireblast.class);
 
 		//no metabolism to disturb: only the extremes reach it
 		thermal = Thermal.INSENSATE;
@@ -91,6 +95,8 @@ public class SkeletonHand1 extends Mob {
 
 	@Override
 	protected boolean act() {
+		boolean result = super.act();
+
 		if (state == FLEEING
 				&& buff(Terror.class) == null
 				&& enemySeen
@@ -98,6 +104,6 @@ public class SkeletonHand1 extends Mob {
 				&& enemy.buff(Burning.class) == null) {
 			state = HUNTING;
 		}
-		return super.act();
+		return result;
 	}
 }

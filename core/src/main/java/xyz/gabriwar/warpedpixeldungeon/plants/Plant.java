@@ -90,7 +90,8 @@ public abstract class Plant implements Bundlable {
 
 		if (Dungeon.level.heroFOV[pos] && Dungeon.hero.hasTalent(Talent.NATURES_AID)){
 			// 3/5 turns based on talent points spent
-			Barkskin.conditionallyAppend(Dungeon.hero, 2, 1 + 2*(Dungeon.hero.pointsInTalent(Talent.NATURES_AID)));
+			//2 armor + a quarter of the hero's level
+			Barkskin.conditionallyAppend(Dungeon.hero, 2 + Dungeon.hero.lvl/4, 1 + 2*(Dungeon.hero.pointsInTalent(Talent.NATURES_AID)));
 		}
 
 		// Dynamic LivingPlant spawn chance based on adjacent terrain
@@ -190,6 +191,10 @@ public abstract class Plant implements Bundlable {
 
 		// Season affects seed preservation
 		seedChance += GameCalendar.seasonSeedBonus();
+		// under a hothouse's glass a plant goes to seed far more often than in the open
+		if (xyz.gabriwar.warpedpixeldungeon.actors.blobs.HothouseGlass.covers( pos )) {
+			seedChance += xyz.gabriwar.warpedpixeldungeon.actors.blobs.HothouseGlass.SEED_BONUS;
+		}
 		seedChance = Math.max(0, seedChance);
 
 		if (Random.Float() < seedChance){

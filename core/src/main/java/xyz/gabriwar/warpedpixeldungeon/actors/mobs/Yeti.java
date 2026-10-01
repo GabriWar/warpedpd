@@ -25,6 +25,8 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Freezing;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.sprites.YetiSprite;
 import com.watabou.utils.Random;
 
@@ -42,6 +44,9 @@ public class Yeti extends Mob {
 
 		//built for the cold: the deep freeze is home, the thaw is what hurts
 		thermal = Thermal.COLD_DWELLER;
+
+		immunities.add( Paralysis.class );
+		immunities.add( Freezing.class );
 	}
 
 	@Override

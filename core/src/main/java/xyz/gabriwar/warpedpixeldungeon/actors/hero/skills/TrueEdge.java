@@ -25,6 +25,7 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.ArcSpinFX;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -77,6 +78,8 @@ public class TrueEdge extends Skill {
 			enemy.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "crit" ) );
 			enemy.sprite.emitter().burst( Speck.factory( Speck.STAR ), 6 );
 			Wound.hit( enemy );
+			enemy.sprite.flash();
+			ArcSpinFX.at( enemy.pos, 0xFFFFFF, 10, 0.3f, 220, 1100, 0.22f );
 		}
 		Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 1f, 1.4f );
 		if (level >= MAX_LEVEL){

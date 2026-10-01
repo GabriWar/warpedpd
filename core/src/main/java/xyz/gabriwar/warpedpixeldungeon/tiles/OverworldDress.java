@@ -30,9 +30,9 @@ import com.watabou.noosa.Tilemap;
 /**
  * The overworld's dressing, drawn from ONE spritesheet (overworld_dress.png,
  * composed by tools/dress_sheet.py): biome edge transitions, tree variety and
- * village details. Two window-sized layers - Ground below the hero, Canopy above
- * (walk-behind treetops and the winter well cap). OverworldLevel computes the data per
- * window; the ids here mirror the sheet layout.
+ * standing rocks. Three window-sized layers - Ground and Edges below the hero,
+ * Canopy above (walk-behind treetops and rock peaks). OverworldLevel computes the
+ * data per window; the ids here mirror the sheet layout.
  */
 public class OverworldDress {
 
@@ -60,6 +60,38 @@ public class OverworldDress {
 
 	//deep water, darker the further from shore
 	public static final int[] DEEP_SHADES = { 128, 129, 130, 131 };
+	//rows 14-17: where the water deepens, the darker shade spills onto the lighter cell in
+	//loose pixels as dark as shade band k; id = SHADE_EDGE + 16*k + side mask
+	public static final int SHADE_EDGE = 224;
+
+	//the edges come in versions so neighbouring cells never repeat (tools/dress_sheet.py):
+	//version 0 sits at the ids above, the rest in the rows below 288
+	public static final int BIOME_VARIANTS = 8, SHADE_VARIANTS = 4;
+	private static final int BIOME_VAR_BASE = 288, SHADE_VAR_BASE = 960;
+
+	/** a biome side edge: the material's row (BLEND_SNOW/SAND/GRASS), side mask, version */
+	public static int blend( int row, int mask, int version ){
+		if (version <= 0) return row + mask;
+		return BIOME_VAR_BASE + (version - 1) * 96 + row + mask;
+	}
+
+	/** a biome corner rounding: the material's row (CORNER_SNOW/SAND/GRASS), corner bits, version */
+	public static int corner( int row, int bits, int version ){
+		if (version <= 0) return row + bits;
+		return BIOME_VAR_BASE + (version - 1) * 96 + 48 + (row - CORNER_SNOW) + bits;
+	}
+
+	/** a deep-water shade edge as dark as band k: side mask, version */
+	public static int shadeEdge( int k, int mask, int version ){
+		if (version <= 0) return SHADE_EDGE + 16 * k + mask;
+		return SHADE_VAR_BASE + (version - 1) * 64 + 16 * k + mask;
+	}
+	//standing rocks (tall boulders): the body on the rock's cell, the peak over
+	//the cell above; two shapes, bare and snow-capped
+	public static final int[] ROCK_BODY      = { 132, 133 };
+	public static final int[] ROCK_TOP       = { 134, 135 };
+	public static final int[] ROCK_BODY_SNOW = { 136, 137 };
+	public static final int[] ROCK_TOP_SNOW  = { 138, 139 };
 
 	//the seasons' canopies: autumn (orange-brown) and snowed (winter, on
 	//forests whose ground is not frozen - frozen ground has the winter pines)
@@ -75,8 +107,16 @@ public class OverworldDress {
 	public static final int[] SPRING_FLOWERS = { 176, 177, 178, 179 };
 	public static final int[] FALLEN_LEAVES  = { 180, 181, 182, 183 };
 	public static final int[] ROAD_SNOW      = { 184, 185, 186, 187 };
-	//a full tile: the bridge planks with snow banked along the rails
-	public static final int BRIDGE_SNOW = 188;
+	//plank bridges (full tiles): a span running east-west or north-south, as
+	//mid span, first end, last end; and the same six dusted with snow
+	public static final int[] BRIDGE_EW      = { 192, 193, 194 };
+	public static final int[] BRIDGE_NS      = { 195, 196, 197 };
+	public static final int[] BRIDGE_SNOW_EW = { 198, 199, 200 };
+	public static final int[] BRIDGE_SNOW_NS = { 201, 202, 203 };
+	//the ways between the world's slices, drawn over their stairs terrain
+	public static final int LINK_CAVE_MOUTH = 208, LINK_CAVE_EXIT = 209;
+	public static final int LINK_STAIR_UP = 210, LINK_STAIR_DOWN = 211;
+	public static final int LINK_SHAFT_DOWN = 212, LINK_SHAFT_UP = 213;
 
 	//overworld_villages.png (tools/village_sheet.py): 5x3 roofs; +c +16*r
 	public static final int ROOF_SUMMER = 0;
@@ -88,13 +128,6 @@ public class OverworldDress {
 
 		{
 			texture = Assets.Environment.OVERWORLD_DRESS;
-		}
-
-		//the village dressing draws from its own sheet
-		public static class Village extends Layer {
-			{
-				texture = Assets.Environment.OVERWORLD_VILLAGES;
-			}
 		}
 
 		private int[] data;

@@ -38,6 +38,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.SmokeParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.RogueHuntressAuras;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraBuff;
 
 public class Bombvoyage extends ActiveSkill3 {
 
@@ -59,9 +63,17 @@ public class Bombvoyage extends ActiveSkill3 {
 		super.execute(hero, action);
 		if (action.equals(Skill.AC_ACTIVATE)){
 			Sample.INSTANCE.play( Assets.Sounds.PUFF, 1f, 0.8f );
-			hero.sprite.emitter().burst( Speck.factory( Speck.SMOKE ), 3 );
+			hero.sprite.emitter().burst( Speck.factory( Speck.SMOKE ), 5 );
 			hero.heroSkills.active1.active = false; // Disable Aimed Shot
 			hero.heroSkills.active2.active = false; // Disable Double Shot
+			StanceAuraBuff.sync( hero, RogueHuntressAuras.Aimed.class, false );
+			StanceAuraBuff.sync( hero, RogueHuntressAuras.Double.class, false );
+			StanceAuraBuff.sync( hero, RogueHuntressAuras.Fuse.class, true );
+		} else if (action.equals(Skill.AC_DEACTIVATE)){
+			//the fuse pinched out
+			Sample.INSTANCE.play( Assets.Sounds.PUFF, 0.6f, 1.4f );
+			if (hero.sprite != null) hero.sprite.emitter().burst( SmokeParticle.FACTORY, 3 );
+			StanceAuraBuff.sync( hero, RogueHuntressAuras.Fuse.class, false );
 		}
 	}
 
@@ -72,6 +84,9 @@ public class Bombvoyage extends ActiveSkill3 {
 		else {
 			castTextYell();
 			Dungeon.hero.MP -= getManaCost();
+			//the charge lit as it leaves her hand
+			if (Dungeon.hero.sprite != null) Dungeon.hero.sprite.emitter().burst( SmokeParticle.FACTORY, 3 );
+			Sample.INSTANCE.play( Assets.Sounds.BURNING, 0.5f, 1.6f );
 			return true;
 		}
 	}
@@ -87,16 +102,22 @@ public class Bombvoyage extends ActiveSkill3 {
 	}
 
 	private static void burst( Hero hero, int c0, float mult, boolean chain, Object source ){
-		Sample.INSTANCE.play( Assets.Sounds.BLAST );
+		Sample.INSTANCE.play( Assets.Sounds.BLAST, mult < 1f ? 0.7f : 1f, mult < 1f ? 1.3f : 1f );
 		if (Dungeon.level.heroFOV[c0]){
 			xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.center( c0 ).burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.BlastParticle.FACTORY, 30 );
 			com.watabou.noosa.Camera.main.shake( 2, 0.3f );
+			if (hero.sprite != null && hero.sprite.parent != null){
+				new Flare( 6, 20 * mult ).color( 0xFFAA44, true ).show( hero.sprite.parent,
+						xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap.tileCenterToWorld( c0 ), 0.4f );
+			}
 		}
 		int killedAt = -1;
+		int ring = 0;
 		for (int n : PathFinder.NEIGHBOURS9){
 			int c = c0 + n;
 			if (c < 0 || c >= Dungeon.level.length() || Dungeon.level.solid[c]) continue;
-			if (Dungeon.level.heroFOV[c]) xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.get( c ).burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.SmokeParticle.FACTORY, 3 );
+			//the smoke rolls out from the centre, one tile after another
+			if (Dungeon.level.heroFOV[c]) xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.get( c ).startDelayed( SmokeParticle.FACTORY, 0, 3, n == 0 ? 0f : 0.06f + 0.03f * ring++ );
 			Char ch = Actor.findChar( c );
 			if (ch == null || ch == hero || ch.alignment == Char.Alignment.ALLY) continue;
 			int dmg = Math.round( com.watabou.utils.Random.NormalIntRange( 5 + Dungeon.scalingDepth(), 10 + Dungeon.scalingDepth() * 2 ) * mult );

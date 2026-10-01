@@ -419,7 +419,10 @@ public class ElementalBlast extends ArmorAbility {
 
 						charsHit = Math.min(4 + hero.pointsInTalent(Talent.REACTIVE_BARRIER), charsHit);
 						if (charsHit > 0 && hero.hasTalent(Talent.REACTIVE_BARRIER)){
-							int shielding = Math.round(charsHit*2.5f*hero.pointsInTalent(Talent.REACTIVE_BARRIER));
+							//2.5 per point per character hit, or 2% of max HP when that is more; at most half of max HP
+							int p = hero.pointsInTalent(Talent.REACTIVE_BARRIER);
+							int shielding = Math.round(charsHit * p * Math.max(2.5f, hero.HT * 0.02f));
+							shielding = Math.min(shielding, Math.max(Math.round(charsHit*2.5f*p), hero.HT / 2));
 							hero.sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(shielding), FloatingText.SHIELDING);
 							Buff.affect(hero, Barrier.class).setShield(shielding);
 						}

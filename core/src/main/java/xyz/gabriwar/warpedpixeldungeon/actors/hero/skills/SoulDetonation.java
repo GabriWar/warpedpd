@@ -85,8 +85,9 @@ public class SoulDetonation extends Skill {
                 else if(index>=0&&index<pets.size())selected.add(pets.get(index));
                 selected.removeIf(p->!p.isAlive()||!Dungeon.level.mobs.contains(p));
                 if(selected.isEmpty())return;
+                int beat=0;
                 for(SummonedPet pet:selected){
-                    int origin=pet.pos;
+                    int origin=pet.pos;final int order=beat++;
                     boolean rat=pet.sprite instanceof xyz.gabriwar.warpedpixeldungeon.sprites.RatSprite;
                     boolean skeleton=pet.sprite instanceof xyz.gabriwar.warpedpixeldungeon.sprites.SkeletonSprite;
                     if(pet.sprite!=null)pet.sprite.parent.add(new xyz.gabriwar.warpedpixeldungeon.effects.Beam.HealthRay(pet.sprite.center(),hero.sprite.center()));
@@ -97,12 +98,21 @@ public class SoulDetonation extends Skill {
                         if(enemy!=null&&enemy.alignment==Char.Alignment.ENEMY)xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff.affect(enemy,xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison.class).set(2+level);
                     }
                     pet.die(SoulDetonation.this);
+                    //the souls go up one after another: a violet flare where each stood, a jolt, the boom climbing, then its light reaching the mage
+                    if(hero.sprite!=null&&hero.sprite.parent!=null)new xyz.gabriwar.warpedpixeldungeon.effects.Flare(6,16).color(0xBBA7EE,true)
+                        .show(hero.sprite.parent,xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap.tileCenterToWorld(origin),0.5f);
+                    xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX.after(0.1f*order,()->{
+                        Camera.main.shake(2,0.2f);Sample.INSTANCE.play(Assets.Sounds.BLAST,0.8f,0.9f+0.1f*order);
+                    });
+                    xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX.after(0.1f*order+0.3f,()->{
+                        if(hero.sprite!=null)hero.sprite.emitter().burst(Speck.factory(Speck.BLUE_LIGHT),3);
+                    });
                     //at mastery each sacrifice leaves a soul mote that returns mana when stepped on
                     if(level>=MAX_LEVEL)xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField.place(hero,
                         xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField.SOUL,level,6,java.util.Collections.singleton(origin));
                 }
                 hero.MP-=getManaCost();castTextYell();xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility.dispel();
-                Sample.INSTANCE.play(Assets.Sounds.BLAST);hero.spendAndNext(TIME_TO_USE);
+                hero.spendAndNext(TIME_TO_USE);
             }
         });
         hero.heroSkills.lastUsed=this;

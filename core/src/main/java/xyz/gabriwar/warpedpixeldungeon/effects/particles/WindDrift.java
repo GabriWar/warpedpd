@@ -57,7 +57,8 @@ public class WindDrift extends Emitter {
 	@Override
 	public void update() {
 		Camera cam = Camera.main;
-		OverworldLevel level = Dungeon.level instanceof OverworldLevel ? (OverworldLevel) Dungeon.level : null;
+		OverworldLevel level = Dungeon.level instanceof OverworldLevel && ((OverworldLevel) Dungeon.level).openSky()
+				? (OverworldLevel) Dungeon.level : null;
 		float wind = ClimateManager.surfaceWindSpeed();
 		if (level == null || cam == null || wind < NOTICEABLE_WIND) {
 			on = false;

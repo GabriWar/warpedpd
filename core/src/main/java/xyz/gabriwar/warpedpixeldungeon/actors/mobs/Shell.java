@@ -29,14 +29,17 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Electricity;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Doom;
 import xyz.gabriwar.warpedpixeldungeon.items.RedDewdrop;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
+import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPsionicBlast;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ShellSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Camera;
@@ -67,7 +70,7 @@ public class Shell extends Mob implements Callback {
 		immunities.add(Terror.class);
 
 		resistances.add(Grim.class);
-		resistances.add(Doom.class);
+		resistances.add(ScrollOfPsionicBlast.class);
 		resistances.add(Electricity.class);
 
 		//no metabolism to disturb: only the extremes reach it
@@ -115,34 +118,50 @@ public class Shell extends Mob implements Callback {
 			return super.doAttack(enemy);
 		} else {
 			// Ranged lightning attack using shellCharge
-			yell("ZZZZZAAAAAAPPPPPP!!!!!");
-			if (Dungeon.shellCharge > 0 && Char.hit(this, enemy, true)) {
-				int dmg = Random.Int(
-						Math.round(Dungeon.shellCharge / 4f),
-						Math.max(Math.round(Dungeon.shellCharge / 4f) + 1, Math.round(Dungeon.shellCharge / 2f)));
-				Dungeon.shellCharge -= dmg;
-				if (Dungeon.shellCharge < 0) Dungeon.shellCharge = 0;
-
-				if (Dungeon.level.water[enemy.pos] && !enemy.flying) {
-					dmg = Math.round(dmg * 1.5f);
-				}
-				enemy.damage(dmg, this);
-				enemy.sprite.centerEmitter().burst(SparkParticle.FACTORY, 3);
-				enemy.sprite.flash();
+			boolean visible = Dungeon.level.heroFOV[pos] || Dungeon.level.heroFOV[enemy.pos];
+			if (visible) {
+				((ShellSprite) sprite).zap(enemy.pos);
 			}
-			Camera.main.shake(2, 0.3f);
 			zapAllMobs();
 			spend(2f);
-			return true;
+
+			if (Dungeon.shellCharge > 0) {
+				if (Char.hit(this, enemy, true)) {
+					int dmg = Random.Int(
+							Math.round(Dungeon.shellCharge / 4f),
+							Math.max(Math.round(Dungeon.shellCharge / 4f) + 1, Math.round(Dungeon.shellCharge / 2f)));
+					Dungeon.shellCharge -= dmg;
+					if (Dungeon.shellCharge < 0) Dungeon.shellCharge = 0;
+
+					if (Dungeon.level.water[enemy.pos] && !enemy.flying) {
+						dmg = Math.round(dmg * 1.5f);
+					}
+					enemy.damage(dmg, new DM100.LightningBolt());
+					enemy.sprite.centerEmitter().burst(SparkParticle.FACTORY, 3);
+					enemy.sprite.flash();
+
+					if (enemy == Dungeon.hero) {
+						Camera.main.shake(2, 0.3f);
+
+						if (!enemy.isAlive()) {
+							Dungeon.fail(this);
+						}
+					}
+				} else {
+					enemy.sprite.showStatus(CharSprite.NEUTRAL, enemy.defenseVerb());
+				}
+			}
+
+			return !visible;
 		}
 	}
 
 	@Override
 	public void damage(int dmg, Object src) {
-		super.damage(dmg, src);
 		if (Dungeon.shellCharge > 0) {
 			zapAdjacentCells();
 		}
+		super.damage(dmg, src);
 	}
 
 	@Override
@@ -154,6 +173,7 @@ public class Shell extends Mob implements Callback {
 	}
 
 	private void zapAdjacentCells() {
+		yell(Messages.get(this, "zap"));
 		for (int n : PathFinder.NEIGHBOURS8) {
 			int cell = pos + n;
 			Char ch = Actor.findChar(cell);
@@ -169,7 +189,10 @@ public class Shell extends Mob implements Callback {
 				if (Dungeon.level.water[ch.pos] && !ch.flying) {
 					dmg = Math.round(dmg * 1.5f);
 				}
-				ch.damage(dmg, this);
+				if (Dungeon.level.heroFOV[pos] || Dungeon.level.heroFOV[ch.pos]) {
+					sprite.parent.add(new Lightning(pos, ch.pos, null));
+				}
+				ch.damage(dmg, new DM100.LightningBolt());
 				ch.sprite.centerEmitter().burst(SparkParticle.FACTORY, 3);
 				ch.sprite.flash();
 			}
@@ -178,14 +201,21 @@ public class Shell extends Mob implements Callback {
 	}
 
 	private void zapAllMobs() {
+		yell(Messages.get(this, "zap"));
 		int mobDmg = Random.Int(1, 2 + Math.round(Dungeon.shellCharge / 4f));
 		for (Mob mob : Dungeon.level.mobs.toArray(new Mob[0])) {
-			if (mob != this && mob.isAlive()) {
+			if (mob != this && mob.isAlive() && !Dungeon.level.adjacent(pos, mob.pos)) {
 				int dmg = mobDmg;
 				if (Dungeon.level.water[mob.pos] && !mob.flying) {
 					dmg = Math.round(dmg * 1.5f);
 				}
-				mob.damage(dmg, this);
+				if (Dungeon.level.heroFOV[pos] || Dungeon.level.heroFOV[mob.pos]) {
+					sprite.parent.add(new Lightning(pos, mob.pos, null));
+				}
+				mob.damage(dmg, new DM100.LightningBolt());
+				mob.sprite.centerEmitter().burst(SparkParticle.FACTORY, 3);
+				mob.sprite.flash();
+				Camera.main.shake(2, 0.3f);
 			}
 		}
 		// Also zap hero if far enough
@@ -201,7 +231,13 @@ public class Shell extends Mob implements Callback {
 				if (Dungeon.level.water[hero.pos] && !hero.flying) {
 					heroDmg = Math.round(heroDmg * 1.5f);
 				}
-				hero.damage(heroDmg, this);
+				if (Dungeon.level.heroFOV[pos] || Dungeon.level.heroFOV[hero.pos]) {
+					sprite.parent.add(new Lightning(pos, hero.pos, null));
+				}
+				hero.damage(heroDmg, new DM100.LightningBolt());
+				hero.sprite.centerEmitter().burst(SparkParticle.FACTORY, 3);
+				hero.sprite.flash();
+				Camera.main.shake(2, 0.3f);
 			}
 		}
 	}
@@ -210,10 +246,6 @@ public class Shell extends Mob implements Callback {
 	public void die(Object cause) {
 		Dungeon.shellCharge = 0;
 		super.die(cause);
-		if (alignment != Alignment.ENEMY) {
-			Dungeon.level.drop(new xyz.gabriwar.warpedpixeldungeon.items.RedDewdrop(), pos).sprite.drop();
-		}
-
 	}
 
 	@Override

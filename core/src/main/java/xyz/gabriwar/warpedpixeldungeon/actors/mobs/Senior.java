@@ -21,6 +21,9 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.items.food.Pasty;
 import xyz.gabriwar.warpedpixeldungeon.sprites.SeniorSprite;
 import com.watabou.utils.Random;
@@ -44,6 +47,14 @@ public class Senior extends Monk {
 	@Override
 	public int damageRoll() {
 		return Random.NormalIntRange( 32, 56 );
+	}
+
+	@Override
+	public int attackProc( Char enemy, int damage ) {
+		if (Random.Int( 10 ) == 0) {
+			Buff.prolong( enemy, Paralysis.class, 1.1f );
+		}
+		return super.attackProc( enemy, damage );
 	}
 	
 }

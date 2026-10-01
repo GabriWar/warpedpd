@@ -25,6 +25,8 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 import com.watabou.utils.PointF;
+import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.Dart;
@@ -170,15 +172,21 @@ public class ChargedShot extends Skill {
 
 		int base = bow != null ? bow.knockArrow().damageRoll( hero ) : hero.damageRoll();
 		int dmg = Math.round( base * (1.25f + 0.25f * level) );
-		for (int c : lane){
+		//the lance's passage: dust thrown up tile after tile down the line, the ground shaking with it
+		Camera.main.shake( 1, 0.25f );
+		FxTimeline t = FxTimeline.start();
+		int struck = 0;
+		for (int i = 0; i < lane.size(); i++){
+			int c = lane.get( i );
 			if (Dungeon.level.heroFOV[c] && !Dungeon.level.solid[c]){
-				CellEmitter.center( c ).burst( Speck.factory( Speck.DUST ), 1 );
+				final int at = c;
+				t.at( 0.02f * i, () -> CellEmitter.center( at ).burst( Speck.factory( Speck.DUST ), 2 ) );
 			}
 			Char ch = Actor.findChar( c );
 			if (ch != null && ch != hero && ch.alignment == Char.Alignment.ENEMY && ch.isAlive()){
 				ch.damage( dmg, self != null ? self : hero );
 				SkillFX.flash( ch );
-				Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 1f, 1.1f );
+				Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 1f, 1.0f + 0.1f * struck++ );
 				if (ch.isAlive() && level >= MAX_LEVEL){
 					Buff.prolong( ch, Vulnerable.class, 3f );
 				}

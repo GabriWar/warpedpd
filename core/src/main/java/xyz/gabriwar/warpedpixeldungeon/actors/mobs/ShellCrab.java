@@ -38,7 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
-import xyz.gabriwar.warpedpixeldungeon.sprites.HermitCrabSprite;
+import xyz.gabriwar.warpedpixeldungeon.sprites.ShellCrabSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
@@ -48,7 +48,7 @@ public class ShellCrab extends Mob implements Callback {
 	private static final float TIME_TO_ZAP = 2f;
 
 	{
-		spriteClass = HermitCrabSprite.class;
+		spriteClass = ShellCrabSprite.class;
 
 		HP = HT = 20;
 		defenseSkill = 22;

@@ -31,6 +31,9 @@ import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.WhirlHitFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAura;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -53,6 +56,7 @@ public class Rampage extends ActiveSkill3 {
 
 	@Override
 	public float damageModifier(){
+		StanceAura.sync( Dungeon.hero );
 		if (!active || Dungeon.hero.MP < getManaCost())
 			return 1f;
 		else {
@@ -88,15 +92,25 @@ public class Rampage extends ActiveSkill3 {
 		}
 	}
 
-	//the ring around the hero: dust on every cell, a wound on every enemy in it
+	//the ring around the hero: the blade goes round clockwise from the top-left, one cell a beat
+	//after the last, its whistle climbing as it goes; every enemy in the ring is wounded
 	private void sweep(){
 		Hero hero = Dungeon.hero;
-		for (int n : PathFinder.NEIGHBOURS8){
-			int c = hero.pos + n;
+		int w = Dungeon.level.width();
+		int[] clockwise = { -w - 1, -w, -w + 1, +1, w + 1, w, w - 1, -1 };
+		int step = 0;
+		for (int n : clockwise){
+			final int c = hero.pos + n;
 			if (c < 0 || c >= Dungeon.level.length() || Dungeon.level.solid[c]) continue;
-			if (Dungeon.level.heroFOV[c]) CellEmitter.get( c ).burst( Speck.factory( Speck.DUST ), 2 );
 			Char ch = Actor.findChar( c );
 			if (ch != null && ch.alignment == Char.Alignment.ENEMY && ch.isAlive()) Wound.hit( ch );
+			final int beat = step++;
+			StaggerFX.after( 0.035f * beat, () -> {
+				if (!Dungeon.level.heroFOV[c]) return;
+				WhirlHitFX.show( c );
+				CellEmitter.get( c ).burst( Speck.factory( Speck.DUST ), 2 );
+				if (beat % 2 == 1) Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 0.5f, 0.9f + 0.06f * beat );
+			} );
 		}
 		Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 1f, 0.8f );
 		Camera.main.shake( 1, 0.15f );
@@ -108,7 +122,12 @@ public class Rampage extends ActiveSkill3 {
 		if (action.equals(Skill.AC_ACTIVATE)){
 			hero.heroSkills.deactivateOtherToggles( this );
 			Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 0.8f, 1.3f );
+			//the blade comes up glinting, and keeps glinting while the stance holds
+			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 5 );
+		} else if (action.equals(Skill.AC_DEACTIVATE)){
+			Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 0.4f, 0.7f );
 		}
+		StanceAura.sync( hero );
 	}
 
 	@Override

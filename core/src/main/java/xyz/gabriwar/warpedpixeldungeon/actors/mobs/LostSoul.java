@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Chill;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Frost;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfFireblast;
 import xyz.gabriwar.warpedpixeldungeon.sprites.LostSoulSprite;
 import com.watabou.utils.Random;
 
@@ -53,6 +54,10 @@ public class LostSoul extends Mob {
 		properties.add( Property.UNDEAD );
 		properties.add( Property.DEMONIC );
 		properties.add( Property.FIERY );
+
+		//Unleashed listed the fire enchantment and fireblast as outright immunities;
+		//Property.FIERY only resists the wand, so it is restored here
+		immunities.add( WandOfFireblast.class );
 
 		//built for the heat: the chill is what hurts
 		thermal = Thermal.HEAT_DWELLER;

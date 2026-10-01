@@ -23,6 +23,8 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.ArcSpinFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 
 import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
@@ -191,6 +193,8 @@ public class Hurl extends Skill {
 			Invisibility.dispel();
 			hero.busy();
 			hero.sprite.zap( far );
+			//the blade leaves her hand spinning
+			ArcSpinFX.around( hero.sprite, 0xFFFFFF, 8, 0.35f, 0, 1300, 0.28f );
 			Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 1.1f );
 
 			new Ricochet(hero, wep).fly(hero.pos, aimed);
@@ -246,6 +250,9 @@ public class Hurl extends Skill {
 					target.damage(damage, Hurl.this);
 					SkillFX.flash(target);
 					weapon.hitSound(1f);
+					//each body it bites rings a little higher, and a bounce catches the light
+					Sample.INSTANCE.play(Assets.Sounds.HIT_PARRY, 0.7f, 1.1f + 0.12f * (visited.size() - 1));
+					if (target.sprite != null) new Flare(4, 10).color(0xFFFFFF, true).show(target.sprite, 0.3f);
 					if (level >= MAX_LEVEL) Buff.affect(hero, HurlCombo.class).addHit();
 					bounce = Random.Float() < 0.15f * level;
 				} else if (target.isAlive()) {
@@ -264,6 +271,11 @@ public class Hurl extends Skill {
 				//a throw that lands nothing breaks the chain
 				if (!landed) Buff.detach(hero, HurlCombo.class);
 				Sample.INSTANCE.play(Assets.Sounds.HIT_PARRY, 1f, 1.3f);
+				//caught: a glint in her hand
+				if (hero.sprite != null){
+					new Flare(4, 8).color(0xFFFFFF, true).show(hero.sprite, 0.25f);
+					hero.sprite.emitter().burst(Speck.factory(Speck.STAR), 3);
+				}
 				hero.spendAndNext(TIME_TO_USE);
 			});
 		}

@@ -249,6 +249,12 @@ public abstract class Actor implements Bundlable {
 	public static boolean keepActorThreadAlive = true;
 	
 	public static void process() {
+		long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
+		processImpl();
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "Actor.process (a full turn loop)", t );
+	}
+
+	private static void processImpl() {
 		
 		boolean doNext;
 		boolean interrupted = false;
@@ -277,6 +283,7 @@ public abstract class Actor implements Bundlable {
 
 				now = current.time;
 				Actor acting = current;
+				xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.turn( acting, now );
 
 				if (xyz.gabriwar.warpedpixeldungeon.net.NetManager.isHost()) {
 					String tag = acting.getClass().getSimpleName();
@@ -291,6 +298,7 @@ public abstract class Actor implements Bundlable {
 					try {
 						synchronized (((Char)acting).sprite) {
 							if (((Char)acting).sprite.isMoving) {
+								xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.spriteWait( true );
 								if (xyz.gabriwar.warpedpixeldungeon.net.NetManager.isHost()) {
 									xyz.gabriwar.warpedpixeldungeon.net.NetManager.log("[NET-HOST] Actor waiting for sprite of id="
 											+ acting.id());
@@ -305,6 +313,7 @@ public abstract class Actor implements Bundlable {
 					} catch (InterruptedException e) {
 						interrupted = true;
 					}
+					xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.spriteWait( false );
 				}
 
 				interrupted = interrupted || Thread.interrupted();
@@ -313,7 +322,14 @@ public abstract class Actor implements Bundlable {
 					doNext = false;
 					current = null;
 				} else {
-					doNext = acting.act();
+					long actStart = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.enabled ? System.nanoTime() : 0L;
+					xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.act( true );
+					try {
+						doNext = acting.act();
+					} finally {
+						xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.act( false );
+					}
+					if (actStart != 0L) xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.actorActed( acting, System.nanoTime() - actStart );
 					if (xyz.gabriwar.warpedpixeldungeon.net.NetManager.isHost()) {
 						xyz.gabriwar.warpedpixeldungeon.net.NetManager.log("[NET-HOST] Actor.act id=" + acting.id()
 								+ " doNext=" + doNext);

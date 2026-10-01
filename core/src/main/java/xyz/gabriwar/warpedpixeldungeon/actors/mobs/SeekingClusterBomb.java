@@ -30,7 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Vampiric;
-import xyz.gabriwar.warpedpixeldungeon.items.bombs.Bomb;
+import xyz.gabriwar.warpedpixeldungeon.items.bombs.ClusterBomb;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.SeekingClusterBombSprite;
@@ -72,7 +72,7 @@ public class SeekingClusterBomb extends Mob {
 
 		// Cluster explosion: scatter bombs across 5x5 area (distance-2 ring)
 		// with 1/3 chance each cell, matching Sprouted's NEIGHBOURS8DIST2
-		Bomb bomb = new Bomb();
+		ClusterBomb bomb = new ClusterBomb();
 		int w = Dungeon.level.width();
 		int[] dist2 = {
 			-2*w-2, -2*w-1, -2*w, -2*w+1, -2*w+2,
@@ -122,24 +122,8 @@ public class SeekingClusterBomb extends Mob {
 
 	@Override
 	public void die( Object cause ) {
-		// Cluster explosion on death, matching Sprouted
-		Bomb bomb = new Bomb();
-		int w = Dungeon.level.width();
-		int[] dist2 = {
-			-2*w-2, -2*w-1, -2*w, -2*w+1, -2*w+2,
-			-w-2, -w-1, -w, -w+1, -w+2,
-			-2, -1, +1, +2,
-			+w-2, +w-1, +w, +w+1, +w+2,
-			+2*w-2, +2*w-1, +2*w, +2*w+1, +2*w+2
-		};
-		for (int n : dist2) {
-			int c = pos + n;
-			if (Random.Int(3) == 0 && Dungeon.level.insideMap(c)) {
-				bomb.explode( c );
-			}
-		}
-
-		yell( Messages.get(this, "explode") );
+		// a single blast where it stood, matching Sprouted
+		new ClusterBomb().explode( pos );
 
 		super.die( cause );
 	}

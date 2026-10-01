@@ -74,7 +74,9 @@ public class Messages {
 			Assets.Messages.SCENES,
 			Assets.Messages.SKILLS,
 			Assets.Messages.UI,
-			Assets.Messages.WINDOWS
+			Assets.Messages.WINDOWS,
+			Assets.Messages.RARITY,
+			Assets.Messages.WARPED_ROOMS
 	};
 
 	static{

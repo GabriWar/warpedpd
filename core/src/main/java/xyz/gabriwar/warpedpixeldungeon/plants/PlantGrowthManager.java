@@ -27,10 +27,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.actors.TileTemperature;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.SnowParticle;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Comfy;
@@ -59,12 +56,6 @@ public class PlantGrowthManager {
 	// Maximum catch-up cycles when entering a level that has been unvisited
 	private static final int MAX_CATCHUP_CYCLES = 8;
 
-	// How many hero turns between freeze/thaw checks
-	private static final int FREEZE_THAW_INTERVAL = 5;
-	// Temperature thresholds for water ↔ ice transitions
-	private static final float FREEZE_TEMP = 0f;   // water freezes below this
-	private static final float THAW_TEMP   = 5f;   // ice melts above this (hysteresis prevents flickering)
-
 	// Valid terrain types for natural plant placement
 	private static final int[] VALID_TERRAIN = {
 			Terrain.GRASS,
@@ -82,9 +73,6 @@ public class PlantGrowthManager {
 		if (level == null) return;
 		//nothing grows on a floorboard: indoors there is no soil, no rain and no frost
 		if (Comfy.indoors(level)) return;
-
-		// Freeze/thaw runs regardless of herbalism challenge
-		processFreezeThaw(level);
 
 		if (Dungeon.isChallenged(Challenges.NO_HERBALISM)) return;
 
@@ -250,7 +238,8 @@ public class PlantGrowthManager {
 	/**
 	 * Selects a plant seed class using biome weights × season modifiers.
 	 */
-	private static Class<? extends Plant.Seed> selectPlantClass(Level level, GameCalendar.Season season) {
+	//public: the Hothouse room grows its own beds from the same tables, in spring's mood all year
+	public static Class<? extends Plant.Seed> selectPlantClass(Level level, GameCalendar.Season season) {
 		float[] weights = PlantWeights.levelWeights(level);
 		// Apply season modifiers
 		for (int i = 0; i < weights.length; i++) {
@@ -322,53 +311,4 @@ public class PlantGrowthManager {
 		}
 	}
 
-	// -------------------------------------------------------------------------
-	// Water freeze / thaw
-	// -------------------------------------------------------------------------
-
-	private static int freezeThawCounter = 0;
-
-	/**
-	 * Checks a batch of water/ice tiles each cycle and freezes or thaws them
-	 * based on per-tile temperature. Uses hysteresis (freeze < 0°C, thaw > 5°C)
-	 * to prevent flickering at the boundary.
-	 * Only affects levels where waterCanFreeze() is true (not lava levels).
-	 */
-	private static void processFreezeThaw(Level level) {
-		if (!level.waterCanFreeze()) return;
-
-		freezeThawCounter++;
-		if (freezeThawCounter < FREEZE_THAW_INTERVAL) return;
-		freezeThawCounter = 0;
-
-		int len = level.length();
-		// Check a random sample of tiles each cycle for performance
-		int checks = Math.max(10, len / 50);
-
-		for (int i = 0; i < checks; i++) {
-			int pos = Random.Int(len);
-			int terrain = level.map[pos];
-
-			if (terrain == Terrain.WATER) {
-				float temp = TileTemperature.tileTemp(pos);
-				if (temp < FREEZE_TEMP) {
-					// Water freezes into ice
-					Level.set(pos, Terrain.FROZEN_WATER, level);
-					level.water[pos] = false; // no longer liquid
-					GameScene.updateMap(pos);
-					CellEmitter.get(pos).burst(SnowParticle.RISING_FACTORY, 6);
-				}
-
-			} else if (terrain == Terrain.FROZEN_WATER) {
-				float temp = TileTemperature.tileTemp(pos);
-				if (temp > THAW_TEMP) {
-					// Ice melts back into water
-					Level.set(pos, Terrain.WATER, level);
-					level.water[pos] = true;
-					GameScene.updateMap(pos);
-					CellEmitter.get(pos).burst(Speck.factory(Speck.STEAM), 4);
-				}
-			}
-		}
-	}
 }

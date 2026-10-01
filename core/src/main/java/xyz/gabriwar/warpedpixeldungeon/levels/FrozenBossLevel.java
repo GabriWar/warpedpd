@@ -128,7 +128,14 @@ public class FrozenBossLevel extends Level {
 		}
 		int exitPos = cell( CX, CY - RADIUS - 3 );
 		map[exitPos] = Terrain.LOCKED_EXIT;
-		transitions.add( new LevelTransition( this, exitPos, LevelTransition.Type.REGULAR_EXIT ) );
+		//nothing is built under the arena: the way on, opened with the key the demon lord
+		//carries, comes back out on the Halls floor that holds the mouth of the branch
+		transitions.add( new LevelTransition( this,
+				exitPos,
+				LevelTransition.Type.REGULAR_EXIT,
+				HallsLevel.FROZEN_BRANCH_DEPTH,
+				0,
+				LevelTransition.Type.BRANCH_EXIT ) );
 
 		return true;
 	}

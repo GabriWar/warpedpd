@@ -106,6 +106,7 @@ public class Hunger extends Buff implements Hero.Doom {
 				}
 				hungerDelay /= SaltCube.hungerGainMultiplier();
 				hungerDelay *= RingOfSating.hungerDelayMultiplier(target);
+				hungerDelay *= 1f + xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.heroBonus(target, xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.Stat.HUNGER);
 
 				float newLevel = level + (1f/hungerDelay);
 				if (newLevel >= STARVING) {

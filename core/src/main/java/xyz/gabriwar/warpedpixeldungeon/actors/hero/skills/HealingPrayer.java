@@ -25,6 +25,8 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PulseRingFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
 
 
@@ -74,6 +76,11 @@ public class HealingPrayer extends ActiveSkill2 {
 			hero.HP += healed;
 			hero.sprite.emitter().start( Speck.factory( Speck.HEALING ), 0.4f, 4 );
 			hero.sprite.emitter().burst( ShaftParticle.FACTORY, 5 );
+			//the prayer: a soft pulse out from the cleric, a warmer second beat, motes drifting up after it
+			PulseRingFX.around( hero.sprite, 0xBBFFCC, 14, 0.55f );
+			FxTimeline.start()
+					.at( 0.18f, () -> { PulseRingFX.around( hero.sprite, 0xFFF1A1, 10, 0.45f ); hero.sprite.emitter().burst( Speck.factory( Speck.HEALING ), 4 ); } )
+					.at( 0.42f, () -> hero.sprite.emitter().burst( ShaftParticle.FACTORY, 3 ) );
 			hero.sprite.showStatus( xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite.POSITIVE, "+" + healed + "HP" );
 			//at level 3 the healing past full health stays on as a barrier of light, up to MAX_BARRIER
 			if (level >= MAX_LEVEL){

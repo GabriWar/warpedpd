@@ -26,6 +26,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StreakFX;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillSequence;
 
 
@@ -110,23 +112,39 @@ public class ImpalingThrust extends Skill {
 		boolean hit = false;
 		for (int cell : traj.subPath( 1, reach )){
 			Char ch = Actor.findChar( cell );
-			if (Dungeon.level.heroFOV[cell] && !Dungeon.level.solid[cell]){
-				CellEmitter.center( cell ).burst( Speck.factory( Speck.STAR ), 2 );
-			}
-			if (ch != null && ch.alignment == Char.Alignment.ENEMY){
-				ch.damage( Math.round( roll * 0.8f ), this );
-				Wound.hit( ch );
-				if (ch.isAlive()){
-					Buff.affect( ch, Bleeding.class ).set( 2 + level );
-				}
-				hit = true;
-			}
+			if (ch != null && ch.alignment == Char.Alignment.ENEMY) hit = true;
 		}
 
 		if (!hit){
 			GLog.w( Messages.get(this, "no_target") );
 			return;
 		}
+
+		//the damage lands at once; the point is drawn running the lane tile by tile, sparks first,
+		//then each body it goes through, one after the other, the stab climbing in pitch
+		FxTimeline lane = FxTimeline.start();
+		int i = 0, pierced = 0;
+		for (int cell : traj.subPath( 1, reach )){
+			final int c = cell;
+			final Char ch = Actor.findChar( cell );
+			final boolean body = ch != null && ch.alignment == Char.Alignment.ENEMY;
+			final float pitch = 1.0f + 0.1f * pierced;
+			lane.at( 0.035f * i++, () -> {
+				if (Dungeon.level.heroFOV[c] && !Dungeon.level.solid[c]) CellEmitter.center( c ).burst( Speck.factory( Speck.STAR ), 2 );
+				if (body && ch.sprite != null){
+					ch.sprite.flash();
+					Wound.hit( ch );
+					Sample.INSTANCE.play( Assets.Sounds.HIT_STAB, 0.9f, pitch );
+				}
+			} );
+			if (!body) continue;
+			pierced++;
+			ch.damage( Math.round( roll * 0.8f ), this );
+			if (ch.isAlive()){
+				Buff.affect( ch, Bleeding.class ).set( 2 + level );
+			}
+		}
+		StreakFX.show( hero.pos, traj.path.get( reach ), 0xFFFFFF, 0.45f, 0.3f + 0.03f * reach );
 
 		if (level >= MAX_LEVEL){
 			SkillSequence.start(hero, SkillSequence.LANCES, 1, hero.pos, Math.max(1, roll/3), 2, traj.subPath(1, reach));

@@ -25,6 +25,8 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.HolyFlameParticle;
 
 
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
@@ -109,23 +111,33 @@ public class ScouringFlame extends Skill {
 			}
 
 			int dmg = 4 + 3 * level;
+			//the white fire rolls outward one ring at a time; the hits themselves land at once
+			FxTimeline rings = FxTimeline.start();
+			ArrayList<Integer> scoured = new ArrayList<>( cone.cells );
+			scoured.sort( (a, b) -> Dungeon.level.distance( hero.pos, a ) - Dungeon.level.distance( hero.pos, b ) );
 			boolean any = false;
-			for (int c : cone.cells){
-				if (Dungeon.level.heroFOV[c]) CellEmitter.center( c ).burst( Speck.factory( Speck.LIGHT ), 2 );
+			for (int c : scoured){
+				final int ring = Dungeon.level.distance( hero.pos, c );
+				final float when = 0.07f * ring;
+				if (Dungeon.level.heroFOV[c]) rings.at( when, () -> CellEmitter.center( c ).burst( HolyFlameParticle.FACTORY, 3 ) );
 				Char target = Actor.findChar( c );
 				if (target == null || target == hero || target.alignment != Char.Alignment.ENEMY || !target.isAlive()) continue;
 				int hit = dmg;
 				if (Char.hasProp( target, Char.Property.UNDEAD ) || Char.hasProp( target, Char.Property.DEMONIC ))
 					hit *= 2;
-				CellEmitter.center( target.pos ).burst( Speck.factory( Speck.LIGHT ), 5 );
+				rings.at( when, () -> {
+					if (target.sprite != null){
+						target.sprite.flash();
+						CellEmitter.center( target.pos ).burst( HolyFlameParticle.FACTORY, 7 );
+					}
+					Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 0.8f, 0.9f + 0.1f * ring );
+				} );
 				target.damage( hit, ScouringFlame.this );
-				if (target.sprite != null) target.sprite.flash();
 				//at level 3 the white fire leaves its survivors blinded
 				if (level >= MAX_LEVEL && target.isAlive())
 					Buff.prolong( target, Blindness.class, 3f );
 				any = true;
 			}
-			if (any) Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 1f, 0.9f );
 
 			Invisibility.dispel();
 			hero.spendAndNext( TIME_TO_USE );

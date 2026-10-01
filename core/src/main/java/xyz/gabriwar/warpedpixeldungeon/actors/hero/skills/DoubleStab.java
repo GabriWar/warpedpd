@@ -36,6 +36,15 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.scenes.*;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Chains;
+import xyz.gabriwar.warpedpixeldungeon.effects.Effects;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.RogueHuntressAuras;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraBuff;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 /** Keeps the A1 tag and class for old saves; replaces the layered double-hit toggle. */
 public class DoubleStab extends ActiveSkill1 {
@@ -48,6 +57,17 @@ public class DoubleStab extends ActiveSkill1 {
     @Override public void execute(Hero hero,String action){
         super.execute(hero,action);
         if(!active)clearLinks();
+        if(hero.sprite==null)return;
+        if(AC_ACTIVATE.equals(action)&&active){
+            //the shadows gather round him and stay: the aura holds while the stance does
+            Sample.INSTANCE.play(Assets.Sounds.MELD,1f,1.3f);
+            hero.sprite.emitter().burst(ShadowParticle.UP,8);
+            StanceAuraBuff.sync( hero, RogueHuntressAuras.ShadowLink.class, true );
+        }else if(AC_DEACTIVATE.equals(action)){
+            Sample.INSTANCE.play(Assets.Sounds.MELD,0.6f,0.8f);
+            hero.sprite.emitter().burst(ShadowParticle.MISSILE,5);
+            StanceAuraBuff.sync( hero, RogueHuntressAuras.ShadowLink.class, false );
+        }
     }
     public Char automaticPartner(Char enemy){
         Char nearest=null;
@@ -64,8 +84,31 @@ public class DoubleStab extends ActiveSkill1 {
         if(!active||level<=0||hero.MP<getManaCost()||enemy==null||!enemy.isAlive()
                 ||enemy.alignment!=Char.Alignment.ENEMY||damage<=0){clearLinks();return damage;}
         hero.MP-=getManaCost();
-        link(enemy,automaticPartner(enemy),level);
+        Char partner=automaticPartner(enemy);
+        link(enemy,partner,level);
+        bind(enemy,partner);
         return damage;
+    }
+    /** the bond, seen: a spectral chain shoots from the struck enemy to its partner, shadow bursts
+     *  where it bites at each end, and both are called out. Cosmetic only; the marks are already set */
+    private static void bind(Char first,Char second){
+        if(first.sprite==null||first.sprite.parent==null||!Dungeon.level.heroFOV[first.pos])return;
+        Sample.INSTANCE.play(Assets.Sounds.CHAINS,0.8f,1.4f);
+        CellEmitter.center(first.pos).burst(ShadowParticle.CURSE,4);
+        if(second==first||second.sprite==null){
+            first.sprite.showStatus(CharSprite.NEGATIVE,"Bound");
+            return;
+        }
+        final Char a=first,b=second;
+        first.sprite.parent.add(new Chains(first.sprite.center(),second.sprite.destinationCenter(),Effects.Type.ETHEREAL_CHAIN,()->{
+            if(b.sprite!=null&&b.isAlive()){
+                b.sprite.flash();
+                b.sprite.emitter().burst(ShadowParticle.CURSE,4);
+                b.sprite.showStatus(CharSprite.NEGATIVE,"Bound");
+            }
+            if(a.sprite!=null&&a.isAlive())a.sprite.showStatus(CharSprite.NEGATIVE,"Bound");
+            Sample.INSTANCE.play(Assets.Sounds.CHAINS,0.6f,1.7f);
+        }));
     }
     public static void clearLinks(){
         for(Char ch:Actor.chars())for(SkillInteractions.Mark mark:ch.buffs(SkillInteractions.Mark.class))

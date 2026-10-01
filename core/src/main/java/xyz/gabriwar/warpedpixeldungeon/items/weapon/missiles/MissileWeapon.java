@@ -101,14 +101,15 @@ abstract public class MissileWeapon extends Weapon {
 	@Override
 	public int min() {
 		if (Dungeon.hero != null){
-			return Math.max(0, min(buffedLvl() + RingOfSharpshooting.levelDamageBonus(Dungeon.hero)));
+			return Math.max(0, minAt(buffedLvl() + RingOfSharpshooting.levelDamageBonus(Dungeon.hero)));
 		} else {
-			return Math.max(0 , min( buffedLvl() ));
+			return Math.max(0 , minAt( buffedLvl() ));
 		}
 	}
 	
 	@Override
 	public int min(int lvl) {
+		//rarity is taken in KindOfWeapon.minAt/maxAt: the subclasses override this one
 		return  2 * tier +                      //base
 				lvl;                            //level scaling
 	}
@@ -116,9 +117,9 @@ abstract public class MissileWeapon extends Weapon {
 	@Override
 	public int max() {
 		if (Dungeon.hero != null){
-			return Math.max(0, max( buffedLvl() + RingOfSharpshooting.levelDamageBonus(Dungeon.hero) ));
+			return Math.max(0, maxAt( buffedLvl() + RingOfSharpshooting.levelDamageBonus(Dungeon.hero) ));
 		} else {
-			return Math.max(0 , max( buffedLvl() ));
+			return Math.max(0 , maxAt( buffedLvl() ));
 		}
 	}
 	
@@ -133,6 +134,7 @@ abstract public class MissileWeapon extends Weapon {
 		if (masteryPotionBonus){
 			req -= 2;
 		}
+		req -= xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.strReqBonus( this, req );
 		return req;
 	}
 
@@ -186,7 +188,8 @@ abstract public class MissileWeapon extends Weapon {
 	}
 
 	public boolean isSimilar( Item item ) {
-		return trueLevel() == item.trueLevel() && getClass() == item.getClass() && setID == (((MissileWeapon) item).setID);
+		return trueLevel() == item.trueLevel() && getClass() == item.getClass() && setID == (((MissileWeapon) item).setID)
+				&& xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.sameQuality( this, item );
 	}
 	
 	@Override
@@ -494,6 +497,7 @@ abstract public class MissileWeapon extends Weapon {
 		if (Dungeon.hero != null) {
 			usages *= RingOfSharpshooting.durabilityMultiplier( Dungeon.hero );
 		}
+		usages *= 1f + xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.value( this, xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.DURABILITY );
 
 		if (enchantment instanceof Crystal){
 			usages = Math.min(usages/2f, 50); //cannot exceed 50 uses with crystal enchant
@@ -530,6 +534,11 @@ abstract public class MissileWeapon extends Weapon {
 	}
 
 	protected void decrementDurability(){
+		//Tips: a typed tipped dart may keep its tip; the thrown one rejoins as it was
+		if (xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.keepTip( this )){
+			parent = null;
+			return;
+		}
 		//if this weapon was thrown from a source stack, degrade that stack.
 		//unless a weapon is about to break, then break the one being thrown
 		if (parent != null){
@@ -585,6 +594,7 @@ abstract public class MissileWeapon extends Weapon {
 						owner.pos, target.pos, true));
 			}
 		}
+		damage = xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.throwRoll( this, owner, damage, augment.damageFactor( max() ) );
 		
 		return damage;
 	}

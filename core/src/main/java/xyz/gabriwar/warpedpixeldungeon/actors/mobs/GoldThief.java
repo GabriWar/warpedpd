@@ -49,7 +49,7 @@ public class GoldThief extends Mob {
 		HP = HT = 30 + Statistics.goldThievesKilled;
 		defenseSkill = 26;
 
-		EXP = 1;
+		EXP = 10;
 
 		loot = Shuriken.class;
 		lootChance = 1f;

@@ -26,9 +26,12 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Adrenaline;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barkskin;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barrier;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bless;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Haste;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Fury;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Speed;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.food.MysteryMeat;
@@ -70,7 +73,8 @@ public class SpiderMind extends Mob {
 
 	@Override
 	protected boolean canAttack( Char enemy ) {
-		return new Ballistica( pos, enemy.pos, Ballistica.MAGIC_BOLT ).collisionPos == enemy.pos;
+		return !Dungeon.level.adjacent( pos, enemy.pos )
+				&& new Ballistica( pos, enemy.pos, Ballistica.MAGIC_BOLT ).collisionPos == enemy.pos;
 	}
 
 	@Override
@@ -103,13 +107,23 @@ public class SpiderMind extends Mob {
 	private void frenzy() {
 		for (Mob mob : Dungeon.level.mobs.toArray( new Mob[0] )) {
 			if (mob != this && mob.alignment == alignment
-					&& Dungeon.level.heroFOV[mob.pos]
-					&& (mob instanceof SpiderServant || mob instanceof SpiderGuard
-						|| mob instanceof SpiderExploding)) {
-				if (Random.Int( 2 ) == 0) {
-					Buff.prolong( mob, Haste.class, 3f );
-				} else {
-					Buff.prolong( mob, Adrenaline.class, 3f );
+					&& Dungeon.level.heroFOV[mob.pos]) {
+				switch (Random.Int( 5 )) {
+					case 1:
+						Buff.affect( mob, Barkskin.class ).set( 2, 3 );
+						break;
+					case 2:
+						Buff.prolong( mob, Bless.class, 3f );
+						break;
+					case 3:
+						Buff.affect( mob, Barrier.class ).setShield( 5 );
+						break;
+					case 4:
+						Buff.affect( mob, Fury.class );
+						break;
+					default:
+						Buff.prolong( mob, Speed.class, 3f );
+						break;
 				}
 				CellEmitter.get( mob.pos ).start( ShaftParticle.FACTORY, 0.2f, 3 );
 				break;

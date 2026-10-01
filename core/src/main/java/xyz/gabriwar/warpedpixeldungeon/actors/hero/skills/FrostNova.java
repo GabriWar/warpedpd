@@ -39,6 +39,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SnowParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
@@ -84,20 +85,29 @@ public class FrostNova extends Skill {
 
 			CellEmitter.center( hero.pos ).burst( SnowParticle.FACTORY, 12 );
 			new Flare( 6, 32 ).color( 0x88DDFF, true ).show( hero.sprite, 0.8f );
-			//the ring is seen over the whole floor it covers
-			for (int c : frozenGround){
-				if (Dungeon.level.heroFOV[c] && c != hero.pos)
-					CellEmitter.get( c ).burst( SnowParticle.FACTORY, 2 );
-			}
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER );
+			Sample.INSTANCE.play( Assets.Sounds.SHATTER, 1f, 0.9f );
 			Camera.main.shake( 1, 0.3f );
 
+			//the cold lands on everyone at once; only the crystals take their time crawling out
+			final java.util.HashSet<Integer> caughtCells = new java.util.HashSet<>();
 			for (Mob mob : caught){
-				CellEmitter.get( mob.pos ).burst( SnowParticle.FACTORY, 5 );
+				caughtCells.add( mob.pos );
 				mob.damage( Random.NormalIntRange( 2 + level, 4 + 3 * level ), this );
-				if (mob.sprite != null) mob.sprite.flash();
 				if (mob.isAlive())
 					Buff.prolong( mob, Chill.class, 3 + 2 * level );
+			}
+			//frost races outward ring by ring, a glint on every cell, a crack of ice per ring rising in pitch
+			StaggerFX.ring( hero.pos, RADIUS, 0.09f, ( c, r ) -> {
+				CellEmitter.get( c ).burst( SnowParticle.FACTORY, caughtCells.contains( c ) ? 6 : 2 );
+				SkillInteractions.flare( c, 0xA4E9FF );
+				if (caughtCells.contains( c )){
+					xyz.gabriwar.warpedpixeldungeon.actors.Char ch = xyz.gabriwar.warpedpixeldungeon.actors.Actor.findChar( c );
+					if (ch != null && ch.sprite != null) ch.sprite.flash();
+				}
+			} );
+			for (int r = 1; r <= RADIUS; r++){
+				final float pitch = 1.1f + 0.15f * r;
+				StaggerFX.after( 0.09f * r, () -> Sample.INSTANCE.play( Assets.Sounds.SHATTER, 0.5f, pitch ) );
 			}
 
 			hero.MP -= getManaCost();

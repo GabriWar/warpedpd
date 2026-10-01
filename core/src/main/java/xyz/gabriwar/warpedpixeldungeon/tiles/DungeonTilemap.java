@@ -29,6 +29,9 @@ import com.watabou.noosa.Tilemap;
 import com.watabou.noosa.tweeners.AlphaTweener;
 import com.watabou.utils.GameMath;
 import com.watabou.utils.PathFinder;
+import com.watabou.utils.Rect;
+
+import java.util.ArrayList;
 import com.watabou.utils.PointF;
 
 public abstract class DungeonTilemap extends Tilemap {
@@ -57,67 +60,94 @@ public abstract class DungeonTilemap extends Tilemap {
 	}
 
 	/**
-	 * Sliding-window rebase fast path: the window shifted by (dcx, dcy) cells,
-	 * so for the overlap region every cell shows the SAME world content it
-	 * already computed - the cached visual ids are moved with arraycopy and
-	 * only the newly exposed strips (plus a stitching fringe and the border
-	 * ring) run getTileVisual. The full updateMap ran the tile-visual pipeline
-	 * on all cells and was the bulk of the rebase's heavy frame.
+	 * A content shift computed ahead of time: the visual array as it will be after the
+	 * window moved by (dcx, dcy), and the rectangles of cells whose visuals changed. Built on
+	 * the actor thread without touching the array the render thread is drawing, then swapped
+	 * in by {@link #applyShift} inside the render thread's atomic block.
 	 */
-	public synchronized void shiftAndUpdate( int dcx, int dcy ){
+	public static class ShiftPlan {
+		public final int[] data;
+		public final ArrayList<Rect> dirty = new ArrayList<>();
+		public final int dcx, dcy;
+
+		ShiftPlan( int[] data, int dcx, int dcy ){
+			this.data = data;
+			this.dcx = dcx;
+			this.dcy = dcy;
+		}
+	}
+
+	/**
+	 * Sliding-window rebase: the window shifted by (dcx, dcy) cells, so for the overlap
+	 * every cell shows the SAME world content it already computed - the cached visual ids
+	 * move with arraycopy and only the newly exposed strips, a two-cell stitching fringe and
+	 * the trailing border ring run getTileVisual. Reads the level as it is now (the new
+	 * window) and this map's current visuals; writes only into the plan.
+	 */
+	public ShiftPlan prepareShift( int dcx, int dcy ){
 		int w = mapWidth, h = mapHeight;
+		int[] nd = new int[size];
+		System.arraycopy( data, 0, nd, 0, size );
+		shiftCells( data, nd, w, h, dcx, dcy );
+		ShiftPlan plan = new ShiftPlan( nd, dcx, dcy );
 
-		int yFrom = dcy >= 0 ? 0 : h - 1;
-		int yTo   = dcy >= 0 ? h : -1;
-		int yStep = dcy >= 0 ? 1 : -1;
-		for (int y = yFrom; y != yTo; y += yStep){
-			int sy = y + dcy;
-			if (sy < 0 || sy >= h) continue;   //strip row - recomputed below
-			int len = w - Math.abs( dcx );
-			if (len > 0){
-				System.arraycopy( data, sy * w + Math.max( 0, dcx ),
-						data, y * w + Math.max( 0, -dcx ), len );
-			}
-		}
+		//the exposed strips: everything there is new
+		if (dcx > 0)      recompute( plan, w - dcx, 0, w, h, false );
+		else if (dcx < 0) recompute( plan, 0, 0, -dcx, h, false );
+		if (dcy > 0)      recompute( plan, 0, h - dcy, w, h, false );
+		else if (dcy < 0) recompute( plan, 0, 0, w, -dcy, false );
 
-		//recompute the exposed strips + a fringe for stitched visuals + ring
-		int fringe = 2;
-		int left   = dcx < 0 ? 0 : w - dcx - fringe;
-		int right  = dcx < 0 ? -dcx + fringe : w;
-		int top    = dcy < 0 ? 0 : h - dcy - fringe;
-		int bottom = dcy < 0 ? -dcy + fringe : h;
-		if (dcx != 0){
-			for (int y = 0; y < h; y++){
-				for (int x = Math.max( 0, left ); x < Math.min( w, right ); x++){
-					int c = x + y * w;
-					data[c] = getTileVisual( c, map[c], false );
+		//a two-cell fringe inside the overlap: stitched visuals there were computed against
+		//what used to be the solid border
+		final int f = 2;
+		if (dcx > 0)      recompute( plan, w - dcx - f, 0, w - dcx, h, true );
+		else if (dcx < 0) recompute( plan, -dcx, 0, -dcx + f, h, true );
+		if (dcy > 0)      recompute( plan, 0, h - dcy - f, w, h - dcy, true );
+		else if (dcy < 0) recompute( plan, 0, -dcy, w, -dcy + f, true );
+
+		//the trailing border ring: interior content slid onto it, and the ring is always
+		//window-authored (solid)
+		if (dcx > 0)      recompute( plan, 0, 0, 1, h, true );
+		else if (dcx < 0) recompute( plan, w - 1, 0, w, h, true );
+		if (dcy > 0)      recompute( plan, 0, 0, w, 1, true );
+		else if (dcy < 0) recompute( plan, 0, h - 1, w, h, true );
+
+		return plan;
+	}
+
+	private void recompute( ShiftPlan plan, int l, int t, int r, int b, boolean onlyChanged ){
+		l = Math.max( 0, l ); t = Math.max( 0, t );
+		r = Math.min( mapWidth, r ); b = Math.min( mapHeight, b );
+		if (l >= r || t >= b) return;
+		Rect changed = new Rect();
+		for (int y = t; y < b; y++){
+			for (int x = l; x < r; x++){
+				int c = x + y * mapWidth;
+				int v = getTileVisual( c, map[c], false );
+				if (plan.data[c] != v){
+					plan.data[c] = v;
+					if (onlyChanged) changed.union( x, y );
 				}
 			}
 		}
-		if (dcy != 0){
-			for (int y = Math.max( 0, top ); y < Math.min( h, bottom ); y++){
-				for (int x = 0; x < w; x++){
-					int c = x + y * w;
-					data[c] = getTileVisual( c, map[c], false );
-				}
-			}
-		}
-		//the border ring is always window-authored (solid) - keep it exact
-		for (int x = 0; x < w; x++){
-			data[x] = getTileVisual( x, map[x], false );
-			int c = x + (h-1)*w;
-			data[c] = getTileVisual( c, map[c], false );
-		}
-		for (int y = 0; y < h; y++){
-			int c = y * w;
-			data[c] = getTileVisual( c, map[c], false );
-			c = w-1 + y * w;
-			data[c] = getTileVisual( c, map[c], false );
-		}
+		if (!onlyChanged) plan.dirty.add( new Rect( l, t, r, b ) );
+		else if (!changed.isEmpty()) plan.dirty.add( changed );
+	}
 
-		//vertex rebuild for everything is cheap (plain float writes) - the
-		//savings are in skipping the visual pipeline for the overlap
-		super.updateMap();
+	/** swaps a prepared shift in: a reference swap and a chunk relabel, nothing recomputed */
+	public synchronized void applyShift( ShiftPlan plan ){
+		data = plan.data;
+		if (!relabelChunks( plan.dcx, plan.dcy )){
+			//not chunked: one full vertex rebuild, the visuals are already right
+			super.updateMap();
+			return;
+		}
+		for (Rect r : plan.dirty) updateMapRect( r );
+	}
+
+	/** prepare and apply on the calling thread, for callers that already run where they draw */
+	public void shiftAndUpdate( int dcx, int dcy ){
+		applyShift( prepareShift( dcx, dcy ) );
 	}
 
 	@Override

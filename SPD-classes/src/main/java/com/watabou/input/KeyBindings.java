@@ -29,6 +29,7 @@ import java.util.LinkedHashMap;
 //FIXME at lot of the logic here, in WndKeyBindings, and WPDAction is fairly messy
 // should see about doing some refactoring to clean this up
 public class KeyBindings {
+	public static final int SHIFT_MODIFIER = 1 << 16;
 
 	//for keyboard keys
 	private static LinkedHashMap<Integer, GameAction> bindings = new LinkedHashMap<>();
@@ -114,6 +115,7 @@ public class KeyBindings {
 	}
 
 	public static String getKeyName( int keyCode ){
+		if ((keyCode & SHIFT_MODIFIER) != 0) return "Shift+" + getKeyName(keyCode & ~SHIFT_MODIFIER);
 		if (ControllerHandler.customButtonName(keyCode) != null){
 			return ControllerHandler.customButtonName(keyCode);
 		}

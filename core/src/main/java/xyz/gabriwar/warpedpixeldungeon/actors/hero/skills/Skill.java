@@ -77,8 +77,13 @@ public class Skill implements SkillInteractions.HeroDamageSource {
 	/** the other half of a mutually exclusive fork; investing in one locks the other */
 	public Skill exclusiveWith = null;
 
+	public boolean pathLocked(){
+		return exclusiveWith != null && exclusiveWith.level > 0
+				&& !(Dungeon.hero != null && Dungeon.hero.debugAllSkillPaths);
+	}
+
 	public boolean requestUpgrade(){
-		if (exclusiveWith != null && exclusiveWith.level > 0){
+		if (pathLocked()){
 			GLog.w( Messages.get(Skill.class, "exclusive_choice", exclusiveWith.name()) );
 			return false;
 		}
@@ -299,6 +304,9 @@ public class Skill implements SkillInteractions.HeroDamageSource {
 
 	/** deferred: an enemy's own step (not a push or teleport) ended adjacent to the hero from a tile that was not */
 	public void onEnemyStepsAdjacent( xyz.gabriwar.warpedpixeldungeon.actors.Char enemy, int from ){}
+
+	/** deferred: this hero's weapon attack missed an enemy */
+	public void onHeroAttackMiss( xyz.gabriwar.warpedpixeldungeon.actors.Char enemy, boolean ranged ){}
 
 	/** synchronous, inside Char.move: any char (hero included) changed tiles. Only read state or
 	 *  queue work with SkillInteractions.defer here; never damage, move or kill directly */

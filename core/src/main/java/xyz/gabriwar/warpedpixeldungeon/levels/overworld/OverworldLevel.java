@@ -72,15 +72,64 @@ public class OverworldLevel extends Level {
 	public static final int WIDTH  = 176;
 	public static final int HEIGHT = 176;
 	//rebase when the hero gets this close to a window edge
-	private static final int MARGIN = 24;
+	//the window's edges must never be on screen, or every slide shows a band of world
+	//appearing on one side: at zoom 1 a 1080p window sees 60 cells either way, so the hero
+	//is kept at least 64 from every edge. the walking zone (64..112) is a shift plus 16 of
+	//hysteresis, so a hero pacing across the trigger line does not slide the window back
+	//and forth on every step
+	private static final int MARGIN = 64;
 
-	{
-		color1 = 0x48763c;
-		color2 = 0x59994a;
-		//open sky: see as far as the engine's shadowcaster allows
-		viewDistance = 20;
+	//which slice of the world this level is (WorldLayers): 0 the surface,
+	//positive the mountains, negative the caves. fixed at construction (or by
+	//the bundle) - everything derived from the window depends on it
+	private int altitude = 0;
+
+	public OverworldLevel(){
+		this( 0 );
 	}
 
+	public OverworldLevel( int altitude ){
+		setAltitude( altitude );
+	}
+
+	private void setAltitude( int altitude ){
+		this.altitude = altitude;
+		if (WorldLayers.openSky( altitude )){
+			color1 = 0x48763c;
+			color2 = 0x59994a;
+			//open sky: see as far as the engine's shadowcaster allows
+			viewDistance = 20;
+		} else {
+			color1 = 0x534f3e;
+			color2 = 0xb9d661;
+			viewDistance = 8;
+		}
+	}
+
+	/** The world seed a run's dungeon seed generates the surface from. */
+	public static long worldSeedOf( long dungeonSeed ){
+		return dungeonSeed ^ 0x0E4A9B1DL;
+	}
+
+	/** The slice this level is (see WorldLayers). */
+	public int altitude(){ return altitude; }
+
+	/** Sky overhead - weather, day and night, the seasons - or cave rock. */
+	public boolean openSky(){ return WorldLayers.openSky( altitude ); }
+
+	/** The depth the climate simulates this slice at: the surface under the sky, a mid dungeon floor in the caves. */
+	@Override
+	public int climateDepth(){ return openSky() ? 0 : 16; }
+
+	/** Debug: sends the hero to another slice, landing on the world cell under him. */
+	public void travelToSlice( xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero, int dest ){
+		if (!WorldLayers.exists( dest ) || dest == altitude) return;
+		int cell = hero.pos;
+		LevelTransition t = new LevelTransition( this, cell,
+				dest > altitude ? LevelTransition.Type.BRANCH_ENTRANCE : LevelTransition.Type.BRANCH_EXIT,
+				WorldLayers.depthOf( dest ), 0, LevelTransition.Type.BRANCH_ENTRANCE );
+		activateTransition( hero, t );
+	}
 	public long worldSeed = 0;
 	//world coordinate of the window's (0,0)
 	public int worldX = 0, worldY = 0;
@@ -123,102 +172,47 @@ public class OverworldLevel extends Level {
 	private int[] pristine;
 
 	//window shifts are QUANTIZED to a fixed step per axis, which makes the
-	//next origin predictable - so it can be pre-generated on a worker thread
-	//before the hero ever reaches the margin. rebase then just swaps buffers
+	//next origin predictable - so the next window can be PREPARED on a worker
+	//thread before the hero ever reaches the margin: terrain, the player's edits,
+	//the dressing and the tile variance, all pure functions of (seed, origin,
+	//season, edits). the rebase then commits array copies
 	private static final int SHIFT_Q = 32;
+	//the preparation starts this many cells before the rebase margin (kept under
+	//WIDTH/2 - MARGIN, or both sides' bands would overlap)
+	private static final int PREP_BAND = 16;
+	//where the hero stood on his last step, for the direction the preparation bets on
+	private int lastHeroCell = -1;
 	private final Object pregenLock = new Object();
-	private Window pregenBuf;
-	private int pregenOX, pregenOY;
+	private WindowGenerator.Prepared prepared;
+	private int pregenOX = Integer.MIN_VALUE, pregenOY = Integer.MIN_VALUE;
 	private boolean pregenReady = false;
 	private boolean pregenRunning = false;
+	//one per worker started: a worker whose target moved on while it ran leaves the state alone
+	private int prepGeneration = 0;
+	//bumped whenever the diff store changes; a preparation records the version it saw
+	private int diffsVersion = 0;
+	//the world-anchored tile variance of the current window, until the scene has taken it
+	private byte[] pendingVariance;
 
-	//a generated window: the terrain plus, per cell, whether the ground is
-	//frozen (the snow biome band) - the tile art needs it for what grows there
-	//opaque to anything outside this package: a network mirror stages one off
-	//the render thread and hands it straight back to adoptNetworkWindow
-	public static class Window {
-		int[] terrain;
-		boolean[] frozen;
-		byte[] waterDepth;   //steps to the nearest land (8-connected), capped
-		float shift;         //the seasonal snapshot it was derived for
-	}
-
-	//one full generator pass for an arbitrary origin, PURE - safe off-thread.
-	//the seasonal shift snapshot is read ONCE here and threaded through every
-	//sample, so the window is derived for a single point of the year even if
-	//the main thread moves the snapshot while a worker is still generating
-	private Window generatePristine( int ox, int oy ){
-		return generatePristine( worldSeed, ox, oy );
-	}
-
-	private Window generatePristine( long worldSeed, int ox, int oy ){
-		Window w = new Window();
-		w.terrain = new int[length()];
-		w.frozen = new boolean[length()];
-		WorldModel.Sample smp = new WorldModel.Sample();
-		final float shift = WorldModel.seasonShift();
-		w.shift = shift;
-		for (int y = 0; y < HEIGHT; y++){
-			for (int x = 0; x < WIDTH; x++){
-				int cell = x + y * width();
-				if (x == 0 || y == 0 || x == WIDTH-1 || y == HEIGHT-1){
-					w.terrain[cell] = Terrain.WALL;
-					continue;
-				}
-				int wwx = ox + x, wwy = oy + y;
-				WorldModel.sample( worldSeed, wwx, wwy, shift, smp );
-				int wild = WorldModel.wildTerrain( worldSeed, wwx, wwy, smp );
-				int structure = WorldStructures.terrainAt( worldSeed, wwx, wwy, wild );
-				w.terrain[cell] = structure != -1 ? structure : wild;
-				w.frozen[cell] = smp.temperature < WorldModel.FREEZE;
-			}
-		}
-
-		//open water gets a depth: steps from the nearest land, 8-connected
-		//(two chamfer sweeps). the first tile off the shore stays walkable;
-		//anything further is DEEP_WATER, and the shade darkens with depth.
-		//only WATER cells carry depth: FROZEN_WATER (and a bridge) is land
-		//for the shore test, so a lake the season froze over is walkable
-		//across, and the open water beside its ice is shallow
-		int W = width();
-		w.waterDepth = new byte[length()];
-		final byte CAP = 6;
-		for (int i = 0; i < length(); i++){
-			w.waterDepth[i] = w.terrain[i] == Terrain.WATER ? CAP : 0;
-		}
-		for (int y = 1; y < HEIGHT-1; y++){
-			for (int x = 1; x < WIDTH-1; x++){
-				int c = x + y * W;
-				if (w.waterDepth[c] == 0) continue;
-				byte d = (byte)Math.min( CAP, 1 + Math.min(
-						Math.min( w.waterDepth[c-1], w.waterDepth[c-W] ),
-						Math.min( w.waterDepth[c-W-1], w.waterDepth[c-W+1] ) ) );
-				if (d < w.waterDepth[c]) w.waterDepth[c] = d;
-			}
-		}
-		for (int y = HEIGHT-2; y >= 1; y--){
-			for (int x = WIDTH-2; x >= 1; x--){
-				int c = x + y * W;
-				if (w.waterDepth[c] == 0) continue;
-				byte d = (byte)Math.min( CAP, 1 + Math.min(
-						Math.min( w.waterDepth[c+1], w.waterDepth[c+W] ),
-						Math.min( w.waterDepth[c+W-1], w.waterDepth[c+W+1] ) ) );
-				if (d < w.waterDepth[c]) w.waterDepth[c] = d;
-			}
-		}
-		for (int i = 0; i < length(); i++){
-			if (w.waterDepth[i] >= 2) w.terrain[i] = Terrain.DEEP_WATER;
-		}
-		return w;
-	}
-
-	//per-cell frozen ground and water depth of the current window (see Window)
+	//per-cell frozen ground, water tier and way-between-slices of the current
+	//window (see WindowGenerator.Window)
 	private boolean[] frozen;
 	private byte[] waterDepth;
-
+	private byte[] link;
 	/** Is the ground of this window cell snowed under? */
 	public boolean frozenAt( int cell ){
 		return frozen != null && cell >= 0 && cell < frozen.length && frozen[cell];
+	}
+
+	/** The ground a boulder here lies on: what its neighbours show (see WindowGenerator.rockGround). */
+	public int groundUnderRock( int cell ){
+		return WindowGenerator.rockGround( map, frozen, cell );
+	}
+
+	/** Is the boulder on this window cell a tall standing rock (drawn by the dressing)? */
+	public boolean tallRockAt( int cell ){
+		return map[cell] == Terrain.BOULDER
+				&& WindowGenerator.tallRock( worldSeed, altitude, worldX + cell % width(), worldY + cell / width() );
 	}
 
 	// ------------------------------------------------------------ seasons
@@ -236,6 +230,8 @@ public class OverworldLevel extends Level {
 	}
 
 	private int currentStamp(){
+		//the caves know no seasons: nothing there is derived from the calendar
+		if (!openSky()) return 0;
 		xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar.Season season
 				= xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar.season();
 		int days = Math.max( 1, xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar.daysInCurrentSeason() );
@@ -283,12 +279,7 @@ public class OverworldLevel extends Level {
 		//the pre-generated next window was derived for the old season - and
 		//so is whatever a worker still in flight is building: moving the
 		//target origin makes it drop its result on arrival
-		synchronized (pregenLock){
-			pregenReady = false;
-			pregenBuf = null;
-			pregenOX = Integer.MIN_VALUE;
-			pregenOY = Integer.MIN_VALUE;
-		}
+		discardPreparation();
 		regenWindow();
 		placeTransitions();
 		restoreHeapsInWindow();
@@ -338,30 +329,74 @@ public class OverworldLevel extends Level {
 		}
 	}
 
-	//kick a background pre-generation of the predicted next window when the
-	//hero enters the warning band just outside the rebase margin
-	private void maybePregen( int heroX, int heroY ){
-		int pdx = heroX < MARGIN + 8 ? -SHIFT_Q : heroX >= WIDTH - MARGIN - 8 ? SHIFT_Q : 0;
-		int pdy = heroY < MARGIN + 8 ? -SHIFT_Q : heroY >= HEIGHT - MARGIN - 8 ? SHIFT_Q : 0;
-		if (pdx == 0 && pdy == 0) return;
-		final int ox = worldX + pdx, oy = worldY + pdy;
+	//the quantized origin the window takes for a hero standing here, or null while he
+	//is further than `band` cells from every edge
+	private int[] nextOrigin( int heroX, int heroY, int band ){
+		int pdx = heroX < band ? -SHIFT_Q : heroX >= WIDTH - band ? SHIFT_Q : 0;
+		int pdy = heroY < band ? -SHIFT_Q : heroY >= HEIGHT - band ? SHIFT_Q : 0;
+		if (pdx == 0 && pdy == 0) return null;
+		return new int[]{ worldX + pdx, worldY + pdy };
+	}
+
+	//the origin a hero heading (hx, hy) will need next, counting an axis only when he moves
+	//toward that edge and is within `band` of it; null when neither edge is ahead
+	private int[] headingOrigin( int x, int y, int hx, int hy, int band ){
+		int pdx = hx > 0 && x >= WIDTH - band ? SHIFT_Q : hx < 0 && x < band ? -SHIFT_Q : 0;
+		int pdy = hy > 0 && y >= HEIGHT - band ? SHIFT_Q : hy < 0 && y < band ? -SHIFT_Q : 0;
+		if (pdx == 0 && pdy == 0) return null;
+		return new int[]{ worldX + pdx, worldY + pdy };
+	}
+
+	private boolean preparedFor( int ox, int oy ){
 		synchronized (pregenLock){
-			if (pregenRunning) return;
-			if (pregenReady && pregenOX == ox && pregenOY == oy) return;
+			return pregenReady && prepared != null && pregenOX == ox && pregenOY == oy
+					&& prepared.season == GameCalendar.season();
+		}
+	}
+
+	private void discardPreparation(){
+		synchronized (pregenLock){
+			pregenReady = false;
+			prepared = null;
+			pregenOX = Integer.MIN_VALUE;
+			pregenOY = Integer.MIN_VALUE;
+		}
+	}
+
+	//starts preparing the window for an origin on a worker thread, once. the worker reads
+	//only the seed, the origin, the season and a snapshot of the edits taken here, and
+	//writes only into its own PreparedWindow - it never touches the level
+	private void schedulePrep( final int ox, final int oy ){
+		final int generation;
+		synchronized (pregenLock){
+			if (pregenOX == ox && pregenOY == oy && (pregenRunning || pregenReady)) return;
 			pregenRunning = true;
 			pregenReady = false;
+			prepared = null;
 			pregenOX = ox;
 			pregenOY = oy;
+			generation = ++prepGeneration;
 		}
+		final GameCalendar.Season season = GameCalendar.season();
+		final HashMap<Long, Integer> edits = diffs.isEmpty() ? null : new HashMap<>( diffs );
+		final int version = diffsVersion;
+		final long seed = worldSeed;
 		Thread worker = new Thread( () -> {
-			Window buf = generatePristine( ox, oy );
-			synchronized (pregenLock){
-				if (pregenOX == ox && pregenOY == oy){
-					pregenBuf = buf;
-					pregenReady = true;
-				}
-				pregenRunning = false;
+			WindowGenerator.Prepared p = null;
+			long t0 = System.currentTimeMillis();
+			try {
+				p = WindowGenerator.prepare( seed, altitude, ox, oy, season, edits, version );
+			} catch (Throwable t){
+				System.out.println( "[OW] window prep failed: " + t );
 			}
+			synchronized (pregenLock){
+				if (generation == prepGeneration){
+					prepared = p;
+					pregenReady = p != null;
+					pregenRunning = false;
+				}
+			}
+			System.out.println( "[OW] window prep " + (System.currentTimeMillis() - t0) + "ms" );
 		}, "ow-pregen" );
 		worker.setPriority( Thread.MIN_PRIORITY );
 		worker.setDaemon( true );
@@ -436,6 +471,73 @@ public class OverworldLevel extends Level {
 
 	public static boolean hasPendingArrival(){ return pendingArrival; }
 
+	//the depth the next FALL lands on, set by fallingFrom; -1 when the fall is
+	//not off a slice (InterlevelScene then takes the floor below as always)
+	private static int pendingFallDepth = -1;
+	//the next arrival is the bottom of a shaft the hero dug: it becomes a way back up
+	private static boolean pendingShaft = false;
+
+	/** InterlevelScene.fall: the depth the pending fall lands on (consumed), or -1. */
+	public static int takeFallDepth(){
+		int d = pendingFallDepth;
+		pendingFallDepth = -1;
+		return d;
+	}
+
+	//the slice a fall from this cell lands on: off a mountain, the band of the
+	//ground under the open air; everywhere else the slice below
+	private int fallTarget( int cell ){
+		if (altitude > 0){
+			int wx = worldX + cell % width(), wy = worldY + cell / width();
+			return Math.min( altitude - 1, WorldLayers.band( WorldModel.elevation( worldSeed, wx, wy ) ) );
+		}
+		return altitude - 1;
+	}
+
+	/** The depth a fall from this cell lands on, or -1 when there is no slice under it. */
+	public int fallDepth( int cell ){
+		int target = fallTarget( cell );
+		return WorldLayers.exists( target ) ? WorldLayers.depthOf( target ) : -1;
+	}
+
+	/** A monster that fell alive from the slice above lands on this world cell, or waits there parked. */
+	public void receiveFallen( Mob m, int wx, int wy ){
+		int cell = localCell( wx, wy );
+		int at = cell == -1 ? -1 : freeSpotWithin( cell, 3 );
+		if (at == -1){
+			park( m, wx, wy );
+		} else {
+			m.pos = at;
+			mobs.add( m );
+		}
+	}
+
+	/** Is there a slice under this cell to fall (or dig) into? */
+	public boolean fallsThrough( int cell ){
+		return WorldLayers.exists( fallTarget( cell ) );
+	}
+
+	/** Chasm.heroFall: the hero drops off this cell; the slice below catches him on the same world cell. */
+	public void fallingFrom( int cell ){
+		arriveAt( worldX + cell % width(), worldY + cell / width() );
+		pendingFallDepth = WorldLayers.depthOf( fallTarget( cell ) );
+	}
+
+	/**
+	 * Pickaxe: the hero digs straight down from where he stands. The cell
+	 * becomes the shaft's top (an EXIT that lives on as an edit), the landing
+	 * on the slice below its bottom (see landingCell), and he climbs down.
+	 */
+	public void digDown( xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero ){
+		int cell = hero.pos;
+		set( cell, Terrain.EXIT );
+		xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.updateMap( cell );
+		linkTransition( cell );
+		LevelTransition t = getTransition( cell );
+		if (t == null) return;
+		pendingShaft = true;
+		activateTransition( hero, t );
+	}
 	/** ...on this town layout cell. */
 	public static void arriveInTown( int layoutCell ){
 		arriveAt( WorldStructures.townWorldX( layoutCell ), WorldStructures.townWorldY( layoutCell ) );
@@ -462,21 +564,25 @@ public class OverworldLevel extends Level {
 	}
 
 	private int localTownCell( int layoutCell ){
+		//the town stands on the surface only: no slice above or below it has its cells
+		if (altitude != 0) return -1;
 		return localCell( WorldStructures.townWorldX( layoutCell ), WorldStructures.townWorldY( layoutCell ) );
 	}
 
 	/** Is this window cell inside the town? */
 	public boolean inTown( int cell ){
-		return WorldStructures.townCell( worldX + cell % width(), worldY + cell / width() ) != -1;
+		return altitude == 0
+				&& WorldStructures.townCell( worldX + cell % width(), worldY + cell / width() ) != -1;
 	}
-
 	//the hero is placed at getTransition(null) on arrival. the town doorways
 	//are the level's real transitions; the arrival point is a synthetic one at
 	//the pending/last arrival cell, re-centring the window on it if it is not
 	//inside (a far-off jump: journal, beacon, coming up the dungeon stairs)
 	@Override
 	public LevelTransition getTransition( LevelTransition.Type type ){
-		if (type != null) return super.getTransition( type );
+		//a pending arrival is THE place the next trip lands, whatever kind of
+		//transition the scene asked for (a slice's stairs ask by type)
+		if (type != null && !pendingArrival) return super.getTransition( type );
 		//a mirror never consumes the pending arrival and never slides its own
 		//window: the host owns both, and stealing the arrival would move a
 		//landmark the host is about to use
@@ -496,9 +602,38 @@ public class OverworldLevel extends Level {
 			cell = localCell( arrivalX, arrivalY );
 		}
 		if (cell == -1) cell = Dungeon.hero != null ? Dungeon.hero.pos : width()/2 + height()/2 * width();
-		return new LevelTransition( this, cell, LevelTransition.Type.BRANCH_ENTRANCE );
+		return new LevelTransition( this, landingCell( cell ), LevelTransition.Type.BRANCH_ENTRANCE );
 	}
 
+	//where an arrival actually stands. a fall or a dug shaft may land inside
+	//rock (broken through: the cell is carved) or on something solid (the
+	//nearest open cell instead); the bottom of a shaft becomes the way back up
+	private int landingCell( int cell ){
+		if (cell < 0 || cell >= length() || !insideMap( cell )) return clearSpotNear( cell );
+		int t = map[cell];
+		boolean rock = t == Terrain.WALL || t == Terrain.WALL_DECO
+				|| t == Terrain.MINE_CRYSTAL || t == Terrain.MINE_BOULDER;
+		if (pendingShaft){
+			pendingShaft = false;
+			if (t != Terrain.ENTRANCE && t != Terrain.EXIT){
+				set( cell, Terrain.ENTRANCE, this );
+				linkTransition( cell );
+			}
+			return cell;
+		}
+		if (rock){
+			set( cell, Terrain.EMPTY_DECO, this );
+			return cell;
+		}
+		return passable[cell] ? cell : clearSpotNear( cell );
+	}
+
+	//a fall from the slice above lands on the same world cell (fallingFrom set
+	//it as the arrival); rock there is broken through
+	@Override
+	public int fallCell( boolean fallIntoPit ){
+		return getTransition( null ).cell();
+	}
 	//re-centre the window on a far world cell while no scene shows the level:
 	//everything on the ground and every mob are parked by world position,
 	//blobs/plants/traps in the old window are dropped
@@ -674,12 +809,12 @@ public class OverworldLevel extends Level {
 	}
 
 	//the doorways the window currently spans: the town's buildings, its stairs
-	//and mine gate, and every village house whose door is in view. all of them
-	//are FIXED world landmarks - the transitions exist exactly while their
-	//world cells sit inside the window
+	//and mine gate. all of them are FIXED world landmarks - the transitions
+	//exist exactly while their world cells sit inside the window
 	private void placeTransitions(){
 		transitions.clear();
-		placeVillageDoors();
+		placeLayerLinks();
+		if (altitude != 0) return;
 		for (int depth = 1; depth < WorldStructures.TOWN_DOORS.length; depth++){
 			int cell = localTownCell( WorldStructures.TOWN_DOORS[depth] );
 			if (cell == -1) continue;
@@ -701,29 +836,28 @@ public class OverworldLevel extends Level {
 		}
 	}
 
-	//every village house door inside the window opens onto its own one-room
-	//interior (branch 7), keyed by the depth id the door's world cell hashes to
-	private void placeVillageDoors(){
-		for (int sy = sector0Y(); sy <= sector1Y(); sy++){
-			for (int sx = sector0X(); sx <= sector1X(); sx++){
-				if (WorldStructures.siteType( worldSeed, sx, sy ) != WorldStructures.Site.VILLAGE) continue;
-				int cx = WorldStructures.siteX( worldSeed, sx, sy );
-				int cy = WorldStructures.siteY( worldSeed, sx, sy );
-				int[] layout = WorldStructures.settlementLayout( worldSeed, sx, sy );
-				for (int i = 1; i + 1 < layout.length; i += 2){
-					int dwx = cx + WorldStructures.houseDoorDX( layout[i], layout[i+1] );
-					int dwy = cy + WorldStructures.houseDoorDY( layout[i], layout[i+1] );
-					int cell = localCell( dwx, dwy );
-					//a door the world buried (a lake, another site's footprint)
-					//is not a door any more
-					if (cell == -1 || map[cell] != Terrain.DOOR) continue;
-					transitions.add( new LevelTransition( this, cell, LevelTransition.Type.BRANCH_EXIT,
-							WorldStructures.houseInteriorDepth( worldSeed, dwx, dwy ),
-							xyz.gabriwar.warpedpixeldungeon.levels.VillageHouseLevel.BRANCH,
-							LevelTransition.Type.BRANCH_ENTRANCE ) );
-				}
-			}
+	//the ways between the slices are the window's ENTRANCE (up) and EXIT (down)
+	//cells: the ones the generator made (cave mouths, cliff stairs, cave
+	//ladders) and the shafts the hero dug, which live on as edits. the town's
+	//own staircase is the mine's, not a slice's
+	private void placeLayerLinks(){
+		for (int cell = 0; cell < length(); cell++){
+			int t = map[cell];
+			if (t != Terrain.ENTRANCE && t != Terrain.EXIT) continue;
+			if (!insideMap( cell ) || inTown( cell )) continue;
+			linkTransition( cell );
 		}
+	}
+
+	//the transition of one way between slices: up from an ENTRANCE, down from an EXIT
+	private void linkTransition( int cell ){
+		boolean up = map[cell] == Terrain.ENTRANCE;
+		int dest = altitude + (up ? 1 : -1);
+		if (!WorldLayers.exists( dest )) return;
+		transitions.add( new LevelTransition( this, cell,
+				up ? LevelTransition.Type.BRANCH_ENTRANCE : LevelTransition.Type.BRANCH_EXIT,
+				WorldLayers.depthOf( dest ), 0,
+				up ? LevelTransition.Type.BRANCH_EXIT : LevelTransition.Type.BRANCH_ENTRANCE ) );
 	}
 
 	//the sector band the window spans, with a ring of slack for the sites whose
@@ -733,21 +867,20 @@ public class OverworldLevel extends Level {
 	private int sector1X(){ return Math.floorDiv( worldX + WIDTH, WorldStructures.SECTOR ) + 1; }
 	private int sector1Y(){ return Math.floorDiv( worldY + HEIGHT, WorldStructures.SECTOR ) + 1; }
 
-	//going in through a village door: the interior has to be told which door,
-	//so it knows where to put the hero back down on the way out
+	//a way to another slice lands the hero on the same world cell there
 	@Override
 	public boolean activateTransition( xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero,
 			LevelTransition transition ){
-		if (transition.destBranch == xyz.gabriwar.warpedpixeldungeon.levels.VillageHouseLevel.BRANCH){
-			xyz.gabriwar.warpedpixeldungeon.levels.VillageHouseLevel.enterAt(
-					worldX + transition.cell() % width(), worldY + transition.cell() / width() );
+		if (transition.destBranch == 0 && WorldLayers.isLayerDepth( transition.destDepth )){
+			arriveAt( worldX + transition.cell() % width(), worldY + transition.cell() / width() );
 		}
 		return super.activateTransition( hero, transition );
 	}
 
 	//(re)position the town's art over the footprint. off-window art is simply
 	//not drawn - the layers stay put in customTiles/customWalls for the level's life
-	private void placeTownArt(){
+	private void layoutTownArt(){
+		if (altitude != 0) return;
 		if (townArt == null){
 			townArt = new TownRemixedTiles.Layer[]{
 					new TownRemixedTiles.Base(), new TownRemixedTiles.Deco(),
@@ -760,73 +893,57 @@ public class OverworldLevel extends Level {
 		int tx = WorldStructures.TOWN_X0 - worldX, ty = WorldStructures.TOWN_Y0 - worldY;
 		for (TownRemixedTiles.Layer layer : townArt){
 			layer.setRect( tx, ty, WorldStructures.TOWN_SIZE, WorldStructures.TOWN_SIZE );
-			if (Dungeon.level == this
-					&& com.watabou.noosa.Game.scene() instanceof xyz.gabriwar.warpedpixeldungeon.scenes.GameScene){
-				//live: create() kills the old visual and the scene gets the new one
-				xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.add( layer, false );
+		}
+	}
+
+	private boolean liveScene(){
+		return Dungeon.level == this
+				&& com.watabou.noosa.Game.scene() instanceof xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+	}
+
+	/** puts the window's art on screen: the town's five layers at their window rect and the
+	 *  four dress layers with the window's data. A no-op without a live scene */
+	private void presentWindowArt(){
+		presentWindowArt( 0, 0 );
+	}
+
+	/**
+	 * The same after the window moved by (dcx, dcy): the dress tilemaps slide their content
+	 * along first, so the refill finds the overlap unchanged and rebuilds only the exposed
+	 * strips. Runs on the render thread during a rebase, inside the same atomic block as the
+	 * sprites and the camera, so nothing moves a frame early.
+	 */
+	private void presentWindowArt( int dcx, int dcy ){
+		if (!liveScene()) return;
+		if (townArt != null){
+			for (int i = 0; i < townArt.length; i++){
+				//the roofs draw over the hero, the rest under: the same split as their creation
+				xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.add( townArt[i], i >= 3 );
+			}
+		}
+		if (dressGround != null){
+			xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.Layer[] all = { dressGround, dressEdges, dressCanopy };
+			for (int i = 0; i < all.length; i++){
+				if (dcx != 0 || dcy != 0) all[i].shiftVisual( dcx, dcy );
+				xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.add( all[i], i >= 2 );
 			}
 		}
 	}
 
 	// ------------------------------------------------------- world dressing
 
-	//two window-sized layers from ONE spritesheet (overworld_dress.png):
-	//Ground below the hero (biome edge transitions, tree bodies), Canopy
-	//above (walk-behind treetops). recomputed for every window
-	private xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.Layer dressGround, dressCanopy;
-	private xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.Layer.Village villageGround, villageCanopy;
-
-	private long dressHash( int wx, int wy, long salt ){
-		long h = worldSeed ^ salt;
-		h ^= wx * 0x9E3779B97F4A7C15L;
-		h = Long.rotateLeft( h, 31 );
-		h ^= wy * 0xC2B2AE3D27D4EB4FL;
-		h *= 0xFF51AFD7ED558CCDL;
-		return h ^ (h >>> 33);
-	}
-
-	private static int pick( int[] set, long h ){
-		return set[(int)Math.floorMod( h, set.length )];
-	}
-
-	//ground families for the edge-transition overlays, by visual strength:
-	//stronger materials encroach on weaker ones. water is not here - the
-	//water tiles stitch their own shores already
-	private static int blendFamily( int t ){
-		switch (t){
-			case Terrain.SNOW: return 3;
-			case Terrain.EMPTY_SP: return 2;                //sand
-			case Terrain.GRASS: case Terrain.HIGH_GRASS:
-			case Terrain.FURROWED_GRASS: case Terrain.SHRUB: return 1;
-			case Terrain.EMPTY: case Terrain.EMPTY_DECO:
-			case Terrain.DIRT_PATH: return 0;               //bare ground: receives all
-			default: return -1;                             //no blending on/from this
-		}
-	}
-
-	private static final int[] CORNER_ROW = { -1, xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.CORNER_GRASS,
-			xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.CORNER_SAND,
-			xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.CORNER_SNOW };
-
-	private static final int[] BLEND_ROW = { -1, xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.BLEND_GRASS,
-			xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.BLEND_SAND,
-			xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.BLEND_SNOW };
-
-	//a crown may hang over open ground, never over something the player has to
-	//see and use: a doorway, a staircase, a signpost, a shrine
-	private static boolean blocksSight( int terrain ){
-		return terrain == Terrain.DOOR || terrain == Terrain.OPEN_DOOR
-				|| terrain == Terrain.LOCKED_DOOR || terrain == Terrain.CRYSTAL_DOOR
-				|| terrain == Terrain.EXIT || terrain == Terrain.ENTRANCE
-				|| terrain == Terrain.ENTRANCE_SP || terrain == Terrain.LOCKED_EXIT
-				|| terrain == Terrain.SIGN || terrain == Terrain.PEDESTAL
-				|| terrain == Terrain.ALCHEMY || terrain == Terrain.WELL;
-	}
+	//three window-sized layers from ONE spritesheet (overworld_dress.png):
+	//Ground below the hero (biome edge transitions, tree and rock bodies),
+	//Edges over it (the corner roundings of those transitions), Canopy above
+	//(walk-behind treetops and rock peaks). recomputed for every window
+	private xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.Layer dressGround, dressEdges, dressCanopy;
 
 	private boolean forestAt( int cell ){
-		if (cell < 0 || cell >= length()) return false;
-		int t = map[cell];
-		return (t == Terrain.TREE_PINE || t == Terrain.TREE_OAK) && !frozenAt( cell );
+		return WindowGenerator.forestAt( map, frozen, cell );
+	}
+
+	private long dressHash( int wx, int wy, long salt ){
+		return WindowGenerator.dressHash( worldSeed, wx, wy, salt );
 	}
 
 	private java.util.ArrayList<xyz.gabriwar.warpedpixeldungeon.tiles.CustomTilemap> bundledDress(
@@ -838,177 +955,21 @@ public class OverworldLevel extends Level {
 		return out;
 	}
 
-	//the season is passed in, never read here: a network mirror is dressed for
-	//the HOST's point of the year, which the client's own calendar may not
-	//have caught up with when the window arrives
-	private void placeDress( GameCalendar.Season season ){
-		int[] ground = new int[length()];
-		int[] canopy = new int[length()];
-		java.util.Arrays.fill( ground, -1 );
-		java.util.Arrays.fill( canopy, -1 );
-
-		//the season picks the canopy: summer green, autumn orange-brown, and
-		//in winter the forests standing on unfrozen ground carry snow (the
-		//frozen ground has the winter pines). spring blossoms and autumn
-		//leaves scatter on the ground by a world hash, so every window
-		//agrees on where they lie
-		int w = width();
-		for (int y = 1; y < HEIGHT-1; y++){
-			for (int x = 1; x < WIDTH-1; x++){
-				int cell = x + y * w;
-				int wx = worldX + x, wy = worldY + y;
-				int t = map[cell];
-
-				//trees (the town's own pines included - its art no longer
-				//paints open ground, the world dresses it)
-				if (t == Terrain.TREE_PINE || t == Terrain.TREE_OAK){
-					long h = dressHash( wx, wy, 0x7EEE5L );
-					if (t == Terrain.TREE_OAK){
-						int top, trunk;
-						switch (season){
-							case AUTUMN:
-								top = xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.OAK_AUTUMN_TOP;
-								trunk = xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.OAK_AUTUMN_TRUNK;
-								break;
-							case WINTER:
-								top = xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.OAK_WINTER_TOP;
-								trunk = xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.OAK_WINTER_TRUNK;
-								break;
-							default:
-								top = xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.OAK_SUMMER_TOP;
-								trunk = xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.OAK_SUMMER_TRUNK;
-						}
-						ground[cell] = trunk;
-						//the crown hangs over the cell above the trunk - but never
-						//over a way in or out: a doorway with a canopy on it reads
-						//as a bush growing in the gate
-						if (y > 1 && WorldStructures.townCell( wx, wy-1 ) == -1
-								&& !blocksSight( map[cell-w] )) canopy[cell-w] = top;
-					} else {
-						ground[cell] = pick( frozenAt( cell )
-								? xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.WINTER_PINES
-								: xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.SUMMER_PINES, h );
-					}
-					continue;
-				}
-
-				if (t == Terrain.SIGN){
-					ground[cell] = xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.SIGNPOST;
-					continue;
-				}
-				if (t == Terrain.DEEP_WATER){
-					int depth = waterDepth != null ? waterDepth[cell] : 2;
-					int[] shades = xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.DEEP_SHADES;
-					ground[cell] = shades[Math.max( 0, Math.min( shades.length-1, depth - 2 ) )];
-					continue;
-				}
-
-				//biome edge transitions: the strongest neighbouring ground
-				//material laps over this cell's edges (not inside the town -
-				//its authored art owns those edges)
-				if (WorldStructures.townCell( wx, wy ) != -1) continue;
-
-				//the roads across frozen ground lie under a trodden snow cap,
-				//and a bridge there is dusted over (the terrain tilemap keeps
-				//BRIDGE as planks on frozen ground - the dusting is all here)
-				if (frozenAt( cell )){
-					if (t == Terrain.BRIDGE){
-						ground[cell] = xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.BRIDGE_SNOW;
-						continue;
-					}
-					if (t == Terrain.DIRT_PATH){
-						ground[cell] = pick( xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.ROAD_SNOW,
-								dressHash( wx, wy, 0x5A0BL ) );
-						continue;
-					}
-				}
-
-				int f = blendFamily( t );
-				if (f < 0) continue;
-				int best = 0, mask = 0;
-				for (int side = 0; side < 4; side++){
-					int n = cell + (side == 0 ? -w : side == 1 ? 1 : side == 2 ? w : -1);
-					int g = blendFamily( map[n] );
-					if (g > f && g > 0){
-						if (g > best){ best = g; mask = 0; }
-						if (g == best) mask |= 1 << side;
-					}
-				}
-				if (best > 0 && mask != 0){
-					ground[cell] = BLEND_ROW[best] + mask;
-				} else {
-					//no side touches: a stronger material meeting only at a
-					//diagonal still rounds the corner over
-					int cBest = 0, cBits = 0;
-					for (int d = 0; d < 4; d++){
-						int n = cell + (d == 0 ? -w+1 : d == 1 ? w+1 : d == 2 ? w-1 : -w-1);
-						int g = blendFamily( map[n] );
-						if (g > f && g > 0){
-							if (g > cBest){ cBest = g; cBits = 0; }
-							if (g == cBest) cBits |= 1 << d;
-						}
-					}
-					if (cBest > 0 && cBits != 0){
-						ground[cell] = CORNER_ROW[cBest] + cBits;
-					}
-				}
-				if (ground[cell] != -1 || frozenAt( cell )) continue;
-
-				//spring: blossoms on the open grass of the meadows and plains
-				//(about one cell in twelve); autumn: fallen leaves on the
-				//ground beside the forests (about one in three)
-				if (season == xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar.Season.SPRING){
-					if (t != Terrain.GRASS) continue;
-					long h = dressHash( wx, wy, 0xF10BEL );
-					if (Math.floorMod( h, 12 ) != 0) continue;
-					WorldModel.Biome b = WorldModel.biomeAt( worldSeed, wx, wy );
-					if (b == WorldModel.Biome.MEADOW || b == WorldModel.Biome.PLAINS){
-						ground[cell] = pick( xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.SPRING_FLOWERS, h >> 4 );
-					}
-				} else if (season == xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar.Season.AUTUMN){
-					if (t != Terrain.GRASS && t != Terrain.EMPTY && t != Terrain.EMPTY_DECO
-							&& t != Terrain.DIRT_PATH) continue;
-					long h = dressHash( wx, wy, 0x1EAFL );
-					if (Math.floorMod( h, 3 ) != 0) continue;
-					boolean byForest = forestAt( cell-w-1 ) || forestAt( cell-w ) || forestAt( cell-w+1 )
-							|| forestAt( cell-1 ) || forestAt( cell+1 )
-							|| forestAt( cell+w-1 ) || forestAt( cell+w ) || forestAt( cell+w+1 );
-					if (!byForest) continue;
-					WorldModel.Biome b = WorldModel.biomeAt( worldSeed, wx, wy );
-					if (b == WorldModel.Biome.FOREST || b == WorldModel.Biome.MEADOW){
-						ground[cell] = pick( xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.FALLEN_LEAVES, h >> 2 );
-					}
-				}
-			}
-		}
-
-		//the villages' own dressing layer pair: nothing to paint at present (the
-		//houses use their terrain art directly), kept so saves that carry the
-		//layers restore cleanly
-		int[] vGround = new int[length()];
-		int[] vCanopy = new int[length()];
-		java.util.Arrays.fill( vGround, -1 );
-		java.util.Arrays.fill( vCanopy, -1 );
-
+	//hands the window's dressing to its three layers (created on first use); the layers are
+	//put on screen by presentWindowArt
+	private void setDressData( int[][] dress ){
 		if (dressGround == null){
 			dressGround = new xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.Layer();
+			dressEdges = new xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.Layer();
 			dressCanopy = new xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.Layer();
-			villageGround = new xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.Layer.Village();
-			villageCanopy = new xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.Layer.Village();
 			customTiles.add( dressGround );
-			customTiles.add( villageGround );
+			customTiles.add( dressEdges );
 			customWalls.add( dressCanopy );
-			customWalls.add( villageCanopy );
 		}
-		xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.Layer[] all =
-				{ dressGround, villageGround, dressCanopy, villageCanopy };
-		int[][] datas = { ground, vGround, canopy, vCanopy };
-		boolean live = Dungeon.level == this
-				&& com.watabou.noosa.Game.scene() instanceof xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+		xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.Layer[] all = { dressGround, dressEdges, dressCanopy };
 		for (int i = 0; i < all.length; i++){
 			all[i].setRect( 0, 0, WIDTH, HEIGHT );
-			all[i].setData( datas[i] );
-			if (live) xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.add( all[i], i >= 2 );
+			all[i].setData( dress[i] );
 		}
 	}
 
@@ -1017,9 +978,9 @@ public class OverworldLevel extends Level {
 	//(the 'thief' blue cat that used to lurk at 372 was cut - it read as a
 	//forced spawn in the middle of the plaza)
 	private static final Object[][] TOWN_FOLK = {
-			//the enchanting pedestal in the temple's alcove. The people are in
-			//TOWN_SLEEPERS: they come and go with the sun
-			{ xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.EnchantingStation.class, WorldStructures.TOWN_PEDESTAL },
+			//nobody fixed at present: the enchanting pedestal moved into the church
+			//(TownChurchLevel). The people are in TOWN_SLEEPERS: they come and go
+			//with the sun
 	};
 	private static final int[] TOWN_CHESTS = { 131, 197, 107, 289, 283, 732, 891, 740, 1022 };
 
@@ -1072,7 +1033,19 @@ public class OverworldLevel extends Level {
 	//moves or the level is (re)built
 	private void populateTown(){
 		unparkMobs();
-
+		if (altitude != 0){
+			//townsfolk who wandered onto a slice before the town was the surface's alone
+			for (Mob m : mobs.toArray( new Mob[0] )){
+				if (m instanceof NPC && ((NPC) m).sleepsAtInn()){
+					mobs.remove( m );
+					Actor.remove( m );
+					if (m.sprite != null) m.sprite.killAndErase();
+				}
+			}
+			parkedMobs.values().removeIf( m -> m instanceof NPC && ((NPC) m).sleepsAtInn() );
+			parkedAt.keySet().retainAll( parkedMobs.keySet() );
+			return;
+		}
 		//older saves: the plaza's 'thief' blue cat is gone
 		for (Mob m : mobs.toArray( new Mob[0] )){
 			if (m instanceof BlueCat
@@ -1083,6 +1056,15 @@ public class OverworldLevel extends Level {
 			}
 		}
 		parkedMobs.values().removeIf( m -> m instanceof BlueCat );
+		//older saves: the enchanting pedestal moved into the church
+		for (Mob m : mobs.toArray( new Mob[0] )){
+			if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.EnchantingStation){
+				mobs.remove( m );
+				Actor.remove( m );
+				if (m.sprite != null) m.sprite.killAndErase();
+			}
+		}
+		parkedMobs.values().removeIf( m -> m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.EnchantingStation );
 		parkedAt.keySet().retainAll( parkedMobs.keySet() );
 
 		for (Object[] f : TOWN_FOLK){
@@ -1169,7 +1151,7 @@ public class OverworldLevel extends Level {
 	@Override
 	public void updateFieldOfView( Char c, boolean[] fieldOfView ){
 		super.updateFieldOfView( c, fieldOfView );
-		if (c != Dungeon.hero) return;
+		if (c != Dungeon.hero || altitude != 0) return;
 		int x0 = Math.max( 1, WorldStructures.TOWN_X0 - worldX );
 		int y0 = Math.max( 1, WorldStructures.TOWN_Y0 - worldY );
 		int x1 = Math.min( width()-2, WorldStructures.TOWN_X0 + WorldStructures.TOWN_SIZE - 1 - worldX );
@@ -1185,6 +1167,8 @@ public class OverworldLevel extends Level {
 
 	/** Where a window cell is, for the HUD: the town, a named settlement, or the biome. */
 	public String placeNameAt( int cell ){
+		if (altitude > 0) return Messages.get( this, "place_above", altitude );
+		if (altitude < 0) return Messages.get( this, "place_below", -altitude );
 		int wx = worldX + cell % width(), wy = worldY + cell / width();
 		if (WorldStructures.townCell( wx, wy ) != -1) return "Town";
 		int sx = Math.floorDiv( wx, WorldStructures.SECTOR );
@@ -1453,13 +1437,15 @@ public class OverworldLevel extends Level {
 
 	/** The aurora shows only over the far north: the hero on a snowfield or the tundra, at night. */
 	public boolean auroraPossible(){
-		if (Dungeon.hero == null || !xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle.isNight()) return false;
+		if (Dungeon.hero == null || !openSky()
+				|| !xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle.isNight()) return false;
+		if (altitude > 0) return true;   //the peaks stand above the weather
 		WorldModel.Biome b = biomeAtCell( Dungeon.hero.pos );
 		return b == WorldModel.Biome.SNOWFIELD || b == WorldModel.Biome.TUNDRA;
 	}
-
 	/** A rainbow needs the sun: daytime, and the rain already over. */
 	public boolean rainbowPossible(){
+		if (!openSky()) return false;
 		xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle.Phase phase
 				= xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle.phase();
 		return (phase == xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle.Phase.DAY
@@ -1469,7 +1455,7 @@ public class OverworldLevel extends Level {
 
 	/** The swamps steam at dawn: fog of the place, whatever the fronts say (ClimateManager.setLocalFog). */
 	public boolean localFog(){
-		return Dungeon.hero != null
+		return Dungeon.hero != null && altitude == 0
 				&& xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle.phase()
 					== xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle.Phase.DAWN
 				&& biomeAtCell( Dungeon.hero.pos ) == WorldModel.Biome.SWAMP;
@@ -1477,14 +1463,12 @@ public class OverworldLevel extends Level {
 
 	@Override
 	public String tilesTex() {
-		return Assets.Environment.TILES_OVERWORLD;
+		return openSky() ? Assets.Environment.TILES_OVERWORLD : Assets.Environment.TILES_CAVES;
 	}
-
 	@Override
 	public String waterTex() {
-		return Assets.Environment.WATER_SEWERS;
+		return openSky() ? Assets.Environment.WATER_SEWERS : Assets.Environment.WATER_CAVES;
 	}
-
 	@Override
 	public void playLevelMusic() {
 		//peaceful for now; biome-aware music comes later
@@ -1500,16 +1484,26 @@ public class OverworldLevel extends Level {
 		setSize( WIDTH, HEIGHT );
 
 		if (worldSeed == 0){
-			worldSeed = Dungeon.seed ^ 0x0E4A9B1DL;
-			//first entry: centre the window on world origin
-			worldX = -WIDTH/2;
-			worldY = -HEIGHT/2;
+			worldSeed = worldSeedOf( Dungeon.seed );
+			if (pendingArrival){
+				//a slice entered from another one: its first window opens on
+				//the arrival, so it is not derived twice
+				worldX = pendingWX - WIDTH/2;
+				worldY = pendingWY - HEIGHT/2;
+			} else {
+				//first entry: centre the window on world origin
+				worldX = -WIDTH/2;
+				worldY = -HEIGHT/2;
+			}
 		}
-
-		//first arrival: the town plaza
-		arrivalX = WorldStructures.townWorldX( WorldStructures.TOWN_PLAZA );
-		arrivalY = WorldStructures.townWorldY( WorldStructures.TOWN_PLAZA );
-
+		//first arrival: the town plaza, or wherever the way in leads
+		if (pendingArrival){
+			arrivalX = pendingWX;
+			arrivalY = pendingWY;
+		} else {
+			arrivalX = WorldStructures.townWorldX( WorldStructures.TOWN_PLAZA );
+			arrivalY = WorldStructures.townWorldY( WorldStructures.TOWN_PLAZA );
+		}
 		seasonStamp = currentStamp();
 		refreshSeasonShift();
 		regenWindow();
@@ -1521,65 +1515,99 @@ public class OverworldLevel extends Level {
 		return true;
 	}
 
-	//the pristine window for an origin: the pre-generated buffer when it is
-	//the one that was asked for, else one full synchronous generator pass
-	private Window takeWindow( int ox, int oy ){
-		Window ready = null;
+	//the prepared window for an origin, when the worker finished one for it at this season
+	private WindowGenerator.Prepared takePrepared( int ox, int oy ){
 		synchronized (pregenLock){
-			if (pregenReady && pregenOX == ox && pregenOY == oy){
-				ready = pregenBuf;
-				pregenBuf = null;
+			if (pregenReady && prepared != null && pregenOX == ox && pregenOY == oy
+					&& prepared.season == GameCalendar.season()){
+				WindowGenerator.Prepared p = prepared;
+				prepared = null;
 				pregenReady = false;
+				return p;
 			}
+			return null;
 		}
-		return ready != null ? ready : generatePristine( ox, oy );
 	}
 
-	//installs a generated window: the pristine cache with its per-cell frozen
-	//and water-depth arrays, then map[] - the host's authoritative array when
-	//one is given (a network mirror), else the pristine plus the player's
-	//recorded diffs - then the art layers and the flag maps. the outer ring is
-	//always solid: the whole engine assumes level borders are impassable, and
-	//edge water would make the water-stitcher read neighbours out of bounds.
-	//the pristine output is kept so diff capture never re-runs the generator
-	private void adoptWindow( Window w, int[] override, GameCalendar.Season season ){
-		pristine = w.terrain;
-		frozen = w.frozen;
-		waterDepth = w.waterDepth;
-		windowShift = w.shift;
-
-		if (override != null){
-			System.arraycopy( override, 0, map, 0, length() );
-		} else if (diffs.isEmpty()){
-			//overlay the player's recorded edits - just map lookups, no generator
-			System.arraycopy( pristine, 0, map, 0, length() );
+	/**
+	 * Installs a prepared window: the pristine cache with its frozen and water-depth
+	 * arrays, then map[] (copied, or re-derived from pristine plus the LIVE edit store when
+	 * an edit landed after the preparation), the dressing data, the town-art layout and the
+	 * flag maps. The outer ring is always solid: the whole engine assumes level borders
+	 * are impassable, and edge water would make the water-stitcher read neighbours out of
+	 * bounds. Nothing is put on screen here - see presentWindowArt.
+	 */
+	private void adoptPrepared( WindowGenerator.Prepared p ){
+		pristine = p.base.terrain;
+		frozen = p.base.frozen;
+		waterDepth = p.base.waterDepth;
+		link = p.base.link;
+		windowShift = p.base.shift;
+		int[][] dress = p.dress;
+		if (p.diffsVersion == diffsVersion){
+			System.arraycopy( p.map, 0, map, 0, length() );
 		} else {
-			for (int y = 0; y < HEIGHT; y++){
-				for (int x = 0; x < WIDTH; x++){
-					int cell = x + y * width();
-					Integer diff = diffs.get( worldKey( worldX + x, worldY + y ) );
-					map[cell] = diff != null && x > 0 && y > 0 && x < WIDTH-1 && y < HEIGHT-1
-							? diff : pristine[cell];
-				}
-			}
+			System.arraycopy( pristine, 0, map, 0, length() );
+			WindowGenerator.overlayDiffs( map, diffs, worldX, worldY );
+			dress = WindowGenerator.dress( worldSeed, worldX, worldY, map, p.base, p.season );
 		}
-
 		//ORDER MATTERS: the dressing reads map[] for its edge blends, its deep
 		//water shades and its fallen leaves, so the authoritative terrain has
 		//to be in place first
-		placeTownArt();
-		placeDress( season );
+		setDressData( dress );
+		layoutTownArt();
 
+		long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
 		buildFlagMaps();
 		cleanWalls();
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW flag maps", t );
 
+		pendingVariance = p.variance;
 		windowVersion++;
 	}
 
+	//installs a generated window with the HOST's authoritative map (a network mirror), or
+	//the pristine plus the player's recorded edits; presented at once, where it is drawn
+	private void adoptWindow( WindowGenerator.Window w, int[] override, GameCalendar.Season season ){
+		pristine = w.terrain;
+		frozen = w.frozen;
+		waterDepth = w.waterDepth;
+		link = w.link;
+		windowShift = w.shift;
+		if (override != null){
+			System.arraycopy( override, 0, map, 0, length() );
+		} else {
+			System.arraycopy( pristine, 0, map, 0, length() );
+			WindowGenerator.overlayDiffs( map, diffs, worldX, worldY );
+		}
+		setDressData( WindowGenerator.dress( worldSeed, worldX, worldY, map, w, season ) );
+		layoutTownArt();
+		presentWindowArt();
+		buildFlagMaps();
+		cleanWalls();
+		pendingVariance = WindowGenerator.variance( worldSeed, worldX, worldY );
+		windowVersion++;
+	}
+
+	/** re-derives the window for the current origin and puts its art on screen */
 	private void regenWindow(){
+		regenWindow( true );
+	}
+
+	//present == false leaves the art to the caller: a rebase presents it inside the render
+	//thread's atomic block, together with the sprites and the camera
+	private void regenWindow( boolean present ){
 		long t0 = System.currentTimeMillis();
-		adoptWindow( takeWindow( worldX, worldY ), null, GameCalendar.season() );
-		System.out.println( "[OW] window regen " + (System.currentTimeMillis()-t0) + "ms" );
+		WindowGenerator.Prepared p = takePrepared( worldX, worldY );
+		boolean hit = p != null;
+		if (p == null){
+			p = WindowGenerator.prepare( worldSeed, altitude, worldX, worldY, GameCalendar.season(),
+					diffs.isEmpty() ? null : diffs, diffsVersion );
+		}
+		adoptPrepared( p );
+		if (present) presentWindowArt();
+		System.out.println( "[OW] window regen " + (System.currentTimeMillis()-t0) + "ms"
+				+ (hit ? " (prepared)" : " (synchronous)") );
 	}
 
 	// ----------------------------------------------------- network mirrors
@@ -1617,12 +1645,11 @@ public class OverworldLevel extends Level {
 	 * @return null when the wire's window is not this build's window size, in
 	 *         which case the caller must fall back to a generic level.
 	 */
-	public static OverworldLevel forNetwork( long worldSeed, int wx, int wy, float seasonShift,
+	public static OverworldLevel forNetwork( int altitude, long worldSeed, int wx, int wy, float seasonShift,
 			GameCalendar.Season season, int[] map, int w, int h ){
 		if (w != WIDTH || h != HEIGHT) return null;
 		if (map == null || map.length != WIDTH * HEIGHT) return null;
-
-		OverworldLevel l = new OverworldLevel();
+		OverworldLevel l = new OverworldLevel( altitude );
 		initNetworkCollections( l );
 		l.setSize( WIDTH, HEIGHT );
 		l.network = true;
@@ -1653,18 +1680,17 @@ public class OverworldLevel extends Level {
 	 * window - with nothing of this level touched. Safe (and meant) to run off
 	 * the render thread: hand the result straight to adoptNetworkWindow.
 	 */
-	public Window stageNetworkWindow( long worldSeed, int wx, int wy, float seasonShift ){
+	public WindowGenerator.Window stageNetworkWindow( long worldSeed, int wx, int wy, float seasonShift ){
 		WorldModel.holdSeasonShift( seasonShift );
-		return generatePristine( worldSeed, wx, wy );
+		return WindowGenerator.generate( worldSeed, altitude, wx, wy );
 	}
-
 	/**
 	 * The cheap half: installs an already-generated window (see
 	 * stageNetworkWindow) and the host's map. Render thread only, for the
 	 * reasons applyNetworkWindow documents.
 	 */
 	public boolean adoptNetworkWindow( long worldSeed, int wx, int wy, float seasonShift,
-			GameCalendar.Season season, Window staged, int[] map ){
+			GameCalendar.Season season, WindowGenerator.Window staged, int[] map ){
 		if (map == null || map.length != length()) return false;
 		if (staged == null || staged.terrain == null || staged.terrain.length != length()){
 			//nothing usable was staged (a size skew, or a caller that could not
@@ -1713,6 +1739,7 @@ public class OverworldLevel extends Level {
 			//restored from an old save that predates the cache: rebuild once
 			rebuildPristine();
 		}
+		boolean changed = false;
 		for (int y = 1; y < HEIGHT-1; y++){
 			for (int x = 1; x < WIDTH-1; x++){
 				int cell = x + y * width();
@@ -1724,49 +1751,43 @@ public class OverworldLevel extends Level {
 					//also keeps the diff store from growing without bound - a big
 					//wildfire would otherwise mint thousands of permanent diffs
 					if (naturalDecay( p, map[cell] )){
-						diffs.remove( key );
+						changed |= diffs.remove( key ) != null;
 					} else {
-						diffs.put( key, map[cell] );
+						Integer old = diffs.put( key, map[cell] );
+						changed |= old == null || old != map[cell];
 					}
 				} else if (!diffs.isEmpty()){
 					//an edit that was later restored needs its stale diff dropped
-					diffs.remove( worldKey( worldX + x, worldY + y ) );
+					changed |= diffs.remove( worldKey( worldX + x, worldY + y ) ) != null;
 				}
 			}
 		}
+		if (changed) diffsVersion++;
 	}
 
 	//one full generator pass to rebuild the pristine cache (load path only)
 	private void rebuildPristine(){
-		Window w = generatePristine( worldX, worldY );
+		WindowGenerator.Window w = WindowGenerator.generate( worldSeed, altitude, worldX, worldY );
 		pristine = w.terrain;
 		frozen = w.frozen;
 		waterDepth = w.waterDepth;
+		link = w.link;
 	}
 
 	/**
 	 * Fills the tile-variance table from WORLD coordinates instead of the
 	 * per-level random fill: every world cell keeps the same alt-art variant
 	 * forever, no matter where the window sits. Without this each rebase
-	 * re-rolled the whole window's art - a full-screen shimmer.
+	 * re-rolled the whole window's art - a full-screen shimmer. The table for
+	 * the current window was prepared with it; computed here only when not.
 	 */
 	public void worldAnchorVariance(){
-		if (xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTileSheet.tileVariance == null
-				|| xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTileSheet.tileVariance.length != length()){
-			return;
+		byte[] table = xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTileSheet.tileVariance;
+		if (table == null || table.length != length()) return;
+		if (pendingVariance == null || pendingVariance.length != length()){
+			pendingVariance = WindowGenerator.variance( worldSeed, worldX, worldY );
 		}
-		for (int y = 0; y < HEIGHT; y++){
-			for (int x = 0; x < WIDTH; x++){
-				long h = worldSeed ^ 0x7A81A7CEL;
-				h ^= (worldX + x) * 0x9E3779B97F4A7C15L;
-				h = Long.rotateLeft( h, 31 );
-				h ^= (worldY + y) * 0xC2B2AE3D27D4EB4FL;
-				h *= 0xFF51AFD7ED558CCDL;
-				h ^= h >>> 33;
-				xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTileSheet.tileVariance[x + y * width()]
-						= (byte)Math.floorMod( h, 100 );
-			}
-		}
+		System.arraycopy( pendingVariance, 0, table, 0, length() );
 	}
 
 	//is this change just vegetation damage the world should heal on its own?
@@ -1859,12 +1880,28 @@ public class OverworldLevel extends Level {
 			}
 
 			int x = ch.pos % width(), y = ch.pos / width();
-			if (x < MARGIN || y < MARGIN || x >= width() - MARGIN || y >= height() - MARGIN){
-				rebase();
+			int[] next = nextOrigin( x, y, MARGIN );
+			if (next != null){
+				//inside the margin: the rebase waits for its preparation while there is
+				//room to walk, and goes synchronous past half the margin rather than let
+				//the hero reach the border
+				boolean urgent = x < MARGIN/2 || y < MARGIN/2
+						|| x >= width() - MARGIN/2 || y >= height() - MARGIN/2;
+				if (urgent || preparedFor( next[0], next[1] )){
+					rebase();
+				} else {
+					schedulePrep( next[0], next[1] );
+				}
 			} else {
-				//approaching an edge: pre-generate the predicted next window
-				maybePregen( x, y );
+				//approaching an edge: prepare the window the hero is WALKING toward. an axis
+				//counts only when he is heading for that edge, or the guess would be diagonal
+				//almost every time and the real origin would miss it
+				int lx = lastHeroCell >= 0 ? lastHeroCell % width() : x;
+				int ly = lastHeroCell >= 0 ? lastHeroCell / width() : y;
+				next = headingOrigin( x, y, Integer.signum( x - lx ), Integer.signum( y - ly ), MARGIN + PREP_BAND );
+				if (next != null) schedulePrep( next[0], next[1] );
 			}
+			lastHeroCell = ch.pos;
 
 			//the hour turned: cull the wildlife of the hour before (the
 			//rebase pass does it too, but a hero who never reaches the
@@ -1878,13 +1915,12 @@ public class OverworldLevel extends Level {
 			//the day turned: the caravans strike camp and pitch again further
 			//along their roads (a hero who never reaches the margin would
 			//otherwise keep the same stall standing all week)
-			if (xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar.weekday().ordinal() != caravanDay){
+			if (altitude == 0
+					&& xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar.weekday().ordinal() != caravanDay){
 				placeCaravans();
 			}
-
 			//the swamp's fireflies
-			OverworldFauna.fireflies( this, ch.pos );
-
+			if (altitude == 0) OverworldFauna.fireflies( this, ch.pos );
 			int wx = worldX + ch.pos % width(), wy = worldY + ch.pos / width();
 
 			//waypoint reached?
@@ -1900,7 +1936,8 @@ public class OverworldLevel extends Level {
 			//standing on a ruin's heart: offer the descent into the dungeon
 			int sx = Math.floorDiv( wx, WorldStructures.SECTOR );
 			int sy = Math.floorDiv( wy, WorldStructures.SECTOR );
-			if (WorldStructures.siteType( worldSeed, sx, sy ) == WorldStructures.Site.RUIN
+			if (altitude == 0
+					&& WorldStructures.siteType( worldSeed, sx, sy ) == WorldStructures.Site.RUIN
 					&& WorldStructures.siteX( worldSeed, sx, sy ) == wx
 					&& WorldStructures.siteY( worldSeed, sx, sy ) == wy){
 				com.watabou.noosa.Game.runOnRenderThread( () -> {
@@ -1930,37 +1967,55 @@ public class OverworldLevel extends Level {
 	}
 
 	/**
-	 * Re-centres the window on the hero: captures diffs, shifts the world
-	 * origin, regenerates the map, translates window content by the shift,
-	 * and rebuilds the scene without a loading screen.
+	 * Re-centres the window on the hero: captures the player's edits, shifts the world
+	 * origin, commits the prepared window (array copies), translates everything living in
+	 * the window by the shift, computes the map layers' new visuals, and has the render
+	 * thread apply all of it in one atomic block. A rebase is a pure coordinate
+	 * re-labelling: the frame after it renders pixel-identically to the frame before.
+	 * Every phase is a hot path the lag detector names.
 	 */
 	private void rebase(){
 
 		long tRebase = System.currentTimeMillis();
+		long tAll = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
 
 		int heroX = Dungeon.hero.pos % width(), heroY = Dungeon.hero.pos / width();
 		//QUANTIZED shift: a fixed step per axis keeps the next origin
-		//predictable, which is what lets pre-generation land a cache hit
+		//predictable, which is what lets the preparation land a hit
 		int dx = heroX < MARGIN ? -SHIFT_Q : heroX >= WIDTH - MARGIN ? SHIFT_Q : 0;
 		int dy = heroY < MARGIN ? -SHIFT_Q : heroY >= HEIGHT - MARGIN ? SHIFT_Q : 0;
 		if (dx == 0 && dy == 0) return;
 
+		long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
 		captureDiffs();
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW captureDiffs", t );
 
 		worldX += dx;
 		worldY += dy;
+		xyz.gabriwar.warpedpixeldungeon.actors.TileTemperature.shift(this, dx, dy);
 
 		//blobs SLIDE with the window BEFORE the flag maps are rebuilt, so
 		//Web-style onBuildFlagMaps overrides stamp solid/flamable at the
 		//post-translate cells (stamping first left phantom solids behind)
+		t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
 		for (xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob b
 				: blobs.values().toArray( new xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob[0] )){
 			b.translate( dx, dy, width(), height() );
 		}
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW blobs", t );
 
-		regenWindow();
+		//the prepared window, or a synchronous derivation when the hero outran the worker.
+		//the art is presented later, in the render block
+		t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
+		regenWindow( false );
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW adopt window", t );
+
+		//tile variance is WORLD-anchored, and the strips computed below read it
+		//for the new origin - or every cell re-rolls its alt art at each rebase
+		worldAnchorVariance();
 
 		//translate everything living in the window by (-dx, -dy)
+		t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
 		int shift = -dx - dy * width();
 
 		Dungeon.hero.pos += shift;
@@ -2040,14 +2095,19 @@ public class OverworldLevel extends Level {
 		if (circling != null && !circling.translate( dx, dy, width(), height() )){
 			drop( circling.cancel(), Dungeon.hero.pos ).sprite.drop();
 		}
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW actors and heaps", t );
 
 		//the town's doorways are FIXED world landmarks: transitions exist
 		//exactly when their world cells sit inside the window
+		t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
 		placeTransitions();
 		populateTown();
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW transitions and town", t );
 
 		//slide the exploration state along with the window
+		t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
 		translateExploration( dx, dy );
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW exploration", t );
 
 		plants.clear();
 		traps.clear();
@@ -2074,22 +2134,31 @@ public class OverworldLevel extends Level {
 			marchStallCount = 0;
 		}
 
+		t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
+		populate();
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW populate", t );
+
+		//the map layers' visuals as they will be after the shift: the overlap moves by
+		//arraycopy, only the exposed strips run the tile pipeline. computed here, on the
+		//actor thread, against the new window; the render thread only swaps them in
+		final xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.MapShift mapShift = xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.prepareMapShift( dx, dy );
+
 		//THE INVISIBLE STREAM: a rebase is a pure coordinate re-labelling.
 		//every visual - sprites WITH their in-flight motion tweens, live
-		//particles, damage numbers, projectiles - and the camera all slide by
-		//the same pixel delta, so the frame after the rebase renders
-		//pixel-identically to the frame before. the whole visual application
-		//runs as ONE atomic block on the render thread (the actor thread
-		//waits up to a frame), so no half-shifted frame can ever be drawn -
-		//that tear was the one-frame "teleport to the edge" flash
-		populate();
-
+		//particles, damage numbers, projectiles - the map layers, the art and
+		//the camera all slide by the same pixel delta, so the frame after the
+		//rebase renders pixel-identically to the frame before. the whole
+		//visual application runs as ONE atomic block on the render thread (the
+		//actor thread waits up to a frame), so no half-shifted frame can ever
+		//be drawn - that tear was the one-frame "teleport to the edge" flash
 		final float vsx = -dx * xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap.SIZE;
 		final float vsy = -dy * xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap.SIZE;
 		final java.util.concurrent.CountDownLatch applied = new java.util.concurrent.CountDownLatch( 1 );
 		final long enqueueFrame = xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.frameId;
+		final int fdx = dx, fdy = dy;
 		com.watabou.noosa.Game.runOnRenderThread( () -> {
 			long tApply = System.nanoTime();
+			long tRender = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
 			try {
 				if (Dungeon.hero.sprite != null){
 					Dungeon.hero.sprite.shiftWorld( vsx, vsy );
@@ -2105,28 +2174,32 @@ public class OverworldLevel extends Level {
 				for (Heap h : heaps.valueList()){
 					if (h.sprite != null) h.sprite.place( h.pos );
 				}
-				//tile variance must be WORLD-anchored or every cell re-rolls its
-				//alt art at each rebase - the whole terrain shimmered ("redraw")
-				worldAnchorVariance();
 				xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.shiftWorldVisuals( vsx, vsy );
-				//fog marking joins the same atomic block, or the rebuilt fog
-				//draws one frame ahead of the slid camera
-				xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.shiftMapContent( dx, dy );
+				xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.applyMapShift( mapShift );
+				//the town art and the dressing move in the same block as everything else
+				presentWindowArt( fdx, fdy );
 				Dungeon.observe();
-				//the camera slides too - snapTo would recentre and eat the
+				//the camera slides too, MATRIX INCLUDED: the matrix is otherwise rebuilt in
+				//update(), which runs after the next draw - offsetting only the scroll here left
+				//that draw with the old camera and every shifted sprite and tile jumped 32 cells
+				//for one frame, the "blink" at every crossing. snapTo would recentre and eat the
 				//deadzone offset, which read as a visible jerk
-				com.watabou.noosa.Camera.main.scroll.offset( vsx, vsy );
+				com.watabou.noosa.Camera.main.shiftInstant( vsx, vsy );
 			} finally {
+				xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW render apply", tRender );
 				System.out.println( "[OW] visual apply " + ((System.nanoTime()-tApply)/1000000) + "ms"
 						+ " (enq f" + enqueueFrame + " app f"
 						+ xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.frameId + ")" );
 				applied.countDown();
 			}
 		} );
+		t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
 		try {
 			applied.await( 150, java.util.concurrent.TimeUnit.MILLISECONDS );
 		} catch (InterruptedException ignored){}
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW apply wait", t );
 
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW rebase total (actor)", tAll );
 		System.out.println( "[OW] rebase total " + (System.currentTimeMillis()-tRebase) + "ms" );
 	}
 
@@ -2236,7 +2309,12 @@ public class OverworldLevel extends Level {
 	 * with hoards, and free-roaming fauna by biome.
 	 */
 	private void populate(){
+		if (altitude == 0) populateSites();
+		populateFauna();
+	}
 
+	//the sites' folk, guardians and hoards, then the road's fishermen and caravans
+	private void populateSites(){
 		for (int sy = sector0Y(); sy <= sector1Y(); sy++){
 			for (int sx = sector0X(); sx <= sector1X(); sx++){
 				WorldStructures.Site type = WorldStructures.siteType( worldSeed, sx, sy );
@@ -2332,11 +2410,13 @@ public class OverworldLevel extends Level {
 
 		placeFishermen();
 		placeCaravans();
+	}
 
+	//the wildlife of the slice, topped up away from the hero
+	private void populateFauna(){
 		//the hour's cull first: the night's wolves are gone by day, the
 		//day's bunnies after dusk (OverworldFauna.cull)
 		OverworldFauna.cull( this );
-
 		//fauna by biome x hour x weather (OverworldFauna's table), topped up
 		//away from the hero, out of the town and the settlements' streets;
 		//a pack counts per member
@@ -2356,9 +2436,9 @@ public class OverworldLevel extends Level {
 						Math.abs( cell / width() - Dungeon.hero.pos / width() ) );
 				if (heroDist < 16) continue;
 			}
-			if (OverworldFauna.nearSettlement( worldSeed,
+			if (altitude == 0 && OverworldFauna.nearSettlement( worldSeed,
 					worldX + cell % width(), worldY + cell / width() )) continue;
-			ArrayList<Mob> beasts = OverworldFauna.roll( biomeAtCell( cell ), phase );
+			ArrayList<Mob> beasts = OverworldFauna.roll( altitude, biomeAtCell( cell ), phase );
 			int placed = 0;
 			for (int i = 0; i < beasts.size(); i++){
 				if (addMob( beasts.get( i ), cell + (i == 0 ? 0 : com.watabou.utils.PathFinder.NEIGHBOURS8[i % 8]) )) placed++;
@@ -2600,6 +2680,7 @@ public class OverworldLevel extends Level {
 	}
 
 	private static final String WORLD_SEED = "world_seed";
+	private static final String ALTITUDE   = "altitude";
 	private static final String WORLD_X    = "world_x";
 	private static final String WORLD_Y    = "world_y";
 	private static final String DIFF_KEYS  = "diff_keys";
@@ -2626,6 +2707,7 @@ public class OverworldLevel extends Level {
 		captureDiffs();
 		super.storeInBundle( bundle );
 		bundle.put( WORLD_SEED, worldSeed );
+		bundle.put( ALTITUDE, altitude );
 		bundle.put( WORLD_X, worldX );
 		bundle.put( WORLD_Y, worldY );
 
@@ -2691,6 +2773,7 @@ public class OverworldLevel extends Level {
 	@Override
 	public void restoreFromBundle( Bundle bundle ) {
 		super.restoreFromBundle( bundle );
+		setAltitude( bundle.getInt( ALTITUDE ) );
 		worldSeed = bundle.getLong( WORLD_SEED );
 		worldX = bundle.getInt( WORLD_X );
 		worldY = bundle.getInt( WORLD_Y );
@@ -2824,6 +2907,12 @@ public class OverworldLevel extends Level {
 				return "Deep water";
 			case Terrain.BRIDGE:
 				return "Plank bridge";
+			case Terrain.ENTRANCE:
+				return Messages.get( this, altitude < 0 ? "way_up" : "steps_up" );
+			case Terrain.EXIT:
+				return Messages.get( this, altitude == 0 ? "cave_mouth" : altitude > 0 ? "steps_down" : "way_down" );
+			case Terrain.CHASM:
+				return Messages.get( this, altitude > 0 ? "drop" : "pit" );
 			case Terrain.SIGN:
 				return "Signpost";
 			case Terrain.TOWN_SOLID:
@@ -2849,7 +2938,15 @@ public class OverworldLevel extends Level {
 	public String tileDesc( int tile ) {
 		switch (tile) {
 			case Terrain.WALL:
-				return "A rocky mountainside.";
+				return Messages.get( this, altitude < 0 ? "cave_wall_desc" : altitude > 0 ? "peak_wall_desc" : "wall_desc" );
+			case Terrain.ENTRANCE:
+				return Messages.get( this, altitude < 0 ? "way_up_desc" : "steps_up_desc" );
+			case Terrain.EXIT:
+				return Messages.get( this, altitude == 0 ? "cave_mouth_desc" : altitude > 0 ? "steps_down_desc" : "way_down_desc" );
+			case Terrain.CHASM:
+				return Messages.get( this, altitude > 0 ? "drop_desc" : "pit_desc" );
+			case Terrain.MINE_CRYSTAL:
+				return Messages.get( this, "crystal_desc" );
 			case Terrain.DEEP_WATER:
 				return "The bottom drops away here - too deep to wade. Only the shallows by the shore can be crossed on foot.";
 			case Terrain.BRIDGE:

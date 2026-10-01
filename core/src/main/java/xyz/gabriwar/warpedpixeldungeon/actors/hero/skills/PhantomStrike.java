@@ -37,6 +37,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.*;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.*;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.audio.Sample;
+import com.watabou.noosa.tweeners.AlphaTweener;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
 
 /** Keeps the old class/tag so purchased Phantom Strike levels remain valid. */
 public class PhantomStrike extends Skill {
@@ -74,19 +80,38 @@ public class PhantomStrike extends Skill {
                     hero.sprite.place(hero.pos);shadow.sprite.place(shadow.pos);
                     SkillSpectacleFX.fly(SkillSpectacleFX.SHADOW,old,cell,0,.4f);
                     SkillSpectacleFX.fly(SkillSpectacleFX.SHADOW,cell,old,0,.4f);
+                    CellEmitter.get(old).burst(ShadowParticle.UP,5);CellEmitter.get(cell).burst(ShadowParticle.UP,5);
+                    Sample.INSTANCE.play(Assets.Sounds.MELD,1f,1.2f);
                     Dungeon.level.occupyCell(shadow);Dungeon.level.occupyCell(hero);
                 }else{
                     if(!Dungeon.level.heroFOV[cell]||Dungeon.level.distance(hero.pos,cell)>6||!SkillInteractions.clear(hero.pos,cell)
                             ||hero.MP<getManaCost()||allies.size()>=level+1)return;
                     int slots=Math.min(level+1-allies.size(),Math.max(3+hero.heroSkills.allSummonLimit(),level+1)-SummonedPet.activeCount());
                     int created=0;
+                    //the company steps out of the dark one at a time: the shadow flies from the rogue's
+                    //own shadow to its place, then the figure fades in where it lands
+                    FxTimeline rise=FxTimeline.start();
                     for(int dest:SkillInteractions.area(cell,1)){
                         if(created>=slots)break;
                         if(!Dungeon.level.passable[dest]||Dungeon.level.pit[dest]||Actor.findChar(dest)!=null)continue;
                         RogueShadow shadow=new RogueShadow();shadow.setRank(level);shadow.pos=dest;
-                        GameScene.add(shadow);SkillSpectacleFX.show(SkillSpectacleFX.SHADOW,dest);created++;
+                        GameScene.add(shadow);
+                        final int order=created,at=dest,origin=hero.pos;
+                        if(shadow.sprite!=null){
+                            final float shown=shadow.sprite.alpha();
+                            shadow.sprite.alpha(0);
+                            rise.at(0.15f*order,()->SkillSpectacleFX.fly(SkillSpectacleFX.SHADOW,origin,at,0,.3f));
+                            rise.at(0.15f*order+0.3f,()->{
+                                if(shadow.sprite==null||!shadow.sprite.exists)return;
+                                shadow.sprite.parent.add(new AlphaTweener(shadow.sprite,shown,0.35f));
+                                CellEmitter.get(at).burst(ShadowParticle.UP,6);
+                                Sample.INSTANCE.play(Assets.Sounds.MELD,0.8f,1.1f+0.1f*order);
+                            });
+                        }
+                        created++;
                     }
                     if(created==0)return;
+                    hero.sprite.emitter().burst(ShadowParticle.UP,6);
                     hero.MP-=getManaCost();castTextYell();
                 }
                 Invisibility.dispel();Dungeon.observe();GameScene.updateFog();

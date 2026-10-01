@@ -25,6 +25,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.BloomBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
@@ -34,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Dewdrop;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
+import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.food.Nut;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.glyphs.Camouflage;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.SandalsOfNature;
@@ -150,7 +152,10 @@ public class HighGrass {
 							level.drop(new Nut(), pos).sprite.drop();
 						}
 					} else {
-						level.drop(Generator.random(Generator.Category.SEED), pos).sprite.drop();
+						Item seed = Generator.random(Generator.Category.SEED);
+						//elixir of bloom doubles the seeds trampled grass gives up
+						if (ch != null && ch.buff(BloomBuff.class) != null) seed.quantity(seed.quantity() * 2);
+						level.drop(seed, pos).sprite.drop();
 					}
 				}
 				

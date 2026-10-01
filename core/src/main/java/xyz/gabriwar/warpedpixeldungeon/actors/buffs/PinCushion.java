@@ -43,9 +43,7 @@ public class PinCushion extends Buff {
 				projectile.merge(items.get(i));
 				items.set(i, projectile);
 				if (TippedDart.lostDarts > 0) {
-					Dart d = new Dart();
-					d.quantity(TippedDart.lostDarts);
-					TippedDart.lostDarts = 0;
+					Dart d = TippedDart.takeLostDarts();
 					stick(d);
 				}
 				return;

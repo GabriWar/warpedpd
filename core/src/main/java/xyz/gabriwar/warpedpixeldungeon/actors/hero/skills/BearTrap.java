@@ -52,6 +52,12 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Bundle;
+import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
+import xyz.gabriwar.warpedpixeldungeon.items.Item;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 
 import java.util.ArrayList;
 
@@ -112,11 +118,18 @@ public class BearTrap extends Skill {
 
 			xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField.place( curUser, xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField.JAWS, level,
 					JAWS_TURNS, java.util.Collections.singletonList( cell ) ).origin = cell;
-			CellEmitter.get( cell ).burst( Speck.factory( Speck.DUST ), 4 );
-			SkillSpectacleFX.show(SkillSpectacleFX.JAW,cell);
 			curUser.MP -= getManaCost();
 			castTextYell();
-			Sample.INSTANCE.play( Assets.Sounds.STURDY, 1f, 1.3f );
+			//the mechanism is seen tossed to its spot; it clicks open as it settles in the dust
+			final int at = cell;
+			Item look = new Item(){{ image = ItemSpriteSheet.TRAP_MECHANISM; }};
+			Sample.INSTANCE.play( Assets.Sounds.MISS, 0.8f, 1.2f );
+			SkillFX.streak( curUser.sprite, cell, look, () -> {
+				CellEmitter.get( at ).burst( Speck.factory( Speck.DUST ), 4 );
+				CellEmitter.center( at ).burst( SparkParticle.FACTORY, 3 );
+				SkillSpectacleFX.show( SkillSpectacleFX.JAW, at );
+				Sample.INSTANCE.play( Assets.Sounds.STURDY, 1f, 1.3f );
+			} );
 			curUser.spend( TIME_TO_USE );
 			curUser.busy();
 			curUser.sprite.operate( curUser.pos );
@@ -150,11 +163,19 @@ public class BearTrap extends Skill {
 	}
 
 	private static void spring( Char c, int pos, int rank ){
+		//the jaws snap shut, sparks flying off the teeth, and bite down once more as they settle
 		SkillSpectacleFX.show(SkillSpectacleFX.JAW,pos);
 		Sample.INSTANCE.play( Assets.Sounds.TRAP, 1f, 0.8f );
 		Camera.main.shake( 1, 0.2f );
 		CellEmitter.center( pos ).burst( Speck.factory( Speck.STAR ), 4 );
+		CellEmitter.center( pos ).burst( SparkParticle.FACTORY, 8 );
+		FxTimeline.start().at( 0.14f, () -> {
+			SkillSpectacleFX.show( SkillSpectacleFX.JAW, pos );
+			CellEmitter.center( pos ).burst( SparkParticle.FACTORY, 4 );
+			Sample.INSTANCE.play( Assets.Sounds.TRAP, 0.6f, 1.2f );
+		} );
 		if (c != null && c.isAlive() && c.pos == pos){
+			if (c.sprite != null) c.sprite.showStatus( CharSprite.NEGATIVE, "Caught" );
 			SkillInteractions.Mark chain = SkillInteractions.mark( c, SkillInteractions.Mark.CHAIN, 1, 5 + 2 * rank );
 			chain.cell = pos;
 			chain.power = 0;

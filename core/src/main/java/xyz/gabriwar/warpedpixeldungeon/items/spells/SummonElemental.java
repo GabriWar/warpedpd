@@ -239,6 +239,12 @@ public class SummonElemental extends Spell {
 
 	}
 
+	@Override
+	public int value() {
+		//priced like the other alchemy spells: 60 gold a batch of its recipe
+		return (int)(60 * (quantity/(float)Recipe.OUT_QUANTITY));
+	}
+
 	public static class Recipe extends xyz.gabriwar.warpedpixeldungeon.items.Recipe.SimpleRecipe {
 
 		private static final int OUT_QUANTITY = 6;

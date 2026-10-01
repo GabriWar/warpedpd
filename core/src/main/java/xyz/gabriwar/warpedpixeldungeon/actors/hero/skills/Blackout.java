@@ -47,6 +47,9 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 
 import java.util.ArrayList;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
+import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 
 public class Blackout extends Skill {
 
@@ -105,10 +108,20 @@ public class Blackout extends Skill {
 
 			CellEmitter.get( cell ).burst( Speck.factory( Speck.SMOKE ), 6 );
 			Sample.INSTANCE.play( Assets.Sounds.MELD, 0.7f, 0.6f );
-			for (int c = 0; c < Dungeon.level.length(); c++){
-				if (Dungeon.level.distance( cell, c ) <= 2 && Dungeon.level.heroFOV[c] && !Dungeon.level.solid[c]){
-					CellEmitter.get( c ).burst( ShadowParticle.MISSILE, 3 );
-				}
+			//lights out: a dark flare blooms where it lands and the darkness rolls out ring by ring
+			if (curUser.sprite.parent != null && Dungeon.level.heroFOV[cell]){
+				new Flare( 8, 36 ).color( 0x1A0A2A, false ).show( curUser.sprite.parent, DungeonTilemap.tileCenterToWorld( cell ), 0.6f );
+			}
+			FxTimeline t = FxTimeline.start();
+			for (int r = 0; r <= 2; r++){
+				final int ring = r;
+				t.at( 0.09f * r, () -> {
+					for (int c : SkillInteractions.area( cell, ring )){
+						if (Dungeon.level.distance( cell, c ) == ring && Dungeon.level.heroFOV[c]){
+							CellEmitter.get( c ).burst( ShadowParticle.MISSILE, 3 );
+						}
+					}
+				} );
 			}
 			for (Char ch : Actor.chars()){
 				if (!(ch instanceof Mob) || ch.alignment != Char.Alignment.ENEMY) continue;

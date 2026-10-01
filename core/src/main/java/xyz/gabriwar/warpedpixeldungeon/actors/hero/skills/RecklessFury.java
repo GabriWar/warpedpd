@@ -33,6 +33,7 @@ import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.BloodParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAura;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -74,8 +75,15 @@ public class RecklessFury extends ActiveSkill {
 				if (s != this) s.active = false;
 			}
 			Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 1f, 1.2f );
-			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.RED_LIGHT ), 4 );
+			//the guard drops: a red flare off the chest, and embers keep rising from him while it stays down
+			if (hero.sprite != null){
+				hero.sprite.emitter().burst( Speck.factory( Speck.RED_LIGHT ), 4 );
+				new xyz.gabriwar.warpedpixeldungeon.effects.Flare( 6, 16 ).color( 0xFF3322, true ).show( hero.sprite, 0.4f );
+			}
+		} else if (action.equals(Skill.AC_DEACTIVATE)){
+			Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 0.5f, 0.7f );
 		}
+		StanceAura.sync( hero );
 	}
 
 	@Override
@@ -96,6 +104,7 @@ public class RecklessFury extends ActiveSkill {
 	//the dropped guard only costs health while there is mana to pay the fury with
 	@Override
 	public float incomingDamageModifier(){
+		StanceAura.sync( Dungeon.hero );
 		return payable() ? 1.10f : 1f;
 	}
 

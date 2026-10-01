@@ -53,6 +53,26 @@ public class TownInnLevel extends TownInteriorLevel {
 		return new TownInteriors.InnRoof();
 	}
 
+	//the roulette table stands at the bar, beside the keeper. Not folk: it is
+	//furniture, and TownCommute would try to send it to bed
+	private static final int ROULETTE = 190;
+
+	@Override
+	protected void createMobs() {
+		super.createMobs();
+		place( new xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.RouletteTable(), ROULETTE );
+	}
+
+	@Override
+	public void restoreFromBundle( com.watabou.utils.Bundle bundle ) {
+		super.restoreFromBundle( bundle );
+		//inns built before the table arrived get it on their next visit
+		for (xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob m : mobs){
+			if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.RouletteTable) return;
+		}
+		place( new xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.RouletteTable(), ROULETTE );
+	}
+
 	//the keeper never leaves the bar; the other four sleep upstairs like everyone
 	//else (TownCommute.BEDS) and are back at these spots by day
 	@Override

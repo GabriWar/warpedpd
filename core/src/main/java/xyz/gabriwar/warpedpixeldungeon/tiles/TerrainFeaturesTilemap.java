@@ -50,6 +50,18 @@ public class TerrainFeaturesTilemap extends DungeonTilemap {
 				|| Assets.Environment.TILES_HALLS.equals(texture);
 	}
 
+	//the dressing row that belongs to a regional ground sheet, or -1 for any other sheet
+	private static int regionalStage(String texture) {
+		if (Assets.Environment.TILES_SEWERS.equals(texture))        return 0;
+		if (Assets.Environment.TILES_PRISON.equals(texture))        return 1;
+		if (Assets.Environment.TILES_CAVES.equals(texture)
+				|| Assets.Environment.TILES_CAVES_CRYSTAL.equals(texture)
+				|| Assets.Environment.TILES_CAVES_GNOLL.equals(texture)) return 2;
+		if (Assets.Environment.TILES_CITY.equals(texture))          return 3;
+		if (Assets.Environment.TILES_HALLS.equals(texture))         return 4;
+		return -1;
+	}
+
 	public TerrainFeaturesTilemap(SparseArray<Plant> plants, SparseArray<Trap> traps) {
 		super(Assets.Environment.TERRAIN_FEATURES);
 
@@ -90,6 +102,11 @@ public class TerrainFeaturesTilemap extends DungeonTilemap {
 		int stage = (Dungeon.depth-1)/5;
 		if (Dungeon.depth == 21 && Dungeon.level instanceof LastShopLevel) stage--;
 		stage = Math.min(stage, 4);
+		//a floor drawn on one of the five regional sheets gets that region's dressing
+		//whatever its depth says: the dev floors sit at 85 and 86 on sewer tiles, and by
+		//depth alone they were dressed for the demon halls (a halls urn for a sewer barrel)
+		int regional = regionalStage(Dungeon.level.tilesTex());
+		if (regional != -1) stage = regional;
 		//the overworld sits at depth 97, which lands on the demon-halls stage
 		//and paints every grass tile with red dressing - it wants sewers green
 		if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) stage = 0;
@@ -108,6 +125,11 @@ public class TerrainFeaturesTilemap extends DungeonTilemap {
 		} else if (tile == Terrain.TREE_OAK){
 			return 47;
 		} else if (tile == Terrain.BOULDER){
+			//a standing rock in the world is drawn whole by the overworld dressing
+			if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
+					&& ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).tallRockAt( pos )){
+				return -1;
+			}
 			return 63;
 		} else if (tile == Terrain.FLOWER_PATCH){
 			return 79;

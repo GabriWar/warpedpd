@@ -41,6 +41,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 
 import java.util.ArrayList;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
 
 public class BloodDance extends Skill {
 
@@ -74,6 +75,16 @@ public class BloodDance extends Skill {
 			Sample.INSTANCE.play( Assets.Sounds.HIT_STAB, 1f, 0.9f );
 			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.RED_LIGHT ), 6 );
 			new Flare( 6, 20 ).color( 0xCC2222, true ).show( hero.sprite, 0.6f ).angularSpeed = 120;
+			//the first turn of the waltz: a ring of red sweeping once around him, tile by tile
+			int w = Dungeon.level.width();
+			int[] around = { -w - 1, -w, -w + 1, 1, w + 1, w, w - 1, -1 };
+			FxTimeline t = FxTimeline.start();
+			for (int i = 0; i < around.length; i++){
+				final int c = hero.pos + around[i];
+				if (!SkillInteractions.valid( c ) || Dungeon.level.solid[c] || !Dungeon.level.heroFOV[c]) continue;
+				t.at( 0.05f * i, () -> Splash.at( c, 0xCC1111, 3 ) );
+			}
+			t.at( 0.4f, () -> Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 0.6f, 1.3f ) );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
 			hero.busy();

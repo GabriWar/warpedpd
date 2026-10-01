@@ -45,6 +45,21 @@ import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfHoneyedHeal
 import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfIcyTouch;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfMight;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfToxicEssence;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.brews.WickedBrew;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.brews.FrigidBrew;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.brews.FrostfireBrew;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.brews.ThunderheadBrew;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.brews.BlindingBrew;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.brews.OvergrowthBrew;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.brews.HypnoBrew;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.brews.QuicksandBrew;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfRestoration;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfVitality;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfTheShade;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfTheHunt;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfWarmth;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfBloom;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfClarity;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.ExoticPotion;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.Scroll;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ExoticScroll;
@@ -230,6 +245,22 @@ public abstract class Recipe {
 		new ElixirOfArcaneArmor.Recipe(),
 		new ElixirOfAquaticRejuvenation.Recipe(),
 		new ElixirOfHoneyedHealing.Recipe(),
+		//combination brews and elixirs: two regular potions
+		new WickedBrew.Recipe(),
+		new FrigidBrew.Recipe(),
+		new FrostfireBrew.Recipe(),
+		new ThunderheadBrew.Recipe(),
+		new BlindingBrew.Recipe(),
+		new OvergrowthBrew.Recipe(),
+		new HypnoBrew.Recipe(),
+		new QuicksandBrew.Recipe(),
+		new ElixirOfRestoration.Recipe(),
+		new ElixirOfVitality.Recipe(),
+		new ElixirOfTheShade.Recipe(),
+		new ElixirOfTheHunt.Recipe(),
+		new ElixirOfWarmth.Recipe(),
+		new ElixirOfBloom.Recipe(),
+		new ElixirOfClarity.Recipe(),
 		new UnstableSpell.Recipe(),
 		new Alchemize.Recipe(),
 		new CurseInfusion.Recipe(),

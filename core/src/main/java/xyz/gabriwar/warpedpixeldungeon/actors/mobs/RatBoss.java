@@ -49,6 +49,8 @@ public class RatBoss extends Mob {
 		lootChance = 0.5f / 4f;
 	}
 
+	private static final float SPAWN_DELAY = 2f;
+
 	private boolean spawnedRats = false;
 
 	private static final String SPAWNED_RATS = "spawned_rats";
@@ -102,7 +104,7 @@ public class RatBoss extends Mob {
 				Rat rat = new Rat();
 				rat.pos = cell;
 				rat.state = rat.HUNTING;
-				GameScene.add(rat);
+				GameScene.add(rat, SPAWN_DELAY);
 			}
 		}
 	}

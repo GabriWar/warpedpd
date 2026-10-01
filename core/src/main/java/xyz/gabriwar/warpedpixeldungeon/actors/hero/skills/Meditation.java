@@ -92,9 +92,13 @@ public class Meditation extends PassiveSkillA2 {
 		int gain = Math.min( 1 + level, effectiveMT - hero.MP );
 		hero.MP += gain;
 		if (hero.sprite != null){
+			//the pulse: a flare, motes rising, and a second, wider ring of light a breath later
 			new Flare( 5, 18 ).color( 0x66CCFF, true ).show( hero.sprite, 1f );
 			hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 4 + level );
 			hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "pulse", gain ) );
+			xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX.after( 0.35f, () -> {
+				if (hero.sprite != null) new Flare( 8, 30 ).color( 0x99DDFF, true ).show( hero.sprite, 0.8f );
+			} );
 		}
 		Sample.INSTANCE.play( Assets.Sounds.MELD, 0.6f, 1.2f );
 

@@ -77,8 +77,13 @@ public class LastStand extends Skill {
 		Buff.affect( hero, Barrier.class ).setShield( SkillInteractions.ofHealth( hero.HT, 0.05f * level ) );
 		castTextYell();
 		if (hero.sprite != null){
+			//the stand: a golden flare, a second wider one a beat later, and light streaming off him
 			new Flare( 6, 20 ).color( 0xFFCC66, true ).show( hero.sprite, 0.6f );
 			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 5 );
+			hero.sprite.emitter().start( Speck.factory( Speck.YELLOW_LIGHT ), 0.05f, 6 );
+			xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX.after( 0.2f, () -> {
+				if (hero.sprite != null) new Flare( 8, 28 ).color( 0xFFE6A1, true ).show( hero.sprite, 0.5f );
+			} );
 		}
 		Sample.INSTANCE.play( Assets.Sounds.STURDY, 1f, 0.8f );
 

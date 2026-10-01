@@ -134,6 +134,21 @@ import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfHoneyedHeal
 import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfIcyTouch;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfMight;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfToxicEssence;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.brews.WickedBrew;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.brews.FrigidBrew;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.brews.FrostfireBrew;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.brews.ThunderheadBrew;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.brews.BlindingBrew;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.brews.OvergrowthBrew;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.brews.HypnoBrew;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.brews.QuicksandBrew;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfRestoration;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfVitality;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfTheShade;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfTheHunt;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfWarmth;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfBloom;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfClarity;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.ExoticPotion;
 import xyz.gabriwar.warpedpixeldungeon.items.quest.CeremonialCandle;
 import xyz.gabriwar.warpedpixeldungeon.items.quest.CorpseDust;
@@ -448,6 +463,10 @@ public enum Catalog {
 				ShockingBrew.class, CausticBrew.class, AquaBrew.class, ElixirOfHoneyedHealing.class,
 				ElixirOfAquaticRejuvenation.class, ElixirOfArcaneArmor.class, ElixirOfDragonsBlood.class,
 				ElixirOfIcyTouch.class, ElixirOfToxicEssence.class, ElixirOfMight.class, ElixirOfFeatherFall.class);
+		BREWS_ELIXIRS.addItems( WickedBrew.class, FrigidBrew.class, FrostfireBrew.class, ThunderheadBrew.class,
+				BlindingBrew.class, OvergrowthBrew.class, HypnoBrew.class, QuicksandBrew.class,
+				ElixirOfRestoration.class, ElixirOfVitality.class, ElixirOfTheShade.class, ElixirOfTheHunt.class,
+				ElixirOfWarmth.class, ElixirOfBloom.class, ElixirOfClarity.class);
 
 		SPELLS.addItems( UnstableSpell.class, WildEnergy.class, TelekineticGrab.class, PhaseShift.class,
 				Alchemize.class, CurseInfusion.class, MagicalInfusion.class, Recycle.class,

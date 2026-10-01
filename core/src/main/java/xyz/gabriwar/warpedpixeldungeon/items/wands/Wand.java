@@ -213,6 +213,7 @@ public abstract class Wand extends Item {
 
 	protected void wandProc(Char target, int chargesUsed){
 		wandProc(target, buffedLvl(), chargesUsed);
+		xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.wandHit(this, target);
 		quiverProc(target);
 	}
 
@@ -411,7 +412,10 @@ public abstract class Wand extends Item {
 
 	@Override
 	public int buffedLvl() {
-		int lvl = super.buffedLvl();
+		int lvl = super.buffedLvl() + xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.wandLevel(this);
+		//a resonant echo or an attunement overcharge rides the next zap only
+		xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality q = xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.of( this );
+		if (q != null) lvl += q.nextZapLevels;
 
 		if (charger != null && charger.target != null) {
 
@@ -423,11 +427,14 @@ public abstract class Wand extends Item {
 			}
 
 			if (charger.target.buff(ScrollEmpower.class) != null){
-				lvl += 2;
+				//+2 levels, plus 1 per 5 wand levels
+				lvl += 2 + Math.max(0, lvl)/5;
 			}
 
 			if (curCharges == 1 && charger.target instanceof Hero && ((Hero)charger.target).hasTalent(Talent.DESPERATE_POWER)){
-				lvl += ((Hero)charger.target).pointsInTalent(Talent.DESPERATE_POWER);
+				//+1/2/3 levels, plus 1/2/3 per 8 wand levels
+				int p = ((Hero)charger.target).pointsInTalent(Talent.DESPERATE_POWER);
+				lvl += p + (Math.max(0, lvl)*p)/8;
 			}
 
 			if (charger.target.buff(WildMagic.WildMagicTracker.class) != null){
@@ -450,8 +457,11 @@ public abstract class Wand extends Item {
 	}
 
 	public void updateLevel() {
-		maxCharges = Math.min( initialCharges() + level(), 10 );
-		curCharges = Math.min( curCharges, maxCharges );
+		xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality q = xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.of( this );
+		int cap = q == null ? 10 : q.chargeCap();
+		maxCharges = Math.min( initialCharges() + level() + (q == null ? 0 : q.chargeBonus( this )), cap );
+		//an alpha Wellspring may hold charges above its own maximum
+		curCharges = Math.min( curCharges, maxCharges + xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.overcharge( this ) );
 	}
 	
 	public int initialCharges() {
@@ -479,7 +489,15 @@ public abstract class Wand extends Item {
 		particle.radiateXY(0.5f);
 	}
 
+	private static int backupBarrier(){
+		int p = Dungeon.hero.pointsInTalent(Talent.BACKUP_BARRIER);
+		return 1 + p*(2 + Dungeon.hero.HT/25);
+	}
+
 	public void wandUsed() {
+		//the empowered zap is spent: it lasted exactly one cast
+		xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality zapQ = xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.of( this );
+		if (zapQ != null) zapQ.nextZapLevels = 0;
 		quiverTargets.clear();
 		quiverCaster = null;
 		if (!isIdentified()) {
@@ -512,7 +530,9 @@ public abstract class Wand extends Item {
 			}
 		}
 		
-		curCharges -= cursed ? 1 : chargesPerCast();
+		//Resonance: a typed wand may keep the charge
+		xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.wandZapped( this, curCharges >= maxCharges );
+		if (!xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.resonance( this )) curCharges -= cursed ? 1 : chargesPerCast();
 
 		//skill tree: Mage's Wizard - a spent charge may snap back into the hero's own wand
 		if (charger != null && charger.target == Dungeon.hero){
@@ -759,8 +779,8 @@ public abstract class Wand extends Item {
 
 						//regular. If hero owns wand but it isn't in belongings it must be in the staff
 						if (curUser.heroClass == HeroClass.MAGE && !curUser.belongings.contains(curWand)){
-							//grants 3/5 shielding
-							int shieldToGive = 1 + 2 * Dungeon.hero.pointsInTalent(Talent.BACKUP_BARRIER);
+							//grants 3/5/7 shielding, +1/2/3 per 25 max HP
+							int shieldToGive = backupBarrier();
 							Buff.affect(Dungeon.hero, Barrier.class).setShield(shieldToGive);
 							Dungeon.hero.sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(shieldToGive), FloatingText.SHIELDING);
 
@@ -773,8 +793,8 @@ public abstract class Wand extends Item {
 								}
 							}
 							if (highest){
-								//grants 3/5 shielding
-								int shieldToGive = 1 + 2 * Dungeon.hero.pointsInTalent(Talent.BACKUP_BARRIER);
+								//grants 3/5/7 shielding, +1/2/3 per 25 max HP
+								int shieldToGive = backupBarrier();
 								Buff.affect(Dungeon.hero, Barrier.class).setShield(shieldToGive);
 								Dungeon.hero.sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(shieldToGive), FloatingText.SHIELDING);
 							}
@@ -886,7 +906,9 @@ public abstract class Wand extends Item {
 					+ (SCALING_CHARGE_ADDITION * Math.pow(scalingFactor, missingCharges)));
 
 			if (Regeneration.regenOn()){
-				float chargeGain = (1f/turnsToCharge) * RingOfEnergy.wandChargeMultiplier(target);
+				float chargeGain = (1f/turnsToCharge) * RingOfEnergy.wandChargeMultiplier(target)
+						* xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.wandRecharge(Wand.this)
+						* (1f + xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.value( Wand.this, xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.RECHARGE ) + xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.potency( Wand.this ));
 				//skill tree: Mage's Wizard - wands recharge faster
 				float skillFactor = Dungeon.hero != null
 						? Dungeon.hero.heroSkills.allWandRecharge() : 1f;

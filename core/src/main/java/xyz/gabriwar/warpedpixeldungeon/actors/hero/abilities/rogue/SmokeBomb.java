@@ -172,8 +172,12 @@ public class SmokeBomb extends ArmorAbility {
 
 			alignment = Alignment.ALLY;
 
+			//20% of the hero's max HP per point, at least 20 per point
 			HT = 20;
-			if (Dungeon.hero != null) HT *= Dungeon.hero.pointsInTalent(Talent.BODY_REPLACEMENT);
+			if (Dungeon.hero != null) {
+				int p = Dungeon.hero.pointsInTalent(Talent.BODY_REPLACEMENT);
+				HT = Math.max(20*p, Math.round(0.2f * p * Dungeon.hero.HT));
+			}
 			HP = HT;
 		}
 
@@ -181,8 +185,9 @@ public class SmokeBomb extends ArmorAbility {
 		public int drRoll() {
 			int dr = super.drRoll();
 
-			dr += Random.NormalIntRange(Dungeon.hero.pointsInTalent(Talent.BODY_REPLACEMENT),
-					3*Dungeon.hero.pointsInTalent(Talent.BODY_REPLACEMENT));
+			//25% of the hero's armor roll per point, at least 1-3 per point
+			int p = Dungeon.hero.pointsInTalent(Talent.BODY_REPLACEMENT);
+			dr += Math.max(Random.NormalIntRange(p, 3*p), Math.round(Dungeon.hero.drRoll() * p / 4f));
 
 			return dr;
 		}

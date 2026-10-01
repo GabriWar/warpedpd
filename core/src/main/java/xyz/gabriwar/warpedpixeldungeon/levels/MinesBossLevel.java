@@ -45,9 +45,11 @@ import xyz.gabriwar.warpedpixeldungeon.levels.traps.ChangeSheepTrap;
 import xyz.gabriwar.warpedpixeldungeon.levels.traps.FleecingTrap;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOtilukeMessage;
+import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
+import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
 
 public class MinesBossLevel extends Level {
@@ -193,7 +195,13 @@ public class MinesBossLevel extends Level {
 		if (isHero && !entered) {
 			entered = true;
 			locked = true;
-			GameScene.show(new WndOtilukeMessage());
+			//occupyCell runs on the actor thread: a window has to be built on the render thread
+			Game.runOnRenderThread(new Callback() {
+				@Override
+				public void call() {
+					GameScene.show(new WndOtilukeMessage());
+				}
+			});
 		}
 	}
 

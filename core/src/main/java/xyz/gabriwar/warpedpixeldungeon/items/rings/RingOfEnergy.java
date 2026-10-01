@@ -62,7 +62,8 @@ public class RingOfEnergy extends Ring {
 	}
 	
 	public static float wandChargeMultiplier( Char target ){
-		float bonus = (float)Math.pow(1.175, getBuffedBonus(target, Energy.class));
+		float bonus = (float)Math.pow(1.175, getBuffedBonus(target, Energy.class))
+				* (1f + xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.heroBonus(target, xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.Stat.WAND_CHARGE));
 
 		if (target instanceof Hero && ((Hero) target).heroClass != HeroClass.CLERIC && ((Hero) target).hasTalent(Talent.LIGHT_READING)){
 			bonus *= 1f + (0.2f * ((Hero) target).pointsInTalent(Talent.LIGHT_READING)/3f);
@@ -72,7 +73,8 @@ public class RingOfEnergy extends Ring {
 	}
 
 	public static float artifactChargeMultiplier( Char target ){
-		float bonus = (float)Math.pow(1.175, getBuffedBonus(target, Energy.class));
+		float bonus = (float)Math.pow(1.175, getBuffedBonus(target, Energy.class))
+				* (1f + xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.heroBonus(target, xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.Stat.ARTIFACT_CHARGE));
 
 		if (target instanceof Hero && ((Hero) target).heroClass != HeroClass.ROGUE && ((Hero) target).hasTalent(Talent.LIGHT_CLOAK)){
 			bonus *= 1f + (0.2f * ((Hero) target).pointsInTalent(Talent.LIGHT_CLOAK)/3f);

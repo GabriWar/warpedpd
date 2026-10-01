@@ -317,7 +317,7 @@ public class LloydsBeacon extends Artifact {
 		@Override
 		public boolean act() {
 			if (charge < chargeCap && !cursed && Regeneration.regenOn()) {
-				partialCharge += 1 / (100f - (chargeCap - charge)*10f);
+				partialCharge += 1 / (100f - (chargeCap - charge)*10f) * xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.artifactCharge(LloydsBeacon.this);
 
 				while (partialCharge >= 1) {
 					partialCharge --;

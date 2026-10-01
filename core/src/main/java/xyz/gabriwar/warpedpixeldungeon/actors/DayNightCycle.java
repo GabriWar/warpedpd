@@ -471,9 +471,13 @@ public class DayNightCycle {
 		}
 		lastPhase = after;
 
+		long tClimate = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
 		ClimateManager.onHeroTurn();
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "ClimateManager.onHeroTurn", tClimate );
 		WeatherBlobSpawner.onHeroTurn();
+		long tPlants = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
 		PlantGrowthManager.onHeroTurn(Dungeon.level);
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "PlantGrowthManager.onHeroTurn", tPlants );
 		TownCommute.onHeroTurn();
 		Comfy.check( Dungeon.hero );
 		Badges.validateWorldTurn();

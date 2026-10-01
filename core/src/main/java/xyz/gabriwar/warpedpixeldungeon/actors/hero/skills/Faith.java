@@ -25,6 +25,7 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PulseRingFX;
 
 
 import com.watabou.noosa.audio.Sample;
@@ -92,6 +93,7 @@ public class Faith extends PassiveSkillA1 {
 
 		if (hero.sprite != null){
 			new Flare( 6, 32 ).color( 0xFFEE88, true ).show( hero.sprite, 1f );
+			PulseRingFX.around( hero.sprite, 0x8AC0FF, 14, 0.5f );
 			hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 8 );
 			if (gain > 0) hero.sprite.showStatus( 0x8ac0ff, "+" + gain );
 			if (blocks) hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );

@@ -100,14 +100,15 @@ public abstract class TippedDart extends Dart {
 				protected void onSelect(int index) {
 					if (index == 0){
 						detachAll(hero.belongings.backpack);
-						new Dart().quantity(quantity).collect();
+						cleaned(quantity).collect();
 						
 						hero.spend( 1f );
 						hero.busy();
 						hero.sprite.operate(hero.pos);
 					} else if (index == 1 && quantity() > 1){
 						detach(hero.belongings.backpack);
-						if (!new Dart().quantity(1).collect()) Dungeon.level.drop(new Dart().quantity(1), hero.pos).sprite.drop();
+						Dart clean = cleaned(1);
+						if (!clean.collect()) Dungeon.level.drop(clean, hero.pos).sprite.drop();
 
 						//reset durability if there are darts left in the stack
 						durability = MAX_DURABILITY;
@@ -122,6 +123,14 @@ public abstract class TippedDart extends Dart {
 		}
 	}
 	
+	//a cleaned dart keeps the type the tipped one carried
+	private Dart cleaned( int amount ){
+		Dart d = new Dart();
+		d.quantity( amount );
+		if (quality != null) d.quality = quality.copy();
+		return d;
+	}
+
 	//exact same damage as regular darts, despite being higher tier.
 
 	@Override
@@ -132,8 +141,7 @@ public abstract class TippedDart extends Dart {
 		//need to spawn a dart
 		if (durability <= 0 && !spawnedForEffect){
 			//attempt to stick the dart to the enemy, just drop it if we can't.
-			Dart d = new Dart();
-			d.quantity(1);
+			Dart d = cleaned(1);
 			Catalog.countUse(getClass());
 			if (sticky && enemy != null && enemy.isAlive() && enemy.alignment != Char.Alignment.ALLY){
 				PinCushion p = Buff.affect(enemy, PinCushion.class);
@@ -148,6 +156,18 @@ public abstract class TippedDart extends Dart {
 
 	//the number of regular darts lost due to merge being called
 	public static int lostDarts = 0;
+	//the type the lost darts carried, so the plain darts they fall back to keep it
+	private static xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality lostDartsQuality = null;
+
+	/** the plain darts a merge spilled, typed like the stack they came from; resets the count */
+	public static Dart takeLostDarts(){
+		Dart d = new Dart();
+		d.quantity( lostDarts );
+		if (lostDartsQuality != null) d.quality = lostDartsQuality.copy();
+		lostDarts = 0;
+		lostDartsQuality = null;
+		return d;
+	}
 
 	@Override
 	public Item merge(Item other) {
@@ -158,6 +178,7 @@ public abstract class TippedDart extends Dart {
 		//need to spawn waste tipped darts as regular darts
 		if (extra > 0){
 			lostDarts += extra;
+			lostDartsQuality = quality;
 		}
 		return this;
 	}

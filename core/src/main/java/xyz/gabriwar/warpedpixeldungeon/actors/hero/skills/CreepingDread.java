@@ -38,6 +38,8 @@ import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import com.watabou.utils.Random;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
 
 public class CreepingDread extends Skill {
 
@@ -63,12 +65,22 @@ public class CreepingDread extends Skill {
 			} );
 			castTextYell();
 			CellEmitter.get( enemy.pos ).burst( ShadowParticle.CURSE, 5 );
-			//at mastery the fear spills onto every enemy standing beside it
-			if (level >= MAX_LEVEL) for (int n : PathFinder.NEIGHBOURS8){
-				Char other = Actor.findChar( enemy.pos + n );
-				if (other == null || other.alignment != Char.Alignment.ENEMY || !other.isAlive()) continue;
-				Buff.affect( other, Terror.class, 3 + level ).object = Dungeon.hero.id();
-				CellEmitter.get( other.pos ).burst( ShadowParticle.CURSE, 3 );
+			if (enemy.sprite != null) enemy.sprite.emitter().burst( Speck.factory( Speck.SCREAM ), 1 );
+			//at mastery the fear spills onto every enemy standing beside it, one after another
+			if (level >= MAX_LEVEL){
+				FxTimeline t = FxTimeline.start();
+				int order = 0;
+				for (int n : PathFinder.NEIGHBOURS8){
+					Char other = Actor.findChar( enemy.pos + n );
+					if (other == null || other.alignment != Char.Alignment.ENEMY || !other.isAlive()) continue;
+					Buff.affect( other, Terror.class, 3 + level ).object = Dungeon.hero.id();
+					final Char next = other;
+					t.at( 0.1f + 0.08f * order++, () -> {
+						if (next.sprite == null || !next.isAlive()) return;
+						CellEmitter.get( next.pos ).burst( ShadowParticle.CURSE, 3 );
+						next.sprite.emitter().burst( Speck.factory( Speck.SCREAM ), 1 );
+					} );
+				}
 			}
 			Sample.INSTANCE.play( Assets.Sounds.GHOST, 0.8f, 0.8f );
 		}

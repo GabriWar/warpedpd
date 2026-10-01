@@ -24,8 +24,10 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import com.watabou.utils.Bundle;
+import xyz.gabriwar.warpedpixeldungeon.ui.BossHealthBar;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Amok;
@@ -35,8 +37,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Charm;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Sleep;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
+import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPsionicBlast;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Vampiric;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.relic.RelicMeleeWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.JupitersWraith;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
@@ -71,6 +77,11 @@ public class Otiluke extends Mob implements Callback {
 		immunities.add(Burning.class);
 		immunities.add(ToxicGas.class);
 		immunities.add(Vertigo.class);
+		immunities.add(Grim.class);
+		immunities.add(Vampiric.class);
+		immunities.add(ScrollOfPsionicBlast.class);
+
+		resistances.add(Poison.class);
 
 		//no metabolism to disturb: only the extremes reach it
 		thermal = Thermal.INSENSATE;
@@ -99,6 +110,7 @@ public class Otiluke extends Mob implements Callback {
 	@Override
 	public void notice() {
 		super.notice();
+		if (!BossHealthBar.isAssigned()) BossHealthBar.assignBoss( this );
 		yell(Messages.get(this, "notice"));
 	}
 
@@ -115,24 +127,31 @@ public class Otiluke extends Mob implements Callback {
 			boolean visible = Dungeon.level.heroFOV[pos] || Dungeon.level.heroFOV[enemy.pos];
 			if (visible) {
 				sprite.zap(enemy.pos);
-			}
-			spend(attackDelay());
-
-			if (hit(this, enemy, true)) {
-				int dmg = Random.Int(100, 160);
-				enemy.damage(dmg, this);
-				if (Random.Int(2) == 0) {
-					Buff.prolong(enemy, Weakness.class, Weakness.DURATION);
-				}
 			} else {
-				enemy.sprite.showStatus(CharSprite.NEUTRAL, enemy.defenseVerb());
+				zap();
 			}
 			return !visible;
 		}
 	}
 
+	private void zap() {
+		spend(attackDelay());
+
+		if (hit(this, enemy, true)) {
+			if (enemy == Dungeon.hero && Random.Int(2) == 0) {
+				Buff.prolong(enemy, Weakness.class, Weakness.DURATION);
+			}
+
+			int dmg = Random.Int(100, 160);
+			enemy.damage(dmg, this);
+		} else {
+			enemy.sprite.showStatus(CharSprite.NEUTRAL, enemy.defenseVerb());
+		}
+	}
+
 	@Override
 	public void damage(int dmg, Object src) {
+		if (!BossHealthBar.isAssigned()) BossHealthBar.assignBoss( this );
 		if (state == PASSIVE) {
 			state = HUNTING;
 		}
@@ -159,16 +178,24 @@ public class Otiluke extends Mob implements Callback {
 
 	@Override
 	public void die(Object cause) {
+		GameScene.bossSlain();
 		Dungeon.level.unseal();
 		super.die(cause);
 	}
 
 	public void onZapComplete() {
+		zap();
 		next();
 	}
 
 	@Override
 	public void call() {
 		next();
+	}
+
+	@Override
+	public void restoreFromBundle( Bundle bundle ) {
+		super.restoreFromBundle( bundle );
+		if (enemySeen || HP < HT) BossHealthBar.assignBoss( this );
 	}
 }

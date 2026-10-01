@@ -110,9 +110,10 @@ public class TownShopLevel extends TownInteriorLevel {
 	@Override
 	public void occupyCell(Char ch) {
 		super.occupyCell(ch);
-		//every visit refills what was bought; also stocks a shop interior that was
-		//generated before the shops moved in here
-		if (ch == Dungeon.hero) {
+		//the first visit stocks the shelves (and a shop interior generated before the
+		//shops moved in here); after that only the keeper's five-day rotation refills
+		if (ch == Dungeon.hero && !stockedOnce) {
+			stockedOnce = true;
 			storeStock();
 		}
 	}
@@ -133,6 +134,22 @@ public class TownShopLevel extends TownInteriorLevel {
 		} else {
 			mobs.add(keeper);
 		}
+	}
+
+	private boolean stockedOnce = false;
+	private static final String STOCKED_ONCE = "stocked_once";
+
+	@Override
+	public void storeInBundle( com.watabou.utils.Bundle bundle ) {
+		super.storeInBundle( bundle );
+		bundle.put( STOCKED_ONCE, stockedOnce );
+	}
+
+	@Override
+	public void restoreFromBundle( com.watabou.utils.Bundle bundle ) {
+		super.restoreFromBundle( bundle );
+		//shops from older saves were stocked on every visit, so they have been stocked
+		stockedOnce = !bundle.contains( STOCKED_ONCE ) || bundle.getBoolean( STOCKED_ONCE );
 	}
 
 	protected void storeStock() {

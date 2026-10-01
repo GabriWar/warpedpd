@@ -68,13 +68,24 @@ public abstract class OptionSlider extends Component {
 		this.maxVal = maxVal;
 
 		sliderTicks = new ColorBlock[(maxVal - minVal) + 1];
+		//a long range draws a tick every tenth of the way (and at both ends) - one per
+		//value would pack them a pixel apart into a solid bar
+		int range = maxVal - minVal;
+		int every = range > 20 ? Math.max(1, range / 10) : 1;
 		for (int i = 0; i < sliderTicks.length; i++){
 			add(sliderTicks[i] = new ColorBlock(1, 9, 0xFF222222));
+			sliderTicks[i].visible = i % every == 0 || i == range;
 		}
 		add(sliderNode);
 	}
 
 	protected abstract void onChange();
+
+	/** Changes the title, for sliders that show their current value in it. */
+	public void setTitle(String text){
+		title.text(text);
+		layout();
+	}
 
 	public int getSelectedValue(){
 		return selectedVal;

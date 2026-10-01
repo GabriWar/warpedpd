@@ -153,6 +153,7 @@ abstract public class Weapon extends KindOfWeapon {
 	
 	@Override
 	public int proc( Char attacker, Char defender, int damage ) {
+		damage = xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.weaponHit( this, attacker, defender, damage );
 
 		if (attacker.buff(MagicImmune.class) == null) {
 			Enchantment trinityEnchant = null;
@@ -356,12 +357,17 @@ abstract public class Weapon extends KindOfWeapon {
 			ACC /= 5;
 		}
 
+		if (xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.sureHit( this, owner, target )) return Char.INFINITE_ACCURACY;
+		ACC *= 1f + xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.value( this, xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.ACCURACY );
+
 		return encumbrance > 0 ? (float)(ACC / Math.pow( 1.5, encumbrance )) : ACC;
 	}
 	
 	@Override
 	public float delayFactor( Char owner ) {
-		return baseDelay(owner) * (1f/speedMultiplier(owner));
+		return baseDelay(owner) * (1f/speedMultiplier(owner))
+				/ (1f + xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.value( this, xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.SPEED ))
+				/ xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.perkSpeed( this );
 	}
 
 	protected float baseDelay( Char owner ){
@@ -398,6 +404,8 @@ abstract public class Weapon extends KindOfWeapon {
 		if (owner instanceof Hero && owner.buff(AscendedForm.AscendBuff.class) != null){
 			reach += 2;
 		}
+		//an alpha Reach weapon keeps enemies one tile further out
+		reach += xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.reachBonus( this, owner );
 		if (hasEnchant(Projecting.class, owner)){
 			int bonus = Math.round(Enchantment.genericProcChanceMultiplier(owner));
 			//an empowered projecting reaches further still (+1 tile at level 3+)
@@ -414,6 +422,22 @@ abstract public class Weapon extends KindOfWeapon {
 	}
 
 	public abstract int STRReq(int lvl);
+
+	/**
+	 * The worth of a weapon that is neither melee nor thrown: the guns and bows ported
+	 * from SPS-PD (ShootGun, MiniGun, MegaCannon, ElfBow, TaurcenBow), unique pieces there
+	 * that no shop ever stocked, so they came over worth nothing. Here the generator can
+	 * shelve them, and a shop's price is value x depth: worth nothing, they were free.
+	 * They are priced like a tier-3 melee weapon, lifted by known upgrades, halved when
+	 * known to be cursed. MeleeWeapon and MissileWeapon keep their own prices.
+	 */
+	@Override
+	public int value() {
+		int price = 60;
+		if (cursedKnown && (cursed || hasCurseEnchant())) price /= 2;
+		if (levelKnown && level() > 0) price *= (level() + 1);
+		return Math.max( 1, price );
+	}
 
 	protected static int STRReq(int tier, int lvl){
 		lvl = Math.max(0, lvl);
@@ -531,6 +555,8 @@ abstract public class Weapon extends KindOfWeapon {
 			//never carry the same enchantment twice
 			enchantment2 = null;
 		}
+		//a fresh enchantment starts at level 0: give a high rarity its empowerment back
+		xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.empower( this );
 		updateQuickslot();
 		if (ench != null && isIdentified() && Dungeon.hero != null
 				&& Dungeon.hero.isAlive() && Dungeon.hero.belongings.contains(this)){
@@ -560,6 +586,7 @@ abstract public class Weapon extends KindOfWeapon {
 			return enchant( ench );
 		}
 		enchantment2 = ench;
+		xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.empower( this );
 		updateQuickslot();
 		if (isIdentified() && Dungeon.hero != null
 				&& Dungeon.hero.isAlive() && Dungeon.hero.belongings.contains(this)){

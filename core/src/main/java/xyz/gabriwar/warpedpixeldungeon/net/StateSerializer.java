@@ -188,6 +188,7 @@ public class StateSerializer {
 		id.put("season", GameCalendar.season().ordinal());
 		if (level instanceof OverworldLevel) {
 			OverworldLevel ow = (OverworldLevel) level;
+			id.put("alt", ow.altitude());
 			id.put("wseed", ow.worldSeed());
 			id.put("wx", ow.worldX());
 			id.put("wy", ow.worldY());

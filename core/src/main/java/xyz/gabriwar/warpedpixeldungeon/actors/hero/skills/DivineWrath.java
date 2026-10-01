@@ -65,6 +65,28 @@ public class DivineWrath extends ActiveSkill {
 		if (action.equals( Skill.AC_ACTIVATE )){
 			Skill smite = hero.heroSkills.get( HolySmite.class );
 			if (smite != null) smite.active = false;
+			xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraBuff.sync( hero, HolySmite.Radiance.class, false );
+			//the wrath is kindled: a gout of holy flame and a low pulse of gold
+			if (hero.sprite != null){
+				hero.sprite.emitter().burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle.FACTORY, 8 );
+				xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PulseRingFX.around( hero.sprite, 0xFFB050, 12, 0.4f );
+			}
+			Sample.INSTANCE.play( Assets.Sounds.BURNING, 0.7f, 1.2f );
+		} else if (action.equals( Skill.AC_DEACTIVATE )){
+			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.SMOKE ), 3 );
+			Sample.INSTANCE.play( Assets.Sounds.DEGRADE, 0.5f, 1.2f );
+		}
+		xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraBuff.sync( hero, Embers.class, active && level > 0 );
+	}
+
+	/** the stance held: two ember motes round the cleric, and now and then a lick of flame at the feet */
+	public static class Embers extends xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraBuff {
+		@Override
+		protected Class<? extends Skill> stance(){ return DivineWrath.class; }
+		@Override
+		protected xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraFX build(){
+			return new xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraFX( target, 0xFFB050, 2,
+					xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle.FACTORY, 1.1f );
 		}
 	}
 
@@ -89,7 +111,13 @@ public class DivineWrath extends ActiveSkill {
 		}
 		Buff.affect( hero, DivineWrathGround.class ).consecrate( cells, level );
 
-		if (enemy.sprite != null) enemy.sprite.emitter().burst( Speck.factory( Speck.YELLOW_LIGHT ), 5 );
+		//the ground catches: flame under the blow, a hot flash on the enemy
+		if (enemy.sprite != null){
+			enemy.sprite.emitter().burst( Speck.factory( Speck.YELLOW_LIGHT ), 5 );
+			enemy.sprite.flash();
+			new xyz.gabriwar.warpedpixeldungeon.effects.Flare( 5, 12 ).color( 0xFFB050, true ).show( enemy.sprite, 0.3f );
+		}
+		for (int c : cells) xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.floor( c ).burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle.FACTORY, 2 );
 		Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 0.8f, 1.3f );
 		Sample.INSTANCE.play( Assets.Sounds.BURNING, 0.5f, 1.4f );
 

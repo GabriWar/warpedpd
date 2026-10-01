@@ -35,8 +35,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX;
 import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfForce;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
@@ -151,6 +154,8 @@ public class Leap extends Skill {
 			final int land = landing;
 			hero.busy();
 			Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 0.7f );
+			//the push-off kicks up the floor behind him
+			CellEmitter.bottom( hero.pos ).burst( Speck.factory( Speck.DUST ), 4 );
 			hero.sprite.jump( hero.pos, land, () -> {
 				if (land != hero.pos){
 					hero.move( land );
@@ -175,11 +180,15 @@ public class Leap extends Skill {
 				if (level >= MAX_LEVEL){
 					for (int c : SkillInteractions.area( land, 1 )){
 						if (c == land) continue;
-						xyz.gabriwar.warpedpixeldungeon.effects.WarriorImpactFX.show( c );
 						Char near = Actor.findChar( c );
 						if (near != null && near != victim && near.alignment == Char.Alignment.ENEMY)
 							SkillInteractions.push( near, land, 1, 0 );
 					}
+					//the wave itself is seen a beat after the boots hit
+					StaggerFX.ring( land, 1, 0.08f, ( c, r ) -> {
+						xyz.gabriwar.warpedpixeldungeon.effects.WarriorImpactFX.show( c );
+						CellEmitter.bottom( c ).burst( Speck.factory( Speck.DUST ), 2 );
+					} );
 				}
 				hero.spendAndNext( TIME_TO_USE );
 			} );

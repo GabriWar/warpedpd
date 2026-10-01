@@ -43,6 +43,8 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.MrDestructo2dot0Sprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Random;
 
+import java.util.HashSet;
+
 public class MrDestructo2dot0 extends Mob {
 
 	{
@@ -52,8 +54,6 @@ public class MrDestructo2dot0 extends Mob {
 		state = HUNTING;
 		HP = HT = 200;
 		defenseSkill = 35;
-
-		WANDERING = new Hunting();
 
 		immunities.add( Terror.class );
 		immunities.add( ToxicGas.class );
@@ -82,18 +82,26 @@ public class MrDestructo2dot0 extends Mob {
 			fieldOfView = new boolean[Dungeon.level.length()];
 		}
 		Dungeon.level.updateFieldOfView( this, fieldOfView );
+
+		//it announces itself while it has nothing to shoot at and the hero is close by
+		if (enemy == null && Dungeon.hero.isAlive()
+				&& Dungeon.level.distance( pos, Dungeon.hero.pos ) <= 2) {
+			yell( Messages.get(this, "scanning") );
+		}
+
 		return super.act();
 	}
 
 	@Override
 	protected Char chooseEnemy() {
-		if (enemy == null || !enemy.isAlive() || !fieldOfView[enemy.pos]) {
+		if (enemy == null || !enemy.isAlive()) {
+			HashSet<Mob> enemies = new HashSet<>();
 			for (Mob mob : Dungeon.level.mobs) {
-				if (mob.alignment == Alignment.ENEMY && fieldOfView[mob.pos]) {
-					return mob;
+				if (mob.alignment == Alignment.ENEMY && Dungeon.level.heroFOV[mob.pos]) {
+					enemies.add( mob );
 				}
 			}
-			return null;
+			enemy = enemies.isEmpty() ? null : Random.element( enemies );
 		}
 		return enemy;
 	}
@@ -191,22 +199,5 @@ public class MrDestructo2dot0 extends Mob {
 		m.state = m.HUNTING;
 		GameScene.add( m, SPAWN_DELAY );
 		return m;
-	}
-
-	private class Hunting extends Mob.Wandering {
-		@Override
-		public boolean act( boolean enemyInFOV, boolean justAlerted ) {
-			enemySeen = enemyInFOV;
-			if (enemyInFOV && canAttack( enemy )) {
-				return doAttack( enemy );
-			} else {
-				enemy = chooseEnemy();
-				if (enemy != null && canAttack( enemy )) {
-					return doAttack( enemy );
-				}
-				spend( TICK );
-				return true;
-			}
-		}
 	}
 }

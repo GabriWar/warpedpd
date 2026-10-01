@@ -58,6 +58,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.artifacts.EtherealChains;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.HolyTome;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.HornOfPlenty;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.MasterThievesArmband;
+import xyz.gabriwar.warpedpixeldungeon.items.artifacts.CapeOfThorns;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.SandalsOfNature;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.SkeletonKey;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.TalismanOfForesight;
@@ -691,13 +692,14 @@ public class Generator {
 					Suncarnivore.Seed.class,
 					Tankcabbage.Seed.class,
 					Venusflytrap.Seed.class,
-					Waterweed.Seed.class};
-			//65 probs to match the 65 SEED.classes above - one extra trailing weight
+					Waterweed.Seed.class,
+					xyz.gabriwar.warpedpixeldungeon.plants.BlandfruitBush.Seed.class};
+			//66 probs to match the 66 SEED.classes above - one extra trailing weight
 			//let Random.chances return an out-of-bounds index and crash worldgen
 			SEED.defaultProbs = new float[]{ 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 1, 1, 1,
 					1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 					1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-					1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+					1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 			SEED.probs = SEED.defaultProbs.clone();
 			
 			SCROLL.classes = new Class<?>[]{
@@ -1034,9 +1036,10 @@ public class Generator {
 					TimekeepersHourglass.class,
 					UnstableSpellbook.class,
 					RingOfDisintegration.class,
-					RingOfFrost.class
+					RingOfFrost.class,
+					CapeOfThorns.class
 			};
-			ARTIFACT.defaultProbs = new float[]{ 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+			ARTIFACT.defaultProbs = new float[]{ 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 			ARTIFACT.probs = ARTIFACT.defaultProbs.clone();
 
 			//Trinkets are unique like artifacts, but unlike them you can only have one at once
@@ -1160,6 +1163,16 @@ public class Generator {
 	}
 	
 	public static Item random( Category cat ) {
+		return withQuality( randomRaw( cat ) );
+	}
+
+	//every generated item passes through here: rarity and type are rolled once, on creation
+	private static Item withQuality( Item item ){
+		xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.roll( item );
+		return item;
+	}
+
+	private static Item randomRaw( Category cat ) {
 		switch (cat) {
 			case ARMOR:
 				return randomArmor();
@@ -1208,6 +1221,10 @@ public class Generator {
 	//overrides any deck systems and always uses default probs
 	// except for artifacts, which must always use a deck
 	public static Item randomUsingDefaults( Category cat ){
+		return withQuality( randomUsingDefaultsRaw( cat ) );
+	}
+
+	private static Item randomUsingDefaultsRaw( Category cat ){
 		if (cat == Category.WEAPON){
 			return randomWeapon(true);
 		} else if (cat == Category.MISSILE){
@@ -1234,7 +1251,7 @@ public class Generator {
 	}
 	
 	public static Item random( Class<? extends Item> cl ) {
-		return Reflection.newInstance(cl).random();
+		return withQuality( Reflection.newInstance(cl).random() );
 	}
 
 	public static Armor randomArmor(){
@@ -1436,8 +1453,11 @@ public class Generator {
 					cat.dropped = bundle.getInt(cat.name().toLowerCase() + CATEGORY_DROPPED);
 				}
 
+				//saves from before the cape of thorns was appended to the artifact list: it is still undropped
+				if (cat == Category.ARTIFACT && probs.length == cat.defaultProbs.length - 1){
+					System.arraycopy(probs, 0, cat.probs, 0, probs.length);
 				//pre-v3.3.0 conversion for artifacts (addition of tome and key)
-				if (cat == Category.ARTIFACT && probs.length != cat.defaultProbs.length){
+				} else if (cat == Category.ARTIFACT && probs.length != cat.defaultProbs.length){
 					int keyIDX = 9;
 					int j = 0;
 					for (int i = 0; i < probs.length; i++){

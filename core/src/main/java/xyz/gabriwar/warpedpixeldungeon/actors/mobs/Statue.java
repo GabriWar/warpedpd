@@ -206,8 +206,7 @@ public class Statue extends Mob {
 		resistances.add(Grim.class);
 		resistances.add(xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas.class);
 		resistances.add(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison.class);
-		resistances.add(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Doom.class);
-		resistances.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Vampiric.class);
+		immunities.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Vampiric.class);
 	}
 
 	public static Statue random(){

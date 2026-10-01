@@ -27,15 +27,15 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
-import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FlavourBuff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import com.watabou.utils.Random;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import com.watabou.utils.Bundle;
 
 public class Demoralize extends Skill {
 
@@ -54,29 +54,45 @@ public class Demoralize extends Skill {
 
 	@Override
 	public int onHitProc( Char enemy, int damage, boolean ranged ){
-		if (ranged || level <= 0 || enemy == null || !enemy.isAlive())
-			return damage;
-
-		if (Random.Int( 100 ) < 10 * level){
-			Buff.prolong( enemy, Weakness.class, 4 + 2 * level );
-			if (enemy.sprite != null){
-				enemy.sprite.emitter().burst( Speck.factory( Speck.SCREAM ), 3 );
-			}
-			//+3: the fear spreads to every enemy close by
-			if (level >= MAX_LEVEL){
-				for (Mob mob : Dungeon.level.mobs.toArray( new Mob[0] )){
-					if (mob == enemy || mob.alignment != Char.Alignment.ENEMY || !mob.isAlive()
-							|| Dungeon.level.distance( enemy.pos, mob.pos ) > 2) continue;
-					Buff.prolong( mob, Weakness.class, 4 + 2 * level );
-					if (mob.sprite != null && mob.sprite.visible){
-						mob.sprite.emitter().burst( Speck.factory( Speck.SCREAM ), 2 );
-					}
+		if (ranged || level <= 0 || enemy == null || !enemy.isAlive()) return damage;
+		Demoralized debuff = enemy.buff(Demoralized.class);
+		if (debuff == null) debuff = Buff.affect(enemy, Demoralized.class);
+		debuff.factor = 1f - (level == 1 ? .05f : level == 2 ? .10f : .20f);
+		debuff.hits++;
+		Buff.prolong(enemy, Demoralized.class, 20f);
+		if (enemy.sprite != null){
+			enemy.sprite.emitter().burst(Speck.factory(Speck.SCREAM), 1);
+			new Flare(4 + level, 10 + 3 * level).color(0x664488, true).show(enemy.sprite, .45f);
+		}
+		if (level >= MAX_LEVEL && debuff.hits >= 5){
+			// onHitProc runs just before Char.attack applies damage; Terror recovers
+			// five time units whenever that damage lands, so prime it with 10 to
+			// leave the intended 5-turn duration after the triggering hit.
+			Terror terror = Buff.prolong(enemy, Terror.class, 10f);
+			terror.object = Dungeon.hero.id();
+			debuff.hits = 0;
+			if (enemy.buff(Terror.class) != null){
+				if (enemy.sprite != null){
+					enemy.sprite.showStatus(CharSprite.NEGATIVE, "TERRIFIED");
+					enemy.sprite.emitter().burst(Speck.factory(Speck.SCREAM), 1);
+					new Flare(10, 24).color(0xCC3355, true).show(enemy.sprite, .8f);
 				}
 			}
-			castTextYell();
-			Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 0.8f, 0.6f );
 		}
-
 		return damage;
+	}
+
+	@Override public void onHeroAttackMiss(Char enemy, boolean ranged){
+		if (enemy != null){
+			Demoralized debuff = enemy.buff(Demoralized.class);
+			if (debuff != null) debuff.hits = 0;
+		}
+	}
+
+	public static class Demoralized extends FlavourBuff {
+		public float factor = .95f;
+		public int hits;
+		@Override public void storeInBundle(Bundle b){ super.storeInBundle(b); b.put("factor", factor); b.put("hits", hits); }
+		@Override public void restoreFromBundle(Bundle b){ super.restoreFromBundle(b); factor=b.getFloat("factor"); hits=b.getInt("hits"); }
 	}
 }

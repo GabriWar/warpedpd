@@ -25,6 +25,10 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PulseRingFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraBuff;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
 
 
@@ -62,8 +66,26 @@ public class HolySmite extends ActiveSkill1 {
 		if (action.equals(Skill.AC_ACTIVATE)){
 			Skill wrath = hero.heroSkills.get( DivineWrath.class );
 			if (wrath != null) wrath.active = false;
-			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 5 );
+			StanceAuraBuff.sync( hero, DivineWrath.Embers.class, false );
+			//the hammer is taken up: a warm beat of light round the cleric
+			if (hero.sprite != null){
+				hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 5 );
+				PulseRingFX.around( hero.sprite, 0xFFE9A0, 12, 0.4f );
+			}
 			Sample.INSTANCE.play( Assets.Sounds.CHARMS, 0.8f, 1.3f );
+		} else if (action.equals(Skill.AC_DEACTIVATE)){
+			Sample.INSTANCE.play( Assets.Sounds.DEGRADE, 0.5f, 1.4f );
+		}
+		StanceAuraBuff.sync( hero, Radiance.class, active && level > 0 );
+	}
+
+	/** the stance held: two golden motes drifting round the cleric, a spark of light now and then */
+	public static class Radiance extends StanceAuraBuff {
+		@Override
+		protected Class<? extends Skill> stance(){ return HolySmite.class; }
+		@Override
+		protected StanceAuraFX build(){
+			return new StanceAuraFX( target, 0xFFE9A0, 1, Speck.factory( Speck.LIGHT ), 0.9f );
 		}
 	}
 
@@ -94,6 +116,10 @@ public class HolySmite extends ActiveSkill1 {
 		castTextYell();
 		SkillSpectacleFX.show( SkillSpectacleFX.HAMMER, enemy.pos );
 		SkillFX.land( enemy.pos );
+		//the hammer comes down: a gold flash at the impact and a beat of light out from it
+		SkillFX.flash( enemy );
+		if (enemy.sprite != null) new Flare( 6, 14 ).color( 0xFFE9A0, true ).show( enemy.sprite, 0.35f );
+		PulseRingFX.at( enemy.pos, 0xFFE9A0, 8 * reach( level ), 0.45f );
 		Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 0.8f, 0.9f );
 
 		int r = reach( level );

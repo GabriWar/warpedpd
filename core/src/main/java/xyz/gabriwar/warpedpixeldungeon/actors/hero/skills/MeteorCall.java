@@ -150,10 +150,17 @@ public class MeteorCall extends Skill {
 			castTextYell();
 			Invisibility.dispel();
 
-			//the mark: the ground starts to glow, the sky goes red over it
+			//the mark: the ground starts to glow, the sky goes red over it, and a ring of embers
+			//spreads a beat later over the cells the stone will cover
 			hero.sprite.zap( cell );
 			new Flare( 5, 14 ).color( 0xFF6622, true ).show( hero.sprite, 0.6f );
+			if (hero.sprite.parent != null){
+				new Flare( 6, 16 ).color( 0xFF6622, true ).show( hero.sprite.parent,
+						xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap.tileCenterToWorld( cell ), 0.7f );
+			}
 			CellEmitter.center( cell ).burst( Speck.factory( Speck.RED_LIGHT ), 6 );
+			xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX.ring( cell, 1, 0.15f,
+					( c, r ) -> CellEmitter.get( c ).burst( Speck.factory( Speck.RED_LIGHT ), 2 ) );
 			Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 1f, 0.7f );
 			Buff.append( hero, MeteorFall.class ).set( cell, level );
 

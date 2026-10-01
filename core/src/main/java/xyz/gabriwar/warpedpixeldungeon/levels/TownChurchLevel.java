@@ -24,6 +24,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.levels;
 
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.EnchantingStation;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town.Bishop;
 import xyz.gabriwar.warpedpixeldungeon.tiles.CustomTilemap;
 import xyz.gabriwar.warpedpixeldungeon.tiles.TownInteriors;
@@ -52,5 +54,23 @@ public class TownChurchLevel extends TownInteriorLevel {
 	@Override
 	public Object[][] folk() {
 		return new Object[][]{ { Bishop.class, 71 } };
+	}
+
+	//the enchanting pedestal stands on the altar dais beside the bishop. Not folk:
+	//it never commutes, and TownCommute would leave it stranded at the door
+	private static final int PEDESTAL = 73;
+
+	@Override
+	protected void createMobs() {
+		super.createMobs();
+		place( new EnchantingStation(), PEDESTAL );
+	}
+
+	@Override
+	public void restoreFromBundle( com.watabou.utils.Bundle bundle ) {
+		super.restoreFromBundle( bundle );
+		//older saves: the pedestal used to stand in the town square
+		for (Mob m : mobs) if (m instanceof EnchantingStation) return;
+		place( new EnchantingStation(), PEDESTAL );
 	}
 }

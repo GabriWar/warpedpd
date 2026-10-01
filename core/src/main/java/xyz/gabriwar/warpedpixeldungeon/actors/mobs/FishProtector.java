@@ -82,7 +82,7 @@ public class FishProtector extends Mob implements Callback {
 
 	@Override
 	protected boolean canAttack(Char enemy) {
-		return new Ballistica(pos, enemy.pos, Ballistica.STOP_SOLID).collisionPos == enemy.pos;
+		return new Ballistica(pos, enemy.pos, Ballistica.PROJECTILE).collisionPos == enemy.pos;
 	}
 
 	@Override
@@ -97,11 +97,11 @@ public class FishProtector extends Mob implements Callback {
 			spend(TIME_TO_ZAP);
 
 			if (hit(this, enemy, true)) {
-				int dmg = Random.NormalIntRange(25, 60);
+				int dmg = Random.IntRange(25, 59);
 				if (Dungeon.level.water[enemy.pos] && !enemy.flying) {
 					dmg *= 1.5f;
 				}
-				enemy.damage(dmg, this);
+				enemy.damage(dmg, new DM100.LightningBolt());
 				enemy.sprite.centerEmitter().burst(SparkParticle.FACTORY, 3);
 				enemy.sprite.flash();
 

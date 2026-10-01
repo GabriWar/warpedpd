@@ -157,7 +157,9 @@ public class UnstableSpellbook extends Artifact {
 		curUser = hero;
 
 		//if there are charges left and the scroll has been given to the book
-		if (charge > 0 && !scrolls.contains(scroll.getClass())) {
+		//a scroll with no exotic counterpart is read plainly: offering an empowered read of
+		//nothing crashed the prompt
+		if (charge > 0 && !scrolls.contains(scroll.getClass()) && ExoticScroll.regToExo.containsKey(scroll.getClass())) {
 			final Scroll fScroll = scroll;
 
 			final ExploitHandler handler = Buff.affect(hero, ExploitHandler.class);
@@ -348,7 +350,7 @@ public class UnstableSpellbook extends Artifact {
 					&& Regeneration.regenOn()) {
 				//120 turns to charge at full, 80 turns to charge at 0/8
 				float chargeGain = 1 / (120f - (chargeCap - charge)*5f);
-				chargeGain *= RingOfEnergy.artifactChargeMultiplier(target);
+				chargeGain *= (RingOfEnergy.artifactChargeMultiplier(target) * xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.artifactCharge(UnstableSpellbook.this));
 				partialCharge += chargeGain;
 
 				while (partialCharge >= 1) {

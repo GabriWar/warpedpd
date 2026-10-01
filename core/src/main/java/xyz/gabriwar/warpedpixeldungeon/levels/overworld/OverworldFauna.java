@@ -35,11 +35,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bat;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.BrownWolf;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bunny;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Crab;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Golem;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.GrayWolf;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Scorpio;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Slime;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Snake;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Spinner;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.WildCrab;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Yeti;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
@@ -165,6 +167,29 @@ public class OverworldFauna {
 		}
 	}
 
+	//the mountain slices: the cold-country beasts of the high biomes; and the
+	//caves: what lives in the dark, the deep slices with their giants
+	public static final int DEEP_CAVES = -5;
+	private static final Entry[] ALPINE = {
+			new Entry( GrayWolf.class,  3, DARK,    2, 3 ),
+			new Entry( Yeti.class,      2, ANY,     1, 1 ),
+			new Entry( Bunny.class,     2, DAYTIME, 1, 1 ),
+			new Entry( Bat.class,       1, NIGHT,   1, 1 ),
+	};
+	private static final Entry[] CAVES = {
+			new Entry( Bat.class,       4, ANY, 1, 2 ),
+			new Entry( AlbinoRat.class, 4, ANY, 1, 1 ),
+			new Entry( Slime.class,     2, ANY, 1, 1 ),
+			new Entry( Snake.class,     2, ANY, 1, 1 ),
+			new Entry( Spinner.class,   1, ANY, 1, 1 ),
+	};
+	private static final Entry[] DEEP = {
+			new Entry( Bat.class,       3, ANY, 1, 2 ),
+			new Entry( Spinner.class,   3, ANY, 1, 1 ),
+			new Entry( Slime.class,     2, ANY, 1, 2 ),
+			new Entry( Golem.class,     1, ANY, 1, 1 ),
+	};
+
 	/** Does the table know this beast at all? Counts toward the fauna cap. */
 	public static boolean isFauna( Mob m ){
 		for (Entry[] rows : TABLE.values()){
@@ -172,9 +197,13 @@ public class OverworldFauna {
 				if (e.cls.isInstance( m )) return true;
 			}
 		}
+		for (Entry[] rows : new Entry[][]{ ALPINE, CAVES, DEEP }){
+			for (Entry e : rows){
+				if (e.cls.isInstance( m )) return true;
+			}
+		}
 		return false;
 	}
-
 	/**
 	 * Inside a settlement's berth (its radius plus three): no wildlife in the
 	 * streets. A metropolis can reach half a sector past its own, so the
@@ -215,14 +244,29 @@ public class OverworldFauna {
 	 * empty-weight says nothing stirs.
 	 */
 	public static ArrayList<Mob> roll( WorldModel.Biome biome, Phase phase ){
+		return roll( 0, biome, phase );
+	}
+
+	/** ...on a slice of the world: the mountains and the caves keep their own tables. */
+	public static ArrayList<Mob> roll( int altitude, WorldModel.Biome biome, Phase phase ){
 		ArrayList<Mob> out = new ArrayList<>();
-		Entry[] rows = TABLE.get( biome );
-		if (rows == null) return out;
-
-		float weather = weatherFactor();
+		Entry[] rows;
+		int empty;
+		if (altitude > 0){
+			rows = ALPINE;
+			empty = 3;
+		} else if (altitude < 0){
+			rows = altitude <= DEEP_CAVES ? DEEP : CAVES;
+			empty = 2;
+		} else {
+			rows = TABLE.get( biome );
+			if (rows == null) return out;
+			empty = EMPTY.get( biome );
+		}
+		//the weather stays out of the caves
+		float weather = altitude < 0 ? 1f : weatherFactor();
 		if (weather <= 0f || Random.Float() >= weather) return out;
-
-		int total = EMPTY.get( biome );
+		int total = empty;
 		for (Entry e : rows) if (e.phases.contains( phase )) total += e.weight;
 		int pick = Random.Int( total );
 		for (Entry e : rows){
@@ -264,7 +308,7 @@ public class OverworldFauna {
 	 * the same goes for the day's. Runs on the live level only.
 	 */
 	public static void cull( OverworldLevel level ){
-		if (Dungeon.level != level || Dungeon.hero == null || level.heroFOV == null) return;
+		if (Dungeon.level != level || Dungeon.hero == null || level.heroFOV == null || !level.openSky()) return;
 		HashSet<Class<? extends Mob>> gone = DARK.contains( DayNightCycle.phase() ) ? DIURNAL : NOCTURNAL;
 		int w = level.width();
 		int hx = Dungeon.hero.pos % w, hy = Dungeon.hero.pos / w;

@@ -38,6 +38,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import com.watabou.utils.Random;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.SnowParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.RogueHuntressAuras;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraBuff;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 public class FrostArrows extends ActiveSkill {
 
@@ -55,11 +59,19 @@ public class FrostArrows extends ActiveSkill {
 		super.execute(hero, action);
 		if (action.equals(Skill.AC_ACTIVATE)){
 			Sample.INSTANCE.play( Assets.Sounds.DEGRADE, 1f, 1.6f );
-			hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 3 );
+			hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 4 );
+			hero.sprite.emitter().burst( SnowParticle.FACTORY, 6 );
 			//mutually exclusive with its fork partner
 			for (Skill s : hero.heroSkills.activeSkills){
 				if (s instanceof EmberArrows) s.active = false;
 			}
+			StanceAuraBuff.sync( hero, RogueHuntressAuras.Ember.class, false );
+			StanceAuraBuff.sync( hero, RogueHuntressAuras.Frost.class, true );
+		} else if (action.equals(Skill.AC_DEACTIVATE)){
+			//the rime thaws off the tips
+			Sample.INSTANCE.play( Assets.Sounds.DEGRADE, 0.6f, 1.1f );
+			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 2 );
+			StanceAuraBuff.sync( hero, RogueHuntressAuras.Frost.class, false );
 		}
 	}
 
@@ -93,10 +105,14 @@ public class FrostArrows extends ActiveSkill {
 		} else {
 			Buff.affect( enemy, Chill.class, 2 + level );
 		}
-		if (Dungeon.level.heroFOV[enemy.pos]){
-			CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.BLUE_LIGHT ), froze ? 8 : 4 );
+		if (Dungeon.level.heroFOV[enemy.pos] && enemy.sprite != null){
+			//hoarfrost creeping up the body: feet, then chest, then a crown of flakes over the head
+			enemy.sprite.bottomEmitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 3 );
+			enemy.sprite.centerEmitter().startDelayed( Speck.factory( Speck.BLUE_LIGHT ), 0, 3, 0.12f );
+			enemy.sprite.emitter().startDelayed( SnowParticle.FACTORY, 0, froze ? 8 : 4, 0.24f );
+			enemy.sprite.showStatus( froze ? CharSprite.NEGATIVE : CharSprite.WARNING, froze ? "Frozen" : "Chilled" );
 			Sample.INSTANCE.play( froze ? Assets.Sounds.SHATTER : Assets.Sounds.DEGRADE, 0.7f, froze ? 1.2f : 1.5f );
-			if (froze && enemy.sprite != null) enemy.sprite.flash();
+			if (froze) enemy.sprite.flash();
 		}
 
 		return damage;

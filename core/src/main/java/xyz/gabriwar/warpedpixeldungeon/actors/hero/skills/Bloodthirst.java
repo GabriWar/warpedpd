@@ -27,69 +27,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.audio.Sample;
-import xyz.gabriwar.warpedpixeldungeon.Assets;
-import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.BloodParticle;
-import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.Char;
-import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
-import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
-
-public class Bloodthirst extends Skill {
-
-	{
-		tag = "CB";
-		name = "Bloodthirst";
-		image = 5;
-		tier = 4;
-	}
-
-	@Override
-	protected boolean upgrade(){
-		return true;
-	}
-
-	//the blood drunk but not yet a whole point of health
-	private float pool = 0f;
-
-	//4% / 7% / 10% of the melee damage dealt comes back as health, pooled so small hits add up
-	@Override
-	public int onHitProc( Char enemy, int damage, boolean ranged ){
-		Hero hero = Dungeon.hero;
-		if (!ranged && level > 0 && damage > 0 && hero != null){
-			pool += damage * (0.01f + 0.03f * level);
-			int whole = (int) pool;
-			pool -= whole;
-			int heal = Math.min( whole, hero.HT - hero.HP );
-			if (heal > 0){
-				hero.HP += heal;
-				if (hero.sprite != null){
-					hero.sprite.emitter().burst( Speck.factory( Speck.HEALING ), Math.min( heal, 6 ) );
-				}
-				if (enemy != null && enemy.sprite != null && enemy.sprite.visible){
-					enemy.sprite.emitter().burst( BloodParticle.FACTORY, 2 + Math.min( heal, 6 ) );
-				}
-			}
-		}
-		return damage;
-	}
-
-	//fully trained, a melee kill bursts open and the hero drinks deep
-	@Override
-	public void onKill( Mob mob, boolean ranged ){
-		Hero hero = Dungeon.hero;
-		if (ranged || level < MAX_LEVEL || hero == null) return;
-		CellEmitter.center( mob.pos ).burst( BloodParticle.BURST, 12 );
-		int heal = Math.min( Math.max( 1, Math.round( hero.HT * 0.05f ) ), hero.HT - hero.HP );
-		if (heal <= 0) return;
-		hero.HP += heal;
-		if (hero.sprite != null){
-			hero.sprite.showStatus( CharSprite.POSITIVE, "+" + heal );
-			hero.sprite.emitter().burst( Speck.factory( Speck.HEALING ), 4 );
-		}
-		Sample.INSTANCE.play( Assets.Sounds.DRINK, 0.8f, 0.7f );
-	}
+/** Compatibility class for saves: the old Bloodthirst slot is now Demoralize. */
+public class Bloodthirst extends Demoralize {
+	{ tag = "CB"; tier = 4; image = 5; }
 }

@@ -58,6 +58,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Dread;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Drunk;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Feelers;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FireImbue;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.HuntersFocus;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.StormCharge;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.WarmthBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Frost;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FrostImbue;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Fury;
@@ -209,6 +212,57 @@ public abstract class Char extends Actor {
 	public int paralysed	    = 0;
 	public boolean rooted		= false;
 	public boolean flying		= false;
+
+	//frozen or paralysed in the air, a flier drops: flight is lost while any such lock
+	//holds (Frost, Paralysis) and comes back when the last one ends. flightHeld is the
+	//flight waiting to come back; flight buffs starting or ending while grounded only
+	//change that, so a levitation that ran out mid-freeze is not handed back
+	private int flightLocks = 0;
+	private boolean flightHeld = false;
+
+	/** A creature that flies by nature (a bat, a wisp) knocked out of the air: its sprite lies on the
+	 *  floor until it takes off. Fliers held up by a buff (levitation, steam) have no raised art to drop. */
+	public boolean groundedFlier(){
+		return flightHeld && !(this instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero)
+				&& buff( xyz.gabriwar.warpedpixeldungeon.actors.buffs.Levitation.class ) == null
+				&& buff( xyz.gabriwar.warpedpixeldungeon.actors.buffs.Steaming.class ) == null;
+	}
+
+	/** A lock on flight starts: a flier lands, on whatever lies below - a chasm, a trap, water. */
+	public void loseFlight(){
+		if (flightLocks++ > 0 || !flying) return;
+		flying = false;
+		flightHeld = true;
+		if (isAlive() && Dungeon.level != null && pos >= 0 && pos < Dungeon.level.length()
+				&& xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon.scene() instanceof GameScene){
+			Dungeon.level.occupyCell( this );
+		}
+	}
+
+	/** A lock on flight ends: once none is left, a flier takes off again. */
+	public void regainFlight(){
+		if (flightLocks == 0 || --flightLocks > 0) return;
+		if (flightHeld){
+			flightHeld = false;
+			flying = true;
+		}
+	}
+
+	/** A flight buff starts (Levitation, Steaming): now, or once no lock holds. */
+	public void grantFlight(){
+		if (flightLocks > 0) flightHeld = true;
+		else flying = true;
+	}
+
+	/** A flight buff ends: flight goes now, or is simply not given back later. */
+	public void endFlight(){
+		if (flightLocks > 0){
+			//the flight it was waiting to get back is gone: it stays on the floor, sprite included
+			flightHeld = false;
+		} else {
+			flying = false;
+		}
+	}
 	public int invisible		= 0;
 
 	/** Body temperature in °C — converges gradually toward feelsLikeAt(pos) each turn. NaN = uninitialized. */
@@ -430,7 +484,8 @@ public abstract class Char extends Actor {
 				if (!enemy.isAlive()) return true;
 			}
 			
-			int dr = Math.round(enemy.drRoll() * AscensionChallenge.statModifier(enemy));
+			int dr = Math.round(enemy.drRoll() * AscensionChallenge.statModifier(enemy)
+					* (1f - xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.drPierce( this, enemy )));
 			
 			if (this instanceof Hero){
 				Hero h = (Hero)this;
@@ -471,7 +526,7 @@ public abstract class Char extends Actor {
 			if (enemy.buff(GuidingLight.Illuminated.class) != null){
 				enemy.buff(GuidingLight.Illuminated.class).detach();
 				if (this == Dungeon.hero && Dungeon.hero.hasTalent(Talent.SEARING_LIGHT)){
-					dmg += 1 + 2*Dungeon.hero.pointsInTalent(Talent.SEARING_LIGHT);
+					dmg += Math.round((1 + 2*Dungeon.hero.pointsInTalent(Talent.SEARING_LIGHT)) * Talent.levelScale(Dungeon.hero));
 				}
 				if (this != Dungeon.hero && Dungeon.hero.subClass == HeroSubClass.PRIEST){
 					enemy.damage(5+Dungeon.hero.lvl, GuidingLight.INSTANCE);
@@ -536,6 +591,9 @@ public abstract class Char extends Actor {
 			if ( buff(Weakness.class) != null ){
 				dmg *= 0.67f;
 			}
+			xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Demoralize.Demoralized demoralized =
+					buff(xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Demoralize.Demoralized.class);
+			if (demoralized != null) dmg *= demoralized.factor;
 
 			if ( buff(Feelers.class) != null ) dmg *= 2f;
 			if ( buff(Wither.class) != null )  dmg /= 2f;
@@ -574,6 +632,8 @@ public abstract class Char extends Actor {
 			enemy.damage( effectiveDamage, this );
 
 			if (buff(FireImbue.class) != null)  buff(FireImbue.class).proc(enemy);
+			if (buff(WarmthBuff.class) != null) buff(WarmthBuff.class).proc(enemy);
+			if (buff(StormCharge.class) != null) buff(StormCharge.class).proc(enemy);
 			if (buff(FrostImbue.class) != null) buff(FrostImbue.class).proc(enemy);
 			if (buff(SoulFire.class) != null)   buff(SoulFire.class).proc(enemy);
 
@@ -645,6 +705,15 @@ public abstract class Char extends Actor {
 			
 		} else if (!Char.hasProp(enemy, Property.OBJECT)) {
 
+			//light armor: a dodge builds toward the next one
+			if (enemy instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero){
+				xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.heroDodged( (xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero) enemy );
+			}
+			//the hero's own swing missed: the ramps that reward landing blows lose it
+			if (this instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero){
+				xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.heroMissed( (xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero) this );
+			}
+
 			if (enemy.sprite != null){
 				if (hitMissIcon != -1){
 					//dooking is a playful sound Ferrets can make, like low pitched chirping
@@ -667,6 +736,9 @@ public abstract class Char extends Actor {
 			//skill tree: answers to a swing that missed the hero (deferred until this attack is over)
 			if (enemy == Dungeon.hero && alignment != enemy.alignment){
 				xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.heroMissedBy(this);
+			}
+			if (this == Dungeon.hero && Dungeon.hero.heroSkills != null){
+				Dungeon.hero.heroSkills.onHeroAttackMiss(enemy, false);
 			}
 			
 			return false;
@@ -811,7 +883,7 @@ public abstract class Char extends Actor {
 
 		ShieldOfLight.ShieldOfLightTracker shield = buff( ShieldOfLight.ShieldOfLightTracker.class);
 		if (shield != null && shield.object == enemy.id()){
-			int min = 1 + Dungeon.hero.pointsInTalent(Talent.SHIELD_OF_LIGHT);
+			int min = ShieldOfLight.minBlock();
 			damage -= Random.NormalIntRange(min, 2*min);
 			damage = Math.max(damage, 0);
 		} else if (this == Dungeon.hero
@@ -820,7 +892,7 @@ public abstract class Char extends Actor {
 				&& TargetHealthIndicator.instance.target() == enemy){
 			//33/50%
 			if (Random.Int(6) < 1+Dungeon.hero.pointsInTalent(Talent.SHIELD_OF_LIGHT)){
-				damage -= 1;
+				damage -= 1 + Dungeon.hero.lvl/10;
 			}
 		}
 
@@ -869,6 +941,7 @@ public abstract class Char extends Actor {
 		if ( buff( Stamina.class ) != null) speed *= 1.5f;
 		if ( buff( Adrenaline.class ) != null) speed *= 2f;
 		if ( buff( Haste.class ) != null) speed *= 3f;
+		if ( buff( HuntersFocus.class ) != null) speed *= HuntersFocus.SPEED_MULT;
 		if ( buff( SugarRush.class ) != null) speed *= 6f;
 		if ( buff( ParasiticSymbiosis.class ) != null) speed *= 2f;
 		if ( buff( Dehydrated.class ) != null) speed /= 2f;
@@ -1267,7 +1340,9 @@ public abstract class Char extends Actor {
 		destroy();
 		if (src != Chasm.class) {
 			sprite.die();
-			if (!flying && Dungeon.level != null && sprite instanceof MobSprite && Dungeon.level.map[pos] == Terrain.CHASM){
+			//killed over a pit, fliers included: nothing dead stays in the air, the body drops
+			if (Dungeon.level != null && sprite instanceof MobSprite && pos >= 0 && pos < Dungeon.level.length()
+					&& Dungeon.level.pit[pos]){
 				((MobSprite) sprite).fall();
 			}
 		}
@@ -1461,6 +1536,25 @@ public abstract class Char extends Actor {
 
 	//used in various bits of gameplay logic to determine the direction of movement
 	protected int previousPos = -1;
+	private int movementVersion;
+	public int movementVersion(){ return movementVersion; }
+
+	/** Reserve an airborne destination; its terrain and movement reactions resolve on landing. */
+	public void beginAnimatedMove(int destination){
+		if (Dungeon.level.map[pos] == Terrain.OPEN_DOOR) Door.leave(pos);
+		previousPos = -1;
+		pos = destination;
+		movementVersion++;
+		if (sprite != null) sprite.visible = Dungeon.level.heroFOV[pos];
+	}
+
+	public void finishAnimatedMove(int from){
+		Dungeon.level.occupyCell(this);
+		if (isAlive() && Actor.chars().contains(this)){
+			xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.onMove(this, from, false);
+		}
+	}
+
 
 	//travelling may be false when a character is moving instantaneously, such as via teleportation
 	public void move( int step, boolean travelling ) {
@@ -1489,6 +1583,7 @@ public abstract class Char extends Actor {
 		}
 		int prevPos = pos;
 		pos = step;
+		movementVersion++;
 
 		if (this != Dungeon.hero) {
 			sprite.visible = Dungeon.level.heroFOV[pos];

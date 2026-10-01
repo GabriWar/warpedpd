@@ -30,7 +30,18 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vulnerable;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.BlastParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.SmokeParticle;
+import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
+import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
+import xyz.gabriwar.warpedpixeldungeon.sprites.MissileSprite;
+import com.watabou.utils.Callback;
+import com.watabou.noosa.tweeners.Tweener;
+import com.watabou.noosa.tweeners.Delayer;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfSharpshooting;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
@@ -187,9 +198,10 @@ public class ShootGun extends Weapon {
 				Math.round(augment.damageFactor(max())),
 				STRReq());
 
-		if (STRReq() > Dungeon.hero.STR()) {
+		//no hero on the title screen, where the journal's catalog describes it too
+		if (Dungeon.hero != null && STRReq() > Dungeon.hero.STR()) {
 			info += " " + Messages.get(Weapon.class, "too_heavy");
-		} else if (Dungeon.hero.STR() > STRReq()){
+		} else if (Dungeon.hero != null && Dungeon.hero.STR() > STRReq()){
 			info += " " + Messages.get(Weapon.class, "excess_str", Dungeon.hero.STR() - STRReq());
 		}
 
@@ -225,6 +237,13 @@ public class ShootGun extends Weapon {
 	}
 
 	public class ShotAmmo extends MissileWeapon {
+
+		//a bullet does not stop where it was aimed: it flies on down the line until it
+		//hits someone or a wall
+		@Override
+		public int throwPos( Hero user, int dst ){
+			return new Ballistica( user.pos, dst, Ballistica.MAGIC_BOLT ).collisionPos;
+		}
 
 		{
 			image = ItemSpriteSheet.SHOOT_GUN_AMMO;
@@ -296,7 +315,15 @@ public class ShootGun extends Weapon {
 		public void cast(final Hero user, final int dst) {
 			useAmmo();
 			updateQuickslot();
+			fired( user );
 			super.cast(user, dst);
+		}
+
+		//the report, the smoke and the kick of a shot
+		protected void fired( Hero user ){
+			Sample.INSTANCE.play( Assets.Sounds.BLAST, 0.6f, 1.5f );
+			if (user.sprite != null) user.sprite.centerEmitter().burst( SmokeParticle.FACTORY, 5 );
+			PixelScene.shake( 1f, 0.15f );
 		}
 
 		protected void useAmmo(){
@@ -346,6 +373,83 @@ public class ShootGun extends Weapon {
 			charge = 0;
 		}
 
+		//every round at once: a louder report, a cloud of smoke, a real kick
+		@Override
+		protected void fired( Hero user ){
+			Sample.INSTANCE.play( Assets.Sounds.BLAST, 1f, 1.1f );
+			if (user.sprite != null) user.sprite.centerEmitter().burst( SmokeParticle.FACTORY, 12 );
+			PixelScene.shake( 3f, 0.3f );
+		}
+
+		@Override
+		protected void onThrow( int cell ){
+			CellEmitter.center( cell ).burst( BlastParticle.FACTORY, 12 );
+			super.onThrow( cell );
+		}
+
+	}
+
+	//the time between the rounds of a dumped magazine
+	private static final float VOLLEY_GAP = 0.08f;
+
+	/**
+	 * The magazine dumped for real: every round left in it flies, one after another,
+	 * into the target and every enemy standing by it - the ones the blast will catch -
+	 * and the last one is the blast itself. The earlier rounds are the show; the
+	 * damage is the end shot's, as it always was.
+	 */
+	private void dumpMagazine( final Hero hero, final int target ){
+		final EndShotAmmo last = knockEndShot();
+		int landing = last.throwPos( hero, target );
+		ArrayList<Integer> marks = new ArrayList<>();
+		Char aimed = Actor.findChar( landing );
+		if (aimed != null){
+			marks.add( aimed.pos );
+			for (int n : PathFinder.NEIGHBOURS8){
+				Char ch = Actor.findChar( aimed.pos + n );
+				if (ch != null && ch != hero && ch.isAlive()) marks.add( ch.pos );
+			}
+		} else {
+			marks.add( landing );
+		}
+		int rounds = Math.max( 1, charge );
+		//the hero is busy from the first round: no other action slips in mid-volley
+		hero.busy();
+		for (int i = 0; i < rounds - 1; i++){
+			final int to = marks.get( (i + 1) % marks.size() );
+			Delayer wait = new Delayer( VOLLEY_GAP * i );
+			wait.listener = new Tweener.Listener(){
+				@Override
+				public void onComplete( Tweener tweener ){
+					volleyRound( hero, to );
+				}
+			};
+			hero.sprite.parent.add( wait );
+		}
+		Delayer fire = new Delayer( VOLLEY_GAP * (rounds - 1) );
+		fire.listener = new Tweener.Listener(){
+			@Override
+			public void onComplete( Tweener tweener ){
+				last.cast( hero, target );
+			}
+		};
+		hero.sprite.parent.add( fire );
+	}
+
+	//one round of the volley: a report, a puff, a slug flying nose first, sparks where it lands
+	private void volleyRound( Hero hero, final int cell ){
+		if (hero.sprite == null || hero.sprite.parent == null) return;
+		Sample.INSTANCE.play( Assets.Sounds.BLAST, 0.4f, 1.7f );
+		hero.sprite.centerEmitter().burst( SmokeParticle.FACTORY, 2 );
+		PixelScene.shake( 0.6f, 0.08f );
+		((MissileSprite) hero.sprite.parent.recycle( MissileSprite.class )).reset(
+				hero.sprite, cell, knockShot(), new Callback(){
+					@Override
+					public void call(){
+						CellEmitter.center( cell ).burst( SparkParticle.FACTORY, 5 );
+						Sample.INSTANCE.play( Assets.Sounds.HIT, 0.5f, 1.3f );
+					}
+				} );
 	}
 
 	private CellSelector.Listener shooter = new CellSelector.Listener() {
@@ -364,9 +468,7 @@ public class ShootGun extends Weapon {
 	private CellSelector.Listener endShooter = new CellSelector.Listener() {
 		@Override
 		public void onSelect( Integer target ) {
-			if (target != null) {
-				knockEndShot().cast(curUser, target);
-			}
+			if (target != null) dumpMagazine( curUser, target );
 		}
 		@Override
 		public String prompt() {

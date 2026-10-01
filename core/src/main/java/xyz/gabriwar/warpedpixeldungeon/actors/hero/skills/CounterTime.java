@@ -25,6 +25,7 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StreakFX;
 
 
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -77,6 +78,9 @@ public class CounterTime extends Skill {
 		if (!enemy.isAlive() || !hero.isAlive()) return;
 		enemy.damage( Math.max( 1, Math.round( weaponRoll() * 0.5f ) ), this );
 		Wound.hit( enemy );
+		//the cut reaches after it: a streak from her blade to its back
+		StreakFX.show( hero.pos, enemy.pos, 0xFFFFFF, 0.4f, 0.28f );
+		if (enemy.sprite != null) enemy.sprite.flash();
 		if (level >= MAX_LEVEL && enemy.isAlive()){
 			Buff.prolong( enemy, Cripple.class, 2f );
 		}

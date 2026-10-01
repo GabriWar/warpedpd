@@ -57,7 +57,6 @@ public class WorldStructures {
 	public static final int TOWN_MINE_GATE     = 899;  //the plaza staircase, down into the kupua mines
 	public static final int TOWN_DUNGEON_GATE  = 141;  //the north gate: the dungeon's front door (floor 1)
 	public static final int TOWN_TEMPLE_DOOR = 412;
-	public static final int TOWN_PEDESTAL   = 222;  //enchanting station
 	public static final int TOWN_ALTAR      = 350;  //norn-stone altar
 	//doorways into the building interiors (branch 6), indexed by interior depth 1..6
 	public static final int[] TOWN_DOORS = { -1, 296, 490, 146, 530, 440, 340 };
@@ -81,7 +80,7 @@ public class WorldStructures {
 				int c = townCell( wx + dx, wy + dy );
 				if (c == -1) continue;
 				if (c == TOWN_MINE_GATE || c == TOWN_DUNGEON_GATE || c == TOWN_TEMPLE_DOOR
-						|| c == TOWN_PLAZA || c == TOWN_PEDESTAL || c == TOWN_ALTAR) return true;
+						|| c == TOWN_PLAZA || c == TOWN_ALTAR) return true;
 				for (int d : TOWN_DOORS) if (c == d) return true;
 			}
 		}
@@ -96,7 +95,7 @@ public class WorldStructures {
 		if (cell == -1) return -1;
 		if (cell == TOWN_MINE_GATE) return Terrain.EXIT;
 		if (cell == TOWN_DUNGEON_GATE || cell == TOWN_TEMPLE_DOOR) return Terrain.DOOR;
-		if (cell == TOWN_PEDESTAL || cell == TOWN_ALTAR) return Terrain.PEDESTAL;
+		if (cell == TOWN_ALTAR) return Terrain.PEDESTAL;
 		for (int d : TOWN_DOORS) if (cell == d) return Terrain.DOOR;
 		int t = xyz.gabriwar.warpedpixeldungeon.levels.TownLayouts.TOWN_LAYOUT_REMIXED[cell];
 		//snow ground in the art is the world's own snow, and the authored tree
@@ -105,6 +104,12 @@ public class WorldStructures {
 		long h = hash( seed ^ 0x73EE5EEDL, wx, wy );
 		if (t == Terrain.WALL){
 			if (xyz.gabriwar.warpedpixeldungeon.tiles.TownRemixedTiles.outdoor( cell )){
+				//never by a gateway (a pine there hangs over the arch) and never on
+				//the town's side of the tree line: the wood stays outside
+				if (townApproach( wx, wy )
+						|| xyz.gabriwar.warpedpixeldungeon.tiles.TownRemixedTiles.bordersInside( cell )){
+					return Terrain.SNOW;
+				}
 				return (h & 3) == 0 ? Terrain.SNOW : Terrain.TREE_PINE;
 			}
 			//the ruin around the mine staircase: crumbled blocks vanish under
@@ -354,16 +359,16 @@ public class WorldStructures {
 
 	/** Is this world cell on a road? */
 	public static boolean onRoad( long seed, int wx, int wy ){
-		int sx = Math.floorDiv( wx, SECTOR ), sy = Math.floorDiv( wy, SECTOR );
+		return onRoad( seed, wx, wy, roadSegments( seed, Math.floorDiv( wx, SECTOR ), Math.floorDiv( wy, SECTOR ) ) );
+	}
 
-		float[] segs = roadSegments( seed, sx, sy );
+	//...against the road segments of the cell's sector (see roadSegments)
+	private static boolean onRoad( long seed, int wx, int wy, float[] segs ){
 		if (segs.length == 0) return false;   //no villages anywhere near: free
-
 		//footpath wobble: the whole road field is sampled through a small warp
 		float ox = 3.5f * (WorldModel.pathWobble( seed, wx, wy, 0 ) - 0.5f) * 2f;
 		float oy = 3.5f * (WorldModel.pathWobble( seed, wx, wy, 1 ) - 0.5f) * 2f;
 		float px = wx + ox, py = wy + oy;
-
 		for (int i = 0; i < segs.length; i += 4){
 			if (segDistSq( px, py, segs[i], segs[i+1], segs[i+2], segs[i+3] ) < 1.1f * 1.1f){
 				return true;
@@ -380,54 +385,99 @@ public class WorldStructures {
 	}
 
 	/**
+	 * The sector lookups a window's cells share, resolved once per window: the
+	 * per-cell path used to consult nine cached sector maps (boxing a Long each
+	 * time) for every one of 31k cells. Built on the generating thread, read
+	 * from any number of row workers.
+	 */
+	public static final class SectorView {
+		final long seed;
+		final int sx0, sy0, cols, rows;
+		final Site[] types;
+		final float[][] segments;
+		SectorView( long seed, int sx0, int sy0, int sx1, int sy1 ){
+			this.seed = seed;
+			this.sx0 = sx0;
+			this.sy0 = sy0;
+			cols = sx1 - sx0 + 1;
+			rows = sy1 - sy0 + 1;
+			types = new Site[cols * rows];
+			segments = new float[cols * rows][];
+			for (int sy = sy0; sy <= sy1; sy++){
+				for (int sx = sx0; sx <= sx1; sx++){
+					int i = (sx - sx0) + (sy - sy0) * cols;
+					types[i] = siteType( seed, sx, sy );
+					segments[i] = roadSegments( seed, sx, sy );
+				}
+			}
+		}
+		Site type( int sx, int sy ){
+			int x = sx - sx0, y = sy - sy0;
+			if (x < 0 || y < 0 || x >= cols || y >= rows) return siteType( seed, sx, sy );
+			return types[x + y * cols];
+		}
+		float[] roads( int sx, int sy ){
+			int x = sx - sx0, y = sy - sy0;
+			if (x < 0 || y < 0 || x >= cols || y >= rows) return roadSegments( seed, sx, sy );
+			return segments[x + y * cols];
+		}
+	}
+
+	/** The view covering every sector whose sites can reach the world rect [wx0,wx1]x[wy0,wy1]. */
+	public static SectorView view( long seed, int wx0, int wy0, int wx1, int wy1 ){
+		return new SectorView( seed,
+				Math.floorDiv( wx0, SECTOR ) - 1, Math.floorDiv( wy0, SECTOR ) - 1,
+				Math.floorDiv( wx1, SECTOR ) + 1, Math.floorDiv( wy1, SECTOR ) + 1 );
+	}
+
+	/**
 	 * The structure terrain at a world cell, or -1 for "no structure here".
 	 * Overrides the wilderness except where the land itself forbids it. The
 	 * caller passes the already-computed wilderness terrain so roads never
 	 * trigger a second full generator evaluation.
 	 */
 	public static int terrainAt( long seed, int wx, int wy, int wild ){
+		return terrainAt( seed, wx, wy, wild, null );
+	}
 
+	/** ...with the window's sector view, or null to consult the caches per cell. */
+	public static int terrainAt( long seed, int wx, int wy, int wild, SectorView view ){
 		int town = townTerrain( seed, wx, wy );
 		if (town != -1) return town;
-
 		int sx = Math.floorDiv( wx, SECTOR ), sy = Math.floorDiv( wy, SECTOR );
-
 		//the site footprint of this or any adjacent sector can reach this cell
 		for (int dy = -1; dy <= 1; dy++){
 			for (int dx = -1; dx <= 1; dx++){
-				Site type = siteType( seed, sx+dx, sy+dy );
+				Site type = view != null ? view.type( sx+dx, sy+dy ) : siteType( seed, sx+dx, sy+dy );
 				if (type == Site.NONE) continue;
 				int t = siteTerrain( seed, sx+dx, sy+dy, type, wx, wy );
 				if (t != -1) return t;
 			}
 		}
-
 		//roads stop at mountains and walk straight over ice; open water they
 		//cross on plank bridges
 		if (wild == Terrain.FROZEN_WATER || wild == Terrain.WALL){
 			return -1;
 		}
-		if (onRoad( seed, wx, wy )){
+		float[] segs = view != null ? view.roads( sx, sy ) : roadSegments( seed, sx, sy );
+		if (onRoad( seed, wx, wy, segs )){
 			return wild == Terrain.WATER ? Terrain.BRIDGE : Terrain.DIRT_PATH;
 		}
-
 		//the town's tree line bleeds outward: a pine cloud on the surrounding
 		//snow, dense by the walls and thinning to nothing over ~14 cells
 		if (wild == Terrain.SNOW){
 			int lx = Math.max( 0, Math.max( TOWN_X0 - wx, wx - (TOWN_X0 + TOWN_SIZE - 1) ) );
 			int ly = Math.max( 0, Math.max( TOWN_Y0 - wy, wy - (TOWN_Y0 + TOWN_SIZE - 1) ) );
 			int d = Math.max( lx, ly );
-			if (d > 0 && d <= 14 && !townApproach( wx, wy ) && !onRoad( seed, wx, wy )){
+			if (d > 0 && d <= 14 && !townApproach( wx, wy ) && !onRoad( seed, wx, wy, segs )){
 				long h = hash( seed ^ 0x7C10CDL, wx, wy );
 				if ((int)Math.floorMod( h, 10 + d * 2 ) < 3){
 					return Terrain.TREE_PINE;
 				}
 			}
 		}
-
 		return -1;
 	}
-
 	//village: huts on a ring around a well; ruin: broken stone shell
 	private static int siteTerrain( long seed, int sx, int sy, Site type, int wx, int wy ){
 		int cx = siteX( seed, sx, sy ), cy = siteY( seed, sx, sy );
@@ -582,6 +632,27 @@ public class WorldStructures {
 	/** Packed sector coordinates, the key sites and caravans are indexed by. */
 	public static long sectorOf( int sx, int sy ){
 		return sectorKey( sx, sy );
+	}
+
+	/** The packed sector of the settlement whose house door stands on this world
+	 *  cell, or Long.MIN_VALUE when no house door is there. */
+	public static long houseSector( long seed, int wx, int wy ){
+		int sx0 = Math.floorDiv( wx, SECTOR ), sy0 = Math.floorDiv( wy, SECTOR );
+		//a big settlement's houses reach into the neighbouring sectors
+		for (int sy = sy0-1; sy <= sy0+1; sy++){
+			for (int sx = sx0-1; sx <= sx0+1; sx++){
+				if (siteType( seed, sx, sy ) != Site.VILLAGE) continue;
+				int cx = siteX( seed, sx, sy ), cy = siteY( seed, sx, sy );
+				int[] layout = settlementLayout( seed, sx, sy );
+				for (int i = 1; i + 1 < layout.length; i += 2){
+					if (cx + houseDoorDX( layout[i], layout[i+1] ) == wx
+							&& cy + houseDoorDY( layout[i], layout[i+1] ) == wy){
+						return sectorKey( sx, sy );
+					}
+				}
+			}
+		}
+		return Long.MIN_VALUE;
 	}
 
 	/** The interior depth of the village house whose door stands on this world

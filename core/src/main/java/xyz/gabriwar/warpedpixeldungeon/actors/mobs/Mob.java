@@ -39,6 +39,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AscensionChallenge;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AuroraBless;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.BloodMoonBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ClarityBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ChampionEnemy;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Charm;
@@ -1243,17 +1244,25 @@ public abstract class Mob extends Char {
 
 				AscensionChallenge.processEnemyKill(this);
 				
-				//weak mobs still stop granting xp once out-levelled, but top-tier mobs
-				//(maxLvl at the old ceiling) keep feeding xp forever, enabling infinite leveling
-				int exp = (Dungeon.hero.lvl <= maxLvl || maxLvl >= Hero.MAX_LEVEL - 1) ? EXP : 0;
+				//top-tier mobs (maxLvl at the old ceiling) keep feeding full xp forever,
+				//enabling infinite leveling. Out-levelled mobs still pay a quarter (at
+				//least 1) so every kill counts; a negative maxLvl means never (summons)
+				boolean outLevelled = Dungeon.hero.lvl > maxLvl && maxLvl < Hero.MAX_LEVEL - 1;
+				int exp = !outLevelled ? EXP
+						: (maxLvl < 0 || EXP <= 0) ? 0
+						: Math.max( 1, EXP / 4 );
 
 				//during ascent, under-levelled enemies grant 10 xp each until level 30
 				// after this enemy kills which reduce the amulet curse still grant 10 effective xp
 				// for the purposes of on-exp effects, see AscensionChallenge.processEnemyKill
 				if (Dungeon.hero.buff(AscensionChallenge.class) != null &&
-						exp == 0 && maxLvl > 0 && EXP > 0 && Dungeon.hero.lvl < Hero.MAX_LEVEL){
+						outLevelled && maxLvl > 0 && EXP > 0 && Dungeon.hero.lvl < Hero.MAX_LEVEL){
 					exp = Math.round(10 * spawningWeight());
 				}
+
+				//elixir of clarity: the next few experience-granting kills grant half again as much
+				ClarityBuff clarity = Dungeon.hero.buff(ClarityBuff.class);
+				if (clarity != null) exp = clarity.boost(exp);
 
 				if (exp > 0) {
 					Dungeon.hero.sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(exp), FloatingText.EXPERIENCE);
@@ -1288,6 +1297,7 @@ public abstract class Mob extends Char {
 			Dungeon.hero.heroSkills.creditKill( this, cause );
 			Dungeon.hero.heroSkills.onEnemyDeath( this, cause );
 		}
+		if (Dungeon.hero != null && Dungeon.level != null) xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.onEnemyKilled( this, cause );
 
 		if (cause == Chasm.class){
 			//50% chance to round up, 50% to round down

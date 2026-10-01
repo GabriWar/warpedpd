@@ -22,7 +22,7 @@ public class SkillCastFX extends Group {
             case "SummonRat":case "SummonCrab":case "WildCall":case "Deadfall":return 18;
             case "AimedShot":case "PiercingFocus":case "DoubleShot":return 23;
             case "Bombvoyage":case "TengusArsenal":case "EmberArrows":return 20;
-            case "Blackout":case "Vanish":case "AshVeil":case "DreadHowl":return 19;
+            case "Blackout":case "Vanish":case "Blink":case "DreadHowl":return 19;
             case "BloodDance":case "BloodRush":case "RecklessFury":case "UndyingWill":return 21;
             case "WarCry":case "Challenge":case "Rampage":case "SecondWind":return 16;
             case "KnockBack":case "Smash":case "Leap":return 1;

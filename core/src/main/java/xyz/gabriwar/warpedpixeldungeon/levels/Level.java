@@ -198,6 +198,8 @@ public abstract class Level implements Bundlable {
 	public boolean[] openSpace;
 
 	public float[] tileHeat;
+	// Signed progress toward melting (+1) or freezing (-1), accumulated per world turn.
+	public float[] waterPhaseProgress;
 
 	public Feeling feeling = Feeling.NONE;
 	
@@ -267,6 +269,7 @@ public abstract class Level implements Bundlable {
 	private static final String LAST_GRASS_REGROWTH_TURN = "last_grass_regrowth_turn";
 	private static final String NATURAL_PLANT_ORDER    = "natural_plant_order";
 	private static final String TILE_HEAT              = "tile_heat";
+	private static final String WATER_PHASE_PROGRESS   = "water_phase_progress";
 
 	public void create() {
 
@@ -433,6 +436,7 @@ public abstract class Level implements Bundlable {
 		openSpace   = new boolean[length];
 
 		tileHeat    = new float[length];
+		waterPhaseProgress = new float[length];
 
 		PathFinder.setMapSize(w, h);
 	}
@@ -465,6 +469,9 @@ public abstract class Level implements Bundlable {
 
 		if (bundle.contains(TILE_HEAT)) {
 			tileHeat = bundle.getFloatArray(TILE_HEAT);
+		}
+		if (bundle.contains(WATER_PHASE_PROGRESS)) {
+			waterPhaseProgress = bundle.getFloatArray(WATER_PHASE_PROGRESS);
 		}
 
 		mobs = new HashSet<>();
@@ -667,6 +674,7 @@ public abstract class Level implements Bundlable {
 			if (hasHeat) bundle.put( TILE_HEAT, tileHeat );
 		}
 		bundle.put( FEELING, feeling );
+		bundle.put( WATER_PHASE_PROGRESS, waterPhaseProgress );
 		bundle.put( "mobs_to_spawn", mobsToSpawn.toArray(new Class[0]));
 		bundle.put( "respawner", respawner );
 		bundle.put( "targeted_cells", TargetedCell.cells.valueList() );
@@ -705,6 +713,14 @@ public abstract class Level implements Bundlable {
 	// Whether water on this level can freeze (false for lava levels)
 	public boolean waterCanFreeze() {
 		return frozenWaterTex() != null;
+	}
+
+	// The depth the climate treats this level as: how much of the surface's weather
+	// reaches it and which region's bias it gets (ClimateManager.onLevelChange). The
+	// level's own number, except where that number is only a slot: the overworld is
+	// the surface whatever its slot says, and the dev floors sit far past the Halls
+	public int climateDepth() {
+		return Dungeon.depth;
 	}
 
 	abstract protected boolean build();
@@ -1194,6 +1210,16 @@ public abstract class Level implements Bundlable {
 	//updates open space both on the cell itself and adjacent cells
 	public void updateOpenSpace(int cell){
 		for (int i : PathFinder.NEIGHBOURS9) {
+			//this samples two rings around the cell, so a cell on or next to the
+			//map edge would read off the map. The border is forced solid in
+			//buildFlagMaps anyway, so it is never open space
+			int n = cell + i;
+			if (n < 0 || n >= length()) continue;
+			int x = n % width(), y = n / width();
+			if (x == 0 || y == 0 || x == width()-1 || y == height()-1){
+				openSpace[n] = false;
+				continue;
+			}
 			if (solid[cell+i]){
 				openSpace[cell+i] = false;
 			} else {
@@ -1264,6 +1290,7 @@ public abstract class Level implements Bundlable {
 	}
 	
 	public static void set( int cell, int terrain, Level level ) {
+		if (level.map[cell] != terrain) level.waterPhaseProgress[cell] = 0;
 		Painter.set( level, cell, terrain );
 		if (xyz.gabriwar.warpedpixeldungeon.net.NetManager.isHost()) {
 			xyz.gabriwar.warpedpixeldungeon.net.StateSerializer.markCellDirty(cell);
@@ -1303,6 +1330,11 @@ public abstract class Level implements Bundlable {
 	}
 	
 	public Heap drop( Item item, int cell ) {
+
+		//anything that comes into the world without its rarity and type (a shop's own
+		//stock, a quest's reward, a mob's hand-made drop) gets them now, as the item
+		//generator gives them; a no-op for items that have them or sit outside the system
+		if (item != null) xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.roll( item );
 
 		if (item == null || Challenges.isItemBlocked(item)){
 
@@ -2078,7 +2110,7 @@ public abstract class Level implements Bundlable {
 			case Terrain.BOOKSHELF:
 				return Messages.get(Level.class, "bookshelf_name");
 			case Terrain.EMPTY_BOOKSHELF:
-				return Messages.get(Level.class, "bookshelf_name");
+				return Messages.get(Level.class, "empty_bookshelf_name");
 			case Terrain.ALCHEMY:
 				return Messages.get(Level.class, "alchemy_name");
 			default:
@@ -2130,6 +2162,12 @@ public abstract class Level implements Bundlable {
 				return Messages.get(Level.class, "alchemy_desc");
 			case Terrain.EMPTY_WELL:
 				return Messages.get(Level.class, "empty_well_desc");
+			//the five dungeon levels override these with their own flavour; every other
+			//level used to fall through to nothing, so a shelf could not be examined at all
+			case Terrain.BOOKSHELF:
+				return Messages.get(Level.class, "bookshelf_desc");
+			case Terrain.EMPTY_BOOKSHELF:
+				return Messages.get(Level.class, "empty_bookshelf_desc");
 			default:
 				return "";
 		}

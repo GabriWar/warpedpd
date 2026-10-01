@@ -283,7 +283,7 @@ public class TalismanOfForesight extends Artifact {
 					&& Regeneration.regenOn()) {
 				//fully charges in 2000 turns at +0, scaling to 1000 turns at +10.
 				float chargeGain = (0.05f+(level()*0.005f));
-				chargeGain *= RingOfEnergy.artifactChargeMultiplier(target);
+				chargeGain *= (RingOfEnergy.artifactChargeMultiplier(target) * xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.artifactCharge(TalismanOfForesight.this));
 				partialCharge += chargeGain;
 
 				while (partialCharge >= 1){

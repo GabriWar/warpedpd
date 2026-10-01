@@ -323,7 +323,7 @@ public class EtherealChains extends Artifact {
 					&& Regeneration.regenOn()) {
 				//gains a charge in 40 - 2*missingCharge turns
 				float chargeGain = (1 / (40f - (chargeTarget - charge)*2f));
-				chargeGain *= RingOfEnergy.artifactChargeMultiplier(target);
+				chargeGain *= (RingOfEnergy.artifactChargeMultiplier(target) * xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.artifactCharge(EtherealChains.this));
 				partialCharge += chargeGain;
 			} else if (cursed && Random.Int(100) == 0){
 				Buff.prolong( target, Cripple.class, 10f);

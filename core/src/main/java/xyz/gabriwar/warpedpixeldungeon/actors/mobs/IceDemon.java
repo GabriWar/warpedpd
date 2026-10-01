@@ -25,6 +25,10 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Freezing;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
+import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPsionicBlast;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.sprites.IceDemonSprite;
 import com.watabou.utils.Random;
 
@@ -45,6 +49,12 @@ public class IceDemon extends Mob {
 
 		//built for the cold: the deep freeze is home, the thaw is what hurts
 		thermal = Thermal.COLD_DWELLER;
+
+		resistances.add( Grim.class );
+		resistances.add( ScrollOfPsionicBlast.class );
+
+		immunities.add( Freezing.class );
+		immunities.add( Terror.class );
 	}
 
 	@Override

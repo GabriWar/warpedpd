@@ -77,6 +77,6 @@ public class Beetle extends Mob {
     @Override
     public void restoreFromBundle(Bundle bundle) {
         super.restoreFromBundle(bundle);
-        level = bundle.getInt(LEVEL);
+        spawn(bundle.getInt(LEVEL));
     }
 }

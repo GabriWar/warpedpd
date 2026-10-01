@@ -27,13 +27,17 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Light;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.PurpleParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfDisintegration;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Vampiric;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfMending;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MagicEyeSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Callback;
@@ -46,6 +50,7 @@ public class MagicEye extends Mob implements Callback {
 
 		HP = HT = 400;
 		defenseSkill = 40;
+		viewDistance = Light.DISTANCE;
 
 		EXP = 16;
 
@@ -93,7 +98,9 @@ public class MagicEye extends Mob implements Callback {
 
 	@Override
 	protected boolean canAttack( Char enemy ) {
-		return new Ballistica(pos, enemy.pos, Ballistica.STOP_SOLID).collisionPos == enemy.pos;
+		//the gaze hits anything standing anywhere along the ray, not just at its end
+		Ballistica beam = new Ballistica(pos, enemy.pos, Ballistica.STOP_SOLID);
+		return beam.subPath(1, beam.dist).contains(enemy.pos);
 	}
 
 	@Override
@@ -110,12 +117,19 @@ public class MagicEye extends Mob implements Callback {
 			Ballistica beam = new Ballistica(pos, enemy.pos, Ballistica.STOP_SOLID);
 			for (int cell : beam.subPath(1, beam.dist)) {
 				Char ch = Actor.findChar(cell);
-				if (ch != null) {
-					if (hit(this, ch, true)) {
-						int dmg = Random.NormalIntRange(50, 100);
-						ch.damage(dmg, this);
+				if (ch == null) {
+					continue;
+				}
+
+				if (hit(this, ch, true)) {
+					int dmg = Random.NormalIntRange(50, 100);
+					ch.damage(dmg, this);
+					if (Dungeon.level.heroFOV[cell]) {
 						ch.sprite.flash();
+						CellEmitter.center(cell).burst(PurpleParticle.BURST, Random.IntRange(1, 2));
 					}
+				} else {
+					ch.sprite.showStatus(CharSprite.NEUTRAL, ch.defenseVerb());
 				}
 			}
 

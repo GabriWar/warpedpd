@@ -54,6 +54,8 @@ public class BanditKing extends Thief {
 		lootChance = 0.333f;
 
 		declareExtraLoot(Spork.class, 1f);
+
+		if (Dungeon.depth < 25) Dungeon.sporkAvail = false;
 	}
 
 	@Override
@@ -70,8 +72,8 @@ public class BanditKing extends Thief {
 	protected boolean steal( Hero hero ) {
 		if (super.steal(hero)) {
 			if (Dungeon.depth < 25) {
-				Buff.prolong(hero, Blindness.class, Random.IntRange(5, 12));
-				Buff.affect(hero, Poison.class).set(Random.IntRange(5, 7));
+				Buff.prolong(hero, Blindness.class, Random.IntRange(5, 11));
+				Buff.affect(hero, Poison.class).set(Random.IntRange(5, 6));
 				Buff.prolong(hero, Cripple.class, Cripple.DURATION);
 				Dungeon.observe();
 			} else if (hero.buff(CountDown.class) == null) {
@@ -90,13 +92,6 @@ public class BanditKing extends Thief {
 			state = FLEEING;
 		}
 		return damage;
-	}
-
-	@Override
-	public void notice() {
-		super.notice();
-		if (enemy == null) return;
-		yell(Messages.get(this, "notice"));
 	}
 
 	@Override

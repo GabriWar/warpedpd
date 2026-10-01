@@ -36,7 +36,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.*;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.*;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.ElementalOrbitFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.SnowParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
@@ -89,6 +94,13 @@ public class CinderTrail extends Skill {
         Buff.affect(hero,ElementalOrbit.class).set(level);
         hero.MP-=getManaCost();hero.heroSkills.lastUsed=this;
         castTextYell();Sample.INSTANCE.play(Assets.Sounds.CHARGEUP);
+        // The gathering: heat and frost pulled in from either side, a flare of each as they settle into orbit.
+        if(hero.sprite!=null){
+            hero.sprite.centerEmitter().burst(FlameParticle.FACTORY,3+level);
+            hero.sprite.centerEmitter().burst(SnowParticle.RISING_FACTORY,3+level);
+            new Flare(6,14).color(0xFFAA66,true).show(hero.sprite,0.5f);
+            StaggerFX.after(0.15f,()->{if(hero.sprite!=null)new Flare(6,14).color(0x88DDFF,true).show(hero.sprite,0.5f);});
+        }
         hero.spendAndNext(TIME_TO_USE);
     }
     private void aim(Hero hero,int element){
@@ -116,6 +128,14 @@ public class CinderTrail extends Skill {
     public static int damage(int level,int heat){ return (4+3*level)*(3+heat)/3; }
     public static void explode(Hero hero,int cell,int element,int heat,int level){
         Sample.INSTANCE.play(element==0?Assets.Sounds.BURNING:Assets.Sounds.SHATTER);
+        // The burst: a flare at the impact, then flame or frost racing over the ring around it a beat later.
+        if(hero.sprite!=null&&hero.sprite.parent!=null&&Dungeon.level.heroFOV[cell]){
+            new Flare(6,14).color(element==0?0xFF8418:0xA4E9FF,true).show(hero.sprite.parent,
+                    xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap.tileCenterToWorld(cell),0.5f);
+            CellEmitter.center(cell).burst(element==0?FlameParticle.FACTORY:SnowParticle.FACTORY,4+heat);
+        }
+        com.watabou.noosa.Camera.main.shake(1,0.2f);
+        StaggerFX.ring(cell,1,0.08f,(c,r)->CellEmitter.get(c).burst(element==0?FlameParticle.FACTORY:SnowParticle.FACTORY,2));
         for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){
             int nx=cell%Dungeon.level.width()+x, ny=cell/Dungeon.level.width()+y;
             if(nx<0 || nx>=Dungeon.level.width() || ny<0 || ny>=Dungeon.level.height())continue;

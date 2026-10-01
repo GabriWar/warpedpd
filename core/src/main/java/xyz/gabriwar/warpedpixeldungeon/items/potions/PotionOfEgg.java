@@ -51,7 +51,7 @@ public class PotionOfEgg extends Potion {
                 }
             }
         }
-        if (restocked) GLog.p(Messages.get(this, "restocked"));
+        GLog.p(Messages.get(this, restocked ? "restocked" : "nothing"));
         setKnown();
     }
 

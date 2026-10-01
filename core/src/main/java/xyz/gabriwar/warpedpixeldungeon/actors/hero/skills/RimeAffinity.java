@@ -74,14 +74,21 @@ public class RimeAffinity extends Skill {
 		if (level <= 0 || target == null) return;
 		if (shatter){
 			if (target.isAlive()) target.damage( Math.max( 1, damage / 2 ), this );
+			//the ice goes to pieces: splinters flung out, a white flash, a jolt
 			xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.get( target.pos ).burst( SnowParticle.FACTORY, 10 );
+			xyz.gabriwar.warpedpixeldungeon.effects.Splash.at( target.pos, 0xCCEEFF, 10 );
+			if (target.sprite != null) target.sprite.flash();
+			com.watabou.noosa.Camera.main.shake( 1, 0.15f );
 			Sample.INSTANCE.play( Assets.Sounds.SHATTER, 1f, 1.1f );
 			return;
 		}
 		if (!target.isAlive() || Random.Int(100) >= 10 * level) return;
 		SkillInteractions.affectAfterHit( target, Frost.class, 2f );
-		if (target.sprite != null)
+		if (target.sprite != null){
+			//crystals grow over it: snow off the body and a pale blue flare as it seizes
 			target.sprite.emitter().burst( SnowParticle.FACTORY, 3 + level );
+			new xyz.gabriwar.warpedpixeldungeon.effects.Flare( 6, 12 ).color( 0xA4E9FF, true ).show( target.sprite, 0.5f );
+		}
 		Sample.INSTANCE.play( Assets.Sounds.SHATTER, 0.5f, 1.4f );
 	}
 

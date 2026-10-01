@@ -386,8 +386,16 @@ public class EnchantingScene extends PixelScene {
 			final int cost = empowerCost( ench.level() );
 
 			if (ench.level() >= Weapon.Enchantment.MAX_LEVEL){
-				label = Messages.get(EnchantingStation.class, "maxed",
-						Messages.get(ench, "enchant"), ench.level());
+				//a maxed slot shows a plain line, never a button that could be pressed
+				RenderedTextBlock maxed = PixelScene.renderTextBlock( Messages.get(EnchantingStation.class, "maxed",
+						Messages.get(ench, "enchant"), ench.level()), 6 );
+				maxed.hardlight( ench.glowing().color );
+				maxed.maxWidth( pw );
+				maxed.setPos( left + (pw - maxed.width())/2f, pos );
+				add( maxed );
+				actionElems.add( maxed );
+				pos = maxed.bottom() + GAP;
+				label = null;
 				enabled = false;
 			} else {
 				label = Messages.get(EnchantingStation.class, "empower",
@@ -395,6 +403,7 @@ public class EnchantingScene extends PixelScene {
 				enabled = Dungeon.energy >= cost;
 			}
 
+			if (label != null) {
 			RedButton btn = new RedButton( label, 6 ){
 				@Override
 				protected void onClick() {
@@ -418,6 +427,7 @@ public class EnchantingScene extends PixelScene {
 			add( btn );
 			actionElems.add( btn );
 			pos = btn.bottom() + GAP;
+			}
 
 			final int rerollCost = rerollCost( ench.level() );
 			RedButton reroll = new RedButton( Messages.get(EnchantingStation.class, "reroll",
@@ -523,8 +533,16 @@ public class EnchantingScene extends PixelScene {
 			final int cost = empowerCost( gl.level() );
 
 			if (gl.level() >= Armor.Glyph.MAX_LEVEL){
-				label = Messages.get(EnchantingStation.class, "maxed",
-						Messages.get(gl, "glyph"), gl.level());
+				//a maxed slot shows a plain line, never a button that could be pressed
+				RenderedTextBlock maxed = PixelScene.renderTextBlock( Messages.get(EnchantingStation.class, "maxed",
+						Messages.get(gl, "glyph"), gl.level()), 6 );
+				maxed.hardlight( gl.glowing().color );
+				maxed.maxWidth( pw );
+				maxed.setPos( left + (pw - maxed.width())/2f, pos );
+				add( maxed );
+				actionElems.add( maxed );
+				pos = maxed.bottom() + GAP;
+				label = null;
 				enabled = false;
 			} else {
 				label = Messages.get(EnchantingStation.class, "empower",
@@ -532,6 +550,7 @@ public class EnchantingScene extends PixelScene {
 				enabled = Dungeon.energy >= cost;
 			}
 
+			if (label != null) {
 			RedButton btn = new RedButton( label, 6 ){
 				@Override
 				protected void onClick() {
@@ -564,6 +583,7 @@ public class EnchantingScene extends PixelScene {
 			add( btn );
 			actionElems.add( btn );
 			pos = btn.bottom() + GAP;
+			}
 
 			final int rerollCost = rerollCost( gl.level() );
 			RedButton reroll = new RedButton( Messages.get(EnchantingStation.class, "reroll",
@@ -831,6 +851,8 @@ public class EnchantingScene extends PixelScene {
 	}
 
 	private void updateEnergyText(){
+		//energy is never allowed to read below zero, whatever spent it
+		if (Dungeon.energy < 0) Dungeon.energy = 0;
 		energyLeft.text( Messages.get(AlchemyScene.class, "energy") + " " + Dungeon.energy );
 		energyLeft.setPos(
 				centerW - energyLeft.width()/2,

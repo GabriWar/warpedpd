@@ -45,6 +45,8 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 
 import java.util.ArrayList;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 public class DreadHowl extends Skill {
 
@@ -99,11 +101,30 @@ public class DreadHowl extends Skill {
 				CellEmitter.get( ch.pos ).burst( ShadowParticle.CURSE, 4 );
 			}
 
+			//the howl rolls out from the rogue ring by ring; each mind it reaches snaps as it passes
+			FxTimeline t = FxTimeline.start();
+			int w = Dungeon.level.width();
+			for (int r = 1; r <= 5; r++){
+				final int ring = r;
+				t.at( 0.06f * r, () -> {
+					for (int c : SkillInteractions.area( hero.pos, ring )){
+						if (Dungeon.level.distance( hero.pos, c ) != ring || !Dungeon.level.heroFOV[c]) continue;
+						if (((c % w) + (c / w) + ring) % 2 == 0) CellEmitter.get( c ).burst( ShadowParticle.MISSILE, 1 );
+					}
+				} );
+			}
+			t.at( 0.2f, () -> Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 0.6f, 0.7f ) );
 			for (Char ch : terrified){
 				Buff.detach( ch, Terror.class );
 				Buff.prolong( ch, Amok.class, 3 + level );
-				CellEmitter.get( ch.pos ).burst( Speck.factory( Speck.SCREAM ), 2 );
-				CellEmitter.get( ch.pos ).burst( ShadowParticle.UP, 3 );
+				final Char mad = ch;
+				t.at( 0.06f * Dungeon.level.distance( hero.pos, ch.pos ), () -> {
+					if (mad.sprite == null || !mad.isAlive()) return;
+					CellEmitter.get( mad.pos ).burst( Speck.factory( Speck.SCREAM ), 2 );
+					CellEmitter.get( mad.pos ).burst( ShadowParticle.UP, 3 );
+					mad.sprite.flash();
+					mad.sprite.showStatus( CharSprite.NEGATIVE, "Mad" );
+				} );
 			}
 			Camera.main.shake( 1, 0.3f );
 			hero.sprite.emitter().burst( ShadowParticle.UP, 8 );

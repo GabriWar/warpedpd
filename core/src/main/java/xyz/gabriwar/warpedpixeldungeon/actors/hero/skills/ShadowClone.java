@@ -6,6 +6,9 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 import java.util.*;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -131,7 +134,9 @@ public class ShadowClone extends ActiveSkill3 {
             int land=anchor?anchorLanding(hero,hero.pos,cell):landing(hero,hero.pos,enemy);
             if(hero.rooted||land<0){pull(index+1);return;}
             final int from=hero.pos;
-            Sample.INSTANCE.play(Assets.Sounds.MISS);
+            //the rope whips out, a note higher each throw of the chain
+            Sample.INSTANCE.play(Assets.Sounds.MISS,1f,1.1f+0.1f*index);
+            Sample.INSTANCE.play(Assets.Sounds.CHAINS,0.7f,1.2f+0.1f*index);
             hero.sprite.parent.add(new Chains(hero.sprite.center(),xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap.raisedTileCenterToWorld(cell),Effects.Type.ROPE,()->{
                 if(anchor){
                     if(depth!=Dungeon.depth||branch!=Dungeon.branch||!hero.isAlive()
@@ -139,6 +144,8 @@ public class ShadowClone extends ActiveSkill3 {
                     hero.sprite.jump(from,land,()->{
                         if(depth==Dungeon.depth&&branch==Dungeon.branch&&hero.isAlive()){
                             hero.move(land,false);hero.sprite.place(land);Dungeon.observe();GameScene.updateFog();
+                            CellEmitter.bottom(land).burst(Speck.factory(Speck.DUST),4);
+                            Sample.INSTANCE.play(Assets.Sounds.STURDY,0.6f,1.2f);
                         }
                         pull(index+1);
                     });
@@ -146,12 +153,15 @@ public class ShadowClone extends ActiveSkill3 {
                     if(!enemy.isAlive()||hero.rooted||landing(hero,hero.pos,enemy)!=land){pull(index+1);return;}
                     hero.sprite.jump(from,land,()->{
                         hero.move(land,false);hero.sprite.place(land);Dungeon.observe();GameScene.updateFog();
+                        CellEmitter.bottom(land).burst(Speck.factory(Speck.DUST),3);
                         if(hero.isAlive()&&enemy.isAlive()&&Dungeon.level.adjacent(hero.pos,enemy.pos)){
+                            hero.sprite.turnTo(hero.pos,enemy.pos);
                             KindOfWeapon weapon=hero.belongings.weapon();
                             int damage=Math.round((weapon==null?RingOfForce.damageRoll(hero):weapon.damageRoll(hero))*DAMAGE_MULTIPLIER);
                             if(weapon!=null)damage=weapon.proc(hero,enemy,damage);
                             damage=hero.heroSkills.allOnHit(enemy,damage,false);
-                            enemy.damage(damage,hero);SkillFX.flash(enemy);Sample.INSTANCE.play(Assets.Sounds.HIT_STAB);
+                            enemy.damage(damage,hero);SkillFX.flash(enemy);Wound.hit(enemy);
+                            Sample.INSTANCE.play(Assets.Sounds.HIT_STAB,1f,1f+0.1f*index);
                         }
                         pull(index+1);
                     });

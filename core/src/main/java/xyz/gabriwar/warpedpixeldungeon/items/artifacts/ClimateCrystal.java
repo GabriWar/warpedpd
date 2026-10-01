@@ -182,7 +182,7 @@ public class ClimateCrystal extends Artifact {
 				float gain = chargeCap / TURNS_TO_FULL;
 				float feels = TileTemperature.feelsLikeAt( target.pos, target );
 				if (feels < 0f || feels > 30f) gain *= 2f;
-				partialCharge += gain * RingOfEnergy.artifactChargeMultiplier( target );
+				partialCharge += gain * (RingOfEnergy.artifactChargeMultiplier( target ) * xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.artifactCharge(ClimateCrystal.this));
 				gain();
 			}
 			spend( TICK );

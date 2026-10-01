@@ -63,9 +63,28 @@ public class WallBlockingTilemap extends Tilemap {
 	}
 
 	private int curr;
-	
+
 	@Override
 	public synchronized void updateMapCell(int cell) {
+		int c = compute( cell );
+		if (data[cell] != c){
+			data[cell] = c;
+			super.updateMapCell(cell);
+		}
+	}
+
+	//what updateMap() would put in a cell: the row and discoverability guard, then the blocker
+	private int computeForMap( int cell ){
+		if (!Dungeon.level.discoverable[cell]
+				|| (cell - mapWidth) <= 0
+				|| (cell + mapWidth) >= size){
+			return CLEARED;
+		}
+		return compute( cell );
+	}
+
+	//the blocker for a cell, from the level's map and exploration memory; no state touched
+	private int compute( int cell ){
 
 		//FIXME this is to address the wall blocking looking odd on the new yog floor.
 		// The true solution is to improve the fog of war so the blockers aren't necessary.
@@ -73,9 +92,7 @@ public class WallBlockingTilemap extends Tilemap {
 				//always-lit hand-painted levels (the town buildings): the wall
 				//blackout would paint their art over with black squares
 				|| Dungeon.level.noFogOfWar()){
-			data[cell] = CLEARED;
-			super.updateMapCell(cell);
-			return;
+			return CLEARED;
 		}
 
 		//non-wall tiles
@@ -188,10 +205,62 @@ public class WallBlockingTilemap extends Tilemap {
 
 		}
 
-		if (data[cell] != curr){
-			data[cell] = curr;
-			super.updateMapCell(cell);
+		return curr;
+	}
+
+	/**
+	 * Sliding-window rebase: the blockers of the overlap move with arraycopy; the exposed
+	 * strips, a two-cell fringe and the trailing border ring are recomputed against the
+	 * translated exploration memory. Built off the render thread, swapped in by applyShift.
+	 */
+	public DungeonTilemap.ShiftPlan prepareShift( int dcx, int dcy ){
+		int w = mapWidth, h = mapHeight;
+		int[] nd = new int[size];
+		System.arraycopy( data, 0, nd, 0, size );
+		shiftCells( data, nd, w, h, dcx, dcy );
+		DungeonTilemap.ShiftPlan plan = new DungeonTilemap.ShiftPlan( nd, dcx, dcy );
+		if (dcx > 0)      recompute( plan, w - dcx, 0, w, h, false );
+		else if (dcx < 0) recompute( plan, 0, 0, -dcx, h, false );
+		if (dcy > 0)      recompute( plan, 0, h - dcy, w, h, false );
+		else if (dcy < 0) recompute( plan, 0, 0, w, -dcy, false );
+		final int f = 2;
+		if (dcx > 0)      recompute( plan, w - dcx - f, 0, w - dcx, h, true );
+		else if (dcx < 0) recompute( plan, -dcx, 0, -dcx + f, h, true );
+		if (dcy > 0)      recompute( plan, 0, h - dcy - f, w, h - dcy, true );
+		else if (dcy < 0) recompute( plan, 0, -dcy, w, -dcy + f, true );
+		if (dcx > 0)      recompute( plan, 0, 0, 1, h, true );
+		else if (dcx < 0) recompute( plan, w - 1, 0, w, h, true );
+		if (dcy > 0)      recompute( plan, 0, 0, w, 1, true );
+		else if (dcy < 0) recompute( plan, 0, h - 1, w, h, true );
+		return plan;
+	}
+
+	private void recompute( DungeonTilemap.ShiftPlan plan, int l, int t, int r, int b, boolean onlyChanged ){
+		l = Math.max( 0, l ); t = Math.max( 0, t );
+		r = Math.min( mapWidth, r ); b = Math.min( mapHeight, b );
+		if (l >= r || t >= b) return;
+		com.watabou.utils.Rect changed = new com.watabou.utils.Rect();
+		for (int y = t; y < b; y++){
+			for (int x = l; x < r; x++){
+				int c = x + y * mapWidth;
+				int v = computeForMap( c );
+				if (plan.data[c] != v){
+					plan.data[c] = v;
+					if (onlyChanged) changed.union( x, y );
+				}
+			}
 		}
+		if (!onlyChanged) plan.dirty.add( new com.watabou.utils.Rect( l, t, r, b ) );
+		else if (!changed.isEmpty()) plan.dirty.add( changed );
+	}
+
+	public synchronized void applyShift( DungeonTilemap.ShiftPlan plan ){
+		data = plan.data;
+		if (!relabelChunks( plan.dcx, plan.dcy )){
+			super.updateMap();
+			return;
+		}
+		for (com.watabou.utils.Rect r : plan.dirty) updateMapRect( r );
 	}
 
 	private boolean fogHidden(int cell){

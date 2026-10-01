@@ -477,7 +477,7 @@ public class SkillTreePane extends ScrollPane {
 
 		/** the fork sibling that was taken instead of this node, or null */
 		private Skill lockedOutBy(){
-			if (kind == Kind.SKILL && skill.exclusiveWith != null && skill.exclusiveWith.level > 0){
+			if (kind == Kind.SKILL && skill.pathLocked()){
 				return skill.exclusiveWith;
 			}
 			return null;
@@ -485,6 +485,7 @@ public class SkillTreePane extends ScrollPane {
 
 		/** tier gates for talents; forks lock each other out; parent progress for everyone */
 		public boolean unlocked(){
+			if (Dungeon.hero.debugAllSkillPaths) return true;
 			if (kind == Kind.ROOT) return true;
 			if (lockedOutBy() != null) return false;
 			for (Node p : parents){
@@ -875,7 +876,13 @@ public class SkillTreePane extends ScrollPane {
 						@Override
 						public void call() {
 							Dungeon.hero.upgradeTalent( node.talent );
+							Sample.INSTANCE.play( Assets.Sounds.LEVELUP, 0.7f, 1.2f );
 						}
+						//the window stays put, like a skill's does, so points can be poured in one after another
+						@Override
+						public boolean staysOpen() { return true; }
+						@Override
+						public boolean available() { return node.canSpend(); }
 					};
 				}
 				GameScene.show( new WndInfoTalent( node.talent, node.level(), callback ) );

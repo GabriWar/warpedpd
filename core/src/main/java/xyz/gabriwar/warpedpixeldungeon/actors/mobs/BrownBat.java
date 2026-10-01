@@ -90,7 +90,7 @@ public class BrownBat extends Mob {
 	@Override
 	public int attackProc( Char enemy, int damage ) {
 		if (Random.Int(10) == 0) {
-			Buff.prolong( enemy, Blindness.class, Random.IntRange(3, 10) );
+			Buff.prolong( enemy, Blindness.class, Random.IntRange(3, 9) );
 			GLog.w( Messages.get(this, "blind") );
 			Dungeon.observe();
 			state = FLEEING;
@@ -109,10 +109,5 @@ public class BrownBat extends Mob {
 			GLog.w( Messages.get(this, "shriek") );
 		}
 		super.die( cause );
-	}
-
-	@Override
-	public float spawningWeight() {
-		return 0;
 	}
 }

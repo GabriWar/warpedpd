@@ -52,6 +52,7 @@ public class SpectatorLevel extends Level {
 		plants = new SparseArray<>();
 		traps = new SparseArray<>();
 		customTiles = new java.util.ArrayList<>();
+		customTerrain = new java.util.ArrayList<>();
 		customWalls = new java.util.ArrayList<>();
 		butter = new SparseArray<>();
 		transitions = new java.util.ArrayList<>();

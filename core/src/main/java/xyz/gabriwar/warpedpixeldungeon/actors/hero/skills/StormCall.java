@@ -47,6 +47,7 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.audio.Sample;
+import com.watabou.utils.Callback;
 import com.watabou.utils.PointF;
 import com.watabou.utils.Random;
 
@@ -104,10 +105,9 @@ public class StormCall extends Skill {
 				return;
 			}
 
-			PointF foot = DungeonTilemap.raisedTileCenterToWorld( cell );
-			hero.sprite.parent.add( new Lightning( new PointF( foot.x, foot.y - DungeonTilemap.SIZE * 7 ), cell, null ) );
-			Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
-			Camera.main.shake( 2, 0.3f );
+			//the whole storm is decided now; it is only shown one arc at a time afterwards
+			final ArrayList<int[]> arcs = new ArrayList<>();
+			arcs.add( new int[]{ -1, cell } );
 			strike( primary, roll() );
 
 			//each arc hops from the last victim to the nearest enemy in sight and in reach
@@ -124,8 +124,7 @@ public class StormCall extends Skill {
 						next = mob;
 				}
 				if (next == null) break;
-				hero.sprite.parent.add( new Lightning( from, next.pos, null ) );
-				Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
+				arcs.add( new int[]{ from, next.pos } );
 				strike( next, Math.round( roll() * 0.6f ) );
 				struck.add( next );
 				from = next.pos;
@@ -133,10 +132,16 @@ public class StormCall extends Skill {
 
 			hero.MP -= getManaCost();
 			castTextYell();
+			Invisibility.dispel();
 			hero.spend( TIME_TO_USE );
 			hero.busy();
-			hero.sprite.operate( hero.pos );
-			Invisibility.dispel();
+			if (hero.sprite == null || hero.sprite.parent == null){
+				hero.next();
+				return;
+			}
+			//arms up towards the mark; the zap pose asks nothing of the hero when it ends
+			hero.sprite.zap( cell );
+			playArc( hero, arcs, 0 );
 		}
 
 		@Override
@@ -149,10 +154,29 @@ public class StormCall extends Skill {
 		return Random.NormalIntRange( 4 + 2 * level, 8 + 4 * level );
 	}
 
+	//one arc at a time: the first comes down out of the sky with a jolt of the screen, the rest leap
+	//body to body, each crack pitched above the last; the mage is free again when the last one fades
+	private static void playArc( final Hero hero, final ArrayList<int[]> arcs, final int i ){
+		if (i >= arcs.size() || hero.sprite == null || hero.sprite.parent == null){
+			hero.next();
+			return;
+		}
+		final int[] a = arcs.get( i );
+		Sample.INSTANCE.play( Assets.Sounds.LIGHTNING, 1f, 0.9f + 0.1f * i );
+		CellEmitter.center( a[1] ).burst( SparkParticle.FACTORY, 8 );
+		Char ch = Actor.findChar( a[1] );
+		if (ch != null && ch.sprite != null) ch.sprite.flash();
+		Callback then = () -> playArc( hero, arcs, i + 1 );
+		if (a[0] < 0){
+			Camera.main.shake( 2, 0.3f );
+			PointF foot = DungeonTilemap.raisedTileCenterToWorld( a[1] );
+			hero.sprite.parent.add( new Lightning( new PointF( foot.x, foot.y - DungeonTilemap.SIZE * 7 ), a[1], then ) );
+		} else {
+			hero.sprite.parent.add( new Lightning( a[0], a[1], then ) );
+		}
+	}
+
 	private void strike( Char ch, int damage ){
-		if (ch.sprite != null)
-			ch.sprite.flash();
-		CellEmitter.center( ch.pos ).burst( SparkParticle.FACTORY, 8 );
 		int before = SkillInteractions.beforeMagicHit( ch, this );
 		ch.damage( damage, this );
 		SkillInteractions.afterMagicHit( ch, before, this );

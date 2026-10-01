@@ -156,7 +156,7 @@ public class CandleOfMindVision extends Artifact {
 				}
 			} else if (charge < chargeCap) {
 				//recovers slowly while carried unlit
-				partialCharge += 0.1f;
+				partialCharge += 0.1f * xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.artifactCharge(CandleOfMindVision.this);
 				if (partialCharge >= 1f) {
 					partialCharge--;
 					charge++;

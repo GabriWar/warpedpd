@@ -93,8 +93,13 @@ public class BrokenSeal extends Item {
 	}
 
 	public int maxShield( int armTier, int armLvl ){
-		// 5-15, based on equip tier and iron will
-		return 3 + 2*armTier + Dungeon.hero.pointsInTalent(Talent.IRON_WILL);
+		// based on equip tier, plus iron will: 3/6/9% of max HP (at least 1/2/3)
+		return 3 + 2*armTier + ironWill(Dungeon.hero);
+	}
+
+	public static int ironWill( Hero hero ){
+		int p = hero.pointsInTalent(Talent.IRON_WILL);
+		return Math.max(p, Math.round(p * hero.HT * 0.03f));
 	}
 
 	@Override
@@ -367,7 +372,7 @@ public class BrokenSeal extends Item {
 		public synchronized int maxShield() {
 			//metamorphed iron will logic
 			if (((Hero)target).heroClass != HeroClass.WARRIOR && ((Hero) target).hasTalent(Talent.IRON_WILL)){
-				return ((Hero) target).pointsInTalent(Talent.IRON_WILL);
+				return ironWill((Hero) target);
 			}
 
 			if (armor != null && armor.isEquipped((Hero)target) && armor.checkSeal() != null) {

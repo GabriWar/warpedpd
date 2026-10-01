@@ -138,7 +138,7 @@ public class WndTradeItem extends WndInfoItem {
 
 		float pos = height;
 
-		final int price = Shopkeeper.sellPrice( item );
+		final int price = Shopkeeper.sellPrice( item, Dungeon.hero );
 
 		//surface shops shut at night: the goods stay on show, the till is closed
 		final boolean closed = Shopkeeper.closedForNight();
@@ -329,7 +329,7 @@ public class WndTradeItem extends WndInfoItem {
 		Item item = heap.pickUp();
 		if (item == null) return;
 		
-		int price = Shopkeeper.sellPrice( item );
+		int price = Shopkeeper.sellPrice( item, Dungeon.hero );
 		Dungeon.gold -= price;
 		Catalog.countUses(Gold.class, price);
 
@@ -342,13 +342,10 @@ public class WndTradeItem extends WndInfoItem {
 			Dungeon.level.drop( item, heap.pos ).sprite.drop();
 		}
 
-		//the town store rotates its whole stock after every purchase; a bought
-		//orb of zot leaves the catalog forever
+		//buying never restocks a shop: every shop turns its stock over on the keeper's
+		//five-day clock only. a bought orb of zot leaves the catalog forever
 		if (item instanceof xyz.gabriwar.warpedpixeldungeon.items.OrbOfZot){
 			Dungeon.orbofzotshopsold = true;
-		}
-		if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.TownShopLevel){
-			((xyz.gabriwar.warpedpixeldungeon.levels.TownShopLevel) Dungeon.level).rotateStock();
 		}
 	}
 }

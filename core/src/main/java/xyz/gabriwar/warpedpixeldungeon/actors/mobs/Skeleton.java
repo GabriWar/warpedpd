@@ -61,7 +61,7 @@ public class Skeleton extends Mob {
 		properties.add(Property.UNDEAD);
 		properties.add(Property.INORGANIC);
 
-		resistances.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim.class);
+		immunities.add(xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim.class);
 
 		//no metabolism to disturb: only the extremes reach it
 		thermal = Thermal.INSENSATE;
@@ -106,7 +106,7 @@ public class Skeleton extends Mob {
 				if (ch.buff(MagicImmune.class) == null) {
 					ShieldOfLight.ShieldOfLightTracker shield = ch.buff(ShieldOfLight.ShieldOfLightTracker.class);
 					if (shield != null && shield.object == id()) {
-						int min = 1 + Dungeon.hero.pointsInTalent(Talent.SHIELD_OF_LIGHT);
+						int min = xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.ShieldOfLight.minBlock();
 						damage -= Random.NormalIntRange(min, 2 * min);
 						damage -= Random.NormalIntRange(min, 2 * min); //apply twice
 						damage = Math.max(damage, 0);

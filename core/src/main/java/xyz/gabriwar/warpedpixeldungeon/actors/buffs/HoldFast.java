@@ -62,7 +62,11 @@ public class HoldFast extends Buff {
 					max = armor.tier + armor.buffedLvl();
 				}
 			}
-			int block = Random.NormalIntRange(((Hero) target).pointsInTalent(Talent.HOLD_FAST), 2*((Hero) target).pointsInTalent(Talent.HOLD_FAST));
+			int[] range = blockRange((Hero) target);
+			if (((Hero) target).heroClass == HeroClass.WARRIOR){
+				max = Math.max(max, armorMax((Hero) target) / 2);
+			}
+			int block = Random.NormalIntRange(range[0], range[1]);
 			return Math.min(block, max);
 		} else {
 			detach();
@@ -98,11 +102,24 @@ public class HoldFast extends Buff {
 		icon.hardlight(1.9f, 2.4f, 3.25f);
 	}
 
+	private static int armorMax( Hero hero ){
+		Armor a = hero.belongings.armor();
+		return a == null ? 0 : a.DRMax(a.buffedLvl());
+	}
+
+	//5-10% of the armor's max block per point, at least 1-2 per point
+	public static int[] blockRange( Hero hero ){
+		int p = hero.pointsInTalent(Talent.HOLD_FAST);
+		int dr = armorMax(hero);
+		return new int[]{ Math.max(p, Math.round(dr*0.05f*p)), Math.max(2*p, Math.round(dr*0.10f*p)) };
+	}
+
 	@Override
 	public String desc() {
+		int[] range = blockRange(Dungeon.hero);
 		return Messages.get(this, "desc",
-				Dungeon.hero.pointsInTalent(Talent.HOLD_FAST),
-				2*Dungeon.hero.pointsInTalent(Talent.HOLD_FAST),
+				range[0],
+				range[1],
 				25 + 25*Dungeon.hero.pointsInTalent(Talent.HOLD_FAST));
 	}
 

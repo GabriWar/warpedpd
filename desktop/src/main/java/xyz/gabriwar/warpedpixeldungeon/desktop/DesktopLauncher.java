@@ -177,6 +177,10 @@ public class DesktopLauncher {
 		//automated screenshots: isolated data dir under the output dir, fixed render size
 		String screenshots = System.getProperty("wpd.screenshots");
 		String trailer = System.getProperty("wpd.trailer");
+		//a debug scene to start straight into (DebugScenes): ./gradlew :desktop:debug -Pscene=<id>
+		if (System.getProperty("wpd.scene") != null) {
+			xyz.gabriwar.warpedpixeldungeon.debug.DebugScenes.request(System.getProperty("wpd.scene"));
+		}
 		if (screenshots != null || trailer != null) {
 			String[] size = System.getProperty("wpd.screenshots.size", "1920x1080").split("x");
 			int w = Integer.parseInt(size[0]), h = Integer.parseInt(size[1]);

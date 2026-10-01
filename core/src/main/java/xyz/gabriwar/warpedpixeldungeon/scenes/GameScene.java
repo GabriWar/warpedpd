@@ -175,6 +175,7 @@ public class GameScene extends PixelScene {
 
 	private SkinnedBlock water;
 	private DungeonTerrainTilemap tiles;
+	private xyz.gabriwar.warpedpixeldungeon.tiles.IceFringeTilemap iceFringe;
 	private GridTileMap visualGrid;
 	private WallOcclusionTilemap occlusion;
 	private TerrainFeaturesTilemap terrainFeatures;
@@ -255,6 +256,8 @@ public class GameScene extends PixelScene {
 
 		Dungeon.level.playLevelMusic();
 
+		xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.inGame( true );
+
 		WPDSettings.lastClass(Dungeon.hero.heroClass.ordinal());
 		
 		super.create();
@@ -305,6 +308,9 @@ public class GameScene extends PixelScene {
 		
 		tiles = new DungeonTerrainTilemap();
 		terrain.add( tiles );
+
+		iceFringe = new xyz.gabriwar.warpedpixeldungeon.tiles.IceFringeTilemap();
+		terrain.add( iceFringe );
 
 		customTiles = new Group();
 		terrain.add(customTiles);
@@ -421,9 +427,7 @@ public class GameScene extends PixelScene {
 			//the overworld IS the surface: depth 0 to the climate, whatever
 			//its slot number - at its real depth the weather would stay at
 			//the bottom of the dungeon (no rain, ash in the air)
-			ClimateManager.onLevelChange(
-					Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
-							? 0 : Dungeon.depth );
+			ClimateManager.onLevelChange( Dungeon.level.climateDepth() );
 			updateWeather();
 		} else {
 			// Apply weather state received from host
@@ -478,6 +482,7 @@ public class GameScene extends PixelScene {
 		add( new TargetHealthIndicator() );
 		
 		add( emoicons );
+		add( new xyz.gabriwar.warpedpixeldungeon.debug.HeatOverlay() );
 		
 		add( cellSelector = new CellSelector( tiles ) );
 		cellSelector.enabled = !xyz.gabriwar.warpedpixeldungeon.net.NetManager.isNetClient();
@@ -702,20 +707,23 @@ public class GameScene extends PixelScene {
 			bringToFront(status);
 		}
 
+		//the toolbar and the inventory pane live on their own, smaller camera
+		//(PixelScene.toolbarCamera): the safe insets in its units are k times the UI's
 		toolbar = new Toolbar();
-		toolbar.camera = uiCamera;
+		toolbar.camera = toolbarCamera;
 		add( toolbar );
+		float k = uiCamera.zoom / toolbarCamera.zoom;
 
 		if (uiSize == 2) {
-			invBottom = insets.bottom;
+			invBottom = insets.bottom * k;
 			inventory = new InventoryPane();
-			inventory.camera = uiCamera;
-			inventory.setPos(uiCamera.width - inventory.width() - insets.right, uiCamera.height - inventory.height() - insets.bottom);
+			inventory.camera = toolbarCamera;
+			inventory.setPos(toolbarCamera.width - inventory.width() - insets.right * k, toolbarCamera.height - inventory.height() - invBottom);
 			add(inventory);
 
-			toolbar.setRect( insets.left, uiCamera.height - toolbar.height() - inventory.height() - insets.bottom, uiCamera.width - insets.right, toolbar.height() );
+			toolbar.setRect( insets.left * k, toolbarCamera.height - toolbar.height() - inventory.height() - invBottom, toolbarCamera.width - insets.right * k, toolbar.height() );
 		} else {
-			toolbar.setRect( insets.left, uiCamera.height - toolbar.height() - insets.bottom, uiCamera.width - insets.right, toolbar.height() );
+			toolbar.setRect( insets.left * k, toolbarCamera.height - toolbar.height() - insets.bottom * k, toolbarCamera.width - insets.right * k, toolbar.height() );
 		}
 
 		if (insets.bottom > 0){
@@ -1005,6 +1013,8 @@ public class GameScene extends PixelScene {
 		WndSupporterThanks.showIfPending(this);
 		fadeIn();
 
+		//a debug scene asked for on the command line is set up now that the scene stands
+		xyz.gabriwar.warpedpixeldungeon.debug.DebugScenes.applyRequested();
 		//re-show WndResurrect if needed
 		if (!Dungeon.hero.isAlive()){
 			//check if hero has an unblessed ankh
@@ -1024,6 +1034,8 @@ public class GameScene extends PixelScene {
 	}
 	
 	public void destroy() {
+
+		xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.inGame( false );
 		
 		//tell the actor thread to finish, then wait for it to complete any actions it may be doing.
 		if (!waitForActorThread( 4500, true )){
@@ -1074,6 +1086,7 @@ public class GameScene extends PixelScene {
 	
 	@Override
 	public synchronized void onPause() {
+		xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.paused();
 		if (xyz.gabriwar.warpedpixeldungeon.net.NetManager.isNetClient()) return;
 		try {
 			if (!Dungeon.hero.ready) waitForActorThread(500, false);
@@ -1104,6 +1117,7 @@ public class GameScene extends PixelScene {
 
 	@Override
 	public synchronized void update() {
+		xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.frame();
 		frameId++;
 		lastOffset = null;
 
@@ -1269,7 +1283,7 @@ public class GameScene extends PixelScene {
 		float tagWidth = Tag.SIZE + (tagsOnLeft ? insets.left : insets.right);
 		float tagLeft = tagsOnLeft ? 0 : uiCamera.width - tagWidth;
 
-		float y = WPDSettings.interfaceSize() == 0 ? scene.toolbar.top()-2 : scene.status.top()-2;
+		float y = WPDSettings.interfaceSize() == 0 ? toolbarTopInUi()-2 : scene.status.top()-2;
 		if (scene.tagCrouch) {
 			y -= Tag.SIZE;
 		}
@@ -1287,7 +1301,7 @@ public class GameScene extends PixelScene {
 			}
 		}
 
-		float pos = scene.toolbar.top();
+		float pos = toolbarTopInUi();
 		if (tagsOnLeft && WPDSettings.interfaceSize() > 0){
 			pos = scene.status.top();
 		}
@@ -1297,7 +1311,7 @@ public class GameScene extends PixelScene {
 		//full UI it anchors to the status pane, which spans the whole width down there.
 		if (scene.tagCrouch) {
 			float crouchTagWidth = Tag.SIZE + insets.left;
-			float crouchTop = WPDSettings.interfaceSize() == 0 ? scene.toolbar.top() : scene.status.top();
+			float crouchTop = WPDSettings.interfaceSize() == 0 ? toolbarTopInUi() : scene.status.top();
 			scene.crouch.setRect( 0, crouchTop - Tag.SIZE, crouchTagWidth, Tag.SIZE );
 			//left-edge tag: flip so the rounded corner faces inward and the flat side
 			//bleeds off the screen edge (unflipped looks cut off, only rounded on the left)
@@ -1441,8 +1455,10 @@ public class GameScene extends PixelScene {
 			prompt.camera = uiCamera;
 			prompt.setPos( (uiCamera.width - prompt.width()) / 2, uiCamera.height - 60 );
 
-			if (inventory != null && inventory.visible && prompt.right() > inventory.left() - 10){
-				prompt.setPos(inventory.left() - prompt.width() - 10, prompt.top());
+			//the inventory pane is on the toolbar's camera: its left edge in UI units
+			float invLeft = inventory == null ? 0 : inventory.left() * toolbarCamera.zoom / uiCamera.zoom;
+			if (inventory != null && inventory.visible && prompt.right() > invLeft - 10){
+				prompt.setPos(invLeft - prompt.width() - 10, prompt.top());
 			}
 
 			add( prompt );
@@ -1737,31 +1753,72 @@ public class GameScene extends PixelScene {
 	}
 
 	/**
-	 * Sliding-window rebase fast path: shifts the cached content of every
-	 * tilemap and the fog by the window delta, recomputing only the exposed
-	 * strips - the full updateMap() re-ran the whole tile-visual pipeline
-	 * (9216 cells x 6 maps) plus a full fog rebuild in a single frame, which
-	 * was the visible stutter at every chunk crossing.
+	 * Everything a sliding-window rebase changes in the map layers, computed ahead of the
+	 * render thread's atomic block (see OverworldLevel.rebase): one shift plan per tilemap.
 	 */
-	public static void shiftMapContent( int dcx, int dcy ){
-		if (scene == null) return;
+	public static final class MapShift {
+		final int dcx, dcy;
+		DungeonTilemap.ShiftPlan tiles, occlusion, grid, features, raised, walls, blocking;
+		MapShift( int dcx, int dcy ){ this.dcx = dcx; this.dcy = dcy; }
+	}
+
+	/**
+	 * Builds the shift plans for every map layer: the overlap's visuals move by arraycopy and
+	 * only the exposed strips run the tile-visual pipeline. Runs on the actor thread once the
+	 * level holds the new window; touches nothing the render thread reads.
+	 */
+	public static MapShift prepareMapShift( int dcx, int dcy ){
+		if (scene == null) return null;
+		long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
+		//skip sets hold window indices: slide them before any visual is recomputed
 		xyz.gabriwar.warpedpixeldungeon.tiles.DungeonWallsTilemap.shiftSkipCells(
 				dcx, dcy, Dungeon.level.width(), Dungeon.level.height() );
 		xyz.gabriwar.warpedpixeldungeon.tiles.RaisedTerrainTilemap.shiftSkipCells(
 				dcx, dcy, Dungeon.level.width(), Dungeon.level.height() );
-		scene.tiles.shiftAndUpdate( dcx, dcy );
-		scene.visualGrid.shiftAndUpdate( dcx, dcy );
-		scene.terrainFeatures.shiftAndUpdate( dcx, dcy );
-		scene.raisedTerrain.shiftAndUpdate( dcx, dcy );
-		scene.walls.shiftAndUpdate( dcx, dcy );
-		scene.fog.shiftContent( dcx, dcy );
-		scene.wallBlocking.updateMap();
+		MapShift s = new MapShift( dcx, dcy );
+		s.tiles     = scene.tiles.prepareShift( dcx, dcy );
+		s.occlusion = scene.occlusion.prepareShift( dcx, dcy );
+		s.grid      = scene.visualGrid.prepareShift( dcx, dcy );
+		s.features  = scene.terrainFeatures.prepareShift( dcx, dcy );
+		s.raised    = scene.raisedTerrain.prepareShift( dcx, dcy );
+		s.walls     = scene.walls.prepareShift( dcx, dcy );
+		s.blocking  = scene.wallBlocking.prepareShift( dcx, dcy );
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW prepareMapShift (strips)", t );
+		return s;
+	}
+
+	/** swaps the prepared plans in and blits the fog; render thread, inside the atomic block */
+	public static void applyMapShift( MapShift s ){
+		if (scene == null || s == null) return;
+		long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
+		scene.tiles.applyShift( s.tiles );
+		scene.occlusion.applyShift( s.occlusion );
+		scene.visualGrid.applyShift( s.grid );
+		scene.terrainFeatures.applyShift( s.features );
+		scene.raisedTerrain.applyShift( s.raised );
+		scene.walls.applyShift( s.walls );
+		scene.wallBlocking.applyShift( s.blocking );
+		scene.fog.shiftContent( s.dcx, s.dcy );
 		updateDayNightTint();
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW applyMapShift (render)", t );
+	}
+
+	/** prepare and apply on the calling thread: for a mirror that adopts a window where it draws */
+	public static void shiftMapContent( int dcx, int dcy ){
+		applyMapShift( prepareMapShift( dcx, dcy ) );
 	}
 
 	public static void updateMap() {
 		if (scene != null) {
+			long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
+			try { updateMapImpl(); } finally { xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "GameScene.updateMap (whole map)", t ); }
+		}
+	}
+
+	private static void updateMapImpl() {
+		if (scene != null) {
 			scene.tiles.updateMap();
+			scene.iceFringe.updateMap();
 			scene.occlusion.updateMap();
 			scene.visualGrid.updateMap();
 			scene.terrainFeatures.updateMap();
@@ -1774,6 +1831,7 @@ public class GameScene extends PixelScene {
 	public static void updateMap( int cell ) {
 		if (scene != null) {
 			scene.tiles.updateMapCell( cell );
+			scene.iceFringe.updateMapCell( cell );
 			scene.occlusion.updateMapCell( cell );
 			scene.visualGrid.updateMapCell( cell );
 			scene.terrainFeatures.updateMapCell( cell );
@@ -1850,24 +1908,29 @@ public class GameScene extends PixelScene {
 		}
 	}
 
+	//the toolbar's top edge in uiCamera units (it draws on its own, smaller camera)
+	private static float toolbarTopInUi(){
+		return scene.toolbar.top() * toolbarCamera.zoom / uiCamera.zoom;
+	}
+
 	private static void applyInvState(){
 		if (scene == null || scene.inventory == null) return;
 		switch (invState) {
 			case 1: // hidden
 				scene.inventory.setExpanded(false);
 				scene.inventory.visible = scene.inventory.active = false;
-				scene.toolbar.setPos(scene.toolbar.left(), uiCamera.height - scene.toolbar.height() - scene.invBottom);
+				scene.toolbar.setPos(scene.toolbar.left(), toolbarCamera.height - scene.toolbar.height() - scene.invBottom);
 				break;
 			case 2: // expanded (fuller backpack)
 				scene.inventory.setExpanded(true);
 				scene.inventory.visible = scene.inventory.active = true;
-				scene.inventory.setPos(scene.inventory.left(), uiCamera.height - scene.inventory.height() - scene.invBottom);
+				scene.inventory.setPos(scene.inventory.left(), toolbarCamera.height - scene.inventory.height() - scene.invBottom);
 				scene.toolbar.setPos(scene.toolbar.left(), scene.inventory.top() - scene.toolbar.height());
 				break;
 			default: // 0: normal visible
 				scene.inventory.setExpanded(false);
 				scene.inventory.visible = scene.inventory.active = true;
-				scene.inventory.setPos(scene.inventory.left(), uiCamera.height - scene.inventory.height() - scene.invBottom);
+				scene.inventory.setPos(scene.inventory.left(), toolbarCamera.height - scene.inventory.height() - scene.invBottom);
 				scene.toolbar.setPos(scene.toolbar.left(), scene.inventory.top() - scene.toolbar.height());
 				break;
 		}
@@ -1887,8 +1950,10 @@ public class GameScene extends PixelScene {
 
 	public static void centerNextWndOnInvPane(){
 		if (scene != null && scene.inventory != null && scene.inventory.visible){
-			lastOffset = new Point((int)scene.inventory.centerX() - uiCamera.width/2,
-					(int)scene.inventory.centerY() - uiCamera.height/2);
+			//the pane is on the toolbar's camera: its centre in UI units
+			float toUi = toolbarCamera.zoom / uiCamera.zoom;
+			lastOffset = new Point((int)(scene.inventory.centerX() * toUi) - uiCamera.width/2,
+					(int)(scene.inventory.centerY() * toUi) - uiCamera.height/2);
 		}
 	}
 
@@ -1900,9 +1965,11 @@ public class GameScene extends PixelScene {
 
 	public static void updateFog(){
 		if (scene != null) {
+			long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
 			scene.fog.updateFog();
 			scene.wallBlocking.updateMap();
 			updateDayNightTint();
+			xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "GameScene.updateFog (whole map)", t );
 		}
 	}
 
@@ -2151,15 +2218,19 @@ public class GameScene extends PixelScene {
 
 	public static void updateFog(int x, int y, int w, int h){
 		if (scene != null) {
+			long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
 			scene.fog.updateFogArea(x, y, w, h);
 			scene.wallBlocking.updateArea(x, y, w, h);
+			xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "GameScene.updateFog (area)", t );
 		}
 	}
 	
 	public static void updateFog( int cell, int radius ){
 		if (scene != null) {
+			long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
 			scene.fog.updateFog( cell, radius );
 			scene.wallBlocking.updateArea( cell, radius );
+			xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "GameScene.updateFog (radius)", t );
 		}
 	}
 	

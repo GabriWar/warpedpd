@@ -162,6 +162,9 @@ public abstract class RegularLevel extends Level {
 		for (int i = 0; i < secrets; i++) {
 			initRooms.add(SecretRoom.createRoom());
 		}
+
+		//Warped's own rooms come from a slot of their own, so they never thin the queues above
+		xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.WarpedRooms.addRooms( this, initRooms );
 		
 		return initRooms;
 	}
@@ -422,6 +425,10 @@ public abstract class RegularLevel extends Level {
 					continue;
 				}
 				type = Heap.Type.CHEST;
+				break;
+			case 6:
+				//SPS-PD hides a monster box among the chests; it looks like a plain one
+				type = Dungeon.depth > 1 ? Heap.Type.MONSTER_BOX : Heap.Type.HEAP;
 				break;
 			default:
 				type = Heap.Type.HEAP;

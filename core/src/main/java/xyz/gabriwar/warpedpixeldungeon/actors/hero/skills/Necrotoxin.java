@@ -28,6 +28,7 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -36,9 +37,11 @@ import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
 
 public class Necrotoxin extends Skill {
 
@@ -52,6 +55,30 @@ public class Necrotoxin extends Skill {
 
 	@Override
 	protected boolean upgrade(){ return true; }
+
+	/** mana fed back by every tick of poison the rogue has working on an enemy */
+	public static final int MANA_PER_TICK = 7;
+
+	/**
+	 * Every tick of poison eating an enemy feeds the rogue's own reserves. Called from
+	 * {@link xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison}, once per tick, for the
+	 * enemy it is ticking on.
+	 */
+	public static void onPoisonTick( Char enemy ){
+		Hero hero = Dungeon.hero;
+		if (hero == null || !hero.isAlive() || enemy == null || enemy == hero) return;
+		if (enemy.alignment != Char.Alignment.ENEMY || hero.heroSkills == null) return;
+
+		Necrotoxin skill = hero.heroSkills.get( Necrotoxin.class );
+		if (skill == null || skill.level <= 0) return;
+
+		int cap = hero.MT + xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfMagic.manaBonus( hero );
+		if (hero.MP >= cap) return;
+
+		int gain = Math.min( MANA_PER_TICK, cap - hero.MP );
+		hero.MP += gain;
+		if (hero.sprite != null) hero.sprite.showStatus( 0x44CCFF, "+" + gain + " MP" );
+	}
 
 	//a hit can rupture the poison in an enemy: what was left of it lands at once, and half again
 	@Override
@@ -71,11 +98,14 @@ public class Necrotoxin extends Skill {
 
 		//at mastery the rupture sprays onto every enemy next to it
 		if (level >= MAX_LEVEL){
+			FxTimeline t = FxTimeline.start();
+			int order = 0;
 			for (int n : PathFinder.NEIGHBOURS8){
 				Char ch = Actor.findChar( enemy.pos + n );
 				if (ch != null && ch.isAlive() && ch.alignment == Char.Alignment.ENEMY){
 					Buff.affect( ch, Poison.class ).set( 5f );
-					CellEmitter.center( ch.pos ).burst( PoisonParticle.SPLASH, 4 );
+					final int at = ch.pos;
+					t.at( 0.08f + 0.05f * order++, () -> CellEmitter.center( at ).burst( PoisonParticle.SPLASH, 4 ) );
 				}
 			}
 		}

@@ -96,11 +96,11 @@ public class GraveProtector extends Mob implements Callback {
 			spend(TIME_TO_ZAP);
 
 			if (hit(this, enemy, true)) {
-				int dmg = Random.NormalIntRange(10 + Math.round(Statistics.skeletonsKilled / 10), 25 + Math.round(Statistics.skeletonsKilled / 5));
+				int dmg = Random.IntRange(10 + Math.round(Statistics.skeletonsKilled / 10), 24 + Math.round(Statistics.skeletonsKilled / 5));
 				if (Dungeon.level.water[enemy.pos] && !enemy.flying) {
 					dmg *= 1.5f;
 				}
-				enemy.damage(dmg, this);
+				enemy.damage(dmg, new Electricity());
 				enemy.sprite.centerEmitter().burst(SparkParticle.FACTORY, 3);
 				enemy.sprite.flash();
 

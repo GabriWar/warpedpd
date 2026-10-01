@@ -117,6 +117,9 @@ public class MissileSprite extends ItemSprite implements Tweener.Listener {
 		ANGULAR_SPEEDS.put(Trident.class,       0);
 		
 		ANGULAR_SPEEDS.put(SpiritBow.SpiritArrow.class,       0);
+		//the SPS-PD bows' arrows fly point first, like any arrow
+		ANGULAR_SPEEDS.put(xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.ElfBow.ElfArrow.class,         0);
+		ANGULAR_SPEEDS.put(xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.TaurcenBow.TaurcenArrow.class, 0);
 		ANGULAR_SPEEDS.put(ScorpioSprite.ScorpioShot.class,   0);
 		ANGULAR_SPEEDS.put(HolyLance.HolyLanceVFX.class,      0);
 		
@@ -172,6 +175,17 @@ public class MissileSprite extends ItemSprite implements Tweener.Listener {
 
 		if (item instanceof GnollGeomancer.Boulder){
 			angle = 0;
+			flipHorizontal = false;
+			updateFrame();
+		}
+
+		//the SPS-PD guns' rounds are drawn nose to the RIGHT (not up-right like a dart):
+		//they fly nose first along their line, never tumbling
+		if (item instanceof xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.ShootGun.ShotAmmo
+				|| item instanceof xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MiniGun.MiniGunShot
+				|| item instanceof xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MegaCannon.CannonShot){
+			angularSpeed = 0;
+			angle = (float)Math.toDegrees( Math.atan2( d.y, d.x ) );
 			flipHorizontal = false;
 			updateFrame();
 		}

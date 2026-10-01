@@ -33,6 +33,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import com.watabou.utils.PathFinder;
@@ -58,8 +62,11 @@ public class PyreAffinity extends Skill {
 	public void onMagicDamage( Char target, int damage, Object source ){
 		if (level <= 0 || target == null || !target.isAlive() || Random.Int(100) >= 12 * level) return;
 		Buff.affect( target, Burning.class ).reignite( target );
-		if (target.sprite != null)
+		if (target.sprite != null){
+			//it catches: flames up the body and a hot flare off it
 			target.sprite.emitter().burst( FlameParticle.FACTORY, 3 + level );
+			new Flare( 5, 12 ).color( 0xFF8418, true ).show( target.sprite, 0.4f );
+		}
 		Sample.INSTANCE.play( Assets.Sounds.BURNING, 0.6f, 1.2f );
 		//at mastery the flames leap to one enemy standing next to the target
 		if (level >= MAX_LEVEL){
@@ -67,12 +74,27 @@ public class PyreAffinity extends Skill {
 				Char near = Actor.findChar( target.pos + n );
 				if (near != null && near != target && near.isAlive() && near.alignment == Char.Alignment.ENEMY){
 					Buff.affect( near, Burning.class ).reignite( near );
-					if (near.sprite != null)
-						near.sprite.emitter().burst( FlameParticle.FACTORY, 6 );
+					leap( target.pos, near );
 					break;
 				}
 			}
 		}
+	}
+
+	//an ember trail from one body to the next, bursting into flame when it arrives
+	private static void leap( int from, final Char to ){
+		Hero hero = Dungeon.hero;
+		if (hero == null || hero.sprite == null || hero.sprite.parent == null || to.sprite == null || !to.sprite.visible){
+			if (to.sprite != null) to.sprite.emitter().burst( FlameParticle.FACTORY, 6 );
+			return;
+		}
+		((MagicMissile) hero.sprite.parent.recycle( MagicMissile.class )).reset( MagicMissile.FIRE, from, to.pos, () -> {
+			if (to.sprite != null){
+				to.sprite.emitter().burst( FlameParticle.FACTORY, 6 );
+				to.sprite.flash();
+			}
+			Sample.INSTANCE.play( Assets.Sounds.BURNING, 0.6f, 1.4f );
+		} );
 	}
 
 	@Override

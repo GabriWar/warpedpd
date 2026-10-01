@@ -25,6 +25,7 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
 
 
 import com.watabou.noosa.audio.Sample;
@@ -85,6 +86,8 @@ public class RighteousStrikes extends PassiveSkillB1 {
 		Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 0.8f, 1.2f );
 
 		//the released light leaps from enemy to enemy, one more leap per level
+		//the light leaps one enemy after another, each leap a shade higher
+		FxTimeline chain = FxTimeline.start();
 		HashSet<Char> struck = new HashSet<>();
 		struck.add( enemy );
 		Char from = enemy;
@@ -97,16 +100,18 @@ public class RighteousStrikes extends PassiveSkillB1 {
 				if (next == null || Dungeon.level.trueDistance( from.pos, m.pos ) < Dungeon.level.trueDistance( from.pos, next.pos )) next = m;
 			}
 			if (next == null) break;
-			ray( from, next );
+			final Char a = from, b = next;
+			final float pitch = 1.2f + 0.1f * i;
+			chain.at( 0.1f * (i + 1), () -> { ray( a, b ); Sample.INSTANCE.play( Assets.Sounds.RAY, 0.5f, pitch ); } );
 			struck.add( next );
 			next.damage( holy( next ), this );
 			from = next;
 		}
-		if (struck.size() > 1) Sample.INSTANCE.play( Assets.Sounds.RAY, 0.7f, 1.2f );
 
 		//at mastery the light comes home and mends the cleric for every enemy it touched
 		if (level >= MAX_LEVEL && hero != null && hero.sprite != null){
-			ray( from, hero );
+			final Char last = from;
+			chain.at( 0.1f * (struck.size() + 1), () -> ray( last, hero ) );
 			hero.heal( SkillInteractions.ofHealth( hero.HT, 0.01f ) * struck.size() );
 		}
 

@@ -72,7 +72,7 @@ public class FlyingProtector extends Mob implements Callback {
 
 	@Override
 	protected boolean canAttack(Char enemy) {
-		return new Ballistica(pos, enemy.pos, Ballistica.STOP_SOLID).collisionPos == enemy.pos;
+		return new Ballistica(pos, enemy.pos, Ballistica.PROJECTILE).collisionPos == enemy.pos;
 	}
 
 	@Override

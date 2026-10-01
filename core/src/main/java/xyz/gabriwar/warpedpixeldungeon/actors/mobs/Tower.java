@@ -25,6 +25,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -40,6 +41,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.particles.SmokeParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Gold;
 import xyz.gabriwar.warpedpixeldungeon.items.RedDewdrop;
+import xyz.gabriwar.warpedpixeldungeon.items.YellowDewdrop;
 import xyz.gabriwar.warpedpixeldungeon.items.keys.SkeletonKey;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPsionicBlast;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
@@ -71,6 +73,7 @@ public class Tower extends Mob implements Callback {
 		declareExtraLoot(SkeletonKey.class, 1f);
 		declareExtraLoot(Gold.class, 1f);
 
+		properties.add(Property.BOSS);
 		properties.add(Property.IMMOVABLE);
 
 		immunities.add(ToxicGas.class);
@@ -165,13 +168,26 @@ public class Tower extends Mob implements Callback {
 	@Override
 	public void die(Object cause) {
 		super.die(cause);
-		if (alignment != Alignment.ENEMY) {
-			Dungeon.level.drop(new xyz.gabriwar.warpedpixeldungeon.items.RedDewdrop(), pos).sprite.drop();
-		}
-
 
 		explode(pos);
 		dropExtraLoot();
+		explodeDew(pos);
+	}
+
+	//scatters dewdrops over the wreck, as the source's Mob.explodeDew did
+	private void explodeDew(int cell) {
+		Sample.INSTANCE.play(Assets.Sounds.BLAST, 2);
+
+		for (int n : PathFinder.NEIGHBOURS9) {
+			int c = cell + n;
+			if (c >= 0 && c < Dungeon.level.length() && Dungeon.level.passable[c]) {
+				if (Random.Int(10) == 1) {
+					Dungeon.level.drop(new RedDewdrop(), c).sprite.drop();
+				} else if (Random.Int(3) == 1) {
+					Dungeon.level.drop(new YellowDewdrop(), c).sprite.drop();
+				}
+			}
+		}
 	}
 
 	@Override
@@ -187,7 +203,8 @@ public class Tower extends Mob implements Callback {
 		if (bossAlive == 0) {
 			GameScene.bossSlain();
 			trackedDrop(new SkeletonKey(Dungeon.depth), 0);
-			trackedDrop(new Gold(Random.IntRange(3000, 6000)), 1);
+			trackedDrop(new Gold(Random.Int(3000, 6000)), 1);
+			Badges.validateBossSlain();
 		}
 	}
 
@@ -198,6 +215,7 @@ public class Tower extends Mob implements Callback {
 			CellEmitter.center(cell).burst(BlastParticle.FACTORY, 30);
 		}
 
+		boolean terrainAffected = false;
 		for (int n : PathFinder.NEIGHBOURS8) {
 			int c = cell + n;
 			if (c >= 0 && c < Dungeon.level.length()) {
@@ -208,6 +226,7 @@ public class Tower extends Mob implements Callback {
 				if ((Terrain.flags[Dungeon.level.map[c]] & Terrain.FLAMABLE) != 0) {
 					Dungeon.level.set(c, Terrain.EMBERS);
 					GameScene.updateMap(c);
+					terrainAffected = true;
 				}
 
 				Char ch = Actor.findChar(c);
@@ -219,8 +238,16 @@ public class Tower extends Mob implements Callback {
 					if (dmg > 0) {
 						ch.damage(dmg, this);
 					}
+
+					if (ch == Dungeon.hero && !ch.isAlive()) {
+						Dungeon.fail(this);
+					}
 				}
 			}
+		}
+
+		if (terrainAffected) {
+			Dungeon.observe();
 		}
 	}
 }

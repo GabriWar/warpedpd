@@ -92,6 +92,12 @@ public class WPDAction extends GameAction {
 
 	public static final GameAction ZOOM_IN      = new WPDAction("zoom_in");
 	public static final GameAction ZOOM_OUT     = new WPDAction("zoom_out");
+	public static final GameAction SKILL_SLOT_1 = new WPDAction("skill_slot_1");
+	public static final GameAction SKILL_SLOT_2 = new WPDAction("skill_slot_2");
+	public static final GameAction SKILL_SLOT_3 = new WPDAction("skill_slot_3");
+	public static final GameAction SKILL_SLOT_4 = new WPDAction("skill_slot_4");
+	public static final GameAction SKILL_SLOT_5 = new WPDAction("skill_slot_5");
+	public static final GameAction SKILL_SLOT_6 = new WPDAction("skill_slot_6");
 
 	private static final LinkedHashMap<Integer, GameAction> defaultBindings = new LinkedHashMap<>();
 	static {
@@ -127,6 +133,12 @@ public class WPDAction extends GameAction {
 		defaultBindings.put( Input.Keys.NUM_4,          WPDAction.QUICKSLOT_4 );
 		defaultBindings.put( Input.Keys.NUM_5,          WPDAction.QUICKSLOT_5 );
 		defaultBindings.put( Input.Keys.NUM_6,          WPDAction.QUICKSLOT_6 );
+		defaultBindings.put( Input.Keys.NUM_1 | KeyBindings.SHIFT_MODIFIER, WPDAction.SKILL_SLOT_1 );
+		defaultBindings.put( Input.Keys.NUM_2 | KeyBindings.SHIFT_MODIFIER, WPDAction.SKILL_SLOT_2 );
+		defaultBindings.put( Input.Keys.NUM_3 | KeyBindings.SHIFT_MODIFIER, WPDAction.SKILL_SLOT_3 );
+		defaultBindings.put( Input.Keys.NUM_4 | KeyBindings.SHIFT_MODIFIER, WPDAction.SKILL_SLOT_4 );
+		defaultBindings.put( Input.Keys.NUM_5 | KeyBindings.SHIFT_MODIFIER, WPDAction.SKILL_SLOT_5 );
+		defaultBindings.put( Input.Keys.NUM_6 | KeyBindings.SHIFT_MODIFIER, WPDAction.SKILL_SLOT_6 );
 
 		defaultBindings.put( Input.Keys.F1,             WPDAction.BAG_1 );
 		defaultBindings.put( Input.Keys.F2,             WPDAction.BAG_2 );

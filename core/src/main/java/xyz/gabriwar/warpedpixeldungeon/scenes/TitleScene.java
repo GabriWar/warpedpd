@@ -87,6 +87,8 @@ public class TitleScene extends PixelScene {
 		
 		super.create();
 
+		//a debug scene asked for on the command line starts its run at once
+		if (xyz.gabriwar.warpedpixeldungeon.debug.DebugScenes.startRequested()) return;
 		Music.INSTANCE.playTracks(
 				new String[]{Assets.Music.THEME_1, Assets.Music.THEME_2},
 				new float[]{1, 1},

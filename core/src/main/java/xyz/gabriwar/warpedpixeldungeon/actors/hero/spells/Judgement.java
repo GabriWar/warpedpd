@@ -68,7 +68,7 @@ public class Judgement extends ClericSpell {
 				GameScene.flash( 0x80FFFFFF );
 				Sample.INSTANCE.play(Assets.Sounds.BLAST);
 
-				int damageBase = 5 + 5*hero.pointsInTalent(Talent.JUDGEMENT);
+				int damageBase = Math.round((5 + 5*hero.pointsInTalent(Talent.JUDGEMENT)) * Math.max(1f, hero.lvl/20f));
 				damageBase += Math.round(damageBase*hero.buff(AscendedForm.AscendBuff.class).spellCasts/3f);
 
 				for (Char ch : Actor.chars()){
@@ -93,7 +93,7 @@ public class Judgement extends ClericSpell {
 
 	@Override
 	public String desc() {
-		int baseDmg = 5 + 5*Dungeon.hero.pointsInTalent(Talent.JUDGEMENT);
+		int baseDmg = Math.round((5 + 5*Dungeon.hero.pointsInTalent(Talent.JUDGEMENT)) * Math.max(1f, Dungeon.hero.lvl/20f));
 		int totalBaseDmg = baseDmg;
 		if (Dungeon.hero.buff(AscendedForm.AscendBuff.class) != null) {
 			totalBaseDmg += Math.round(baseDmg*Dungeon.hero.buff(AscendedForm.AscendBuff.class).spellCasts/3f);

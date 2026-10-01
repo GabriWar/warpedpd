@@ -27,7 +27,7 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.BlobImmunity;
+import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Frost;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
@@ -168,11 +168,9 @@ public class AlbinoPiranha extends Mob {
 	}
 
 	{
-		for (Class c : new BlobImmunity().immunities()) {
-			immunities.add(c);
-		}
 		immunities.add( Burning.class );
 		immunities.add( Paralysis.class );
+		immunities.add( ToxicGas.class );
 		immunities.add( Roots.class );
 		immunities.add( Frost.class );
 	}

@@ -53,7 +53,7 @@ public abstract class Trinket extends Item {
 		Trinket trinket = Dungeon.hero.belongings.getItem(trinketType);
 
 		if (trinket != null){
-			return trinket.buffedLvl();
+			return xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.trinketLevel( trinket, trinket.buffedLvl() );
 		} else {
 			return -1;
 		}

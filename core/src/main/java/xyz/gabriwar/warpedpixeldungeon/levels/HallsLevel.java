@@ -94,8 +94,7 @@ public class HallsLevel extends RegularLevel {
 
 	//the frozen branch hangs off this Halls floor
 	public static final int FROZEN_BRANCH_DEPTH = 22;
-	//the frozen branch is switched off for now: no entrance is generated
-	public static final boolean FROZEN_BRANCH_ENABLED = false;
+	public static final boolean FROZEN_BRANCH_ENABLED = true;
 
 	@Override
 	protected ArrayList<Room> initRooms() {

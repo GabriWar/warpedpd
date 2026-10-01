@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfSharpshooting;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.MissileWeapon;
+import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -197,9 +198,10 @@ public class MegaCannon extends Weapon {
 				Math.round(augment.damageFactor(max())),
 				STRReq());
 
-		if (STRReq() > Dungeon.hero.STR()) {
+		//no hero on the title screen, where the journal's catalog describes it too
+		if (Dungeon.hero != null && STRReq() > Dungeon.hero.STR()) {
 			info += " " + Messages.get(Weapon.class, "too_heavy");
-		} else if (Dungeon.hero.STR() > STRReq()){
+		} else if (Dungeon.hero != null && Dungeon.hero.STR() > STRReq()){
 			info += " " + Messages.get(Weapon.class, "excess_str", Dungeon.hero.STR() - STRReq());
 		}
 
@@ -231,6 +233,13 @@ public class MegaCannon extends Weapon {
 	}
 
 	public class CannonShot extends MissileWeapon {
+
+		//a bullet does not stop where it was aimed: it flies on down the line until it
+		//hits someone or a wall
+		@Override
+		public int throwPos( Hero user, int dst ){
+			return new Ballistica( user.pos, dst, Ballistica.MAGIC_BOLT ).collisionPos;
+		}
 
 		{
 			image = ItemSpriteSheet.MEGA_CANNON_AMMO;

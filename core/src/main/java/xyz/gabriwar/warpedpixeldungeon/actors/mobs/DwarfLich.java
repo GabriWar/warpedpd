@@ -85,7 +85,7 @@ public class DwarfLich extends Mob {
 	@Override
 	protected boolean canAttack(Char enemy) {
 		return !Dungeon.level.adjacent(pos, enemy.pos)
-				&& new Ballistica(pos, enemy.pos, Ballistica.STOP_SOLID).collisionPos == enemy.pos;
+				&& new Ballistica(pos, enemy.pos, Ballistica.PROJECTILE).collisionPos == enemy.pos;
 	}
 
 	@Override

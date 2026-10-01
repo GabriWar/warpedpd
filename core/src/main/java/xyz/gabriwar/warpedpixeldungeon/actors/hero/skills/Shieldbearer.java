@@ -40,6 +40,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SummonedPet;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
+import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.WarriorImpactFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.GuardSprite;
@@ -100,11 +103,13 @@ public class Shieldbearer extends Skill {
 				bearer.pos = newPos;
 				GameScene.add(bearer);
 				Actor.addDelayed(new Pushing(bearer, hero.pos, newPos), -1);
+				//he arrives down a column of light and takes shape inside it, boots hitting the floor last
 				bearer.sprite.alpha(0);
-				bearer.sprite.parent.add(new AlphaTweener(bearer.sprite, 1, 0.15f));
+				bearer.sprite.parent.add(new AlphaTweener(bearer.sprite, 1, 0.35f));
+				SkillFX.pillar( newPos, 0xFFDD88 );
 				new Flare( 6, 18 ).color( 0xFFDD88, true ).show( bearer.sprite, 0.7f );
-				CellEmitter.center( newPos ).burst( Speck.factory( Speck.LIGHT ), 6 );
-				Camera.main.shake( 1, 0.2f );
+				final int stand = newPos;
+				StaggerFX.after( 0.3f, () -> SkillFX.land( stand ) );
 
 				// the retinue exists to eat the hits: pull every visible enemy onto it
 				for (Mob mob : Dungeon.level.mobs.toArray( new Mob[0] )){
@@ -123,7 +128,15 @@ public class Shieldbearer extends Skill {
 							SkillInteractions.push( ch, newPos, 1, 0 );
 						}
 					}
-					Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 1f, 0.9f );
+					//the bash rings out around him as he lands
+					StaggerFX.after( 0.3f, () -> {
+						Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 1f, 0.9f );
+						Camera.main.shake( 2, 0.2f );
+					} );
+					StaggerFX.ring( stand, 1, 0.38f, ( c, r ) -> {
+						WarriorImpactFX.show( c );
+						CellEmitter.bottom( c ).burst( Speck.factory( Speck.DUST ), 2 );
+					} );
 				}
 
 				hero.MP -= getManaCost();

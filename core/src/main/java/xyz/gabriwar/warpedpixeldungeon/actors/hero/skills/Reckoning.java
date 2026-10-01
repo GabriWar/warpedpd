@@ -25,6 +25,8 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PillarRiseFX;
 
 
 import com.watabou.noosa.Camera;
@@ -79,31 +81,51 @@ public class Reckoning extends Skill {
 	public void execute( Hero hero, String action ){
 		if (action.equals(Skill.AC_CAST) && level > 0 && canPayMana( hero, getManaCost() )){
 			if (!payMana( hero, getManaCost() )) return;
+			//everything is judged at once; the light is seen landing on one enemy after another,
+			//nearest first, each flash a shade higher than the last
+			ArrayList<Mob> judged = new ArrayList<>();
 			for (Mob mob : Dungeon.level.mobs.toArray(new Mob[0])){
 				if (mob.alignment != Char.Alignment.ENEMY
 						|| !Dungeon.level.heroFOV[mob.pos]
 						|| Dungeon.level.distance( hero.pos, mob.pos ) > RANGE)
 					continue;
+				judged.add( mob );
+			}
+			judged.sort( (a, b) -> Float.compare( Dungeon.level.trueDistance( hero.pos, a.pos ), Dungeon.level.trueDistance( hero.pos, b.pos ) ) );
+			FxTimeline flashes = FxTimeline.start();
+			int i = 0;
+			for (Mob mob : judged){
+				final int cell = mob.pos;
+				final float pitch = 0.9f + 0.07f * i;
+				final boolean due = mob.buff( Vulnerable.class ) != null;
+				final boolean pillar = due || level >= MAX_LEVEL;
+				final String word = Messages.get( this, due ? "due" : "judged" );
+				final int colour = due ? CharSprite.NEGATIVE : CharSprite.WARNING;
+				flashes.at( 0.12f * i++, () -> {
+					if (pillar) PillarRiseFX.show( cell, 0xFFEE88, null );
+					else CellEmitter.get( cell ).burst( Speck.factory( Speck.LIGHT ), 4 );
+					SkillInteractions.flare( cell, 0xFFF1A1 );
+					if (mob.sprite != null && mob.sprite.visible){
+						mob.sprite.flash();
+						mob.sprite.showStatus( colour, word );
+					}
+					Sample.INSTANCE.play( Assets.Sounds.RAY, 0.8f, pitch );
+				} );
 
 				Vulnerable brand = mob.buff( Vulnerable.class );
 				if (brand != null){
-					int due = DUE_PER_TURN * Math.max( 1, Math.round( brand.cooldown() ) );
-					if (unholy( mob )) due *= 2;
+					int dueDamage = DUE_PER_TURN * Math.max( 1, Math.round( brand.cooldown() ) );
+					if (unholy( mob )) dueDamage *= 2;
 					brand.detach();
-					SkillFX.pillar( mob.pos, 0xFFEE88 );
-					mob.damage( due, this );
-					if (mob.sprite != null) mob.sprite.showStatus( CharSprite.NEGATIVE, Messages.get( this, "due" ) );
+					mob.damage( dueDamage, this );
 				} else {
-					CellEmitter.get( mob.pos ).burst( Speck.factory( Speck.LIGHT ), 4 );
 					Buff.prolong( mob, Vulnerable.class, 2 + 2 * level );
-					if (mob.sprite != null) mob.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "judged" ) );
 				}
 
 				//+3: a pillar of light falls on every judged enemy as well
 				if (level >= MAX_LEVEL && mob.isAlive()){
 					int dmg = PILLAR_DAMAGE;
 					if (unholy( mob )) dmg *= 2;
-					SkillFX.pillar( mob.pos, 0xFFEE88 );
 					mob.damage( dmg, this );
 				}
 			}

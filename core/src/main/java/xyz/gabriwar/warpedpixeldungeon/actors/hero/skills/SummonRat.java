@@ -36,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SummonedPet;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.tweeners.AlphaTweener;
@@ -103,9 +104,15 @@ public class SummonRat extends ActiveSkill1 {
 				pet.pos = newPos;
 				GameScene.add(pet);
 				Actor.addDelayed(new Pushing(pet, hero.pos, newPos), -1);
+				//it digs its way up: dust boils out of the floor for a moment and the rat rises through it
 				pet.sprite.alpha(0);
-				pet.sprite.parent.add(new AlphaTweener(pet.sprite, 1, 0.15f));
-				CellEmitter.get( newPos ).burst( Speck.factory( Speck.DUST ), 6 );
+				pet.sprite.parent.add(new AlphaTweener(pet.sprite, 1, 0.4f));
+				CellEmitter.bottom( newPos ).start( Speck.factory( Speck.DUST ), 0.04f, 8 );
+				final int hole = newPos;
+				StaggerFX.after( 0.3f, () -> {
+					CellEmitter.get( hole ).burst( Speck.factory( Speck.DUST ), 4 );
+					Sample.INSTANCE.play( Assets.Sounds.PUFF, 0.6f, 1.4f );
+				} );
 
 				hero.MP -= getManaCost();
 				castTextYell();

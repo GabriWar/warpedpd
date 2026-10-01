@@ -40,7 +40,7 @@ public class Larva extends Mob {
 		EXP = 0;
 		state = HUNTING;
 
-		maxLvl = 10;
+		properties.add( Property.DEMONIC );
 	}
 
 	@Override

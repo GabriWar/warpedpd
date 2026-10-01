@@ -704,7 +704,7 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 		//frame every time the host's window moved. Only the adoption - the map
 		//copy, the art layers and the flag maps - has to be on the render
 		//thread, so the pass is staged out here and handed in.
-		final OverworldLevel.Window stagedWindow;
+		final xyz.gabriwar.warpedpixeldungeon.levels.overworld.WindowGenerator.Window stagedWindow;
 		JSONObject preIdentity = data.optJSONObject("level");
 		if (preIdentity != null && data.has("map")
 				&& Dungeon.level != null

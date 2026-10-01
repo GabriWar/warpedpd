@@ -89,7 +89,9 @@ public class DevRoomsLevel extends Level {
 			xyz.gabriwar.warpedpixeldungeon.levels.rooms.standard.StripedRoom.class,
 			xyz.gabriwar.warpedpixeldungeon.levels.rooms.standard.StudyRoom.class,
 			xyz.gabriwar.warpedpixeldungeon.levels.rooms.standard.SuspiciousChestRoom.class,
-			xyz.gabriwar.warpedpixeldungeon.levels.rooms.standard.WaterBridgeRoom.class
+			xyz.gabriwar.warpedpixeldungeon.levels.rooms.standard.ThermalSpringRoom.class,
+			xyz.gabriwar.warpedpixeldungeon.levels.rooms.standard.WaterBridgeRoom.class,
+			xyz.gabriwar.warpedpixeldungeon.levels.rooms.standard.WayfarersCampRoom.class
 	};
 	private static final Class<?>[] ENTRANCES = {
 			xyz.gabriwar.warpedpixeldungeon.levels.rooms.standard.entrance.CaveEntranceRoom.class,
@@ -162,7 +164,18 @@ public class DevRoomsLevel extends Level {
 			xyz.gabriwar.warpedpixeldungeon.levels.rooms.special.ToxicGasRoom.class,
 			xyz.gabriwar.warpedpixeldungeon.levels.rooms.special.TrapsRoom.class,
 			xyz.gabriwar.warpedpixeldungeon.levels.rooms.special.TreasuryRoom.class,
-			xyz.gabriwar.warpedpixeldungeon.levels.rooms.special.WeakFloorRoom.class
+			xyz.gabriwar.warpedpixeldungeon.levels.rooms.special.WeakFloorRoom.class,
+			//the Warped slot's rooms (levels/rooms/warped/WarpedRooms)
+			xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.BellowsRoom.class,
+			xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.BreakersBenchRoom.class,
+			xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.CounterweightVaultRoom.class,
+			xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.ElementalLockRoom.class,
+			xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.FrozenCacheRoom.class,
+			xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.HothouseRoom.class,
+			xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.IncubatorNestRoom.class,
+			xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.PedigreeHallRoom.class,
+			xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.RivalGalleryRoom.class,
+			xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.TemperingForgeRoom.class
 	};
 	private static final Class<?>[] SECRETS = {
 			xyz.gabriwar.warpedpixeldungeon.levels.rooms.secret.RatKingRoom.class,
@@ -177,7 +190,9 @@ public class DevRoomsLevel extends Level {
 			xyz.gabriwar.warpedpixeldungeon.levels.rooms.secret.SecretMazeRoom.class,
 			xyz.gabriwar.warpedpixeldungeon.levels.rooms.secret.SecretRunestoneRoom.class,
 			xyz.gabriwar.warpedpixeldungeon.levels.rooms.secret.SecretSummoningRoom.class,
-			xyz.gabriwar.warpedpixeldungeon.levels.rooms.secret.SecretWellRoom.class
+			xyz.gabriwar.warpedpixeldungeon.levels.rooms.secret.SecretWellRoom.class,
+			xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.BlackMarketRoom.class,
+			xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.SquirrelsHoardRoom.class
 	};
 	private static final Class<?>[] CONNECTIONS = {
 			xyz.gabriwar.warpedpixeldungeon.levels.rooms.connection.BridgeRoom.class,
@@ -231,6 +246,14 @@ public class DevRoomsLevel extends Level {
 	@Override
 	public String waterTex() {
 		return Assets.Environment.WATER_SEWERS;
+	}
+
+	//by its number (85) the climate takes this floor for the bottom of the demon halls: 42
+	//degrees, heatstroke for the visitor and every block of ice in the Frozen Cache gone in
+	//a few turns. It is drawn as a sewer floor, so it gets a sewer floor's air
+	@Override
+	public int climateDepth() {
+		return 3;
 	}
 
 	@Override
@@ -345,6 +368,10 @@ public class DevRoomsLevel extends Level {
 			//effects (paralysis reveals mimics -> particles) that NPE mid level-switch
 			if (com.watabou.noosa.Game.scene() instanceof xyz.gabriwar.warpedpixeldungeon.scenes.GameScene){
 				for (Mob m : mobs.toArray( new Mob[0] )){
+					//only what could hurt the hero. To the peaceable a debuff is an attack: it
+					//sends shopkeepers packing, and it would turn the black market's dealer and
+					//his guards on the hero and ban the market for the whole run
+					if (m.alignment != xyz.gabriwar.warpedpixeldungeon.actors.Char.Alignment.ENEMY) continue;
 					if (m.buff( xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis.class ) == null){
 						xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff.affect( m,
 								xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis.class, 1_000_000f );

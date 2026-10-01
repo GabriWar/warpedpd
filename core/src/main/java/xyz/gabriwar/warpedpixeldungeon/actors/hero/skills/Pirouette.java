@@ -25,6 +25,8 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.ArcSpinFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PulseRingFX;
 
 
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
@@ -106,6 +108,9 @@ public class Pirouette extends Skill {
 		hero.busy();
 		CellEmitter.bottom( from ).burst( Speck.factory( Speck.DUST ), 10 );
 		new Flare( 5, 18 ).color( 0xCCE0FF, true ).show( hero.sprite, 0.5f ).angularSpeed = 240;
+		//the ribbon: two arcs wound round her, spinning with her through the whole leap
+		ArcSpinFX.around( hero.sprite, 0xCCE0FF, 10, 0.5f, 0, 1080, 0.5f );
+		ArcSpinFX.around( hero.sprite, 0xFFFFFF, 7, 0.35f, 180, 1080, 0.5f );
 		Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 1.2f );
 		Dungeon.hero.heroSkills.lastUsed = this;
 		hero.sprite.jump( from, target, 4f, 0.25f, () -> {
@@ -115,6 +120,10 @@ public class Pirouette extends Skill {
 			xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.updateFog();
 			Buff.affect( hero, Barrier.class ).setShield( SkillInteractions.ofHealth( hero.HT, 0.03f * level ) );
 			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
+			//she lands and the shield settles round her
+			PulseRingFX.around( hero.sprite, 0xCCE0FF, 12, 0.4f );
+			CellEmitter.bottom( target ).burst( Speck.factory( Speck.DUST ), 4 );
+			Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 0.7f, 1.5f );
 			//+3: the enemies you spun away from are left reeling
 			if (level >= MAX_LEVEL){
 				for (Char ch : left){

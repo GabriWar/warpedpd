@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.items.Bone;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.levels.features.Chasm;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MossySkeletonSprite;
@@ -49,8 +50,7 @@ public class MossySkeleton extends Mob {
 		HP = HT = 35 + 10 * Random.NormalIntRange(7, 10);
 		defenseSkill = 15;
 
-		EXP = 1;
-		maxLvl = 10;
+		EXP = 12;
 
 		loot = new YellowDewdrop();
 		lootChance = 0.5f;
@@ -60,6 +60,8 @@ public class MossySkeleton extends Mob {
 
 		properties.add(Property.UNDEAD);
 		properties.add(Property.INORGANIC);
+
+		immunities.add(Grim.class);
 
 		declareExtraLoot(PrisonKey.class, 1f);
 		declareExtraLoot(Bone.class, 0.1f);
@@ -106,7 +108,7 @@ public class MossySkeleton extends Mob {
 		for (int i = 0; i < PathFinder.NEIGHBOURS8.length; i++) {
 			Char ch = findChar( pos + PathFinder.NEIGHBOURS8[i] );
 			if (ch != null && ch.isAlive()) {
-				int damage = Math.max( 0, Random.NormalIntRange(3, 8) - (ch.drRoll() + ch.drRoll()) );
+				int damage = Math.max( 0, Random.NormalIntRange(3, 8) - Random.IntRange(0, ch.drRoll() / 2) );
 				ch.damage( damage, this );
 				if (ch == Dungeon.hero && !ch.isAlive()) {
 					heroKilled = true;

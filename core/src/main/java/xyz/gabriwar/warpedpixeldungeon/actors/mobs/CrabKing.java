@@ -24,12 +24,13 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
+import com.watabou.utils.Bundle;
+import xyz.gabriwar.warpedpixeldungeon.ui.BossHealthBar;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Doom;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
@@ -62,7 +63,6 @@ public class CrabKing extends Mob {
 		resistances.add(ToxicGas.class);
 		resistances.add(Poison.class);
 		resistances.add(Grim.class);
-		resistances.add(Doom.class);
 
 		declareExtraLoot(AdamantArmor.class, 1f);
 	}
@@ -94,18 +94,18 @@ public class CrabKing extends Mob {
 
 	@Override
 	protected boolean act() {
-		if (HP < HT) {
+		boolean result = super.act();
+
+		if (isAlive() && HP < HT && Dungeon.shellCharge > 10) {
 			int regen = Math.round(Dungeon.shellCharge / 10);
-			if (regen > 0) {
-				HP = Math.min(HT, HP + regen);
-				Dungeon.shellCharge -= regen;
-				if (Dungeon.shellCharge < 0) Dungeon.shellCharge = 0;
-				if (Dungeon.level.heroFOV[pos]) {
-					sprite.emitter().burst(Speck.factory(Speck.HEALING), 1);
-				}
+			HP = Math.min(HT, HP + regen);
+			Dungeon.shellCharge -= regen;
+			if (Dungeon.shellCharge < 0) Dungeon.shellCharge = 0;
+			if (Dungeon.level.heroFOV[pos]) {
+				sprite.emitter().burst(Speck.factory(Speck.HEALING), 1);
 			}
 		}
-		return super.act();
+		return result;
 	}
 
 	@Override
@@ -125,14 +125,13 @@ public class CrabKing extends Mob {
 	@Override
 	public void notice() {
 		super.notice();
-		if (enemy == null) return;
+		if (!BossHealthBar.isAssigned()) BossHealthBar.assignBoss( this );
 		yell( Messages.get(this, "notice") );
 	}
 
 	@Override
 	protected boolean getCloser( int target ) {
-		if (enemy != null && fieldOfView[target]) {
-			jump();
+		if (enemy != null && fieldOfView[target] && jump()) {
 			return true;
 		} else {
 			return super.getCloser(target);
@@ -142,17 +141,15 @@ public class CrabKing extends Mob {
 	@Override
 	protected boolean doAttack( Char enemy ) {
 		timeToJump--;
-		if (timeToJump <= 0 && Dungeon.level.adjacent(pos, enemy.pos)) {
-			jump();
+		if (timeToJump <= 0 && Dungeon.level.adjacent(pos, enemy.pos) && jump()) {
 			return true;
 		} else {
 			return super.doAttack(enemy);
 		}
 	}
 
-	private void jump() {
-		if (enemy == null) return;
-		timeToJump = JUMP_DELAY;
+	private boolean jump() {
+		if (enemy == null) return false;
 
 		int newPos = -1;
 		for (int i = 0; i < 20; i++) {
@@ -166,17 +163,30 @@ public class CrabKing extends Mob {
 			}
 		}
 
-		if (newPos != -1) {
-			if (Dungeon.level.heroFOV[pos]) {
-				CellEmitter.get(pos).burst(Speck.factory(Speck.WOOL), 6);
-			}
-			sprite.move(pos, newPos);
-			move(newPos);
-			if (Dungeon.level.heroFOV[newPos]) {
-				CellEmitter.get(newPos).burst(Speck.factory(Speck.WOOL), 6);
-			}
+		if (newPos == -1) return false;
+
+		timeToJump = JUMP_DELAY;
+
+		sprite.move(pos, newPos);
+		move(newPos);
+		if (Dungeon.level.heroFOV[newPos]) {
+			CellEmitter.get(newPos).burst(Speck.factory(Speck.WOOL), 6);
 			Sample.INSTANCE.play(Assets.Sounds.PUFF);
-			spend(1 / speed());
 		}
+		spend(1 / speed());
+
+		return true;
+	}
+
+	@Override
+	public void damage( int dmg, Object src ) {
+		if (!BossHealthBar.isAssigned()) BossHealthBar.assignBoss( this );
+		super.damage( dmg, src );
+	}
+
+	@Override
+	public void restoreFromBundle( Bundle bundle ) {
+		super.restoreFromBundle( bundle );
+		if (enemySeen || HP < HT) BossHealthBar.assignBoss( this );
 	}
 }

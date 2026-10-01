@@ -55,10 +55,16 @@ public class Cleanse extends ClericSpell {
 		return 2;
 	}
 
+	/** 12/24/36% of max HP, at least 10/20/30 */
+	private static int shield( Hero hero ){
+		int p = hero.pointsInTalent(Talent.CLEANSE);
+		return Math.max(10*p, Math.round(hero.HT * 0.12f * p));
+	}
+
 	public String desc(){
 		int immunity = 2 * (Dungeon.hero.pointsInTalent(Talent.CLEANSE)-1);
 		if (immunity > 0) immunity++;
-		int shield = 10 * Dungeon.hero.pointsInTalent(Talent.CLEANSE);
+		int shield = shield(Dungeon.hero);
 		return Messages.get(this, "desc", immunity, shield) + "\n\n" + Messages.get(this, "charge_cost", (int)chargeUse(Dungeon.hero));
 	}
 
@@ -99,7 +105,7 @@ public class Cleanse extends ClericSpell {
 				//0, 2, or 4. 1 less than displayed as spell is instant
 				Buff.prolong(ch, PotionOfCleansing.Cleanse.class, 2 * (Dungeon.hero.pointsInTalent(Talent.CLEANSE)-1));
 			}
-			Buff.affect(ch, Barrier.class).setShield(10 * hero.pointsInTalent(Talent.CLEANSE));
+			Buff.affect(ch, Barrier.class).setShield(shield(hero));
 			new Flare( 6, 32 ).color(0xFF4CD2, true).show( ch.sprite, 2f );
 		}
 

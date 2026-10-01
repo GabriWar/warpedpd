@@ -41,6 +41,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
+import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
 
 public class Stealth extends PassiveSkillA2 {
 
@@ -75,11 +76,14 @@ public class Stealth extends PassiveSkillA2 {
 		SkillDecoy decoy = new SkillDecoy();
 		decoy.pos = cell;
 		decoy.rank = level;
-		decoy.left = 1 + level;
+		//two turns at the first rank and one more for each after it, or until something
+		//strikes it
+		decoy.left = level + 1;
 		decoy.blinding = level >= Skill.MAX_LEVEL;
 		GameScene.add( decoy );
 		if (decoy.sprite != null) decoy.sprite.alpha( 0.55f );
 		CellEmitter.get( cell ).burst( Speck.factory( Speck.SMOKE ), 8 );
+		SkillSpectacleFX.show( SkillSpectacleFX.SHADOW, cell );
 		if (hero.sprite != null) hero.sprite.emitter().burst( ShadowParticle.UP, 6 );
 		Sample.INSTANCE.play( Assets.Sounds.MELD, 1f, 1.3f );
 		mob.aggro( decoy );

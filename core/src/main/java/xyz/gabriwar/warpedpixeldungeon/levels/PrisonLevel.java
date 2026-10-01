@@ -84,8 +84,7 @@ public class PrisonLevel extends RegularLevel {
 
 	//the spider nest hangs off this prison floor
 	public static final int SPIDER_BRANCH_DEPTH = 6;
-	//the nest is switched off for now: no entrance is generated
-	public static final boolean SPIDER_NEST_ENABLED = false;
+	public static final boolean SPIDER_NEST_ENABLED = true;
 
 	@Override
 	protected ArrayList<Room> initRooms() {

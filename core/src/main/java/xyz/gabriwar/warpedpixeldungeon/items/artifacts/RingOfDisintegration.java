@@ -209,7 +209,7 @@ public class RingOfDisintegration extends Artifact {
 		@Override
 		public boolean act() {
 			if (charge < chargeCap) {
-				partialCharge += 1 + (level() * level());
+				partialCharge += (1 + (level() * level())) * xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.artifactCharge(RingOfDisintegration.this);
 				if (partialCharge >= 10) {
 					charge++;
 					partialCharge -= 10;

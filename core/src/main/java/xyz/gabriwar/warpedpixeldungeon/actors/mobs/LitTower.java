@@ -30,6 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ConfusionGas;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Electricity;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPsionicBlast;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
@@ -67,6 +68,7 @@ public class LitTower extends Mob implements Callback {
 
 		resistances.add(Electricity.class);
 		resistances.add(ScrollOfPsionicBlast.class);
+		resistances.add(Grim.class);
 
 		//no metabolism to disturb: only the extremes reach it
 		thermal = Thermal.INSENSATE;

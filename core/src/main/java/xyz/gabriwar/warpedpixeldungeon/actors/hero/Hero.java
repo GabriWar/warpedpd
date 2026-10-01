@@ -137,6 +137,9 @@ import xyz.gabriwar.warpedpixeldungeon.items.armor.glyphs.Stone;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.glyphs.Viscosity;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.AlchemistsToolkit;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.CapeOfThorns;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.BloomBuff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.HuntersFocus;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ShadeCloak;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.CloakOfShadows;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.DriedRose;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.EtherealChains;
@@ -252,6 +255,8 @@ public class Hero extends Char {
 	}
 	
 	public static final int MAX_LEVEL = 30;
+	//xp a level can cost at most; reached at level 50, every level after costs the same
+	public static final int MAX_EXP_PER_LEVEL = 500;
 
 	public static final int STARTING_STR = 10;
 	
@@ -350,6 +355,19 @@ public class Hero extends Char {
 	public int HTBoost = 0;
 
 	// Skillful PD skill tree (see actors/hero/skills/)
+	public boolean debugAllSkillPaths;
+	public boolean debugInfiniteHealth;
+
+	/** Old debug protection lasted 999/1000 turns; normal protection lasts at most 10. */
+	public void migrateDebugGodmode(){
+		Invulnerability old = buff(Invulnerability.class);
+		if (old != null && old.cooldown() > 10f){
+			old.detach();
+			debugInfiniteHealth = true;
+			HP = HT;
+		}
+	}
+
 	public xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.CurrentSkills heroSkills =
 			xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.CurrentSkills.WARRIOR;
 
@@ -407,7 +425,7 @@ public class Hero extends Char {
 		if (boostHP){
 			HP += Math.max(HT - curHT, 0);
 		}
-		HP = Math.min(HP, HT);
+		HP = debugInfiniteHealth ? HT : Math.min(HP, HT);
 	}
 
 	public int STR() {
@@ -492,6 +510,8 @@ public class Hero extends Char {
 		bundle.put(MANATOTAL, MT);
 
 		bundle.put(SKILLS_AVAILABLE, xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.availableSkill);
+		bundle.put("debug_all_skill_paths", debugAllSkillPaths);
+		bundle.put("debug_infinite_health", debugInfiniteHealth);
 		heroSkills.storeInBundle(bundle);
 
 		bundle.put(HASPET, haspet);
@@ -543,6 +563,10 @@ public class Hero extends Char {
 		MP = bundle.getInt(MANAPOINTS);
 		MT = bundle.getInt(MANATOTAL);
 
+		debugAllSkillPaths = bundle.getBoolean("debug_all_skill_paths");
+		debugInfiniteHealth = bundle.getBoolean("debug_infinite_health");
+		migrateDebugGodmode();
+		if (debugInfiniteHealth) HP = HT;
 		if (bundle.contains(SKILLS_AVAILABLE)){
 			xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.availableSkill = bundle.getInt(SKILLS_AVAILABLE);
 		} else {
@@ -624,9 +648,9 @@ public class Hero extends Char {
 	//A tier still unlocks by level/subclass/ability, but how much you can pour
 	//into it is only limited by the pool and the talents' own max levels.
 	public int talentPointsAvailable(int tier){
-		if (lvl < (Talent.tierLevelThresholds[tier] - 1)
+		if (!debugAllSkillPaths && (lvl < (Talent.tierLevelThresholds[tier] - 1)
 			|| (tier == 3 && subClass == HeroSubClass.NONE)
-			|| (tier == 4 && armorAbility == null)) {
+			|| (tier == 4 && armorAbility == null))) {
 			return 0;
 		}
 		int capacity = 0;
@@ -724,7 +748,7 @@ public class Hero extends Char {
                 if(field.kind==xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField.WIND&&field.contains(enemy.pos))wind=1.5f;
         }
 		boolean hit = attack(enemy,1f,0f,wind);
-		Invisibility.dispel();
+		if (!ShadeCloak.absorbDispel( this )) Invisibility.dispel();
 		belongings.thrownWeapon = null;
 
 		if (hit && subClass == HeroSubClass.GLADIATOR && wasEnemy){
@@ -768,11 +792,13 @@ public class Hero extends Char {
 		
 		float accuracy = 1;
 		accuracy *= RingOfAccuracy.accuracyMultiplier( this );
+		accuracy *= 1f + xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.heroBonus( this, xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.Stat.ACCURACY );
 
 		// Ambient weather accuracy bonuses
 		if (buff(AuroraBless.class) != null) accuracy *= AuroraBless.ACCURACY_MULT;
 		if (buff(RainbowBlessing.class) != null) accuracy *= RainbowBlessing.ACCURACY_MULT;
 		if (buff(SolarEclipseBuff.class) != null) accuracy *= SolarEclipseBuff.ACCURACY_MULT;
+		if (buff(HuntersFocus.class) != null) accuracy *= HuntersFocus.ACCURACY_MULT;
 
 		//precise assault and liquid agility
 		if (!(wep instanceof MissileWeapon)) {
@@ -883,6 +909,7 @@ public class Hero extends Char {
 		float evasion = defenseSkill;
 		
 		evasion *= RingOfEvasion.evasionMultiplier( this );
+		evasion *= 1f + xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.heroBonus( this, xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.Stat.EVASION );
 
 		// Firefly glow evasion bonus
 		if (buff(FireflyGlow.class) != null) evasion *= FireflyGlow.EVASION_MULT;
@@ -969,6 +996,8 @@ public class Hero extends Char {
 			}
 			if (wepDr > 0) dr += wepDr;
 		}
+		//rarity gear no longer adds points of armour: Guard, Bulwark and Warden are one
+		//capped fraction taken after armour, in Quality.mitigate below
 
 		if (buff(HoldFast.class) != null){
 			dr += buff(HoldFast.class).armorBonus();
@@ -1078,6 +1107,7 @@ public class Hero extends Char {
 		}
 
 		speed *= RingOfHaste.speedMultiplier(this);
+		speed *= 1f + xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.heroBonus(this, xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.Stat.SPEED);
 		
 		if (belongings.armor() != null) {
 			speed = belongings.armor().speedFactor(this, speed);
@@ -1291,7 +1321,9 @@ public class Hero extends Char {
 			DayNightCycle.onHeroTurn();
 
 			// Thermal diffusion: decay and spread persistent tile heat
+			long tHeat = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
 			TileTemperature.stepDiffusion(Dungeon.level);
+			xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "TileTemperature.stepDiffusion", tHeat );
 		}
 
 		// --- Weather gameplay effects ---
@@ -1988,7 +2020,7 @@ public class Hero extends Char {
 									xyz.gabriwar.warpedpixeldungeon.messages.Messages.titleCase(item.title()));
 							payload.put("image", item.image());
 							payload.put("price",
-									xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Shopkeeper.sellPrice(item));
+									xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Shopkeeper.sellPrice(item, this));
 							payload.put("value", item.value());
 							payload.put("lvl", item.level());
 							payload.put("gold", Dungeon.gold);
@@ -2312,7 +2344,8 @@ public class Hero extends Char {
 						}
 
 						//1 hunger spent total
-						if (Dungeon.level.map[action.dst] == Terrain.WALL_DECO){
+						if (Dungeon.level.map[action.dst] == Terrain.WALL_DECO
+								&& Dungeon.level instanceof MiningLevel){
 							DarkGold gold = new DarkGold();
 							// Credit the acting hero (Hero.this), not Dungeon.hero — a remote
 							// miner must collect into THEIR own backpack/favor.
@@ -2338,7 +2371,8 @@ public class Hero extends Char {
 							crystalAdjacent = false;
 
 						//4 hunger spent total
-						} else if (Dungeon.level.map[action.dst] == Terrain.WALL){
+						} else if (Dungeon.level.map[action.dst] == Terrain.WALL
+								|| Dungeon.level.map[action.dst] == Terrain.WALL_DECO){
 							buff(Hunger.class).affectHunger(-3);
 							PixelScene.shake(0.5f, 0.5f);
 							CellEmitter.get( action.dst ).burst( Speck.factory( Speck.ROCK ), 2 );
@@ -2562,7 +2596,8 @@ public class Hero extends Char {
 					&& hasTalent(Talent.AGGRESSIVE_BARRIER)
 					&& buff(Talent.AggressiveBarrierCooldown.class) == null
 					&& (HP / (float)HT) <= 0.5f){
-				int shieldAmt = 1 + 2*pointsInTalent(Talent.AGGRESSIVE_BARRIER);
+				//4/8/12% of max HP, at least 3/5/7
+				int shieldAmt = Math.max(1 + 2*pointsInTalent(Talent.AGGRESSIVE_BARRIER), Math.round(HT * 0.04f * pointsInTalent(Talent.AGGRESSIVE_BARRIER)));
 				Buff.affect(this, Barrier.class).setShield(shieldAmt);
 				sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(shieldAmt), FloatingText.SHIELDING);
 				Buff.affect(this, Talent.AggressiveBarrierCooldown.class, 50f);
@@ -2635,6 +2670,7 @@ public class Hero extends Char {
 		}
 
 		damage = Talent.onAttackProc( this, enemy, damage );
+		damage = xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.heroHit( this, enemy, damage );
 
 		if (buff(WeaponEnhance.class) != null) {
 			buff(WeaponEnhance.class).attackProc();
@@ -2910,6 +2946,17 @@ public class Hero extends Char {
 		//temporarily assign to a float to avoid rounding a bunch
 		float damage = dmg;
 
+		//rarity gear: one capped fraction of the blow, taken after armour so a fraction is
+		//worth what it says, then whatever the gear does about having been hit
+		{
+			float before = damage;
+			damage = xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.mitigate( this, damage, src );
+			if (before != damage || src instanceof Char){
+				xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.heroDamaged( this, Math.round( before - damage ),
+						src instanceof Char ? (Char) src : null );
+			}
+		}
+
 		Endure.EndureTracker endure = buff(Endure.EndureTracker.class);
 		if (!(src instanceof Char)){
 			//reduce damage here if it isn't coming from a character (if it is we already reduced it)
@@ -2926,7 +2973,6 @@ public class Hero extends Char {
 			}
 		}
 
-		//unused, could be removed
 		CapeOfThorns.Thorns thorns = buff( CapeOfThorns.Thorns.class );
 		if (thorns != null) {
 			damage = thorns.proc((int)damage, (src instanceof Char ? (Char)src : null),  this);
@@ -3285,7 +3331,9 @@ public class Hero extends Char {
 			}
 
 		//TODO perhaps only trigger this if hero is already adjacent? reducing mistaps
-		} else if (Dungeon.level instanceof MiningLevel &&
+		} else if ((Dungeon.level instanceof MiningLevel
+					|| (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
+						&& Dungeon.level.insideMap(cell))) &&
 					belongings.getItem(Pickaxe.class) != null &&
 				(Dungeon.level.map[cell] == Terrain.WALL
 						|| Dungeon.level.map[cell] == Terrain.WALL_DECO
@@ -3331,6 +3379,9 @@ public class Hero extends Char {
 				&& (Dungeon.depth < 26
 					|| Dungeon.townCheck(Dungeon.depth)
 					|| Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
+					//a village house's depth is its door's hash id (up to 16384): its door out
+					//has to stay clickable whatever that number is
+					|| Dungeon.branch == xyz.gabriwar.warpedpixeldungeon.levels.VillageHouseLevel.BRANCH
 					|| Dungeon.level.getTransition(cell).type == LevelTransition.Type.REGULAR_ENTRANCE) ) {
 
 			curAction = new HeroAction.LvlTransition( cell );
@@ -3466,9 +3517,10 @@ public class Hero extends Char {
 		if (lvl <= MAX_LEVEL) {
 			return base;
 		}
-		// past the old cap leveling is uncapped but the XP requirement grows exponentially
-		double scaled = base * Math.pow( 1.15, lvl - MAX_LEVEL );
-		return scaled >= Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) scaled;
+		// past the old cap leveling is uncapped; the requirement grows gently
+		// (x1.5 at 40, x2 at 50) and then stops at MAX_EXP_PER_LEVEL, so a hero can
+		// scale forever at a fixed pace instead of hitting an exponential wall
+		return Math.min( MAX_EXP_PER_LEVEL, Math.round( base * (1f + (lvl - MAX_LEVEL) / 20f) ) );
 	}
 	
 	public boolean isStarving() {
@@ -3477,6 +3529,11 @@ public class Hero extends Char {
 	
 	@Override
 	public boolean add( Buff buff ) {
+
+		//Ward rings: a debuff may slide off as it lands (only in play, never while loading)
+		if (sprite != null && xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.resistsDebuff( this, buff )) {
+			return false;
+		}
 
 		if (buff.type == Buff.buffType.NEGATIVE &&
 				(buff(TimekeepersHourglass.timeStasis.class) != null || buff(TimeStasis.class) != null)) {
@@ -3525,6 +3582,10 @@ public class Hero extends Char {
 
 	@Override
 	public void die( Object cause ) {
+		if (debugInfiniteHealth) {
+			HP = HT;
+			return;
+		}
 		
 		curAction = null;
 
@@ -3671,6 +3732,11 @@ public class Hero extends Char {
 
 	@Override
 	public boolean isAlive() {
+		//Also catches direct HP costs and lethal writes outside damage().
+		if (debugInfiniteHealth) {
+			HP = HT;
+			return true;
+		}
 		
 		if (HP <= 0){
 			if (berserk == null) berserk = buff(Berserk.class);
@@ -3686,6 +3752,9 @@ public class Hero extends Char {
 		boolean wasHighGrass = Dungeon.level.map[step] == Terrain.HIGH_GRASS;
 
 		super.move( step, travelling);
+
+		BloomBuff bloom = buff(BloomBuff.class);
+		if (bloom != null && !flying) bloom.bloom(pos);
 		
 		if (!flying && travelling) {
 			if (Dungeon.level.water[pos]) {
@@ -3732,8 +3801,9 @@ public class Hero extends Char {
 
 		boolean hit = attack(attackTarget);
 		
-		Invisibility.dispel();
-		spend( attackDelay() );
+		if (!ShadeCloak.absorbDispel( this )) Invisibility.dispel();
+		//a marksman's follow-up after a kill at range costs no time
+		if (!xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.freeAttack( belongings.attackingWeapon() )) spend( attackDelay() );
 
 		if (hit && subClass == HeroSubClass.GLADIATOR && wasEnemy){
 			Buff.affect( this, Combo.class ).hit(attackTarget);
@@ -3921,6 +3991,27 @@ public class Hero extends Char {
 			for (curr = left + y * Dungeon.level.width(); curr <= right + y * Dungeon.level.width(); curr++){
 
 				if ((foresight || fieldOfView[curr]) && curr != pos) {
+
+					//a deliberate search rummages through any bookshelf it reaches: the books
+					//come out and the shelf is left empty, which a potion of egg can restock
+					if (intentional && Dungeon.level.map[curr] == Terrain.BOOKSHELF){
+						xyz.gabriwar.warpedpixeldungeon.levels.Level.set( curr, Terrain.EMPTY_BOOKSHELF );
+						GameScene.updateMap( curr );
+						smthFound = true;
+						if (Random.Float() < 0.10f){
+							Dungeon.level.drop( xyz.gabriwar.warpedpixeldungeon.items.Generator.random( xyz.gabriwar.warpedpixeldungeon.items.Generator.Category.SCROLL ), pos ).sprite.drop();
+						}
+						//the same pages a burning shelf can give up, without needing to burn it
+						if (Random.Float() < 0.02f && !Dungeon.LimitedDrops.VAULT_PAGE.dropped()){
+							Dungeon.level.drop( new xyz.gabriwar.warpedpixeldungeon.items.journalpages.Vault(), pos ).sprite.drop();
+							Dungeon.LimitedDrops.VAULT_PAGE.drop();
+						}
+						if (Random.Float() < 0.02f && !Dungeon.LimitedDrops.DRAGON_CAVE.dropped()){
+							Dungeon.level.drop( new xyz.gabriwar.warpedpixeldungeon.items.journalpages.DragonCave(), pos ).sprite.drop();
+							Dungeon.LimitedDrops.DRAGON_CAVE.drop();
+						}
+						GLog.p( Messages.get( Hero.class, "rummaged" ) );
+					}
 
 					if ((foresight && (!Dungeon.level.mapped[curr] || foresightScan))){
 						GameScene.checkedCell(curr, foresightScan ? pos : curr);

@@ -174,6 +174,23 @@ public class Sanctuary extends PassiveSkillA3 {
 		@Override
 		public int icon(){ return xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator.NONE; }
 
+		//the ward held: two pale motes round the cleric and a slow shaft of light now and then.
+		//Rebuilt whenever the sprite links, so it comes back after a save or a stairway
+		private xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraFX aura;
+
+		@Override
+		public void fx( boolean on ){
+			if (aura != null){
+				aura.stop();
+				aura = null;
+			}
+			if (on && target.sprite != null && target.sprite.parent != null){
+				aura = new xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraFX( target, 0xFFF1A1, 0,
+						xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle.FACTORY, 1.6f );
+				target.sprite.parent.add( aura );
+			}
+		}
+
 		@Override
 		public void storeInBundle( Bundle bundle ){
 			super.storeInBundle( bundle );

@@ -56,6 +56,8 @@ public class Frost extends FlavourBuff {
 			
 			target.paralysed++;
 			Buff.detach( target, Chill.class );
+			//frozen solid, a flier drops out of the air
+			target.loseFlight();
 
 			//potions don't shatter in the vault level, as hero cannot access bandolier there
 			if (target instanceof Hero && !(Dungeon.level instanceof VaultLevel)) {
@@ -110,6 +112,7 @@ public class Frost extends FlavourBuff {
 		super.detach();
 		if (target.paralysed > 0)
 			target.paralysed--;
+		target.regainFlight();
 		if (Dungeon.level.water[target.pos])
 			Buff.prolong(target, Chill.class, Chill.DURATION/2f);
 	}

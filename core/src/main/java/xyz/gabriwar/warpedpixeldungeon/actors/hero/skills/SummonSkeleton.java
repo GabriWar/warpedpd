@@ -37,6 +37,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SummonedPet;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.tweeners.AlphaTweener;
@@ -105,14 +106,20 @@ public class SummonSkeleton extends ActiveSkill3 {
 				pet.pos = newPos;
 				GameScene.add(pet);
 				Actor.addDelayed(new Pushing(pet, hero.pos, newPos), -1);
+				//grave-mist first: shadow seeps up out of the floor for half a second, then the bones
+				//knit together inside it with a rattle
 				pet.sprite.alpha(0);
-				pet.sprite.parent.add(new AlphaTweener(pet.sprite, 1, 0.15f));
-				CellEmitter.get( newPos ).burst( Speck.factory( Speck.BONE ), 6 );
-				CellEmitter.bottom( newPos ).burst( ShadowParticle.UP, 4 );
+				pet.sprite.parent.add(new AlphaTweener(pet.sprite, 1, 0.6f));
+				CellEmitter.bottom( newPos ).start( ShadowParticle.UP, 0.06f, 10 );
+				final int grave = newPos;
+				StaggerFX.after( 0.35f, () -> {
+					CellEmitter.get( grave ).burst( Speck.factory( Speck.BONE ), 6 );
+					Sample.INSTANCE.play( Assets.Sounds.BONES, 1f, 1.1f );
+				} );
 
 				hero.MP -= getManaCost();
 				castTextYell();
-				Sample.INSTANCE.play( Assets.Sounds.BONES, 1f, 1.0f );
+				Sample.INSTANCE.play( Assets.Sounds.BONES, 0.7f, 0.8f );
 				hero.spend( TIME_TO_USE );
 				hero.busy();
 				hero.sprite.operate( hero.pos );

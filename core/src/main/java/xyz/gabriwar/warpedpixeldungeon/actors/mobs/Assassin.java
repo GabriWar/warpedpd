@@ -28,18 +28,17 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Doom;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
+import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPsionicBlast;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.AssassinSprite;
-import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
-import java.util.ArrayList;
-
 public class Assassin extends Mob {
+
+	protected static final float SPAWN_DELAY = 2f;
 
 	{
 		spriteClass = AssassinSprite.class;
@@ -53,12 +52,7 @@ public class Assassin extends Mob {
 		resistances.add( ToxicGas.class );
 		resistances.add( Poison.class );
 		resistances.add( Grim.class );
-		resistances.add( Doom.class );
-	}
-
-	@Override
-	public float spawningWeight() {
-		return 0f;
+		resistances.add( ScrollOfPsionicBlast.class );
 	}
 
 	@Override
@@ -87,26 +81,18 @@ public class Assassin extends Mob {
 	}
 
 	public static Assassin spawnAt( int pos ) {
-		if (Dungeon.level.solid[pos] || Actor.findChar( pos ) != null) {
-			ArrayList<Integer> candidates = new ArrayList<>();
-			for (int i : PathFinder.NEIGHBOURS8) {
-				if (!Dungeon.level.solid[pos + i] && Actor.findChar( pos + i ) == null) {
-					candidates.add( pos + i );
-				}
-			}
-			if (!candidates.isEmpty()) {
-				pos = Random.element( candidates );
-			} else {
-				return null;
-			}
+		if (Dungeon.level.passable[pos] && Actor.findChar( pos ) == null) {
+
+			Assassin a = new Assassin();
+			a.pos = pos;
+			a.state = a.HUNTING;
+			GameScene.add( a, SPAWN_DELAY );
+			Dungeon.level.occupyCell( a );
+
+			return a;
+
+		} else {
+			return null;
 		}
-
-		Assassin a = new Assassin();
-		a.pos = pos;
-		a.state = a.HUNTING;
-		GameScene.add( a, 1f );
-		Dungeon.level.occupyCell( a );
-
-		return a;
 	}
 }

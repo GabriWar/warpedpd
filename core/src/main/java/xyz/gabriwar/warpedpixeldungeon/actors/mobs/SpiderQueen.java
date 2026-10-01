@@ -35,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.SpiderCharm;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfHealing;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Blazing;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.SpiderQueenSprite;
@@ -62,6 +63,7 @@ public class SpiderQueen extends Mob {
 		declareExtraLoot( SpiderCharm.class, 1f );
 
 		immunities.add( Burning.class );
+		immunities.add( Blazing.class );
 	}
 
 	@Override

@@ -99,7 +99,11 @@ public class HeroicLeap extends ArmorAbility {
 						Char mob = Actor.findChar(hero.pos + i);
 						if (mob != null && mob != hero && mob.alignment != Char.Alignment.ALLY) {
 							if (hero.hasTalent(Talent.BODY_SLAM)){
-								int damage = Hero.heroDamageIntRange(hero.pointsInTalent(Talent.BODY_SLAM), 4*hero.pointsInTalent(Talent.BODY_SLAM));
+								//1-4 per point per 25 max damage of the weapon (at least 1-4 per point)
+								int p = hero.pointsInTalent(Talent.BODY_SLAM);
+								int wMax = hero.belongings.weapon() != null ? hero.belongings.weapon().max() : 25;
+								int per = Math.max(1, wMax/25);
+								int damage = Hero.heroDamageIntRange(p*per, 4*p*per);
 								damage += Math.round(hero.drRoll()*0.25f*hero.pointsInTalent(Talent.BODY_SLAM));
 								damage -= mob.drRoll();
 								mob.damage(damage, hero);

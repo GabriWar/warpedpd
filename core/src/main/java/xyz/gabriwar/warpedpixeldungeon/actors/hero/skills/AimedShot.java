@@ -39,6 +39,8 @@ import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.RogueHuntressAuras;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraBuff;
 
 public class AimedShot extends ActiveSkill1 {
 
@@ -58,9 +60,16 @@ public class AimedShot extends ActiveSkill1 {
 		super.execute(hero, action);
 		if (action.equals(Skill.AC_ACTIVATE)){
 			Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 1f, 1.5f );
-			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 3 );
+			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
 			hero.heroSkills.active2.active = false; // Disable Double shot
 			hero.heroSkills.active3.active = false; // Disable Bombvoyage
+			StanceAuraBuff.sync( hero, RogueHuntressAuras.Double.class, false );
+			StanceAuraBuff.sync( hero, RogueHuntressAuras.Fuse.class, false );
+			StanceAuraBuff.sync( hero, RogueHuntressAuras.Aimed.class, true );
+		} else if (action.equals(Skill.AC_DEACTIVATE)){
+			Sample.INSTANCE.play( Assets.Sounds.DEGRADE, 0.6f, 1.2f );
+			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 2 );
+			StanceAuraBuff.sync( hero, RogueHuntressAuras.Aimed.class, false );
 		}
 	}
 
@@ -78,8 +87,13 @@ public class AimedShot extends ActiveSkill1 {
 		castTextYell();
 		Buff.prolong( enemy, Roots.class, 1 + level );
 		if (Dungeon.level.heroFOV[enemy.pos]){
+			//the arrow drives it into the ground: dust kicks up, then settles in a second puff
 			CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.ROCK ), 4 );
-			if (enemy.sprite != null) enemy.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 2 );
+			CellEmitter.bottom( enemy.pos ).startDelayed( Speck.factory( Speck.DUST ), 0, 4, 0.15f );
+			if (enemy.sprite != null){
+				enemy.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 2 );
+				enemy.sprite.showStatus( CharSprite.NEGATIVE, "Pinned" );
+			}
 		}
 		Sample.INSTANCE.play( Assets.Sounds.HIT_ARROW, 1f, 0.7f );
 		return damage;

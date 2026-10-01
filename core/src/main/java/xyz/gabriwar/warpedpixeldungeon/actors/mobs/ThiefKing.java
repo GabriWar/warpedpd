@@ -24,6 +24,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
+import com.watabou.utils.Bundle;
+import xyz.gabriwar.warpedpixeldungeon.ui.BossHealthBar;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.items.AdamantRing;
@@ -89,7 +91,7 @@ public class ThiefKing extends Mob implements Callback {
 	@Override
 	public void notice() {
 		super.notice();
-		if (enemy == null) return;
+		if (!BossHealthBar.isAssigned()) BossHealthBar.assignBoss( this );
 		yell(Messages.get(this, "notice"));
 	}
 
@@ -110,5 +112,17 @@ public class ThiefKing extends Mob implements Callback {
 	@Override
 	public void call() {
 		next();
+	}
+
+	@Override
+	public void damage( int dmg, Object src ) {
+		if (!BossHealthBar.isAssigned()) BossHealthBar.assignBoss( this );
+		super.damage( dmg, src );
+	}
+
+	@Override
+	public void restoreFromBundle( Bundle bundle ) {
+		super.restoreFromBundle( bundle );
+		if (enemySeen || HP < HT) BossHealthBar.assignBoss( this );
 	}
 }

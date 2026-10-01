@@ -29,7 +29,6 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.PurpleParticle;
@@ -42,6 +41,8 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.OrbOfZotSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Random;
 
+import java.util.ArrayList;
+
 public class OrbOfZotMob extends Mob {
 
 	{
@@ -51,8 +52,6 @@ public class OrbOfZotMob extends Mob {
 		state = HUNTING;
 		HP = HT = 500;
 		defenseSkill = 35;
-
-		WANDERING = new Hunting();
 
 		immunities.add( Terror.class );
 		immunities.add( ToxicGas.class );
@@ -81,18 +80,25 @@ public class OrbOfZotMob extends Mob {
 			fieldOfView = new boolean[Dungeon.level.length()];
 		}
 		Dungeon.level.updateFieldOfView( this, fieldOfView );
+
+		if (enemy == null && Dungeon.hero.isAlive()
+				&& Dungeon.level.distance( pos, Dungeon.hero.pos ) <= 2) {
+			yell( Messages.get(this, "scanning") );
+		}
+
 		return super.act();
 	}
 
 	@Override
 	protected Char chooseEnemy() {
-		if (enemy == null || !enemy.isAlive() || !fieldOfView[enemy.pos]) {
+		if (enemy == null || !enemy.isAlive()) {
+			ArrayList<Mob> enemies = new ArrayList<>();
 			for (Mob mob : Dungeon.level.mobs) {
 				if (mob.alignment == Alignment.ENEMY && fieldOfView[mob.pos]) {
-					return mob;
+					enemies.add( mob );
 				}
 			}
-			return null;
+			enemy = enemies.isEmpty() ? null : Random.element( enemies );
 		}
 		return enemy;
 	}
@@ -190,22 +196,5 @@ public class OrbOfZotMob extends Mob {
 		m.state = m.HUNTING;
 		GameScene.add( m, SPAWN_DELAY );
 		return m;
-	}
-
-	private class Hunting extends Mob.Wandering {
-		@Override
-		public boolean act( boolean enemyInFOV, boolean justAlerted ) {
-			enemySeen = enemyInFOV;
-			if (enemyInFOV && canAttack( enemy )) {
-				return doAttack( enemy );
-			} else {
-				enemy = chooseEnemy();
-				if (enemy != null && canAttack( enemy )) {
-					return doAttack( enemy );
-				}
-				spend( TICK );
-				return true;
-			}
-		}
 	}
 }

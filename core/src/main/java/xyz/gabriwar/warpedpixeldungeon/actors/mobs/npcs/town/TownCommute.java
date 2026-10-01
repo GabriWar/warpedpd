@@ -96,7 +96,8 @@ public class TownCommute {
 			//a hero walking in by day should not meet last night's guests filing out
 			if (arrived && !night) clearOut( level, true );
 			settle( level, night ? BEDS : ((TownInteriorLevel) level).folk(), night, arrived );
-		} else if (level instanceof TownInteriorLevel || level instanceof OverworldLevel) {
+		} else if (level instanceof TownInteriorLevel
+				|| (level instanceof OverworldLevel && ((OverworldLevel) level).altitude() == 0)) {
 			//at night away from the inn nobody is wanted: whoever is still about walks
 			//out (NPC.commute), or is simply not there when the hero arrives
 			if (night) {

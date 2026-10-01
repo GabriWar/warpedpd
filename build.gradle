@@ -18,7 +18,7 @@ allprojects {
         //history was later rewritten, so the raw count (9411 on master) would go
         //backwards and Play refuses lower codes. Every build adds this offset; raise
         //it again if history is ever rewritten below the highest code on Play.
-        appVersionCodeBump = 72
+        appVersionCodeBump = 79
         appVersionCode = (project.hasProperty('appVersionCode') ? project.appVersionCode.toInteger() : 894) + appVersionCodeBump
         //versionName auto-bumps +1 per commit, each slot rolling 0-9 with carry
         //(commit 9127 -> 3.4.0, 9128 -> 3.4.1, ..., 9129 -> 3.4.2, 9139 -> 3.5.2).

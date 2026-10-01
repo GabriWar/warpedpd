@@ -81,7 +81,12 @@ public class Transcendence extends ActiveSkill {
 		if (action.equals(Skill.AC_ACTIVATE) && hero.sprite != null){
 			Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 1f, 1.4f );
 			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
+			new Flare( 6, 18 ).color( 0xFFFFDD, true ).show( hero.sprite, 0.5f );
+		} else if (action.equals(Skill.AC_DEACTIVATE)){
+			Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 0.5f, 0.8f );
 		}
+		//the half-light shows: a slow drift of light motes for as long as it is on
+		xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAura.sync( hero );
 	}
 
 	//half light: walking into an enemy carries the hero straight through it to the free tile beyond,
@@ -90,6 +95,7 @@ public class Transcendence extends ActiveSkill {
 	public boolean onHeroBump( Hero hero, Char enemy ){
 		if (!active || level <= 0 || hero == null || enemy == null || hero.rooted || hero.MP < PASS_MANA
 				|| !Dungeon.level.adjacent( hero.pos, enemy.pos )) return false;
+		xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAura.sync( hero );
 		int dir = enemy.pos - hero.pos;
 		java.util.ArrayList<Char> passed = new java.util.ArrayList<>();
 		int cell = enemy.pos;

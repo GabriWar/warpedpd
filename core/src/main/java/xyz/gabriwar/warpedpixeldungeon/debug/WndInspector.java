@@ -435,7 +435,7 @@ public class WndInspector extends Window {
 						sb.append("Base XP: ").append(mob.EXP).append(" | hero level cutoff: ").append(mob.maxLvl).append("\n");
 						if (Dungeon.hero != null && Dungeon.hero.lvl > mob.maxLvl
 								&& mob.maxLvl < xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero.MAX_LEVEL - 1)
-							sb.append("Outleveled: normally grants 0 XP (ascent rules may override this).\n");
+							sb.append("Outleveled: grants a quarter XP, at least 1 (ascent rules may override this).\n");
 					}
 					objectReport(sb, ch);
 					for (xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff buff : ch.buffs()) objectReport(sb, buff);
