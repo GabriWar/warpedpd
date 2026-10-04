@@ -93,6 +93,8 @@ public class SpiderMind extends Mob {
 			return false;
 		} else {
 			frenzy();
+			//off screen the turn still has to pass, or the actor loop spins on it forever
+			spend( attackDelay() );
 			return true;
 		}
 	}
