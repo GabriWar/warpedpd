@@ -41,6 +41,8 @@ public class ManaRegen extends Buff {
 	private static final float MOVING_RATE = 0.005f;
 	private static final float STILL_FLOOR = 1 / 6f;
 	private static final float MOVING_FLOOR = 1 / 12f;
+	//a full belly steadies the mind: well fed, the pool fills half again as fast
+	public static final float WELL_FED_BOOST = 1.5f;
 
 	{
 		actPriority = HERO_PRIO - 1;
@@ -61,11 +63,12 @@ public class ManaRegen extends Buff {
 			if (hero.MP < effectiveMT && !hero.isStarving()) {
 				float rate = still ? STILL_RATE : MOVING_RATE;
 				float gain = Math.max( effectiveMT * rate, still ? STILL_FLOOR : MOVING_FLOOR );
-				//what speeds it: the magic level, the ring, and Meditation's points
+				//what speeds it: the magic level, the ring, Meditation's points and a full belly
 				gain *= 1f + 0.15f * Dungeon.hero.magicLevel;
 				gain *= RingOfMagic.manaRegenMultiplier(hero);
 				int skillRegen = hero.heroSkills.allManaRegen();
 				if (skillRegen > 0) gain *= Math.pow( 1.2, skillRegen );
+				if (hero.buff( WellFed.class ) != null) gain *= WELL_FED_BOOST;
 				partial += gain;
 				if (partial >= 1){
 					int whole = (int) partial;

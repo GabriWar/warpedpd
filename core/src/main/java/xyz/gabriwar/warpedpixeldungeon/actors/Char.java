@@ -1344,7 +1344,9 @@ public abstract class Char extends Actor {
 			buff(DeathMark.DeathMarkTracker.class).detachOnDeath();
 		}
 		destroy();
-		if (src != Chasm.class) {
+		//a char can die without a sprite: an overworld creature not yet shown (off the screen,
+		//just brought back from where it was parked) killed by another's blow
+		if (src != Chasm.class && sprite != null) {
 			sprite.die();
 			//killed over a pit, fliers included: nothing dead stays in the air, the body drops
 			if (Dungeon.level != null && sprite instanceof MobSprite && pos >= 0 && pos < Dungeon.level.length()

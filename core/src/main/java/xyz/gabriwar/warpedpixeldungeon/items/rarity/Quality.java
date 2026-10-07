@@ -614,11 +614,22 @@ public class Quality implements Bundlable {
 
 	// ---------------------------------------------------------------- text
 
+	//an unidentified item shows its rarity and its type - the player sees what they hold and
+	//whether it is worth identifying - but not what they do: its rolled lines, their strength
+	//and its perk (which for a ring, a wand or an artifact would name the very item)
+	private static boolean known( Item item ){
+		return item == null || item.isIdentified();
+	}
+
 	/** the block appended to an item's description: tier, lines, perk, masterwork */
 	public String describe( Item item ){
 		Family fam = family( item );
 		StringBuilder sb = new StringBuilder();
 		sb.append( Messages.get( this, "header", rarity.title(), type.title() ) );
+		if (!known( item )){
+			sb.append( "\n\n" ).append( Messages.get( this, "unknown" ) );
+			return sb.toString();
+		}
 		if (!lines.isEmpty()){
 			sb.append( "\n" );
 			for (int i = 0; i < lines.size(); i++){
@@ -644,6 +655,11 @@ public class Quality implements Bundlable {
 	/** the rarity tab of {@link xyz.gabriwar.warpedpixeldungeon.windows.WndItemQuality} */
 	public String describeRarity( Item item ){
 		StringBuilder sb = new StringBuilder( Messages.get( this, "tab_rarity", rarity.title(), rarity.lines ) );
+		if (!known( item )){
+			sb.append( "\n\n" ).append( Messages.get( this, "unknown_lines" ) );
+			sb.append( "\n\n" ).append( Messages.get( this, fullyMasterworked() ? "masterwork_full" : "masterwork", masterwork, MASTERWORK_MAX, kills ) );
+			return sb.toString();
+		}
 		if (!lines.isEmpty()){
 			sb.append( "\n" );
 			for (int i = 0; i < lines.size(); i++){
@@ -668,7 +684,7 @@ public class Quality implements Bundlable {
 	public String describeType( Item item, ItemType t ){
 		Family fam = family( item );
 		StringBuilder sb = new StringBuilder( Messages.get( this, t == type ? "tab_type_current" : "tab_type", t.title() ) );
-		if (fam != null) sb.append( "\n\n" ).append( perkText( item, t ) );
+		if (fam != null) sb.append( "\n\n" ).append( known( item ) ? perkText( item, t ) : Messages.get( this, "unknown_perk" ) );
 		if (t.ordinal() > type.ordinal()){
 			int cost = 0;
 			for (ItemType s = type; s != t; s = s.next()) cost += s.shiftCost();
