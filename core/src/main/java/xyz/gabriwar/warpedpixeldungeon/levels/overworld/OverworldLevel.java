@@ -1437,20 +1437,56 @@ public class OverworldLevel extends Level {
 		for (int c = 0; c < length(); c++) if (rockTopAt( c )) discoverable[c] = true;
 	}
 
-	//the natural rock in sight range shows, tops and faces, whatever the rock between: a cliff
-	//is seen from its foot, and a face the ridge beside it hides is no hole among seen tops
-	//(the ground behind a ridge stays unseen)
+	//how many cells of rock a look carries into the land on top of it before it gives out
+	static final int TOP_SIGHT = 3;
+
+	//the natural rock in sight range is a half-transparent obstacle: a look runs on into the land
+	//on top of a cliff, but only TOP_SIGHT cells of rock deep, and anything else that blocks sight
+	//on the way (a tree, a built wall without a top) stops it as usual. So a cliff is seen from
+	//its foot, and its brow a few steps in, not the whole plateau behind it
 	private void seeRockTops( Char c, boolean[] fieldOfView ){
 		if (top == null) return;
-		int w = width(), cx = c.pos % w, cy = c.pos / w, r = c.viewDistance;
-		for (int y = Math.max( 0, cy - r ); y <= Math.min( height() - 1, cy + r ); y++){
+		seeIntoRock( width(), height(), c.pos, c.viewDistance, TOP_SIGHT,
+				cell -> topGroundAt( cell ) != -1, losBlocking, fieldOfView );
+	}
+
+	/**
+	 * Marks seen every rock cell within r of from whose straight line from there crosses at most
+	 * depth rock cells (itself included) and no other sight-blocking cell. Pure, for the tests.
+	 */
+	static void seeIntoRock( int w, int h, int from, int r, int depth,
+	                         java.util.function.IntPredicate rock, boolean[] blocking, boolean[] fieldOfView ){
+		int cx = from % w, cy = from / w;
+		for (int y = Math.max( 0, cy - r ); y <= Math.min( h - 1, cy + r ); y++){
 			for (int x = Math.max( 0, cx - r ); x <= Math.min( w - 1, cx + r ); x++){
 				int dx = x - cx, dy = y - cy;
 				if (dx * dx + dy * dy > r * r) continue;
 				int cell = x + y * w;
-				if (topGroundAt( cell ) != -1) fieldOfView[cell] = true;
+				if (fieldOfView[cell] || !rock.test( cell )) continue;
+				if (reaches( w, cx, cy, x, y, depth, rock, blocking )) fieldOfView[cell] = true;
 			}
 		}
+	}
+
+	//walks the line from (x0, y0) to (x1, y1), the start left out: through at most depth cells of
+	//rock, and nothing else that blocks sight
+	private static boolean reaches( int w, int x0, int y0, int x1, int y1, int depth,
+	                                java.util.function.IntPredicate rock, boolean[] blocking ){
+		int dx = Math.abs( x1 - x0 ), dy = Math.abs( y1 - y0 );
+		int sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+		int err = dx - dy, x = x0, y = y0, through = 0;
+		while (x != x1 || y != y1){
+			int e2 = 2 * err;
+			if (e2 > -dy){ err -= dy; x += sx; }
+			if (e2 < dx){ err += dx; y += sy; }
+			int cell = x + y * w;
+			if (rock.test( cell )){
+				if (++through > depth) return false;
+			} else if (blocking[cell] && (x != x1 || y != y1)){
+				return false;
+			}
+		}
+		return true;
 	}
 
 	//the view down from a mountain slice: the ground of the bands below, seen through the

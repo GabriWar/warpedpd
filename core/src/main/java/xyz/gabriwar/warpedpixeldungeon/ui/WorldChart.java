@@ -31,6 +31,8 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.watabou.gltextures.SmartTexture;
 import com.watabou.noosa.Image;
 
+import java.nio.ByteOrder;
+
 /**
  * A slab of the world, drawn one pixel per STRIDE cells.
  *
@@ -163,11 +165,9 @@ public class WorldChart extends Image {
 			if (done != null){
 				Pixmap pm = new Pixmap( SIZE, SIZE, Pixmap.Format.RGBA8888 );
 				pm.setBlending( Pixmap.Blending.None );
-				for (int y = 0; y < SIZE; y++){
-					for (int x = 0; x < SIZE; x++){
-						pm.drawPixel( x, y, done[y * SIZE + x] );
-					}
-				}
+				//one copy into the pixmap's own buffer (RGBA bytes, so the ints go in big-endian):
+				//a million drawPixel calls cost the render thread a couple of frames
+				pm.getPixels().order( ByteOrder.BIG_ENDIAN ).asIntBuffer().put( done );
 				if (painted != null) painted.delete();
 				painted = new SmartTexture( pm );
 				paintedSeed = doneSeed;
@@ -272,14 +272,13 @@ public class WorldChart extends Image {
 		return (r << 16) | (g << 8) | bl;
 	}
 
-	/** The slab's pixels (RGBA, row-major), as the worker paints them: pure, for any thread. */
-	public static int[] pixels( long seed, int ox, int oy ){
+	//the most threads a slab is painted on
+	private static final int PAINTERS = 8;
 
-		int[] px = new int[SIZE * SIZE];
-		byte[] band = new byte[SIZE * SIZE];
-
+	//every step-th row from first: each pixel the ground of its biome, or of its band
+	private static void rows( long seed, int ox, int oy, int first, int step, int[] px, byte[] band ){
 		WorldModel.Sample smp = new WorldModel.Sample();
-		for (int py = 0; py < SIZE; py++){
+		for (int py = first; py < SIZE; py += step){
 			for (int px0 = 0; px0 < SIZE; px0++){
 				int wx = ox + px0 * STRIDE, wy = oy + py * STRIDE;
 				WorldModel.sample( seed, wx, wy, smp );
@@ -287,6 +286,32 @@ public class WorldChart extends Image {
 				band[py * SIZE + px0] = (byte)b;
 				int rgb = b == 0 ? biomeColour( smp.biome ) : bandColour( seed, wx, wy, b, smp );
 				px[py * SIZE + px0] = (rgb << 8) | 0xFF;
+			}
+		}
+	}
+
+	/** The slab's pixels (RGBA, row-major), as the worker paints them: pure, for any thread. */
+	public static int[] pixels( long seed, int ox, int oy ){
+
+		final int[] px = new int[SIZE * SIZE];
+		final byte[] band = new byte[SIZE * SIZE];
+
+		//the samples are pure and a row needs nothing of another, so the rows are dealt out to
+		//half the cores (the other half keep the game and its window generator running)
+		int threads = Math.max( 1, Math.min( PAINTERS, Runtime.getRuntime().availableProcessors() / 2 ) );
+		Thread[] painters = new Thread[threads - 1];
+		for (int t = 1; t < threads; t++){
+			final int first = t;
+			painters[t - 1] = new Thread( () -> rows( seed, ox, oy, first, threads, px, band ), "world-chart-" + t );
+			painters[t - 1].setDaemon( true );
+			painters[t - 1].start();
+		}
+		rows( seed, ox, oy, 0, threads, px, band );
+		for (Thread t : painters){
+			try {
+				t.join();
+			} catch (InterruptedException e){
+				Thread.currentThread().interrupt();
 			}
 		}
 

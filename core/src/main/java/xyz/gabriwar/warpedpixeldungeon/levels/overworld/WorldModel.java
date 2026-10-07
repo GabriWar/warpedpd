@@ -77,9 +77,17 @@ public class WorldModel {
 		return t * t * t * (t * (t * 6 - 15) + 10);
 	}
 
+	//Math.floor without the round trip through double: the noise floors twice per octave, a
+	//few hundred times a cell, and the cast-and-step is the same integer for every coordinate
+	//the world reaches (well inside the int range)
+	private static int floor( float v ){
+		int i = (int)v;
+		return v < i ? i - 1 : i;
+	}
+
 	/** Perlin-style gradient noise, roughly in [-1, 1]. */
 	private static float grad( long seed, float x, float y ){
-		int gx = (int)Math.floor( x ), gy = (int)Math.floor( y );
+		int gx = floor( x ), gy = floor( y );
 		float fx = x - gx, fy = y - gy;
 
 		int h00 = (int)(hash( seed, gx,   gy   ) & 15);
@@ -634,7 +642,7 @@ public class WorldModel {
 
 	/** Perlin-style gradient noise in three dimensions, roughly in [-1, 1]. */
 	private static float grad3( long seed, float x, float y, float z ){
-		int gx = (int)Math.floor( x ), gy = (int)Math.floor( y ), gz = (int)Math.floor( z );
+		int gx = floor( x ), gy = floor( y ), gz = floor( z );
 		float fx = x - gx, fy = y - gy, fz = z - gz;
 		float u = fade( fx ), v = fade( fy ), w = fade( fz );
 		float x00 = dot3( seed, gx, gy,   gz,   fx, fy,   fz   ) + (dot3( seed, gx+1, gy,   gz,   fx-1, fy,   fz   ) - dot3( seed, gx, gy,   gz,   fx, fy,   fz   )) * u;

@@ -141,4 +141,33 @@ public class RockTopsTest {
 			assertEquals( "an earthen scarp three bands tall", 0, earth[3] );
 		}
 	}
+
+	//a plateau over the north half of an open field, the hero on the field: the look runs into
+	//the rock TOP_SIGHT cells deep and no further, and a tree in the way stops it
+	@Test
+	public void sightRunsOnlyAFewCellsIntoTheRock(){
+		int w = 41, h = 41;
+		boolean[] rock = new boolean[w * h], blocking = new boolean[w * h];
+		for (int y = 0; y < 20; y++) for (int x = 0; x < w; x++){
+			rock[x + y * w] = true;
+			blocking[x + y * w] = true;
+		}
+		int hero = 20 + 30 * w;
+		boolean[] fov = new boolean[w * h];
+		OverworldLevel.seeIntoRock( w, h, hero, 20, OverworldLevel.TOP_SIGHT, c -> rock[c], blocking, fov );
+		int d = OverworldLevel.TOP_SIGHT;
+		//straight north: rows 19 down to 20 - d are seen, the one past them is not
+		for (int y = 19; y > 19 - d; y--) assertTrue( "row " + y, fov[20 + y * w] );
+		assertFalse( fov[20 + (19 - d) * w] );
+		//nothing deep in the plateau, whatever the angle
+		for (int x = 0; x < w; x++) for (int y = 0; y <= 19 - d; y++) assertFalse( x + "," + y, fov[x + y * w] );
+
+		//a tree on the field straight north of the hero hides the rock behind it
+		blocking[20 + 25 * w] = true;
+		fov = new boolean[w * h];
+		OverworldLevel.seeIntoRock( w, h, hero, 20, OverworldLevel.TOP_SIGHT, c -> rock[c], blocking, fov );
+		assertFalse( fov[20 + 19 * w] );
+		//the field itself is the shadowcaster's: this only ever adds rock
+		assertFalse( fov[20 + 22 * w] );
+	}
 }
