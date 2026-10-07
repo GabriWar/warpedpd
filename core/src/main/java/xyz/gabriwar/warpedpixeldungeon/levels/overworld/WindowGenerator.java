@@ -293,6 +293,7 @@ public final class WindowGenerator {
 			}
 		}
 		scarps( seed, ox, oy, 0, band, soil, w );
+		builtTops( seed, 0, ox, oy, shift, w );
 		topViews( seed, ox, oy, w );
 		//a stair's foot cleared over a field leaves no field there
 		for (int cell = 0; cell < w.field.length; cell++){
@@ -638,23 +639,37 @@ public final class WindowGenerator {
 		soil[cell] = WorldModel.soilDepth( seed, wx, wy, b, t, smp );
 	}
 
-	//the walls a mountain's places build (MountainSites) stand under the open sky too: their
-	//roof is the slice's own ground, snowed under or grown over like everything round them,
-	//instead of the dungeon's black
+	//the walls the world's places build (a mountain's huts and towers, the surface's lairs,
+	//ruins and barrows) stand under the open sky too: their roof is the ground round them,
+	//snowed under or grown over like everything else, instead of the dungeon's black
 	private static void builtTops( long seed, int altitude, int ox, int oy, float shift, Window w ){
 		WorldModel.Sample smp = new WorldModel.Sample();
 		for (int y = 1; y < HEIGHT - 1; y++){
 			for (int x = 1; x < WIDTH - 1; x++){
 				int cell = x + y * WIDTH;
-				if (w.terrain[cell] != Terrain.WALL || w.top[cell] != -1) continue;
+				if (!builtWall( w.terrain[cell] ) || w.top[cell] != -1) continue;
 				int wx = ox + x, wy = oy + y;
 				WorldModel.sample( seed, wx, wy, shift, smp );
-				int t = WorldModel.alpineTerrain( seed, wx, wy, altitude, smp );
-				w.top[cell] = viewTile( t, w.frozen[cell] );
+				int t;
+				boolean frost;
+				int b = altitude == 0 ? WorldLayers.band( smp.elev ) : altitude;
+				if (b >= 1){
+					t = WorldModel.alpineTerrain( seed, wx, wy, b, smp );
+					frost = altitude == 0 ? WorldModel.alpineTemperature( smp, b ) < WorldModel.FREEZE : w.frozen[cell];
+				} else {
+					t = WorldModel.wildTerrain( seed, wx, wy, smp );
+					frost = w.frozen[cell];
+				}
+				w.top[cell] = viewTile( t, frost );
 				w.topTerrain[cell] = t;
-				w.topFrozen[cell] = w.frozen[cell];
+				w.topFrozen[cell] = frost;
 			}
 		}
+	}
+
+	/** A wall a place builds: plain or dressed stone. Its top is drawn like the rock's. */
+	public static boolean builtWall( int terrain ){
+		return terrain == Terrain.WALL || terrain == Terrain.WALL_DECO;
 	}
 
 	//the dressing over the tops that are drawn (rock with rock in front of it, the rest shows its

@@ -260,7 +260,8 @@ public class Chasm implements Hero.Doom {
 		}
 		if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.SafeLevel) return -1;
 		int below = Dungeon.depth + 1;
-		if (Dungeon.depth < 1 || below > 25 || Dungeon.bossLevel( below )) return -1;
+		if (Dungeon.depth < 1 || below > 25 || Dungeon.bossLevel( below )
+				|| xyz.gabriwar.warpedpixeldungeon.levels.Delves.lastFloor()) return -1;
 		return below;
 	}
 
@@ -287,8 +288,8 @@ public class Chasm implements Hero.Doom {
 			mob.sprite = null;
 		}
 
-		ArrayList<FallenMob> list = Dungeon.fallenMobs.get( below );
-		if (list == null) Dungeon.fallenMobs.put( below, list = new ArrayList<>() );
+		ArrayList<FallenMob> list = Dungeon.fallenMobs.get( Dungeon.chasmKey( below ) );
+		if (list == null) Dungeon.fallenMobs.put( Dungeon.chasmKey( below ), list = new ArrayList<>() );
 		list.add( fallen );
 	}
 	

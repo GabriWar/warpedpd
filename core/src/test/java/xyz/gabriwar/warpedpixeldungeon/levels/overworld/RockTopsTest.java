@@ -170,4 +170,42 @@ public class RockTopsTest {
 		//the field itself is the shadowcaster's: this only ever adds rock
 		assertFalse( fov[20 + 22 * w] );
 	}
+
+	//nothing under the open sky keeps the dungeon's black roof: every wall with a wall in front
+	//of it (the rock's, a lair's rim, a ruin's or a barrow's dressed stone, a peak's hut) wears a
+	//top, on the surface and on the peaks, and the surface's rock is only where a band above is
+	@Test
+	public void noWallUnderTheSkyIsRoofedBlack(){
+		for (int alt : new int[]{ 0, 2, 5 }){
+			for (int[] o : ORIGINS){
+				WindowGenerator.Window w = WindowGenerator.generate( SEED, alt, o[0], o[1], 0f );
+				for (int c = W; c < W * (H - 1); c++){
+					int x = c % W;
+					if (x == 0 || x == W - 1) continue;
+					int t = w.terrain[c];
+					if (!xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTileSheet.wallStitcheable( t )
+							|| !xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTileSheet.wallStitcheable( w.terrain[c + W] )) continue;
+					String at = "alt " + alt + " origin " + o[0] + "," + o[1] + " cell " + x + "," + (c / W) + " terrain " + t;
+					assertTrue( at, WindowGenerator.builtWall( t ) && w.top[c] != -1 );
+				}
+			}
+		}
+	}
+
+	//under the mountain line the surface is never rock: the slice above sees open air there
+	@Test
+	public void theSurfacesRockIsUnderABand(){
+		for (int[] o : ORIGINS){
+			WindowGenerator.Window w = WindowGenerator.generate( SEED, 0, o[0], o[1], 0f );
+			WorldModel.Sample s = new WorldModel.Sample();
+			for (int c = W; c < W * (H - 1); c++){
+				int x = c % W;
+				if (x == 0 || x == W - 1 || w.terrain[c] != Terrain.WALL) continue;
+				int wx = o[0] + x, wy = o[1] + c / W;
+				if (WorldStructures.terrainAt( SEED, wx, wy, Terrain.EMPTY ) != -1) continue;
+				WorldModel.sample( SEED, wx, wy, 0f, s );
+				assertTrue( "band 0 rock at " + wx + "," + wy, WorldLayers.band( s.elev ) >= 1 );
+			}
+		}
+	}
 }

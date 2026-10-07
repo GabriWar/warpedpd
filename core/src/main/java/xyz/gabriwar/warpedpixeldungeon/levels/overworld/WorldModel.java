@@ -508,7 +508,10 @@ public class WorldModel {
 				if (s.temperature < FREEZE) return Terrain.SNOW;
 				return scatter % 43 == 0 ? Terrain.SHRUB : Terrain.EMPTY_SP;
 			case MOUNTAIN:
-				return Terrain.WALL;
+				//the biome's edge is dithered, the bands are not: a cell still under the mountain
+				//line is no slice's rock (the slice above sees open air there), so it lies as the
+				//foothills round it do
+				if (WorldLayers.band( s.elev ) >= 1) return Terrain.WALL;
 			case FOOTHILLS:
 				//the outcrops stand as rocks, not as squares of cliff wall; the
 				//high ground under the freezing line lies under snow

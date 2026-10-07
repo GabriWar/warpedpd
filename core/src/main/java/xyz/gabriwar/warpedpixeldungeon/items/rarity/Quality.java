@@ -147,7 +147,8 @@ public class Quality implements Bundlable {
 	/** the same roll with any part forced (null = rolled by depth); used by the debug picker */
 	public static void roll( Item item, Rarity rarity, ItemType type, int masterwork ){
 		if (!eligible( item ) || item.quality != null) return;
-		int depth = Dungeon.depth > 0 ? Dungeon.depth : 1;
+		//a barrow rolls by the depth its floor counts as (Delves.lootDepth)
+		int depth = Math.max( 1, xyz.gabriwar.warpedpixeldungeon.levels.Delves.lootDepth() );
 		Quality q = new Quality();
 		boolean tiered = hasRarity( item );
 		q.rarity = !tiered ? Rarity.COMMON : rarity != null ? rarity : Rarity.roll( depth );
@@ -594,7 +595,7 @@ public class Quality implements Bundlable {
 		} else if (heroBlow && Random.Float() < 0.0007f){
 			//0.07% per kill of the hero's own, on top of the boss drops
 			Dungeon.level.drop( new MasterworkCore(), mob.pos ).sprite.drop();
-		} else if (heroBlow && Dungeon.depth >= 3 && Dungeon.LimitedDrops.TYPE_SHIFTER.count < Dungeon.depth
+		} else if (heroBlow && !xyz.gabriwar.warpedpixeldungeon.levels.Delves.inDelve() && Dungeon.depth >= 3 && Dungeon.LimitedDrops.TYPE_SHIFTER.count < Dungeon.depth
 				&& Random.Float() < 0.0001f){
 			//0.01% per kill, from the hero's own kills only, and never more than one per floor reached
 			Dungeon.LimitedDrops.TYPE_SHIFTER.count = Dungeon.depth;

@@ -156,7 +156,7 @@ public class WorldStructures {
 	static float townRoadY(){ return TOWN_Y0 + 23; }
 
 	//what kind of site a sector hosts
-	public enum Site { NONE, VILLAGE, RUIN, DRAGON, CAMP, STONES, BIGTREE }
+	public enum Site { NONE, VILLAGE, RUIN, DRAGON, CAMP, STONES, BIGTREE, DUNGEON }
 
 	//who lives in a settlement
 	public enum Faction { HUMAN, GNOLL, BANDIT }
@@ -268,7 +268,22 @@ public class WorldStructures {
 				&& (h & 15) == 2){         //1 in 16
 			return Site.STONES;
 		}
+		//a sealed barrow, one of the world's other dungeons (Delves): on dry, level land, in
+		//one sector in six of those nothing else claimed. Its own hash, so no other site moves
+		if (b != WorldModel.Biome.OCEAN && b != WorldModel.Biome.RIVER && b != WorldModel.Biome.BEACH
+				&& b != WorldModel.Biome.SWAMP && b != WorldModel.Biome.MOUNTAIN
+				&& Math.floorMod( hash( seed ^ 0xBA770L, sx, sy ), 6 ) == 0){
+			return Site.DUNGEON;
+		}
 		return Site.NONE;
+	}
+
+	/** Is this world cell the stairway of a barrow (Site.DUNGEON)? Its transition is the
+	 *  barrow's own (OverworldLevel), never a way between the world's slices. */
+	public static boolean delveGate( long seed, int wx, int wy ){
+		int sx = Math.floorDiv( wx, SECTOR ), sy = Math.floorDiv( wy, SECTOR );
+		return siteType( seed, sx, sy ) == Site.DUNGEON
+				&& siteX( seed, sx, sy ) == wx && siteY( seed, sx, sy ) == wy;
 	}
 
 	// ------------------------------------------------------------- roads
@@ -565,6 +580,17 @@ public class WorldStructures {
 				return stone ? Terrain.STATUE : Terrain.EMPTY;
 			}
 			return Terrain.EMPTY;
+		}
+
+		if (type == Site.DUNGEON){
+			//a sealed barrow: a square of dressed stone, open to the south, statues in its
+			//corners and its stairway in the middle
+			int adx = Math.abs( dx ), ady = Math.abs( dy );
+			if (adx > 3 || ady > 3) return -1;
+			if (dx == 0 && dy == 0) return Terrain.EXIT;
+			if (adx == 3 || ady == 3) return (dx == 0 && dy == 3) ? Terrain.EMPTY_SP : Terrain.WALL_DECO;
+			if (adx == 2 && ady == 2) return Terrain.STATUE;
+			return Terrain.EMPTY_SP;
 		}
 
 		if (type == Site.RUIN){

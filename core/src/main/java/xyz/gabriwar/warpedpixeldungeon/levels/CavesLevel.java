@@ -95,7 +95,7 @@ public class CavesLevel extends RegularLevel {
 	protected void createItems() {
 		//third mushroom source (Sprouted): one per run in the caves, so all three
 		//Tinkerer quests (Sewer/Town/Fortress) can actually be completed.
-		if (Dungeon.depth == 11) {
+		if (Dungeon.depth == 11 && !Delves.inDelve()) {
 			addItemToSpawn(new Mushroom());
 		}
 		super.createItems();
@@ -104,7 +104,7 @@ public class CavesLevel extends RegularLevel {
 	@Override
 	protected void createMobs() {
 		//spawn a piranha alongside the blacksmith quest (guarantees CavesKey access)
-		if (Dungeon.depth == 14 && !Dungeon.LimitedDrops.CAVES_KEY.dropped()) {
+		if (Dungeon.depth == 14 && !Delves.inDelve() && !Dungeon.LimitedDrops.CAVES_KEY.dropped()) {
 			Piranha piranha = new Piranha();
 			do {
 				piranha.pos = randomRespawnCell( null );
@@ -117,7 +117,8 @@ public class CavesLevel extends RegularLevel {
 
 	@Override
 	protected ArrayList<Room> initRooms() {
-		ArrayList<Room> rooms = Blacksmith.Quest.spawn(super.initRooms());
+		//the quests are the main dungeon's: a barrow cut like its floors does not host them
+		ArrayList<Room> rooms = Delves.inDelve() ? super.initRooms() : Blacksmith.Quest.spawn(super.initRooms());
 
 		//mouth of the Temple gauntlet, on the last caves floor (Re-ARranged port)
 		if (Dungeon.depth == TEMPLE_BRANCH_DEPTH && Dungeon.branch == 0) {

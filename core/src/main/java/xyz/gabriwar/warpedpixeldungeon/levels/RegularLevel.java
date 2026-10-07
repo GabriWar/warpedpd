@@ -156,7 +156,8 @@ public abstract class RegularLevel extends Level {
 			initRooms.add(s);
 		}
 		
-		int secrets = SecretRoom.secretsForFloor(Dungeon.depth);
+		//a barrow does not draw on the region's secret rooms for the run: it rolls its own
+		int secrets = Delves.inDelve() ? Random.Int(2) : SecretRoom.secretsForFloor(Dungeon.depth);
 		//one additional secret for secret levels
 		if (feeling == Feeling.SECRETS) secrets++;
 		for (int i = 0; i < secrets; i++) {
@@ -477,8 +478,9 @@ public abstract class RegularLevel extends Level {
 			}
 		}
 
-		// ~2% chance per floor to find a steel honeypot somewhere on the level
-		if (Random.Int(50) == 0) {
+		// ~2% chance per floor to find a steel honeypot somewhere on the level (never in a
+		// barrow: its honey is a potion of strength)
+		if (Random.Int(50) == 0 && !Delves.inDelve()) {
 			int cell = randomDropCell();
 			if (map[cell] == Terrain.HIGH_GRASS || map[cell] == Terrain.FURROWED_GRASS) {
 				map[cell] = Terrain.GRASS;

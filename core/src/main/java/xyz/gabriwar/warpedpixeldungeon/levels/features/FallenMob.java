@@ -55,8 +55,9 @@ public class FallenMob implements Bundlable {
 
 	/** Every fallen monster headed for this level is put down on it (Dungeon.switchLevel). */
 	public static void land( Level level ){
-		ArrayList<FallenMob> fallen = Dungeon.fallenMobs.get( Dungeon.depth );
-		if (fallen == null || Dungeon.branch != 0) return;
+		ArrayList<FallenMob> fallen = Dungeon.fallenMobs.get( Dungeon.chasmKey( Dungeon.depth ) );
+		if (fallen == null || (Dungeon.branch != 0
+				&& !xyz.gabriwar.warpedpixeldungeon.levels.Delves.inDelve())) return;
 		Iterator<FallenMob> it = fallen.iterator();
 		while (it.hasNext()){
 			FallenMob f = it.next();
@@ -72,7 +73,7 @@ public class FallenMob implements Bundlable {
 			level.mobs.add( f.mob );
 			it.remove();
 		}
-		if (fallen.isEmpty()) Dungeon.fallenMobs.remove( Dungeon.depth );
+		if (fallen.isEmpty()) Dungeon.fallenMobs.remove( Dungeon.chasmKey( Dungeon.depth ) );
 	}
 
 	/** Saves every waiting fallen monster, per destination depth. */

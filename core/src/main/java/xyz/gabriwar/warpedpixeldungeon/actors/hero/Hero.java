@@ -1045,7 +1045,7 @@ public class Hero extends Char {
 		if (heroClass != HeroClass.DUELIST
 				&& hasTalent(Talent.WEAPON_RECHARGING)
 				&& (buff(Recharging.class) != null || buff(ArtifactRecharge.class) != null)){
-			dmg = Math.round(dmg * 1.025f + (.025f*pointsInTalent(Talent.WEAPON_RECHARGING)));
+			dmg = Math.round(dmg * (1.025f + .025f*pointsInTalent(Talent.WEAPON_RECHARGING)));
 		}
 
 		//moon fury, from the moonberries. Detaching through Buff.detach routes into
@@ -2528,7 +2528,8 @@ public class Hero extends Char {
 				return true;
 			}
 
-			if (Dungeon.level.activateTransition(this, transition)){
+			//(a barrow's way out goes back to its door on the world: Delves.fire)
+			if (xyz.gabriwar.warpedpixeldungeon.levels.Delves.fire(this, transition)){
 				curAction = null;
 			} else {
 				ready();

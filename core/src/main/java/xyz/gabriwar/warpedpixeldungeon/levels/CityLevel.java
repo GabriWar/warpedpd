@@ -200,7 +200,7 @@ public class CityLevel extends RegularLevel {
 	@Override
 	protected void createMobs() {
 		//spawn a gold thief alongside the imp quest (from Sprouted, depth 19)
-		if (Dungeon.depth == 19 && !Dungeon.LimitedDrops.CITY_KEY.dropped()) {
+		if (Dungeon.depth == 19 && !Delves.inDelve() && !Dungeon.LimitedDrops.CITY_KEY.dropped()) {
 			GoldThief thief = new GoldThief();
 			do {
 				thief.pos = randomRespawnCell( null );
@@ -213,7 +213,8 @@ public class CityLevel extends RegularLevel {
 
 	@Override
 	protected ArrayList<Room> initRooms() {
-		return Imp.Quest.spawn(super.initRooms());
+		//the quests are the main dungeon's: a barrow cut like its floors does not host them
+		return Delves.inDelve() ? super.initRooms() : Imp.Quest.spawn(super.initRooms());
 	}
 	
 	@Override

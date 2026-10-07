@@ -1347,6 +1347,10 @@ public abstract class Level implements Bundlable {
 		//stock, a quest's reward, a mob's hand-made drop) gets them now, as the item
 		//generator gives them; a no-op for items that have them or sit outside the system
 		if (item != null) xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.roll( item );
+		//nothing that grows the hero for good lies on a barrow's floor: it comes as its worth in gold
+		if (xyz.gabriwar.warpedpixeldungeon.levels.Delves.banned( item )){
+			item = xyz.gabriwar.warpedpixeldungeon.levels.Delves.substitute( item );
+		}
 
 		if (item == null || Challenges.isItemBlocked(item)){
 

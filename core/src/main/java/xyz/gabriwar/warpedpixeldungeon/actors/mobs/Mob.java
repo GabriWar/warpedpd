@@ -1000,6 +1000,7 @@ public abstract class Mob extends Char {
 
 	@Override
 	public void move(int step, boolean travelling) {
+		int from = pos;
 		super.move(step, travelling);
 		if (usingStealthGamePlay
 				&& travelling
@@ -1019,10 +1020,10 @@ public abstract class Mob extends Char {
 				movementShadow = sprite();
 				sprite.parent.add(movementShadow);
 			}
-			movementShadow.point(DungeonTilemap.raisedTileCenterToWorld(previousPos));
+			movementShadow.point(DungeonTilemap.raisedTileCenterToWorld(from));
 			movementShadow.x -= movementShadow.width()/2f;
 			movementShadow.y -= movementShadow.height()/2f;
-			movementShadow.move(previousPos, pos);
+			movementShadow.move(from, pos);
 			movementShadow.alpha(sprite.alpha());
 			if (shadowFade == null){
 				shadowFade = new AlphaTweener( movementShadow, 0, 1 ) {
@@ -1307,6 +1308,11 @@ public abstract class Mob extends Char {
 				int exp = !outLevelled ? EXP
 						: (maxLvl < 0 || EXP <= 0) ? 0
 						: Math.max( 1, EXP / 4 );
+				//a barrow's enemies are never out-levelled: they pay full experience, grown with
+				//their power, however far the hero has gone (summons, maxLvl < 0, still pay none)
+				if (xyz.gabriwar.warpedpixeldungeon.levels.Delves.inDelve() && maxLvl >= 0 && EXP > 0){
+					exp = Math.round( EXP * xyz.gabriwar.warpedpixeldungeon.levels.Delves.power( this ) );
+				}
 
 				//during ascent, under-levelled enemies grant 10 xp each until level 30
 				// after this enemy kills which reduce the amulet curse still grant 10 effective xp
@@ -1354,6 +1360,8 @@ public abstract class Mob extends Char {
 			Dungeon.hero.heroSkills.onEnemyDeath( this, cause );
 		}
 		if (Dungeon.hero != null && Dungeon.level != null) xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.onEnemyKilled( this, cause );
+		//a barrow's guardian pays out its hoard and seals the barrow
+		if (Dungeon.level != null) xyz.gabriwar.warpedpixeldungeon.levels.Delves.onDeath( this );
 
 		if (cause == Chasm.class){
 			//50% chance to round up, 50% to round down
@@ -1455,7 +1463,9 @@ public abstract class Mob extends Char {
 		//bosses always drop their loot - several postgame bosses have low
 		//maxLvl values and were dropping nothing for high-level heroes
 		if (Dungeon.hero.lvl > maxLvl + 2 && !properties().contains(Property.BOSS)
-				&& !lootIgnoresLevel()) {
+				&& !lootIgnoresLevel()
+				//nor is a barrow's loot ever out-levelled
+				&& !xyz.gabriwar.warpedpixeldungeon.levels.Delves.inDelve()) {
 			if (extraLootIgnoresLevel()) dropExtraLoot();
 			return;
 		}

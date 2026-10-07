@@ -22,25 +22,17 @@
 package xyz.gabriwar.warpedpixeldungeon.scenes;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.Chrome;
-import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.GamesInProgress;
-import xyz.gabriwar.warpedpixeldungeon.effects.BadgeBanner;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.items.Amulet;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import xyz.gabriwar.warpedpixeldungeon.ui.Icons;
 import xyz.gabriwar.warpedpixeldungeon.ui.RenderedTextBlock;
 import xyz.gabriwar.warpedpixeldungeon.ui.StyledButton;
 import com.watabou.noosa.Camera;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
-import com.watabou.noosa.audio.Music;
-import com.watabou.noosa.tweeners.Delayer;
 import com.watabou.utils.Random;
 import com.watabou.utils.RectF;
 
@@ -59,7 +51,7 @@ public class AmuletScene extends PixelScene {
 		inGameScene = true;
 	}
 
-	StyledButton btnExit = null;
+	//the amulet no longer ends the run: the scene is its moment, and the one way on is onward
 	StyledButton btnStay = null;
 	
 	@Override
@@ -75,49 +67,14 @@ public class AmuletScene extends PixelScene {
 		amulet = new Image( Assets.Sprites.AMULET );
 		add( amulet );
 
-		btnExit = new StyledButton(Chrome.Type.GREY_BUTTON_TR, Messages.get(this, "exit") ) {
-			@Override
-			protected void onClick() {
-				Dungeon.win( Amulet.class );
-				Dungeon.deleteGame( GamesInProgress.curSlot, true );
-				Badges.saveGlobal();
-				btnExit.enable(false);
-				btnStay.enable(false);
-
-				AmuletScene.this.add(new Delayer(0.1f){
-					@Override
-					protected void onComplete() {
-						if (BadgeBanner.isShowingBadges()){
-							AmuletScene.this.add(new Delayer(3f){
-								@Override
-								protected void onComplete() {
-									Game.switchScene( RankingsScene.class );
-								}
-							});
-						} else {
-							Game.switchScene( RankingsScene.class );
-						}
-					}
-				});
-				Music.INSTANCE.playTracks(
-						new String[]{Assets.Music.THEME_2, Assets.Music.THEME_1},
-						new float[]{1, 1},
-						false);
-			}
-		};
-		btnExit.icon(new ItemSprite(ItemSpriteSheet.AMULET));
-		btnExit.setSize( WIDTH, BTN_HEIGHT );
-		add( btnExit );
-		
 		btnStay = new StyledButton(Chrome.Type.GREY_BUTTON_TR, Messages.get(this, "stay") ) {
 			@Override
 			protected void onClick() {
 				onBackPressed();
-				btnExit.enable(false);
 				btnStay.enable(false);
 			}
 		};
-		btnStay.icon(Icons.CLOSE.get());
+		btnStay.icon(new ItemSprite(ItemSpriteSheet.AMULET));
 		btnStay.setSize( WIDTH, BTN_HEIGHT );
 		add( btnStay );
 
@@ -127,17 +84,16 @@ public class AmuletScene extends PixelScene {
 
 		float height;
 		if (noText) {
-			height = amulet.height + LARGE_GAP + btnExit.height() + SMALL_GAP + btnStay.height();
+			height = amulet.height + LARGE_GAP + btnStay.height();
 			
 			amulet.x = insets.left + (w - amulet.width) / 2;
 			amulet.y = insets.top + (h - height) / 2;
 			align(amulet);
 
-			btnExit.setPos( insets.left + (w - btnExit.width()) / 2, amulet.y + amulet.height + LARGE_GAP );
-			btnStay.setPos( btnExit.left(), btnExit.bottom() + SMALL_GAP );
+			btnStay.setPos( insets.left + (w - btnStay.width()) / 2, amulet.y + amulet.height + LARGE_GAP );
 			
 		} else {
-			height = amulet.height + LARGE_GAP + text.height() + LARGE_GAP + btnExit.height() + SMALL_GAP + btnStay.height();
+			height = amulet.height + LARGE_GAP + text.height() + LARGE_GAP + btnStay.height();
 
 			amulet.x = insets.left + (w - amulet.width) / 2;
 			amulet.y = insets.top + (h - height) / 2;
@@ -147,8 +103,7 @@ public class AmuletScene extends PixelScene {
 			align(text);
 			add(text);
 
-			btnExit.setPos( insets.left + (w - btnExit.width()) / 2, text.top() + text.height() + LARGE_GAP );
-			btnStay.setPos( btnExit.left(), btnExit.bottom() + SMALL_GAP );
+			btnStay.setPos( insets.left + (w - btnStay.width()) / 2, text.top() + text.height() + LARGE_GAP );
 		}
 
 		new Flare( 8, 48 ).color( 0xFFDDBB, true ).show( amulet, 0 ).angularSpeed = +30;
@@ -158,7 +113,7 @@ public class AmuletScene extends PixelScene {
 	
 	@Override
 	protected void onBackPressed() {
-		if (btnExit.isActive()) {
+		if (btnStay.isActive()) {
 			InterlevelScene.mode = InterlevelScene.Mode.CONTINUE;
 			Game.switchScene(InterlevelScene.class);
 		}

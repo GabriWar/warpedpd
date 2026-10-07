@@ -32,6 +32,6 @@ public class GrayWolfSprite extends BrownWolfSprite {
 	public GrayWolfSprite() {
 		super();
 		texture( Assets.Sprites.WOLF_GRAY );
-		play( idle );
+		play( idle, true );
 	}
 }

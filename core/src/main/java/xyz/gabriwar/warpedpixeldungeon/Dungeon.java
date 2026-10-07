@@ -387,6 +387,7 @@ public class Dungeon {
 		TownLedger.reset();
 		Notes.reset();
 		Portals.reset();
+		xyz.gabriwar.warpedpixeldungeon.levels.Delves.reset();
 
 		quickslot.reset();
 		QuickSlotButton.reset();
@@ -630,6 +631,9 @@ public class Dungeon {
 						level = new DeadEndLevel();
 					}
 			}
+		} else if (xyz.gabriwar.warpedpixeldungeon.levels.Delves.isDelve( branch )) {
+			//one of the world's barrows, opened with the amulet: its floors are a region's
+			level = xyz.gabriwar.warpedpixeldungeon.levels.Delves.newLevel( branch, depth );
 		} else if (branch == 6) {
 			//Remixed PD town building interiors, entered from the town square doorways
 			switch (depth) {
@@ -742,6 +746,10 @@ public class Dungeon {
 		nextLevelFirstVisit = false;
 
 		level.create();
+		//a barrow's deepest floor: its way down sealed, its guardian set
+		if (xyz.gabriwar.warpedpixeldungeon.levels.Delves.isDelve( branch )){
+			xyz.gabriwar.warpedpixeldungeon.levels.Delves.afterCreate( level );
+		}
 		
 		//the pacifist floor badge is for the dungeon proper: the surface is not a floor
 		//you descend from, so arriving on floor 1 from the town earns nothing
@@ -846,6 +854,11 @@ public class Dungeon {
 	}
 
 	public static long seedForDepth(int depth, int branch){
+		//a barrow's branch number runs high and its floors share depth numbers with the
+		//dungeon's: mix them instead of walking the run's generator that far
+		if (xyz.gabriwar.warpedpixeldungeon.levels.Delves.isDelve( branch )){
+			return xyz.gabriwar.warpedpixeldungeon.levels.Delves.levelSeed( seed, branch, depth );
+		}
 		int lookAhead = depth;
 		lookAhead += 30*branch; //Assumes depth is always 1-30, and branch is always 0 or higher
 
@@ -901,6 +914,12 @@ public class Dungeon {
 			}
 		}
 		if (branch == SpiderNestLevel.SPIDER_BRANCH) return "Spider Nest";
+		xyz.gabriwar.warpedpixeldungeon.levels.Delves.Entry delve = xyz.gabriwar.warpedpixeldungeon.levels.Delves.current();
+		if (delve != null){
+			return xyz.gabriwar.warpedpixeldungeon.levels.Delves.name(
+					xyz.gabriwar.warpedpixeldungeon.levels.Delves.worldSeed(), delve.sx, delve.sy )
+					+ " " + (delve.floorOf( depth ) + 1) + "/" + delve.floors;
+		}
 		if (branch == xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.frozen.FrozenEntranceRoom.FROZEN_BRANCH) return "Frozen Caves";
 		if (depth >= 1 && depth <= 5)   return "Sewers";
 		if (depth >= 6 && depth <= 10)  return "Prison";
@@ -926,6 +945,9 @@ public class Dungeon {
 	public static int scalingDepth(){
 		if (Dungeon.hero != null && Dungeon.hero.buff(AscensionChallenge.class) != null){
 			return 26;
+		} else if (xyz.gabriwar.warpedpixeldungeon.levels.Delves.inDelve()){
+			//a barrow's traps, gases and bombs hit as hard as its floor counts (unbounded)
+			return xyz.gabriwar.warpedpixeldungeon.levels.Delves.effectiveDepth();
 		} else {
 			return depth;
 		}
@@ -944,9 +966,12 @@ public class Dungeon {
 	}
 
 	public static boolean interfloorTeleportAllowed(){
+		//the amulet still has to be carried out of the dungeon on foot; past its first floor
+		//(the world, the barrows) it no longer holds the hero to the ground
 		if (Dungeon.level.locked
 				|| Dungeon.level instanceof MiningLevel || Dungeon.level instanceof VaultLevel
-				|| (Dungeon.hero != null && Dungeon.hero.belongings.getItem(Amulet.class) != null)){
+				|| (Dungeon.hero != null && Dungeon.hero.belongings.getItem(Amulet.class) != null
+					&& branch == 0 && depth >= 1 && depth <= 26)){
 			return false;
 		}
 		return true;
@@ -1018,8 +1043,14 @@ public class Dungeon {
 		}
 	}
 
+	/** The key what falls to the floor below is kept under until it lands: the depth, or for a
+	 *  barrow the depth and its branch together, so nothing falls out of one into the dungeon. */
+	public static int chasmKey( int depth ){
+		return xyz.gabriwar.warpedpixeldungeon.levels.Delves.isDelve( branch ) ? depth + 1000 * branch : depth;
+	}
+
 	public static void dropToChasm( Item item ) {
-		int depth = Dungeon.depth + 1;
+		int depth = chasmKey( Dungeon.depth + 1 );
 		ArrayList<Item> dropped = Dungeon.droppedItems.get( depth );
 		if (dropped == null) {
 			Dungeon.droppedItems.put( depth, dropped = new ArrayList<>() );
@@ -1100,6 +1131,8 @@ public class Dungeon {
 	public static boolean labRoomNeeded(){
 		//one laboratory each floor set, in floor 3 or 4, 1/2 chance each floor
 		int region = 1+depth/5;
+		//a barrow's floors would spend the main dungeon's laboratory for their region
+		if (xyz.gabriwar.warpedpixeldungeon.levels.Delves.inDelve()) return false;
 		if (region > LimitedDrops.LAB_ROOM.count){
 			int floorThisRegion = depth%5;
 			if (floorThisRegion >= 4 || (floorThisRegion == 3 && Random.Int(2) == 0)){
@@ -1128,6 +1161,7 @@ public class Dungeon {
 	private static final String TEMPLE_DONE	= "temple_completed";
 	private static final String ENERGY		= "energy";
 	private static final String DROPPED     = "dropped%d";
+	private static final String DROPPED_KEYS = "dropped_keys";
 	private static final String PORTED      = "ported%d";
 	private static final String LEVEL		= "level";
 	private static final String LIMDROPS    = "limited_drops";
@@ -1233,6 +1267,8 @@ public class Dungeon {
 			for (int d : droppedItems.keyArray()) {
 				bundle.put(Messages.format(DROPPED, d), droppedItems.get(d));
 			}
+			//the keys too: a barrow's (chasmKey) are not floor numbers the restore could guess
+			bundle.put( DROPPED_KEYS, droppedItems.keyArray() );
 			xyz.gabriwar.warpedpixeldungeon.levels.features.FallenMob.store( bundle, fallenMobs );
 			quickslot.storePlaceholders( bundle );
 
@@ -1263,6 +1299,7 @@ public class Dungeon {
 			Notes.storeInBundle( bundle );
 			Generator.storeInBundle( bundle );
 			Portals.storeInBundle( bundle );
+			xyz.gabriwar.warpedpixeldungeon.levels.Delves.storeInBundle( bundle );
 
 			int[] bundleArr = new int[generatedLevels.size()];
 			for (int i = 0; i < generatedLevels.size(); i++){
@@ -1380,7 +1417,12 @@ public class Dungeon {
 
 			fallenMobs = xyz.gabriwar.warpedpixeldungeon.levels.features.FallenMob.restore( bundle );
 			droppedItems = new SparseArray<>();
-			for (int i=1; i <= 26; i++) {
+			int[] droppedKeys = bundle.contains( DROPPED_KEYS ) ? bundle.getIntArray( DROPPED_KEYS ) : null;
+			if (droppedKeys == null){
+				droppedKeys = new int[26];
+				for (int i = 0; i < 26; i++) droppedKeys[i] = i + 1;
+			}
+			for (int i : droppedKeys) {
 
 				//dropped items
 				ArrayList<Item> items = new ArrayList<>();
@@ -1463,6 +1505,7 @@ public class Dungeon {
 		TownLedger.restoreFromBundle( bundle );
 		Generator.restoreFromBundle( bundle );
 		Portals.restoreFromBundle( bundle );
+		xyz.gabriwar.warpedpixeldungeon.levels.Delves.restoreFromBundle( bundle );
 
 	}
 	

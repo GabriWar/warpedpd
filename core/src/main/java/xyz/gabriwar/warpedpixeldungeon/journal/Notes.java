@@ -606,6 +606,9 @@ public class Notes {
 	}
 
 	public static boolean add( Landmark landmark ) {
+		//a barrow's floors share their depth numbers with the dungeon's: what is on them is
+		//not the dungeon's to remember
+		if (xyz.gabriwar.warpedpixeldungeon.levels.Delves.inDelve()) return false;
 		return add( landmark, Dungeon.depth );
 	}
 	

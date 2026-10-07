@@ -94,6 +94,17 @@ public class MovieClip extends Image {
 		play( anim, false );
 	}
 
+	//Image.texture() resets the frame to the whole sheet. A clip swapping its texture while an
+	//animation runs (a variant reusing its parent's frames in another pelt) would show its
+	//entire sheet until the next frame tick - and a still portrait never ticks: crop again
+	@Override
+	public void texture( Object tx ) {
+		super.texture( tx );
+		if (curAnim != null && curAnim.frames != null && curFrame < curAnim.frames.length){
+			frame( curAnim.frames[curFrame] );
+		}
+	}
+
 	public synchronized void play( Animation anim, boolean force ) {
 		
 		if (!force && (curAnim != null) && (curAnim == anim) && (curAnim.looped || !finished)) {

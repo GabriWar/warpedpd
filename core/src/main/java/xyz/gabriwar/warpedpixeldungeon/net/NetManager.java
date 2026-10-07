@@ -1526,7 +1526,7 @@ public class NetManager {
 			lastExitChatSig = ""; // ready for the next floor
 			lastSplitSig = "";
 			xyz.gabriwar.warpedpixeldungeon.net.ui.WndAtExit.dismiss();
-			Dungeon.level.activateTransition(h, dest);
+			xyz.gabriwar.warpedpixeldungeon.levels.Delves.fire(h, dest);
 		});
 	}
 

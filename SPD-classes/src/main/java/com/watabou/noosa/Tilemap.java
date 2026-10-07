@@ -298,6 +298,18 @@ public class Tilemap extends Visual {
 		if (!relabelChunks( dcx, dcy )) updateMap();
 	}
 
+	/**
+	 * The same content shift, on a copy of the data: for a map whose data array its owner may
+	 * already have handed back as the NEXT window's (a refill with the very array this map
+	 * holds). Shifting that in place would scramble the owner's copy too, and the refill that
+	 * follows, seeing its own array again, would mark nothing to rebuild.
+	 */
+	public synchronized void shiftContentCopy( int dcx, int dcy ){
+		if (data == null) return;
+		data = data.clone();
+		shiftContent( dcx, dcy );
+	}
+
 	// ---------------------------------------------------------------- drawing
 
 	protected void updateVertices() {

@@ -25,6 +25,7 @@
 package xyz.gabriwar.warpedpixeldungeon.windows;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.levels.Delves;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.CaveSites;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.MountainSites;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
@@ -72,6 +73,8 @@ public class WndWorldMap extends Window {
 
 	private static final int MARKER          = 0xFFFF3333;
 	private static final int WAYPOINT_MARKER = 0xFF3366FF;
+	//the name of a barrow whose guardian is dead
+	private static final int CLEARED_DELVE   = 0x8A8A8A;
 
 	//the map opens at this many screen pixels per world cell (the chart pixel is two
 	//cells, so a village's well is a dot and a peak's bands read) and zooms out to the
@@ -124,6 +127,10 @@ public class WndWorldMap extends Window {
 	//the hero's pin tracks them live - the world keeps running under an open map
 	private Pin heroPin;
 
+	//the pins over cleared barrows, blinking (update)
+	private final ArrayList<Pin> blinking = new ArrayList<>();
+	private float blinkTime = 0;
+
 	//the live events the hero has heard of, pinned in their own colours (WorldEvents.Type.pin)
 	private final ArrayList<WorldEvents.Event> events = new ArrayList<>();
 
@@ -172,6 +179,8 @@ public class WndWorldMap extends Window {
 		heroPin = pin( MARKER, heroWx, heroWy );
 
 		labelSites();
+		//the blinking pins of cleared barrows went in after the hero's: the hero's stays on top
+		page.bringToFront( heroPin.dot );
 
 		applyView();
 
@@ -341,7 +350,26 @@ public class WndWorldMap extends Window {
 		int span = WorldChart.SPAN / WorldStructures.SECTOR + 2;
 		for (int sy = s0y; sy <= s0y + span; sy++){
 			for (int sx = s0x; sx <= s0x + span; sx++){
-				if (WorldStructures.siteType( level.worldSeed, sx, sy ) != WorldStructures.Site.VILLAGE) continue;
+				WorldStructures.Site site = WorldStructures.siteType( level.worldSeed, sx, sy );
+				if (site == WorldStructures.Site.DUNGEON){
+					//a barrow: its name and level, greyed once its guardian is dead
+					RenderedTextBlock t = label( Messages.get( WndWorldMap.class, "delve",
+									Delves.name( level.worldSeed, sx, sy ), Delves.level( level.worldSeed, sx, sy ) ),
+							chart.chartX( WorldStructures.siteX( level.worldSeed, sx, sy ) ),
+							chart.chartY( WorldStructures.siteY( level.worldSeed, sx, sy ) ),
+							(sy & 1) == 0, (sx & 1) == 0 );
+					t.hardlight( Delves.cleared( sx, sy ) ? CLEARED_DELVE : WorldChart.DUNGEON_DOT );
+					//a cleared one's dot blinks: a pin over it in the same teal, fading in and out
+					if (Delves.cleared( sx, sy )){
+						Pin p = pin( 0xFF000000 | WorldChart.DUNGEON_DOT,
+								WorldStructures.siteX( level.worldSeed, sx, sy ), WorldStructures.siteY( level.worldSeed, sx, sy ) );
+						p.grow = 1.25f;
+						place( p );
+						blinking.add( p );
+					}
+					continue;
+				}
+				if (site != WorldStructures.Site.VILLAGE) continue;
 				label( WorldStructures.villageName( level.worldSeed, sx, sy ),
 						chart.chartX( WorldStructures.siteX( level.worldSeed, sx, sy ) ),
 						chart.chartY( WorldStructures.siteY( level.worldSeed, sx, sy ) ),
@@ -351,12 +379,13 @@ public class WndWorldMap extends Window {
 		label( Messages.get( WndWorldMap.class, "town" ), chart.chartX( 0 ), chart.chartY( 0 ), true, false );
 	}
 
-	private void label( String name, float x, float y, boolean right, boolean below ){
+	private RenderedTextBlock label( String name, float x, float y, boolean right, boolean below ){
 		RenderedTextBlock text = PixelScene.renderTextBlock( name, 6 );
 		page.add( text );
 		Label l = new Label( text, x, y, right, below );
 		labels.add( l );
 		place( l );
+		return text;
 	}
 
 	//labels, like pins, keep their on-screen size; they hang off a corner of their dot
@@ -390,6 +419,11 @@ public class WndWorldMap extends Window {
 	@Override
 	public synchronized void update(){
 		super.update();
+		if (!blinking.isEmpty()){
+			blinkTime += com.watabou.noosa.Game.elapsed;
+			float a = 0.15f + 0.85f * (0.5f + 0.5f * (float)Math.cos( blinkTime * 5f ));
+			for (Pin p : blinking) p.dot.alpha( a );
+		}
 		if (!laidOut && chart.ready()){
 			laidOut = true;
 			applyView();

@@ -290,6 +290,9 @@ public class WorldChart extends Image {
 		}
 	}
 
+	/** The dot of a barrow (WorldStructures.Site.DUNGEON); the map pins its name on it. */
+	public static final int DUNGEON_DOT = 0x2fd3c0;
+
 	/** The slab's pixels (RGBA, row-major), as the worker paints them: pure, for any thread. */
 	public static int[] pixels( long seed, int ox, int oy ){
 
@@ -325,7 +328,7 @@ public class WorldChart extends Image {
 			}
 		}
 
-		//sites: villages (amber), ruins (violet), dragon lairs (red)
+		//sites: villages (amber), ruins (violet), barrows (teal), dragon lairs and the rest (red)
 		int s0x = Math.floorDiv( ox, WorldStructures.SECTOR ) - 1;
 		int s0y = Math.floorDiv( oy, WorldStructures.SECTOR ) - 1;
 		int span = SPAN / WorldStructures.SECTOR + 2;
@@ -337,7 +340,8 @@ public class WorldChart extends Image {
 				int cy = (WorldStructures.siteY( seed, sx, sy ) - oy) / STRIDE;
 				if (cx < 1 || cy < 1 || cx >= SIZE - 1 || cy >= SIZE - 1) continue;
 				int rgb = site == WorldStructures.Site.VILLAGE ? 0xffb347
-						: site == WorldStructures.Site.RUIN ? 0xcc66ff : 0xff4444;
+						: site == WorldStructures.Site.RUIN ? 0xcc66ff
+						: site == WorldStructures.Site.DUNGEON ? DUNGEON_DOT : 0xff4444;
 				for (int dy = -1; dy <= 1; dy++){
 					for (int dx = -1; dx <= 1; dx++){
 						px[(cy + dy) * SIZE + cx + dx] = (rgb << 8) | 0xFF;

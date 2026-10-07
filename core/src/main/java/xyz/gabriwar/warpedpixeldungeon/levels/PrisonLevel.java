@@ -88,7 +88,8 @@ public class PrisonLevel extends RegularLevel {
 
 	@Override
 	protected ArrayList<Room> initRooms() {
-		ArrayList<Room> rooms = Wandmaker.Quest.spawnRoom(super.initRooms());
+		//the quests are the main dungeon's: a barrow cut like its floors does not host them
+		ArrayList<Room> rooms = Delves.inDelve() ? super.initRooms() : Wandmaker.Quest.spawnRoom(super.initRooms());
 
 		//web-choked hole down into the spider nest (Remixed PD reimplementation)
 		if (SPIDER_NEST_ENABLED && Dungeon.depth == SPIDER_BRANCH_DEPTH && Dungeon.branch == 0) {
@@ -100,10 +101,10 @@ public class PrisonLevel extends RegularLevel {
 
 	@Override
 	protected void createMobs() {
-		Wandmaker.Quest.spawnWandmaker(this, roomEntrance);
+		if (!Delves.inDelve()) Wandmaker.Quest.spawnWandmaker(this, roomEntrance);
 
 		//spawn a mossy skeleton alongside the wandmaker quest (from Sprouted, depth 9)
-		if (Dungeon.depth == 9 && !Dungeon.LimitedDrops.PRISON_KEY.dropped()) {
+		if (Dungeon.depth == 9 && !Delves.inDelve() && !Dungeon.LimitedDrops.PRISON_KEY.dropped()) {
 			MossySkeleton skeleton = new MossySkeleton();
 			do {
 				skeleton.pos = randomRespawnCell( null );

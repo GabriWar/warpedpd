@@ -1163,7 +1163,12 @@ public class Generator {
 	}
 	
 	public static Item random( Category cat ) {
-		return withQuality( randomRaw( cat ) );
+		Item item = randomRaw( cat );
+		//a barrow grows nothing in the hero for good (Delves.banned): draw again, a few times
+		for (int i = 0; i < 10 && xyz.gabriwar.warpedpixeldungeon.levels.Delves.banned( item ); i++){
+			item = randomRaw( cat );
+		}
+		return withQuality( item );
 	}
 
 	//every generated item passes through here: rarity and type are rolled once, on creation
@@ -1221,7 +1226,11 @@ public class Generator {
 	//overrides any deck systems and always uses default probs
 	// except for artifacts, which must always use a deck
 	public static Item randomUsingDefaults( Category cat ){
-		return withQuality( randomUsingDefaultsRaw( cat ) );
+		Item item = randomUsingDefaultsRaw( cat );
+		for (int i = 0; i < 10 && xyz.gabriwar.warpedpixeldungeon.levels.Delves.banned( item ); i++){
+			item = randomUsingDefaultsRaw( cat );
+		}
+		return withQuality( item );
 	}
 
 	private static Item randomUsingDefaultsRaw( Category cat ){
@@ -1255,7 +1264,7 @@ public class Generator {
 	}
 
 	public static Armor randomArmor(){
-		return randomArmor(Dungeon.depth / 5);
+		return randomArmor(xyz.gabriwar.warpedpixeldungeon.levels.Delves.lootDepth() / 5);
 	}
 	
 	//special armors dropped alongside the vanilla tier armors, matched by tier
@@ -1295,7 +1304,7 @@ public class Generator {
 	};
 
 	public static MeleeWeapon randomWeapon(){
-		return randomWeapon(Dungeon.depth / 5);
+		return randomWeapon(xyz.gabriwar.warpedpixeldungeon.levels.Delves.lootDepth() / 5);
 	}
 
 	public static MeleeWeapon randomWeapon(int floorSet) {
@@ -1303,7 +1312,7 @@ public class Generator {
 	}
 
 	public static MeleeWeapon randomWeapon(boolean useDefaults) {
-		return randomWeapon(Dungeon.depth / 5, useDefaults);
+		return randomWeapon(xyz.gabriwar.warpedpixeldungeon.levels.Delves.lootDepth() / 5, useDefaults);
 	}
 	
 	public static MeleeWeapon randomWeapon(int floorSet, boolean useDefaults) {
@@ -1328,7 +1337,7 @@ public class Generator {
 	};
 	
 	public static MissileWeapon randomMissile(){
-		return randomMissile(Dungeon.depth / 5);
+		return randomMissile(xyz.gabriwar.warpedpixeldungeon.levels.Delves.lootDepth() / 5);
 	}
 
 	public static MissileWeapon randomMissile(int floorSet) {
@@ -1336,7 +1345,7 @@ public class Generator {
 	}
 
 	public static MissileWeapon randomMissile(boolean useDefaults) {
-		return randomMissile(Dungeon.depth / 5, useDefaults);
+		return randomMissile(xyz.gabriwar.warpedpixeldungeon.levels.Delves.lootDepth() / 5, useDefaults);
 	}
 
 	public static MissileWeapon randomMissile(int floorSet, boolean useDefaults) {

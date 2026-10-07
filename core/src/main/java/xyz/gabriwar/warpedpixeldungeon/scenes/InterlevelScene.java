@@ -710,6 +710,11 @@ public class InterlevelScene extends PixelScene {
 			//the spider nest loops: nothing is built below its deepest floor, so a fall
 			//comes out at the top of the nest, the same way its stairs do
 			Dungeon.depth = xyz.gabriwar.warpedpixeldungeon.levels.SpiderNestLevel.FIRST_DEPTH;
+		} else if (xyz.gabriwar.warpedpixeldungeon.levels.Delves.inDelve()) {
+			//a barrow's floor below skips the boss depths; nothing is built below its deepest,
+			//so a fall there lands back on it
+			int below = xyz.gabriwar.warpedpixeldungeon.levels.Delves.below( Dungeon.depth );
+			if (below != -1) Dungeon.depth = below;
 		} else {
 			Dungeon.depth = sliceBelow > 0 ? sliceBelow : Dungeon.depth + 1;
 		}

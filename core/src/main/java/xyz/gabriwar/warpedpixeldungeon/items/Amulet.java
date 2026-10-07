@@ -39,33 +39,21 @@ import java.util.ArrayList;
 
 public class Amulet extends Item {
 	
-	private static final String AC_END = "END";
-	
 	{
 		image = ItemSpriteSheet.AMULET;
 		
 		unique = true;
 	}
 	
+	//the amulet no longer ends the run (it is carried out into the world, where it opens the
+	//sealed barrows - Delves): while the ascent's curse is on it, it cannot even be dropped
 	@Override
 	public ArrayList<String> actions( Hero hero ) {
 		ArrayList<String> actions = super.actions( hero );
 		if (hero.buff(AscensionChallenge.class) != null){
 			actions.clear();
-		} else {
-			actions.add(AC_END);
 		}
 		return actions;
-	}
-	
-	@Override
-	public void execute( Hero hero, String action ) {
-
-		super.execute( hero, action );
-
-		if (action.equals(AC_END)) {
-			showAmuletScene( false );
-		}
 	}
 	
 	@Override

@@ -24,8 +24,8 @@ package xyz.gabriwar.warpedpixeldungeon.levels;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.GamesInProgress;
 import xyz.gabriwar.warpedpixeldungeon.Statistics;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AscensionChallenge;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Ghost;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Tinkerer1;
@@ -49,8 +49,8 @@ import xyz.gabriwar.warpedpixeldungeon.levels.traps.ToxicTrap;
 import xyz.gabriwar.warpedpixeldungeon.levels.traps.WornDartTrap;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.scenes.SurfaceScene;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
+import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndMessage;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
@@ -146,7 +146,7 @@ public class SewerLevel extends RegularLevel {
 
 	@Override
 	protected void createItems() {
-		if (Dungeon.depth == 2){
+		if (Dungeon.depth == 2 && !Delves.inDelve()){
 			Tinkerer1 npc = new Tinkerer1();
 			do {
 				npc.pos = randomRespawnCell( npc );
@@ -160,38 +160,29 @@ public class SewerLevel extends RegularLevel {
 
 	@Override
 	protected void createMobs() {
-		Ghost.Quest.spawn( this, roomExit );
+		//the quests are the main dungeon's: a barrow cut like its floors does not host them
+		if (!Delves.inDelve()) Ghost.Quest.spawn( this, roomExit );
 		super.createMobs();
 	}
 	
 	@Override
 	public boolean activateTransition(Hero hero, LevelTransition transition) {
 		if (transition.type == LevelTransition.Type.SURFACE){
-			if (hero.belongings.getItem( Amulet.class ) == null) {
-				//no amulet yet: the stairs climb back up into the town, just
-				//inside its north gate (the dungeon's front door)
-				xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel.arriveInTown(
-						xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldStructures.TOWN_DUNGEON_GATE + 32 );
-				xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel.travelToSurface();
-				return true;
-			} else {
+			//the amulet no longer ends the run: carried out of the dungeon the first time, it
+			//lifts the ascent's curse and wakes the world's sealed barrows (Delves)
+			if (hero.belongings.getItem( Amulet.class ) != null && !Statistics.ascended) {
 				Statistics.ascended = true;
-				Game.switchScene(SurfaceScene.class, new Game.SceneChangeCallback() {
-					@Override
-					public void beforeCreate() {
-
-					}
-
-					@Override
-					public void afterCreate() {
-						Badges.validateHappyEnd();
-						Dungeon.win( Amulet.class );
-						Dungeon.deleteGame( GamesInProgress.curSlot, true );
-						Badges.saveGlobal();
-					}
-				});
-				return true;
+				Badges.validateHappyEnd();
+				Badges.saveGlobal();
+				AscensionChallenge ascent = hero.buff( AscensionChallenge.class );
+				if (ascent != null) ascent.detach();
+				GLog.p( Messages.get( SewerLevel.class, "amulet_out" ) );
 			}
+			//the stairs climb back up to the ones the hero came down by: a ruin's, or the
+			//town's north gate (the dungeon's front door)
+			Delves.arriveAtMainDungeonDoor();
+			xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel.travelToSurface();
+			return true;
 		} else {
 			return super.activateTransition(hero, transition);
 		}

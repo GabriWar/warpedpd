@@ -95,7 +95,9 @@ public class Gold extends Item {
 	
 	@Override
 	public Item random() {
-		quantity = Random.IntRange( 30 + Dungeon.depth * 10, 60 + Dungeon.depth * 20 );
+		//a barrow pays as deep as its floor counts (Delves.lootDepth)
+		int depth = xyz.gabriwar.warpedpixeldungeon.levels.Delves.lootDepth();
+		quantity = Random.IntRange( 30 + depth * 10, 60 + depth * 20 );
 		quantity = Math.round(quantity * GameCalendar.seasonGoldMultiplier());
 		return this;
 	}

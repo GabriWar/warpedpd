@@ -124,7 +124,9 @@ public abstract class CustomTilemap implements Bundlable {
 	 * only the exposed strips.
 	 */
 	public void shiftVisual( int dcx, int dcy ){
-		if (vis != null && vis.alive) vis.shiftContent( dcx, dcy );
+		//on a copy: the layer's data may already be the next window's (two slides adopted before
+		//one is presented), and that array must reach the refill untouched
+		if (vis != null && vis.alive) vis.shiftContentCopy( dcx, dcy );
 	}
 
 	private Tilemap build(){

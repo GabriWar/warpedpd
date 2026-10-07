@@ -237,6 +237,8 @@ public class OverworldLevel extends Level {
 	public boolean arrowLink( int cell ){
 		if (cell < 0 || cell >= length()) return false;
 		if (map[cell] != Terrain.ENTRANCE && map[cell] != Terrain.EXIT) return false;
+		//a barrow's stairway is a staircase, not a way to another slice
+		if (altitude == 0 && WorldStructures.delveGate( worldSeed, worldX + cell % width(), worldY + cell / width() )) return false;
 		byte l = link != null && cell < link.length ? link[cell] : WindowGenerator.LINK_NONE;
 		return l != WindowGenerator.LINK_MOUTH && l != WindowGenerator.LINK_CAVE_EXIT
 				&& WorldStructures.townCell( worldX + cell % width(), worldY + cell / width() ) == -1;
@@ -1239,6 +1241,21 @@ public class OverworldLevel extends Level {
 			transitions.add( new LevelTransition( this, stairs, LevelTransition.Type.BRANCH_EXIT,
 					56, 0, LevelTransition.Type.REGULAR_ENTRANCE ) );
 		}
+		//the barrows' stairways (WorldStructures.Site.DUNGEON). Where one leads is only known
+		//once it is opened (Delves.open hands out its branch), so it is filled in then
+		for (int sy = sector0Y(); sy <= sector1Y(); sy++){
+			for (int sx = sector0X(); sx <= sector1X(); sx++){
+				if (WorldStructures.siteType( worldSeed, sx, sy ) != WorldStructures.Site.DUNGEON) continue;
+				int lx = WorldStructures.siteX( worldSeed, sx, sy ) - worldX;
+				int ly = WorldStructures.siteY( worldSeed, sx, sy ) - worldY;
+				if (lx < 1 || ly < 1 || lx >= width() - 1 || ly >= height() - 1) continue;
+				int cell = lx + ly * width();
+				if (map[cell] != Terrain.EXIT) continue;
+				transitions.add( new LevelTransition( this, cell, LevelTransition.Type.BRANCH_EXIT,
+						0, xyz.gabriwar.warpedpixeldungeon.levels.Delves.BRANCH_BASE,
+						LevelTransition.Type.REGULAR_ENTRANCE ) );
+			}
+		}
 	}
 
 	//the ways between the slices are the window's ENTRANCE (up) and EXIT (down)
@@ -1250,6 +1267,7 @@ public class OverworldLevel extends Level {
 			int t = map[cell];
 			if (t != Terrain.ENTRANCE && t != Terrain.EXIT) continue;
 			if (!insideMap( cell ) || inTown( cell )) continue;
+			if (altitude == 0 && WorldStructures.delveGate( worldSeed, worldX + cell % width(), worldY + cell / width() )) continue;
 			linkTransition( cell );
 		}
 	}
@@ -1276,10 +1294,56 @@ public class OverworldLevel extends Level {
 	@Override
 	public boolean activateTransition( xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero,
 			LevelTransition transition ){
+		int gx = worldX + transition.cell() % width(), gy = worldY + transition.cell() / width();
+		if (altitude == 0 && WorldStructures.delveGate( worldSeed, gx, gy )){
+			return enterDelve( hero, transition, gx, gy );
+		}
 		if (transition.destBranch == 0 && WorldLayers.isLayerDepth( transition.destDepth )){
 			arriveAt( worldX + transition.cell() % width(), worldY + transition.cell() / width() );
 		}
+		//down the town's gate into the dungeon: floor 1's climb comes back out here
+		if (transition.destBranch == 0 && transition.destDepth == 1){
+			xyz.gabriwar.warpedpixeldungeon.levels.Delves.enteredMainDungeonByTheGate();
+		}
 		return super.activateTransition( hero, transition );
+	}
+
+	//a barrow's stairway: sealed without the amulet, otherwise a confirm with its name, level and
+	//floors before the hero goes down, saying so if it is cleared already (Delves)
+	private boolean enterDelve( xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero,
+			LevelTransition transition, int gx, int gy ){
+		int sx = Math.floorDiv( gx, WorldStructures.SECTOR ), sy = Math.floorDiv( gy, WorldStructures.SECTOR );
+		if (hero.belongings.getItem( xyz.gabriwar.warpedpixeldungeon.items.Amulet.class ) == null){
+			GLog.w( Messages.get( this, "delve_sealed" ) );
+			return false;
+		}
+		String name = xyz.gabriwar.warpedpixeldungeon.levels.Delves.name( worldSeed, sx, sy );
+		int level = xyz.gabriwar.warpedpixeldungeon.levels.Delves.level( worldSeed, sx, sy );
+		final String desc = Messages.get( OverworldLevel.class, "delve_desc", level,
+				xyz.gabriwar.warpedpixeldungeon.levels.Delves.floors( worldSeed, sx, sy ) )
+				+ (xyz.gabriwar.warpedpixeldungeon.levels.Delves.cleared( sx, sy )
+					? "\n\n" + Messages.get( OverworldLevel.class, "delve_cleared_desc" ) : "");
+		com.watabou.noosa.Game.runOnRenderThread( () ->
+			xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.show(
+					new xyz.gabriwar.warpedpixeldungeon.windows.WndOptions(
+							new xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite(
+									xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet.AMULET ),
+							Messages.get( OverworldLevel.class, "delve_title", name ),
+							desc,
+							Messages.get( OverworldLevel.class, "delve_yes" ),
+							Messages.get( OverworldLevel.class, "delve_no" ) ){
+				@Override
+				protected void onSelect( int index ){
+					if (index != 0) return;
+					xyz.gabriwar.warpedpixeldungeon.levels.Delves.Entry e
+							= xyz.gabriwar.warpedpixeldungeon.levels.Delves.open( worldSeed, sx, sy );
+					transition.destDepth = e.firstDepth();
+					transition.destBranch = e.branch;
+					transition.destType = LevelTransition.Type.REGULAR_ENTRANCE;
+					OverworldLevel.super.activateTransition( hero, transition );
+				}
+			} ) );
+		return false;
 	}
 
 	//(re)position the town's art over the footprint. off-window art is simply
@@ -1351,6 +1415,33 @@ public class OverworldLevel extends Level {
 				xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.addRockTops( t );
 			}
 		}
+		presentDelveFlags();
+	}
+
+	//the flags over the cleared barrows the window holds (tiles/DelveFlag), re-laid from the
+	//registry of cleared barrows (Delves) whenever the window's art is put on screen
+	private final ArrayList<xyz.gabriwar.warpedpixeldungeon.tiles.DelveFlag> delveFlags = new ArrayList<>();
+
+	private void presentDelveFlags(){
+		int n = 0;
+		if (altitude == 0){
+			for (int sy = sector0Y(); sy <= sector1Y(); sy++){
+				for (int sx = sector0X(); sx <= sector1X(); sx++){
+					if (WorldStructures.siteType( worldSeed, sx, sy ) != WorldStructures.Site.DUNGEON
+							|| !xyz.gabriwar.warpedpixeldungeon.levels.Delves.cleared( sx, sy )) continue;
+					//planted just behind the stairway, inside the barrow's stone square
+					int lx = WorldStructures.siteX( worldSeed, sx, sy ) - worldX;
+					int ly = WorldStructures.siteY( worldSeed, sx, sy ) - worldY - 1;
+					if (lx < 1 || ly < 1 || lx >= width() - 1 || ly >= height() - 1) continue;
+					if (n == delveFlags.size()) delveFlags.add( new xyz.gabriwar.warpedpixeldungeon.tiles.DelveFlag() );
+					xyz.gabriwar.warpedpixeldungeon.tiles.DelveFlag f = delveFlags.get( n++ );
+					f.pos( lx, ly );
+					xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.add( f, false );
+				}
+			}
+		}
+		for (int i = n; i < delveFlags.size(); i++) delveFlags.get( i ).remove();
+		while (delveFlags.size() > n) delveFlags.remove( delveFlags.size() - 1 );
 	}
 
 	/** GameScene.create: the views of the other bands are not level tilemaps the scene builds by itself */
@@ -1361,6 +1452,7 @@ public class OverworldLevel extends Level {
 		if (tops != null){
 			for (xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer t : tops) xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.addRockTops( t );
 		}
+		presentDelveFlags();
 	}
 
 	// ------------------------------------------------------------ the rock's tops
@@ -1400,7 +1492,7 @@ public class OverworldLevel extends Level {
 	public boolean rockTopAt( int cell ){
 		int[] t = top;
 		return t != null && cell >= 0 && cell + width() < length() && cell < t.length && t[cell] != -1
-				&& map[cell] == Terrain.WALL
+				&& WindowGenerator.builtWall( map[cell] )
 				&& xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTileSheet.wallStitcheable( map[cell + width()] );
 	}
 
@@ -1408,7 +1500,7 @@ public class OverworldLevel extends Level {
 	 *  rock: what its lip shows over the cell north of it. */
 	public int topGroundAt( int cell ){
 		int[] t = top;
-		return t != null && cell >= 0 && cell < t.length && map[cell] == Terrain.WALL ? t[cell] : -1;
+		return t != null && cell >= 0 && cell < t.length && WindowGenerator.builtWall( map[cell] ) ? t[cell] : -1;
 	}
 
 	/** Is the rock here earth rather than stone (WorldModel.earthenScarp)? Its face and rims are
@@ -2792,6 +2884,8 @@ public class OverworldLevel extends Level {
 						@Override
 						protected void onSelect( int index ){
 							if (index == 0){
+								//the way back out of floor 1 is these stairs, not the town's
+								xyz.gabriwar.warpedpixeldungeon.levels.Delves.enteredMainDungeonAt( wx, wy );
 								xyz.gabriwar.warpedpixeldungeon.scenes.InterlevelScene.mode
 										= xyz.gabriwar.warpedpixeldungeon.scenes.InterlevelScene.Mode.RETURN;
 								xyz.gabriwar.warpedpixeldungeon.scenes.InterlevelScene.returnDepth = 1;

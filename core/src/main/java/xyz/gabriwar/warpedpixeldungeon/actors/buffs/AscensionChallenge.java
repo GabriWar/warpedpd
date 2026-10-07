@@ -102,11 +102,28 @@ public class AscensionChallenge extends Buff {
 		modifiers.put(Scorpio.class,        1.1f);
 	}
 
+	/** The HP / damage / armour factor on a char: the Ascension's while the hero carries it, times
+	 *  a barrow's scaling (Delves.power) while the hero is in one. */
 	public static float statModifier(Char ch){
+		float delve = xyz.gabriwar.warpedpixeldungeon.levels.Delves.power(ch);
 		if (Dungeon.hero == null || Dungeon.hero.buff(AscensionChallenge.class) == null){
-			return 1;
+			return delve;
 		}
+		return baseModifier(ch) * delve;
+	}
 
+	/** The accuracy / evasion factor: the Ascension's, times a barrow's slower skill scaling. */
+	public static float skillModifier(Char ch){
+		float delve = xyz.gabriwar.warpedpixeldungeon.levels.Delves.skill(ch);
+		if (Dungeon.hero == null || Dungeon.hero.buff(AscensionChallenge.class) == null){
+			return delve;
+		}
+		return baseModifier(ch) * delve;
+	}
+
+	/** How far below the strength of the dungeon's bottom this mob is: the Ascension's factor for
+	 *  it, whether or not the challenge is on (the barrows scale from it past depth 26). */
+	public static float baseModifier(Char ch){
 		if (ch instanceof Ratmogrify.TransmogRat){
 			ch = ((Ratmogrify.TransmogRat) ch).getOriginal();
 		}
