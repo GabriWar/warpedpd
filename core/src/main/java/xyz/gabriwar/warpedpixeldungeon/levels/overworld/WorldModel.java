@@ -99,7 +99,7 @@ public class WorldModel {
 	}
 
 	/** fractal Brownian motion of gradient noise, in [0, 1]. */
-	private static float fbm( long seed, float x, float y, int octaves ){
+	static float fbm( long seed, float x, float y, int octaves ){
 		float sum = 0, amp = 0.5f, tot = 0;
 		for (int o = 0; o < octaves; o++){
 			sum += amp * grad( seed + o * 0x9E37L, x, y );
@@ -265,7 +265,12 @@ public class WorldModel {
 	/** Everything the generator knows about one world cell. */
 	public static class Sample {
 		public float elev, elevRaw, moisture, temperature, river, open;
+		//the temperature of the year round, without the season on it: what the ground is made by
+		public float annualTemperature;
 		public Biome biome;
+		//what the climate reads on from the terrain (terrainOf): the warped position, the
+		//latitude field, the continent and the raw elevation before it is clamped
+		float x, y, lat, cont, eRaw;
 	}
 
 	//how strongly a point sits inside a river channel, [0,1] - warped coords in
@@ -286,10 +291,17 @@ public class WorldModel {
 		return sample( seed, wx, wy, seasonShift, out );
 	}
 
-	/** ...with an explicit seasonal shift: the pure core. */
-	public static Sample sample( long seed, int wx, int wy, float shift, Sample out ){
-		if (out == null) out = new Sample();
+	/** The elevation of a cell alone: the very number sample() gives, at about half its cost
+	 *  (no climate: MountainSites climbs to the summits by it). */
+	public static float elevationOf( long seed, int wx, int wy, Sample scratch ){
+		if (scratch == null) scratch = new Sample();
+		terrainOf( seed, wx, wy, scratch );
+		return scratch.elev;
+	}
 
+	//the terrain of a cell - its elevation, raw elevation and river - and what the climate reads
+	//on from it, into out: the one copy, shared by sample and elevationOf. No season in it
+	private static void terrainOf( long seed, int wx, int wy, Sample out ){
 		//domain warp, shared by every warped field
 		float wvx = 80f * S * (fbm( seed ^ 0xAAF1L, wx/(140f*S), wy/(140f*S), 3 ) - 0.5f);
 		float wvy = 80f * S * (fbm( seed ^ 0xBB2EL, wx/(140f*S), wy/(140f*S), 3 ) - 0.5f);
@@ -329,7 +341,6 @@ public class WorldModel {
 
 		float rv = riverness( seed, x, y );
 		float town = townInfluence( seed, wx, wy, TOWN_LAND );
-		float cold = townInfluence( seed, wx, wy, Math.round( TOWN_COLD * townColdFactor( shift ) ) );
 		if (town > 0){
 			//the town patch: level and above the sea. rivers run through the
 			//outskirts UNCHANGED (the roads bridge them) instead of dying in a
@@ -349,6 +360,19 @@ public class WorldModel {
 		out.elev = clamp01( elev );
 		out.elevRaw = clamp01( eRaw );
 		out.river = rv;
+		out.x = x;
+		out.y = y;
+		out.lat = lat;
+		out.cont = cont;
+		out.eRaw = eRaw;
+	}
+
+	/** ...with an explicit seasonal shift: the pure core. */
+	public static Sample sample( long seed, int wx, int wy, float shift, Sample out ){
+		if (out == null) out = new Sample();
+		terrainOf( seed, wx, wy, out );
+		final float x = out.x, y = out.y, lat = out.lat, cont = out.cont, eRaw = out.eRaw, rv = out.river;
+		float cold = townInfluence( seed, wx, wy, Math.round( TOWN_COLD * townColdFactor( shift ) ) );
 
 		//how close the sea is: the continent field near its shoreline value
 		float maritime = 1f - smooth( (cont - 0.36f) / 0.16f );
@@ -388,6 +412,7 @@ public class WorldModel {
 		t = t + 0.22f * maritime * (0.52f - t);
 		float alt = Math.max( 0f, out.elev - 0.50f ) / 0.50f;
 		t -= 0.62f * (float)Math.pow( alt, 1.2f );
+		out.annualTemperature = clamp01( t );
 		t += shift * (1f - 0.45f * maritime);
 		if (cold > 0) t = t + cold * (0.10f - t);   //the town is always snowed under
 		out.temperature = clamp01( t );
@@ -440,8 +465,9 @@ public class WorldModel {
 		return sample( seed, wx, wy, 0f, null ).biome;
 	}
 
+	//no climate: the peaks' ore walks its veins by it off the window (Ores.naturalRock)
 	public static float elevation( long seed, int wx, int wy ){
-		return sample( seed, wx, wy, null ).elev;
+		return elevationOf( seed, wx, wy, null );
 	}
 
 	public static float moisture( long seed, int wx, int wy ){
@@ -638,7 +664,7 @@ public class WorldModel {
 	//ridged field, pools where the floor dips, crystal seams along the
 	//tunnel walls. altitude is negative here: -1 is just under the surface
 	private static final float CHAMBER_SCALE = 26f, CHAMBER_Z = 2.6f, TUNNEL_SCALE = 30f, FLOOR_SCALE = 22f;
-	private static final float POOL_LEVEL = 0.36f;
+	static final float POOL_LEVEL = 0.36f;
 
 	/** Everything the generator knows about one cave cell. */
 	public static class CaveSample {
@@ -647,7 +673,7 @@ public class WorldModel {
 	}
 
 	//chambers grow with depth: the deep slices are the great caverns
-	private static float chamberLevel( int altitude ){
+	static float chamberLevel( int altitude ){
 		return 0.565f - 0.008f * Math.min( 8, -altitude );
 	}
 
@@ -679,6 +705,12 @@ public class WorldModel {
 	//slice the field stays low in (see WindowGenerator.caves for the depth)
 	private static float wetness( long seed, int wx, int wy, int altitude ){
 		return fbm3( seed ^ 0xF100DL, wx/FLOOR_SCALE, wy/FLOOR_SCALE, altitude/2.2f, 2 );
+	}
+
+	/** How damp the cave rock runs here, 0..1 - lower is damper (the water field the pools
+	 *  stand in, read whether the cell is open or not): CaveSites grows its grottos where it is low. */
+	public static float caveDampness( long seed, int wx, int wy, int altitude ){
+		return wetness( seed, wx, wy, altitude );
 	}
 
 	/** Is this cave cell flooded: open rock with the water field low? */
@@ -745,7 +777,7 @@ public class WorldModel {
 
 	/** Terrain of a ground cell of the slice at this (positive) altitude. */
 	public static int alpineTerrain( long seed, int wx, int wy, int altitude, Sample s ){
-		int scatter = (int)(hash( seed ^ (0xA1B1E7L + altitude), wx, wy ) >>> 40);
+		int scatter = alpineScatter( seed, wx, wy, altitude );
 		if (tarn( seed, wx, wy, altitude ) > TARN_LEVEL){
 			return alpineTemperature( s, altitude ) < FREEZE ? Terrain.FROZEN_WATER : Terrain.WATER;
 		}
@@ -754,11 +786,101 @@ public class WorldModel {
 			if (scatter % 23 == 0) return Terrain.BOULDER;
 			return Terrain.SNOW;
 		}
+		return meadow( scatter );
+	}
+
+	//what grows on a ground cell of a slice, by its own hash
+	private static int alpineScatter( long seed, int wx, int wy, int altitude ){
+		return (int)(hash( seed ^ (0xA1B1E7L + altitude), wx, wy ) >>> 40);
+	}
+
+	//alpine meadow below the snow line
+	private static int meadow( int scatter ){
 		if (scatter % 3 == 0)  return Terrain.GRASS;
 		if (scatter % 19 == 0) return Terrain.FLOWER_PATCH;
 		if (scatter % 13 == 0) return Terrain.BOULDER;
 		if (scatter % 29 == 0) return Terrain.SHRUB;
 		return Terrain.EMPTY;
+	}
+
+	// ---------------------------------------------------------- what the scarps are made of
+
+	//the bedrock under the high ground, 0 soft (marl, shale, sandstone) .. 1 hard (granite,
+	//gneiss): broad provinces, so a whole range runs one way, crossed by smaller bodies of other rock
+	private static final float GEOLOGY_SCALE = 170f, ROCK_BODY_SCALE = 38f;
+	//weathering by the year's warmth: none below SOIL_COLD (ground frozen through the year: frost
+	//only shatters it), full at SOIL_COLD + WEATHERING_SPAN. Below the snow line too: a high meadow
+	//thaws for a short summer and keeps a thin soil
+	private static final float SOIL_COLD = 0.12f, WEATHERING_SPAN = 0.40f;
+	//how much thinner the ground grows with each band of height: younger slopes, faster erosion
+	private static final float THINNING = 0.09f;
+	//the soil a scarp needs over it to show earth: for a bank one band high, and more per band
+	//above that; three bands of scarp are bedrock whatever lies over them
+	private static final float BANK_SOIL = 0.30f, BANK_SOIL_PER_BAND = 0.35f;
+	private static final int BEDROCK_SCARP = 3;
+	//the patchiness of the soil along a scarp: slips, gullies, outcrops
+	private static final float PATCH_SCALE = 11f, PATCH = 0.14f;
+
+	/**
+	 * How deep the soil lies on the top of the rock here (0 bare rock, ~1 a deep mantle), by how
+	 * it is made and kept:
+	 *  - weathering rots rock to soil: warmth (the year's, at the top band's height by the lapse
+	 *    rate - not the season's: a cliff does not change with the weather) and water (moisture)
+	 *    drive it; frost only shatters rock, so a top frozen the year round keeps no soil
+	 *  - the bedrock sets how deep it rots: a soft one to a thick mantle, granite hardly at all
+	 *  - roots hold it: grass, flowers, shrubs and trees bind it; bare meadow less; scree, a
+	 *    boulder field or snow nothing
+	 *  - it thins with height: the higher the ground, the younger the slope and the faster it wears
+	 *  - a river lays its own silt down along its course (alluvium), whatever the rock under it
+	 */
+	public static float soilDepth( long seed, int wx, int wy, int topBand, int topTerrain, Sample s ){
+		float alluvium = 0.6f * s.river;
+		float t = s.annualTemperature - LAPSE * topBand;
+		if (t <= SOIL_COLD) return alluvium;
+		float weathering = Math.min( 1f, (t - SOIL_COLD) / WEATHERING_SPAN ) * (0.35f + 0.65f * s.moisture);
+		float hardness = 0.7f * fbm( seed ^ 0x6E01061L, wx / GEOLOGY_SCALE, wy / GEOLOGY_SCALE, 3 )
+				+ 0.3f * fbm( seed ^ 0x80D1E5L, wx / ROCK_BODY_SCALE, wy / ROCK_BODY_SCALE, 2 );
+		float thinning = Math.max( 0f, 1f - THINNING * topBand );
+		return weathering * (1.35f - hardness) * (0.45f + 0.55f * rootHold( topTerrain )) * thinning + alluvium;
+	}
+
+	//how well what grows on a top binds its soil
+	private static float rootHold( int terrain ){
+		switch (terrain){
+			case Terrain.GRASS: case Terrain.HIGH_GRASS: case Terrain.FURROWED_GRASS:
+			case Terrain.FLOWER_PATCH: case Terrain.SHRUB:
+			case Terrain.TREE_PINE: case Terrain.TREE_OAK:
+				return 1f;
+			case Terrain.EMPTY: case Terrain.EMPTY_DECO: case Terrain.DIRT_PATH:
+				return 0.6f;
+			case Terrain.WATER: case Terrain.DEEP_WATER:
+				return 0.8f;
+			default: //boulders, scree, snow, ice
+				return 0f;
+		}
+	}
+
+	/**
+	 * Does the scarp of the rock here show earth (a bank of soil and rotted rock) rather than bare
+	 * stone? Only where the top holds soil (soilDepth) deep enough for the bank's height to stand:
+	 * a bank one band high on a moderate soil, two only on a deep one, three never - a scarp that
+	 * tall has shed its soil down to the bedrock. An ore vein runs in rock, so its face is stone.
+	 */
+	public static boolean earthenScarp( long seed, int wx, int wy, float soil, int scarpBands, boolean vein ){
+		if (vein || scarpBands <= 0 || scarpBands >= BEDROCK_SCARP) return false;
+		float patch = (fbm( seed ^ 0x5C4A9L, wx / PATCH_SCALE, wy / PATCH_SCALE, 2 ) - 0.5f) * 2f * PATCH;
+		return soil + patch > BANK_SOIL + BANK_SOIL_PER_BAND * (scarpBands - 1);
+	}
+
+	/** The meadow a ground cell of the slice would grow were it warm enough: the ground a hot
+	 *  spring melts out of the snow (MountainSites). */
+	public static int alpineMeadow( long seed, int wx, int wy, int altitude ){
+		return meadow( alpineScatter( seed, wx, wy, altitude ) );
+	}
+
+	/** Does a hollow of this slice hold a tarn here (frozen or not, whatever the season)? */
+	public static boolean tarnAt( long seed, int wx, int wy, int altitude ){
+		return tarn( seed, wx, wy, altitude ) > TARN_LEVEL;
 	}
 
 	/** The depth tier of a tarn cell. */

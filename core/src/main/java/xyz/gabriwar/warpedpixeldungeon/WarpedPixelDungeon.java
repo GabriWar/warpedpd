@@ -45,7 +45,7 @@ public class WarpedPixelDungeon extends Game {
 	public static final int v3_3_0 = 883;
 
 	//starting here we are doing 2 version codes per public update, so use code-1 to get both
-	public static final int v4_0_0 = 909;
+	public static final int v4_0_0 = 911;
 	
 	public WarpedPixelDungeon( PlatformSupport platform ) {
 		super( sceneClass == null ? WelcomeScene.class : sceneClass, platform );

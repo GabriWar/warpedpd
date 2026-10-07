@@ -50,6 +50,21 @@ public class DungeonWallsTilemap extends DungeonTilemap {
 		map( Dungeon.level.map, Dungeon.level.width() );
 	}
 
+	private boolean wall(int cell){
+		return DungeonTileSheet.wallStitcheable(map[cell]);
+	}
+
+	//a rock top drops away here: open ground, or a wall showing its face (nothing that
+	//stitches as wall in front of it)
+	private boolean drop(int cell){
+		return !wall(cell) || (cell + mapWidth < size && !wall(cell + mapWidth));
+	}
+
+	private static boolean earthAt(int cell){
+		return Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
+				&& ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).earthAt(cell);
+	}
+
 	@Override
 	protected int getTileVisual(int pos, int tile, boolean flat){
 
@@ -71,7 +86,7 @@ public class DungeonWallsTilemap extends DungeonTilemap {
 				}
 
 			} else {
-				return DungeonTileSheet.stitchInternalWallTile(
+				int internal = DungeonTileSheet.stitchInternalWallTile(
 						tile,
 						(pos+1) % mapWidth != 0 ?                           map[pos + 1] : -1,
 						(pos+1) % mapWidth != 0 && pos + mapWidth < size ?  map[pos + 1 + mapWidth] : -1,
@@ -79,6 +94,20 @@ public class DungeonWallsTilemap extends DungeonTilemap {
 						pos % mapWidth != 0 && pos + mapWidth < size ?      map[pos - 1 + mapWidth] : -1,
 						pos % mapWidth != 0 ?                               map[pos - 1] : -1
 				);
+				//the overworld's rock seen from below: its top is drawn under (GameScene.addRockTops),
+				//only its rims here
+				if (Dungeon.level.rockTopAt(pos)){
+					//the internal wall's own stitch, with a cliff face beside it counting as open
+					//(its strip runs the face's whole height, since the face's foot is open); the
+					//ground north of it carries the lip, as the dungeon's does
+					boolean e = (pos+1) % mapWidth == 0 || drop(pos + 1);
+					boolean w = pos % mapWidth == 0 || drop(pos - 1);
+					boolean se = (pos+1) % mapWidth != 0 && pos + 1 + mapWidth < size && !wall(pos + 1 + mapWidth);
+					boolean sw = pos % mapWidth != 0 && pos - 1 + mapWidth < size && !wall(pos - 1 + mapWidth);
+					return DungeonTileSheet.rockRim((e ? DungeonTileSheet.RIM_EAST : 0) | (se ? DungeonTileSheet.RIM_EAST_BELOW : 0)
+							| (sw ? DungeonTileSheet.RIM_WEST_BELOW : 0) | (w ? DungeonTileSheet.RIM_WEST : 0), earthAt(pos));
+				}
+				return internal;
 			}
 
 		}
@@ -91,12 +120,19 @@ public class DungeonWallsTilemap extends DungeonTilemap {
 			return DungeonTileSheet.EXIT_UNDERHANG;
 		} else if (pos + mapWidth < size && DungeonTileSheet.wallStitcheable(map[pos+mapWidth])) {
 
-			return DungeonTileSheet.stitchWallOverhangTile(
+			int lip = DungeonTileSheet.stitchWallOverhangTile(
 					tile,
 					(pos+1) % mapWidth != 0 ?   map[pos + 1 + mapWidth] : -1,
 												map[pos + mapWidth],
 					pos % mapWidth != 0 ?       map[pos - 1 + mapWidth] : -1
 			);
+			//the lip over the overworld's rock: its roof is the ground on the rock's top, and an
+			//earthen scarp's lip is earth
+			if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel){
+				int top = ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).topGroundAt(pos + mapWidth);
+				if (top != -1) return DungeonTileSheet.rockTopLip(lip, top, earthAt(pos + mapWidth));
+			}
+			return lip;
 
 		} else if (Dungeon.level.insideMap(pos) && map[pos+mapWidth] == Terrain.DOOR ) {
 			return DungeonTileSheet.DOOR_OVERHANG;
@@ -127,8 +163,8 @@ public class DungeonWallsTilemap extends DungeonTilemap {
 		} else if (pos + mapWidth < size && map[pos+mapWidth] == Terrain.HIGH_GRASS){
 			return DungeonTileSheet.getVisualWithAlts(DungeonTileSheet.HIGH_GRASS_OVERHANG, pos + mapWidth);
 		} else if (pos + mapWidth < size && map[pos+mapWidth] == Terrain.FURROWED_GRASS
-				&& !(Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.SafeLevel)){
-			//safe-zone tilled soil is flat farm dirt - no grass overhang on the wall
+				&& !DungeonTileSheet.tilledSoil( pos + mapWidth )){
+			//tilled soil and a village's field are flat farm ground - no grass overhang on the wall
 			return DungeonTileSheet.getVisualWithAlts(DungeonTileSheet.FURROWED_OVERHANG, pos + mapWidth);
 		}
 

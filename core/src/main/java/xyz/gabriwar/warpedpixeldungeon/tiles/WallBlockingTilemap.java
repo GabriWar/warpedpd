@@ -91,15 +91,18 @@ public class WallBlockingTilemap extends Tilemap {
 		if (Dungeon.level instanceof HallsBossLevel
 				//always-lit hand-painted levels (the town buildings): the wall
 				//blackout would paint their art over with black squares
-				|| Dungeon.level.noFogOfWar()){
+				|| Dungeon.level.noFogOfWar()
+				//the top of the overworld's rock is ground seen from below, fogged as such
+				|| Dungeon.level.rockTopAt(cell)){
 			return CLEARED;
 		}
 
 		//non-wall tiles
 		if (!wall(cell)) {
 
-			//clear empty floor tiles and cells which are visible
-			if (!fogHidden(cell) || !wall(cell + mapWidth)) {
+			//clear empty floor tiles and cells which are visible, and the ground north of a
+			//rock top, which casts no lip to hide
+			if (!fogHidden(cell) || !wall(cell + mapWidth) || Dungeon.level.rockTopAt(cell + mapWidth)) {
 				curr = CLEARED;
 
 			//block wall overhang if:

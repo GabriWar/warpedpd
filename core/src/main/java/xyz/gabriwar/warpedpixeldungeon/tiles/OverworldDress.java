@@ -122,6 +122,50 @@ public class OverworldDress {
 	public static final int ROOF_SUMMER = 0;
 	public static final int ROOF_WINTER = 6;
 
+	//row 72 (tools/dress_sheet.py): the village fittings, from the town's own art -
+	//two window styles set into a human house's front wall, the chimney stack on its
+	//back wall, the fire ring by a gnoll hut's door (levels/overworld/SettlementLights)
+	public static final int[] VILLAGE_WINDOWS = { 1152, 1153 };
+	public static final int VILLAGE_CHIMNEY = 1154;
+	public static final int GNOLL_HEARTH = 1155;
+
+	//rows 73-74 (tools/dress_sheet.py, drawn by tools/ore_art.py): ore glinting on the face of the
+	//rock over a vein (levels/overworld/Ores), three versions per metal: ORE_FACE + ORE_VERSIONS * metal + version
+	public static final int ORE_FACE = 1168, ORE_VERSIONS = 3;
+
+	//rows 76-77 (tools/dress_sheet.py, drawn by tools/cave_sites_gen.py): the props of the caves'
+	//places (levels/overworld/CaveSites), every one an offset from CAVE_SITES_BASE, to CAVE_SITES_LAST
+	public static final int CAVE_SITES_BASE = 1216;
+	public static final int CAVE_RAILS_EW = CAVE_SITES_BASE, CAVE_RAILS_NS = CAVE_SITES_BASE + 1;
+	//the rails ending at a timber buffer on that side of the cell
+	public static final int CAVE_RAIL_END_E = CAVE_SITES_BASE + 2, CAVE_RAIL_END_W = CAVE_SITES_BASE + 3,
+			CAVE_RAIL_END_S = CAVE_SITES_BASE + 4, CAVE_RAIL_END_N = CAVE_SITES_BASE + 5;
+	public static final int CAVE_CART = CAVE_SITES_BASE + 6;
+	//a timber prop's post, and its top with the cap beam on the cell above
+	public static final int CAVE_TIMBER = CAVE_SITES_BASE + 7, CAVE_TIMBER_TOP = CAVE_SITES_BASE + 8;
+	public static final int CAVE_LANTERN = CAVE_SITES_BASE + 9, CAVE_CRATES = CAVE_SITES_BASE + 10,
+			CAVE_BARREL = CAVE_SITES_BASE + 11, CAVE_SACKS = CAVE_SITES_BASE + 12, CAVE_TOOL_RACK = CAVE_SITES_BASE + 13,
+			CAVE_FURNACE = CAVE_SITES_BASE + 14, CAVE_CAMPFIRE = CAVE_SITES_BASE + 15, CAVE_BEDROLL = CAVE_SITES_BASE + 16,
+			CAVE_LOG_SEAT = CAVE_SITES_BASE + 17;
+	//a stone coffin: its foot, and its head on the cell above
+	public static final int CAVE_SARCO = CAVE_SITES_BASE + 18, CAVE_SARCO_TOP = CAVE_SITES_BASE + 19;
+	//a giant mushroom's stem, and its cap on the cell above: teal, then violet
+	public static final int[] CAVE_MUSH_STEM = { CAVE_SITES_BASE + 20, CAVE_SITES_BASE + 22 };
+	public static final int[] CAVE_MUSH_CAP  = { CAVE_SITES_BASE + 21, CAVE_SITES_BASE + 23 };
+	//a rift's crack, two versions running east-west, two north-south: the molten line meets its
+	//cell's two edges on that axis at the same pixels, so a crack's cells join into one line
+	public static final int[] CAVE_LAVA_EW = { CAVE_SITES_BASE + 24, CAVE_SITES_BASE + 25 };
+	//a tomb wall's face: dressed stone, and the same carved with a rune
+	public static final int CAVE_TOMB_FACE = CAVE_SITES_BASE + 26, CAVE_TOMB_RUNE = CAVE_SITES_BASE + 27;
+	public static final int[] CAVE_LAVA_NS = { CAVE_SITES_BASE + 28, CAVE_SITES_BASE + 29 };
+	//a crystal cavern's floor strewn with shards, two versions
+	public static final int[] CAVE_SHARDS = { CAVE_SITES_BASE + 30, CAVE_SITES_BASE + 31 };
+	public static final int CAVE_SITES_LAST = CAVE_SITES_BASE + 31;
+	//row 75 (tools/dress_sheet.py, drawn by tools/mountain_sites_art.py): the places on the
+	//mountains (levels/overworld/MountainSites) - an eyrie's nest, bare and under snow, a
+	//frozen climber's pack and the broken stair on a watchtower's top cell
+	public static final int NEST = 1200, NEST_SNOW = 1201, CLIMBER_PACK = 1202, TOWER_STAIR = 1203;
+
 	private OverworldDress(){}
 
 	public static class Layer extends CustomTilemap {
@@ -134,6 +178,26 @@ public class OverworldDress {
 
 		public void setData( int[] data ){
 			this.data = data;
+		}
+
+		/** the tile on one window cell, -1 for none */
+		public int get( int cell ){
+			int[] d = data;
+			return d == null || cell < 0 || cell >= d.length ? -1 : d[cell];
+		}
+
+		/** one window cell's tile changed (a mined vein, OverworldLevel.redressRock): written into the
+		 *  data the tilemap draws from (the same array once it is on screen), and only that cell rebuilt */
+		public void setCell( int cell, int tile ){
+			int[] d = data;
+			if (d == null || cell < 0 || cell >= d.length || d[cell] == tile) return;
+			d[cell] = tile;
+			//a direct mark: CustomTilemap's own updateMapCell now redraws only when updateCell
+			//says so, which a dress layer never does
+			if (vis != null && vis.alive){
+				int x = cell % tileW, y = cell / tileW;
+				vis.updateMapRect( new com.watabou.utils.Rect( x, y, x + 1, y + 1 ) );
+			}
 		}
 
 		@Override

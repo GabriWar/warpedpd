@@ -24,17 +24,15 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs;
 
-import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.GnollVariantSprite;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
 /** A gnoll of the peaceful overworld clans. */
-public class GnollVillager extends NPC {
+public class GnollVillager extends Settler {
 
 	{
 		spriteClass = GnollVariantSprite.class;
@@ -56,27 +54,18 @@ public class GnollVillager extends NPC {
 	}
 
 	@Override
-	protected boolean act() {
-		throwItems();
-		//cheap ambling: one free adjacent step now and then, zero pathfinding.
-		//a metropolis can hold dozens of these - the default wandering AI runs
-		//a pathfind per mob per turn and was a real source of turn lag
-		//settlers keep to their beds at night
-		if (sprite != null && !Shopkeeper.closedForNight() && Random.Int( 3 ) == 0){
-			int step = pos + com.watabou.utils.PathFinder.NEIGHBOURS8[Random.Int( 8 )];
-			if (step >= 0 && step < Dungeon.level.length()
-					&& Dungeon.level.passable[step]
-					&& !Dungeon.level.avoid[step]
-					//tall grass tramples roll loot for ANY walker - a town of
-					//amblers would slowly carpet itself in seeds
-					&& Dungeon.level.map[step] != xyz.gabriwar.warpedpixeldungeon.levels.Terrain.HIGH_GRASS
-					&& xyz.gabriwar.warpedpixeldungeon.actors.Actor.findChar( step ) == null){
-				moveSprite( pos, step );
-				move( step );
-			}
-		}
-		spend( TICK );
+	public long settlementKey(){
+		return homeSector;
+	}
+
+	@Override
+	protected boolean gnoll(){
 		return true;
+	}
+
+	@Override
+	protected int idleLines(){
+		return 4;
 	}
 
 	@Override
@@ -96,18 +85,6 @@ public class GnollVillager extends NPC {
 	@Override
 	public boolean add( Buff buff ) {
 		return false;
-	}
-
-	@Override
-	public boolean interact( Char c ) {
-		sprite.turnTo( pos, c.pos );
-		if (c != Dungeon.hero) return true;
-		if (Shopkeeper.closedForNight()){
-			yell( Messages.get( this, "asleep" ) );
-			return true;
-		}
-		yell( Messages.get( this, "line_" + Random.Int( 4 ) ) );
-		return true;
 	}
 
 	private static final String TINT = "tint";

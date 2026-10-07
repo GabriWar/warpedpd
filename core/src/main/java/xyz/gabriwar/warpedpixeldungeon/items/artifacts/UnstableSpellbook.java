@@ -42,6 +42,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfLullaby;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfMagicMapping;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfRage;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfRemoveCurse;
+import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfRetribution;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTerror;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTransmutation;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ExoticScroll;
@@ -207,7 +208,7 @@ public class UnstableSpellbook extends Artifact {
 	private void checkForArtifactProc(Hero user, Scroll scroll){
 		//if the base scroll (exotics all match) is an AOE effect, then also trigger illuminate
 		if (scroll instanceof ScrollOfLullaby
-				|| scroll instanceof ScrollOfRemoveCurse || scroll instanceof ScrollOfTerror) {
+				|| scroll instanceof ScrollOfRetribution || scroll instanceof ScrollOfTerror) {
 			for (Mob mob : Dungeon.level.mobs.toArray( new Mob[0] )) {
 				if (Dungeon.level.heroFOV[mob.pos]) {
 					artifactProc(mob, visiblyUpgraded(), 1);

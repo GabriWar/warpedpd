@@ -179,7 +179,11 @@ public class GameCalendar {
 	// Sunrise/sunset in fractional hours for ~50°N latitude
 	// Uses sine approximation of day length through the year
 	public static float[] sunriseSunset() {
-		int doy = Calendar.getInstance().get(Calendar.DAY_OF_YEAR);
+		return sunriseSunset(Calendar.getInstance().get(Calendar.DAY_OF_YEAR));
+	}
+
+	// The same for a given day of the year (1-366)
+	public static float[] sunriseSunset(int doy) {
 		// Spring equinox ~day 80, summer solstice ~day 172
 		double angle = (doy - 80) * 2 * Math.PI / 365.25;
 		// Half-day ranges from ~3.75h (winter) to ~8.25h (summer), centered at 6h

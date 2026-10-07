@@ -76,6 +76,10 @@ public class ThermalVent extends Blob {
 	/** is this character standing in a spring's water right now? */
 	public static boolean bathing( Char ch ){
 		if (ch == null || ch.flying || Dungeon.level == null) return false;
+		//a hot spring of the peaks has no vent: the water itself is the spring (levels/overworld/MountainSites)
+		if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
+				&& ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).hotSpring( ch.pos )
+				&& Dungeon.level.water[ch.pos]) return true;
 		ThermalVent vent = (ThermalVent) Dungeon.level.blobs.get( ThermalVent.class );
 		return vent != null && vent.volume > 0 && vent.cur != null
 				&& vent.cur[ch.pos] > 0 && Dungeon.level.water[ch.pos];

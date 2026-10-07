@@ -25,8 +25,11 @@ import com.watabou.noosa.Group;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Random;
 
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
 import xyz.gabriwar.warpedpixeldungeon.effects.WeatherSprites;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 
 /** Water dripping from a cave roof: a drop, then the small splash of it landing. */
 public class DripParticle extends WeatherParticle {
@@ -38,7 +41,19 @@ public class DripParticle extends WeatherParticle {
 		}
 	};
 
+	/** A drop let go from the roof over the emitter's point, timed to land on it exactly: the
+	 *  world's caves drip into their pools and by their walls (levels/overworld/CaveLife), and on
+	 *  water the drop leaves a ring. */
+	public static final Emitter.Factory FALL = new Emitter.Factory() {
+		@Override
+		public void emit(Emitter emitter, int index, float x, float y) {
+			((DripParticle) emitter.recycle(DripParticle.class)).resetFall(x, y);
+		}
+	};
+
 	private int tint;
+	//a FALL drop: it rings the water it lands in
+	private boolean aimed;
 
 	public DripParticle() {
 		super();
@@ -57,6 +72,19 @@ public class DripParticle extends WeatherParticle {
 		float wind = ClimateManager.localWindSpeed();
 		speed.set(Random.Float(-1f, 1f) + wind * 0.1f, Random.Float(25, 45));
 		acc.set(0, 40);
+		aimed = false;
+	}
+
+	//straight down from as high as it falls in its time, so it lands where it was aimed: on
+	//landing it splashes where it is drawn, which a rebase has moved along with it
+	public void resetFall(float x, float y) {
+		reset(x, y);
+		float t = Random.Float(0.45f, 0.6f);
+		left = lifespan = t;
+		speed.set(0, 18);
+		acc.set(0, 140);
+		this.y = y - (18f * t + 70f * t * t);
+		aimed = true;
 	}
 
 	@Override
@@ -66,10 +94,19 @@ public class DripParticle extends WeatherParticle {
 		if (falling && left <= 0) {
 			if (WeatherSprites.visible(x, y) && parent instanceof Group) {
 				SplashParticle.splash((Group) parent, x, y, tint, 0.55f);
+				if (aimed) ring();
 			}
 			return;
 		}
 		am = envelope(0.2f, 0.05f, 0.6f);
 		fov();
+	}
+
+	private void ring() {
+		if (Dungeon.level == null || x < 0 || y < 0) return;
+		int cx = (int)(x / DungeonTilemap.SIZE), cy = (int)(y / DungeonTilemap.SIZE);
+		if (cx >= Dungeon.level.width()) return;
+		int cell = cx + cy * Dungeon.level.width();
+		if (cell < Dungeon.level.length() && Dungeon.level.water[cell]) GameScene.ripple(cell);
 	}
 }

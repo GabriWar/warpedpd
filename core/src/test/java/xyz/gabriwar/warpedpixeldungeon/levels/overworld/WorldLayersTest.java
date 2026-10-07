@@ -24,9 +24,13 @@
 
 package xyz.gabriwar.warpedpixeldungeon.levels.overworld;
 
+import xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
+import xyz.gabriwar.warpedpixeldungeon.levels.rooms.WarpedRoomsTest;
 import org.junit.Test;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadMXBean;
 import java.util.Arrays;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -219,7 +223,8 @@ public class WorldLayersTest {
 				for (int a = 1; a <= WorldLayers.MAX_ABOVE; a++){
 					int t = above[a].terrain[c];
 					if (t == Terrain.CHASM) assertTrue( band < a );
-					else if (t == Terrain.WALL) assertTrue( band > a );
+					//a hut's or a tower's walls stand on the slice's own ground (MountainSites)
+					else if (t == Terrain.WALL) assertTrue( band > a || MountainSites.builtAt( SEED, a, o[0] + x, o[1] + y ) );
 					else if (t == Terrain.ENTRANCE) assertEquals( a + 1, band );   //steps carved into the cliff
 					//a tunnel is a floor cut through the rock of the higher bands
 					else if (t == Terrain.DIRT_PATH && band > a) assertTrue( WorldModel.tunnelAt( SEED, o[0] + x, o[1] + y, a ) );
@@ -291,6 +296,49 @@ public class WorldLayersTest {
 			long ms = (System.nanoTime() - t0) / 1000000;
 			System.out.println( "window at altitude " + a + ": " + ms + " ms" );
 			assertTrue( "slice " + a + " took " + ms + " ms", ms < 2000 );
+		}
+	}
+
+	//the CPU a whole preparation (WindowGenerator.prepare: the window, its places, ore, hazards,
+	//dressing and variance) takes on the calling thread and the generator's pool, ms: CPU time,
+	//not the clock, so a loaded machine does not fail it
+	private static long prepareCpu( ThreadMXBean mx, int altitude, int ox, int oy ){
+		long before = cpuOfGenerators( mx );
+		WindowGenerator.prepare( SEED, altitude, ox, oy, GameCalendar.Season.SUMMER, null, 0, null, 0L );
+		return (cpuOfGenerators( mx ) - before) / 1000000;
+	}
+
+	private static long cpuOfGenerators( ThreadMXBean mx ){
+		long t = mx.getCurrentThreadCpuTime();
+		for (Thread th : Thread.getAllStackTraces().keySet()){
+			if (th.getName().equals( "ow-gen" )) t += Math.max( 0, mx.getThreadCpuTime( th.getId() ) );
+		}
+		return t;
+	}
+
+	//a rebase prepares the next window in the background while the hero walks 48 cells; the
+	//slices' places, ore, firedamp and their dressing ride on that. Measured on a loaded desktop
+	//as medians along a walk of fresh windows (CPU over all generator threads): surface 100-200
+	//ms, +1 80-105, +4 90-135, -1 100-180 (it reads the surface's water), -6 35-65, -10 40-70.
+	//A pass that costs several times that (a per-cell resolution, a cache that never hits) fails here
+	@Test
+	public void preparationStaysInBudget(){
+		WarpedRoomsTest.boot();
+		ThreadMXBean mx = ManagementFactory.getThreadMXBean();
+		//slice, budget ms, and a window where the slice has ground of its own (a meadow of +1, a
+		//snowfield of +4; the caves are everywhere)
+		int[][] cases = { { 0, 750, -88, -88 }, { 1, 450, 1728, -1216 }, { 4, 450, -2240, -1856 },
+				{ -1, 600, -88, -88 }, { -6, 300, -88, -88 }, { -10, 300, -88, -88 } };
+		for (int[] c : cases){
+			for (int i = 0; i < 2; i++) prepareCpu( mx, c[0], c[2] - 64 * (i + 1), c[3] );
+			long[] ms = new long[7];
+			for (int i = 0; i < ms.length; i++){
+				//a walk east: every window's leading sectors are new
+				ms[i] = prepareCpu( mx, c[0], c[2] + 96 + 32 * i, c[3] + 64 );
+			}
+			Arrays.sort( ms );
+			System.out.println( "prepare at altitude " + c[0] + ": median " + ms[ms.length / 2] + " ms CPU, worst " + ms[ms.length - 1] );
+			assertTrue( "slice " + c[0] + ": prepare took " + ms[ms.length / 2] + " ms CPU (median)", ms[ms.length / 2] < c[1] );
 		}
 	}
 }

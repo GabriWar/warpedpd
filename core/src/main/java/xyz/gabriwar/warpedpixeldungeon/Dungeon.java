@@ -931,6 +931,18 @@ public class Dungeon {
 		}
 	}
 
+	/** The depth a harm from the world itself is scaled by (Burning, Heatstroke): scalingDepth, but
+	 *  on a slice of the world no deeper than the slice's own (WorldLayers.statDepth) - the caves'
+	 *  depths 101-112 are numbers, not a hundred floors of danger. The surface is untouched. */
+	public static int harmDepth(){
+		int d = scalingDepth();
+		if (level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel){
+			int alt = ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) level).altitude();
+			if (alt != 0) d = Math.min( d, xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldLayers.statDepth( alt ) );
+		}
+		return d;
+	}
+
 	public static boolean interfloorTeleportAllowed(){
 		if (Dungeon.level.locked
 				|| Dungeon.level instanceof MiningLevel || Dungeon.level instanceof VaultLevel
@@ -1597,6 +1609,10 @@ public class Dungeon {
 		}
 	
 		GameScene.updateFog(l, t, width, height);
+		//the caves' lit places are seen from beyond that square (OverworldLevel.litSight)
+		if (level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel){
+			((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) level).observeLit();
+		}
 
 		if (hero.buff(MindVision.class) != null || hero.buff(DivineSense.DivineSenseTracker.class) != null){
 			for (Mob m : level.mobs.toArray(new Mob[0])){

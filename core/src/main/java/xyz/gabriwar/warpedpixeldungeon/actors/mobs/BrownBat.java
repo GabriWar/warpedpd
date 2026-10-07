@@ -79,7 +79,7 @@ public class BrownBat extends Mob {
 
 	@Override
 	public int attackSkill( Char target ) {
-		return 5 + Dungeon.depth;
+		return 5 + statDepth();
 	}
 
 	@Override

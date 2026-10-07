@@ -1347,10 +1347,41 @@ public class ItemSpriteSheet {
 	public static final int COFFEE                                   = WARPED_CONSUMABLES+0;
 	public static final int FERTILIZER                              = WARPED_CONSUMABLES+1;
 	public static final int WORLD_MAP                               = WARPED_CONSUMABLES+2;
+	public static final int STAR_FRAGMENT                           = WARPED_CONSUMABLES+3;
+	public static final int EAGLE_EGG                               = WARPED_CONSUMABLES+4;
 	static {
 		assignItemRect(COFFEE                        , 12, 13);
 		assignItemRect(FERTILIZER , 10, 13);
 		assignItemRect(WORLD_MAP  , 14, 11);
+		assignItemRect(STAR_FRAGMENT, 12, 13);
+		assignItemRect(EAGLE_EGG, 11, 12);
+	}
+
+	//ore and rough gems the pickaxe prises out of the world's rock (items/ore, tools/ore_art.py)
+	private static final int WARPED_ORES                    =                                xy(1, 64);   //16 slots
+	public static final int ORE_COPPER                              = WARPED_ORES+0;
+	public static final int ORE_IRON                                = WARPED_ORES+1;
+	public static final int ORE_SILVER                              = WARPED_ORES+2;
+	public static final int ORE_GOLD                                = WARPED_ORES+3;
+	public static final int ORE_DEEPSILVER                          = WARPED_ORES+4;
+	public static final int ORE_SKYIRON                             = WARPED_ORES+5;
+	public static final int GEM_AMETHYST                            = WARPED_ORES+6;
+	public static final int GEM_GARNET                              = WARPED_ORES+7;
+	public static final int GEM_EMERALD                             = WARPED_ORES+8;
+	public static final int GEM_SAPPHIRE                            = WARPED_ORES+9;
+	public static final int GEM_DIAMOND                             = WARPED_ORES+10;
+	static {
+		assignItemRect(ORE_COPPER    , 11, 10);
+		assignItemRect(ORE_IRON      , 12, 10);
+		assignItemRect(ORE_SILVER    , 12, 10);
+		assignItemRect(ORE_GOLD      , 12, 10);
+		assignItemRect(ORE_DEEPSILVER, 12, 10);
+		assignItemRect(ORE_SKYIRON   , 12, 10);
+		assignItemRect(GEM_AMETHYST  , 11, 11);
+		assignItemRect(GEM_GARNET    , 10,  9);
+		assignItemRect(GEM_EMERALD   ,  8, 10);
+		assignItemRect(GEM_SAPPHIRE  ,  9, 11);
+		assignItemRect(GEM_DIAMOND   , 10, 10);
 	}
 
 	/* Sprite sheet nuances (learned the hard way porting SPS-PD weapons):

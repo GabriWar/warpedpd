@@ -57,12 +57,19 @@ public class Rat extends Mob {
 
 	@Override
 	public int damageRoll() {
-		return Random.NormalIntRange( 1, 5 + Dungeon.depth );
+		return Random.NormalIntRange( 1, 5 + statDepth() );
 	}
 	
 	@Override
 	public int attackSkill( Char target ) {
-		return 5 + Dungeon.depth;
+		return 5 + statDepth();
+	}
+
+	//born to the floor's depth: tuned to another, it is the rat of that one
+	@Override
+	public void setStatDepth( int depth ) {
+		super.setStatDepth( depth );
+		HP = HT = 8 + (depth * Random.NormalIntRange(1, 3));
 	}
 	
 	@Override

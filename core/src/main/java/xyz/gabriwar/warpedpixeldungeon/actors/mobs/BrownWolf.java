@@ -63,6 +63,23 @@ public class BrownWolf extends Mob {
 		return super.drRoll() + Random.NormalIntRange( 0, 18 );
 	}
 
+	//a pack out on a hunt (HuntPack) runs its quarry down, feeds at the kill, and turns on
+	//the hero only when he crowds it or draws blood; every other wolf chooses as before
+	@Override
+	protected Char chooseEnemy() {
+		HuntPack pack = buff( HuntPack.class );
+		if (pack != null && pack.steer( this )) return pack.choice;
+		return super.chooseEnemy();
+	}
+
+	//blood drawn by the hero's side turns the whole pack on him
+	@Override
+	public void damage( int dmg, Object src ) {
+		HuntPack pack = buff( HuntPack.class );
+		if (pack != null && HuntPack.byHero( src )) pack.provoked();
+		super.damage( dmg, src );
+	}
+
 	//UL pack behaviour: waking one wolf calls the rest of the pack
 	@Override
 	protected boolean act() {

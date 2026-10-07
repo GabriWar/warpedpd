@@ -22,12 +22,17 @@
 package xyz.gabriwar.warpedpixeldungeon.sprites;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.quest.vault.VaultBossElemental;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
+import xyz.gabriwar.warpedpixeldungeon.levels.RegularLevel;
+import xyz.gabriwar.warpedpixeldungeon.levels.rooms.Room;
+import xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.vault.VaultFinalRoom;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import com.watabou.noosa.TextureFilm;
 import com.watabou.noosa.audio.Sample;
@@ -38,6 +43,8 @@ import com.watabou.utils.Random;
 public class VaultBossElementalSprite extends MobSprite {
 
 	private Emitter particles;
+
+	private Emitter[] doorLockVfx;
 
 	{
 		perspectiveRaise = 2 / 16f; //It's already huge and floats, so tiny raise
@@ -107,6 +114,11 @@ public class VaultBossElementalSprite extends MobSprite {
 			particles.killAndErase();
 			particles = createEmitter();
 		}
+		if (doorLockVfx != null){
+			doorLockVfx[0].killAndErase();
+			doorLockVfx[1].killAndErase();
+			doorLockVfx = createDoorEmitters();
+		}
 
 	}
 
@@ -174,12 +186,44 @@ public class VaultBossElementalSprite extends MobSprite {
 		return emitter;
 	}
 
+	private Emitter[] createDoorEmitters(){
+		//a co-op guest's level and a debug spawn's are no RegularLevel: no vault doors to light
+		if (ch == null || !(Dungeon.level instanceof RegularLevel)) return null;
+		Room room = ((RegularLevel)Dungeon.level).room(ch.pos);
+		if (room instanceof VaultFinalRoom){
+			Emitter[] emitters = new Emitter[2];
+			emitters[0] = CellEmitter.get(Dungeon.level.pointToCell(((VaultFinalRoom) room).entryDoor));
+			emitters[1] = CellEmitter.get(Dungeon.level.pointToCell(((VaultFinalRoom) room).lockedDoor));
+			switch (form) {
+				case FIRE:
+				default:
+					emitters[0].pour(FlameParticle.FACTORY, 0.1f);
+					emitters[1].pour(FlameParticle.FACTORY, 0.1f);
+					break;
+				case FROST:
+					emitters[0].pour(MagicMissile.MagicParticle.FACTORY, 0.1f);
+					emitters[1].pour(MagicMissile.MagicParticle.FACTORY, 0.1f);
+					break;
+				case SHOCK:
+					emitters[0].pour(SparkParticle.STATIC, 0.1f);
+					emitters[1].pour(SparkParticle.STATIC, 0.1f);
+					break;
+			}
+			return emitters;
+		} else{
+			return null;
+		}
+	}
+
 	@Override
 	public void link( Char ch ) {
 		super.link( ch );
 
 		if (particles == null) {
 			particles = createEmitter();
+		}
+		if (doorLockVfx == null){
+			doorLockVfx = createDoorEmitters();
 		}
 	}
 
@@ -198,6 +242,10 @@ public class VaultBossElementalSprite extends MobSprite {
 		if (particles != null){
 			particles.on = false;
 		}
+		if (doorLockVfx != null){
+			doorLockVfx[0].on = false;
+			doorLockVfx[1].on = false;
+		}
 	}
 
 	@Override
@@ -205,6 +253,10 @@ public class VaultBossElementalSprite extends MobSprite {
 		super.kill();
 		if (particles != null){
 			particles.killAndErase();
+		}
+		if (doorLockVfx != null){
+			doorLockVfx[0].killAndErase();
+			doorLockVfx[1].killAndErase();
 		}
 	}
 

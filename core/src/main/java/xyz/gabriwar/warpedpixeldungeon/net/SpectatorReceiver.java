@@ -431,6 +431,15 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 					NetLevels.create(identity, branch, mapData, w, h, tilesTex, waterTex);
 			level.color1 = data.optInt("color1", 0x004400);
 			level.color2 = data.optInt("color2", 0x88CC44);
+			// The surface's events the host's party has heard of: the world map pins them.
+			// Safe here: the mirror is no one else's until it is Dungeon.level
+			if (level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) {
+				((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) level)
+						.adoptSharedEvents(data.optString("wevents", null));
+				// ...and the slice's cracked ice
+				((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) level)
+						.adoptSharedHazards(data.optString("whaz", null));
+			}
 
 			String visitedRLE = data.optString("visited", "");
 			if (!visitedRLE.isEmpty()) {
@@ -543,6 +552,7 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 					mob.spriteClass = resolveSpriteClass(spriteName);
 
 					applyBuffsToChar(mob, mobData.optJSONArray("buffs"));
+					applySleep(mob, mobData);
 
 					level.mobs.add(mob);
 					trackedMobs.put(mobId, mob);
@@ -837,6 +847,19 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 					applyPortals(data.optJSONArray("portals"));
 				}
 
+				// The surface's events (the world map reads them on this thread)
+				if (data.has("wevents")
+						&& Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) {
+					((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level)
+							.adoptSharedEvents(data.optString("wevents", null));
+				}
+				// A world slice's cracked ice (IceCracks draws it on this thread)
+				if (data.has("whaz")
+						&& Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) {
+					((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level)
+							.adoptSharedHazards(data.optString("whaz", null));
+				}
+
 				// Mob updates
 				if (data.has("mobs")) {
 					JSONArray mobs = data.getJSONArray("mobs");
@@ -855,6 +878,7 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 							if (mobData.has("buffs")) {
 								applyBuffsToChar(mob, mobData.getJSONArray("buffs"));
 							}
+							applySleep(mob, mobData);
 
 							mob.pos = newPos;
 							if (!NetVisuals.wasMovedByVfx(id)
@@ -877,6 +901,7 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 							if (mobData.has("buffs")) {
 								applyBuffsToChar(newMob, mobData.getJSONArray("buffs"));
 							}
+							applySleep(newMob, mobData);
 							Dungeon.level.mobs.add(newMob);
 							trackedMobs.put(id, newMob);
 							GameScene.addSprite(newMob);
@@ -1602,7 +1627,8 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 
 	@SuppressWarnings("unchecked")
 	private Class<? extends CharSprite> resolveSpriteClass(String simpleName) {
-		String fullName = "xyz.gabriwar.warpedpixeldungeon.sprites." + simpleName;
+		//a nested sprite comes as its binary name ("ShamanSprite$Red", NetSprites.wireName)
+		String fullName = NetSprites.PACKAGE + simpleName;
 		try {
 			Class<?> cls = Class.forName(fullName);
 			if (CharSprite.class.isAssignableFrom(cls)) {
@@ -1612,11 +1638,44 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 		return MobSprite.class;
 	}
 
+	/** The host's sleepers (a village abed, a mob not yet woken) sleep here too: MobSprite
+	 *  draws the 'z' from the state. A host that sends no flag sends no sleepers, as before.
+	 *  The keepers' prices come with it, the stand-in's priceFactor. */
+	static void applySleep(Mob mob, JSONObject mobData) {
+		mob.state = mobData.optBoolean("sl", false) ? mob.SLEEPING : mob.PASSIVE;
+		//the host's keepers come with their prices ("pf"): a stand-in without one keeps no shelf
+		if (mob instanceof SpectatorMob) {
+			((SpectatorMob) mob).priceFactor = mobData.has("pf") ? (float) mobData.optDouble("pf", 1) : -1f;
+		}
+	}
+
+	/** On a guest, the price factor of the host's keeper whose shelf a cell is on, as
+	 *  Shopkeeper.sellerOf picks him on the host: the nearest stand-in that keeps a shelf within
+	 *  three cells (a tie to the lower host id). 1 when none, or from a host too old to say. */
+	public static float priceFactorNear(xyz.gabriwar.warpedpixeldungeon.levels.Level level, int cell) {
+		if (level == null || cell < 0 || cell >= level.length()) return 1f;
+		SpectatorMob best = null;
+		int bestDist = 4;
+		for (Mob m : level.mobs) {
+			if (!(m instanceof SpectatorMob) || ((SpectatorMob) m).priceFactor < 0f
+					|| m.pos < 0 || m.pos >= level.length()) continue;
+			SpectatorMob k = (SpectatorMob) m;
+			int d = level.distance(k.pos, cell);
+			if (d < bestDist || (d == bestDist && best != null && k.hostId < best.hostId)) {
+				best = k;
+				bestDist = d;
+			}
+		}
+		return best != null ? best.priceFactor : 1f;
+	}
+
 	// --- Spectator Data Types ---
 
 	public static class SpectatorMob extends Mob {
 		public String netName = "";
 		public int hostId = -1;
+		//the host keeper's price factor, or -1: not a keeper (applySleep)
+		public float priceFactor = -1f;
 		{
 			state = PASSIVE;
 		}

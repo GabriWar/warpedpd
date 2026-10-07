@@ -127,7 +127,9 @@ import xyz.gabriwar.warpedpixeldungeon.plants.Swiftthistle;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.audio.Sample;
+import com.watabou.noosa.tweeners.AlphaTweener;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.GameMath;
 import com.watabou.utils.PathFinder;
@@ -165,6 +167,15 @@ public abstract class Mob extends Char {
 	
 	public int EXP = 1;
 	public int maxLvl = Hero.MAX_LEVEL-1;
+
+	//the depth a depth-scaled monster draws its strength from: the floor it stands on, unless it was
+	//tuned to another - a world slice's fauna (OverworldFauna): the slices' own depth numbers are not floors
+	private int statDepth = -1;
+	public int statDepth(){ return statDepth >= 0 ? statDepth : Dungeon.depth; }
+	/** Was it tuned to a depth of its own (setStatDepth)? */
+	public boolean statTuned(){ return statDepth >= 0; }
+	/** Tunes it to a depth: the depth-scaled ones re-roll what they were born with (overrides). */
+	public void setStatDepth( int depth ){ statDepth = depth; }
 	
 	protected Char enemy;
 	protected int enemyID = -1; //used for save/restore
@@ -196,6 +207,7 @@ public abstract class Mob extends Char {
 	private static final String TARGET	= "target";
 	private static final String MAX_LVL	= "max_lvl";
 	private static final String ORIGINAL	= "originalgen";
+	private static final String STAT_DEPTH	= "stat_depth";
 
 	private static final String ENEMY_ID	= "enemy_id";
 
@@ -229,6 +241,7 @@ public abstract class Mob extends Char {
 		bundle.put( TARGET, target );
 		bundle.put( MAX_LVL, maxLvl );
 		bundle.put( ORIGINAL, originalgen );
+		if (statDepth >= 0) bundle.put( STAT_DEPTH, statDepth );
 
 		if (enemy != null) {
 			bundle.put(ENEMY_ID, enemy.id() );
@@ -283,6 +296,8 @@ public abstract class Mob extends Char {
 		maxLvl = bundle.getInt(MAX_LVL);
 
 		originalgen = bundle.getBoolean(ORIGINAL);
+
+		statDepth = bundle.contains( STAT_DEPTH ) ? bundle.getInt( STAT_DEPTH ) : -1;
 
 		if (bundle.contains(ENEMY_ID)) {
 			enemyID = bundle.getInt(ENEMY_ID);
@@ -980,26 +995,67 @@ public abstract class Mob extends Char {
 		}
 	}
 
+	CharSprite movementShadow;
+	AlphaTweener shadowFade;
+
 	@Override
 	public void move(int step, boolean travelling) {
 		super.move(step, travelling);
 		if (usingStealthGamePlay
 				&& travelling
+				&& sprite != null
 				&& !sprite.visible
 				&& Dungeon.level.distance(pos, Dungeon.hero.pos) <= 6){
-			if (state == HUNTING){
-				WandOfBlastWave.BlastWave.blast(pos, 1f, 0xFF0000);
-			} else if (state == INVESTIGATING){
-				WandOfBlastWave.BlastWave.blast(pos, 1f, 0xFF8800);
+			if (!Dungeon.level.visited[pos] && !Dungeon.level.mapped[pos]){
+				//also reveal this cell in the fog of war if it's within a 6 tile path
+				PathFinder.buildDistanceMap(Dungeon.hero.pos, Dungeon.level.passable, 6);
+				if (PathFinder.distance[pos] != Integer.MAX_VALUE) {
+					Dungeon.level.visited[pos] = true;
+					GameScene.updateFog(pos, 1);
+				}
+			}
+			//if we don't have a shadow, or it was removed from the scene (e.g. from scene reset)
+			if (movementShadow == null || movementShadow.parent == null){
+				movementShadow = sprite();
+				sprite.parent.add(movementShadow);
+			}
+			movementShadow.point(DungeonTilemap.raisedTileCenterToWorld(previousPos));
+			movementShadow.x -= movementShadow.width()/2f;
+			movementShadow.y -= movementShadow.height()/2f;
+			movementShadow.move(previousPos, pos);
+			movementShadow.alpha(sprite.alpha());
+			if (shadowFade == null){
+				shadowFade = new AlphaTweener( movementShadow, 0, 1 ) {
+					@Override
+					protected void updateValues(float progress) {
+						if (sprite.visible){
+							elapsed = progress = 1;
+						}
+						progress = (float)Math.pow(progress, 2); //alpha fades slowly then quickly
+						super.updateValues(progress);
+					}
+
+					@Override
+					protected void onComplete() {
+						shadowFade = null;
+					}
+				};
+				sprite.parent.add(shadowFade);
 			} else {
-				WandOfBlastWave.BlastWave.blast(pos, 1f);
+				shadowFade.elapsed = 0;
 			}
 		}
 	}
 
-	public boolean isWanderingUnaware() {
-		return isAlive() && alignment == Alignment.ENEMY
-				&& state == WANDERING && !enemySeen && !alerted;
+	//the dots over a creature's head: the hero's next blow would land as a surprise
+	//(surprisedBy), hostile or not, wandering or hunting someone who has lost sight of him.
+	//Asleep shows its own zzz; allies are never struck; townsfolk never notice anyone; and a
+	//passive one may be a mimic or a statue biding its time, which the dots would give away
+	public boolean showsUnaware() {
+		return isAlive() && Dungeon.hero != null && Dungeon.hero.isAlive()
+				&& alignment != Alignment.ALLY && !(this instanceof NPC)
+				&& state != SLEEPING && state != PASSIVE
+				&& surprisedBy( Dungeon.hero, false );
 	}
 
 	@Override

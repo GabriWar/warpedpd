@@ -142,8 +142,8 @@ public class TerrainFeaturesTilemap extends DungeonTilemap {
 				return 192 + 16*stage;
 			}
 		} else if (tile == Terrain.FURROWED_GRASS
-				&& !(Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.SafeLevel)){
-			//safe-zone tilled soil is clean farm dirt - no grass decoration on top
+				&& !DungeonTileSheet.tilledSoil( pos )){
+			//tilled soil and a village's field are clean farm ground - no grass decoration on top
 			if (DungeonTileSheet.getVisualWithAlts(DungeonTileSheet.RAISED_FURROWED_GRASS, pos) == DungeonTileSheet.RAISED_FURROWED_ALT){
 				return 194 + 16*stage + 1;
 			} else {

@@ -133,9 +133,14 @@ public class Bedroll extends NPC {
 	/** the camp's fire pit, set by the room; -1 for a bedroll laid down with no pit */
 	public int firePit = -1;
 
+	/** a mountain waystation's (levels/overworld/MountainSites): it lies by a fire that is never
+	 *  let out, under a roof - always warm, and nobody finds a sleeper there */
+	public boolean shelter = false;
+
 	//a fire that is burning, not a pit of old embers: the camp's own pit alight, or
 	//failing a pit any open flame beside the bed
 	private boolean fireBy(){
+		if (shelter) return true;
 		if (firePit >= 0){
 			CampFire fire = (CampFire) Dungeon.level.blobs.get( CampFire.class );
 			return fire != null && fire.burning( firePit );
@@ -169,7 +174,7 @@ public class Bedroll extends NPC {
 		//is the sleeper found? longer sleeps and darker moons are riskier, a fire safer
 		float risk = (0.12f + 0.10f * turns / 600f) * GameCalendar.moonSpawnMultiplier();
 		if (fire) risk *= 0.5f;
-		boolean found = !realClock && Random.Float() < Math.min( 0.75f, risk );
+		boolean found = !realClock && !shelter && Random.Float() < Math.min( 0.75f, risk );
 		if (found) turns = Math.round( turns * Random.Float( 0.3f, 0.7f ) );
 
 		hero.sprite.operate( pos );
@@ -255,16 +260,19 @@ public class Bedroll extends NPC {
 	}
 
 	private static final String FIRE_PIT = "fire_pit";
+	private static final String SHELTER = "shelter";
 
 	@Override
 	public void storeInBundle( com.watabou.utils.Bundle bundle ){
 		super.storeInBundle( bundle );
 		bundle.put( FIRE_PIT, firePit );
+		bundle.put( SHELTER, shelter );
 	}
 
 	@Override
 	public void restoreFromBundle( com.watabou.utils.Bundle bundle ){
 		super.restoreFromBundle( bundle );
 		firePit = bundle.contains( FIRE_PIT ) ? bundle.getInt( FIRE_PIT ) : -1;
+		shelter = bundle.contains( SHELTER ) && bundle.getBoolean( SHELTER );
 	}
 }

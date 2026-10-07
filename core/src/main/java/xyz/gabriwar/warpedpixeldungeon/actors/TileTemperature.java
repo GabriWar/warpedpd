@@ -279,6 +279,11 @@ public final class TileTemperature {
             t += Dungeon.level.tileHeat[cell];
         }
 
+        // a hot spring of the peaks (levels/overworld/MountainSites): the ground's own heat, whatever the air
+        if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) {
+            t = Math.max(t, ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).springWarmth(cell));
+        }
+
         if (torchWarmth && nearWallTorch(cell)) t = Math.max(t, WALL_TORCH_MIN_TEMP);
         return t;
     }

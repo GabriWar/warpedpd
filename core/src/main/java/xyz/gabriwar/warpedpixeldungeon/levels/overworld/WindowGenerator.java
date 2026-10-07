@@ -75,7 +75,74 @@ public final class WindowGenerator {
 		public boolean[] frozen;
 		public byte[] waterDepth;
 		public byte[] link;
+		//a human village's field (WorldStructures.fieldPlots) ploughed on this cell
+		public boolean[] field;
 		public float shift;   //the seasonal snapshot it was derived for
+		//the slices only (null on the surface): the natural rock of each cell (Ores.naturalRock),
+		//recorded by the row pass before anything is built or cut into it, and the ore veins in
+		//it (Ores.veins: metal ordinal + 1, 0 for none), worked out here, off the render thread
+		public boolean[] rock;
+		public byte[] veins;
+		//the places of the slice laid into this window (CaveSites.Site below the surface,
+		//MountainSites.Site above it, in its own order), resolved once by the generator and never
+		//changed: an immutable list, empty when there are none
+		public List<Object> sites = java.util.Collections.emptyList();
+		//what the slice below keeps sealed under this window (a tomb's box: x0, y0, x1, y1 each),
+		//where nobody digs down (OverworldLevel.sealedBelow)
+		public int[] sealedBelow = new int[0];
+		//a mountain slice's: every cell's band (WorldLayers.band) and elevation
+		public byte[] band;
+		public float[] elev;
+		//caves at LayerHazards.FIREDAMP_TOP and below: the firedamp pockets (LayerHazards.gassy), null elsewhere
+		public boolean[] firedamp;
+		//a mountain slice's view down (BelowView): per chasm cell, the tile of the ground it falls
+		//to (-1 elsewhere) and how many bands down that ground lies; null on the other slices
+		public int[] below;
+		public byte[] belowDepth;
+		//...and that ground's terrain and frost, for the dressing's blends over the view (Views)
+		public int[] belowTerrain;
+		public boolean[] belowFrozen;
+		//the open-sky slices: per cell of rock above the slice, the tile its top shows (its own
+		//band's ground, viewTile; a built wall's the slice's own ground; -1 elsewhere) and whether
+		//its scarp is earth rather than stone (WorldModel.earthenScarp); null in the caves
+		public int[] top;
+		public boolean[] earth;
+		//the top's terrain and frost, and the dressing's blends and corner roundings over the tops
+		//(overworld_dress tiles, viewBlends), so a tarn's ice and the snow line stitch up there as
+		//they do underfoot
+		public int[] topTerrain;
+		public boolean[] topFrozen;
+		public int[] topBlend, topCorner;
+	}
+
+	/**
+	 * A band's ground seen from another slice, as window-sized layers (-1: nothing): the ground's
+	 * tiles (tiles_overworld), then the dressing's blends and corner roundings over them
+	 * (overworld_dress), the view stitched as the ground underfoot is.
+	 */
+	public static final class View {
+		public final int[] tiles, blends, corners;
+		View( int n ){
+			tiles = new int[n];
+			blends = new int[n];
+			corners = new int[n];
+			java.util.Arrays.fill( tiles, -1 );
+			java.util.Arrays.fill( blends, -1 );
+			java.util.Arrays.fill( corners, -1 );
+		}
+	}
+
+	/** The view down from a mountain slice: the bands below, nearest first (BELOW_LAYERS), and the
+	 *  shade the drops' rims cast over them all. */
+	public static final class Views {
+		public final View[] depth;
+		public final int[] shade;
+		Views( int depths, int n ){
+			depth = new View[depths];
+			for (int i = 0; i < depths; i++) depth[i] = new View( n );
+			shade = new int[n];
+			java.util.Arrays.fill( shade, -1 );
+		}
 	}
 
 	/** Everything a rebase needs that does not depend on live game state. */
@@ -84,9 +151,12 @@ public final class WindowGenerator {
 		public int ox, oy;
 		public GameCalendar.Season season;
 		public int diffsVersion;
-		public int[] map;          //pristine plus the player's edits
+		//the fallen stars whose scorch is laid on map (OverworldLevel.scorchSig), 0 for none
+		public long scorchSig;
+		public int[] map;          //pristine plus the player's edits and the fallen stars' scorch
 		public int[][] dress;      //ground, village ground, canopy, village canopy
 		public byte[] variance;    //alt-art variance, anchored to world coordinates
+		public Views below;        //a mountain slice's view down (belowLayers)
 	}
 
 	private WindowGenerator(){}
@@ -142,6 +212,9 @@ public final class WindowGenerator {
 		w.frozen = new boolean[WIDTH * HEIGHT];
 		w.waterDepth = new byte[WIDTH * HEIGHT];
 		w.link = new byte[WIDTH * HEIGHT];
+		w.field = new boolean[WIDTH * HEIGHT];
+		if (altitude != 0) w.rock = new boolean[WIDTH * HEIGHT];
+		w.firedamp = altitude <= LayerHazards.FIREDAMP_TOP ? new boolean[WIDTH * HEIGHT] : null;
 		if (altitude == 0){
 			surface( seed, ox, oy, shift, w );
 		} else if (altitude > 0){
@@ -158,6 +231,14 @@ public final class WindowGenerator {
 			w.terrain[y * WIDTH] = w.terrain[WIDTH-1 + y * WIDTH] = Terrain.WALL;
 		}
 		tierWater( w );
+		if (altitude != 0){
+			w.veins = new byte[WIDTH * HEIGHT];
+			Ores.veins( seed, altitude, ox, oy, WIDTH, HEIGHT, w.rock, w.veins );
+			//an ore vein runs in rock: its face is stone whatever lies over it
+			if (w.earth != null){
+				for (int c = 0; c < w.earth.length; c++) if (w.veins[c] != 0) w.earth[c] = false;
+			}
+		}
 		return w;
 	}
 
@@ -166,6 +247,7 @@ public final class WindowGenerator {
 	private static void surface( long seed, int ox, int oy, float shift, Window w ){
 		final byte[] band = new byte[WIDTH * HEIGHT];
 		final boolean[] structured = new boolean[WIDTH * HEIGHT];
+		final float[] soil = rockTops( w );
 		final WorldStructures.SectorView view = WorldStructures.view( seed, ox, oy, ox + WIDTH, oy + HEIGHT );
 		forRows( (y0, y1) -> {
 			WorldModel.Sample smp = new WorldModel.Sample();
@@ -186,6 +268,10 @@ public final class WindowGenerator {
 					boolean tunnel = structure == -1 && t == Terrain.WALL && WorldModel.tunnelAt( seed, wx, wy, 0 );
 					if (tunnel) t = Terrain.DIRT_PATH;
 					w.terrain[cell] = t;
+					if (structure == -1 && t == Terrain.WALL && band[cell] >= 1){
+						rockTop( seed, wx, wy, band[cell], smp, w, soil, cell );
+					}
+					w.field[cell] = structure == Terrain.FURROWED_GRASS;
 					w.frozen[cell] = !tunnel && smp.temperature < WorldModel.FREEZE;
 					if (t == Terrain.WATER) w.waterDepth[cell] = (byte) WorldModel.waterTier( smp.elev );
 				}
@@ -206,12 +292,27 @@ public final class WindowGenerator {
 				}
 			}
 		}
+		scarps( seed, ox, oy, 0, band, soil, w );
+		topViews( seed, ox, oy, w );
+		//a stair's foot cleared over a field leaves no field there
+		for (int cell = 0; cell < w.field.length; cell++){
+			if (w.field[cell] && w.terrain[cell] != Terrain.FURROWED_GRASS) w.field[cell] = false;
+		}
 	}
 
 	//a mountain slice: the cells of its band are ground, the bands above it
 	//rock, the bands below it open air; stairs where a cliff rises one band
 	private static void mountain( long seed, int altitude, int ox, int oy, float shift, Window w ){
 		final byte[] band = new byte[WIDTH * HEIGHT];
+		final float[] elev = new float[WIDTH * HEIGHT];
+		w.band = band;
+		w.elev = elev;
+		w.below = new int[WIDTH * HEIGHT];
+		w.belowDepth = new byte[WIDTH * HEIGHT];
+		w.belowTerrain = new int[WIDTH * HEIGHT];
+		w.belowFrozen = new boolean[WIDTH * HEIGHT];
+		java.util.Arrays.fill( w.below, -1 );
+		final float[] soil = rockTops( w );
 		forRows( (y0, y1) -> {
 			WorldModel.Sample smp = new WorldModel.Sample();
 			for (int y = y0; y < y1; y++){
@@ -221,15 +322,33 @@ public final class WindowGenerator {
 					WorldModel.sample( seed, wx, wy, shift, smp );
 					int b = WorldLayers.band( smp.elev );
 					band[cell] = (byte) b;
+					elev[cell] = smp.elev;
 					w.frozen[cell] = WorldModel.alpineTemperature( smp, altitude ) < WorldModel.FREEZE;
 					if (b < altitude){
 						w.terrain[cell] = Terrain.CHASM;
+						//the ground this air falls to, as it looks from up here: its own band's
+						//ground (the surface's wilderness at band 0), frozen or not by that band
+						boolean frost;
+						int t;
+						if (b >= 1){
+							t = WorldModel.alpineTerrain( seed, wx, wy, b, smp );
+							frost = WorldModel.alpineTemperature( smp, b ) < WorldModel.FREEZE;
+						} else {
+							t = WorldModel.wildTerrain( seed, wx, wy, smp );
+							frost = smp.temperature < WorldModel.FREEZE;
+						}
+						w.below[cell] = viewTile( t, frost );
+						w.belowDepth[cell] = (byte) Math.min( 127, altitude - b );
+						w.belowTerrain[cell] = t;
+						w.belowFrozen[cell] = frost;
 					} else if (b > altitude && WorldModel.tunnelAt( seed, wx, wy, altitude )){
 						//a tunnel through the rock of the higher bands: a sheltered floor
 						w.terrain[cell] = Terrain.DIRT_PATH;
 						w.frozen[cell] = false;
 					} else if (b > altitude){
 						w.terrain[cell] = Terrain.WALL;
+						w.rock[cell] = true;
+						rockTop( seed, wx, wy, b, smp, w, soil, cell );
 					} else {
 						int t = WorldModel.alpineTerrain( seed, wx, wy, altitude, smp );
 						w.terrain[cell] = t;
@@ -253,6 +372,11 @@ public final class WindowGenerator {
 				}
 			}
 		}
+		scarps( seed, ox, oy, altitude, band, soil, w );
+		//the places on the mountains, on the slice's own ground clear of every way: last
+		MountainSites.lay( seed, altitude, ox, oy, w );
+		builtTops( seed, altitude, ox, oy, shift, w );
+		topViews( seed, ox, oy, w );
 	}
 
 	//a cave slice: chambers, tunnels, pools and seams; then the ways up and
@@ -268,6 +392,7 @@ public final class WindowGenerator {
 					int cell = x + y * WIDTH;
 					int wx = ox + x, wy = oy + y;
 					WorldModel.caveSample( seed, wx, wy, altitude, cs );
+					w.rock[cell] = !cs.open;
 					int t = WorldModel.caveTerrain( seed, wx, wy, altitude, cs );
 					//the surface's lakes and seas reach down into the rock: a
 					//water body of tier t on the surface floods the t-1 slices
@@ -275,6 +400,7 @@ public final class WindowGenerator {
 					int surfaceTier = -altitude < WorldModel.WATER_TIERS ? surfaceWaterTier( seed, wx, wy ) : 0;
 					if (surfaceTier > -altitude) t = Terrain.WATER;
 					w.terrain[cell] = t;
+					if (w.firedamp != null && LayerHazards.gassy( seed, wx, wy, altitude, cs, t )) w.firedamp[cell] = true;
 					if (t == Terrain.WATER){
 						//how many slices the water goes on down: the pool's depth, and its shade
 						int depth = 1;
@@ -312,14 +438,58 @@ public final class WindowGenerator {
 					w.link[cell] = LINK_LADDER_UP;
 				} else if (openBelow && pitHash( seed, wx, wy, altitude )){
 					w.terrain[cell] = Terrain.CHASM;
+				} else {
+					continue;
 				}
+				if (w.firedamp != null) w.firedamp[cell] = false;
 			}
 		}
+		//the places of the slice (an old mine, a grotto, a camp...), laid over the natural cave
+		//after its ways, which they never touch; and the shafts the mines above sink into it
+		w.sites = CaveSites.overlay( seed, altitude, ox, oy, w );
+		//no gas about a way between slices or a place (LayerHazards.clearMask)
+		LayerHazards.clearMask( w, seed, altitude, ox, oy );
+	}
+
+	/** The natural terrain of one cave cell, before the ways between slices and the places
+	 *  laid over it: caves() for a single cell (the cave field, then the surface's water reaching
+	 *  down), so the places can be judged against the world without a window. */
+	static int naturalCaveTerrain( long seed, int altitude, int wx, int wy ){
+		WorldModel.CaveSample cs = WorldModel.caveSample( seed, wx, wy, altitude, null );
+		int t = WorldModel.caveTerrain( seed, wx, wy, altitude, cs );
+		int surfaceTier = -altitude < WorldModel.WATER_TIERS ? surfaceWaterTier( seed, wx, wy ) : 0;
+		return surfaceTier > -altitude ? Terrain.WATER : t;
+	}
+
+	/** Does caves() put a way between slices on this cell (a cave exit, a ladder up or down, a
+	 *  pit)? The second pass of caves() for a single cell, the cheap hashes asked first. */
+	static boolean wayAt( long seed, int altitude, int wx, int wy ){
+		if (altitude >= 0 || !WorldLayers.exists( altitude )) return false;
+		boolean below = WorldLayers.exists( altitude - 1 ), above = altitude + 1 < 0;
+		boolean mouth = altitude == -1 && Math.floorMod( WorldModel.linkHash( seed ^ 0x300DL, wx, wy, 0 ), 900 ) == 0;
+		boolean down = below && ladderHash( seed, wx, wy, altitude - 1 );
+		boolean up = above && ladderHash( seed, wx, wy, altitude );
+		boolean pit = below && pitHash( seed, wx, wy, altitude );
+		if (!mouth && !down && !up && !pit) return false;
+		if (!WorldModel.caveOpen( seed, wx, wy, altitude )) return false;
+		if (mouth && mouthAt( seed, wx, wy )) return true;
+		boolean openBelow = below && WorldModel.caveOpen( seed, wx, wy, altitude - 1 );
+		boolean openAbove = above && WorldModel.caveOpen( seed, wx, wy, altitude + 1 );
+		if (openBelow && caveStair( seed, wx, wy, altitude - 1, true, true )) return true;
+		if (openAbove && caveStair( seed, wx, wy, altitude, true, true )) return true;
+		return openBelow && pit;
+	}
+
+	/** Does a pit of the slice above open over this cell (so a fall lands on it)? */
+	static boolean pitFromAbove( long seed, int altitude, int wx, int wy ){
+		int up = altitude + 1;
+		return up < 0 && pitHash( seed, wx, wy, up )
+				&& WorldModel.caveOpen( seed, wx, wy, up ) && WorldModel.caveOpen( seed, wx, wy, altitude );
 	}
 
 	//the tier of the surface's open water above a cave column, 0 when the
 	//surface is land (or ice) there: the annual mean decides, like the mouths
-	private static int surfaceWaterTier( long seed, int wx, int wy ){
+	static int surfaceWaterTier( long seed, int wx, int wy ){
 		WorldModel.Sample s = WorldModel.sample( seed, wx, wy, 0f, null );
 		if (s.elev >= WorldModel.SEA) return 0;
 		int wild = WorldModel.wildTerrain( seed, wx, wy, s );
@@ -332,7 +502,7 @@ public final class WindowGenerator {
 
 	//the stair on (wx, wy) between slice `lower` and the one above it. one in
 	//fourteen cliff cells (a cell one band up from a 4-neighbour) carries one
-	private static boolean stairHash( long seed, int wx, int wy, int lower ){
+	static boolean stairHash( long seed, int wx, int wy, int lower ){
 		return Math.floorMod( WorldModel.linkHash( seed ^ 0x57A1BL, wx, wy, lower ), 14 ) == 0;
 	}
 
@@ -373,12 +543,12 @@ public final class WindowGenerator {
 
 	//chambers overlap over whole areas, not along a line like a cliff: one
 	//open-over-open cell in 220 carries a ladder
-	private static boolean ladderHash( long seed, int wx, int wy, int lower ){
+	static boolean ladderHash( long seed, int wx, int wy, int lower ){
 		return Math.floorMod( WorldModel.linkHash( seed ^ 0x1ADDE4L, wx, wy, lower ), 220 ) == 0;
 	}
 
 	//a hole in a cave floor onto the slice below: one open-over-open cell in 500
-	private static boolean pitHash( long seed, int wx, int wy, int altitude ){
+	static boolean pitHash( long seed, int wx, int wy, int altitude ){
 		return Math.floorMod( WorldModel.linkHash( seed ^ 0x9177L, wx, wy, altitude ), 500 ) == 0;
 	}
 
@@ -438,20 +608,197 @@ public final class WindowGenerator {
 		}
 	}
 
+	// ------------------------------------------------------------ the rock's tops
+
+	//allocates a window's rock tops (none yet) and the scratch of the soil over them
+	private static float[] rockTops( Window w ){
+		int n = WIDTH * HEIGHT;
+		w.top = new int[n];
+		w.earth = new boolean[n];
+		w.topTerrain = new int[n];
+		w.topFrozen = new boolean[n];
+		w.topBlend = new int[n];
+		w.topCorner = new int[n];
+		java.util.Arrays.fill( w.top, -1 );
+		java.util.Arrays.fill( w.topTerrain, -1 );
+		java.util.Arrays.fill( w.topBlend, -1 );
+		java.util.Arrays.fill( w.topCorner, -1 );
+		return new float[n];
+	}
+
+	//a cell of natural rock rising to band b: the ground its top shows (that band's own ground,
+	//frozen or not by that band) and how deep the soil lies on it
+	private static void rockTop( long seed, int wx, int wy, int b, WorldModel.Sample smp,
+	                             Window w, float[] soil, int cell ){
+		int t = WorldModel.alpineTerrain( seed, wx, wy, b, smp );
+		boolean frost = WorldModel.alpineTemperature( smp, b ) < WorldModel.FREEZE;
+		w.top[cell] = viewTile( t, frost );
+		w.topTerrain[cell] = t;
+		w.topFrozen[cell] = frost;
+		soil[cell] = WorldModel.soilDepth( seed, wx, wy, b, t, smp );
+	}
+
+	//the walls a mountain's places build (MountainSites) stand under the open sky too: their
+	//roof is the slice's own ground, snowed under or grown over like everything round them,
+	//instead of the dungeon's black
+	private static void builtTops( long seed, int altitude, int ox, int oy, float shift, Window w ){
+		WorldModel.Sample smp = new WorldModel.Sample();
+		for (int y = 1; y < HEIGHT - 1; y++){
+			for (int x = 1; x < WIDTH - 1; x++){
+				int cell = x + y * WIDTH;
+				if (w.terrain[cell] != Terrain.WALL || w.top[cell] != -1) continue;
+				int wx = ox + x, wy = oy + y;
+				WorldModel.sample( seed, wx, wy, shift, smp );
+				int t = WorldModel.alpineTerrain( seed, wx, wy, altitude, smp );
+				w.top[cell] = viewTile( t, w.frozen[cell] );
+				w.topTerrain[cell] = t;
+				w.topFrozen[cell] = w.frozen[cell];
+			}
+		}
+	}
+
+	//the dressing over the tops that are drawn (rock with rock in front of it, the rest shows its
+	//face): the blends between their grounds, the snow lapping onto a tarn's ice
+	private static void topViews( long seed, int ox, int oy, Window w ){
+		int n = WIDTH * HEIGHT;
+		int[] vt = new int[n];
+		java.util.Arrays.fill( vt, -1 );
+		for (int c = 0; c + WIDTH < n; c++){
+			if (w.top[c] != -1 && xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTileSheet.wallStitcheable( w.terrain[c + WIDTH] )){
+				vt[c] = w.topTerrain[c];
+			}
+		}
+		viewBlends( seed, ox, oy, vt, w.topFrozen, w.topBlend, w.topCorner );
+	}
+
+	/**
+	 * The dressing's blends over a view of another band (View): on every cell of `terrain` (-1
+	 * where the view has none) the stronger grounds beside it lap over its edges, as dress() lays
+	 * them underfoot - the same hash, so a cell's edge is the same piece seen from any slice.
+	 */
+	static void viewBlends( long seed, int ox, int oy, int[] terrain, boolean[] frozen, int[] blends, int[] corners ){
+		for (int y = 1; y < HEIGHT - 1; y++){
+			for (int x = 1; x < WIDTH - 1; x++){
+				int cell = x + y * WIDTH;
+				if (terrain[cell] < 0) continue;
+				int f = familyOf( terrain, frozen, null, cell );
+				if (f < 0) continue;
+				blendCell( terrain, frozen, null, cell, f, edgeVersion( seed, ox + x, oy + y, OverworldDress.BIOME_VARIANTS ), blends, corners );
+			}
+		}
+	}
+
+	//what each rock cell's scarp is made of, once every band is known: its height is from its
+	//top down to the slice's ground, or further where open air lies at its foot
+	private static void scarps( long seed, int ox, int oy, int altitude, byte[] band, float[] soil, Window w ){
+		for (int cell = 0; cell < WIDTH * HEIGHT; cell++){
+			if (w.top[cell] == -1) continue;
+			int foot = altitude;
+			if (cell + WIDTH < WIDTH * HEIGHT) foot = Math.min( foot, band[cell + WIDTH] );
+			w.earth[cell] = WorldModel.earthenScarp( seed, ox + cell % WIDTH, oy + cell / WIDTH,
+					soil[cell], band[cell] - foot, false );
+		}
+	}
+
+	// --------------------------------------------------------- the view down
+
+	/** How many depth layers the view down from a mountain is drawn in (1 band down, 2, 3 and more):
+	 *  each its own tilemap, hazed by its own depth (GameScene.addBelow). belowLayers hands one more
+	 *  after them: the shade the rims cast into the drop, drawn over them all. */
+	public static final int BELOW_LAYERS = 3;
+
+	/** The overworld tile this terrain's ground shows from another band, above or below it: its
+	 *  colour, not its detail. */
+	static int viewTile( int terrain, boolean frozen ){
+		switch (terrain){
+			case Terrain.WATER: case Terrain.DEEP_WATER:
+				return xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTileSheet.BELOW_WATER;
+			case Terrain.FROZEN_WATER:
+				return xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTileSheet.FROZEN_WATER;
+			case Terrain.SNOW:
+				return xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTileSheet.SNOW_TILE;
+			case Terrain.EMPTY_SP:
+				return xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTileSheet.FLOOR_SP;
+			case Terrain.DIRT_PATH:
+				return xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTileSheet.DIRT_PATH_TILE;
+			case Terrain.GRASS: case Terrain.HIGH_GRASS: case Terrain.FURROWED_GRASS:
+			case Terrain.FLOWER_PATCH: case Terrain.SHRUB:
+				return xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTileSheet.GRASS;
+			case Terrain.TREE_PINE: case Terrain.TREE_OAK: case Terrain.BOULDER:
+				//the ground they stand on
+				return frozen ? xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTileSheet.SNOW_TILE
+						: xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTileSheet.GRASS;
+			default:
+				return frozen ? xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTileSheet.SNOW_TILE
+						: xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTileSheet.FLOOR;
+		}
+	}
+
+	//the eight neighbours in the order of DungeonTileSheet.belowShade's mask bits
+	private static final int[] RIM_DX = { 0, 1, 1, 1, 0, -1, -1, -1 };
+	private static final int[] RIM_DY = { -1, -1, 0, 1, 1, 1, 0, -1 };
+
+	//which depth layer a drop's ground is drawn in
+	private static int belowGroup( Window w, int cell ){
+		return Math.min( BELOW_LAYERS, Math.max( 1, w.belowDepth[cell] ) ) - 1;
+	}
+
+	/**
+	 * A mountain window's view down split into its depth layers (BELOW_LAYERS: one band down, two,
+	 * three and more), each the ground's tiles with the dressing's blends over them (View), and
+	 * the rims' shade; null off the mountains. Pure: the window worker runs it.
+	 */
+	public static Views belowLayers( long seed, int ox, int oy, Window w ){
+		if (w == null || w.below == null) return null;
+		int n = WIDTH * HEIGHT;
+		Views out = new Views( BELOW_LAYERS, n );
+		int[] shade = out.shade;
+		for (int c = 0; c < n; c++){
+			if (w.below[c] < 0) continue;
+			int g = belowGroup( w, c );
+			out.depth[g].tiles[c] = w.below[c];
+			//the rims: the neighbours that stand higher than this drop - the slice's own ground,
+			//or a nearer layer's ledge over a deeper one (the window's edge is neither)
+			int x = c % WIDTH, y = c / WIDTH, mask = 0;
+			for (int i = 0; i < 8; i++){
+				int nx = x + RIM_DX[i], ny = y + RIM_DY[i];
+				if (nx < 0 || ny < 0 || nx >= WIDTH || ny >= HEIGHT) continue;
+				int nc = nx + ny * WIDTH;
+				if (w.below[nc] < 0 || belowGroup( w, nc ) < g) mask |= 1 << i;
+			}
+			if (mask != 0) shade[c] = xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTileSheet.belowShade( mask );
+		}
+		//each depth's blends over its own cells alone: a band's ground never laps over a drop
+		int[] vt = new int[n];
+		for (int g = 0; g < BELOW_LAYERS; g++){
+			java.util.Arrays.fill( vt, -1 );
+			for (int c = 0; c < n; c++){
+				if (out.depth[g].tiles[c] != -1) vt[c] = w.belowTerrain[c];
+			}
+			viewBlends( seed, ox, oy, vt, w.belowFrozen, out.depth[g].blends, out.depth[g].corners );
+		}
+		return out;
+	}
+
 	// --------------------------------------------------------- preparation
 
-	/** The terrain, the player's edits over it, the dressing and the variance for one origin. */
+	/** The terrain, the player's edits and the fallen stars' scorch over it, the dressing and the
+	 *  variance for one origin. `scorch` is the stars' cells in this window (world key -> terrain,
+	 *  or null) and `scorchSig` what they are known by. */
 	public static Prepared prepare( long seed, int altitude, int ox, int oy, GameCalendar.Season season,
-			HashMap<Long, Integer> edits, int version ){
+			HashMap<Long, Integer> edits, int version, HashMap<Long, Integer> scorch, long scorchSig ){
 		Prepared p = new Prepared();
 		p.base = generate( seed, altitude, ox, oy );
 		p.ox = ox;
 		p.oy = oy;
 		p.season = season;
 		p.diffsVersion = version;
+		p.scorchSig = scorchSig;
 		p.map = p.base.terrain.clone();
 		overlayDiffs( p.map, edits, ox, oy );
+		overlayScorch( p.map, p.base.terrain, p.base.link, scorch, edits, ox, oy );
 		p.dress = dress( seed, ox, oy, p.map, p.base, season );
+		p.below = belowLayers( seed, ox, oy, p.base );
 		p.variance = variance( seed, ox, oy );
 		return p;
 	}
@@ -466,6 +813,28 @@ public final class WindowGenerator {
 			if (x > 0 && y > 0 && x < WIDTH - 1 && y < HEIGHT - 1){
 				map[x + y * WIDTH] = e.getValue();
 			}
+		}
+	}
+
+	/**
+	 * A fallen star's scorch (WorldEvents.craterCells) laid on a derived window: only on ground the
+	 * generator really left open at this point of the year (a scorchable pristine - never water,
+	 * ice, a tree or a road), never on a way between slices (link), never over a player's edit.
+	 * The interior only, like the edits. The star's own pure guess at the ground is a pre-filter;
+	 * this is the authority.
+	 */
+	public static void overlayScorch( int[] map, int[] pristine, byte[] link, HashMap<Long, Integer> scorch,
+			HashMap<Long, Integer> edits, int ox, int oy ){
+		if (scorch == null || scorch.isEmpty()) return;
+		for (HashMap.Entry<Long, Integer> e : scorch.entrySet()){
+			long key = e.getKey();
+			int x = (int) (key & 0xFFFFFFFFL) - ox, y = (int) (key >> 32) - oy;
+			if (x <= 0 || y <= 0 || x >= WIDTH - 1 || y >= HEIGHT - 1) continue;
+			int c = x + y * WIDTH;
+			if (edits != null && edits.containsKey( key )) continue;
+			if (link != null && link[c] != LINK_NONE) continue;
+			if (!WorldEvents.scorchable( pristine[c] )) continue;
+			map[c] = e.getValue();
 		}
 	}
 
@@ -611,6 +980,73 @@ public final class WindowGenerator {
 		return best;
 	}
 
+	//the blend family a cell of the window shows (blendFamily): a village's field takes none -
+	//its crop is drawn whole, and no grass of it spills onto the bare ground beside it
+	private static int familyAt( int[] map, Window base, int cell ){
+		return familyOf( map, base.frozen, base.field, cell );
+	}
+
+	private static int familyOf( int[] map, boolean[] frozen, boolean[] field, int cell ){
+		if (field != null && field[cell] && map[cell] == Terrain.FURROWED_GRASS) return -1;
+		return blendFamily( visualGround( map, frozen, cell ) );
+	}
+
+	//the dressing's blends on one cell of family f (familyOf): the strongest neighbouring ground
+	//material laps over its edges (ground), then a second, weaker one on the other sides or the
+	//corner roundings where a stronger one meets only at a diagonal (edges). The same underfoot
+	//(dress) and on a view of another band (viewBlends)
+	private static void blendCell( int[] map, boolean[] frozen, boolean[] field, int cell, int f, int version, int[] ground, int[] edges ){
+		final int w = WIDTH;
+		int best = 0, mask = 0;
+		for (int side = 0; side < 4; side++){
+			int n = cell + (side == 0 ? -w : side == 1 ? 1 : side == 2 ? w : -1);
+			int g = familyOf( map, frozen, field, n );
+			if (g > f && g > 0){
+				if (g > best){ best = g; mask = 0; }
+				if (g == best) mask |= 1 << side;
+			}
+		}
+		if (best > 0 && mask != 0){
+			ground[cell] = OverworldDress.blend( BLEND_ROW[best], mask, version );
+		}
+		//the edges layer takes one more overlay: first a second, weaker
+		//material on the other sides (ice between the snow and the grass) -
+		//a whole side left square shows far more than a corner - otherwise
+		//the corner roundings where a stronger material meets only at a
+		//diagonal (NE needs neither N nor E covered, and so on round)
+		int second = 0, mask2 = 0;
+		if (best > 0){
+			for (int side = 0; side < 4; side++){
+				if ((mask & (1 << side)) != 0) continue;
+				int n = cell + (side == 0 ? -w : side == 1 ? 1 : side == 2 ? w : -1);
+				int g = familyOf( map, frozen, field, n );
+				if (g > f && g > 0 && g < best){
+					if (g > second){ second = g; mask2 = 0; }
+					if (g == second) mask2 |= 1 << side;
+				}
+			}
+		}
+		if (second > 0){
+			edges[cell] = OverworldDress.blend( BLEND_ROW[second], mask2, version );
+		} else {
+			int cBest = 0, cBits = 0;
+			for (int d = 0; d < 4; d++){
+				int sideA = d == 0 || d == 3 ? 1 : 4;    //N for NE/NW, S for SE/SW
+				int sideB = d == 0 || d == 1 ? 2 : 8;    //E for NE/SE, W for SW/NW
+				if ((mask & (sideA | sideB)) != 0) continue;
+				int n = cell + (d == 0 ? -w+1 : d == 1 ? w+1 : d == 2 ? w-1 : -w-1);
+				int g = familyOf( map, frozen, field, n );
+				if (g > f && g > 0){
+					if (g > cBest){ cBest = g; cBits = 0; }
+					if (g == cBest) cBits |= 1 << d;
+				}
+			}
+			if (cBest > 0 && cBits != 0){
+				edges[cell] = OverworldDress.corner( CORNER_ROW[cBest], cBits, version );
+			}
+		}
+	}
+
 	//ground families for the edge-transition overlays, by visual strength:
 	//stronger materials encroach on weaker ones. water is not here - the
 	//water tiles stitch their own shores already
@@ -634,7 +1070,7 @@ public final class WindowGenerator {
 
 	//a crown may hang over open ground, never over something the player has to
 	//see and use: a doorway, a staircase, a signpost, a shrine
-	private static boolean blocksSight( int terrain ){
+	static boolean blocksSight( int terrain ){
 		return terrain == Terrain.DOOR || terrain == Terrain.OPEN_DOOR
 				|| terrain == Terrain.LOCKED_DOOR || terrain == Terrain.CRYSTAL_DOOR
 				|| terrain == Terrain.EXIT || terrain == Terrain.ENTRANCE
@@ -810,60 +1246,12 @@ public final class WindowGenerator {
 					continue;
 				}
 
-				int f = blendFamily( visualGround( map, frozen, cell ) );
+				int f = familyAt( map, base, cell );
 				if (f < 0){
 					if (propBody != -1) edges[cell] = propBody;
 					continue;
 				}
-				int best = 0, mask = 0;
-				for (int side = 0; side < 4; side++){
-					int n = cell + (side == 0 ? -w : side == 1 ? 1 : side == 2 ? w : -1);
-					int g = blendFamily( visualGround( map, frozen, n ) );
-					if (g > f && g > 0){
-						if (g > best){ best = g; mask = 0; }
-						if (g == best) mask |= 1 << side;
-					}
-				}
-				int version = edgeVersion( seed, wx, wy, OverworldDress.BIOME_VARIANTS );
-				if (best > 0 && mask != 0){
-					ground[cell] = OverworldDress.blend( BLEND_ROW[best], mask, version );
-				}
-				//the edges layer takes one more overlay: first a second, weaker
-				//material on the other sides (ice between the snow and the grass) -
-				//a whole side left square shows far more than a corner - otherwise
-				//the corner roundings where a stronger material meets only at a
-				//diagonal (NE needs neither N nor E covered, and so on round)
-				int second = 0, mask2 = 0;
-				if (best > 0){
-					for (int side = 0; side < 4; side++){
-						if ((mask & (1 << side)) != 0) continue;
-						int n = cell + (side == 0 ? -w : side == 1 ? 1 : side == 2 ? w : -1);
-						int g = blendFamily( visualGround( map, frozen, n ) );
-						if (g > f && g > 0 && g < best){
-							if (g > second){ second = g; mask2 = 0; }
-							if (g == second) mask2 |= 1 << side;
-						}
-					}
-				}
-				if (second > 0){
-					edges[cell] = OverworldDress.blend( BLEND_ROW[second], mask2, version );
-				} else {
-					int cBest = 0, cBits = 0;
-					for (int d = 0; d < 4; d++){
-						int sideA = d == 0 || d == 3 ? 1 : 4;    //N for NE/NW, S for SE/SW
-						int sideB = d == 0 || d == 1 ? 2 : 8;    //E for NE/SE, W for SW/NW
-						if ((mask & (sideA | sideB)) != 0) continue;
-						int n = cell + (d == 0 ? -w+1 : d == 1 ? w+1 : d == 2 ? w-1 : -w-1);
-						int g = blendFamily( visualGround( map, frozen, n ) );
-						if (g > f && g > 0){
-							if (g > cBest){ cBest = g; cBits = 0; }
-							if (g == cBest) cBits |= 1 << d;
-						}
-					}
-					if (cBest > 0 && cBits != 0){
-						edges[cell] = OverworldDress.corner( CORNER_ROW[cBest], cBits, version );
-					}
-				}
+				blendCell( map, frozen, base.field, cell, f, edgeVersion( seed, wx, wy, OverworldDress.BIOME_VARIANTS ), ground, edges );
 				if (propBody != -1){
 					edges[cell] = propBody;
 					continue;
@@ -896,6 +1284,17 @@ public final class WindowGenerator {
 				}
 			}
 		}
+		//the settlements' fittings: windows and a chimney on every human house, a fire ring
+		//by every gnoll hut - the very cells SettlementAmbience lights at night
+		if (base.altitude == 0) SettlementLights.dressFittings( seed, ox, oy, map, base.terrain, ground, edges, canopy );
+		//the props of the caves' places (CaveSites): rails, timbers, the camp's furniture, giant
+		//mushrooms, the tomb's dressed stone - before the ore, which never sits on them
+		if (base.altitude < 0) CaveSites.dress( base.sites, ox, oy, map, ground, edges, canopy );
+		//the places on the mountains: the hermit's windows and chimney, the waystation's, the nest, the pack
+		if (base.altitude > 0) MountainSites.dressFittings( seed, ox, oy, map, base, ground, edges, canopy );
+		//the rock of the slices above and below wears its ore where its face shows (Ores): last,
+		//so it never sits on anything drawn there before it
+		if (base.altitude != 0) Ores.dressVeins( seed, ox, oy, map, base.veins, ground, canopy );
 		return new int[][]{ ground, edges, canopy };
 	}
 }

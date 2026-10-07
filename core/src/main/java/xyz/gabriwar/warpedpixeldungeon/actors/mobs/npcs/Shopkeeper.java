@@ -94,7 +94,9 @@ public class Shopkeeper extends NPC {
 	 *  two machines disagree about whether the till is open. depth and branch are
 	 *  both host-authoritative and on the wire, so this reads the same on both. */
 	private static boolean surfaceTradingHours(){
+		//the slices under the sky; the caves have no night (a miners' camp trades at every hour)
 		return (xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldLayers.isLayerDepth( Dungeon.depth )
+					&& xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldLayers.altitudeOf( Dungeon.depth ) >= 0
 					&& Dungeon.branch == 0)
 				|| Dungeon.branch == xyz.gabriwar.warpedpixeldungeon.levels.TownInteriorLevel.BRANCH;
 	}
@@ -316,8 +318,18 @@ public class Shopkeeper extends NPC {
 	
 	@Override
 	public void destroy() {
-		super.destroy();
+		//on the surface a dozen keepers trade within sight of each other (village vendors, the
+		//bridge fishermen, the caravans): only this one's own shelf comes down with him. found
+		//before he leaves the scheduler, which is what sellerOf reads
+		java.util.ArrayList<Heap> shelf = new java.util.ArrayList<>();
+		boolean surface = Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
 		for (Heap heap: Dungeon.level.heaps.valueList()) {
+			if (heap.type == Heap.Type.FOR_SALE && (!surface || sellerOf(heap.pos) == this)) {
+				shelf.add(heap);
+			}
+		}
+		super.destroy();
+		for (Heap heap: shelf) {
 			if (heap.type == Heap.Type.FOR_SALE) {
 				if (WarpedPixelDungeon.scene() instanceof GameScene) {
 					CellEmitter.get(heap.pos).burst(ElmoParticle.FACTORY, 4);
@@ -355,6 +367,62 @@ public class Shopkeeper extends NPC {
 	public static int sellPrice(Item item, Hero buyer){
 		if (item instanceof ScrollOfUpgrade) return upgradeScrollPrice();
 		return xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.shopPrice(buyer, basePrice(item));
+	}
+
+	/** what this keeper charges against the shelf price (1 = the shelf price): a rescued caravaneer
+	 *  marks it down for the day, a saved settlement's vendors for three, the travelling market up */
+	public float priceFactor(){
+		return 1f;
+	}
+
+	/** why this keeper will not trade just now beyond the night, or null: a siege at the stall,
+	 *  a raid in the streets, the days of mending after one */
+	public String tradeBlock(){
+		return null;
+	}
+
+	/** The keeper whose shelf a cell is on: the nearest Shopkeeper within three cells (Chebyshev; a
+	 *  tie goes to the lower actor id), or null. Three, not one: an unparked keeper can be set down two
+	 *  cells from the shelf he laid out (OverworldLevel.unparkMobs). Walks Actor.chars(), a synchronized
+	 *  snapshot, so the shop windows may ask from the render thread */
+	public static Shopkeeper sellerOf(int cell){
+		if (Dungeon.level == null || cell < 0 || cell >= Dungeon.level.length()) return null;
+		Shopkeeper best = null;
+		int bestDist = 4;
+		for (Char ch : Actor.chars()){
+			if (!(ch instanceof Shopkeeper) || ch.pos < 0 || ch.pos >= Dungeon.level.length()) continue;
+			int d = Dungeon.level.distance(ch.pos, cell);
+			if (d < bestDist || (d == bestDist && best != null && ch.id() < best.id())){
+				best = (Shopkeeper) ch;
+				bestDist = d;
+			}
+		}
+		return best;
+	}
+
+	/** what the buyer pays for goods on this keeper's shelf; the scroll of upgrade keeps its own ladder */
+	public static int sellPrice(Item item, Hero buyer, Shopkeeper seller){
+		int price = sellPrice(item, buyer);
+		if (seller == null || item instanceof ScrollOfUpgrade) return price;
+		float f = seller.priceFactor();
+		return f == 1f ? price : discounted(price, f);
+	}
+
+	/** What the hero is asked for the ware on a shelf cell, as its keeper prices it (sellerOf). A
+	 *  co-op guest has no keepers of his own, only the host's stand-ins, which bring each keeper's
+	 *  price factor with them (StateSerializer "pf"): his look at a shelf quotes the host's price */
+	public static int shelfPrice(Item item, Hero buyer, int cell){
+		Shopkeeper seller = sellerOf(cell);
+		if (seller != null || !xyz.gabriwar.warpedpixeldungeon.net.NetManager.isNetClient()
+				|| item instanceof ScrollOfUpgrade) return sellPrice(item, buyer, seller);
+		int price = sellPrice(item, buyer);
+		float f = xyz.gabriwar.warpedpixeldungeon.net.SpectatorReceiver.priceFactorNear(Dungeon.level, cell);
+		return f == 1f ? price : discounted(price, f);
+	}
+
+	/** a price times a factor, never under a coin */
+	public static int discounted(int price, float factor){
+		return Math.max(1, Math.round(price * factor));
 	}
 
 	private static int basePrice(Item item){
@@ -422,7 +490,7 @@ public class Shopkeeper extends NPC {
 
 	/** Remember who a hero is trading with, so their sells and buybacks hit the
 	 *  right shelf. Called when a shop window is opened for that hero. */
-	private void beginTrade(Hero hero) {
+	protected void beginTrade(Hero hero) {
 		if (hero != null) tradingWith.put(hero.id(), id());
 	}
 
@@ -587,11 +655,16 @@ public class Shopkeeper extends NPC {
 			GLog.w(Messages.get(WndTradeItem.class, "closed"));
 			return;
 		}
+		Shopkeeper seller = sellerOf(cell);
+		if (seller != null && seller.tradeBlock() != null) {
+			xyz.gabriwar.warpedpixeldungeon.net.NetManager.heroLog(hero, seller.tradeBlock());
+			return;
+		}
 		// Only allow purchase from adjacent/own cell — same constraint as normal pickup.
 		if (cell != hero.pos && !Dungeon.level.adjacent(cell, hero.pos)) return;
 		Item item = heap.peek();
 		if (item == null) return;
-		int price = sellPrice(item, hero);
+		int price = sellPrice(item, hero, seller);
 		if (Dungeon.gold < price) {
 			GLog.w(Messages.get(WndTradeItem.class, "no_gold"));
 			return;
@@ -650,6 +723,17 @@ public class Shopkeeper extends NPC {
 						Messages.get( Shopkeeper.class, "closed" ) );
 			} else {
 				yell( Messages.get( Shopkeeper.class, "closed" ) );
+			}
+			return true;
+		}
+
+		//open, but not trading: a siege at the stall, a raid in the streets
+		String block = tradeBlock();
+		if (block != null) {
+			if (interactor.isRemote) {
+				xyz.gabriwar.warpedpixeldungeon.net.NetManager.heroLog( interactor, block );
+			} else {
+				yell( block );
 			}
 			return true;
 		}

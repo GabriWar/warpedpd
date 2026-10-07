@@ -55,6 +55,13 @@ public class Bat extends Mob {
 		resistances.add(Vampiric.class);
 	}
 	
+	//born to the floor's depth: tuned to another, it is the bat of that one
+	@Override
+	public void setStatDepth( int depth ) {
+		super.setStatDepth( depth );
+		HP = HT = 40 + (depth * Random.NormalIntRange(2, 5));
+	}
+
 	@Override
 	public int damageRoll() {
 		return Random.NormalIntRange( 15, 22 );

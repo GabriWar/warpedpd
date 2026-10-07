@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.journal.Bestiary;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
+import xyz.gabriwar.warpedpixeldungeon.levels.MiningLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -127,7 +128,8 @@ public class CrystalGuardian extends Mob{
 	@Override
 	public boolean attack(Char enemy, float dmgMulti, float dmgBonus, float accMulti) {
 		//if enemy is hero, and they aren't currently fighting the spire, -100 points
-		if (enemy == Dungeon.hero){
+		//(the blacksmith's mine alone: a guardian keeping a crystal cavern of the caves scores nothing)
+		if (enemy == Dungeon.hero && Dungeon.level instanceof MiningLevel){
 			boolean spireNear = false;
 			for (Mob m : Dungeon.level.mobs.toArray(new Mob[0])){
 				if (m instanceof CrystalSpire && m.HP != m.HT && Dungeon.level.distance(pos, m.pos) <= 8){

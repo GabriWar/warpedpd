@@ -93,6 +93,15 @@ public class Wraith extends Mob {
 		adjustStats( level );
 	}
 	
+	//a world slice's wraith is the shade of two fifths of its band's depth: one tuned to the whole
+	//of it (defense 200 at 30) could barely be hit, gave nothing, and came in packs; at 12 a hero of
+	//thirty clears a pair in about eleven swings
+	@Override
+	public void setStatDepth( int depth ) {
+		super.setStatDepth( depth );
+		adjustStats( depth * 2 / 5 );
+	}
+
 	@Override
 	public int damageRoll() {
 		return Random.NormalIntRange( 1 + level/2, 2 + level );

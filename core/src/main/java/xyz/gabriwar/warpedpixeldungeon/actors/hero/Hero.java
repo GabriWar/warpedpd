@@ -332,6 +332,10 @@ public class Hero extends Char {
 	// Net MP turn telemetry — incremented every time this hero completes an act()
 	// that advanced game time. Persisted so reconnects keep the running count.
 	public int turnsTaken = 0;
+
+	//the world day (WorldClock.day) this hero last had a crucible poured, at the troll's forge or
+	//any deep one (Blacksmith2.pourCrucible): one a day, wherever, whichever forge's copy it is
+	public int smeltDay = Integer.MIN_VALUE;
 	// Mirror of "queued" from delta (steps remaining in a multi-step Move). Host
 	// computes from curAction + pos; client stores it for indicator display.
 	public transient int queuedSteps = 0;
@@ -478,6 +482,7 @@ public class Hero extends Char {
 	private static final String NET_OWNER    = "netOwnerName";
 	private static final String NET_TOKEN    = "netSessionToken";
 	private static final String TURNS_TAKEN  = "turnsTaken";
+	private static final String SMELT_DAY    = "smeltDay";
 
 	@Override
 	public void storeInBundle( Bundle bundle ) {
@@ -488,6 +493,7 @@ public class Hero extends Char {
 		if (netOwnerName != null && !netOwnerName.isEmpty()) bundle.put( NET_OWNER, netOwnerName );
 		if (netSessionToken != null && !netSessionToken.isEmpty()) bundle.put( NET_TOKEN, netSessionToken );
 		bundle.put( TURNS_TAKEN, turnsTaken );
+		bundle.put( SMELT_DAY, smeltDay );
 		bundle.put( CLASS, heroClass );
 		bundle.put( SUBCLASS, subClass );
 		bundle.put( ABILITY, armorAbility );
@@ -546,6 +552,7 @@ public class Hero extends Char {
 		netOwnerName = bundle.contains( NET_OWNER ) ? bundle.getString( NET_OWNER ) : "";
 		netSessionToken = bundle.contains( NET_TOKEN ) ? bundle.getString( NET_TOKEN ) : "";
 		turnsTaken = bundle.contains( TURNS_TAKEN ) ? bundle.getInt( TURNS_TAKEN ) : 0;
+		smeltDay = bundle.contains( SMELT_DAY ) ? bundle.getInt( SMELT_DAY ) : Integer.MIN_VALUE;
 		heroClass = bundle.getEnum( CLASS, HeroClass.class );
 		subClass = bundle.getEnum( SUBCLASS, HeroSubClass.class );
 		armorAbility = (ArmorAbility)bundle.get( ABILITY );
@@ -1329,6 +1336,11 @@ public class Hero extends Char {
 		// --- Weather gameplay effects ---
 		checkWeatherEffects();
 
+		//the dangers of the world's slices: firedamp, thin ice, the heights (levels/overworld/HazardWatch)
+		if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel){
+			((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).hazards().heroTurn( this );
+		}
+
 		//calls to dungeon.observe will also update hero's local FOV.
 		// Net MP: remote heroes don't share heroFOV with the host — they need
 		// their own array, recomputed from their own pos. Otherwise handle()
@@ -2006,12 +2018,16 @@ public class Hero extends Char {
 					// netHero arrived at a FOR_SALE heap — route the purchase prompt to
 					// the owning client instead of opening WndTradeItem on the host's screen.
 					Item item = heap.peek();
+					xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Shopkeeper seller =
+							xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Shopkeeper.sellerOf(heap.pos);
 					if (xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Shopkeeper.closedForNight()) {
 						// Don't hand out a Buy button the host will refuse: hostBuyFromHeap
 						// only logs the rejection on the host's screen, so the client would
 						// see the click do nothing at all.
 						xyz.gabriwar.warpedpixeldungeon.net.NetManager.heroLog(this,
 								Messages.get(WndTradeItem.class, "closed"));
+					} else if (seller != null && seller.tradeBlock() != null) {
+						xyz.gabriwar.warpedpixeldungeon.net.NetManager.heroLog(this, seller.tradeBlock());
 					} else if (item != null) {
 						try {
 							org.json.JSONObject payload = new org.json.JSONObject();
@@ -2020,7 +2036,7 @@ public class Hero extends Char {
 									xyz.gabriwar.warpedpixeldungeon.messages.Messages.titleCase(item.title()));
 							payload.put("image", item.image());
 							payload.put("price",
-									xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Shopkeeper.sellPrice(item, this));
+									xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Shopkeeper.sellPrice(item, this, seller));
 							payload.put("value", item.value());
 							payload.put("lvl", item.level());
 							payload.put("gold", Dungeon.gold);
@@ -2325,6 +2341,14 @@ public class Hero extends Char {
 
 	private boolean actMine(HeroAction.Mine action){
 		if (Dungeon.level.adjacent(pos, action.dst)){
+			//a sealed tomb's dressed stone turns the pick (levels/overworld/CaveSites)
+			if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
+					&& ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).unbreakable( action.dst )){
+				xyz.gabriwar.warpedpixeldungeon.net.NetManager.heroLog( Hero.this, GLog.WARNING
+						+ Messages.get( xyz.gabriwar.warpedpixeldungeon.levels.overworld.CaveSites.class, "tomb_unbreakable" ) );
+				ready();
+				return false;
+			}
 			path = null;
 			if ((Dungeon.level.map[action.dst] == Terrain.WALL
 					|| Dungeon.level.map[action.dst] == Terrain.WALL_DECO
@@ -2334,6 +2358,8 @@ public class Hero extends Char {
 				sprite.attack(action.dst, new Callback() {
 					@Override
 					public void call() {
+						//what the rock was, for the cave-in a careless blow may bring down (HazardWatch.mined)
+						final int was = Dungeon.level.map[action.dst];
 
 						boolean crystalAdjacent = false;
 						for (int i : PathFinder.NEIGHBOURS8) {
@@ -2377,12 +2403,21 @@ public class Hero extends Char {
 							PixelScene.shake(0.5f, 0.5f);
 							CellEmitter.get( action.dst ).burst( Speck.factory( Speck.ROCK ), 2 );
 							Sample.INSTANCE.play( Assets.Sounds.MINE );
+							//a vein in the rock of a world slice gives up its ore (levels/overworld/Ores):
+							//asked before the rock is gone, and it takes no time of its own
+							xyz.gabriwar.warpedpixeldungeon.items.ore.Ore ore = Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
+									? ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).oreFrom( action.dst ) : null;
+							if (ore != null) ore.struck( Hero.this, action.dst );
 							Level.set( action.dst, Terrain.EMPTY_DECO );
 
 						//1 hunger spent total
 						} else if (Dungeon.level.map[action.dst] == Terrain.MINE_CRYSTAL){
+							//a crystal of a cave seam may hold a gem (levels/overworld/Ores)
+							xyz.gabriwar.warpedpixeldungeon.items.ore.Gem gem = Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
+									? ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).gemFrom( action.dst ) : null;
 							Splash.at(action.dst, 0xFFFFFF, 5);
 							Sample.INSTANCE.play( Assets.Sounds.SHATTER );
+							if (gem != null) gem.struck( Hero.this, action.dst );
 							Level.set( action.dst, Terrain.EMPTY );
 
 						//1 hunger spent total
@@ -2390,6 +2425,11 @@ public class Hero extends Char {
 							Splash.at(action.dst, 0x555555, 5);
 							Sample.INSTANCE.play( Assets.Sounds.MINE, 0.6f );
 							Level.set( action.dst, Terrain.EMPTY_DECO );
+						}
+
+						//a blow on loose or unpropped rock of a cave may bring the roof down (HazardWatch)
+						if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel){
+							((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).hazards().mined( Hero.this, action.dst, was );
 						}
 
 						for (int i : PathFinder.NEIGHBOURS9) {
@@ -2413,6 +2453,12 @@ public class Hero extends Char {
 									}
 									if (broke){
 										Sample.INSTANCE.play( Assets.Sounds.SHATTER );
+										//on a cave slice every crystal may have held a gem: say what the blow cost
+										if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
+												&& ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).altitude() < 0){
+											xyz.gabriwar.warpedpixeldungeon.net.NetManager.heroLog( Hero.this,
+													GLog.WARNING + Messages.get( xyz.gabriwar.warpedpixeldungeon.items.ore.Gem.class, "shattered" ) );
+										}
 									}
 
 									for (int i : PathFinder.NEIGHBOURS9) {

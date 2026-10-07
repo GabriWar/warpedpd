@@ -209,6 +209,7 @@ public class WorldStructures {
 			nearCache.clear();
 			layoutCache.clear();
 			segCache.clear();
+			fieldCache.clear();
 		}
 	}
 
@@ -395,6 +396,7 @@ public class WorldStructures {
 		final int sx0, sy0, cols, rows;
 		final Site[] types;
 		final float[][] segments;
+		final int[][] fields;
 		SectorView( long seed, int sx0, int sy0, int sx1, int sy1 ){
 			this.seed = seed;
 			this.sx0 = sx0;
@@ -403,13 +405,20 @@ public class WorldStructures {
 			rows = sy1 - sy0 + 1;
 			types = new Site[cols * rows];
 			segments = new float[cols * rows][];
+			fields = new int[cols * rows][];
 			for (int sy = sy0; sy <= sy1; sy++){
 				for (int sx = sx0; sx <= sx1; sx++){
 					int i = (sx - sx0) + (sy - sy0) * cols;
 					types[i] = siteType( seed, sx, sy );
 					segments[i] = roadSegments( seed, sx, sy );
+					fields[i] = types[i] == Site.VILLAGE ? fieldPlots( seed, sx, sy ) : NO_FIELDS;
 				}
 			}
+		}
+		int[] fields( int sx, int sy ){
+			int x = sx - sx0, y = sy - sy0;
+			if (x < 0 || y < 0 || x >= cols || y >= rows) return fieldPlots( seed, sx, sy );
+			return fields[x + y * cols];
 		}
 		Site type( int sx, int sy ){
 			int x = sx - sx0, y = sy - sy0;
@@ -428,6 +437,20 @@ public class WorldStructures {
 		return new SectorView( seed,
 				Math.floorDiv( wx0, SECTOR ) - 1, Math.floorDiv( wy0, SECTOR ) - 1,
 				Math.floorDiv( wx1, SECTOR ) + 1, Math.floorDiv( wy1, SECTOR ) + 1 );
+	}
+
+	/** The site whose built wall stands on a world cell (a village house's shell, a lair's rim),
+	 *  or null when the wall there is the land's own rock. Examine text only, not a hot path. */
+	public static Site wallSite( long seed, int wx, int wy ){
+		int sx = Math.floorDiv( wx, SECTOR ), sy = Math.floorDiv( wy, SECTOR );
+		for (int dy = -1; dy <= 1; dy++){
+			for (int dx = -1; dx <= 1; dx++){
+				Site type = siteType( seed, sx+dx, sy+dy );
+				if (type == Site.NONE) continue;
+				if (siteTerrain( seed, sx+dx, sy+dy, type, wx, wy ) == Terrain.WALL) return type;
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -451,7 +474,22 @@ public class WorldStructures {
 				Site type = view != null ? view.type( sx+dx, sy+dy ) : siteType( seed, sx+dx, sy+dy );
 				if (type == Site.NONE) continue;
 				int t = siteTerrain( seed, sx+dx, sy+dy, type, wx, wy );
+				//a village's fence is not driven into a lake: the water closes the ring there
+				//(open or frozen alike, so the gap does not come and go with the seasons)
+				if (t == Terrain.BARRICADE && (wild == Terrain.WATER || wild == Terrain.FROZEN_WATER)) continue;
 				if (t != -1) return t;
+			}
+		}
+		//the human villages' fields (fieldPlots): laid on dry, level farmland of the annual
+		//mean, so they are ploughed over whatever a season grows on them (a cold winter's
+		//puddles of ice, a warm summer's reeds and pools) - only a cliff never is
+		if (wild != Terrain.WALL){
+			for (int dy = -1; dy <= 1; dy++){
+				for (int dx = -1; dx <= 1; dx++){
+					int[] plots = view != null ? view.fields( sx+dx, sy+dy )
+							: siteType( seed, sx+dx, sy+dy ) == Site.VILLAGE ? fieldPlots( seed, sx+dx, sy+dy ) : NO_FIELDS;
+					if (inField( plots, wx, wy )) return Terrain.FURROWED_GRASS;
+				}
 			}
 		}
 		//roads stop at mountains and walk straight over ice; open water they
@@ -612,6 +650,145 @@ public class WorldStructures {
 		return -1;
 	}
 
+	// ------------------------------------------------------------- fields
+
+	//a human village's ploughed plots lie beyond its paling fence (radius + 2) and the lane
+	//outside it: from ring radius + FIELD_RING0 out, each at most FIELD_DEPTH rings deep
+	public static final int FIELD_RING0 = 4, FIELD_DEPTH = 4;
+	//the outermost ring past its radius any of a village's fields reaches
+	public static final int FIELD_REACH = FIELD_RING0 + FIELD_DEPTH - 1;
+	//the land a field is ploughed on (the annual mean's: a field never comes and goes with the seasons)
+	private static final java.util.EnumSet<WorldModel.Biome> FARMLAND = java.util.EnumSet.of(
+			WorldModel.Biome.PLAINS, WorldModel.Biome.MEADOW, WorldModel.Biome.FOREST, WorldModel.Biome.FOOTHILLS );
+	//how far the grounds of a place other than a village reach from its site (a dragon's lair, the widest)
+	private static final int SITE_REACH = 6;
+	//tries at a plot, and the salt they are rolled with
+	private static final int FIELD_TRIES = 24;
+	private static final long FIELD_SALT = 0xF1E1D5L;
+	static final int[] NO_FIELDS = new int[0];
+	private static final java.util.Map<Long, int[]> fieldCache = new java.util.concurrent.ConcurrentHashMap<>();
+
+	/**
+	 * A human village's fields: two to four ploughed plots outside its fence, 4x3 to 6x4 cells
+	 * with the long side along the fence, as {x0, y0, x1, y1, ...} (world cells, inclusive), in
+	 * the order they were laid out - none for a gnoll or outlaw village. Pure (seed, sector),
+	 * read at the annual mean, so they never come and go with the seasons: each lies on
+	 * farmland on open, level ground (no water, ice or rock, nothing of the mountains' bands),
+	 * a cell clear of every road and of the signpost, clear of the town and of every other
+	 * place's grounds and fields, and a cell clear of the village's other plots. Where the
+	 * land allows fewer, the village has fewer.
+	 */
+	public static int[] fieldPlots( long seed, int sx, int sy ){
+		checkSeed( seed );
+		Long key = sectorKey( sx, sy );
+		int[] cached = fieldCache.get( key );
+		if (cached != null) return cached;
+		int[] plots = computeFieldPlots( seed, sx, sy );
+		fieldCache.put( key, plots );
+		return plots;
+	}
+
+	/** Is the world cell in one of these plots (fieldPlots)? */
+	public static boolean inField( int[] plots, int wx, int wy ){
+		for (int i = 0; i + 3 < plots.length; i += 4){
+			if (wx >= plots[i] && wy >= plots[i+1] && wx <= plots[i+2] && wy <= plots[i+3]) return true;
+		}
+		return false;
+	}
+
+	private static int[] computeFieldPlots( long seed, int sx, int sy ){
+		if (siteType( seed, sx, sy ) != Site.VILLAGE || faction( seed, sx, sy ) != Faction.HUMAN) return NO_FIELDS;
+		int cx = siteX( seed, sx, sy ), cy = siteY( seed, sx, sy );
+		int ring = settlementLayout( seed, sx, sy )[0] + FIELD_RING0;
+		long h = hash( seed ^ FIELD_SALT, sx, sy );
+		int want = 2 + (int) Math.floorMod( h, 3L );
+		java.util.ArrayList<int[]> found = new java.util.ArrayList<>();
+		WorldModel.Sample smp = new WorldModel.Sample();
+		for (int tries = 0; tries < FIELD_TRIES && found.size() < want; tries++){
+			long th = hash( h, tries, FIELD_SALT );
+			int side = (int)(th & 3L);
+			int len = 4 + (int) Math.floorMod( th >>> 2, 3L );    //along the fence
+			int depth = 3 + (int)((th >>> 5) & 1L);              //out from it
+			int along = -ring + (int) Math.floorMod( th >>> 8, (long)(2 * ring + 2 - len) );
+			int x0, y0, x1, y1;
+			switch (side){
+				case 0:   //north
+					x0 = cx + along; x1 = x0 + len - 1; y1 = cy - ring; y0 = y1 - depth + 1;
+					break;
+				case 1:   //east
+					y0 = cy + along; y1 = y0 + len - 1; x0 = cx + ring; x1 = x0 + depth - 1;
+					break;
+				case 2:   //south
+					x0 = cx + along; x1 = x0 + len - 1; y0 = cy + ring; y1 = y0 + depth - 1;
+					break;
+				default:  //west
+					y0 = cy + along; y1 = y0 + len - 1; x1 = cx - ring; x0 = x1 - depth + 1;
+			}
+			if (fieldClear( seed, sx, sy, x0, y0, x1, y1, found, smp )) found.add( new int[]{ x0, y0, x1, y1 } );
+		}
+		int[] out = new int[found.size() * 4];
+		for (int i = 0; i < found.size(); i++) System.arraycopy( found.get( i ), 0, out, i * 4, 4 );
+		return out;
+	}
+
+	//may a plot of the village in (sx, sy) lie on [x0..x1]x[y0..y1]? the cheap questions first
+	private static boolean fieldClear( long seed, int sx, int sy, int x0, int y0, int x1, int y1,
+			java.util.ArrayList<int[]> others, WorldModel.Sample smp ){
+		//a cell clear of the village's other plots
+		for (int[] o : others){
+			if (x0 - 1 <= o[2] && o[0] <= x1 + 1 && y0 - 1 <= o[3] && o[1] <= y1 + 1) return false;
+		}
+		//clear of the town and the pines it spills into (terrainAt: fourteen cells round its walls)
+		if (rectNear( x0, y0, x1, y1, 0, 0, TOWN_SIZE / 2 + 16 )) return false;
+		//clear of every other place's grounds, and of every other village's fields
+		for (int dy = -2; dy <= 2; dy++){
+			for (int dx = -2; dx <= 2; dx++){
+				if (dx == 0 && dy == 0) continue;
+				Site t = siteType( seed, sx+dx, sy+dy );
+				if (t == Site.NONE) continue;
+				int reach = t == Site.VILLAGE ? settlementLayout( seed, sx+dx, sy+dy )[0] + FIELD_REACH + 1 : SITE_REACH;
+				if (rectNear( x0, y0, x1, y1, siteX( seed, sx+dx, sy+dy ), siteY( seed, sx+dx, sy+dy ), reach )) return false;
+			}
+		}
+		//a cell clear of the roads and of the village's signpost (siteTerrain)
+		int cx = siteX( seed, sx, sy ), cy = siteY( seed, sx, sy );
+		int radius = settlementLayout( seed, sx, sy )[0];
+		long nv = nearestVillage( seed, sx, sy );
+		int signX = Integer.MIN_VALUE, signY = Integer.MIN_VALUE;
+		if (nv != Long.MIN_VALUE){
+			float ddx = siteX( seed, (int)(nv >> 32), (int) nv ) - cx, ddy = siteY( seed, (int)(nv >> 32), (int) nv ) - cy;
+			float dl = (float) Math.sqrt( ddx*ddx + ddy*ddy );
+			if (dl > 0){
+				signX = cx + Math.round( ddx / dl * (radius + 2) );
+				signY = cy + Math.round( ddy / dl * (radius + 2) ) + 1;
+			}
+		}
+		for (int wy = y0 - 1; wy <= y1 + 1; wy++){
+			for (int wx = x0 - 1; wx <= x1 + 1; wx++){
+				if (wx == signX && wy == signY) return false;
+				if (onRoad( seed, wx, wy )) return false;
+			}
+		}
+		//farmland, open and level, at the annual mean
+		for (int wy = y0; wy <= y1; wy++){
+			for (int wx = x0; wx <= x1; wx++){
+				WorldModel.sample( seed, wx, wy, 0f, smp );
+				if (!FARMLAND.contains( smp.biome ) || WorldLayers.band( smp.elev ) != 0) return false;
+				int wild = WorldModel.wildTerrain( seed, wx, wy, smp );
+				if (wild == Terrain.WATER || wild == Terrain.DEEP_WATER || wild == Terrain.FROZEN_WATER
+						|| wild == Terrain.WALL) return false;
+			}
+		}
+		return true;
+	}
+
+	//does the rect come within `reach` cells (Chebyshev) of (x, y)?
+	private static boolean rectNear( int x0, int y0, int x1, int y1, int x, int y, int reach ){
+		int dx = x < x0 ? x0 - x : x > x1 ? x - x1 : 0;
+		int dy = y < y0 ? y0 - y : y > y1 ? y - y1 : 0;
+		return Math.max( dx, dy ) <= reach;
+	}
+
 	/** The doorway of the house at layout offset (hcx, hcy), relative to the
 	 *  settlement centre: the middle of the wall on the axis facing the well. */
 	public static int houseDoorDX( int hcx, int hcy ){
@@ -712,5 +889,41 @@ public class WorldStructures {
 		layout[0] = maxR;
 		layoutCache.put( key, layout );
 		return layout;
+	}
+
+	/** How many of a settlement's houses have folk in them: the most central ones (the layout
+	 *  runs centre-out), at most ten, so a city's crowd stays capped. The families
+	 *  (OverworldLevel.populateSettlement) and the lit hearths (SettlementLights) both read it. */
+	public static int populatedHouses( int houses ){
+		return Math.min( houses, 10 );
+	}
+
+	/**
+	 * The settlements around a world cell: every VILLAGE site within `sectors` sectors
+	 * (Chebyshev) of the cell's own, of the faction asked (null for any) and at least
+	 * minHouses houses, nearest first (squared distance from the cell to the well, ties by
+	 * sector key). Each is {sx, sy, cx, cy, houses}. Debug scenes and tests find their
+	 * villages here.
+	 */
+	public static java.util.ArrayList<int[]> settlementsNear( long seed, int wx, int wy, Faction faction,
+			int minHouses, int sectors ){
+		int sx0 = Math.floorDiv( wx, SECTOR ), sy0 = Math.floorDiv( wy, SECTOR );
+		java.util.ArrayList<int[]> out = new java.util.ArrayList<>();
+		for (int sy = sy0 - sectors; sy <= sy0 + sectors; sy++){
+			for (int sx = sx0 - sectors; sx <= sx0 + sectors; sx++){
+				if (siteType( seed, sx, sy ) != Site.VILLAGE) continue;
+				if (faction != null && faction( seed, sx, sy ) != faction) continue;
+				int houses = (settlementLayout( seed, sx, sy ).length - 1) / 2;
+				if (houses < minHouses) continue;
+				out.add( new int[]{ sx, sy, siteX( seed, sx, sy ), siteY( seed, sx, sy ), houses } );
+			}
+		}
+		out.sort( (a, b) -> {
+			long da = (long)(a[2] - wx) * (a[2] - wx) + (long)(a[3] - wy) * (a[3] - wy);
+			long db = (long)(b[2] - wx) * (b[2] - wx) + (long)(b[3] - wy) * (b[3] - wy);
+			if (da != db) return Long.compare( da, db );
+			return Long.compare( sectorOf( a[0], a[1] ), sectorOf( b[0], b[1] ) );
+		} );
+		return out;
 	}
 }

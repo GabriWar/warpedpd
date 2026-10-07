@@ -27,7 +27,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.effects.TargetedCell;
-import xyz.gabriwar.warpedpixeldungeon.levels.VaultLevel;
 import com.watabou.noosa.Game;
 import com.watabou.utils.Bundlable;
 import com.watabou.utils.Bundle;
@@ -105,7 +104,7 @@ public abstract class Actor implements Bundlable {
 		time = now;
 	}
 
-	//used when now is being cleared as a part of statix fixTime()
+	//used when now is being cleared as a part of static fixTime()
 	public void fixTime(float decrement){
 		time -= decrement;
 	}

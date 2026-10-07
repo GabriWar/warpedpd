@@ -31,7 +31,6 @@ import xyz.gabriwar.warpedpixeldungeon.levels.VaultLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.features.LevelTransition;
 import xyz.gabriwar.warpedpixeldungeon.scenes.InterlevelScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import xyz.gabriwar.warpedpixeldungeon.ui.QuickSlotButton;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Imp;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.VaultTokenDoor;
@@ -313,7 +312,7 @@ public class EscapeCrystal extends Item {
 		storedItems.put(ENERGY, Dungeon.energy);
 
 		Dungeon.quickslot.reset();
-		QuickSlotButton.reset();
+		updateQuickslot();
 		Dungeon.gold = Dungeon.energy = 0;
 		hero.belongings.clear();
 	}
@@ -328,7 +327,7 @@ public class EscapeCrystal extends Item {
 
 		Dungeon.quickslot.reset();
 		Dungeon.quickslot.restorePlaceholders(storedItems.getBundle(QUICKSLOTS));
-		QuickSlotButton.reset();
+		updateQuickslot();
 
 		Dungeon.hero.belongings.restoreFromBundle(storedItems.getBundle(BELONGINGS));
 

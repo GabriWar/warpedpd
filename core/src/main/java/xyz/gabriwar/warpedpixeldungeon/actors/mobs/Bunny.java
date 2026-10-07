@@ -26,6 +26,7 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.items.food.MysteryMeat;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.BunnyVariantSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import com.watabou.utils.Bundle;
@@ -48,6 +49,19 @@ public class Bunny extends Mob {
 	}
 
 	public int tint = Random.Int( 6 );
+
+	//a hare of the high pastures (OverworldFauna puts it there): its coat is grown for the cold the slices hold
+	public boolean alpine = false;
+
+	public void setAlpine(){
+		alpine = true;
+		thermal = Thermal.COLD_DWELLER;
+	}
+
+	@Override
+	public String description() {
+		return alpine ? Messages.get( this, "alpine_desc" ) : super.description();
+	}
 
 	@Override
 	public CharSprite sprite() {
@@ -75,16 +89,19 @@ public class Bunny extends Mob {
 	}
 
 	private static final String TINT = "tint";
+	private static final String ALPINE = "alpine";
 
 	@Override
 	public void storeInBundle( Bundle bundle ) {
 		super.storeInBundle( bundle );
 		bundle.put( TINT, tint );
+		bundle.put( ALPINE, alpine );
 	}
 
 	@Override
 	public void restoreFromBundle( Bundle bundle ) {
 		super.restoreFromBundle( bundle );
 		tint = bundle.getInt( TINT );
+		if (bundle.contains( ALPINE ) && bundle.getBoolean( ALPINE )) setAlpine();
 	}
 }

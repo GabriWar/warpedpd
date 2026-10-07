@@ -83,7 +83,8 @@ public class Pickaxe extends MeleeWeapon {
 		xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel ow
 				= (xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level;
 		int cell = hero.pos;
-		if (!ow.fallsThrough( cell ) || ow.inTown( cell ) || !ow.insideMap( cell )) return false;
+		//never down onto a sealed tomb of the slice below (levels/overworld/CaveSites)
+		if (!ow.fallsThrough( cell ) || ow.inTown( cell ) || !ow.insideMap( cell ) || ow.sealedBelow( cell )) return false;
 		int t = Dungeon.level.map[cell];
 		return (xyz.gabriwar.warpedpixeldungeon.levels.Terrain.flags[t] & xyz.gabriwar.warpedpixeldungeon.levels.Terrain.LIQUID) == 0
 				&& t != xyz.gabriwar.warpedpixeldungeon.levels.Terrain.BRIDGE

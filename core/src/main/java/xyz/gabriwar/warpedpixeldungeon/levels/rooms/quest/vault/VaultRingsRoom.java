@@ -23,10 +23,13 @@ package xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.vault;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.quest.vault.VaultDM100;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.quest.vault.VaultSkeleton;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.VaultLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.painters.Painter;
+import xyz.gabriwar.warpedpixeldungeon.levels.rooms.Room;
 import com.watabou.utils.Point;
 import com.watabou.utils.Random;
 
@@ -48,14 +51,31 @@ public class VaultRingsRoom extends VaultRoom {
 			door.set( Door.Type.REGULAR );
 		}
 
+		boolean nextToEntry = false;
+		for (Room r : connected.keySet()){
+			if (r.isEntrance()){
+				nextToEntry = true;
+			}
+		}
+
 		Mob enemy;
+		boolean valid;
 		ArrayList<Class<?extends Mob>> toReturn = new ArrayList<>();
 		do {
+			valid = true;
 			enemy = level.createMob();
+			//no space for large enemies
 			if (Char.hasProp(enemy, Char.Property.LARGE)){
+				valid = false;
+			}
+			//only T1 enemies next to entrance
+			if (nextToEntry && !(enemy instanceof VaultSkeleton || enemy instanceof VaultDM100)){
+				valid = false;
+			}
+			if (!valid){
 				toReturn.add(enemy.getClass());
 			}
-		} while (Char.hasProp(enemy, Char.Property.LARGE));
+		} while (!valid);
 		do {
 			enemy.pos = level.pointToCell(random(1));
 		} while (level.map[enemy.pos] == Terrain.WALL);

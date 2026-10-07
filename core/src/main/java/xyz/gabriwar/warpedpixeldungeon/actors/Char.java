@@ -466,6 +466,8 @@ public abstract class Char extends Actor {
 		if (enemy == null) return false;
 		
 		boolean visibleFight = Dungeon.level.heroFOV[pos] || Dungeon.level.heroFOV[enemy.pos];
+		//a fight in sight scatters the surface's birds and hares (pictures only)
+		if (visibleFight) xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldCritters.noise( pos );
 
 		if (enemy.isInvulnerable(getClass())) {
 
@@ -995,6 +997,10 @@ public abstract class Char extends Actor {
 				cachedIncomingDOT += Math.round(resist(b.getClass()) * ((Buff.DOTbuff) b).totalIncomingDMG());
 			}
 		}
+		for (ChampionEnemy buff : buffs(ChampionEnemy.class)){
+			cachedIncomingDOT = (int) Math.ceil(cachedIncomingDOT * buff.damageTakenFactor());
+		}
+
 		needsIncomingDOTUpdate = false;
 		return cachedIncomingDOT;
 	}

@@ -184,6 +184,36 @@ public class DungeonTileSheet {
 	public static final int DIRT_PATH_TILE    = WARPED_TILES+6;
 	public static final int WAYSTONE_TILE     = WARPED_TILES+7;
 	public static final int BRIDGE_TILE       = WARPED_TILES+8;
+	//a surface village's field by the season (tools/field_tiles_gen.py, overworld tiles only):
+	//shoots in spring, green wheat in summer, ripe gold in autumn, snow in the furrows in winter
+	public static final int FIELD_SPRING      = WARPED_TILES+9;
+	public static final int FIELD_SPRING_ALT  = WARPED_TILES+10;
+	public static final int FIELD_SUMMER      = WARPED_TILES+11;
+	public static final int FIELD_SUMMER_ALT  = WARPED_TILES+12;
+	public static final int FIELD_AUTUMN      = WARPED_TILES+13;
+	public static final int FIELD_AUTUMN_ALT  = WARPED_TILES+14;
+	public static final int FIELD_WINTER      = WARPED_TILES+15;
+
+	/** Is the FURROWED_GRASS on this cell of the level farm ground rather than the warden's
+	 *  furrowed grass - the safe zone's tilled plots, a surface village's fields? Then none of
+	 *  the grass's raised tuft, its overhang on the wall above or its stage dressing is drawn
+	 *  over it: every one of the four layers that draw it asks here. */
+	public static boolean tilledSoil( int pos ){
+		xyz.gabriwar.warpedpixeldungeon.levels.Level l = Dungeon.level;
+		return l instanceof xyz.gabriwar.warpedpixeldungeon.levels.SafeLevel
+				|| (l instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
+					&& ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) l).fieldAt( pos ));
+	}
+
+	/** A surface village's field in a season (OverworldLevel.fieldSeason). */
+	public static int fieldTile( xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar.Season season, int pos ){
+		switch (season){
+			case SPRING: return getVisualWithAlts( FIELD_SPRING, pos );
+			case SUMMER: return getVisualWithAlts( FIELD_SUMMER, pos );
+			case AUTUMN: return getVisualWithAlts( FIELD_AUTUMN, pos );
+			default:     return FIELD_WINTER;
+		}
+	}
 
 	//These tiles can stitch with water
 	public static HashSet<Integer> waterStitcheable = new HashSet<>(Arrays.asList(
@@ -236,6 +266,87 @@ public class DungeonTileSheet {
 		if (waterStitcheable(bottom))   result += 4;
 		if (waterStitcheable(left))     result += 8;
 		return result;
+	}
+
+	//the surface's shores in the grounds they lie against, side by side (tiles_overworld rows
+	//18-57, tools/water_shore_gen.py): row 2's shapes with each bank's lip in that bank's own
+	//ground, so a pond is not framed in dark green on a road square, a beach or the snow, nor
+	//green on its sandy side where grass lies on another. for side mask m the tiles start at
+	//WATER_SHORE + SHORE_OFFSET[m], and each bank side (top, right, bottom, left order) is one
+	//base-4 digit of the ground: 0 grass, 1 dirt, 2 sand, 3 snow
+	public static final int WATER_SHORE = xy(1, 19);   //625 slots
+	//open water seen from high above, for the view down from a mountain (tools/below_view_gen.py:
+	//a still, darker crop of the surface's water texture; WindowGenerator.belowTile)
+	public static final int BELOW_WATER = xy(1, 59);
+	//the shade a drop's rims cast into it, by the mask of its eight neighbours that stand
+	//higher (1 N, 2 NE, 4 E, 8 SE, 16 S, 32 SW, 64 W, 128 NW; 1..255): the 16 rows under the water
+	public static int belowShade( int mask ){
+		return xy(1, 60) + mask;
+	}
+
+	//the overworld's rock seen as the land it is (tools/rock_top_gen.py): an earthen scarp's face
+	//and lip, the rims of the rock's tops, and the lips over them showing their ground
+	private static final int EARTH_FACES     = xy(1, 76);  //RAISED_WALL +0..3, then RAISED_WALL_ALT +0..3
+	private static final int EARTH_OVERHANGS = xy(9, 76);  //WALL_OVERHANG +0..3
+	private static final int ROCK_RIMS       = xy(1, 77);  //stone, by the internal stitch's mask; earthen the row under
+	private static final int ROCK_TOP_LIPS   = xy(1, 79);  //per ground 8: stone lips +0..3, earthen +4..7
+	private static final int[] ROCK_TOP_GROUNDS = { GRASS, FLOOR, FLOOR_SP, SNOW_TILE, DIRT_PATH_TILE, FROZEN_WATER, BELOW_WATER };
+
+	/** A stone scarp's face or lip as the same piece in earth; any other visual as it is. */
+	public static int earthen( int visual ){
+		if (visual >= RAISED_WALL && visual < RAISED_WALL + 4)         return EARTH_FACES + (visual - RAISED_WALL);
+		if (visual >= RAISED_WALL_ALT && visual < RAISED_WALL_ALT + 4) return EARTH_FACES + 4 + (visual - RAISED_WALL_ALT);
+		if (visual >= WALL_OVERHANG && visual < WALL_OVERHANG + 4)     return EARTH_OVERHANGS + (visual - WALL_OVERHANG);
+		return visual;
+	}
+
+	//stitchInternalWallTile's own bits
+	public static final int RIM_EAST = 1, RIM_EAST_BELOW = 2, RIM_WEST_BELOW = 4, RIM_WEST = 8;
+
+	/** The rim of a rock top: the internal wall's own stitch on a clear roof, so the top's own
+	 *  ground shows through. */
+	public static int rockRim( int mask, boolean earth ){
+		return ROCK_RIMS + (earth ? 16 : 0) + (mask & 15);
+	}
+
+	/** A wall's lip (stitchWallOverhangTile) over rock whose top shows this ground, earthen or
+	 *  not; any other visual as it is. */
+	public static int rockTopLip( int lip, int topGround, boolean earth ){
+		int m = lip - WALL_OVERHANG;
+		if (m < 0 || m > 3) return lip;
+		for (int i = 0; i < ROCK_TOP_GROUNDS.length; i++){
+			if (ROCK_TOP_GROUNDS[i] == topGround) return ROCK_TOP_LIPS + i * 8 + (earth ? 4 : 0) + m;
+		}
+		return earth ? earthen( lip ) : lip;
+	}
+
+
+	private static final int[] SHORE_OFFSET = new int[16];
+	static {
+		int total = 0;
+		for (int m = 0; m < 16; m++){
+			SHORE_OFFSET[m] = total;
+			total += 1 << (2 * Integer.bitCount(m));
+		}
+	}
+
+	//the shore ground a bank terrain shows: the surface's bare grounds, else its grass
+	private static int shoreGround(int t){
+		return t == Terrain.DIRT_PATH ? 1 : t == Terrain.EMPTY_SP ? 2 : t == Terrain.SNOW ? 3 : 0;
+	}
+
+	/** A surface water tile: the shape stitchWaterTile gives, each bank in its own ground. */
+	public static int stitchOverworldWater(int top, int right, int bottom, int left){
+		int mask = stitchWaterTile(top, right, bottom, left) - WATER;
+		if (mask == 0) return WATER;
+		int[] sides = { top, right, bottom, left };
+		int combo = 0, digit = 1;
+		for (int i = 0; i < 4; i++){
+			if ((mask & (1 << i)) == 0) continue;
+			combo += shoreGround(sides[i]) * digit;
+			digit *= 4;
+		}
+		return WATER_SHORE + SHORE_OFFSET[mask] + combo;
 	}
 
 	// Frozen water uses the same stitching logic and stitcheable set as regular water,
@@ -624,6 +735,9 @@ public class DungeonTileSheet {
 		tileAltVisuals.put(GRASS,           new tileAlt(new float[]{50f}, GRASS_ALT));
 		//Warped: tilled farm soil, 47.5% common alt / 5% rare alt like the floor
 		tileAltVisuals.put(TILLED_SOIL,     new tileAlt(new float[]{52.5f, 5f}, TILLED_SOIL_ALT, TILLED_SOIL_RARE));
+		tileAltVisuals.put(FIELD_SPRING,    new tileAlt(new float[]{50f}, FIELD_SPRING_ALT));
+		tileAltVisuals.put(FIELD_SUMMER,    new tileAlt(new float[]{50f}, FIELD_SUMMER_ALT));
+		tileAltVisuals.put(FIELD_AUTUMN,    new tileAlt(new float[]{50f}, FIELD_AUTUMN_ALT));
 		tileAltVisuals.put(FLAT_WALL,       new tileAlt(new float[]{50f}, FLAT_WALL_ALT));
 		tileAltVisuals.put(EMBERS,          new tileAlt(new float[]{50f}, EMBERS_ALT));
 		tileAltVisuals.put(FLAT_WALL_DECO,  new tileAlt(new float[]{50f}, FLAT_WALL_DECO_ALT));

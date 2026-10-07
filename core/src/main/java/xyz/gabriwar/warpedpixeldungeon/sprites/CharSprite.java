@@ -146,7 +146,7 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 	
 	@Override
 	public void play(Animation anim) {
-		//Shouldn't interrupt the dieing animation
+		//Shouldn't interrupt the dying animation
 		if (curAnim == null || curAnim != die) {
 			super.play(anim);
 		}
@@ -187,7 +187,7 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 
 	//used for just updating a sprite based on a given character, not linking them or placing in the game
 	public void linkVisuals( Char ch ){
-		//do nothin by default
+		//do nothing by default
 	}
 	
 	public PointF worldToCamera( int cell ) {
@@ -352,7 +352,7 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 		} );
 
 		//neither of these touches the sprite's own state: no lock held for them
-		if (visible && Dungeon.level.water[from] && !ch.flying) {
+		if (visible && Dungeon.level.water[from] && ch != null && !ch.flying) {
 			GameScene.ripple( from );
 		}
 
@@ -895,7 +895,7 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 		synchronized (EmoIcon.class) {
 			boolean wandering = !sleeping
 					&& ch instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob
-					&& ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob) ch).isWanderingUnaware();
+					&& ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob) ch).showsUnaware();
 			// Awareness and sleep icons take priority over the idle wandering indicator.
 			if (wandering && emo == null) {
 				emo = new EmoIcon.Wandering(this);
@@ -1091,7 +1091,7 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 
 				motion.killAndErase();
 				motion = null;
-				ch.onMotionComplete();
+				if (ch != null) ch.onMotionComplete();
 				// Net MP: if this sprite is mid-chain (driven by NetVisuals queue
 				// for a remote actor), kick the next step / idle. Needed because
 				// Hero.onMotionComplete() doesn't know about NetVisuals — without

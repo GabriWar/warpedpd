@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.vault;
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
@@ -31,7 +32,9 @@ import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.VaultLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.painters.Painter;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.Room;
+import xyz.gabriwar.warpedpixeldungeon.tiles.CustomTilemap;
 import xyz.gabriwar.warpedpixeldungeon.tiles.custom.Carpet;
+import com.watabou.noosa.Tilemap;
 import com.watabou.utils.Point;
 import com.watabou.utils.Random;
 
@@ -106,6 +109,10 @@ public class VaultTokensRoom extends VaultLongRoom {
 		door.pos = c.x + (c.y+3)*level.width();
 		level.mobs.add(door);
 
+		TokenDoorFloor doorFloor = new TokenDoorFloor();
+		doorFloor.pos(door.pos, level);
+		level.customTiles.add(doorFloor);
+
 		VaultMirror mirror = new VaultMirror();
 		mirror.createReward(Dungeon.hero.heroClass);
 		mirror.pos = c.x + (c.y-1)*level.width();
@@ -153,8 +160,6 @@ public class VaultTokensRoom extends VaultLongRoom {
 			((VaultLevel) level).returnMob(cls);
 		}
 
-		//TODO okay lots of token stuff to do here!
-
 	}
 
 	@Override
@@ -199,5 +204,39 @@ public class VaultTokensRoom extends VaultLongRoom {
 	public boolean canPlaceCharacter(Point p, Level l) {
 		//no random placement in inner area
 		return super.canPlaceCharacter(p, l) && l.map[l.pointToCell(p)] != Terrain.EMPTY_SP;
+	}
+
+	//basically just here so the floor looks like sp tiles
+	public static class TokenDoorFloor extends CustomTilemap {
+
+		{
+			texture = Assets.Environment.CITY_QUEST;
+			tileW = tileH = 1;
+		}
+
+		@Override
+		public Tilemap create() {
+			Tilemap v = super.create();
+			int[] data = new int[1];
+			updateCell(0, data);
+			v.map( data, tileW );
+			return v;
+		}
+
+		@Override
+		protected boolean updateCell(int cell, int[] data){
+			cell = tileX + tileY*Dungeon.level.width();
+			if (Dungeon.level.map[cell] != Terrain.DOOR){
+				data[0] = 16*9 + 1;
+			} else {
+				data[0] = 16*9;
+			}
+			return true;
+		}
+
+		@Override
+		protected void updateAll(int[] data) {
+			updateCell(0, data);
+		}
 	}
 }

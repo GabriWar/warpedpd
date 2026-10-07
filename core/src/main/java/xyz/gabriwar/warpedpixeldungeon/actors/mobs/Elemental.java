@@ -85,7 +85,7 @@ public abstract class Elemental extends Mob {
 	@Override
 	public int damageRoll() {
 		if (!summonedALly) {
-			return Random.NormalIntRange(16, 20 + Dungeon.depth);
+			return Random.NormalIntRange(16, 20 + statDepth());
 		} else {
 			int regionScale = Math.max(2, (1 + Dungeon.scalingDepth()/5));
 			return Random.NormalIntRange(5*regionScale, 5 + 5*regionScale);
@@ -100,6 +100,13 @@ public abstract class Elemental extends Mob {
 			int regionScale = Math.max(2, (1 + Dungeon.scalingDepth()/5));
 			return 5 + 5*regionScale;
 		}
+	}
+
+	//born to the floor's depth: tuned to another, it is the elemental of that one (a summoned ally keeps its own scale)
+	@Override
+	public void setStatDepth( int depth ){
+		super.setStatDepth( depth );
+		if (!summonedALly) HP = HT = 65 + depth;
 	}
 
 	public void setSummonedALly(){

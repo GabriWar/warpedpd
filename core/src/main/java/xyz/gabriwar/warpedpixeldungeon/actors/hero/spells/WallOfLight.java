@@ -35,7 +35,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.HolyTome;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
-import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -173,7 +172,7 @@ public class WallOfLight extends TargetedClericSpell {
 
 		int knockBackDir = PathFinder.CIRCLE8[closestIdx];
 
-		//if all 3 tiles infront of Paladin are blocked, assume cast was in error and cancel
+		//if all 3 tiles in front of Paladin are blocked, assume cast was in error and cancel
 		if (Dungeon.level.solid[closest]
 				&& Dungeon.level.solid[hero.pos + PathFinder.CIRCLE8[(closestIdx+1)%8]]
 				&& Dungeon.level.solid[hero.pos + PathFinder.CIRCLE8[(closestIdx+7)%8]]){

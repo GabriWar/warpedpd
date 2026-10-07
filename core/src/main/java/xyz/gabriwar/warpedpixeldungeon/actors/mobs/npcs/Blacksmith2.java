@@ -24,30 +24,40 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs;
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.WorldClock;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.AdamantArmor;
 import xyz.gabriwar.warpedpixeldungeon.items.AdamantRing;
 import xyz.gabriwar.warpedpixeldungeon.items.AdamantWand;
 import xyz.gabriwar.warpedpixeldungeon.items.AdamantWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
+import xyz.gabriwar.warpedpixeldungeon.items.StarFragment;
+import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
+import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
+import xyz.gabriwar.warpedpixeldungeon.items.ore.Ore;
 import xyz.gabriwar.warpedpixeldungeon.items.rarity.MasterworkCore;
 import xyz.gabriwar.warpedpixeldungeon.items.quest.DarkGold;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.Ring;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.Wand;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.Ores;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.BlacksmithSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBlacksmith2;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndQuest;
 import com.watabou.noosa.Game;
+import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 
 public class Blacksmith2 extends NPC {
@@ -84,12 +94,16 @@ public class Blacksmith2 extends NPC {
 			public void call() {
 				GameScene.show( new WndOptions( sprite(), Messages.titleCase( name() ),
 						Messages.get( Blacksmith2.this, "menu" ),
-						MasterworkCore.menuOptions( Messages.get( Blacksmith2.this, "opt_reinforce" ) ) ){
+						MasterworkCore.menuOptions( Messages.get( Blacksmith2.this, "opt_reinforce" ),
+								Messages.get( Blacksmith2.this, "opt_starforge" ),
+								Messages.get( Blacksmith2.this, "opt_smelt" ) ) ){
 					@Override
 					protected void onSelect( int index ){
 						if (index == 0) coreWork( true );
 						else if (index == 1) coreWork( false );
 						else if (index == 2) reinforce();
+						else if (index == 3) starForge();
+						else if (index == 4) smelt();
 					}
 				} );
 			}
@@ -117,6 +131,123 @@ public class Blacksmith2 extends NPC {
 		} else {
 			GameScene.show( new WndBlacksmith2( Blacksmith2.this, Dungeon.hero ) );
 		}
+	}
+
+	//two fragments of a fallen star folded together into a masterwork core: star-metal takes the
+	//work like nothing dug out of the ground (items/StarFragment, levels/overworld/WorldEvents)
+	private void starForge(){
+		StarFragment shards = Dungeon.hero.belongings.getItem( StarFragment.class );
+		if (shards == null || shards.quantity() < 2){
+			tell( Messages.get( this, "no_fragments" ) );
+			return;
+		}
+		if (shards.quantity() == 2) shards.detachAll( Dungeon.hero.belongings.backpack );
+		else shards.quantity( shards.quantity() - 2 );
+		Item.updateQuickslot();
+		MasterworkCore core = new MasterworkCore();
+		if (!core.collect( Dungeon.hero.belongings.backpack )){
+			Dungeon.level.drop( core, Dungeon.hero.pos ).sprite.drop();
+		}
+		Sample.INSTANCE.play( Assets.Sounds.EVOKE );
+		Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 8 );
+		GLog.p( Messages.get( this, "starforged" ) );
+		Dungeon.hero.spendAndNext( 2f );
+	}
+
+	//ore dug out of the world's rock (items/ore, levels/overworld/Ores) poured into masterwork cores,
+	//one crucible a day; the rarest metals pay for their filings on top (the rates and why they are
+	//what they are: Ores.Kind)
+	private void smelt(){
+		if (Dungeon.hero.belongings.getItem( Ore.class ) == null){
+			tell( Messages.get( this, "no_ore" ) );
+			return;
+		}
+		if (firedToday( Dungeon.hero )){
+			tell( Messages.get( this, "smelt_tomorrow" ) );
+			return;
+		}
+		GameScene.selectItem( new WndBag.ItemSelector(){
+			@Override
+			public String textPrompt(){
+				return Messages.get( Blacksmith2.class, "smelt_prompt" );
+			}
+			@Override
+			public Class<? extends Bag> preferredBag(){
+				return xyz.gabriwar.warpedpixeldungeon.actors.hero.Belongings.Backpack.class;
+			}
+			@Override
+			public boolean itemSelectable( Item item ){
+				return item instanceof Ore;
+			}
+			@Override
+			public void onSelect( Item item ){
+				if (item instanceof Ore) smeltStack( (Ore) item );
+			}
+		} );
+	}
+
+	private void smeltStack( Ore ore ){
+		int have = ore.quantity();
+		String name = ore.name();
+		Ores.Kind k = ore.kind();
+		if (!pourCrucible( Dungeon.hero, ore, false )){
+			tell( Messages.get( this, "smelt_short", k.batch, name, have ) );
+			return;
+		}
+		Sample.INSTANCE.play( Assets.Sounds.EVOKE );
+		Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.FORGE ), 8 );
+		GLog.p( Messages.get( this, "smelted", k.batch, name ) );
+		if (k.bonus > 0) GLog.p( Messages.get( this, "smelted_bonus", k.bonus ) );
+		Dungeon.hero.spendAndNext( 2f );
+	}
+
+	/** Has this hero had his crucible today? One a day whichever forge pours it: the day is kept
+	 *  on the hero (Hero.smeltDay), so neither a deep forge of every rift nor the copy of the troll
+	 *  his commute makes each morning (TownCommute) is a second one. */
+	public static boolean firedToday( Hero hero ){
+		return hero.smeltDay == WorldClock.day();
+	}
+
+	/** Today's crucible from this stack, at the troll's forge or a deep one: whether it was poured
+	 *  (not when the hero had his today, nor when the stack is short of a batch - then nothing is
+	 *  taken). */
+	public static boolean pourCrucible( Hero hero, Ore ore, boolean deepForge ){
+		if (firedToday( hero ) || !smeltInto( hero, ore, deepForge )) return false;
+		hero.smeltDay = WorldClock.day();
+		return true;
+	}
+
+	/** The forge's side of smelting: one batch taken from the stack, the core into the hero's pack
+	 *  (or at his feet), the filings paid for. Whether it was poured: not when the stack is short of
+	 *  a batch, and then nothing is taken. */
+	public static boolean smeltInto( Hero hero, Ore ore ){
+		return smeltInto( hero, ore, false );
+	}
+
+	/** ...at the troll's forge, or at the deep forge by the burning rift (CaveSites, DwarvenForge):
+	 *  its heat takes the rarest metals in smaller batches (Ores.Kind.forgeBatch), and no one there
+	 *  buys the filings. One crucible a day either way (pourCrucible). */
+	public static boolean smeltInto( Hero hero, Ore ore, boolean deepForge ){
+		Ores.Kind k = ore.kind();
+		int batch = deepForge ? k.forgeBatch() : k.batch;
+		if (ore.quantity() < batch) return false;
+		castCore( hero, ore, batch, deepForge ? 0 : k.bonus );
+		return true;
+	}
+
+	//a batch taken from the stack, the core into the hero's pack (or at his feet), the filings' gold paid
+	private static void castCore( Hero hero, Ore ore, int batch, int bonus ){
+		int have = ore.quantity();
+		if (batch == have) ore.detachAll( hero.belongings.backpack );
+		else ore.quantity( have - batch );
+		Item.updateQuickslot();
+		Item core = new MasterworkCore();
+		if (!core.collect( hero.belongings.backpack )){
+			Heap h = Dungeon.level.drop( core, hero.pos );
+			if (h.sprite != null) h.sprite.drop();
+		}
+		//straight into the purse, like a sale (Shopkeeper.paySale)
+		if (bonus > 0) Shopkeeper.paySale( hero, bonus );
 	}
 
 	public static String verify( Item item1, Item item2 ) {

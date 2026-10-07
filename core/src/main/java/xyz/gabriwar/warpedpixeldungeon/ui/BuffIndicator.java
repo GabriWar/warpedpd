@@ -177,6 +177,8 @@ public class BuffIndicator extends Component {
 	public static final int DUEL_EVIL       = 111;
 	public static final int DUEL_BOW        = 112;
 	public static final int ARROW_ATTACHED  = 113;
+	//thin air on the world's high slices (actors/buffs/Breathless)
+	public static final int BREATHLESS      = 114;
 
 	public static final int SIZE_SMALL  = 7;
 	public static final int SIZE_LARGE  = 16;

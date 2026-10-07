@@ -96,6 +96,10 @@ public class Regeneration extends Buff {
 				int skillRegen = Dungeon.hero.heroSkills.allHealthRegen();
 				if (skillRegen > 0) delay /= Math.pow( 1.2, skillRegen );
 
+				//thin air on the world's high slices (Breathless)
+				Breathless thin = target.buff( Breathless.class );
+				if (thin != null) delay /= thin.regenFactor();
+
 				partialRegen += 1f / delay;
 
 				if (partialRegen >= 1) {

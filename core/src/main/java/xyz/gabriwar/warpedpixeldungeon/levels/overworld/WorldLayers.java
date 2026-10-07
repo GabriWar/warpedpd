@@ -64,6 +64,18 @@ public final class WorldLayers {
 		return Integer.MIN_VALUE;
 	}
 
+	/** The dungeon depth a slice's dangers are tuned to (Dungeon.harmDepth, the slices' creatures):
+	 *  the caves from the dungeon's caves (14) down to its halls (30), the peaks from 14 up to 28;
+	 *  -1 for the surface, which is not tuned this way. */
+	public static int statDepth( int altitude ){
+		if (altitude == 0) return -1;
+		if (altitude < 0){
+			int d = -altitude;
+			return d <= 3 ? 14 : d <= 6 ? 19 : d <= 9 ? 24 : 30;
+		}
+		return altitude <= 3 ? 14 : altitude <= 7 ? 20 : 28;
+	}
+
 	public static boolean isLayerDepth( int depth ){
 		return altitudeOf( depth ) != Integer.MIN_VALUE;
 	}

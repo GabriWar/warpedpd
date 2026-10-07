@@ -24,10 +24,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs;
 
-import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.VillagerSprite;
 import com.watabou.utils.Bundle;
@@ -37,7 +35,7 @@ import com.watabou.utils.Random;
  * A settlement dweller: pure ambience. Wanders the village, chats when
  * bumped, can't be hurt. Look and colours are rolled at spawn.
  */
-public class Villager extends NPC {
+public class Villager extends Settler {
 
 	{
 		spriteClass = VillagerSprite.class;
@@ -62,27 +60,18 @@ public class Villager extends NPC {
 	}
 
 	@Override
-	protected boolean act() {
-		throwItems();
-		//cheap ambling: one free adjacent step now and then, zero pathfinding.
-		//a metropolis can hold dozens of these - the default wandering AI runs
-		//a pathfind per mob per turn and was a real source of turn lag
-		//settlers keep to their beds at night
-		if (sprite != null && !Shopkeeper.closedForNight() && Random.Int( 3 ) == 0){
-			int step = pos + com.watabou.utils.PathFinder.NEIGHBOURS8[Random.Int( 8 )];
-			if (step >= 0 && step < Dungeon.level.length()
-					&& Dungeon.level.passable[step]
-					&& !Dungeon.level.avoid[step]
-					//tall grass tramples roll loot for ANY walker - a town of
-					//amblers would slowly carpet itself in seeds
-					&& Dungeon.level.map[step] != xyz.gabriwar.warpedpixeldungeon.levels.Terrain.HIGH_GRASS
-					&& xyz.gabriwar.warpedpixeldungeon.actors.Actor.findChar( step ) == null){
-				moveSprite( pos, step );
-				move( step );
-			}
-		}
-		spend( TICK );
-		return true;
+	public long settlementKey(){
+		return homeSector;
+	}
+
+	@Override
+	protected boolean gnoll(){
+		return false;
+	}
+
+	@Override
+	protected int idleLines(){
+		return 6;
 	}
 
 	@Override
@@ -102,19 +91,6 @@ public class Villager extends NPC {
 	@Override
 	public boolean add( Buff buff ) {
 		return false;
-	}
-
-	@Override
-	public boolean interact( Char c ) {
-		sprite.turnTo( pos, c.pos );
-		if (c != Dungeon.hero) return true;
-		if (Shopkeeper.closedForNight()){
-			yell( Messages.get( this, "asleep" ) );
-			return true;
-		}
-		//one of several idle chatter lines
-		yell( Messages.get( this, "line_" + Random.Int( 6 ) ) );
-		return true;
 	}
 
 	private static final String LOOK = "look";

@@ -181,6 +181,9 @@ public class Bomb extends Item {
 					int adj = i + n;
 					if (adj >= 0 && adj < Dungeon.level.length()) {
 						int tile = Dungeon.level.map[adj];
+						//a sealed tomb's walls and door stand any blast (levels/overworld/CaveSites)
+						if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
+								&& ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).unbreakable( adj )) continue;
 						if ((tile == Terrain.WALL || tile == Terrain.WALL_DECO
 								|| tile == Terrain.LOCKED_DOOR || tile == Terrain.CRYSTAL_DOOR)
 								&& !wallsToBreak.contains(adj)){

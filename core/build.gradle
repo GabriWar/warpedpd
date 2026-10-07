@@ -18,7 +18,7 @@ test {
     useJUnit()
     //WorldDump and DressDump: forwarded so `-Dworld.dump=...` / `-Ddress.dump=...` reach the test JVM
     for (String k : ['world.dump', 'world.seed', 'world.x', 'world.y',
-                     'dress.dump', 'dress.seed', 'dress.x', 'dress.y', 'dress.season']) {
+                     'dress.dump', 'dress.seed', 'dress.x', 'dress.y', 'dress.season', 'dress.altitude']) {
         if (System.getProperty(k) != null) systemProperty k, System.getProperty(k)
     }
     outputs.upToDateWhen { System.getProperty('world.dump') == null && System.getProperty('dress.dump') == null }

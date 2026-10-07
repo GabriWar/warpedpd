@@ -92,7 +92,7 @@ public class Heatstroke extends Buff implements Hero.Doom {
 			// Scales with dungeon depth so later floors are more threatening.
 			float excess = Math.max(0f, temp - 35f);
 			if (excess > 0f) {
-				float depthScale = 1f + Dungeon.scalingDepth() / 20f;
+				float depthScale = 1f + Dungeon.harmDepth() / 20f;
 				partialDmg += (excess / DMG_DIVISOR) * depthScale;
 				if (partialDmg >= 1f) {
 					int dmg = (int) partialDmg;

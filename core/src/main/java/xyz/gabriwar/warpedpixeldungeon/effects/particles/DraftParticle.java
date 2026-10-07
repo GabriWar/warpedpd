@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
+import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.Random;
 
@@ -33,14 +34,39 @@ import com.watabou.utils.Random;
  */
 public class DraftParticle extends PixelParticle {
 
+	//a gust across a ridge of the heights (levels/overworld/HazardWatch): the same streaks, blowing
+	//north, east, south or west, but mostly slate (the ridges are snow, where the Bellows' pale air
+	//cannot be seen) with a pale one in three for the drop's black
+	public static final Emitter.Factory[] GUSTS = new Emitter.Factory[4];
+	private static final int AIR = 0xDDEEF2, SLATE = 0x5A6E86, SLATE_LIGHT = 0x7A8DA6;
+	static {
+		final int[] gx = { 0, 1, 0, -1 }, gy = { -1, 0, 1, 0 };
+		for (int i = 0; i < 4; i++){
+			final int dx = gx[i], dy = gy[i];
+			GUSTS[i] = new Emitter.Factory(){
+				@Override
+				public void emit( Emitter emitter, int index, float x, float y ){
+					((DraftParticle) emitter.recycle( DraftParticle.class )).reset( x, y, dx, dy,
+							index % 3 == 2 ? AIR : (index % 2 == 0 ? SLATE : SLATE_LIGHT) );
+				}
+			};
+		}
+	}
+
 	public DraftParticle(){
 		super();
-		color( 0xDDEEF2 );
+		color( AIR );
 		lifespan = 0.55f;
 	}
 
 	public void reset( float x, float y, int dx, int dy ){
+		reset( x, y, dx, dy, AIR );
+	}
+
+	public void reset( float x, float y, int dx, int dy, int color ){
 		revive();
+		//a recycled streak may have been a gust's
+		color( color );
 		left = lifespan = Random.Float( 0.5f, 0.9f );
 		this.x = x;
 		this.y = y;

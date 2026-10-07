@@ -151,6 +151,11 @@ public class NetVisuals {
 		reg("spectral_wall",    SpectralWallParticle.FACTORY);
 		reg("challenge",        ChallengeParticle.FACTORY);
 		reg("poppolar",         PoppolarExplosionParticle.FACTORY);
+
+		// The world's slices: firedamp's haze, a ridge's gusts, the dust of a coming cave-in
+		reg("firedamp",         xyz.gabriwar.warpedpixeldungeon.effects.particles.FiredampParticle.FACTORY);
+		for (int i = 0; i < 4; i++) reg("gust" + i, xyz.gabriwar.warpedpixeldungeon.effects.particles.DraftParticle.GUSTS[i]);
+		reg("earth_falling",    EarthParticle.FALLING);
 	}
 
 	private static void reg(String id, Emitter.Factory factory) {

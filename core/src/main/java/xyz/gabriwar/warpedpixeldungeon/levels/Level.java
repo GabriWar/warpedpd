@@ -1259,6 +1259,18 @@ public abstract class Level implements Bundlable {
 		return noFogOfWar();
 	}
 
+	//true where a wall cell is drawn as the ground on top of it (the overworld's rock seen from
+	//below, OverworldLevel.rockTopAt): fogged by its own sight like a floor, never blacked out
+	public boolean rockTopAt( int cell ) {
+		return false;
+	}
+
+	//true while the level's map and exploration are mid-way between two frames (the overworld's
+	//window moving, OverworldLevel.rebase): the fog paints nothing from them until it ends
+	public boolean fogHeld() {
+		return false;
+	}
+
 	public void cleanWalls() {
 		if (discoverable == null || discoverable.length != length) {
 			discoverable = new boolean[length()];
@@ -2017,7 +2029,7 @@ public abstract class Level implements Bundlable {
 		return distance( a, b ) == 1;
 	}
 	
-	//uses pythagorean theorum for true distance, as if there was no movement grid
+	//uses Pythagorean theorem for true distance, as if there was no movement grid
 	public float trueDistance(int a, int b){
 		int ax = a % width();
 		int ay = a / width();
@@ -2118,6 +2130,17 @@ public abstract class Level implements Bundlable {
 		}
 	}
 	
+	/** The examine name and text of the tile at a CELL, where the same terrain means different
+	 *  things in different places (a surface wall: a mountainside, or a village house). Null to
+	 *  fall back to tileName/tileDesc, which is what most levels do. */
+	public String tileNameAt( int cell ){
+		return null;
+	}
+
+	public String tileDescAt( int cell ){
+		return null;
+	}
+
 	/** Extra examine text that depends on the CELL, not just the tile type
 	 *  (tileDesc has no position). Null for most levels. */
 	public String cellDescExtra( int cell ){

@@ -188,6 +188,29 @@ public class ClimateManager {
 	public static float localTemp() {
 		return Float.isNaN(debugTempOverride) ? localTemp : debugTempOverride;
 	}
+
+	/** The open air out on the surface in biome b: what localTemp reads for a hero standing
+	 *  outdoors there, wherever the hero really is - a village's own weather, which must not
+	 *  turn with every biome line he crosses. */
+	public static float surfaceTempIn( xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldModel.Biome b ) {
+		if (!Float.isNaN(debugTempOverride)) return debugTempOverride;
+		return DUNGEON_BASELINE_TEMP
+				+ (surfaceTemp - DUNGEON_BASELINE_TEMP) * depthExposure(0)
+				+ regionalTempBias(0)
+				+ biomeTempBias(b, 0);
+	}
+
+	/** The open air over a cell of the overworld slice being played: the slice's own air and the
+	 *  biome at that cell - what localTemp reads for a hero standing outdoors there, wherever the
+	 *  hero the climate is worked out for really is (a co-op guest's lake keeps its own weather). */
+	public static float airAt( xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel ow, int cell ) {
+		if (!Float.isNaN(debugTempOverride)) return debugTempOverride;
+		float t = DUNGEON_BASELINE_TEMP
+				+ (surfaceTemp - DUNGEON_BASELINE_TEMP) * depthExposure(currentDepth)
+				+ regionalTempBias(currentDepth);
+		return ow.openSky() ? t + biomeTempBias(ow.biomeAtCell(cell), ow.altitude()) : t;
+	}
+
 	public static float localHumidity()    { return localHumidity; }
 	public static float localWindSpeed()   { return Float.isNaN(debugWindOverride) ? localWindSpeed : debugWindOverride; }
 	public static float localPrecipRate()  { return Float.isNaN(debugPrecipOverride) ? localPrecipRate : debugPrecipOverride; }
@@ -438,6 +461,13 @@ public class ClimateManager {
 		//thirties the air itself stands up in rays, so the danger is on screen
 		if (feelsLikeTemp() >= HEAT_RAY_TEMP && localPrecipRate < 0.2f) {
 			return WeatherOverlayAmbient.HEAT_RAYS;
+		}
+
+		//the world's caves have air of their own (levels/overworld/CaveLife: motes, drips, spores,
+		//embers), not the steam of the city their climate depth stands for
+		if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
+				&& !((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).openSky()) {
+			return WeatherOverlayAmbient.NONE;
 		}
 
 		// Depth-specific ambient (underground regions)
@@ -1166,8 +1196,12 @@ public class ClimateManager {
 	private static float overworldBiomeTempBias(){
 		xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldModel.Biome b = heroOverworldBiome();
 		if (b == null) return 0f;
+		return biomeTempBias( b, ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).altitude() );
+	}
+
+	private static float biomeTempBias( xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldModel.Biome b, int altitude ){
 		//and the peaks: colder with every slice climbed
-		float lapse = -2f * ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).altitude();
+		float lapse = -2f * altitude;
 		switch (b){
 			case DESERT:    return 12f + lapse;
 			case SNOWFIELD: return -20f + lapse;

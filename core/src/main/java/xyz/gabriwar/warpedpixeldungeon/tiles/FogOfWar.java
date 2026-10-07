@@ -151,7 +151,16 @@ public class FogOfWar extends Image {
 		shiftScratch.drawPixmap( fog, -dcx * PIX_PER_TILE, -dcy * PIX_PER_TILE );
 		fog.drawPixmap( shiftScratch, 0, 0 );
 
-		toUpdate.clear();
+		//what was queued and not painted yet still has to be: the last observe before the move (in
+		//the old frame, so it moves with the content) and anything queued while the level was held
+		//(already in the new one). both are repainted from the finished state, which costs a few
+		//cells twice and never paints one wrong
+		ArrayList<Rect> pending = toUpdate;
+		toUpdate = new ArrayList<>();
+		for (Rect r : pending){
+			queueClipped( r.left, r.top, r.right, r.bottom );
+			queueClipped( r.left - dcx, r.top - dcy, r.right - dcx, r.bottom - dcy );
+		}
 		int fringe = 2;
 		//partial fog re-renders SKIP dark cells assuming they are already
 		//dark - but the blitted strips hold stale bright content from the
@@ -181,6 +190,11 @@ public class FogOfWar extends Image {
 		toUpdate.add( new Rect( mapWidth-1, 0, mapWidth, mapHeight ) );
 	}
 	
+	private void queueClipped( int l, int t, int r, int b ){
+		Rect c = new Rect( Math.max( 0, l ), Math.max( 0, t ), Math.min( mapWidth, r ), Math.min( mapHeight, b ) );
+		if (!c.isEmpty()) toUpdate.add( c );
+	}
+
 	public synchronized void updateFog(Rect update){
 		for (Rect r : toUpdate.toArray(new Rect[0])){
 			if (!r.intersect(update).isEmpty()){
@@ -256,6 +270,13 @@ public class FogOfWar extends Image {
 						continue;
 					}
 					
+					//the top of the overworld's rock is ground seen from below: its own fog, no wall rules
+					if (Dungeon.level.rockTopAt(cell)) {
+						fillCell(fog, j, i, FOG_COLORS[getCellFog(cell)][brightness]);
+						cell++;
+						continue;
+					}
+
 					if (!Dungeon.level.discoverable[cell]
 							|| (!visible[cell] && !visited[cell] && !mapped[cell])) {
 						//we skip filling cells here if it isn't a full update
@@ -380,12 +401,26 @@ public class FogOfWar extends Image {
 	@Override
 	public void draw() {
 
-		if (!toUpdate.isEmpty()){
-			updateTexture(Dungeon.level.heroFOV, Dungeon.level.visited, Dungeon.level.mapped);
-		}
+		refresh();
 
 		super.draw();
 	}
+
+	/** Paints the cells queued since the last frame - unless the level is between two frames
+	 *  (Level.fogHeld): its map, exploration and field of view are not all in the frame this
+	 *  texture is, and a cell painted from them would keep the wrong fog after the move. */
+	public void refresh() {
+		if (toUpdate.isEmpty()) return;
+		synchronized (PAINTING) {
+			if (!Dungeon.level.fogHeld()){
+				updateTexture(Dungeon.level.heroFOV, Dungeon.level.visited, Dungeon.level.mapped);
+			}
+		}
+	}
+
+	/** Held while the fog paints: a level takes it to start holding its fog, so a paint already
+	 *  under way finishes before the level changes anything (OverworldLevel.rebase). */
+	public static final Object PAINTING = new Object();
 	
 	@Override
 	public void destroy() {

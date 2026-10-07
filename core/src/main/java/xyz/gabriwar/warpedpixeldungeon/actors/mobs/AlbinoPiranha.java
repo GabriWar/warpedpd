@@ -41,6 +41,7 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.AlbinoPiranhaSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.BArray;
 import com.watabou.utils.PathFinder;
+import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
 public class AlbinoPiranha extends Mob {
@@ -83,17 +84,32 @@ public class AlbinoPiranha extends Mob {
 
 	@Override
 	public int damageRoll() {
-		return Random.NormalIntRange( Dungeon.depth, 4 + Dungeon.depth * 2 );
+		return Random.NormalIntRange( statDepth(), 4 + statDepth() * 2 );
 	}
 
 	@Override
 	public int attackSkill( Char target ) {
-		return 20 + Dungeon.depth * 2;
+		return 20 + statDepth() * 2;
 	}
 
 	@Override
 	public int drRoll() {
-		return super.drRoll() + Random.NormalIntRange(0, Dungeon.depth);
+		return super.drRoll() + Random.NormalIntRange(0, statDepth());
+	}
+
+	//born to the floor's depth: tuned to another, it is the fish of that one
+	@Override
+	public void setStatDepth( int depth ) {
+		super.setStatDepth( depth );
+		HP = HT = 10 + depth * 5;
+		defenseSkill = 10 + depth * 2;
+	}
+
+	//its evasion is not saved: the constructor set it from the depth it is loaded on
+	@Override
+	public void restoreFromBundle( Bundle bundle ) {
+		super.restoreFromBundle( bundle );
+		defenseSkill = 10 + statDepth() * 2;
 	}
 
 	public void dieOnLand() {

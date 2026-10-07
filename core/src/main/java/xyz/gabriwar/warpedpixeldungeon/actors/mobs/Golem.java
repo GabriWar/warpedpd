@@ -29,6 +29,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Imp;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
+import xyz.gabriwar.warpedpixeldungeon.items.ore.IronOre;
+import xyz.gabriwar.warpedpixeldungeon.items.ore.SilverOre;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTeleportation;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.GolemSprite;
@@ -63,6 +66,34 @@ public class Golem extends Mob {
 
 		//no metabolism to disturb: only the extremes reach it
 		thermal = Thermal.INSENSATE;
+
+		//the world's caves only (dropExtraLoot)
+		declareExtraLoot( IronOre.class, IRON_CHANCE );
+		declareExtraLoot( SilverOre.class, SILVER_CHANCE );
+	}
+
+	//a golem of the world's caves is half made of the rock it walks through: broken, it may leave
+	//a lump of it - at these odds, halved for every lump the slice's beasts already gave today
+	//(OverworldLevel.oreDropChance), so the rock stays where the ore is
+	private static final float IRON_CHANCE = 0.20f, SILVER_CHANCE = 0.06f;
+
+	@Override
+	protected boolean extraLootIgnoresLevel() {
+		return true;
+	}
+
+	@Override
+	protected void dropExtraLoot() {
+		if (!(Dungeon.level instanceof OverworldLevel) || ((OverworldLevel) Dungeon.level).altitude() >= 0) return;
+		OverworldLevel ow = (OverworldLevel) Dungeon.level;
+		if (Random.Float() < ow.oreDropChance( IRON_CHANCE )){
+			ow.oreDropped();
+			trackedDrop( new IronOre(), 0 );
+		}
+		if (Random.Float() < ow.oreDropChance( SILVER_CHANCE )){
+			ow.oreDropped();
+			trackedDrop( new SilverOre(), 1 );
+		}
 	}
 
 	@Override

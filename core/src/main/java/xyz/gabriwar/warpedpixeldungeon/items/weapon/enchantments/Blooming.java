@@ -52,7 +52,7 @@ public class Blooming extends Weapon.Enchantment {
 
 			float powerMulti = Math.max(1f, procChance);
 
-			float plants = (1f + 0.1f*level) * powerMulti * power(); //scales with enchantment level
+			float plants = (1.5f + 0.1f*level) * powerMulti * power(); //scales with enchantment level
 			if (Random.Float() < plants%1){
 				plants = (float)Math.ceil(plants);
 			} else {

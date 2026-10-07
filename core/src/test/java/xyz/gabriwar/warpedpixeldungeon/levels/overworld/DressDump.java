@@ -36,11 +36,13 @@ import java.io.IOException;
  * which composes it with the real tilesets into a PNG. Runs only when asked:
  *
  *   ./gradlew :core:test --tests '*DressDump' -Ddress.dump=/tmp/dress.json \
- *       [-Ddress.seed=N] [-Ddress.x=X -Ddress.y=Y] [-Ddress.season=WINTER]
+ *       [-Ddress.seed=N] [-Ddress.x=X -Ddress.y=Y] [-Ddress.season=WINTER] [-Ddress.altitude=A]
  *
  * Without a centre, the nearest place where rocky foothills meet a snowfield
  * is used (WindowGenerator.findRockyEdge), the same spot the overworld-edges
- * debug scene goes to.
+ * debug scene goes to. On another slice (-Ddress.altitude, caves below 0, peaks
+ * above) it is the place the ore scenes go to (DebugScenes.oreShowcase): veins of
+ * iron, silver and gold in the caves, gold and skyiron on the peaks.
  */
 public class DressDump {
 
@@ -50,10 +52,18 @@ public class DressDump {
 		Assume.assumeTrue( "set -Ddress.dump=<file> to dump a dressed window", path != null && !path.isEmpty() );
 		long seed = Long.getLong( "dress.seed", 0x5EED0F7EA7L );
 		GameCalendar.Season season = GameCalendar.Season.valueOf( System.getProperty( "dress.season", "WINTER" ) );
+		int altitude = Integer.getInteger( "dress.altitude", 0 );
 		int cx, cy;
 		if (System.getProperty( "dress.x" ) != null){
 			cx = Integer.getInteger( "dress.x" );
 			cy = Integer.getInteger( "dress.y" );
+		} else if (altitude != 0){
+			xyz.gabriwar.warpedpixeldungeon.levels.rooms.WarpedRoomsTest.boot();
+			int[] c = altitude < 0
+					? xyz.gabriwar.warpedpixeldungeon.debug.DebugScenes.oreShowcase( seed, altitude, Ores.Kind.IRON, Ores.Kind.SILVER, Ores.Kind.GOLD )
+					: xyz.gabriwar.warpedpixeldungeon.debug.DebugScenes.oreShowcase( seed, altitude, Ores.Kind.GOLD, Ores.Kind.SKYIRON );
+			Assume.assumeTrue( "no ore showcase on slice " + altitude + " near the origin", c != null );
+			cx = c[0]; cy = c[1];
 		} else {
 			int[] c = WindowGenerator.findRockyEdge( seed );
 			Assume.assumeTrue( "no rocky snow edge near the origin", c != null );
@@ -62,13 +72,14 @@ public class DressDump {
 		int w = WindowGenerator.WIDTH, h = WindowGenerator.HEIGHT;
 		int ox = cx - w/2, oy = cy - h/2;
 		float shift = WorldModel.calendarShift( season, 0.5f );
-		WindowGenerator.Window win = WindowGenerator.generate( seed, 0, ox, oy, shift );
+		WindowGenerator.Window win = WindowGenerator.generate( seed, altitude, ox, oy, shift );
 		int[][] dress = WindowGenerator.dress( seed, ox, oy, win.terrain, win, season );
 
 		StringBuilder sb = new StringBuilder();
 		sb.append( "{\"seed\":" ).append( seed ).append( ",\"ox\":" ).append( ox ).append( ",\"oy\":" ).append( oy )
 				.append( ",\"w\":" ).append( w ).append( ",\"h\":" ).append( h )
-				.append( ",\"season\":\"" ).append( season ).append( '"' );
+				.append( ",\"season\":\"" ).append( season ).append( '"' )
+				.append( ",\"altitude\":" ).append( altitude );
 		array( sb, "terrain", win.terrain );
 		int[] frozen = new int[win.frozen.length];
 		int[] under = new int[win.terrain.length];
@@ -78,7 +89,7 @@ public class DressDump {
 			under[i] = win.terrain[i] == xyz.gabriwar.warpedpixeldungeon.levels.Terrain.BOULDER
 					? WindowGenerator.rockGround( win.terrain, win.frozen, i ) : -1;
 			tall[i] = win.terrain[i] == xyz.gabriwar.warpedpixeldungeon.levels.Terrain.BOULDER
-					&& WindowGenerator.tallRock( seed, 0, ox + i % w, oy + i / w ) ? 1 : 0;
+					&& WindowGenerator.tallRock( seed, altitude, ox + i % w, oy + i / w ) ? 1 : 0;
 		}
 		array( sb, "frozen", frozen );
 		array( sb, "rockGround", under );

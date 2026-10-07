@@ -24,7 +24,6 @@ package xyz.gabriwar.warpedpixeldungeon.tiles;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.levels.LastShopLevel;
-import xyz.gabriwar.warpedpixeldungeon.levels.SafeLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
 
@@ -99,8 +98,8 @@ public class RaisedTerrainTilemap extends DungeonTilemap {
 				return regionOffset;
 			}
 		} else if (tile == Terrain.FURROWED_GRASS
-				&& !(Dungeon.level instanceof SafeLevel)){
-			//in the safe zone tilled soil is flat farm dirt - no grass tuft on top
+				&& !DungeonTileSheet.tilledSoil( pos )){
+			//tilled soil and a village's field are flat farm ground - no grass tuft on top
 			if (DungeonTileSheet.getVisualWithAlts(DungeonTileSheet.RAISED_FURROWED_GRASS, pos) == DungeonTileSheet.RAISED_FURROWED_ALT){
 				return regionOffset + 1 + 2;
 			} else {

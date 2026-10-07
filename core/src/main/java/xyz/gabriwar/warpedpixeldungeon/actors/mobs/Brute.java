@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ShieldBuff;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.SpellSprite;
 import xyz.gabriwar.warpedpixeldungeon.items.Gold;
+import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.food.MonsterMeat;
 import xyz.gabriwar.warpedpixeldungeon.levels.features.Chasm;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -59,6 +60,14 @@ public class Brute extends Mob {
 	}
 	
 	protected boolean hasRaged = false;
+
+	//its purse is the floor's (Gold.random scales with the depth): a world slice's brute, tuned to its
+	//band (OverworldFauna), carries a purse of that band's size, or it would pay out thousands a kill
+	@Override
+	public Item createLoot() {
+		if (!statTuned()) return super.createLoot();
+		return new Gold( Random.IntRange( 10 + statDepth(), 20 + 2 * statDepth() ) );
+	}
 	
 	@Override
 	public int damageRoll() {

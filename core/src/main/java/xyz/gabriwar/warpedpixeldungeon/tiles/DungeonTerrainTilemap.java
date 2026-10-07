@@ -42,17 +42,22 @@ public class DungeonTerrainTilemap extends DungeonTilemap {
 	@Override
 	protected int getTileVisual(int pos, int tile, boolean flat) {
 		//in the safe zone, tilled soil gets its own farm-plot art instead of
-		//the furrowed grass visual used by the warden in the dungeon.
+		//the furrowed grass visual used by the warden in the dungeon, and a
+		//surface village's fields their crop of the season.
 		//NUANCE: a terrain's look is composed by FOUR tilemaps, and changing it
 		//means gating every layer, not just this one:
 		//  1. DungeonTerrainTilemap (here) - the ground, flat+raised branches
 		//  2. RaisedTerrainTilemap - the raised tuft/underhang drawn over it
 		//  3. DungeonWallsTilemap - the overhang drawn on the wall above it
 		//  4. TerrainFeaturesTilemap - per-region stage dressing (grass/embers)
-		//miss one and the old art keeps peeking through (see the SafeLevel
-		//FURROWED_GRASS gates in each of those classes)
+		//miss one and the old art keeps peeking through (see the
+		//DungeonTileSheet.tilledSoil gates in each of those classes)
 		if (tile == xyz.gabriwar.warpedpixeldungeon.levels.Terrain.FURROWED_GRASS
-				&& Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.SafeLevel){
+				&& DungeonTileSheet.tilledSoil( pos )){
+			if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel){
+				return DungeonTileSheet.fieldTile(
+						((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).fieldSeason(), pos );
+			}
 			return DungeonTileSheet.getVisualWithAlts(DungeonTileSheet.TILLED_SOIL, pos);
 		}
 		//a boulder in the world lies on the ground its neighbours show, never on a
@@ -62,15 +67,25 @@ public class DungeonTerrainTilemap extends DungeonTilemap {
 			int ground = ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).groundUnderRock( pos );
 			return DungeonTileSheet.getVisualWithAlts( DungeonTileSheet.directVisuals.get( ground, DungeonTileSheet.FLOOR ), pos );
 		}
-		//on the surface's frozen ground, whatever grows there sits on snow
+		//on the surface's frozen ground, whatever grows there sits on snow, and so does the floor
+		//left where rock was mined away (Terrain.EMPTY_DECO)
 		if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
 				&& (tile == xyz.gabriwar.warpedpixeldungeon.levels.Terrain.TREE_PINE
+					|| tile == Terrain.EMPTY
+					|| tile == Terrain.EMPTY_DECO
 					|| tile == xyz.gabriwar.warpedpixeldungeon.levels.Terrain.TREE_OAK
 					|| tile == xyz.gabriwar.warpedpixeldungeon.levels.Terrain.SHRUB
 					|| tile == xyz.gabriwar.warpedpixeldungeon.levels.Terrain.GRASS
 					|| tile == xyz.gabriwar.warpedpixeldungeon.levels.Terrain.SIGN)
 				&& ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).frozenAt( pos )){
 			return DungeonTileSheet.SNOW_TILE;
+		}
+		//a way between the slices is an arrow on the ground (the dressing), not a flight of stairs
+		if ((tile == Terrain.ENTRANCE || tile == Terrain.EXIT)
+				&& Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
+				&& ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).arrowLink( pos )){
+			int ground = sliceGroundAround( pos );
+			if (ground != -1) return getTileVisual( ground, map[ground], flat );
 		}
 		//surface waystones get their own monolith art instead of the region's
 		//special-entrance stairs
@@ -100,6 +115,17 @@ public class DungeonTerrainTilemap extends DungeonTilemap {
 		}
 
 		if (tile == Terrain.WATER || tile == Terrain.DEEP_WATER) {
+			//under the open sky the shore takes the colour of its bank (the shore rows exist
+			//on the surface's tileset only - a cave slice draws the caves' water)
+			if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
+					&& xyz.gabriwar.warpedpixeldungeon.Assets.Environment.TILES_OVERWORLD.equals( Dungeon.level.tilesTex() )){
+				return DungeonTileSheet.stitchOverworldWater(
+						safeTile(pos + PathFinder.CIRCLE4[0]),
+						safeTile(pos + PathFinder.CIRCLE4[1]),
+						safeTile(pos + PathFinder.CIRCLE4[2]),
+						safeTile(pos + PathFinder.CIRCLE4[3])
+				);
+			}
 			return DungeonTileSheet.stitchWaterTile(
 					safeTile(pos + PathFinder.CIRCLE4[0]),
 					safeTile(pos + PathFinder.CIRCLE4[1]),
@@ -121,6 +147,12 @@ public class DungeonTerrainTilemap extends DungeonTilemap {
 			);
 
 		} else if (tile == Terrain.CHASM) {
+			//a mountain's drop that shows the ground far below (tiles/SliceGroundLayer) draws no
+			//edge of its own: the plain chasm, which needsRender skips
+			if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
+					&& ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).seesBelow( pos )){
+				return DungeonTileSheet.CHASM;
+			}
 			return DungeonTileSheet.stitchChasmTile( pos > mapWidth ? map[pos - mapWidth] : -1);
 		}
 
@@ -128,13 +160,19 @@ public class DungeonTerrainTilemap extends DungeonTilemap {
 			if ((DungeonTileSheet.doorTile(tile))) {
 				return DungeonTileSheet.getRaisedDoorTile(tile, map[pos - mapWidth]);
 			} else if (DungeonTileSheet.wallStitcheable(tile)){
-				return DungeonTileSheet.getRaisedWallTile(
+				int face = DungeonTileSheet.getRaisedWallTile(
 						tile,
 						pos,
 						(pos+1) % mapWidth != 0 ?   map[pos + 1] : -1,
 						pos + mapWidth < size ?     map[pos + mapWidth] : -1,
 						pos % mapWidth != 0 ?       map[pos - 1] : -1
 						);
+				//an earthen scarp of the overworld's rock (WorldModel.earthenScarp)
+				if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
+						&& ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).earthAt(pos)){
+					face = DungeonTileSheet.earthen(face);
+				}
+				return face;
 			} else if (tile == Terrain.STATUE) {
 				return DungeonTileSheet.RAISED_STATUE;
 			} else if (tile == Terrain.STATUE_SP) {
@@ -181,6 +219,35 @@ public class DungeonTerrainTilemap extends DungeonTilemap {
 	//the floor the cells around pos are showing, or -1 when none of them is a plain floor.
 	//The commonest one wins, so a prop by a door keeps the room's floor and not the
 	//corridor's. Only bare ground counts: water, embers, traps and the like are skipped
+	//the neighbour whose plain ground is the commonest round this cell (the slices' floors:
+	//snow, dirt, grass, paths), so a cell can be drawn as it; -1 if none is plain ground
+	private int sliceGroundAround(int pos){
+		int best = -1, bestCount = 0;
+		for (int i : PathFinder.NEIGHBOURS8){
+			int n = pos + i;
+			int t = safeTile(n);
+			if (!sliceGround(t)) continue;
+			int count = 0;
+			for (int j : PathFinder.NEIGHBOURS8) if (safeTile(pos + j) == t) count++;
+			if (count > bestCount){
+				best = n;
+				bestCount = count;
+			}
+		}
+		return best;
+	}
+
+	private static boolean sliceGround(int t){
+		switch (t){
+			case Terrain.EMPTY: case Terrain.EMPTY_DECO: case Terrain.EMPTY_SP:
+			case Terrain.GRASS: case Terrain.HIGH_GRASS: case Terrain.FURROWED_GRASS:
+			case Terrain.SNOW: case Terrain.DIRT_PATH:
+				return true;
+			default:
+				return false;
+		}
+	}
+
 	private int groundAround(int pos){
 		int plain = 0, special = 0, grass = 0;
 		for (int i : PathFinder.NEIGHBOURS8){
@@ -214,6 +281,10 @@ public class DungeonTerrainTilemap extends DungeonTilemap {
 	@Override
 	protected boolean needsRender(int pos) {
 		return super.needsRender(pos)
-				&& data[pos] != DungeonTileSheet.WATER;
+				&& data[pos] != DungeonTileSheet.WATER
+				//a mountain's drop shows the ground far below it (tiles/SliceGroundLayer), not the void
+				&& !(data[pos] == DungeonTileSheet.CHASM
+					&& Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
+					&& ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).seesBelow( pos ));
 	}
 }

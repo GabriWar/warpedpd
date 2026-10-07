@@ -152,6 +152,7 @@ import com.watabou.noosa.NoosaScript;
 import com.watabou.noosa.NoosaScriptNoLighting;
 import com.watabou.noosa.PointerArea;
 import com.watabou.noosa.SkinnedBlock;
+import com.watabou.noosa.Tilemap;
 import com.watabou.noosa.Visual;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
@@ -182,6 +183,7 @@ public class GameScene extends PixelScene {
 	private RaisedTerrainTilemap raisedTerrain;
 	private DungeonWallsTilemap walls;
 	private WallBlockingTilemap wallBlocking;
+	private ArrayList<Tilemap> customTilemaps = new ArrayList<>();
 	private FogOfWar fog;
 	private ColorBlock dayNightOverlay;
 	// Smooth tint transition state
@@ -304,7 +306,17 @@ public class GameScene extends PixelScene {
 		ripples = new Group();
 		terrain.add( ripples );
 
+		belowGround = new BelowGround();
+		terrain.add( belowGround );
+
 		DungeonTileSheet.setupVariance(Dungeon.level.map.length, Dungeon.seedCurDepth());
+		//the world's slices pick their alt art from world coordinates: anchor the table before the
+		//tilemaps below read it, or the ground first drawn with the random table changes look (not
+		//place) wherever a cell is redrawn later - a mined wall, burnt grass (OverworldLevel.addVisuals
+		//anchors it again, harmlessly, for the layers built after it)
+		if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel){
+			((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).worldAnchorVariance();
+		}
 		
 		tiles = new DungeonTerrainTilemap();
 		terrain.add( tiles );
@@ -374,6 +386,14 @@ public class GameScene extends PixelScene {
 
 		raisedTerrain = new RaisedTerrainTilemap();
 		add( raisedTerrain );
+
+		//the overworld's rock seen as the land on top of it (OverworldLevel.rockTopAt): under the
+		//walls, which draw only its rims there
+		rockTops = new Group();
+		add( rockTops );
+		if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel){
+			((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).presentSliceViews();
+		}
 
 		walls = new DungeonWallsTilemap();
 		add(walls);
@@ -561,6 +581,12 @@ public class GameScene extends PixelScene {
 		//belongs and where nothing else is competing for the corner. Only on the
 		//overworld: a dungeon floor has its own map and does not need this one.
 		if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) {
+			//the chart's slab is a million samples: painted now, on its own thread, so the
+			//map is already drawn when the button is first pressed
+			xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel ow =
+					(xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level;
+			xyz.gabriwar.warpedpixeldungeon.ui.WorldChart.prepare( ow.worldSeed,
+					ow.worldX + Dungeon.hero.pos % ow.width(), ow.worldY + Dungeon.hero.pos / ow.width() );
 			mapButton = new xyz.gabriwar.warpedpixeldungeon.ui.IconButton( Icons.get( Icons.MAGNIFY ) ) {
 				@Override
 				protected void onClick() {
@@ -1367,15 +1393,21 @@ public class GameScene extends PixelScene {
 	}
 
 	public void addCustomTile( CustomTilemap visual){
-		customTiles.add( visual.create() );
+		Tilemap t = visual.create();
+		customTiles.add( t );
+		customTilemaps.add( t );
 	}
 
 	public void addCustomTerrain(CustomTilemap visual){
-		customTerrain.add( visual.create() );
+		Tilemap t = visual.create();
+		customTerrain.add( t );
+		customTilemaps.add( t );
 	}
 
 	public void addCustomWall( CustomTilemap visual){
-		customWalls.add( visual.create() );
+		Tilemap t = visual.create();
+		customWalls.add( t );
+		customTilemaps.add( t );
 	}
 
 	private void addHeapSprite( Heap heap ) {
@@ -1525,6 +1557,60 @@ public class GameScene extends PixelScene {
 		if (scene != null) scene.healthIndicators.add(indicator);
 	}
 	
+	/** The tops of the overworld's rock (tiles/SliceGroundLayer.TOPS, its three parts): under the
+	 *  walls' rims. */
+	public static void addRockTops( xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer layer ){
+		if (scene == null || scene.rockTops == null) return;
+		Tilemap t = layer.create();
+		Tilemap[] parts = scene.rockTopParts;
+		int i = Math.max( 0, Math.min( parts.length - 1, layer.part ) );
+		if (parts[i] != t || t.parent != scene.rockTops){
+			parts[i] = t;
+			//the tiles, then the blends, then the corners over them
+			scene.rockTops.clear();
+			for (Tilemap l : parts) if (l != null) scene.rockTops.add( l );
+		}
+	}
+
+	private Group rockTops;
+	private final Tilemap[] rockTopParts = new Tilemap[3];
+
+	/** The view down from a mountain (tiles/SliceGroundLayer): under the ground tiles, over the water. */
+	public static void addBelow( xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer layer ){
+		if (scene != null && scene.belowGround != null) scene.belowGround.put( layer );
+	}
+
+	//the ground of the bands below a mountain slice, one tilemap per depth, each hazed by its
+	//depth, and over them the shade the drop's rims cast into it
+	private BelowGround belowGround;
+
+	private static final class BelowGround extends Group {
+
+		//per depth (0: one band down): the haze over it, a dusky blue-grey that deepens with the
+		//depth - looked down on, the far ground lies in shadow, and a lighter haze read as raised
+		private static final int HAZE = 0x3E4C66;
+		private static final float[] HAZE_STRENGTH = { 0.30f, 0.46f, 0.60f };
+
+		//per depth its three parts (tiles, blends, corners), then the shade (WindowGenerator.belowLayers)
+		private static final int PARTS = 3;
+		private final Tilemap[] layers = new Tilemap[xyz.gabriwar.warpedpixeldungeon.levels.overworld.WindowGenerator.BELOW_LAYERS * PARTS + 1];
+
+		void put( xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer layer ){
+			int d = Math.max( 0, Math.min( HAZE_STRENGTH.length, layer.depth ) );
+			int i = d == HAZE_STRENGTH.length ? layers.length - 1
+					: d * PARTS + Math.max( 0, Math.min( PARTS - 1, layer.part ) );
+			Tilemap t = layer.create();
+			if (layers[i] != t || t.parent != this){
+				layers[i] = t;
+				//a depth's parts in order (no two depths share a cell), the shade over every depth
+				clear();
+				for (Tilemap l : layers) if (l != null) add( l );
+			}
+			t.resetColor();
+			if (d < HAZE_STRENGTH.length) t.tint( HAZE, HAZE_STRENGTH[d] );
+		}
+	}
+
 	public static void add( CustomTilemap t, boolean wall ){
 		if (scene == null) return;
 		if (wall){
@@ -1540,6 +1626,13 @@ public class GameScene extends PixelScene {
 
 	public static void effectOverFog( Visual effect ) {
 		if (scene != null) scene.overFogEffects.add( effect );
+	}
+
+	//a picture lying on the ground, under everyone and under the walls, world-anchored
+	//(shiftWorldVisuals moves floorEmitters; floorEmitter() is the same layer for emitters):
+	//the sea of clouds below a peak, the caves' glowing fungus caps
+	public static void floorEffect( Visual effect ) {
+		if (scene != null) scene.floorEmitters.add( effect );
 	}
 	
 	public static CheckedCell checkedCell( int pos, int source ){
@@ -1607,6 +1700,19 @@ public class GameScene extends PixelScene {
 			return null;
 		}
 	}
+
+	//an emitter drawn above the fog and the night's tint, world-anchored like every other effect
+	//(shiftWorldVisuals moves overFogEffects): the settlements' smoke columns
+	@SuppressWarnings("unchecked")
+	public static synchronized <T extends Emitter> T overFogEmitter( Class<T> kind ){
+		if (scene == null) return null;
+		T e = (T) scene.overFogEffects.recycle( kind );
+		e.revive();
+		return e;
+	}
+
+	//the night overlay's current alpha (0 by day): what over-fog smoke darkens itself by
+	public static float nightTintAlpha(){ return curTintA; }
 	
 	public static FloatingText status() {
 		return scene != null ? (FloatingText)scene.statuses.recycle( FloatingText.class ) : null;
@@ -1824,6 +1930,9 @@ public class GameScene extends PixelScene {
 			scene.terrainFeatures.updateMap();
 			scene.raisedTerrain.updateMap();
 			scene.walls.updateMap();
+			for (Tilemap cust : scene.customTilemaps){
+				cust.updateMap();
+			}
 			updateFog();
 		}
 	}
@@ -1837,6 +1946,15 @@ public class GameScene extends PixelScene {
 			scene.terrainFeatures.updateMapCell( cell );
 			scene.raisedTerrain.updateMapCell( cell );
 			scene.walls.updateMapCell( cell );
+			for (Tilemap cust : scene.customTilemaps){
+				cust.updateMapCell( cell );
+			}
+			//the world's rock wears its ore on the face it shows: a mined vein loses its glint, the rock
+			//behind it shows its own (levels/overworld/Ores)
+			if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel){
+				((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).redressRock( cell );
+				((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).retop( cell );
+			}
 			//update adjacent cells too
 			updateFog( cell, 1 );
 		}

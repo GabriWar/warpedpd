@@ -61,7 +61,14 @@ public abstract class Shaman extends Mob {
 
 	@Override
 	public int damageRoll() {
-		return Random.NormalIntRange( 2, 6 + Dungeon.depth );
+		return Random.NormalIntRange( 2, 6 + statDepth() );
+	}
+
+	//born to the floor's depth: tuned to another, it is the shaman of that one
+	@Override
+	public void setStatDepth( int depth ) {
+		super.setStatDepth( depth );
+		HP = HT = 18 + depth;
 	}
 	
 	@Override

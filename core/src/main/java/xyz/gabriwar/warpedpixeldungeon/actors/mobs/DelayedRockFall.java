@@ -49,7 +49,27 @@ public class DelayedRockFall extends FlavourBuff {
 			this.rockPositions[i] = rockPositions.get(i);
 		}
 
-		fx(true);
+		//as Buff.attachTo: without a sprite there is no scene to pour the dust in
+		if (target != null && target.sprite != null) fx(true);
+	}
+
+	/** A sliding-window level moved under the rocks (OverworldLevel.rebase): each marked cell
+	 *  follows its ground, and the ones that left the window are dropped. */
+	public void translate( int dx, int dy, int width, int height ){
+		if (rockPositions == null) return;
+		int[] kept = new int[rockPositions.length];
+		int n = 0;
+		for (int p : rockPositions){
+			int x = p % width - dx, y = p / width - dy;
+			if (x <= 0 || y <= 0 || x >= width - 1 || y >= height - 1) continue;
+			kept[n++] = x + y * width;
+		}
+		rockPositions = java.util.Arrays.copyOf( kept, n );
+	}
+
+	/** The cells the rocks will fall on. */
+	public int[] rockPositions(){
+		return rockPositions == null ? new int[0] : rockPositions.clone();
 	}
 
 	@Override

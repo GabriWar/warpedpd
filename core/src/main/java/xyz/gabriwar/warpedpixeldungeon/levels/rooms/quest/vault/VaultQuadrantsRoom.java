@@ -23,6 +23,8 @@ package xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.vault;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Elemental;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.quest.vault.VaultDM100;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.quest.vault.VaultSkeleton;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
@@ -69,7 +71,32 @@ public class VaultQuadrantsRoom extends VaultRoom {
 		}
 
 		if (!spawnPositions.isEmpty()) {
-			Mob enemy = level.createMob();
+			boolean nextToEntry = false;
+			for (Room r : connected.keySet()){
+				if (r.isEntrance()){
+					nextToEntry = true;
+				}
+			}
+
+			Mob enemy;
+			boolean valid;
+			ArrayList<Class<?extends Mob>> toReturn = new ArrayList<>();
+			do {
+				valid = true;
+				enemy = level.createMob();
+				//only T1 enemies next to entrance
+				if (nextToEntry && !(enemy instanceof VaultSkeleton || enemy instanceof VaultDM100)){
+					valid = false;
+				}
+				if (!valid){
+					toReturn.add(enemy.getClass());
+				}
+			} while (!valid);
+
+			for (Class<?extends Mob> cls : toReturn){
+				((VaultLevel) level).returnMob(cls);
+			}
+
 			Point enemyCorner = Random.element(spawnPositions);
 			enemy.pos = level.pointToCell(enemyCorner);
 			enemy.state = enemy.WANDERING;

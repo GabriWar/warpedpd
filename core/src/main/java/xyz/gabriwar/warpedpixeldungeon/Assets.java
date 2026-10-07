@@ -30,6 +30,10 @@ public class Assets {
 		public static final String SPECKS       = "effects/specks.png";
 		public static final String SPELL_ICONS  = "effects/spell_icons.png";
 		public static final String TEXT_ICONS   = "effects/text_icons.png";
+		public static final String CRITTERS     = "effects/critters.png";
+		public static final String LAYER_CRITTERS = "effects/layer_critters.png";
+		public static final String SETTLEMENT_LIGHTS = "effects/settlement_lights.png";
+		public static final String MARKET_BUNTING = "effects/market_bunting.png";
 	}
 
 	public static class Environment {
@@ -75,6 +79,8 @@ public class Assets {
 		public static final String OVERWORLD_DRESS    = "environment/overworld_dress.png";
 		//ice fraying over open water, on every level but the overworld (tools/dress_sheet.py)
 		public static final String ICE_FRINGE         = "environment/ice_fringe.png";
+		//the cracks thin ice shows once stepped on (tools/ice_cracks_gen.py, levels/overworld/IceCracks)
+		public static final String ICE_CRACKS         = "environment/ice_cracks.png";
 		public static final String OVERWORLD_VILLAGES = "environment/overworld_villages.png";
 		public static final String TILES_TOWN_INSIDE  = "environment/tiles_town_inside.png";
 		public static final String TILES_TOWN_BLANK   = "environment/tiles_town_blank.png";
@@ -282,6 +288,8 @@ public class Assets {
 		public static final String SCAN     = "sounds/scan.mp3";
 		public static final String SHEEP    = "sounds/sheep.mp3";
 		public static final String MINE    = "sounds/mine.mp3";
+		//a wolf pack's howl (the surface's night hunts, HuntEvent)
+		public static final String HOWL     = "sounds/howl.mp3";
 
 		public static final String[] all = new String[]{
 				CLICK, BADGE, GOLD,
@@ -294,7 +302,7 @@ public class Assets {
 				DESCEND, EAT, READ, LULLABY, DRINK, SHATTER, ZAP, LIGHTNING, LEVELUP, DEATH,
 				CHALLENGE, CURSED, TRAP, EVOKE, TOMB, ALERT, MELD, BOSS, BLAST, PLANT, RAY, BEACON,
 				TELEPORT, CHARMS, MASTERY, PUFF, ROCKS, ROCKS_LIGHT, BURNING, FALLING, GHOST, SECRET, BONES,
-				BEE, DEGRADE, MIMIC, DEBUFF, CHARGEUP, GAS, CHAINS, SCAN, SHEEP, MINE
+				BEE, DEGRADE, MIMIC, DEBUFF, CHARGEUP, GAS, CHAINS, SCAN, SHEEP, MINE, HOWL
 		};
 	}
 
@@ -397,6 +405,9 @@ public class Assets {
 		public static final String BELLOWS_VALVE       = "sprites/warped_rooms/bellows_valve.png";
 		public static final String BEDROLL             = "sprites/warped_rooms/bedroll.png";
 		public static final String HOARD_SQUIRREL      = "sprites/warped_rooms/squirrel.png";
+		//the places of the caves (tools/cave_sites_gen.py): the camp's dwarf miner, the lake shrine's idol
+		public static final String CAVE_MINER          = "sprites/cave_miner.png";
+		public static final String CAVE_SHRINE         = "sprites/cave_shrine.png";
 		public static final String RM_TOWN_GUARD_RM    = "sprites/rm_guards.png";
 		public static final String RM_TOWNSFOLK_MOVIE  = "sprites/rm_town_townsfolk_man_brown.png";
 		public static final String RM_TOWNSFOLK        = "sprites/rm_town_townsfolk_man.png";
@@ -414,6 +425,8 @@ public class Assets {
 		public static final String UL_SPIDERBOT    = "sprites/spiderbot.png";
 		public static final String WOLF_BROWN      = "sprites/wolf_brown.png";
 		public static final String WOLF_GRAY       = "sprites/wolf_gray.png";
+		public static final String DEER            = "sprites/deer.png";
+		public static final String GOAT            = "sprites/goat.png";
 		public static final String UL_SQUID        = "sprites/squid.png";
 		public static final String UL_ZOMBIE       = "sprites/zombie.png";
 		public static final String UL_ELEMENTALS2  = "sprites/elementals2.png";
@@ -441,6 +454,7 @@ public class Assets {
 		public static final String TENGU    = "sprites/tengu.png";
 		public static final String SHEEP    = "sprites/sheep.png";
 		public static final String KEEPER   = "sprites/shopkeeper.png";
+		public static final String TRAVELLING_MERCHANT = "sprites/travelling_merchant.png";
 		public static final String BAT      = "sprites/bat.png";
 		public static final String ELEMENTAL= "sprites/elemental.png";
 		public static final String MONK     = "sprites/monk.png";
@@ -541,6 +555,15 @@ public class Assets {
 		public static final String PET_DRAGON     = "sprites/pet_dragon.png";
 		public static final String FAIRY          = "sprites/fairy.png";
 		public static final String BUNNY          = "sprites/bunny.png";
+		public static final String TRAVELLER_PILGRIM   = "sprites/traveller_pilgrim.png";
+		public static final String TRAVELLER_PEDLAR    = "sprites/traveller_pedlar.png";
+		public static final String TRAVELLER_MESSENGER = "sprites/traveller_messenger.png";
+		public static final String TRAVELLER_FARMER    = "sprites/traveller_farmer.png";
+		//the places on the mountains (levels/overworld/MountainSites, tools/mountain_sites_art.py)
+		public static final String HERMIT              = "sprites/hermit.png";
+		public static final String EAGLE               = "sprites/eagle.png";
+		public static final String CAIRN               = "sprites/cairn.png";
+		public static final String CARAVAN_TRAIN       = "sprites/caravan_train.png";
 		public static final String VELOCIROOSTER  = "sprites/velocirooster.png";
 
 		public static final String LIVING_PLANTS  = "mobs/livingplants.png";

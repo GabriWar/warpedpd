@@ -75,6 +75,8 @@ public class SpringSoak extends Buff {
 		if (target.isAlive()){
 			boolean in = ThermalVent.bathing( target );
 			if (in){
+				//a peak's spring has no vent to steep the bather each turn: the water does
+				left = DURATION;
 				Buff.detach( target, Chill.class );
 				Buff.detach( target, Frost.class );
 				if (++soaked % MEND_EVERY == 0 && target.HP < target.HT

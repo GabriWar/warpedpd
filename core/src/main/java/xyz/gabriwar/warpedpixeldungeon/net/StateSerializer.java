@@ -69,6 +69,11 @@ public class StateSerializer {
 	private static int prevTrapHash = 0;
 	private static int prevBossId = -1;
 	private static String prevPortalSig = null;
+	// The surface's timed events a guest's world map pins (OverworldLevel.sharedEvents):
+	// shipped whole whenever their fingerprint moves. null = ship on the next delta.
+	private static Long prevEventSig = null;
+	// A world slice's cracked ice (OverworldLevel.sharedHazards): shipped whole when it changes
+	private static Long prevHazardSig = null;
 	private static String prevHeroBuffHash = "";
 	private static HashMap<Integer, String> prevMobBuffHashes = new HashMap<>();
 	private static HashMap<Integer, MobState> prevMobStates = new HashMap<>();
@@ -110,7 +115,17 @@ public class StateSerializer {
 
 	private static class MobState {
 		int pos, hp;
-		MobState(int pos, int hp) { this.pos = pos; this.hp = hp; }
+		boolean asleep;
+		float pf;
+		MobState(int pos, int hp, boolean asleep, float pf) { this.pos = pos; this.hp = hp; this.asleep = asleep; this.pf = pf; }
+	}
+
+	/** A keeper's own price factor (Shopkeeper.priceFactor: a rescued caravan's, a saved village's,
+	 *  the travelling market's), or -1 for a mob that keeps no shelf. Shipped as "pf" on keepers
+	 *  only, so a guest's look at a shelf quotes the price the host will charge. */
+	static float priceFactorOf(Mob mob) {
+		return mob instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Shopkeeper
+				? ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Shopkeeper) mob).priceFactor() : -1f;
 	}
 
 	public static void resetDeltaTracking() {
@@ -121,6 +136,8 @@ public class StateSerializer {
 		prevHeroAtExit = false;
 		prevGold = -1;
 		prevPortalSig = null;
+		prevEventSig = null;
+		prevHazardSig = null;
 		// Not blanked: every caller of this pairs it with a FULL_STATE, which already
 		// carries the current window. Blanking would make the very next delta re-ship
 		// the whole 176x176 map for nothing.
@@ -264,11 +281,15 @@ public class StateSerializer {
 				JSONObject mobObj = new JSONObject();
 				mobObj.put("id", mob.id());
 				mobObj.put("pos", mob.pos);
-				mobObj.put("sprite", mob.spriteClass != null ? mob.spriteClass.getSimpleName() : "MobSprite");
+				mobObj.put("sprite", mob.spriteClass != null ? NetSprites.wireName( mob.spriteClass ) : "MobSprite");
 				mobObj.put("hp", mob.HP);
 				mobObj.put("ht", mob.HT);
 				mobObj.put("name", mob.name());
 				mobObj.put("buffs", serializeBuffs(mob));
+				// asleep: the client's sprite shows the 'z' from it (a village abed, a mob not yet woken)
+				mobObj.put("sl", mob.state == mob.SLEEPING);
+				float pf = priceFactorOf(mob);
+				if (pf >= 0f) mobObj.put("pf", (double) pf);
 				mobsArr.put(mobObj);
 			}
 			state.put("mobs", mobsArr);
@@ -304,6 +325,24 @@ public class StateSerializer {
 			state.put("portals", serializePortals());
 			prevPortalSig = portalSig();
 
+			// The surface's events the party has heard of, settled or forced: a guest's
+			// world map pins them as the host's does. The fingerprint is taken first: this
+			// can run on the network thread, and a change made between the two is then
+			// shipped again by the next delta instead of lost
+			if (level instanceof OverworldLevel) {
+				OverworldLevel ow = (OverworldLevel) level;
+				long eventSig = ow.sharedEventsSig();
+				state.put("wevents", ow.sharedEvents());
+				prevEventSig = eventSig;
+				// the cracked ice a guest's mirror draws and examines (its fingerprint first, as above)
+				long hazardSig = ow.sharedHazardsSig();
+				state.put("whaz", ow.sharedHazards());
+				prevHazardSig = hazardSig;
+			} else {
+				prevEventSig = null;
+				prevHazardSig = null;
+			}
+
 			// Snapshot for delta tracking
 			prevHeroPos = hero.pos;
 			prevHeroHP = hero.HP;
@@ -315,7 +354,7 @@ public class StateSerializer {
 			prevMobStates.clear();
 			prevMobBuffHashes.clear();
 			for (Mob mob : level.mobs) {
-				prevMobStates.put(mob.id(), new MobState(mob.pos, mob.HP));
+				prevMobStates.put(mob.id(), new MobState(mob.pos, mob.HP, mob.state == mob.SLEEPING, priceFactorOf(mob)));
 				prevMobBuffHashes.put(mob.id(), buffHash(mob));
 			}
 			prevNetHeroSig.clear();
@@ -446,21 +485,28 @@ public class StateSerializer {
 			HashMap<Integer, String> newBuffHashes = new HashMap<>();
 			for (Mob mob : level.mobs) {
 				int id = mob.id();
-				newStates.put(id, new MobState(mob.pos, mob.HP));
+				boolean asleep = mob.state == mob.SLEEPING;
+				float pf = priceFactorOf(mob);
+				newStates.put(id, new MobState(mob.pos, mob.HP, asleep, pf));
 				String mbh = buffHash(mob);
 				newBuffHashes.put(id, mbh);
 				MobState prev = prevMobStates.get(id);
 				String prevBH = prevMobBuffHashes.get(id);
 				boolean posHpChanged = prev == null || prev.pos != mob.pos || prev.hp != mob.HP;
 				boolean buffChanged = prevBH == null || !prevBH.equals(mbh);
-				if (posHpChanged || buffChanged) {
+				boolean sleepChanged = prev == null || prev.asleep != asleep;
+				//a keeper's prices change in place: the caravan saved, the market come to town
+				boolean priceChanged = prev == null || prev.pf != pf;
+				if (posHpChanged || buffChanged || sleepChanged || priceChanged) {
 					JSONObject mobObj = new JSONObject();
 					mobObj.put("id", id);
 					mobObj.put("pos", mob.pos);
 					mobObj.put("hp", mob.HP);
 					mobObj.put("ht", mob.HT);
-					mobObj.put("sprite", mob.spriteClass != null ? mob.spriteClass.getSimpleName() : "MobSprite");
+					mobObj.put("sprite", mob.spriteClass != null ? NetSprites.wireName( mob.spriteClass ) : "MobSprite");
 					mobObj.put("name", mob.name());
+					mobObj.put("sl", asleep);
+					if (pf >= 0f) mobObj.put("pf", (double) pf);
 					if (buffChanged) {
 						mobObj.put("buffs", serializeBuffs(mob));
 					}
@@ -550,6 +596,27 @@ public class StateSerializer {
 				delta.put("portals", serializePortals());
 				prevPortalSig = portalSig;
 				hasChanges = true;
+			}
+
+			// The surface's events: one heard of, settled, forgotten or forced
+			if (level instanceof OverworldLevel) {
+				OverworldLevel ow = (OverworldLevel) level;
+				long eventSig = ow.sharedEventsSig();
+				if (prevEventSig == null || eventSig != prevEventSig) {
+					delta.put("wevents", ow.sharedEvents());
+					prevEventSig = eventSig;
+					hasChanges = true;
+				}
+				// ice cracked, giving way, broken or healed
+				long hazardSig = ow.sharedHazardsSig();
+				if (prevHazardSig == null || hazardSig != prevHazardSig) {
+					delta.put("whaz", ow.sharedHazards());
+					prevHazardSig = hazardSig;
+					hasChanges = true;
+				}
+			} else {
+				prevEventSig = null;
+				prevHazardSig = null;
 			}
 
 			// Heap changes — track content hash, not just count

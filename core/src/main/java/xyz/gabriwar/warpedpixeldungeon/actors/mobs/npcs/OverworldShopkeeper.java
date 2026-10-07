@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.Coffee;
 import xyz.gabriwar.warpedpixeldungeon.items.food.Food;
 import xyz.gabriwar.warpedpixeldungeon.items.food.Pasty;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.RaidEvent;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ShopkeeperVariantSprite;
 import com.watabou.utils.Bundle;
@@ -71,6 +72,24 @@ public class OverworldShopkeeper extends Shopkeeper {
 	@Override
 	public String name() {
 		return xyz.gabriwar.warpedpixeldungeon.messages.Messages.get( this, "name_" + speciality );
+	}
+
+	//a raid on the settlement, or the shop being mended after one (RaidEvent)
+	@Override
+	public String tradeBlock(){
+		return RaidEvent.shutReason( homeSector );
+	}
+
+	//the price a saved settlement gives the hero who saved it (RaidEvent)
+	@Override
+	public float priceFactor(){
+		return RaidEvent.priceFactor( homeSector );
+	}
+
+	//in a raid the keeper is hiding behind the counter: a blast meant for a raider is not an attack on him
+	@Override
+	public void processHarm(){
+		if (!RaidEvent.ongoing( homeSector )) super.processHarm();
 	}
 
 	@Override

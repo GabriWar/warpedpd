@@ -78,6 +78,25 @@ public class TargetedCell extends Image implements Bundlable {
 		}
 	}
 
+	/** A sliding-window level moved (OverworldLevel.rebase, render thread): every mark follows
+	 *  its cell, and the ones that left the window go. */
+	public static void shiftAll( int dx, int dy, int width, int height ){
+		synchronized (cells){
+			java.util.List<TargetedCell> all = cells.valueList();
+			cells.clear();
+			for (TargetedCell c : all){
+				int x = c.pos % width - dx, y = c.pos / width - dy;
+				if (x <= 0 || y <= 0 || x >= width - 1 || y >= height - 1){
+					c.killAndErase();
+					continue;
+				}
+				c.pos = x + y * width;
+				c.point( DungeonTilemap.tileToWorld( c.pos ) );
+				cells.put( c.pos, c );
+			}
+		}
+	}
+
 	public static void fixTime(float min){
 		synchronized (cells){
 			for (TargetedCell c : cells.valueList()){

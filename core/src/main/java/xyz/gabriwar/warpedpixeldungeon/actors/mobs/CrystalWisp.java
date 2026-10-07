@@ -26,6 +26,8 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.Ores;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -33,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CrystalWispSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
+import com.watabou.utils.Reflection;
 
 public class CrystalWisp extends Mob{
 
@@ -120,6 +123,28 @@ public class CrystalWisp extends Mob{
 	public void die(Object cause) {
 		flying = false;
 		super.die(cause);
+	}
+
+	//a wisp of the world's caves is grown from its crystal: broken, it may leave a gem of the
+	//slice's mix (Ores.rollGem), each one today on this slice halving the odds of the next
+	//(OverworldLevel.oreDropChance), so the seams stay where the gems are
+	private static final float GEM_CHANCE = 0.12f;
+
+	@Override
+	protected boolean extraLootIgnoresLevel() {
+		return true;
+	}
+
+	@Override
+	protected void dropExtraLoot() {
+		if (!(Dungeon.level instanceof OverworldLevel) || ((OverworldLevel) Dungeon.level).altitude() >= 0) return;
+		OverworldLevel ow = (OverworldLevel) Dungeon.level;
+		if (Random.Float() < ow.oreDropChance( GEM_CHANCE )){
+			ow.oreDropped();
+			//no bestiary slot of its own (Gem is abstract: declareExtraLoot cannot name it), so no
+			//slot is marked seen
+			Dungeon.level.drop( Reflection.newInstance( Ores.rollGem( ow.altitude(), Random.Int( 100 ) ).item ), pos ).sprite.drop();
+		}
 	}
 
 	//used so resistances can differentiate between melee and magical attacks

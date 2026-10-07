@@ -510,19 +510,7 @@ public class WndDebug extends WndTabbed {
 				@Override
 				protected void onClick() {
 					hide();
-					final xyz.gabriwar.warpedpixeldungeon.debug.DebugScenes.Scene[] all
-							= xyz.gabriwar.warpedpixeldungeon.debug.DebugScenes.SCENES;
-					String[] titles = new String[all.length];
-					for (int i = 0; i < all.length; i++) titles[i] = all[i].title();
-					GameScene.show(new WndOptions("Debug scenes",
-							"Sets a situation up around the hero: the hero gets infinite health and the fog is lifted. "
-							+ "Also from the command line: ./gradlew :desktop:debug -Pscene=<id>\n\nIds: "
-							+ xyz.gabriwar.warpedpixeldungeon.debug.DebugScenes.ids(), titles) {
-						@Override
-						protected void onSelect(int index) {
-							xyz.gabriwar.warpedpixeldungeon.debug.DebugScenes.run(all[index]);
-						}
-					});
+					GameScene.show(new WndDebugScenes());
 				}
 			};
 			scenes.textColor(0xFFDD88);

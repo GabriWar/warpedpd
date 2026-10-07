@@ -27,6 +27,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.painters.Painter;
+import xyz.gabriwar.warpedpixeldungeon.levels.rooms.Room;
 import com.watabou.utils.Point;
 
 public class VaultLongRingsRoom extends VaultLongRoom {
@@ -79,6 +80,12 @@ public class VaultLongRingsRoom extends VaultLongRoom {
 				|| level.map[pos] == Terrain.WALL_DECO
 				|| level.distance(pos, previous) < 6);
 		return pos;
+	}
+
+	@Override
+	public boolean canConnect(Room r) {
+		//more difficult rooms can't be adjacent to the entrance
+		return super.canConnect(r) && !(r instanceof VaultEntranceRoom);
 	}
 
 }

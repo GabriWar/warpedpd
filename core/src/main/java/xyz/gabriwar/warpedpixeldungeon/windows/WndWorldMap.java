@@ -25,7 +25,10 @@
 package xyz.gabriwar.warpedpixeldungeon.windows;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.CaveSites;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.MountainSites;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldEvents;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldStructures;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
@@ -38,6 +41,7 @@ import xyz.gabriwar.warpedpixeldungeon.ui.Window;
 import xyz.gabriwar.warpedpixeldungeon.ui.WorldChart;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.gltextures.TextureCache;
+import com.watabou.glwrap.Texture;
 import com.watabou.input.ScrollEvent;
 import com.watabou.noosa.Camera;
 import com.watabou.noosa.ColorBlock;
@@ -48,6 +52,7 @@ import com.watabou.utils.GameMath;
 import com.watabou.utils.PointF;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The world at a size you can read, with you on it.
@@ -57,17 +62,28 @@ import java.util.ArrayList;
  * stays put. Tapping sets a waypoint the hero marches toward; tapping the current
  * waypoint clears it. A tap on the world itself pauses that march (Hero.handle), and
  * the hud tag resumes it.
+ *
+ * The world's timed events the hero has heard of and that are still on (WorldEvents) are
+ * pinned in their own colours, a size up from the hero's pin, and named: a fallen star pale
+ * gold (0xFFFFE070), a travelling market fair magenta (0xFFFF5FC8). A tap near one sets the
+ * waypoint on it.
  */
 public class WndWorldMap extends Window {
 
 	private static final int MARKER          = 0xFFFF3333;
 	private static final int WAYPOINT_MARKER = 0xFF3366FF;
 
-	//at 12x the fit zoom a chart pixel is several screen pixels - past that is just mud
-	private static final float MAX_VIEW = 12f;
+	//the map opens at this many screen pixels per world cell (the chart pixel is two
+	//cells, so a village's well is a dot and a peak's bands read) and zooms out to the
+	//whole slab, in to CLOSEST pixels a cell - past that is just mud
+	private static final float OPEN_SCALE = 2f, CLOSEST = 8f;
+	private final float maxView;
+	//below this many screen pixels per cell the names come off: zoomed out to the whole
+	//slab there are a hundred villages on it, and their names would be all one could see
+	private static final float NAMED_SCALE = 1.5f;
 
 	private final float baseZoom;
-	private float viewZoom = 1f;
+	private float viewZoom;
 	private final int side;
 
 	private final OverworldLevel level;
@@ -79,6 +95,8 @@ public class WndWorldMap extends Window {
 	private static class Pin {
 		final Image dot;
 		float x, y;
+		//how much bigger than the hero's pin it is drawn
+		float grow = 1f;
 		Pin( Image dot, float x, float y ){
 			this.dot = dot;
 			this.x = x;
@@ -106,6 +124,9 @@ public class WndWorldMap extends Window {
 	//the hero's pin tracks them live - the world keeps running under an open map
 	private Pin heroPin;
 
+	//the live events the hero has heard of, pinned in their own colours (WorldEvents.Type.pin)
+	private final ArrayList<WorldEvents.Event> events = new ArrayList<>();
+
 	//the view rides the hero until the player takes the wheel by panning or zooming
 	private boolean following = true;
 
@@ -132,6 +153,8 @@ public class WndWorldMap extends Window {
 				? room / WorldChart.SIZE
 				: room / (float)WorldChart.SIZE;
 		side = (int)(WorldChart.SIZE * baseZoom);
+		maxView = Math.max( 1f, CLOSEST / (baseZoom * WorldChart.STRIDE) );
+		viewZoom = GameMath.gate( 1f, OPEN_SCALE / (baseZoom * WorldChart.STRIDE), maxView );
 
 		int heroWx = level.worldX + Dungeon.hero.pos % level.width();
 		int heroWy = level.worldY + Dungeon.hero.pos / level.width();
@@ -143,6 +166,9 @@ public class WndWorldMap extends Window {
 		if (level.waypointActive){
 			pin( WAYPOINT_MARKER, level.waypointX, level.waypointY );
 		}
+		//under the hero's pin, which is drawn last
+		markEvents();
+		markSites();
 		heroPin = pin( MARKER, heroWx, heroWy );
 
 		labelSites();
@@ -245,6 +271,68 @@ public class WndWorldMap extends Window {
 		return p;
 	}
 
+	//the events on the chart, each a bigger pin in its kind's colour with its name beside it
+	//(labelCorner). a second event on the very same cell - a market and a raid in one village on
+	//one day, both on its well - has its pin nudged a chart pixel toward its own name, so the
+	//first's colour still shows on the side of the first's
+	private void markEvents(){
+		events.addAll( level.mapEvents( chart.originX, chart.originY, WorldChart.SPAN ) );
+		for (int i = 0; i < events.size(); i++){
+			WorldEvents.Event e = events.get( i );
+			Pin p = pin( e.type.pin, e.wx, e.wy );
+			p.grow = 1.5f;
+			boolean[] corner = labelCorner( events, i );
+			if (stacked( events, i )) p.y += corner[1] ? 1f : -1f;
+			place( p );
+			label( Messages.get( WorldEvents.class, "map_" + e.type.key ), chart.chartX( e.wx ), chart.chartY( e.wy ),
+					corner[0], corner[1] );
+		}
+	}
+
+	//the places of the hero's slice he has found (OverworldLevel.foundSites), pinned in their kind's
+	//colour and named. on a slice the chart is the surface's: a pin marks the ground over (or under)
+	//the place, and the window's title already says which slice it is
+	private void markSites(){
+		if (level.altitude() == 0) return;
+		for (OverworldLevel.FoundSite f : level.foundSites()){
+			if (level.altitude() < 0){
+				if (f.kind < 0 || f.kind >= CaveSites.Type.values().length) continue;
+				CaveSites.Type t = CaveSites.Type.values()[f.kind];
+				Pin p = pin( t.pin, f.x, f.y );
+				p.grow = 1.25f;
+				place( p );
+				label( CaveSites.mapName( t ), chart.chartX( f.x ), chart.chartY( f.y ), true, false );
+			} else {
+				if (f.kind < 0 || f.kind >= MountainSites.Kind.values().length) continue;
+				MountainSites.Kind k = MountainSites.Kind.values()[f.kind];
+				Pin p = pin( k.pin, f.x, f.y );
+				p.grow = 1.25f;
+				place( p );
+				label( MountainSites.mapName( level.worldSeed, k, f.x, f.y ), chart.chartX( f.x ), chart.chartY( f.y ), true, false );
+			}
+		}
+	}
+
+	//an event listed before the i-th stands on the very same cell
+	static boolean stacked( List<WorldEvents.Event> events, int i ){
+		WorldEvents.Event e = events.get( i );
+		for (int j = 0; j < i; j++){
+			if (events.get( j ).wx == e.wx && events.get( j ).wy == e.wy) return true;
+		}
+		return false;
+	}
+
+	//the corner of its dot the i-th event's name hangs off, {right, below}: a market's or a
+	//raid's the one its village's own name (labelSites) leaves free, any other's the upper right.
+	//one stacked on another takes the other corner on the same side: clear of the first's name,
+	//and (that side being the one the village's name leaves free) of the village's too
+	static boolean[] labelCorner( List<WorldEvents.Event> events, int i ){
+		WorldEvents.Event e = events.get( i );
+		boolean atVillage = e.type == WorldEvents.Type.MARKET || e.type == WorldEvents.Type.RAID;
+		boolean right = !atVillage || (e.sy & 1) != 0, below = atVillage && (e.sx & 1) != 0;
+		return new boolean[]{ right, stacked( events, i ) ? !below : below };
+	}
+
 	//one name per village on the chart's slab (the same sectors the chart dotted),
 	//and the town on the world origin
 	private void labelSites(){
@@ -275,7 +363,8 @@ public class WndWorldMap extends Window {
 	private void place( Label l ){
 		float s = baseZoom * viewZoom;
 		l.text.visible = l.x >= 0 && l.y >= 0
-				&& l.x < WorldChart.SIZE && l.y < WorldChart.SIZE;
+				&& l.x < WorldChart.SIZE && l.y < WorldChart.SIZE
+				&& s * WorldChart.STRIDE >= NAMED_SCALE;
 		//the chart's site dots are 3 chart pixels wide
 		float half = 1.5f * s + 1;
 		float tx = l.right ? l.x * s + half : l.x * s - half - l.text.width();
@@ -286,7 +375,7 @@ public class WndWorldMap extends Window {
 	//pins keep a constant on-screen size; only their anchors scale
 	private void place( Pin p ){
 		float s = baseZoom * viewZoom;
-		float size = Math.max( 3, baseZoom * 3 );
+		float size = Math.max( 3, baseZoom * 3 ) * p.grow;
 		//a pin whose world position has left the painted slab has nothing to mark
 		p.dot.visible = p.x >= 0 && p.y >= 0
 				&& p.x < WorldChart.SIZE && p.y < WorldChart.SIZE;
@@ -295,9 +384,16 @@ public class WndWorldMap extends Window {
 		p.dot.y = p.y * s - size / 2f;
 	}
 
+	//the slab on show changed under the chart (its own arrived): lay the page out again
+	private boolean laidOut = false;
+
 	@Override
 	public synchronized void update(){
 		super.update();
+		if (!laidOut && chart.ready()){
+			laidOut = true;
+			applyView();
+		}
 		//the map is a window over a running world: the hero keeps walking while
 		//it is open, so their pin has to walk too
 		if (heroPin != null && Dungeon.level == level && Dungeon.hero != null){
@@ -324,8 +420,13 @@ public class WndWorldMap extends Window {
 		float s = baseZoom * viewZoom;
 
 		chart.scale.set( s );
-		chart.x = 0;
-		chart.y = 0;
+		//a chart pixel shrunk under a screen pixel is averaged, not picked from: picked, the
+		//scarp lines and rivers would flicker in and out as the map pans
+		if (chart.texture != null){
+			chart.texture.filter( s < 1 ? Texture.LINEAR : Texture.NEAREST, s < 1 ? Texture.LINEAR : Texture.NEAREST );
+		}
+		chart.x = chart.shownX( s );
+		chart.y = chart.shownY( s );
 
 		for (Pin p : pins){
 			place( p );
@@ -346,7 +447,7 @@ public class WndWorldMap extends Window {
 	/** Rescales around a content-space anchor, keeping it fixed under the cursor. */
 	private void zoomAt( float cx, float cy, float factor ){
 		float old = viewZoom;
-		viewZoom = GameMath.gate( 1f, viewZoom * factor, MAX_VIEW );
+		viewZoom = GameMath.gate( 1f, viewZoom * factor, maxView );
 		if (viewZoom == old) return;
 
 		float f = viewZoom / old;
@@ -384,8 +485,23 @@ public class WndWorldMap extends Window {
 			level.clearWaypoint();
 			GLog.i( Messages.get( WndWorldMap.class, "waypoint_cleared" ) );
 		} else {
-			level.setWaypoint( wx, wy );
-			GLog.p( Messages.get( WndWorldMap.class, "waypoint_set" ) );
+			//a tap on (or by) an event's pin, half as big again as the others, goes for the event itself
+			WorldEvents.Event hit = null;
+			int best = near * 3 / 2 + 1;
+			for (WorldEvents.Event e : events){
+				int d = Math.max( Math.abs( wx - e.wx ), Math.abs( wy - e.wy ) );
+				if (d < best){
+					best = d;
+					hit = e;
+				}
+			}
+			if (hit != null){
+				level.setWaypoint( hit.wx, hit.wy );
+				GLog.p( Messages.get( WndWorldMap.class, "waypoint_event", Messages.get( WorldEvents.class, "map_" + hit.type.key ) ) );
+			} else {
+				level.setWaypoint( wx, wy );
+				GLog.p( Messages.get( WndWorldMap.class, "waypoint_set" ) );
+			}
 		}
 		hide();
 	}

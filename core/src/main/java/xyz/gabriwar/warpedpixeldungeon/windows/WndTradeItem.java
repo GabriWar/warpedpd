@@ -138,12 +138,15 @@ public class WndTradeItem extends WndInfoItem {
 
 		float pos = height;
 
-		final int price = Shopkeeper.sellPrice( item, Dungeon.hero );
+		final Shopkeeper seller = Shopkeeper.sellerOf( heap.pos );
+		final int price = Shopkeeper.sellPrice( item, Dungeon.hero, seller );
 
-		//surface shops shut at night: the goods stay on show, the till is closed
-		final boolean closed = Shopkeeper.closedForNight();
+		//surface shops shut at night: the goods stay on show, the till is closed. so it is
+		//while the keeper has other things on his hands (Shopkeeper.tradeBlock)
+		final String block = seller != null ? seller.tradeBlock() : null;
+		final boolean closed = Shopkeeper.closedForNight() || block != null;
 		if (closed) {
-			RenderedTextBlock warn = PixelScene.renderTextBlock(Messages.get(this, "closed"), 6);
+			RenderedTextBlock warn = PixelScene.renderTextBlock(Shopkeeper.closedForNight() ? Messages.get(this, "closed") : block, 6);
 			warn.hardlight(CharSprite.WARNING);
 			warn.maxWidth(this.width);
 			warn.setPos(0, pos + GAP);
@@ -166,7 +169,8 @@ public class WndTradeItem extends WndInfoItem {
 		pos = btnBuy.bottom();
 
 		final MasterThievesArmband.Thievery thievery = Dungeon.hero.buff(MasterThievesArmband.Thievery.class);
-		if (thievery != null && !thievery.isCursed() && thievery.chargesToUse(item) > 0) {
+		//nothing is lifted off a shelf whose keeper has other things on his hands either
+		if (block == null && thievery != null && !thievery.isCursed() && thievery.chargesToUse(item) > 0) {
 			final float chance = thievery.stealChance(item);
 			final int chargesToUse = thievery.chargesToUse(item);
 			RedButton btnSteal = new RedButton(Messages.get(this, "steal", Math.min(100, (int) (chance * 100)), chargesToUse), 6) {
@@ -325,11 +329,16 @@ public class WndTradeItem extends WndInfoItem {
 			GLog.w( Messages.get(WndTradeItem.class, "closed") );
 			return;
 		}
+		Shopkeeper seller = Shopkeeper.sellerOf( heap.pos );
+		if (seller != null && seller.tradeBlock() != null) {
+			GLog.w( seller.tradeBlock() );
+			return;
+		}
 		
 		Item item = heap.pickUp();
 		if (item == null) return;
 		
-		int price = Shopkeeper.sellPrice( item, Dungeon.hero );
+		int price = Shopkeeper.sellPrice( item, Dungeon.hero, seller );
 		Dungeon.gold -= price;
 		Catalog.countUses(Gold.class, price);
 

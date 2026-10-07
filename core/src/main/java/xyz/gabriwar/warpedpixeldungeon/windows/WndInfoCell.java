@@ -121,10 +121,17 @@ public class WndInfoCell extends Window {
 		if (customTile != null && customTile.name(x, y) != null){
 			return customTile.name(x, y);
 		} else {
-			return Dungeon.level.tileName(Dungeon.level.map[cell]);
+			String at = Dungeon.level.tileNameAt(cell);
+			return at != null ? at : Dungeon.level.tileName(Dungeon.level.map[cell]);
 		}
 	}
 	
+	//the level's own words for this cell, else for its terrain
+	private static String tileDesc( int cell ){
+		String at = Dungeon.level.tileDescAt(cell);
+		return at != null ? at : Dungeon.level.tileDesc(Dungeon.level.map[cell]);
+	}
+
 	public WndInfoCell( int cell ) {
 		
 		super();
@@ -166,12 +173,12 @@ public class WndInfoCell extends Window {
 			if (customDesc != null) {
 				desc += customDesc;
 			} else {
-				desc += Dungeon.level.tileDesc(Dungeon.level.map[cell]);
+				desc += tileDesc(cell);
 			}
 
 		} else {
 
-			desc += Dungeon.level.tileDesc(Dungeon.level.map[cell]);
+			desc += tileDesc(cell);
 		}
 
 		String extra = Dungeon.level.cellDescExtra(cell);

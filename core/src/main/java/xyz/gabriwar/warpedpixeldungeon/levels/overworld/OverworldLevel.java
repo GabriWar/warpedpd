@@ -141,6 +141,11 @@ public class OverworldLevel extends Level {
 	//waypoint march, the arrival handoff) checks this first
 	private boolean network = false;
 
+	/** A network mirror, which simulates nothing (HazardWatch asks before any change). */
+	boolean isMirror(){
+		return network;
+	}
+
 	//the seasonal shift the current window was derived for - the value the
 	//host has to ship for a client to reproduce this window
 	private float windowShift = 0f;
@@ -171,6 +176,12 @@ public class OverworldLevel extends Level {
 	//compare against memory instead of re-running the whole generator
 	private int[] pristine;
 
+	//...and what the settlements' fire rings are placed by (SettlementLights.hearthCell)
+	int[] pristine(){ return pristine; }
+
+	//the ore veins of the current window (WindowGenerator.Window.veins), null on the surface
+	private byte[] veins;
+
 	//window shifts are QUANTIZED to a fixed step per axis, which makes the
 	//next origin predictable - so the next window can be PREPARED on a worker
 	//thread before the hero ever reaches the margin: terrain, the player's edits,
@@ -183,12 +194,29 @@ public class OverworldLevel extends Level {
 	//where the hero stood on his last step, for the direction the preparation bets on
 	private int lastHeroCell = -1;
 	private final Object pregenLock = new Object();
-	private WindowGenerator.Prepared prepared;
-	private int pregenOX = Integer.MIN_VALUE, pregenOY = Integer.MIN_VALUE;
-	private boolean pregenReady = false;
-	private boolean pregenRunning = false;
-	//one per worker started: a worker whose target moved on while it ran leaves the state alone
-	private int prepGeneration = 0;
+	//the windows being prepared or ready, by origin, oldest first: two, so a hero whose next
+	//origin flips between two guesses step after step (a path zig-zagging round rocks, a walk
+	//along a margin's line) gets both prepared once, where one slot restarted a whole
+	//preparation at every step and never finished one
+	private static final int PREP_SLOTS = 2;
+	private final ArrayList<Prep> preps = new ArrayList<>( PREP_SLOTS );
+	//how many preparations were ever started (the tests count them)
+	private int prepsStarted = 0;
+
+	private static final class Prep {
+		final int ox, oy;
+		//null while the worker runs (or when it failed: running is false then)
+		WindowGenerator.Prepared result;
+		boolean running = true;
+		Prep( int ox, int oy ){ this.ox = ox; this.oy = oy; }
+	}
+
+	//the slot for an origin; under pregenLock
+	private Prep prepFor( int ox, int oy ){
+		for (Prep p : preps) if (p.ox == ox && p.oy == oy) return p;
+		return null;
+	}
+
 	//bumped whenever the diff store changes; a preparation records the version it saw
 	private int diffsVersion = 0;
 	//the world-anchored tile variance of the current window, until the scene has taken it
@@ -199,9 +227,92 @@ public class OverworldLevel extends Level {
 	private boolean[] frozen;
 	private byte[] waterDepth;
 	private byte[] link;
+	//...the human villages' fields (WorldStructures.fieldPlots), and the season the window
+	//was dressed for: what the fields are drawn as (DungeonTileSheet.fieldTile)
+	private boolean[] field;
+	private GameCalendar.Season dressSeason;
+	/** Is this cell a way between the slices marked by a plain arrow (WindowGenerator.linkTile)?
+	 *  Its stairs terrain is drawn as the ground around it: the arrow is all there is. The cave
+	 *  mouth has art of its own, and the town keeps its staircase. */
+	public boolean arrowLink( int cell ){
+		if (cell < 0 || cell >= length()) return false;
+		if (map[cell] != Terrain.ENTRANCE && map[cell] != Terrain.EXIT) return false;
+		byte l = link != null && cell < link.length ? link[cell] : WindowGenerator.LINK_NONE;
+		return l != WindowGenerator.LINK_MOUTH && l != WindowGenerator.LINK_CAVE_EXIT
+				&& WorldStructures.townCell( worldX + cell % width(), worldY + cell / width() ) == -1;
+	}
+
 	/** Is the ground of this window cell snowed under? */
 	public boolean frozenAt( int cell ){
 		return frozen != null && cell >= 0 && cell < frozen.length && frozen[cell];
+	}
+
+	//the dangers of this slice: firedamp, cave-ins, thin ice, the thin air and the gusts of the
+	//heights (HazardWatch, where they lie: LayerHazards)
+	private final HazardWatch hazards = new HazardWatch( this );
+
+	public HazardWatch hazards(){
+		return hazards;
+	}
+
+	//the way between slices standing on a window cell (WindowGenerator.LINK_*), LINK_NONE off the window
+	byte linkAt( int cell ){
+		byte[] l = link;
+		return l == null || cell < 0 || cell >= l.length ? WindowGenerator.LINK_NONE : l[cell];
+	}
+
+	/** Is this window cell a village's field, ploughed and sown (and not trampled flat)? Any
+	 *  thread: the window's own mask, swapped whole when the window moves. */
+	public boolean fieldAt( int cell ){
+		boolean[] f = field;
+		return f != null && cell >= 0 && cell < f.length && f[cell] && map[cell] == Terrain.FURROWED_GRASS;
+	}
+
+	/** The season the window's fields are drawn for: the one it was dressed for (a network
+	 *  mirror's, its host's). */
+	public GameCalendar.Season fieldSeason(){
+		return dressSeason != null ? dressSeason : GameCalendar.season();
+	}
+
+	//the places on the mountains the window holds (layerSites' MountainSites.Site) and the heat
+	//of their hot springs by window cell: both swapped whole when the window moves (adoptSites),
+	//so any thread may read them
+	private volatile java.util.List<MountainSites.Site> peakSites = java.util.Collections.emptyList();
+	private volatile byte[] springHeat;
+
+	/** The places on the mountains in the window (empty off the peaks). Any thread: never resolves. */
+	public java.util.List<MountainSites.Site> mountainSites(){
+		return peakSites;
+	}
+
+	/** The warmth a hot spring of the mountains gives this window cell (MountainSites.POOL_C on its
+	 *  water, STEAM_C within two cells), or NEGATIVE_INFINITY: TileTemperature takes the higher. */
+	public float springWarmth( int cell ){
+		byte[] h = springHeat;
+		if (h == null || cell < 0 || cell >= h.length || h[cell] == 0) return Float.NEGATIVE_INFINITY;
+		return h[cell] == 2 ? MountainSites.POOL_C : MountainSites.STEAM_C;
+	}
+
+	/** Is this window cell a hot spring's water? */
+	public boolean hotSpring( int cell ){
+		byte[] h = springHeat;
+		return h != null && cell >= 0 && cell < h.length && h[cell] == 2;
+	}
+
+	/** Under a roof on the peaks: inside the hermit's hut or a waystation's shelter, or beside the
+	 *  waystation's hearth. */
+	public boolean shelterAt( int cell ){
+		if (cell < 0 || cell >= length()) return false;
+		int wx = worldX + cell % width(), wy = worldY + cell / width();
+		for (MountainSites.Site s : peakSites){
+			if (s.kind != MountainSites.Kind.HERMIT && s.kind != MountainSites.Kind.PASS) continue;
+			if (Math.abs( wx - s.wx ) <= 1 && Math.abs( wy - s.wy ) <= 1) return true;
+			if (s.kind == MountainSites.Kind.PASS){
+				int[] h = MountainSites.hearthCell( worldSeed, s );
+				if (Math.abs( wx - h[0] ) <= 1 && Math.abs( wy - h[1] ) <= 1) return true;
+			}
+		}
+		return false;
 	}
 
 	/** The ground a boulder here lies on: what its neighbours show (see WindowGenerator.rockGround). */
@@ -349,17 +460,15 @@ public class OverworldLevel extends Level {
 
 	private boolean preparedFor( int ox, int oy ){
 		synchronized (pregenLock){
-			return pregenReady && prepared != null && pregenOX == ox && pregenOY == oy
-					&& prepared.season == GameCalendar.season();
+			Prep p = prepFor( ox, oy );
+			return p != null && p.result != null && p.result.season == GameCalendar.season();
 		}
 	}
 
+	//a worker still in flight finds its slot gone and drops its result
 	private void discardPreparation(){
 		synchronized (pregenLock){
-			pregenReady = false;
-			prepared = null;
-			pregenOX = Integer.MIN_VALUE;
-			pregenOY = Integer.MIN_VALUE;
+			preps.clear();
 		}
 	}
 
@@ -367,34 +476,36 @@ public class OverworldLevel extends Level {
 	//only the seed, the origin, the season and a snapshot of the edits taken here, and
 	//writes only into its own PreparedWindow - it never touches the level
 	private void schedulePrep( final int ox, final int oy ){
-		final int generation;
+		final Prep slot;
 		synchronized (pregenLock){
-			if (pregenOX == ox && pregenOY == oy && (pregenRunning || pregenReady)) return;
-			pregenRunning = true;
-			pregenReady = false;
-			prepared = null;
-			pregenOX = ox;
-			pregenOY = oy;
-			generation = ++prepGeneration;
+			Prep had = prepFor( ox, oy );
+			if (had != null && (had.running || had.result != null)) return;
+			if (had != null) preps.remove( had );
+			//the oldest guess makes room
+			if (preps.size() >= PREP_SLOTS) preps.remove( 0 );
+			slot = new Prep( ox, oy );
+			preps.add( slot );
+			prepsStarted++;
 		}
 		final GameCalendar.Season season = GameCalendar.season();
 		final HashMap<Long, Integer> edits = diffs.isEmpty() ? null : new HashMap<>( diffs );
 		final int version = diffsVersion;
+		//the fallen stars' scorch on that window as it stands now; a star coming down or cooling
+		//before the rebase changes the signature, and the window is derived again then
+		final HashMap<Long, Integer> scorch = scorchFor( ox, oy );
+		final long scorchSig = scorchSig( ox, oy );
 		final long seed = worldSeed;
 		Thread worker = new Thread( () -> {
 			WindowGenerator.Prepared p = null;
 			long t0 = System.currentTimeMillis();
 			try {
-				p = WindowGenerator.prepare( seed, altitude, ox, oy, season, edits, version );
+				p = WindowGenerator.prepare( seed, altitude, ox, oy, season, edits, version, scorch, scorchSig );
 			} catch (Throwable t){
 				System.out.println( "[OW] window prep failed: " + t );
 			}
 			synchronized (pregenLock){
-				if (generation == prepGeneration){
-					prepared = p;
-					pregenReady = p != null;
-					pregenRunning = false;
-				}
+				slot.result = p;
+				slot.running = false;
 			}
 			System.out.println( "[OW] window prep " + (System.currentTimeMillis() - t0) + "ms" );
 		}, "ow-pregen" );
@@ -410,6 +521,244 @@ public class OverworldLevel extends Level {
 
 	public void markSiteCleared( long sectorKey ){
 		sitesCleared.add( sectorKey );
+	}
+
+	/** The sectors whose dragon has been slain: a traveller's rumour never sends the hero to an empty lair. */
+	public java.util.Set<Long> clearedSites(){
+		return java.util.Collections.unmodifiableSet( sitesCleared );
+	}
+
+	// ------------------------------------------------- the places of a slice
+
+	//the places of the slice laid into the current window (CaveSites.Site below the surface,
+	//MountainSites.Site above it), resolved by the generator and swapped whole when a window is
+	//adopted: any thread may read them
+	private volatile java.util.List<Object> layerSites = java.util.Collections.emptyList();
+	private volatile java.util.List<CaveSites.Site> caveSiteList = java.util.Collections.emptyList();
+	//the tombs of the slice below, under this window (x0, y0, x1, y1 each): nobody digs down onto them
+	private volatile int[] sealedUnder = new int[0];
+
+	/** The places laid into the current window, an immutable list (CaveSites.Site in the caves,
+	 *  MountainSites.Site on the peaks). */
+	public java.util.List<Object> layerSites(){ return layerSites; }
+
+	/** ...the caves' alone. */
+	public java.util.List<CaveSites.Site> caveSites(){ return caveSiteList; }
+
+	private void adoptSites( WindowGenerator.Window w ){
+		java.util.List<Object> sites = w.sites != null ? w.sites : java.util.Collections.emptyList();
+		ArrayList<CaveSites.Site> caves = new ArrayList<>();
+		ArrayList<MountainSites.Site> peaks = new ArrayList<>();
+		for (Object o : sites){
+			if (o instanceof CaveSites.Site) caves.add( (CaveSites.Site) o );
+			else if (o instanceof MountainSites.Site) peaks.add( (MountainSites.Site) o );
+		}
+		layerSites = sites;
+		caveSiteList = java.util.Collections.unmodifiableList( caves );
+		springHeat = peaks.isEmpty() ? null : MountainSites.springHeat( peaks, worldX, worldY );
+		peakSites = java.util.Collections.unmodifiableList( peaks );
+		sealedUnder = w.sealedBelow != null ? w.sealedBelow : new int[0];
+		//the reach of every found place the window holds is known now: the HUD names it there
+		//(a peak's place is kept by its anchor's cell: MountainSites.Site.key is a hash)
+		boolean grown = false;
+		for (CaveSites.Site s : caves) grown |= knowReach( s.key, s.x0, s.y0, s.x1, s.y1 );
+		for (MountainSites.Site s : peaks) grown |= knowReach( worldKey( s.wx, s.wy ), s.x0, s.y0, s.x1, s.y1 );
+		if (grown) rebuildFoundSnapshot();
+	}
+
+	//a found place's reach, once a window holding it is adopted: whether it was new
+	private boolean knowReach( long key, int x0, int y0, int x1, int y1 ){
+		if (!foundSites.containsKey( key ) || foundBoxes.containsKey( key )) return false;
+		foundBoxes.put( key, new int[]{ x0, y0, x1, y1 } );
+		return true;
+	}
+
+	/** The hoard laid once ever under this key (the hoards_laid set: a hoard laid, a stone added, a
+	 *  journal read): true, and recorded, the first time. */
+	public boolean claimHoard( long key ){
+		return hoardLaid.add( key );
+	}
+
+	//the world day each periodic key was last due on (dueOnce), dropped a month on
+	private final java.util.LinkedHashMap<Long, Integer> dueDays = new java.util.LinkedHashMap<>();
+
+	/** True, and recorded, when this key's last record is at least periodDays world days old
+	 *  (WorldClock.day), or it has none: a place's guards come back once a day. */
+	boolean dueOnce( long key, int periodDays ){
+		int today = xyz.gabriwar.warpedpixeldungeon.actors.WorldClock.day();
+		Integer last = dueDays.get( key );
+		if (last != null && today - last < periodDays) return false;
+		dueDays.put( key, today );
+		return true;
+	}
+
+	private void sweepDue(){
+		int today = xyz.gabriwar.warpedpixeldungeon.actors.WorldClock.day();
+		dueDays.values().removeIf( d -> today - d > 30 );
+	}
+
+	/** How many mobs of exactly this class stand, or wait parked, in a world rect (inclusive). */
+	int census( Class<?> cls, int x0, int y0, int x1, int y1 ){
+		int n = 0;
+		for (Mob m : mobs){
+			if (m.getClass() != cls) continue;
+			int wx = worldX + m.pos % width(), wy = worldY + m.pos / width();
+			if (wx >= x0 && wy >= y0 && wx <= x1 && wy <= y1) n++;
+		}
+		for (HashMap.Entry<Long, Mob> e : parkedMobs.entrySet()){
+			if (e.getValue().getClass() != cls) continue;
+			int wx = (int)(e.getKey() & 0xFFFFFFFFL), wy = (int)(e.getKey() >> 32);
+			if (wx >= x0 && wy >= y0 && wx <= x1 && wy <= y1) n++;
+		}
+		return n;
+	}
+
+	/** A place a hero has seen, as the render thread reads it: its anchor's key, its kind
+	 *  (CaveSites.Type ordinal in the caves), the anchor and its reach (the anchor alone until a
+	 *  window holding it has been adopted since the place was restored from a save). */
+	public static final class FoundSite {
+		public final long key;
+		public final int kind, x, y, x0, y0, x1, y1;
+		FoundSite( long key, int kind, int[] box ){
+			this.key = key;
+			this.kind = kind;
+			x = (int)(key & 0xFFFFFFFFL);
+			y = (int)(key >> 32);
+			x0 = box != null ? box[0] : x;
+			y0 = box != null ? box[1] : y;
+			x1 = box != null ? box[2] : x;
+			y1 = box != null ? box[3] : y;
+		}
+	}
+
+	//the places of this slice a hero has seen (anchor key -> kind), in the order found, with the
+	//reach of each once known; and the copy the render thread reads, rebuilt after every change
+	private final java.util.LinkedHashMap<Long, Integer> foundSites = new java.util.LinkedHashMap<>();
+	private final HashMap<Long, int[]> foundBoxes = new HashMap<>();
+	private volatile FoundSite[] foundSnapshot = new FoundSite[0];
+
+	/** The places of this slice a hero has seen (the world map pins them, the HUD names them). */
+	public FoundSite[] foundSites(){ return foundSnapshot; }
+
+	private void rebuildFoundSnapshot(){
+		FoundSite[] s = new FoundSite[foundSites.size()];
+		int i = 0;
+		for (java.util.Map.Entry<Long, Integer> e : foundSites.entrySet()){
+			s[i++] = new FoundSite( e.getKey(), e.getValue(), foundBoxes.get( e.getKey() ) );
+		}
+		foundSnapshot = s;
+	}
+
+	/** A place is found the first time the cell it is seen from has been seen: every hero within
+	 *  twelve of it hears its line. Host only (tickWorld); a guest's map shows no places. */
+	void discover( long key, int kind, int seeX, int seeY, int[] box, String line ){
+		if (foundSites.containsKey( key )) return;
+		int c = localCell( seeX, seeY );
+		if (c == -1 || visited == null || !visited[c]) return;
+		foundSites.put( key, kind );
+		foundBoxes.put( key, box );
+		rebuildFoundSnapshot();
+		for (xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero h : heroesOn( this )){
+			if (distance( h.pos, c ) <= 12) xyz.gabriwar.warpedpixeldungeon.net.NetManager.heroLog( h, GLog.HIGHLIGHT + line );
+		}
+	}
+
+	//the burning rifts' flare (CaveSites.tick): the crack cell it bursts on (a world key, or
+	//MIN_VALUE for none) and when, and when the next may come. not bundled: a load forgets a flare
+	long riftFlareKey = Long.MIN_VALUE;
+	float riftFlareAt, riftNextFlare;
+
+	//what the camp's miner last said, for the window and the cell he said it at (CaveSites.rumours)
+	private String rumourCache;
+	private int rumourVersion = -1, rumourCell = -1;
+
+	/** What a cave miner standing on this cell has heard (CaveSites.rumours), worked out on the
+	 *  actor thread once per window. */
+	public String caveRumours( int cell ){
+		if (rumourCache == null || rumourVersion != windowVersion || rumourCell != cell){
+			rumourCache = CaveSites.rumours( this, cell );
+			rumourVersion = windowVersion;
+			rumourCell = cell;
+		}
+		return rumourCache;
+	}
+
+	/** Can nothing break this cell - the pick, a bomb? A tomb's walls and door (CaveSites), which
+	 *  stand over any older edit of their cells (resealTombs). */
+	public boolean unbreakable( int cell ){
+		if (altitude >= 0 || cell < 0 || cell >= length()) return false;
+		int wx = worldX + cell % width(), wy = worldY + cell / width();
+		for (CaveSites.Site s : caveSiteList){
+			if (s.type == CaveSites.Type.TOMB && Math.max( Math.abs( wx - s.cx ), Math.abs( wy - s.cy ) ) == 3) return true;
+		}
+		return false;
+	}
+
+	/** Is this window cell inside a tomb of the window that is still shut, its door locked? */
+	boolean inSealedTomb( int cell ){
+		if (altitude >= 0 || cell < 0 || cell >= length()) return false;
+		int wx = worldX + cell % width(), wy = worldY + cell / width();
+		for (CaveSites.Site s : caveSiteList){
+			if (s.type != CaveSites.Type.TOMB || Math.max( Math.abs( wx - s.cx ), Math.abs( wy - s.cy ) ) > 2) continue;
+			int door = localCell( s.cx, s.cy + 3 );
+			if (door != -1 && map[door] == Terrain.LOCKED_DOOR) return true;
+		}
+		return false;
+	}
+
+	//a tomb's walls stand over whatever an older save's edits made of their cells (a mine boulder
+	//broken there before the tomb was, a shaft dug down onto it): the edit is dropped and the wall
+	//laid again, so nothing but its key opens it. its door keeps an edit only when it is a door
+	//(opened with the key). host only; true when the map changed
+	private boolean resealTombs(){
+		if (network || altitude >= 0 || diffs.isEmpty() || pristine == null) return false;
+		boolean changed = false;
+		for (CaveSites.Site s : caveSiteList){
+			if (s.type != CaveSites.Type.TOMB) continue;
+			for (int dy = -3; dy <= 3; dy++){
+				for (int dx = -3; dx <= 3; dx++){
+					if (Math.max( Math.abs( dx ), Math.abs( dy ) ) != 3) continue;
+					long key = worldKey( s.cx + dx, s.cy + dy );
+					Integer was = diffs.get( key );
+					if (was == null) continue;
+					if (dx == 0 && dy == 3 && (was == Terrain.DOOR || was == Terrain.OPEN_DOOR)) continue;
+					diffs.remove( key );
+					int c = localCell( s.cx + dx, s.cy + dy );
+					if (c != -1) map[c] = pristine[c];
+					changed = true;
+				}
+			}
+		}
+		if (changed) diffsVersion++;
+		return changed;
+	}
+
+	//the nearest open ground to a cell, outside every shut tomb (and bare of heaps, when asked)
+	private int openGroundNear( int cell, boolean bare ){
+		int w = width();
+		for (int r = 0; r < Math.max( WIDTH, HEIGHT ); r++){
+			for (int dy = -r; dy <= r; dy++){
+				for (int dx = -r; dx <= r; dx++){
+					if (Math.max( Math.abs( dx ), Math.abs( dy ) ) != r) continue;
+					int x = cell % w + dx, y = cell / w + dy;
+					if (x <= 0 || y <= 0 || x >= w - 1 || y >= height() - 1) continue;
+					int c = x + y * w;
+					if (passable[c] && !inSealedTomb( c ) && (!bare || heaps.get( c ) == null)) return c;
+				}
+			}
+		}
+		return cell;
+	}
+
+	/** Is a sealed tomb of the slice below under this cell (the pick will not dig down onto it)? */
+	public boolean sealedBelow( int cell ){
+		if (cell < 0 || cell >= length()) return false;
+		int wx = worldX + cell % width(), wy = worldY + cell / width();
+		int[] b = sealedUnder;
+		for (int i = 0; i < b.length; i += 4){
+			if (wx >= b[i] && wy >= b[i + 1] && wx <= b[i + 2] && wy <= b[i + 3]) return true;
+		}
+		return false;
 	}
 
 	//the fixed WORLD position of the arrival waystone - a permanent landmark,
@@ -554,10 +903,22 @@ public class OverworldLevel extends Level {
 		com.watabou.noosa.Game.switchScene( xyz.gabriwar.warpedpixeldungeon.scenes.InterlevelScene.class );
 	}
 
+	/** Sends the hero to any slice of the world (debug scenes), landing on the pending arrival:
+	 *  travelToSurface for the slices above and below. */
+	public static void travelToAltitude( int altitude ){
+		xyz.gabriwar.warpedpixeldungeon.levels.Level.beforeTransition();
+		xyz.gabriwar.warpedpixeldungeon.scenes.InterlevelScene.mode
+				= xyz.gabriwar.warpedpixeldungeon.scenes.InterlevelScene.Mode.RETURN;
+		xyz.gabriwar.warpedpixeldungeon.scenes.InterlevelScene.returnDepth = WorldLayers.depthOf( altitude );
+		xyz.gabriwar.warpedpixeldungeon.scenes.InterlevelScene.returnBranch = 0;
+		xyz.gabriwar.warpedpixeldungeon.scenes.InterlevelScene.returnPos = -1;
+		com.watabou.noosa.Game.switchScene( xyz.gabriwar.warpedpixeldungeon.scenes.InterlevelScene.class );
+	}
+
 	public static final int DEPTH = 97;
 
 	//window cell of a world cell, or -1 when it is not inside the window's interior
-	private int localCell( int wx, int wy ){
+	public int localCell( int wx, int wy ){
 		int x = wx - worldX, y = wy - worldY;
 		if (x <= 0 || y <= 0 || x >= width()-1 || y >= height()-1) return -1;
 		return x + y * width();
@@ -613,6 +974,8 @@ public class OverworldLevel extends Level {
 		int t = map[cell];
 		boolean rock = t == Terrain.WALL || t == Terrain.WALL_DECO
 				|| t == Terrain.MINE_CRYSTAL || t == Terrain.MINE_BOULDER;
+		//the walls of a hut or a tower on the peaks are no rock to break through: beside them instead
+		if (rock && altitude > 0 && builtWall( cell ) != null) rock = false;
 		if (pendingShaft){
 			pendingShaft = false;
 			if (t != Terrain.ENTRANCE && t != Terrain.EXIT){
@@ -657,10 +1020,21 @@ public class OverworldLevel extends Level {
 		worldY = wy - HEIGHT/2;
 		visited = new boolean[length()];
 		mapped = new boolean[length()];
+		//nothing lit is remembered in a window just arrived in
+		litNow = litDirty = null;
 		regenWindow();
+		//a market's village crowds its well from the first (Settler)
+		if (altitude == 0) refreshMarkets( eventTurn() );
 		restoreHeapsInWindow();
 		placeTransitions();
 		populateTown();
+		//the settlements of the new window are peopled at once, each at its day's business, and
+		//so are a slice's places (a camp's trader, a tomb's guard, a hermit, an eyrie's pair): the
+		//next rebase is a long walk away. the wildlife and the surface sites' guardians wait for it
+		if (altitude == 0) populateSettlements();
+		if (altitude != 0) populateLayerSites();
+		//the first step settles the new window's events
+		liveEvents = null;
 	}
 
 	//a mob leaving the window is parked at its world position. it is taken
@@ -671,6 +1045,18 @@ public class OverworldLevel extends Level {
 	//it from mobs. a fleeing thief hands its loot to the heap store first so
 	//nothing the player owns is ever duplicated or lost
 	private void park( Mob m, int wx, int wy ){
+		//never stored: the road's walkers (RoadTraffic puts whoever should be out back on the
+		//road), an outlaw making off with a caravan's goods, and a hunt's beasts (the hunt ends
+		//with the first to leave, HuntEvent). read BEFORE Actor.remove, which detaches buffs
+		xyz.gabriwar.warpedpixeldungeon.actors.mobs.HuntPack hunting = m.buff( xyz.gabriwar.warpedpixeldungeon.actors.mobs.HuntPack.class );
+		if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.RoadWalker
+				|| (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldBandit
+						&& ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldBandit) m).retreating)
+				|| hunting != null){
+			vanish( this, m );
+			if (hunting != null) HuntEvent.lost( this, hunting );
+			return;
+		}
 		Actor.remove( m );
 		for (xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff b : m.buffs()) Actor.remove( b );
 		m.clearTime();
@@ -685,6 +1071,13 @@ public class OverworldLevel extends Level {
 			}
 			parked.items.add( ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.Thief) m).item );
 			((xyz.gabriwar.warpedpixeldungeon.actors.mobs.Thief) m).item = null;
+		}
+		//an eyrie's eagle waits at its nest: where it was circling may be open air over the drop,
+		//where unparkMobs finds no ground to put it back on
+		if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.Eagle
+				&& ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.Eagle) m).nestX != Integer.MIN_VALUE){
+			wx = ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.Eagle) m).nestX;
+			wy = ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.Eagle) m).nestY;
 		}
 		//one mob per world cell: a cell already holding a parked mob (one the
 		//window could not put back) hands the newcomer the nearest free key.
@@ -727,7 +1120,14 @@ public class OverworldLevel extends Level {
 	private static boolean keepsForever( Mob m ){
 		return m instanceof NPC
 				|| m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldDragon
-				|| m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.RuinSkeleton;
+				|| m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.RuinSkeleton
+				//an eyrie's pair is placed once (MountainSites): pruned, it would never come back
+				|| m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.Eagle
+				//a shrine's fish is set in its pool once (CaveSites): pruned, it would never come back
+				|| m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.ShrinePiranha
+				//an ambush party waits out its stall's day (CaravanAmbush.disbandOrphans)
+				|| (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldBandit
+						&& ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldBandit) m).eventHeld());
 	}
 
 	//forget parked wildlife that has gone stale: parked for over two
@@ -765,11 +1165,16 @@ public class OverworldLevel extends Level {
 		java.util.Iterator<HashMap.Entry<Long, Mob>> it = parkedMobs.entrySet().iterator();
 		while (it.hasNext()){
 			HashMap.Entry<Long, Mob> e = it.next();
-			int cell = localCell( (int)(e.getKey() & 0xFFFFFFFFL), (int)(e.getKey() >> 32) );
+			int wx = (int)(e.getKey() & 0xFFFFFFFFL), wy = (int)(e.getKey() >> 32);
+			int cell = localCell( wx, wy );
 			if (cell == -1) continue;
-			int at = freeSpotWithin( cell, 2 );
-			if (at == -1) continue;
 			Mob m = e.getValue();
+			//a settlement's people come back to wherever the day has got to (VillageRoutine)
+			int at = VillageRoutine.arrivalCell( this, m, wx, wy );
+			if (at == -1) at = freeSpotWithin( cell, 2 );
+			if (at == -1) continue;
+			//a fish whose pool cell is taken waits for it rather than coming back onto dry land
+			if (!OverworldFauna.standsAt( this, m, at )) continue;
 			m.sprite = null;
 			addFolk( m, at );
 			it.remove();
@@ -781,7 +1186,7 @@ public class OverworldLevel extends Level {
 	//re-populated (restoreFromBundle, jumpWindowTo) BEFORE Actor.init registers
 	//the level's mobs, so the scheduler is empty there and every candidate cell
 	//reads as free - which stacked unparked mobs on top of the ones already down
-	private boolean occupied( int cell ){
+	boolean occupied( int cell ){
 		if (Actor.findChar( cell ) != null) return true;
 		for (Mob m : mobs){
 			if (m.pos == cell) return true;
@@ -791,7 +1196,7 @@ public class OverworldLevel extends Level {
 
 	//the cell itself, or the nearest passable unoccupied window cell within
 	//the given radius, or -1
-	private int freeSpotWithin( int cell, int radius ){
+	int freeSpotWithin( int cell, int radius ){
 		if (passable[cell] && !occupied( cell )) return cell;
 		int cx = cell % width(), cy = cell / width();
 		for (int r = 1; r <= radius; r++){
@@ -896,7 +1301,7 @@ public class OverworldLevel extends Level {
 		}
 	}
 
-	private boolean liveScene(){
+	boolean liveScene(){
 		return Dungeon.level == this
 				&& com.watabou.noosa.Game.scene() instanceof xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 	}
@@ -915,6 +1320,12 @@ public class OverworldLevel extends Level {
 	 */
 	private void presentWindowArt( int dcx, int dcy ){
 		if (!liveScene()) return;
+		//the hero has walked on: have the world map's slab painted around them before they
+		//open it (a no-op while they are still well inside the painted one)
+		if ((dcx != 0 || dcy != 0) && Dungeon.hero != null){
+			xyz.gabriwar.warpedpixeldungeon.ui.WorldChart.prepare( worldSeed,
+					worldX + Dungeon.hero.pos % width(), worldY + Dungeon.hero.pos / width() );
+		}
 		if (townArt != null){
 			for (int i = 0; i < townArt.length; i++){
 				//the roofs draw over the hero, the rest under: the same split as their creation
@@ -928,6 +1339,153 @@ public class OverworldLevel extends Level {
 				xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.add( all[i], i >= 2 );
 			}
 		}
+		if (below != null){
+			for (xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer b : below){
+				if (dcx != 0 || dcy != 0) b.shiftVisual( dcx, dcy );
+				xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.addBelow( b );
+			}
+		}
+		if (tops != null){
+			for (xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer t : tops){
+				if (dcx != 0 || dcy != 0) t.shiftVisual( dcx, dcy );
+				xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.addRockTops( t );
+			}
+		}
+	}
+
+	/** GameScene.create: the views of the other bands are not level tilemaps the scene builds by itself */
+	public void presentSliceViews(){
+		if (below != null){
+			for (xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer b : below) xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.addBelow( b );
+		}
+		if (tops != null){
+			for (xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer t : tops) xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.addRockTops( t );
+		}
+	}
+
+	// ------------------------------------------------------------ the rock's tops
+
+	//the open-sky slices' rock seen from below as the land on top of it (WindowGenerator.Window.top):
+	//per window cell, the tile of its top, the dressing's blends and corners over it, and
+	//whether its scarp is earth; null in the caves
+	private int[] top;
+	private int[][] topParts;
+	private boolean[] earth;
+	//the tops on screen, a view's three parts: under the walls' rims, on every rock cell with
+	//rock in front of it (the rest of the rock shows its face)
+	private xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer[] tops;
+
+	private void setTopData( int[] top, int[] blends, int[] corners, boolean[] earth ){
+		this.top = top;
+		this.earth = earth;
+		if (top == null){
+			tops = null;
+			topParts = null;
+			return;
+		}
+		topParts = new int[][]{ top, blends, corners };
+		if (tops == null){
+			tops = new xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer[topParts.length];
+			for (int i = 0; i < tops.length; i++) tops[i] = new xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer( xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer.TOPS, i );
+		}
+		for (int i = 0; i < tops.length; i++){
+			int[] data = new int[length()];
+			for (int c = 0; c < data.length; c++) data[c] = rockTopAt( c ) ? topParts[i][c] : -1;
+			tops[i].setRect( 0, 0, WIDTH, HEIGHT );
+			tops[i].setData( data );
+		}
+	}
+
+	@Override
+	public boolean rockTopAt( int cell ){
+		int[] t = top;
+		return t != null && cell >= 0 && cell + width() < length() && cell < t.length && t[cell] != -1
+				&& map[cell] == Terrain.WALL
+				&& xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTileSheet.wallStitcheable( map[cell + width()] );
+	}
+
+	/** The ground on top of the rock here (WindowGenerator.viewTile), -1 where it is no natural
+	 *  rock: what its lip shows over the cell north of it. */
+	public int topGroundAt( int cell ){
+		int[] t = top;
+		return t != null && cell >= 0 && cell < t.length && map[cell] == Terrain.WALL ? t[cell] : -1;
+	}
+
+	/** Is the rock here earth rather than stone (WorldModel.earthenScarp)? Its face and rims are
+	 *  drawn in earth. */
+	public boolean earthAt( int cell ){
+		boolean[] e = earth;
+		return e != null && cell >= 0 && cell < e.length && e[cell] && map[cell] == Terrain.WALL;
+	}
+
+	/** GameScene.updateMap: a cell changed, so it and the rock above it (whose front it is) may have
+	 *  gained or lost a top: mined rock shows its face, and so does the rock behind it now. */
+	public void retop( int cell ){
+		if (tops == null) return;
+		for (int c : new int[]{ cell, cell - width() }){
+			if (c < 0 || c >= length()) continue;
+			boolean shown = rockTopAt( c );
+			for (int i = 0; i < tops.length; i++) tops[i].setCell( c, shown ? topParts[i][c] : -1 );
+			if (discoverable != null && shown) discoverable[c] = true;
+		}
+	}
+
+	@Override
+	public void cleanWalls(){
+		super.cleanWalls();
+		if (top == null) return;
+		for (int c = 0; c < length(); c++) if (rockTopAt( c )) discoverable[c] = true;
+	}
+
+	//the natural rock in sight range shows, tops and faces, whatever the rock between: a cliff
+	//is seen from its foot, and a face the ridge beside it hides is no hole among seen tops
+	//(the ground behind a ridge stays unseen)
+	private void seeRockTops( Char c, boolean[] fieldOfView ){
+		if (top == null) return;
+		int w = width(), cx = c.pos % w, cy = c.pos / w, r = c.viewDistance;
+		for (int y = Math.max( 0, cy - r ); y <= Math.min( height() - 1, cy + r ); y++){
+			for (int x = Math.max( 0, cx - r ); x <= Math.min( w - 1, cx + r ); x++){
+				int dx = x - cx, dy = y - cy;
+				if (dx * dx + dy * dy > r * r) continue;
+				int cell = x + y * w;
+				if (topGroundAt( cell ) != -1) fieldOfView[cell] = true;
+			}
+		}
+	}
+
+	//the view down from a mountain slice: the ground of the bands below, seen through the
+	//drops, a view's three parts per depth and the rims' shade (WindowGenerator.belowLayers).
+	//null everywhere else
+	private xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer[] below;
+
+	/** whether the ground below shows at this cell: a drop there is drawn as that ground */
+	public boolean seesBelow( int cell ){
+		if (below == null) return false;
+		for (xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer b : below){
+			if (b.part == xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer.TILES && b.depth < WindowGenerator.BELOW_LAYERS && b.at( cell ) != -1) return true;
+		}
+		return false;
+	}
+
+	private void setBelowData( WindowGenerator.Views v ){
+		if (v == null){
+			below = null;
+			return;
+		}
+		int depths = v.depth.length;
+		if (below == null){
+			below = new xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer[depths * 3 + 1];
+			for (int d = 0; d < depths; d++){
+				for (int part = 0; part < 3; part++) below[d * 3 + part] = new xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer( d, part );
+			}
+			below[depths * 3] = new xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer( depths, xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer.TILES );
+		}
+		for (int d = 0; d < depths; d++){
+			int[][] parts = { v.depth[d].tiles, v.depth[d].blends, v.depth[d].corners };
+			for (int part = 0; part < 3; part++) below[d * 3 + part].setData( parts[part] );
+		}
+		below[depths * 3].setData( v.shade );
+		for (xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer b : below) b.setRect( 0, 0, WIDTH, HEIGHT );
 	}
 
 	// ------------------------------------------------------- world dressing
@@ -971,6 +1529,78 @@ public class OverworldLevel extends Level {
 			all[i].setRect( 0, 0, WIDTH, HEIGHT );
 			all[i].setData( dress[i] );
 		}
+	}
+
+	/** GameScene.updateMap: a cell changed, so the ore glinting on it and on the rock face above it
+	 *  (whose south side it is) is worked out again - a mined vein loses its glint, and the rock
+	 *  behind it shows its own if the vein runs on (Ores). Visual only: mirrors do it too. */
+	public void redressRock( int cell ){
+		if (altitude == 0 || dressGround == null) return;
+		long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
+		redressOre( cell );
+		redressOre( cell - width() );
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW redress ore", t );
+	}
+
+	//only an ore glint (or nothing) is ever replaced: the ground layer's other overlays are not this one's
+	private void redressOre( int c ){
+		if (c < 0 || c >= length()) return;
+		int want = dressCanopy.get( c ) != -1 ? -1
+				: Ores.faceTileAt( worldSeed, worldX, worldY, map, veins, null, c );
+		int cur = dressGround.get( c );
+		if (cur == want || (cur != -1 && Ores.faceKind( cur ) == null)) return;
+		dressGround.setCell( c, want );
+	}
+
+	/** The ore the pick prises out of this cell: a slice's standing rock on a vein (Ores), or null. */
+	public xyz.gabriwar.warpedpixeldungeon.items.ore.Ore oreFrom( int cell ){
+		if (veins == null || cell < 0 || cell >= length() || map[cell] != Terrain.WALL || veins[cell] == 0) return null;
+		int wx = worldX + cell % width(), wy = worldY + cell / width();
+		Ores.Kind k = Ores.Kind.values()[veins[cell] - 1];
+		xyz.gabriwar.warpedpixeldungeon.items.ore.Ore ore = com.watabou.utils.Reflection.newInstance( k.item );
+		if (ore != null) ore.quantity( Ores.yield( worldSeed, altitude, wx, wy ) );
+		return ore;
+	}
+
+	/** The gem a crystal of a cave seam holds when it is mined itself (Ores.gemAt), or null. */
+	public xyz.gabriwar.warpedpixeldungeon.items.ore.Gem gemFrom( int cell ){
+		if (altitude >= 0 || cell < 0 || cell >= length() || map[cell] != Terrain.MINE_CRYSTAL) return null;
+		Ores.GemKind g = Ores.gemAt( worldSeed, altitude, worldX + cell % width(), worldY + cell / width() );
+		return g == null ? null : com.watabou.utils.Reflection.newInstance( g.item );
+	}
+
+	//the ore and gems the caves' creatures have dropped on this slice today (Golem's lumps,
+	//CrystalWisp's gems): each drop halves the odds of the next until the world's day turns, so the
+	//beasts that come back with every window are never a mine of their own - the rock is where the ore is
+	private int oreDropDay = -1, oreDrops = 0;
+
+	/** The chance a cave creature's ore or gem drop of this base chance lands now: halved for
+	 *  every one that already fell on this slice today (WorldClock.day). */
+	public float oreDropChance( float base ){
+		int today = xyz.gabriwar.warpedpixeldungeon.actors.WorldClock.day();
+		if (oreDropDay != today){
+			oreDropDay = today;
+			oreDrops = 0;
+		}
+		return base * (float) Math.pow( 0.5, oreDrops );
+	}
+
+	/** A cave creature's ore or gem fell: the next one today is half as likely. */
+	public void oreDropped(){
+		oreDrops++;
+	}
+
+	/** The metal glinting on this cell's rock face, as the dressing draws it (so the name always matches the art), or null. */
+	public Ores.Kind shownOre( int cell ){
+		return altitude == 0 || dressGround == null ? null : Ores.faceKind( dressGround.get( cell ) );
+	}
+
+	/** The colour a rich vein on this cell's rock face catches the light in (CaveLife's glints):
+	 *  gold, deepsilver and skyiron, read off the dressing so it shines where the art shows it;
+	 *  0 for any other rock. Render thread. */
+	public int oreGlint( int cell ){
+		Ores.Kind k = shownOre( cell );
+		return k == Ores.Kind.GOLD || k == Ores.Kind.DEEPSILVER || k == Ores.Kind.SKYIRON ? k.colour : 0;
 	}
 
 	//the town's folk and chests, at the town's authored cells. each is created
@@ -1148,9 +1778,31 @@ public class OverworldLevel extends Level {
 		return inTown( cell );
 	}
 
+	//from the first change a rebase makes to the level until its render block has moved the scene
+	//too, the map, the exploration and the field of view are not all in one frame (rebase)
+	private volatile boolean shifting = false;
+
+	@Override
+	public boolean fogHeld(){
+		return shifting;
+	}
+
 	@Override
 	public void updateFieldOfView( Char c, boolean[] fieldOfView ){
 		super.updateFieldOfView( c, fieldOfView );
+		if (c == Dungeon.hero) seeRockTops( c, fieldOfView );
+		boolean own = c == Dungeon.hero && fieldOfView == heroFOV;
+		//the ground lit for the hero last time is repainted too: some of it may be out of sight now
+		if (own) litDirty = union( litDirty, litNow );
+		int[] lit = null;
+		if (altitude < 0 && c instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero
+				&& c.buff( xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness.class ) == null){
+			lit = litSight( c, fieldOfView );
+		}
+		if (own){
+			litNow = lit;
+			litDirty = union( litDirty, lit );
+		}
 		if (c != Dungeon.hero || altitude != 0) return;
 		int x0 = Math.max( 1, WorldStructures.TOWN_X0 - worldX );
 		int y0 = Math.max( 1, WorldStructures.TOWN_Y0 - worldY );
@@ -1165,8 +1817,101 @@ public class OverworldLevel extends Level {
 		}
 	}
 
-	/** Where a window cell is, for the HUD: the town, a named settlement, or the biome. */
+	//how far a lit place is seen from in the dark of the caves, against the slice's eight
+	private static final int LIT_SIGHT = 16;
+	private boolean[] litBuf;
+
+	//the caves' lanterns, fires and glowing mushrooms (CaveSites) light the ground round them: a
+	//hero with a clear line to it sees that ground from twice his own sight, so a camp or a mine
+	//reads from across the chamber. returns the rect (window x0, y0, x1, y1) it showed, or null
+	private int[] litSight( Char c, boolean[] fieldOfView ){
+		int w = width(), cx = c.pos % w, cy = c.pos / w;
+		ArrayList<int[]> near = null;
+		for (CaveSites.Site s : caveSiteList){
+			for (int i = 0; i < s.lights.length; i += 4){
+				int x = s.lights[i] - worldX, y = s.lights[i + 1] - worldY;
+				if (Math.max( Math.abs( x - cx ), Math.abs( y - cy ) ) > LIT_SIGHT) continue;
+				if (near == null) near = new ArrayList<>();
+				near.add( new int[]{ x, y } );
+			}
+		}
+		if (near == null) return null;
+		long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
+		if (litBuf == null || litBuf.length != length()) litBuf = new boolean[length()];
+		java.util.Arrays.fill( litBuf, false );
+		xyz.gabriwar.warpedpixeldungeon.mechanics.ShadowCaster.castShadow( cx, cy, w, litBuf, losBlocking, LIT_SIGHT );
+		int x0 = Integer.MAX_VALUE, y0 = Integer.MAX_VALUE, x1 = -1, y1 = -1;
+		for (int[] l : near){
+			for (int dy = -2; dy <= 2; dy++){
+				for (int dx = -2; dx <= 2; dx++){
+					int x = l[0] + dx, y = l[1] + dy;
+					if (x <= 0 || y <= 0 || x >= w - 1 || y >= height() - 1) continue;
+					int cell = x + y * w;
+					if (!litBuf[cell]) continue;
+					fieldOfView[cell] = true;
+					x0 = Math.min( x0, x ); y0 = Math.min( y0, y );
+					x1 = Math.max( x1, x ); y1 = Math.max( y1, y );
+				}
+			}
+		}
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW lit sight", t );
+		return x1 == -1 ? null : new int[]{ x0, y0, x1, y1 };
+	}
+
+	//the ground litSight showed the hero last, and all it has shown since Dungeon.observe last
+	//wrote it into the map (window rects x0, y0, x1, y1, or null)
+	private int[] litNow, litDirty;
+
+	//a window rect (x0, y0, x1, y1) after the window moved by (dx, dy), clipped to the interior; null when nothing is left
+	private int[] shiftRect( int[] r, int dx, int dy ){
+		if (r == null) return null;
+		int x0 = Math.max( 1, r[0] - dx ), y0 = Math.max( 1, r[1] - dy );
+		int x1 = Math.min( width() - 2, r[2] - dx ), y1 = Math.min( height() - 2, r[3] - dy );
+		return x0 > x1 || y0 > y1 ? null : new int[]{ x0, y0, x1, y1 };
+	}
+
+	private static int[] union( int[] a, int[] b ){
+		if (a == null) return b;
+		if (b == null) return a;
+		return new int[]{ Math.min( a[0], b[0] ), Math.min( a[1], b[1] ), Math.max( a[2], b[2] ), Math.max( a[3], b[3] ) };
+	}
+
+	/** Dungeon.observe, after its own square round the hero: the far ground the caves' lights
+	 *  show him is explored, and it and what they showed before are repainted in the fog, so the
+	 *  lit camp shows and ground that has gone out of his sight is drawn as remembered. */
+	public void observeLit(){
+		int[] r = litDirty;
+		litDirty = null;
+		if (r == null || visited == null || heroFOV == null) return;
+		int w = r[2] - r[0] + 1;
+		for (int y = r[1]; y <= r[3]; y++){
+			com.watabou.utils.BArray.or( visited, heroFOV, r[0] + y * width(), w, visited );
+		}
+		xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.updateFog( r[0], r[1], w, r[3] - r[1] + 1 );
+	}
+
+	/** Where a window cell is, for the HUD: the town, a named settlement, or the biome; on a slice,
+	 *  the found place whose reach holds it. Render thread: reads the found sites' snapshot alone. */
 	public String placeNameAt( int cell ){
+		if (altitude < 0){
+			int wx = worldX + cell % width(), wy = worldY + cell / width();
+			for (FoundSite f : foundSnapshot){
+				if (f.kind < 0 || f.kind >= CaveSites.Type.values().length) continue;
+				if (wx >= f.x0 && wy >= f.y0 && wx <= f.x1 && wy <= f.y1){
+					return Messages.get( CaveSites.class, "place_site", CaveSites.mapName( CaveSites.Type.values()[f.kind] ), -altitude );
+				}
+			}
+		}
+		if (altitude > 0){
+			int wx = worldX + cell % width(), wy = worldY + cell / width();
+			for (FoundSite f : foundSnapshot){
+				if (f.kind < 0 || f.kind >= MountainSites.Kind.values().length) continue;
+				if (wx >= f.x0 && wy >= f.y0 && wx <= f.x1 && wy <= f.y1){
+					return Messages.get( MountainSites.class, "place_site",
+							MountainSites.mapName( worldSeed, MountainSites.Kind.values()[f.kind], f.x, f.y ), altitude );
+				}
+			}
+		}
 		if (altitude > 0) return Messages.get( this, "place_above", altitude );
 		if (altitude < 0) return Messages.get( this, "place_below", -altitude );
 		int wx = worldX + cell % width(), wy = worldY + cell / width();
@@ -1203,6 +1948,15 @@ public class OverworldLevel extends Level {
 	/** The signpost's text: the settlements it points at, with walking distances. */
 	public void readSign( int cell ){
 		int wx = worldX + cell % width(), wy = worldY + cell / width();
+		//a waystation's signpost names its pass (MountainSites)
+		MountainSites.Site pass = altitude > 0 ? MountainSites.signOf( worldSeed, peakSites, wx, wy ) : null;
+		if (pass != null){
+			final String text = Messages.get( MountainSites.class, "pass_sign", MountainSites.passName( worldSeed, pass.wx, pass.wy ) );
+			com.watabou.noosa.Game.runOnRenderThread( () ->
+					xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.show(
+							new xyz.gabriwar.warpedpixeldungeon.windows.WndMessage( text ) ) );
+			return;
+		}
 		StringBuilder sb = new StringBuilder();
 		int sx0 = Math.floorDiv( wx, WorldStructures.SECTOR );
 		int sy0 = Math.floorDiv( wy, WorldStructures.SECTOR );
@@ -1412,7 +2166,7 @@ public class OverworldLevel extends Level {
 		Dungeon.hero.next();
 	}
 
-	private static long worldKey( int wx, int wy ){
+	static long worldKey( int wx, int wy ){
 		return ((long)wy << 32) | (wx & 0xFFFFFFFFL);
 	}
 
@@ -1425,7 +2179,25 @@ public class OverworldLevel extends Level {
 		//the wind, seen: leaves off the canopies and snow off the frozen
 		//ground, one viewport-sized emitter (see WindDrift)
 		v.add( new xyz.gabriwar.warpedpixeldungeon.effects.particles.WindDrift() );
+		//the small life about the hero, on every slice: the surface's birds, hares, fish, butterflies
+		//and fireflies, the caves' bats, drips, glows and blind fish, the peaks' eagle, marmots, snow
+		//plumes and clouds (OverworldCritters, CaveLife, PeakLife). pictures only, so a network
+		//mirror shows its own
+		if (hasCritters()) v.add( new OverworldCritters.Field( this ) );
+		//the settlements' smoke and lamplight on a network client, which runs no hero turn
+		//to light them (SettlementAmbience.onHeroTurn lights the host's) - and the caves' and the peaks' places
+		v.add( new SettlementAmbience.Mirror( this ) );
+		//and the timed events' streaks, smoke, glow and bunting (the host's step shows his)
+		if (altitude == 0) v.add( new EventDecorMirror( this ) );
+		//the cracks of thin ice stepped on (HazardWatch): the slices' only, the surface's ice never cracks
+		v.add( new IceCracks( this ) );
 		return v;
+	}
+
+	/** Whether the small life about the hero lives here (OverworldCritters.Field): every slice
+	 *  of the world has its own, the caves' and the peaks' as much as the surface's. */
+	boolean hasCritters(){
+		return WorldLayers.exists( altitude );
 	}
 
 	// ------------------------------------------------- surface weather hooks
@@ -1508,6 +2280,8 @@ public class OverworldLevel extends Level {
 		refreshSeasonShift();
 		regenWindow();
 		placeTransitions();
+		//a market's village crowds its well from the first (Settler)
+		if (altitude == 0) refreshMarkets( eventTurn() );
 		populateTown();
 
 		populate();
@@ -1518,14 +2292,11 @@ public class OverworldLevel extends Level {
 	//the prepared window for an origin, when the worker finished one for it at this season
 	private WindowGenerator.Prepared takePrepared( int ox, int oy ){
 		synchronized (pregenLock){
-			if (pregenReady && prepared != null && pregenOX == ox && pregenOY == oy
-					&& prepared.season == GameCalendar.season()){
-				WindowGenerator.Prepared p = prepared;
-				prepared = null;
-				pregenReady = false;
-				return p;
-			}
-			return null;
+			Prep p = prepFor( ox, oy );
+			if (p == null || p.result == null || p.result.season != GameCalendar.season()) return null;
+			//the others were guesses at a window the hero did not walk into
+			preps.clear();
+			return p.result;
 		}
 	}
 
@@ -1539,22 +2310,31 @@ public class OverworldLevel extends Level {
 	 */
 	private void adoptPrepared( WindowGenerator.Prepared p ){
 		pristine = p.base.terrain;
+		veins = p.base.veins;
+		adoptSites( p.base );
 		frozen = p.base.frozen;
 		waterDepth = p.base.waterDepth;
 		link = p.base.link;
+		field = p.base.field;
+		dressSeason = p.season;
 		windowShift = p.base.shift;
 		int[][] dress = p.dress;
-		if (p.diffsVersion == diffsVersion){
+		if (p.diffsVersion == diffsVersion && p.scorchSig == scorchSig( worldX, worldY )){
 			System.arraycopy( p.map, 0, map, 0, length() );
 		} else {
 			System.arraycopy( pristine, 0, map, 0, length() );
 			WindowGenerator.overlayDiffs( map, diffs, worldX, worldY );
+			WindowGenerator.overlayScorch( map, pristine, link, scorchFor( worldX, worldY ), diffs, worldX, worldY );
 			dress = WindowGenerator.dress( worldSeed, worldX, worldY, map, p.base, p.season );
 		}
+		if (resealTombs()) dress = WindowGenerator.dress( worldSeed, worldX, worldY, map, p.base, p.season );
+		noteScorch();
 		//ORDER MATTERS: the dressing reads map[] for its edge blends, its deep
 		//water shades and its fallen leaves, so the authoritative terrain has
 		//to be in place first
 		setDressData( dress );
+		setBelowData( p.below );
+		setTopData( p.base.top, p.base.topBlend, p.base.topCorner, p.base.earth );
 		layoutTownArt();
 
 		long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
@@ -1564,29 +2344,38 @@ public class OverworldLevel extends Level {
 
 		pendingVariance = p.variance;
 		windowVersion++;
+		hazards.windowChanged( p.base.firedamp );
 	}
 
 	//installs a generated window with the HOST's authoritative map (a network mirror), or
 	//the pristine plus the player's recorded edits; presented at once, where it is drawn
 	private void adoptWindow( WindowGenerator.Window w, int[] override, GameCalendar.Season season ){
 		pristine = w.terrain;
+		veins = w.veins;
+		adoptSites( w );
 		frozen = w.frozen;
 		waterDepth = w.waterDepth;
 		link = w.link;
+		field = w.field;
+		dressSeason = season;
 		windowShift = w.shift;
 		if (override != null){
 			System.arraycopy( override, 0, map, 0, length() );
 		} else {
 			System.arraycopy( pristine, 0, map, 0, length() );
 			WindowGenerator.overlayDiffs( map, diffs, worldX, worldY );
+			resealTombs();
 		}
 		setDressData( WindowGenerator.dress( worldSeed, worldX, worldY, map, w, season ) );
+		setBelowData( WindowGenerator.belowLayers( worldSeed, worldX, worldY, w ) );
+		setTopData( w.top, w.topBlend, w.topCorner, w.earth );
 		layoutTownArt();
 		presentWindowArt();
 		buildFlagMaps();
 		cleanWalls();
 		pendingVariance = WindowGenerator.variance( worldSeed, worldX, worldY );
 		windowVersion++;
+		hazards.windowChanged( w.firedamp );
 	}
 
 	/** re-derives the window for the current origin and puts its art on screen */
@@ -1602,7 +2391,7 @@ public class OverworldLevel extends Level {
 		boolean hit = p != null;
 		if (p == null){
 			p = WindowGenerator.prepare( worldSeed, altitude, worldX, worldY, GameCalendar.season(),
-					diffs.isEmpty() ? null : diffs, diffsVersion );
+					diffs.isEmpty() ? null : diffs, diffsVersion, scorchFor( worldX, worldY ), scorchSig( worldX, worldY ) );
 		}
 		adoptPrepared( p );
 		if (present) presentWindowArt();
@@ -1709,6 +2498,8 @@ public class OverworldLevel extends Level {
 		//to slide on the first adoption, when the window is still empty
 		if (windowVersion > 0 && (wx != worldX || wy != worldY)){
 			translateExploration( wx - worldX, wy - worldY );
+			litNow = shiftRect( litNow, wx - worldX, wy - worldY );
+			litDirty = shiftRect( litDirty, wx - worldX, wy - worldY );
 		}
 		this.worldSeed = worldSeed;
 		this.worldX = wx;
@@ -1746,6 +2537,9 @@ public class OverworldLevel extends Level {
 				int p = pristine[cell];
 				if (map[cell] != p){
 					long key = worldKey( worldX + x, worldY + y );
+					//a fallen star's scorch, laid by the event itself and taken back by it: never the
+					//player's edit (WorldEvents)
+					if (map[cell] == Terrain.EMBERS && laidScorch.contains( key )) continue;
 					//cosmetic degradation (burned or trampled vegetation) is NOT
 					//recorded: nature reclaims it once the window moves away. this
 					//also keeps the diff store from growing without bound - a big
@@ -1769,9 +2563,13 @@ public class OverworldLevel extends Level {
 	private void rebuildPristine(){
 		WindowGenerator.Window w = WindowGenerator.generate( worldSeed, altitude, worldX, worldY );
 		pristine = w.terrain;
+		veins = w.veins;
+		adoptSites( w );
 		frozen = w.frozen;
 		waterDepth = w.waterDepth;
 		link = w.link;
+		field = w.field;
+		hazards.windowChanged( w.firedamp );
 	}
 
 	/**
@@ -1827,6 +2625,9 @@ public class OverworldLevel extends Level {
 			int x = wx - worldX, y = wy - worldY;
 			if (x > 0 && y > 0 && x < WIDTH-1 && y < HEIGHT-1){
 				int cell = x + y * width();
+				//a place laid since it was left there (a prop, a tomb's wall) never buries it: it is
+				//set down on the nearest open ground
+				if (solid[cell]) cell = openGroundNear( cell, true );
 				if (heaps.get( cell ) == null){
 					Heap h = e.getValue();
 					h.pos = cell;
@@ -1867,6 +2668,17 @@ public class OverworldLevel extends Level {
 	@Override
 	public void occupyCell( Char ch ) {
 		super.occupyCell( ch );
+		//thin ice under a hero's foot (HazardWatch: the host's, any hero's)
+		if (ch instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero){
+			hazards.stepped( (xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero) ch );
+		}
+
+		//a soak in a hot spring of the peaks (MountainSites): warms through, mends, keeps the cold off
+		if (!network && altitude > 0 && ch instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero
+				&& !ch.flying && hotSpring( ch.pos ) && water[ch.pos]){
+			xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff.affect( ch,
+					xyz.gabriwar.warpedpixeldungeon.actors.buffs.SpringSoak.class ).steep();
+		}
 
 		//a mirror never streams, reseasons, spawns or marches: the host does
 		//all of it and ships the result
@@ -1912,15 +2724,9 @@ public class OverworldLevel extends Level {
 				faunaCullPhase = phaseNow;
 				OverworldFauna.cull( this );
 			}
-			//the day turned: the caravans strike camp and pitch again further
-			//along their roads (a hero who never reaches the margin would
-			//otherwise keep the same stall standing all week)
-			if (altitude == 0
-					&& xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar.weekday().ordinal() != caravanDay){
-				placeCaravans();
-			}
-			//the swamp's fireflies
-			if (altitude == 0) OverworldFauna.fireflies( this, ch.pos );
+			tickWorld( ch.pos );
+			stepTicked = true;
+			if (altitude > 0) mountainStep( ch.pos );
 			int wx = worldX + ch.pos % width(), wy = worldY + ch.pos / width();
 
 			//waypoint reached?
@@ -1966,6 +2772,86 @@ public class OverworldLevel extends Level {
 		}
 	}
 
+	//the surface's own clock, at a step of the host's (or a solo game's) hero or at the start of
+	//a turn after one he took none on (onHeroTurn)
+	private void tickWorld( int heroPos ){
+		//the day turned: the caravans strike camp and pitch again further
+		//along their roads (a hero who never reaches the margin would
+		//otherwise keep the same stall standing all week)
+		if (altitude == 0
+				&& (xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar.weekday().ordinal() != caravanDay
+					|| xyz.gabriwar.warpedpixeldungeon.actors.WorldClock.day() != caravanAbsDay)){
+			placeCaravans();
+		}
+		//the road's life: walkers set out on the clock (a caravan's outlaws watch for the
+		//heroes from the stall's own turn, Caravaneer.act)
+		if (altitude == 0){
+			long tTraffic = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
+			long now = RoadTraffic.now();
+			if (nextTraffic == Long.MIN_VALUE || now >= nextTraffic || now < nextTraffic - TRAFFIC_EVERY){
+				nextTraffic = now + TRAFFIC_EVERY;
+				placeTravellers( true );
+				placePatrols( true );
+				placeCaravanTrains( true );
+				//a stall whose cart nobody saw come in goes up once its leg is over
+				pitchCaravans( true );
+			}
+			xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW traffic", tTraffic );
+		}
+		//the world's timed events: a star coming down, a market come to town (WorldEvents)
+		if (altitude == 0) tickEvents( heroPos );
+		//the slices' places: found when first seen, and the rifts' heat and flares (CaveSites)
+		if (altitude != 0) tickLayer( heroPos );
+	}
+
+	private void tickLayer( int heroPos ){
+		long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
+		if (altitude < 0){
+			for (CaveSites.Site s : caveSiteList){
+				discover( s.key, s.type.ordinal(), s.standX, s.standY, new int[]{ s.x0, s.y0, s.x1, s.y1 }, CaveSites.foundLine( s ) );
+			}
+			CaveSites.tick( this, heroPos );
+		} else {
+			//the peaks' places are kept by their anchor's cell (MountainSites.Site.key is a hash)
+			for (MountainSites.Site s : peakSites){
+				discover( worldKey( s.wx, s.wy ), s.kind.ordinal(), s.seeX, s.seeY, new int[]{ s.x0, s.y0, s.x1, s.y1 },
+						Messages.get( MountainSites.class, "found_" + s.kind.lower() ) );
+			}
+		}
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW layer tick", t );
+	}
+
+	//a step of the hero's has ticked the surface's clock since his last turn began, and the time
+	//that turn began at: a turn he waits in for the player begins again, at the same time, when
+	//the player acts - it is no new turn. neither is bundled: a load's first turn may tick once
+	//more, which changes nothing
+	private boolean stepTicked = false;
+	private float turnBegan = -1f;
+
+	/**
+	 * DayNightCycle.onHeroTurn, as a turn of the host's (or a solo game's) hero begins. A turn he
+	 * spent without a step - resting, searching, reading - ticked the surface's clock nowhere, so
+	 * its tick runs now: a raid still goes live, a traveller or a patrol still sets out and a hunt
+	 * still starts and ends round a co-op guest who walks up while his host stands, and a hero
+	 * resting by a well still sees the day's caravan move on and the market come. A mirror ticks
+	 * nothing: its host does.
+	 */
+	public static void onHeroTurn(){
+		Level l = Dungeon.level;
+		if (l instanceof OverworldLevel) ((OverworldLevel) l).hostTurn();
+	}
+
+	private void hostTurn(){
+		if (network || Dungeon.hero == null) return;
+		float now = xyz.gabriwar.warpedpixeldungeon.actors.Actor.now();
+		if (now == turnBegan) return;
+		turnBegan = now;
+		if (!stepTicked) tickWorld( Dungeon.hero.pos );
+		stepTicked = false;
+		//fires on firedamp, healing cracks, refilling pockets (HazardWatch)
+		hazards.worldTurn();
+	}
+
 	/**
 	 * Re-centres the window on the hero: captures the player's edits, shifts the world
 	 * origin, commits the prepared window (array copies), translates everything living in
@@ -1986,6 +2872,23 @@ public class OverworldLevel extends Level {
 		int dy = heroY < MARGIN ? -SHIFT_Q : heroY >= HEIGHT - MARGIN ? SHIFT_Q : 0;
 		if (dx == 0 && dy == 0) return;
 
+		//the render thread keeps drawing while this thread moves the origin, adopts the new map and
+		//translates the exploration one after another: a fog frame painted in between mixes the
+		//two windows, and the cells it painted wrong stay wrong once the fog's texture is blitted
+		//(explored ground left black). the fog waits (FogOfWar.refresh) until the render block
+		//below has moved it with everything else - and a paint already under way ends first
+		synchronized (xyz.gabriwar.warpedpixeldungeon.tiles.FogOfWar.PAINTING){
+			shifting = true;
+		}
+		try {
+			shiftWindow( dx, dy, tRebase, tAll );
+		} catch (RuntimeException | Error e){
+			shifting = false;
+			throw e;
+		}
+	}
+
+	private void shiftWindow( int dx, int dy, long tRebase, long tAll ){
 		long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
 		captureDiffs();
 		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW captureDiffs", t );
@@ -2027,7 +2930,7 @@ public class OverworldLevel extends Level {
 				//pre-shift origin, since m.pos is still in pre-shift coords)
 				//and put back when the window slides over it again. never
 				//destroy()ed - that would count as a kill, and a shopkeeper's
-				//destroy() sweeps EVERY FOR_SALE heap on the level
+				//destroy() takes his shelf down with him
 				mobs.remove( m );
 				park( m, worldX - dx + m.pos % width(), worldY - dy + m.pos / width() );
 			} else {
@@ -2095,6 +2998,8 @@ public class OverworldLevel extends Level {
 		if (circling != null && !circling.translate( dx, dy, width(), height() )){
 			drop( circling.cancel(), Dungeon.hero.pos ).sprite.drop();
 		}
+		//a cave-in about to come down marks raw cells too: they follow their ground
+		hazards.rebased( dx, dy, netHeroes );
 		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW actors and heaps", t );
 
 		//the town's doorways are FIXED world landmarks: transitions exist
@@ -2107,6 +3012,10 @@ public class OverworldLevel extends Level {
 		//slide the exploration state along with the window
 		t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
 		translateExploration( dx, dy );
+		//the ground the caves' lights showed is kept by window rect: it moves with the rest, or the
+		//next observe repaints a rect 32 cells off and leaves the lit ground drawn as in sight
+		litNow = shiftRect( litNow, dx, dy );
+		litDirty = shiftRect( litDirty, dx, dy );
 		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW exploration", t );
 
 		plants.clear();
@@ -2175,6 +3084,8 @@ public class OverworldLevel extends Level {
 					if (h.sprite != null) h.sprite.place( h.pos );
 				}
 				xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.shiftWorldVisuals( vsx, vsy );
+				//the marks of rocks about to fall live in a group of their own, keyed by cell
+				xyz.gabriwar.warpedpixeldungeon.effects.TargetedCell.shiftAll( fdx, fdy, width(), height() );
 				xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.applyMapShift( mapShift );
 				//the town art and the dressing move in the same block as everything else
 				presentWindowArt( fdx, fdy );
@@ -2186,6 +3097,8 @@ public class OverworldLevel extends Level {
 				//deadzone offset, which read as a visible jerk
 				com.watabou.noosa.Camera.main.shiftInstant( vsx, vsy );
 			} finally {
+				//the fog moved with the rest (applyMapShift) and its queue with it: it may paint again
+				shifting = false;
 				xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW render apply", tRender );
 				System.out.println( "[OW] visual apply " + ((System.nanoTime()-tApply)/1000000) + "ms"
 						+ " (enq f" + enqueueFrame + " app f"
@@ -2222,7 +3135,7 @@ public class OverworldLevel extends Level {
 
 	// ------------------------------------------------- life in the window
 
-	private static long structHash( long a, long b ){
+	static long structHash( long a, long b ){
 		long h = worldSeed( a, b );
 		return h;
 	}
@@ -2235,11 +3148,80 @@ public class OverworldLevel extends Level {
 		return h;
 	}
 
+	//the hash a settlement's family is rolled from: house h is layout entry 1 + 2h
+	//(populateSettlement). VillageRoutine reads the same number for their trades
+	static long familyHash( int sx, int sy, int house ){
+		return structHash( sx * 131 + 1 + house * 2, sy );
+	}
+
+	/** How far the nearest hero is from a cell (Chebyshev), or Integer.MAX_VALUE when none is
+	 *  on the level: the host's own hero and, on a host, every claimed remote one still in
+	 *  play. What "could a player see this?" is answered by - heroFOV is all-true under the
+	 *  debug no-fog, a step stale inside occupyCell, and remote heroes have none on the host */
+	public static int heroDistance( Level level, int cell ){
+		int best = remoteHeroDistance( level, cell );
+		xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero h = Dungeon.hero;
+		if (h != null && Dungeon.level == level && h.isAlive() && h.pos >= 0 && h.pos < level.length()){
+			best = Math.min( best, level.distance( cell, h.pos ) );
+		}
+		return best;
+	}
+
+	/** Every hero in play on a level, the ones heroDistance counts: the host's own and, on a
+	 *  host, every claimed remote one still in play. */
+	public static ArrayList<xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero> heroesOn( Level level ){
+		ArrayList<xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero> out = new ArrayList<>();
+		xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero h = Dungeon.hero;
+		if (h != null && Dungeon.level == level && h.isAlive() && h.pos >= 0 && h.pos < level.length()) out.add( h );
+		if (xyz.gabriwar.warpedpixeldungeon.net.NetManager.isHost()){
+			for (xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero nh
+					: xyz.gabriwar.warpedpixeldungeon.net.NetManager.getNetHeroes()){
+				if (nh.isAlive() && !nh.atExit && nh.pos >= 0 && nh.pos < level.length()) out.add( nh );
+			}
+		}
+		return out;
+	}
+
+	/** ...the other players' heroes alone (on a host; Integer.MAX_VALUE otherwise): the ones
+	 *  whose field of view the host does not hold. */
+	public static int remoteHeroDistance( Level level, int cell ){
+		int best = Integer.MAX_VALUE;
+		if (xyz.gabriwar.warpedpixeldungeon.net.NetManager.isHost()){
+			for (xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero nh
+					: xyz.gabriwar.warpedpixeldungeon.net.NetManager.getNetHeroes()){
+				if (!nh.isAlive() || nh.atExit || nh.pos < 0 || nh.pos >= level.length()) continue;
+				best = Math.min( best, level.distance( cell, nh.pos ) );
+			}
+		}
+		return best;
+	}
+
+	//does one of this settlement's vendors keep shop in the house centred here? (live, or
+	//parked by the window; two cells of slack, as an unparked keeper may be set down that far
+	//from his post - the next house is six away): an older save's villager working out its
+	//home skips shop houses
+	boolean shopAt( long sectorKey, int wx, int wy ){
+		for (Mob m : mobs){
+			if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.OverworldShopkeeper
+					&& homeSectorOf( m ) == sectorKey
+					&& Math.abs( worldX + m.pos % width() - wx ) <= 2
+					&& Math.abs( worldY + m.pos / width() - wy ) <= 2) return true;
+		}
+		for (HashMap.Entry<Long, Mob> e : parkedMobs.entrySet()){
+			if (e.getValue() instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.OverworldShopkeeper
+					&& homeSectorOf( e.getValue() ) == sectorKey
+					&& Math.abs( (int)(e.getKey() & 0xFFFFFFFFL) - wx ) <= 2
+					&& Math.abs( (int)(e.getKey() >> 32) - wy ) <= 2) return true;
+		}
+		return false;
+	}
+
 	//is any mob of this class near the cell? parked mobs count: a site whose
 	//guardians sit in the store (the window slid back before they were put
 	//down, or their cells were taken) must not grow a second set
 	private boolean mobNear( Class<?> cls, int cell, int radius ){
 		for (Mob m : mobs){
+			if (sentOnEvent( m )) continue;
 			if (cls.isInstance( m )
 					&& Math.abs( m.pos % width() - cell % width() ) <= radius
 					&& Math.abs( m.pos / width() - cell / width() ) <= radius){
@@ -2248,6 +3230,7 @@ public class OverworldLevel extends Level {
 		}
 		int wx = worldX + cell % width(), wy = worldY + cell / width();
 		for (HashMap.Entry<Long, Mob> e : parkedMobs.entrySet()){
+			if (sentOnEvent( e.getValue() )) continue;
 			if (cls.isInstance( e.getValue() )
 					&& Math.abs( (int)(e.getKey() & 0xFFFFFFFFL) - wx ) <= radius
 					&& Math.abs( (int)(e.getKey() >> 32) - wy ) <= radius){
@@ -2255,6 +3238,31 @@ public class OverworldLevel extends Level {
 			}
 		}
 		return false;
+	}
+
+	//an outlaw sent on a world event (a stall's ambush) is no camp's: a camp near the stall
+	//still counts only its own
+	private static boolean sentOnEvent( Mob m ){
+		return m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldBandit
+				&& ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldBandit) m).sentOnEvent();
+	}
+
+	//the mobs waiting in the parked store (RaidEvent counts a raid's band there too)
+	java.util.Collection<Mob> parked(){
+		return parkedMobs.values();
+	}
+
+	//the raiders of past days' raids still in the parked store: their raid is over, and one that
+	//came back would only make off again (Raider.act)
+	void forgetStaleRaiders( int day ){
+		java.util.Iterator<HashMap.Entry<Long, Mob>> it = parkedMobs.entrySet().iterator();
+		while (it.hasNext()){
+			HashMap.Entry<Long, Mob> e = it.next();
+			if (!(e.getValue() instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.Raider)
+					|| ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.Raider) e.getValue()).day == day) continue;
+			it.remove();
+			parkedAt.remove( e.getKey() );
+		}
 	}
 
 	private boolean taggedHere( long sectorKey ){
@@ -2279,7 +3287,7 @@ public class OverworldLevel extends Level {
 		return Long.MIN_VALUE;
 	}
 
-	private boolean addMob( Mob m, int cell ){
+	boolean addMob( Mob m, int cell ){
 		//settlement layouts can reach past the window edge (a metropolis near
 		//the border) - anything outside simply doesn't spawn this window
 		int x = cell % width(), y = cell / width();
@@ -2309,11 +3317,204 @@ public class OverworldLevel extends Level {
 	 * with hoards, and free-roaming fauna by biome.
 	 */
 	private void populate(){
-		if (altitude == 0) populateSites();
+		if (altitude == 0) populateSites(); else populateLayerSites();
 		populateFauna();
 	}
 
-	//the sites' folk, guardians and hoards, then the road's fishermen and caravans
+	//one entry for the slices: cave-sites' places below, mountain-sites' above (each idempotent: once-keys, censuses)
+	void populateLayerSites(){ if (altitude < 0) populateCaveSites(); else populateMountainSites(); }
+
+	//the caves' places wholly in the window (their reach and one round it inside the window's
+	//populated band, so a half-seen place never burns its once-keys) are peopled (CaveSites.populate)
+	private void populateCaveSites(){
+		if (network) return;
+		long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
+		sweepDue();
+		for (CaveSites.Site s : caveSiteList){
+			if (s.x0 - 1 - worldX < 2 || s.y0 - 1 - worldY < 2
+					|| s.x1 + 1 - worldX > WIDTH - 3 || s.y1 + 1 - worldY > HEIGHT - 3) continue;
+			CaveSites.populate( this, s );
+		}
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "CaveSites.populate", t );
+	}
+
+	/** The living eagles of an eyrie, in the window and parked. */
+	public int eyrieGuards( long eyrieKey ){
+		int n = 0;
+		for (Mob m : mobs){
+			if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.Eagle && m.isAlive()
+					&& ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.Eagle) m).eyrieKey == eyrieKey) n++;
+		}
+		for (Mob m : parkedMobs.values()){
+			if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.Eagle && m.isAlive()
+					&& ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.Eagle) m).eyrieKey == eyrieKey) n++;
+		}
+		return n;
+	}
+
+	//is a hermit of this hut, or the cairn of this summit, in the window or parked?
+	private boolean siteFolk( long key ){
+		for (Mob m : mobs){
+			if (siteKeyOf( m ) == key) return true;
+		}
+		for (Mob m : parkedMobs.values()){
+			if (siteKeyOf( m ) == key) return true;
+		}
+		return false;
+	}
+
+	private static long siteKeyOf( Mob m ){
+		if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Hermit)
+			return ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Hermit) m).siteKey;
+		if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SummitCairn)
+			return ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SummitCairn) m).siteKey;
+		return Long.MIN_VALUE;
+	}
+
+	//the places on the mountains (MountainSites): the hermit at home, the eyrie's pair and its hoard,
+	//the summit's cairn, the frozen climber's remains, the watchtower's lair, the waystation's
+	//bedroll. a site half outside the window waits until it is whole in it, so a once-key never
+	//burns on a hoard that could not be laid
+	void populateMountainSites(){
+		if (network || altitude <= 0) return;
+		long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
+		sweepDue();
+		for (MountainSites.Site s : peakSites){
+			if (s.x0 - 1 - worldX < 2 || s.y0 - 1 - worldY < 2
+					|| s.x1 + 1 - worldX > WIDTH - 3 || s.y1 + 1 - worldY > HEIGHT - 3) continue;
+			int c = localCell( s.wx, s.wy );
+			switch (s.kind){
+				case HERMIT:
+					if (!sitesCleared.contains( s.key ) && !siteFolk( s.key )){
+						xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Hermit h
+								= xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Hermit.of( s.key, s.wx, s.wy, altitude );
+						h.openShop();
+						addMob( h, c );
+					}
+					break;
+				case EYRIE: {
+					//the pair, each once ever and claimed only once it is down (a wolf on the nest
+					//leaves it for the next populate): kept forever, the eyrie cleared when both are dead
+					if (!sitesCleared.contains( s.key )){
+						int[] perch = { c, localCell( s.wx - MountainSites.DX[s.dir], s.wy - MountainSites.DY[s.dir] ) };
+						for (int i = 0; i < 2; i++){
+							long once = structHash( s.key ^ 0xEA61EL, i );
+							if (hoardLaid.contains( once )) continue;
+							int at = freeSpotWithin( perch[i], 2 );
+							if (at != -1 && addMob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Eagle.of( s.key, s.wx, s.wy ), at )){
+								claimHoard( once );
+							}
+						}
+					}
+					//what they keep in the nest, once: the gold they hoarded, in one nest of three a
+					//bright stone they carried up from the shallow caves (Ores), and on top the eggs
+					if (claimHoard( s.key )){
+						drop( new xyz.gabriwar.warpedpixeldungeon.items.Gold(
+								com.watabou.utils.Random.IntRange( 30 + 15 * altitude, 60 + 25 * altitude ) ), c );
+						if (Math.floorMod( structHash( s.key, 3 ), 3L ) == 0){
+							drop( com.watabou.utils.Reflection.newInstance(
+									Ores.rollGem( -1, (int) Math.floorMod( structHash( s.key, 4 ), 100L ) ).item ), c );
+						}
+						drop( new xyz.gabriwar.warpedpixeldungeon.items.food.EagleEgg()
+								.quantity( 2 + (int) (structHash( s.key, 1 ) & 1) ), c );
+					}
+					break;
+				}
+				case CAIRN:
+					if (!siteFolk( s.key )){
+						xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SummitCairn cairn
+								= xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SummitCairn.of( s );
+						//a stone already added stays added, whatever became of the pile
+						cairn.topped = hoardLaid.contains( s.key );
+						addMob( cairn, c );
+					}
+					break;
+				case CLIMBER:
+					//the climber's last gear, once: warmth that came too late, food, his purse, now
+					//and then his pick
+					if (claimHoard( s.key )){
+						drop( new xyz.gabriwar.warpedpixeldungeon.items.Gold(
+								com.watabou.utils.Random.IntRange( 20, 50 + 10 * altitude ) ), c );
+						drop( new xyz.gabriwar.warpedpixeldungeon.items.food.Food(), c );
+						drop( new xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfChilli()
+								.quantity( 1 + (int) (structHash( s.key, 5 ) & 1) ), c );
+						if (Math.floorMod( structHash( s.key, 7 ), 4L ) == 0){
+							drop( new xyz.gabriwar.warpedpixeldungeon.items.quest.Pickaxe(), c );
+						}
+						drop( new xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfWarmth(), c ).type = Heap.Type.SKELETON;
+					}
+					break;
+				case TOWER: {
+					//something lairs in the old tower some weeks: at most one lot a week, and never
+					//while the last lot is still about
+					long lairKey = structHash( s.key, 0x7011L );
+					int lair = (int) Math.floorMod( lairKey, 3L );
+					if (lair == 2) break;
+					if (mobNear( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Yeti.class, c, 11 )
+							|| mobNear( xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldBandit.class, c, 11 )) break;
+					if (!dueOnce( lairKey, 7 )) break;
+					if (lair == 0){
+						addMob( new xyz.gabriwar.warpedpixeldungeon.actors.mobs.Yeti(), c );
+					} else {
+						addMob( new xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldBandit(), c - 1 );
+						addMob( new xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldBandit(), c + 1 );
+					}
+					break;
+				}
+				case PASS: {
+					int[] at = MountainSites.bedrollCell( s );
+					int b = localCell( at[0], at[1] );
+					if (b != -1 && !mobNear( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Bedroll.class, b, 1 )){
+						xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Bedroll bed
+								= new xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Bedroll();
+						bed.shelter = true;
+						addMob( bed, b );
+					}
+					break;
+				}
+				default:
+			}
+		}
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW mountain populate", t );
+	}
+
+	//a host hero's step on a peak: the land shows from a watchtower's top, every time; a frozen
+	//climber's journal is read once, standing beside him
+	private void mountainStep( int pos ){
+		int wx = worldX + pos % width(), wy = worldY + pos / width();
+		for (MountainSites.Site s : peakSites){
+			if (s.kind == MountainSites.Kind.TOWER && s.wx == wx && s.wy == wy){
+				revealAround( pos, MountainSites.TOWER_VIEW );
+				GLog.i( Messages.get( MountainSites.class, "tower_view" ) );
+			} else if (s.kind == MountainSites.Kind.CLIMBER
+					&& Math.max( Math.abs( wx - s.wx ), Math.abs( wy - s.wy ) ) <= 1
+					&& claimHoard( s.key ^ 0x10A2E1L )){
+				final String text = "_" + Messages.get( MountainSites.class, "journal_title" ) + "_\n\n"
+						+ Messages.get( MountainSites.class, "journal_" + Math.floorMod( structHash( s.key, 11 ), 4L ) );
+				com.watabou.noosa.Game.runOnRenderThread( () -> xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.show(
+						new xyz.gabriwar.warpedpixeldungeon.windows.WndMessage( text ) ) );
+			}
+		}
+	}
+
+	/** The land within radius of a cell shows as if mapped (a summit's cairn, a watchtower's top):
+	 *  the actor thread, as the hero's own sight. */
+	public void revealAround( int cell, int radius ){
+		int w = width(), cx = cell % w, cy = cell / w;
+		for (int dy = -radius; dy <= radius; dy++){
+			for (int dx = -radius; dx <= radius; dx++){
+				if (dx * dx + dy * dy > radius * radius) continue;
+				int x = cx + dx, y = cy + dy;
+				if (x <= 0 || y <= 0 || x >= w - 1 || y >= height() - 1) continue;
+				int c = x + y * w;
+				if (discoverable[c]) mapped[c] = true;
+			}
+		}
+		if (liveScene()) xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.updateFog( cell, radius );
+	}
+
+	//the sites' folk, guardians and hoards, then the road's fishermen, caravans, travellers
+	//and town watches
 	private void populateSites(){
 		for (int sy = sector0Y(); sy <= sector1Y(); sy++){
 			for (int sx = sector0X(); sx <= sector1X(); sx++){
@@ -2410,6 +3611,28 @@ public class OverworldLevel extends Level {
 
 		placeFishermen();
 		placeCaravans();
+		placeTravellers( false );
+		placePatrols( false );
+		placeCaravanTrains( false );
+		//the world's events: what ended while the window was away goes, what is on is laid down
+		//(no visuals: this runs inside a rebase, whose slide would carry them off)
+		expireEvents( eventTurn(), false );
+		placeEvents( false );
+	}
+
+	//the human and gnoll settlements of the window alone (no bandit camps, ruins, lairs,
+	//hoards, caravans or wildlife): what a far arrival finds peopled at once
+	private void populateSettlements(){
+		for (int sy = sector0Y(); sy <= sector1Y(); sy++){
+			for (int sx = sector0X(); sx <= sector1X(); sx++){
+				if (WorldStructures.siteType( worldSeed, sx, sy ) != WorldStructures.Site.VILLAGE
+						|| WorldStructures.faction( worldSeed, sx, sy ) == WorldStructures.Faction.BANDIT) continue;
+				int cwx = WorldStructures.siteX( worldSeed, sx, sy ) - worldX;
+				int cwy = WorldStructures.siteY( worldSeed, sx, sy ) - worldY;
+				if (cwx < 2 || cwy < 2 || cwx >= WIDTH-2 || cwy >= HEIGHT-2) continue;
+				populateSettlement( sx, sy, WorldStructures.sectorOf( sx, sy ), cwx + cwy * width() );
+			}
+		}
 	}
 
 	//the wildlife of the slice, topped up away from the hero
@@ -2419,33 +3642,76 @@ public class OverworldLevel extends Level {
 		OverworldFauna.cull( this );
 		//fauna by biome x hour x weather (OverworldFauna's table), topped up
 		//away from the hero, out of the town and the settlements' streets;
-		//a pack counts per member
+		//a pack counts per member. a slice's places keep their guards (a cavern's
+		//wisps, a tomb's dead, a tower's yeti) in their berths: those are no wildlife
 		int fauna = 0;
 		for (Mob m : mobs){
-			if (OverworldFauna.isFauna( m )) fauna++;
+			if (OverworldFauna.isFauna( m ) && !inSiteBerth( m.pos )) fauna++;
 		}
 		xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle.Phase phase
 				= xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle.phase();
+		//nothing is set down within 16 cells of the hero - or, on a slice's first build, of where
+		//he is about to arrive
+		boolean live = Dungeon.hero != null && Dungeon.level == this;
+		int ref = live ? Dungeon.hero.pos : localCell( arrivalX, arrivalY );
 		int tries = 60;
 		while (fauna < 12 && tries-- > 0){
 			int cell = com.watabou.utils.Random.Int( length() );
-			if (!passable[cell] || water[cell] || inTown( cell ) || Actor.findChar( cell ) != null) continue;
+			if (!passable[cell] || inTown( cell ) || Actor.findChar( cell ) != null) continue;
+			//the ground it is (OverworldFauna.habitat): none on the surface's water, or on a slice's
+			//water that is no deep pool's shelf
+			int hab = OverworldFauna.habitat( this, cell );
+			if (hab == 0) continue;
 			int heroDist = Integer.MAX_VALUE;
-			if (Dungeon.hero != null && Dungeon.level == this){
-				heroDist = Math.max( Math.abs( cell % width() - Dungeon.hero.pos % width() ),
-						Math.abs( cell / width() - Dungeon.hero.pos / width() ) );
+			if (ref != -1){
+				heroDist = Math.max( Math.abs( cell % width() - ref % width() ),
+						Math.abs( cell / width() - ref / width() ) );
 				if (heroDist < 16) continue;
 			}
+			//...nor within 16 of a co-op guest's hero on the slice: the abyss's and the peaks'
+			//beasts are no surprise to set down at anyone's side
+			if (live && remoteHeroDistance( this, cell ) < 16) continue;
 			if (altitude == 0 && OverworldFauna.nearSettlement( worldSeed,
 					worldX + cell % width(), worldY + cell / width() )) continue;
-			ArrayList<Mob> beasts = OverworldFauna.roll( altitude, biomeAtCell( cell ), phase );
+			//the slices' places keep their own: no wildlife in a camp, a grotto, a hut or an eyrie
+			if (inSiteBerth( cell )) continue;
+			ArrayList<Mob> beasts = OverworldFauna.roll( altitude, biomeAtCell( cell ), phase, hab );
 			int placed = 0;
 			for (int i = 0; i < beasts.size(); i++){
-				if (addMob( beasts.get( i ), cell + (i == 0 ? 0 : com.watabou.utils.PathFinder.NEIGHBOURS8[i % 8]) )) placed++;
+				int at = cell + (i == 0 ? 0 : com.watabou.utils.PathFinder.NEIGHBOURS8[i % 8]);
+				//a slice's pack member only where its kind lives: a fish never beside the water, a wisp by its seam
+				if (i > 0 && altitude != 0 && (!OverworldFauna.livesAt( this, beasts.get( i ), at ) || inSiteBerth( at ))) continue;
+				if (addMob( beasts.get( i ), at )) placed++;
 			}
 			fauna += placed;
-			if (placed >= 2 && heroDist <= 25 && OverworldFauna.isPack( beasts )) OverworldFauna.howl();
+			if (live && placed >= 2 && heroDist <= 25 && OverworldFauna.isPack( beasts )) OverworldFauna.howl();
 		}
+	}
+
+	/** Inside the reach of a place of the slice (CaveSites, MountainSites): no hazard of the slices
+	 *  starts there (HazardWatch). The window's own sites: any thread, never resolves. */
+	public boolean inSiteReach( int cell ){
+		if (altitude == 0 || cell < 0 || cell >= length()) return false;
+		int wx = worldX + cell % width(), wy = worldY + cell / width();
+		for (CaveSites.Site s : caveSiteList){
+			if (s.holds( wx, wy )) return true;
+		}
+		for (MountainSites.Site s : peakSites){
+			if (MountainSites.inReach( s, wx, wy )) return true;
+		}
+		return false;
+	}
+
+	//inside the berth of a place of the slice (its reach and four round it, a rift's reach alone:
+	//CaveSites, MountainSites), where no wildlife is set down. the window's own sites: never resolves
+	private boolean inSiteBerth( int cell ){
+		if (altitude == 0 || cell < 0 || cell >= length()) return false;
+		int wx = worldX + cell % width(), wy = worldY + cell / width();
+		if (altitude < 0) return CaveSites.inBerth( layerSites, wx, wy );
+		for (MountainSites.Site s : peakSites){
+			if (MountainSites.inBerth( s, wx, wy )) return true;
+		}
+		return false;
 	}
 
 	private void populateSettlement( int sx, int sy, long key, int center ){
@@ -2469,12 +3735,11 @@ public class OverworldLevel extends Level {
 
 		//vendors scale with settlement size: village 1, town 2, city 3,
 		//metropolis 4 - each with a distinct speciality
-		int vendors = houses >= 45 ? 4 : houses >= 18 ? 3 : houses >= 9 ? 2
-				: houses >= 5 ? 1 : 0;
+		int vendors = VillageRoutine.vendorHouses( houses );
 		int guards  = houses >= 18 ? 4 : houses >= 9 ? 2 : 0;
 		//families spawn for the most central houses only: big cities keep
 		//most houses quiet, capping the mob count per settlement
-		int populatedHouses = Math.min( houses, 10 );
+		int populatedHouses = WorldStructures.populatedHouses( houses );
 
 		long sh = structHash( sx, sy );
 		int vendorBase = (int)Math.floorMod( sh, xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.OverworldShopkeeper.SPECIALITIES );
@@ -2482,7 +3747,7 @@ public class OverworldLevel extends Level {
 		int vendorsPlaced = 0;
 		for (int i = 1; i + 1 < layout.length && (i-1)/2 < populatedHouses; i += 2){
 			int houseCell = center + layout[i] + layout[i+1] * width();
-			long fh = structHash( sx * 131 + i, sy );
+			long fh = familyHash( sx, sy, (i-1)/2 );
 
 			//the first houses of a human settlement host its vendors
 			if (fac == WorldStructures.Faction.HUMAN && vendorsPlaced < vendors){
@@ -2499,30 +3764,46 @@ public class OverworldLevel extends Level {
 
 			//a family per house: 1-3 members sharing a look and a colour
 			int members = 1 + (int)Math.floorMod( fh, 3 );
+			int hx = WorldStructures.siteX( worldSeed, sx, sy ) + layout[i];
+			int hy = WorldStructures.siteY( worldSeed, sx, sy ) + layout[i+1];
 			for (int mIdx = 0; mIdx < members; mIdx++){
+				xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Settler folk;
 				if (fac == WorldStructures.Faction.HUMAN){
 					xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Villager v
 							= new xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Villager();
 					v.look = (int)Math.floorMod( fh >> 8, 3 );
 					v.tint = (int)Math.floorMod( fh >> 16, 8 );
 					v.homeSector = key;
-					addMob( v, houseCell + (mIdx == 0 ? 0 : com.watabou.utils.PathFinder.NEIGHBOURS8[mIdx % 8] * 3) );
+					folk = v;
 				} else {
 					xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.GnollVillager g
 							= new xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.GnollVillager();
 					g.tint = (int)Math.floorMod( fh >> 16, 8 );
 					g.homeSector = key;
-					addMob( g, houseCell + (mIdx == 0 ? 0 : com.watabou.utils.PathFinder.NEIGHBOURS8[mIdx % 8] * 3) );
+					folk = g;
 				}
+				//the family's house and each one's trade, for the day's round (VillageRoutine),
+				//and straight to wherever the day has got to
+				folk.house = (i-1)/2;
+				folk.member = mIdx;
+				folk.role = VillageRoutine.roleOf( fh, mIdx, fac == WorldStructures.Faction.GNOLL ).ordinal();
+				folk.homeX = hx;
+				folk.homeY = hy;
+				int at = VillageRoutine.arrivalCell( this, folk, hx, hy );
+				addMob( folk, at != -1 ? at
+						: houseCell + (mIdx == 0 ? 0 : com.watabou.utils.PathFinder.NEIGHBOURS8[mIdx % 8] * 3) );
 			}
 		}
 
-		//guards flank the well, more of them in the big places
+		//guards flank the well by day, more of them in the big places, and keep its gates by night
 		if (fac == WorldStructures.Faction.HUMAN){
 			for (int g = 0; g < guards; g++){
 				xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.OverworldGuard guard
 						= xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.OverworldGuard.random( key );
-				addMob( guard, center + com.watabou.utils.PathFinder.NEIGHBOURS8[(g * 2) % 8] * 2 );
+				guard.post = g;
+				int at = VillageRoutine.arrivalCell( this, guard,
+						WorldStructures.siteX( worldSeed, sx, sy ), WorldStructures.siteY( worldSeed, sx, sy ) );
+				addMob( guard, at != -1 ? at : center + com.watabou.utils.PathFinder.NEIGHBOURS8[(g * 2) % 8] * 2 );
 			}
 		}
 	}
@@ -2571,23 +3852,33 @@ public class OverworldLevel extends Level {
 	 * season, and the direction of travel is fixed per pair - so the position
 	 * is a pure function of (seed, sector pair, weekday, day of season).
 	 * Yesterday's stall is struck: the caravaneer and the goods laid out
-	 * around HIM go with him, and nobody else's shelf is touched.
+	 * around HIM go with him, and nobody else's shelf is touched. Today's goes
+	 * up once its cart has made the morning's leg (RoadTraffic.caravanLeg,
+	 * CaravanTrain): pitchCaravans.
 	 */
 	private void placeCaravans(){
 		int today = xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar.weekday().ordinal();
+		int absToday = xyz.gabriwar.warpedpixeldungeon.actors.WorldClock.day();
 		caravanDay = today;
+		caravanAbsDay = absToday;
 
 		for (Mob m : mobs.toArray( new Mob[0] )){
 			if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer
-					&& ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer) m).day != today){
-				strikeCaravan( (xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer) m );
+					&& stale( (xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer) m, today, absToday )){
+				xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer c
+						= (xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer) m;
+				//the day is out with the outlaws still at the stall: they had the goods first
+				if (c.ambush == xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer.AMBUSH_BESIEGED){
+					CaravanAmbush.outlastedTheDay( this, c );
+				}
+				strikeCaravan( c );
 			}
 		}
 		java.util.Iterator<HashMap.Entry<Long, Mob>> it = parkedMobs.entrySet().iterator();
 		while (it.hasNext()){
 			HashMap.Entry<Long, Mob> e = it.next();
 			if (!(e.getValue() instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer)) continue;
-			if (((xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer) e.getValue()).day == today) continue;
+			if (!stale( (xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer) e.getValue(), today, absToday )) continue;
 			int px = (int)(e.getKey() & 0xFFFFFFFFL), py = (int)(e.getKey() >> 32);
 			for (int dy = -1; dy <= 1; dy++){
 				for (int dx = -1; dx <= 1; dx++){
@@ -2600,46 +3891,133 @@ public class OverworldLevel extends Level {
 			it.remove();
 			parkedAt.remove( e.getKey() );
 		}
-
-		int dayOfSeason = xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar.dayOfSeason();
-		for (int sy = sector0Y(); sy <= sector1Y(); sy++){
-			for (int sx = sector0X(); sx <= sector1X(); sx++){
-				if (WorldStructures.siteType( worldSeed, sx, sy ) != WorldStructures.Site.VILLAGE) continue;
-				long nv = WorldStructures.roadNeighbour( worldSeed, sx, sy );
-				if (nv == Long.MIN_VALUE) continue;
-				//a pair of villages is one road: only its lower sector speaks
-				if (WorldStructures.sectorOf( sx, sy ) > nv) continue;
-				int nx = (int)(nv >> 32), ny = (int)nv;
-
-				long ph = structHash( sx * 7919L + nx, sy * 7919L + ny );
-				//about half the roads carry a stall on any given day, and which
-				//half turns over from one day of the season to the next
-				if ((((ph >>> 3) ^ dayOfSeason) & 1L) != 0) continue;
-
-				float t = (today + 1) / 8f;
-				if ((ph & 1L) != 0) t = 1f - t;    //this pair is walked the other way
-				int ax = WorldStructures.siteX( worldSeed, sx, sy );
-				int ay = WorldStructures.siteY( worldSeed, sx, sy );
-				int bx = WorldStructures.siteX( worldSeed, nx, ny );
-				int by = WorldStructures.siteY( worldSeed, nx, ny );
-				int cell = localCell( Math.round( ax + (bx - ax) * t ),
-						Math.round( ay + (by - ay) * t ) );
-				if (cell == -1) continue;
-				int road = roadSpotNear( cell );
-				if (road == -1) continue;
-				if (mobNear( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer.class, road, 10 )) continue;
-
-				xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer c
-						= new xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer();
-				c.day = today;
-				if (addMob( c, road )) c.openShop();
+		//the outlaws of a stall that is gone (struck, or lost some other way) go with it
+		java.util.HashSet<Long> standing = new java.util.HashSet<>();
+		for (Mob m : mobs){
+			if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer){
+				standing.add( ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer) m).stall );
 			}
 		}
+		for (Mob m : parkedMobs.values()){
+			if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer){
+				standing.add( ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer) m).stall );
+			}
+		}
+		CaravanAmbush.disbandOrphans( this, standing, parkedMobs, parkedAt );
+
+		pitchCaravans( false );
+	}
+
+	//today's stalls on the window's roads whose cart is in: each at the road's caravan spot,
+	//never while its cart is still on the way (it pitches its own on arrival, caravanArrives) -
+	//and the one whose cart nobody saw come in goes up once the clock says it is there. With
+	//`fresh` false (a new day, a new window) any road with no stall near its spot pitches again,
+	//as a keeper chased off always has; with `fresh` (the traffic's looks) only the ones not up
+	//yet today, so a stall never springs back the moment its keeper is chased off
+	private void pitchCaravans( boolean fresh ){
+		int today = xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar.weekday().ordinal();
+		int absToday = xyz.gabriwar.warpedpixeldungeon.actors.WorldClock.day();
+		int dayOfSeason = xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar.dayOfSeason();
+		long now = RoadTraffic.now();
+		int day = RoadTraffic.day( now ), tod = RoadTraffic.turnOfDay( now ), w0 = RoadTraffic.setOut();
+		java.util.HashSet<Long> rolling = new java.util.HashSet<>();
+		for (Mob m : mobs){
+			if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.CaravanTrain){
+				rolling.add( ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.CaravanTrain) m).road );
+			}
+		}
+		java.util.HashSet<Long> up = caravansPitched();
+		for (int[] r : RoadTraffic.roads( worldSeed, sector0X(), sector0Y(), sector1X(), sector1Y() )){
+			RoadTraffic.Trip leg = RoadTraffic.caravanLeg( worldSeed, r[0], r[1], r[2], r[3], today, dayOfSeason, day, w0 );
+			if (leg == null) continue;
+			long road = RoadTraffic.roadHash( worldSeed, r[0], r[1], r[2], r[3] );
+			if (fresh && up.contains( road )) continue;
+			int cell = localCell( Math.round( leg.route[2] ), Math.round( leg.route[3] ) );
+			if (cell == -1) continue;
+			//its stall stands already (pitched by its cart, or brought back by a load): no cart
+			//sets out for it either
+			if (mobNear( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer.class, cell, 10 )){
+				up.add( road );
+				continue;
+			}
+			if (tod < leg.arrive || rolling.contains( road )) continue;
+			int spot = roadSpotNear( cell );
+			if (spot == -1) continue;
+			pitchCaravan( r[0], r[1], r[2], r[3], spot, today, absToday );
+		}
+	}
+
+	//the stall of the road (sx,sy)-(nx,ny) put up on a road cell for today
+	private boolean pitchCaravan( int sx, int sy, int nx, int ny, int cell, int today, int absToday ){
+		xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer c
+				= new xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer();
+		c.day = today;
+		c.pitched = absToday;
+		c.road = RoadTraffic.roadHash( worldSeed, sx, sy, nx, ny );
+		//one stall in six has outlaws lying in wait today (CaravanAmbush) - once a day to a
+		//road, however often its keeper is chased off and pitches again
+		c.ambush = !ambushesFought().contains( c.road ) && RoadTraffic.ambushed( worldSeed, sx, sy, nx, ny, absToday )
+				? xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer.AMBUSH_PENDING
+				: xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer.AMBUSH_NONE;
+		if (!addMob( c, cell )) return false;
+		c.stall = structHash( worldKey( worldX + c.pos % width(), worldY + c.pos / width() ), absToday );
+		c.openShop();
+		caravansPitched().add( c.road );
+		return true;
+	}
+
+	//the roads (RoadTraffic.roadHash) whose stall has gone up today, and the day they are for:
+	//a look of the traffic pitches only the others. not bundled - a load re-pitches the window's
+	//through placeCaravans, which finds the standing stalls and fills it again
+	private final java.util.HashSet<Long> caravansUp = new java.util.HashSet<>();
+	private int caravansUpDay = Integer.MIN_VALUE;
+
+	private java.util.HashSet<Long> caravansPitched(){
+		int today = xyz.gabriwar.warpedpixeldungeon.actors.WorldClock.day();
+		if (caravansUpDay != today){
+			caravansUp.clear();
+			caravansUpDay = today;
+		}
+		return caravansUp;
+	}
+
+	/** A caravan's cart has drawn up (CaravanTrain, already gone from the level, last standing on
+	 *  `at`): the road's stall goes up where the cart stopped when that is road by its spot, else
+	 *  on the road by the spot - unless the stall stands there already. A spot past the window's
+	 *  edge waits for the window to get there (placeCaravans). */
+	public void caravanArrives( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.CaravanTrain t, int at ){
+		if (network || altitude != 0) return;
+		int spot = localCell( Math.round( t.route[2] ), Math.round( t.route[3] ) );
+		if (spot == -1) return;
+		int cell = at >= 0 && at < length() && map[at] == Terrain.DIRT_PATH && passable[at]
+				&& Actor.findChar( at ) == null && distance( at, spot ) <= 4 ? at : roadSpotNear( spot );
+		if (cell == -1) return;
+		if (mobNear( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer.class, cell, 10 )){
+			caravansPitched().add( t.road );
+			return;
+		}
+		if (pitchCaravan( t.fromSx, t.fromSy, t.toSx, t.toSy, cell,
+				xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar.weekday().ordinal(),
+				xyz.gabriwar.warpedpixeldungeon.actors.WorldClock.day() )
+				&& Dungeon.level == this && com.watabou.noosa.Game.scene() instanceof xyz.gabriwar.warpedpixeldungeon.scenes.GameScene
+				&& xyz.gabriwar.warpedpixeldungeon.net.NetManager.anyHeroSees( cell )){
+			//the cart unloaded: the stall goes up in a puff of the road's dust
+			xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.get( cell ).burst(
+					xyz.gabriwar.warpedpixeldungeon.effects.Speck.factory( xyz.gabriwar.warpedpixeldungeon.effects.Speck.DUST ), 6 );
+		}
+	}
+
+	//a stall belongs to the weekday it was pitched on - and, once it knows it, to that very
+	//day (one from an older save keeps its weekday rule alone)
+	private static boolean stale( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer c, int weekday, int day ){
+		return c.day != weekday || (c.pitched != -1 && c.pitched != day);
 	}
 
 	//the weekday the caravans standing in the window were pitched for; not
 	//bundled - the first step after a load re-checks it against the calendar
 	private int caravanDay = -1;
+	//...and the day (WorldClock.day): a week's sleep brings the weekday round again
+	private int caravanAbsDay = Integer.MIN_VALUE;
 
 	//an open stretch of road within four cells of the given one, or -1
 	private int roadSpotNear( int cell ){
@@ -2662,7 +4040,8 @@ public class OverworldLevel extends Level {
 
 	//the stall comes down with the man: only the FOR_SALE heaps laid out around
 	//HIM are swept, so a village shop three cells away keeps its shelf. never
-	//destroy() - a Shopkeeper's destroy() clears every FOR_SALE heap on the level
+	//destroy() - a Shopkeeper's destroy() leaves all but one ware of a bigger
+	//heap lying about, free for the taking
 	private void strikeCaravan( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer c ){
 		int w = width();
 		for (int dy = -1; dy <= 1; dy++){
@@ -2677,6 +4056,1217 @@ public class OverworldLevel extends Level {
 		Actor.remove( c );
 		for (xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff b : c.buffs()) Actor.remove( b );
 		if (c.sprite != null) c.sprite.killAndErase();
+	}
+
+	// ------------------------------------------------- the road's own life
+
+	/** Off the level without a death: no experience, no loot, no tally, no Bestiary, no shelf
+	 *  swept (never die() or destroy()). Actor.remove takes its buffs off with it. Works on any
+	 *  level. */
+	public static void vanish( Level level, Mob m ){
+		level.mobs.remove( m );
+		Actor.remove( m );
+		if (m.sprite != null) m.sprite.killAndErase();
+	}
+
+	//which window cells are road to the road's walkers; rebuilt when the window changes
+	private boolean[] roadMask;
+	private int roadMaskVersion = -1;
+
+	/** Road to the road's walkers: paths, bridges and doorways (a village's footpaths join every
+	 *  door to its well, and the road runs to the well). The terrain alone - whether a cell can be
+	 *  stood on just now is the walker's to check. */
+	public boolean[] roadMask(){
+		if (roadMask == null || roadMask.length != length() || roadMaskVersion != windowVersion){
+			boolean[] m = new boolean[length()];
+			for (int i = 0; i < m.length; i++){
+				int t = map[i];
+				m[i] = t == Terrain.DIRT_PATH || t == Terrain.BRIDGE || t == Terrain.DOOR || t == Terrain.OPEN_DOOR;
+			}
+			roadMask = m;
+			roadMaskVersion = windowVersion;
+		}
+		return roadMask;
+	}
+
+	/** Is this world point inside the window's interior, three cells clear of its ring? */
+	public boolean inWindow( float wx, float wy ){
+		int x = Math.round( wx ) - worldX, y = Math.round( wy ) - worldY;
+		return x >= 3 && y >= 3 && x < WIDTH - 3 && y < HEIGHT - 3;
+	}
+
+	/** The window cell a road walker stands on for a world point (clamped into the interior):
+	 *  the nearest open road cell within six (a road wobbles that far off its straight line),
+	 *  else the nearest ground a settler would walk within two (ice the road does not pave), else
+	 *  -1. Who stands there is not its business. */
+	public int trafficCell( float wx, float wy ){
+		float px = Math.max( 3, Math.min( WIDTH - 4, wx - worldX ) ), py = Math.max( 3, Math.min( HEIGHT - 4, wy - worldY ) );
+		int x = Math.round( px ), y = Math.round( py );
+		boolean[] road = roadMask();
+		int best = -1;
+		float bestD = Float.MAX_VALUE;
+		for (int dy = -6; dy <= 6; dy++){
+			for (int dx = -6; dx <= 6; dx++){
+				int cx = x + dx, cy = y + dy;
+				if (cx < 2 || cy < 2 || cx >= WIDTH - 2 || cy >= HEIGHT - 2) continue;
+				int c = cx + cy * width();
+				if (!road[c] || !passable[c] || avoid[c]) continue;
+				float d = (cx - px) * (cx - px) + (cy - py) * (cy - py);
+				if (d < bestD){
+					bestD = d;
+					best = c;
+				}
+			}
+		}
+		if (best != -1) return best;
+		for (int r = 0; r <= 2; r++){
+			for (int dy = -r; dy <= r; dy++){
+				for (int dx = -r; dx <= r; dx++){
+					if (Math.max( Math.abs( dx ), Math.abs( dy ) ) != r) continue;
+					int c = (x + dx) + (y + dy) * width();
+					if (VillageRoutine.walkable( this, c )) return c;
+				}
+			}
+		}
+		return -1;
+	}
+
+	private static final int MAX_TRAVELLERS = 4;   //on the window's roads at once
+	private static final int MAX_PATROLS = 3;      //towns whose watch is out in the window at once
+	//the surface's sight (viewDistance 20) and a cell: nobody new appears mid-road nearer a hero than this
+	private static final int UNSEEN = 21;
+	//a walk no further than this past its door may start at the door itself, in plain sight: he just stepped out
+	private static final int FRESH = 12;
+	//traffic turns between two looks for walkers due on the road
+	private static final int TRAFFIC_EVERY = 20;
+	//the traffic time of the next look; not bundled - the first step after a load looks
+	private long nextTraffic = Long.MIN_VALUE;
+
+	//may a walker come into being on this cell? never where a player could see it happen:
+	//further than any hero's sight, and - outside a rebase, whose field of view is not yet the
+	//new window's - nowhere a hero's eyes or a mind vision reach either
+	private boolean unseenSpawn( int cell, boolean settled ){
+		int d = heroDistance( this, cell );
+		if (d <= UNSEEN) return false;
+		if (Dungeon.level != this || Dungeon.hero == null) return true;
+		if (d <= Dungeon.hero.viewDistance + 1) return false;
+		return !settled || (!xyz.gabriwar.warpedpixeldungeon.net.NetManager.anyHeroSees( cell )
+				&& Dungeon.hero.buff( xyz.gabriwar.warpedpixeldungeon.actors.buffs.MindVision.class ) == null);
+	}
+
+	//where a walker leaving by a door (world wx, wy) first stands: the road just outside it, or
+	//open ground there (never the doorway itself, nor back inside the house), or -1
+	private int doorStep( float wx, float wy ){
+		if (!inWindow( wx, wy )) return -1;
+		int door = localCell( Math.round( wx ), Math.round( wy ) );
+		if (door == -1 || (map[door] != Terrain.DOOR && map[door] != Terrain.OPEN_DOOR)) return -1;
+		boolean[] road = roadMask();
+		int open = -1;
+		for (int n : com.watabou.utils.PathFinder.NEIGHBOURS8){
+			int c = door + n;
+			int t = map[c];
+			if (t == Terrain.DOOR || t == Terrain.OPEN_DOOR || t == Terrain.EMPTY_SP || occupied( c )) continue;
+			if (road[c] && passable[c] && !avoid[c]) return c;
+			if (open == -1 && VillageRoutine.walkable( this, c )) open = c;
+		}
+		return open;
+	}
+
+	//the travellers: whoever RoadTraffic says is out on a road through the window now, set
+	//down where the clock says he has got to - never out of thin air before a player's eyes
+	//(only stepping out of his door), at most MAX_TRAVELLERS, the nearest to the hero first.
+	//`settled`: the heroes' sight is this window's (not inside a rebase)
+	private void placeTravellers( boolean settled ){
+		if (altitude != 0 || network || RoadTraffic.nightForced()) return;
+		long now = RoadTraffic.now();
+		int day = RoadTraffic.day( now ), tod = RoadTraffic.turnOfDay( now );
+		int w0 = RoadTraffic.setOut(), w1 = RoadTraffic.indoors();
+		if (tod < w0 || tod >= w1) return;
+		java.util.HashSet<Long> walking = new java.util.HashSet<>();
+		for (Mob m : mobs){
+			if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Traveller){
+				walking.add( ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Traveller) m).key );
+			}
+		}
+		if (walking.size() >= MAX_TRAVELLERS) return;
+		boolean live = Dungeon.level == this && Dungeon.hero != null;
+		final int from = live ? Dungeon.hero.pos : width()/2 + height()/2 * width();
+		ArrayList<Object[]> due = new ArrayList<>();   //{trip, cell}
+		for (int[] r : RoadTraffic.travelPairs( worldSeed, sector0X() - 1, sector0Y() - 1, sector1X() + 1, sector1Y() + 1 )){
+			if (!RoadTraffic.travelled( worldSeed, r[0], r[1], r[2], r[3] )) continue;
+			int lanes = RoadTraffic.lanes( worldSeed, r[0], r[1], r[2], r[3] );
+			for (int lane = 0; lane < lanes; lane++){
+				RoadTraffic.Trip trip = RoadTraffic.tripAt( worldSeed, r[0], r[1], r[2], r[3], lane, day, tod, w0, w1 );
+				if (trip == null || walking.contains( trip.key )) continue;
+				float s = trip.distanceAt( tod );
+				float[] p = RoadTraffic.point( trip.route, s );
+				int cell = inWindow( p[0], p[1] ) ? trafficCell( p[0], p[1] ) : -1;
+				if (cell != -1 && live && !unseenSpawn( cell, settled )) cell = -1;
+				//the walk has only just begun: he steps out of his door, seen or not
+				if (cell == -1 && s <= FRESH) cell = doorStep( trip.route[0], trip.route[1] );
+				if (cell != -1) due.add( new Object[]{ trip, cell } );
+			}
+		}
+		java.util.Collections.sort( due, (a, b) -> distance( from, (Integer) a[1] ) - distance( from, (Integer) b[1] ) );
+		for (Object[] d : due){
+			if (walking.size() >= MAX_TRAVELLERS) break;
+			int at = freeSpotWithin( (Integer) d[1], 2 );
+			if (at == -1) continue;
+			RoadTraffic.Trip trip = (RoadTraffic.Trip) d[0];
+			if (addMob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Traveller.of( trip ), at )) walking.add( trip.key );
+		}
+	}
+
+	//the town watches: the pair a big human town sends walking its road (RoadTraffic.beat),
+	//set down where their beat has got to by the same rules as the travellers, at most
+	//MAX_PATROLS towns' worth in the window
+	private void placePatrols( boolean settled ){
+		if (altitude != 0 || network || RoadTraffic.nightForced()) return;
+		long now = RoadTraffic.now();
+		int day = RoadTraffic.day( now ), tod = RoadTraffic.turnOfDay( now );
+		int w0 = RoadTraffic.setOut(), w1 = RoadTraffic.indoors();
+		if (tod < w0 || tod >= w1) return;
+		java.util.HashSet<Long> towns = new java.util.HashSet<>(), walking = new java.util.HashSet<>();
+		for (Mob m : mobs){
+			if (!(m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.RoadPatrol)) continue;
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.RoadPatrol g = (xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.RoadPatrol) m;
+			towns.add( g.homeSector );
+			walking.add( g.homeSector * 31 + g.rank );
+		}
+		boolean live = Dungeon.level == this && Dungeon.hero != null;
+		for (int sy = sector0Y(); sy <= sector1Y(); sy++){
+			for (int sx = sector0X(); sx <= sector1X(); sx++){
+				long home = WorldStructures.sectorOf( sx, sy );
+				if (!towns.contains( home ) && towns.size() >= MAX_PATROLS) continue;
+				RoadTraffic.Beat beat = RoadTraffic.beat( worldSeed, sx, sy, day, w0, w1 );
+				if (beat == null) continue;
+				for (int rank = 0; rank < 2; rank++){
+					if (walking.contains( home * 31 + rank )) continue;
+					float s = beat.distanceAt( tod, rank );
+					if (s < 0) continue;
+					float[] p = RoadTraffic.point( beat.route, s );
+					int cell = inWindow( p[0], p[1] ) ? trafficCell( p[0], p[1] ) : -1;
+					if (cell != -1 && live && !unseenSpawn( cell, settled )) cell = -1;
+					if (cell == -1 && s <= FRESH) cell = doorStep( beat.route[0], beat.route[1] );
+					if (cell == -1 || (cell = freeSpotWithin( cell, 2 )) == -1) continue;
+					int tint = (int) Math.floorMod( structHash( sx, sy + 13 ), 6L );
+					if (addMob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.RoadPatrol.of( beat, home, rank, tint ), cell )){
+						towns.add( home );
+						walking.add( home * 31 + rank );
+					}
+				}
+			}
+		}
+	}
+
+	//the caravans on their morning leg: today's cart of each road through the window, driving from
+	//where yesterday's stall stood to where today's goes up (RoadTraffic.caravanLeg), set down where
+	//the clock says it has got to by the travellers' rules - never out of thin air before a
+	//player's eyes, save breaking camp: in the first look after it set out it may start off from
+	//where it stood the night, in plain sight, and make up the way. At most MAX_TRAINS
+	private void placeCaravanTrains( boolean settled ){
+		if (altitude != 0 || network || RoadTraffic.nightForced()) return;
+		long now = RoadTraffic.now();
+		int day = RoadTraffic.day( now ), tod = RoadTraffic.turnOfDay( now ), w0 = RoadTraffic.setOut();
+		if (tod < w0) return;
+		java.util.HashSet<Long> rolling = new java.util.HashSet<>();
+		for (Mob m : mobs){
+			if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.CaravanTrain){
+				rolling.add( ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.CaravanTrain) m).road );
+			}
+		}
+		boolean live = Dungeon.level == this && Dungeon.hero != null;
+		int weekday = xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar.weekday().ordinal();
+		int dayOfSeason = xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar.dayOfSeason();
+		java.util.HashSet<Long> up = caravansPitched();
+		for (int[] r : RoadTraffic.roads( worldSeed, sector0X(), sector0Y(), sector1X(), sector1Y() )){
+			if (rolling.size() >= MAX_TRAINS) break;
+			long road = RoadTraffic.roadHash( worldSeed, r[0], r[1], r[2], r[3] );
+			if (rolling.contains( road ) || up.contains( road )) continue;
+			RoadTraffic.Trip leg = RoadTraffic.caravanLeg( worldSeed, r[0], r[1], r[2], r[3], weekday, dayOfSeason, day, w0 );
+			if (leg == null || tod < leg.depart || tod >= leg.arrive) continue;
+			float s = leg.distanceAt( tod );
+			float[] p = RoadTraffic.point( leg.route, s );
+			int cell = inWindow( p[0], p[1] ) ? trafficCell( p[0], p[1] ) : -1;
+			if (cell != -1 && live && !unseenSpawn( cell, settled )) cell = -1;
+			if (cell == -1 && s <= BREAK_CAMP && inWindow( leg.route[0], leg.route[1] )){
+				cell = trafficCell( leg.route[0], leg.route[1] );
+			}
+			if (cell == -1 || (cell = freeSpotWithin( cell, 2 )) == -1) continue;
+			if (addMob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.CaravanTrain.of( leg, road ), cell )) rolling.add( road );
+		}
+	}
+
+	//carts on the window's roads at once
+	private static final int MAX_TRAINS = 3;
+	//how far along its leg a cart may be on the first look after it set out (a look every
+	//TRAFFIC_EVERY turns at its pace, and a cell over): it may still be seen breaking camp
+	private static final float BREAK_CAMP = RoadTraffic.CARAVAN_PACE * TRAFFIC_EVERY + 1f;
+
+	/** A marked stall's outlaws break from the verge (CaravanAmbush) as a hero comes in sight of
+	 *  it - the host's or a co-op guest's, whoever's step it was - on the caravaneer's own turn. */
+	public void springIfDue( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer c ){
+		if (!network && CaravanAmbush.due( this, c )) CaravanAmbush.spring( this, c );
+	}
+
+	/** A stall's siege settles (CaravanAmbush.settle), on the caravaneer's own turn. One fought
+	 *  out is remembered for the rest of the day, so a stall pitched again on its road (its keeper
+	 *  chased off) is not fallen on twice. */
+	public void settleSiege( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer c ){
+		if (network) return;
+		if (CaravanAmbush.settle( this, c, parkedMobs, parkedAt ) && c.road != Long.MIN_VALUE) ambushesFought().add( c.road );
+	}
+
+	//the roads (RoadTraffic.roadHash) whose caravan has had its ambush today, and the day they
+	//are for; bundled, so a reload cannot pitch a fought-out stall afresh
+	private java.util.HashSet<Long> ambushDone = new java.util.HashSet<>();
+	private int ambushDoneDay = Integer.MIN_VALUE;
+
+	private java.util.HashSet<Long> ambushesFought(){
+		int today = xyz.gabriwar.warpedpixeldungeon.actors.WorldClock.day();
+		if (ambushDoneDay != today){
+			ambushDone.clear();
+			ambushDoneDay = today;
+		}
+		return ambushDone;
+	}
+
+	/** Has the caravan standing within six cells of this world cell had its day's trouble already
+	 *  (or none to have) - live in the window or parked? A traveller then tells of the stall alone. */
+	public boolean caravanAtPeace( int wx, int wy ){
+		for (Mob m : mobs){
+			if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer
+					&& Math.abs( worldX + m.pos % width() - wx ) <= 6 && Math.abs( worldY + m.pos / width() - wy ) <= 6){
+				return atPeace( (xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer) m );
+			}
+		}
+		for (HashMap.Entry<Long, Mob> e : parkedMobs.entrySet()){
+			if (e.getValue() instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer
+					&& Math.abs( (int)(e.getKey() & 0xFFFFFFFFL) - wx ) <= 6 && Math.abs( (int)(e.getKey() >> 32) - wy ) <= 6){
+				return atPeace( (xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer) e.getValue() );
+			}
+		}
+		return false;
+	}
+
+	private static boolean atPeace( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer c ){
+		return c.ambush != xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer.AMBUSH_PENDING
+				&& c.ambush != xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer.AMBUSH_BESIEGED;
+	}
+
+	/** Debug scene (DebugScenes "overworld-road"): the four kinds of traveller on the road
+	 *  (sx,sy)-(nx,ny) around the hero (6 and 12 cells ahead and behind), the road's caravan
+	 *  coming up ten cells behind him to pitch its stall eight cells ahead, the watch of town
+	 *  (tx,ty) eight cells behind him walking out, and two outlaws on its road eighteen cells
+	 *  ahead of him. Returns {travellers set down, 1 when the caravan was}. */
+	public int[] debugStageRoad( int sx, int sy, int nx, int ny, int tx, int ty ){
+		long now = RoadTraffic.now();
+		int day = RoadTraffic.day( now ), tod = RoadTraffic.turnOfDay( now );
+		float hx = worldX + Dungeon.hero.pos % width(), hy = worldY + Dungeon.hero.pos / width();
+		float[] ahead = { 6, -6, 12, -12 };
+		int placed = 0;
+		for (int kind = 0; kind < RoadTraffic.KINDS; kind++){
+			boolean forward = kind % 2 == 0;
+			RoadTraffic.Trip trip = RoadTraffic.forcedTrip( worldSeed, forward ? sx : nx, forward ? sy : ny,
+					forward ? nx : sx, forward ? ny : sy, kind, day, tod, hx, hy, ahead[kind], Long.MIN_VALUE + kind );
+			float[] p = RoadTraffic.point( trip.route, trip.distanceAt( tod ) );
+			int cell = trafficCell( p[0], p[1] );
+			if (cell == -1 || (cell = freeSpotWithin( cell, 2 )) == -1) continue;
+			if (addMob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Traveller.of( trip ), cell )) placed++;
+		}
+		RoadTraffic.Trip leg = RoadTraffic.forcedCaravanLeg( worldSeed, sx, sy, nx, ny, day, tod, hx, hy, 8, 18 );
+		float[] lp = RoadTraffic.point( leg.route, leg.distanceAt( tod ) );
+		int cart = trafficCell( lp[0], lp[1] );
+		boolean rolling = cart != -1 && (cart = freeSpotWithin( cart, 2 )) != -1
+				&& addMob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.CaravanTrain.of( leg,
+						RoadTraffic.roadHash( worldSeed, sx, sy, nx, ny ) ), cart );
+		RoadTraffic.Beat beat = RoadTraffic.forcedBeat( worldSeed, tx, ty, day, tod, hx, hy, -8 );
+		if (beat != null){
+			long home = WorldStructures.sectorOf( tx, ty );
+			int tint = (int) Math.floorMod( structHash( tx, ty + 13 ), 6L );
+			for (int rank = 0; rank < 2; rank++){
+				float[] p = RoadTraffic.point( beat.route, Math.max( 0f, beat.distanceAt( tod, rank ) ) );
+				int cell = trafficCell( p[0], p[1] );
+				if (cell != -1 && (cell = freeSpotWithin( cell, 2 )) != -1){
+					addMob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.RoadPatrol.of( beat, home, rank, tint ), cell );
+				}
+			}
+			//the outlaws lie up on the road ahead, short of the neighbour's well and its folk
+			float[] end = RoadTraffic.point( beat.route, Math.min( RoadTraffic.length( beat.route ) - 12f,
+					RoadTraffic.project( beat.route, hx, hy ) + 18f ) );
+			int c = trafficCell( end[0], end[1] );
+			for (int i = 0; i < 2 && c != -1; i++){
+				int at = freeSpotWithin( c, 3 );
+				if (at == -1) break;
+				xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldBandit b = new xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldBandit();
+				b.state = b.WANDERING;
+				addMob( b, at );
+			}
+		}
+		return new int[]{ placed, rolling ? 1 : 0 };
+	}
+
+	/** Debug scene (DebugScenes "overworld-ambush"): pitches today's stalls if a far arrival has
+	 *  not yet, and marks the one nearest the hero (within 40 cells) for an ambush. */
+	public xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer debugAmbushNearest(){
+		placeCaravans();
+		xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer best = null;
+		int bestD = 41;
+		for (Mob m : mobs){
+			if (!(m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer)) continue;
+			int d = distance( m.pos, Dungeon.hero.pos );
+			if (d < bestD){
+				best = (xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer) m;
+				bestD = d;
+			}
+		}
+		if (best != null && best.ambush != xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer.AMBUSH_BESIEGED){
+			int day = xyz.gabriwar.warpedpixeldungeon.actors.WorldClock.day();
+			best.ambush = xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Caravaneer.AMBUSH_PENDING;
+			best.pitched = day;
+			if (best.stall == xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldBandit.NO_AMBUSH){
+				best.stall = structHash( worldKey( worldX + best.pos % width(), worldY + best.pos / width() ), day );
+			}
+		}
+		return best;
+	}
+
+	// ------------------------------------------------------- world events
+
+	//what the world's timed events (WorldEvents) have come to here: heard of, settled, a star's
+	//fragment down, debug-forced. the only part of them a save holds: where and when is pure
+	private final WorldEventLog eventLog = new WorldEventLog();
+	//the events that can reach the window: anchored within EVENT_RADIUS sectors of its centre (a
+	//hero is never more than a sector off it, so this covers a market's three as well). cached
+	//per centre sector, day and forced set; actor thread only
+	static final int EVENT_RADIUS = 4;
+	private java.util.List<WorldEvents.Event> nearEvents = java.util.Collections.emptyList();
+	private long nearEventsKey = Long.MIN_VALUE;
+	private int nearEventsDay = Integer.MIN_VALUE, nearEventsForced = -1;
+	//each near star's crater (WorldEvents.craterCells), worked out once
+	private final HashMap<Long, int[]> craterCache = new HashMap<>();
+	//the world keys of the window cells the fallen stars' scorch lies on: the event's own work,
+	//never captured as the player's edit, and given back to the land by it when the scar is gone
+	private final java.util.HashSet<Long> laidScorch = new java.util.HashSet<>();
+	//where each event was on the last step (1 on, 2 a star's cooling scar); null settles the
+	//window's events on the next one (a load, a far arrival, a forced event)
+	private HashMap<Long, Integer> liveEvents = null;
+	private int eventDay = Integer.MIN_VALUE;
+	//the settlements a travelling market is in now (sector keys): their folk read it every turn
+	private volatile java.util.Set<Long> marketSectors = java.util.Collections.emptySet();
+	//the craters' smoke and the markets' bunting on screen, and what was last posted to it
+	private final xyz.gabriwar.warpedpixeldungeon.effects.WorldEventDecor decor
+			= new xyz.gabriwar.warpedpixeldungeon.effects.WorldEventDecor();
+	private int decorScene = 0;
+	private java.util.List<xyz.gabriwar.warpedpixeldungeon.effects.WorldEventDecor.Crater> decorCraters
+			= java.util.Collections.emptyList();
+	private java.util.List<xyz.gabriwar.warpedpixeldungeon.effects.WorldEventDecor.Fair> decorFairs
+			= java.util.Collections.emptyList();
+	//a star lays its fragment, and a market its stalls, only this far inside the window: the
+	//crater and every stall's shelf whole in it
+	private static final int STAR_MARGIN = 3, MARKET_MARGIN = 14;
+	//a market's stalls stand on the well's rings 4 to 8 off the roads, 4 to MARKET_RING failing that
+	private static final int MARKET_RING = 12;
+
+	/** The events' turn now: the world's (WorldClock.turn) through the log's clock, which never
+	 *  runs back as a real-clock run's wall clock can - so nothing over comes round again. Every
+	 *  event time here is read through it, and debug scenes force their events at it. Actor thread. */
+	public int eventTurn(){
+		return eventLog.clock( xyz.gabriwar.warpedpixeldungeon.actors.WorldClock.turn() );
+	}
+
+	/** The events' day now (eventTurn's) for a reader on any thread: the log's mark is only
+	 *  looked at, never moved on, so it agrees with the actor thread's eventTurn. */
+	public int eventDayNow(){
+		return WorldEvents.day( eventLog.peekClock( xyz.gabriwar.warpedpixeldungeon.actors.WorldClock.turn() ) );
+	}
+
+	//the events about the window, for its day: recomputed only when the window's centre sector,
+	//the day or the forced set changed
+	java.util.List<WorldEvents.Event> nearEvents(){
+		int cx = Math.floorDiv( worldX + WIDTH/2, WorldStructures.SECTOR );
+		int cy = Math.floorDiv( worldY + HEIGHT/2, WorldStructures.SECTOR );
+		int day = WorldEvents.day( eventTurn() );
+		long key = WorldStructures.sectorOf( cx, cy );
+		int forced = eventLog.forcedVersion();
+		if (day != nearEventsDay || key != nearEventsKey || forced != nearEventsForced){
+			long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
+			nearEvents = WorldEvents.eventsNear( worldSeed, cx, cy, EVENT_RADIUS, day, eventLog.forced );
+			nearEventsDay = day;
+			nearEventsKey = key;
+			nearEventsForced = forced;
+			java.util.HashSet<Long> ids = new java.util.HashSet<>();
+			for (WorldEvents.Event e : nearEvents) ids.add( e.id );
+			craterCache.keySet().retainAll( ids );
+			xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW events near", t );
+		}
+		return nearEvents;
+	}
+
+	private int[] craterCells( WorldEvents.Event e ){
+		int[] cells = craterCache.get( e.id );
+		if (cells == null){
+			cells = WorldEvents.craterCells( worldSeed, e );
+			craterCache.put( e.id, cells );
+		}
+		return cells;
+	}
+
+	//does a star's crater reach into the window at (ox, oy)?
+	private static boolean craterReaches( WorldEvents.Event e, int ox, int oy ){
+		return e.wx + 2 >= ox && e.wy + 2 >= oy && e.wx - 2 < ox + WIDTH && e.wy - 2 < oy + HEIGHT;
+	}
+
+	//the fallen stars' scorch on the window at (ox, oy) now: world key -> EMBERS, null for none.
+	//WindowGenerator.overlayScorch lays it where that window's own ground takes it
+	private HashMap<Long, Integer> scorchFor( int ox, int oy ){
+		if (network || altitude != 0) return null;
+		int turn = eventTurn();
+		HashMap<Long, Integer> out = null;
+		for (WorldEvents.Event e : nearEvents()){
+			if (!e.scarredAt( turn ) || !craterReaches( e, ox, oy )) continue;
+			int[] cells = craterCells( e );
+			for (int i = 0; i + 1 < cells.length; i += 2){
+				int x = cells[i] - ox, y = cells[i+1] - oy;
+				if (x <= 0 || y <= 0 || x >= WIDTH-1 || y >= HEIGHT-1) continue;
+				if (out == null) out = new HashMap<>();
+				out.put( worldKey( cells[i], cells[i+1] ), Terrain.EMBERS );
+			}
+		}
+		return out;
+	}
+
+	//the stars whose scorch reaches the window at (ox, oy) now, as one number (0 for none): a
+	//window prepared for another set is derived again when it is taken
+	private long scorchSig( int ox, int oy ){
+		if (network || altitude != 0) return 0;
+		int turn = eventTurn();
+		long sig = 0;
+		for (WorldEvents.Event e : nearEvents()){
+			if (e.scarredAt( turn ) && craterReaches( e, ox, oy )) sig = sig * 0x9E3779B97F4A7C15L + e.id;
+		}
+		return sig;
+	}
+
+	//which of the stars' cells the window just derived carries
+	private void noteScorch(){
+		laidScorch.clear();
+		HashMap<Long, Integer> scorch = scorchFor( worldX, worldY );
+		if (scorch == null) return;
+		for (Long key : scorch.keySet()){
+			int cell = localCell( (int)(key & 0xFFFFFFFFL), (int)(key >> 32) );
+			if (cell != -1 && map[cell] == Terrain.EMBERS && !diffs.containsKey( key )) laidScorch.add( key );
+		}
+	}
+
+	//the standing window's scorch brought in line with the stars down now: a star that came
+	//down on it is stamped, one whose scar is gone gives the land back its own ground
+	private void stampCraters(){
+		if (network || altitude != 0 || pristine == null) return;
+		HashMap<Long, Integer> want = scorchFor( worldX, worldY );
+		boolean live = liveScene();
+		java.util.Iterator<Long> it = laidScorch.iterator();
+		while (it.hasNext()){
+			long key = it.next();
+			if (want != null && want.containsKey( key )) continue;
+			it.remove();
+			int cell = localCell( (int)(key & 0xFFFFFFFFL), (int)(key >> 32) );
+			if (cell == -1 || map[cell] != Terrain.EMBERS || diffs.containsKey( key )) continue;
+			//a bush does not grow back round someone standing in it: that cell heals with the
+			//next window instead (burnt brush is the land's to mend, never a player's edit)
+			if ((Terrain.flags[pristine[cell]] & Terrain.SOLID) != 0
+					&& (occupied( cell ) || heaps.get( cell ) != null)) continue;
+			set( cell, pristine[cell], this );
+			if (live) xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.updateMap( cell );
+		}
+		if (want == null) return;
+		for (Long key : want.keySet()){
+			if (laidScorch.contains( key )) continue;
+			int cell = localCell( (int)(key & 0xFFFFFFFFL), (int)(key >> 32) );
+			if (cell == -1 || diffs.containsKey( key ) || link[cell] != WindowGenerator.LINK_NONE
+					|| !WorldEvents.scorchable( pristine[cell] ) || plants.get( cell ) != null) continue;
+			//the player's own work on the cell stands; trampled or burnt growth is the land's
+			if (map[cell] != pristine[cell] && !naturalDecay( pristine[cell], map[cell] )) continue;
+			set( cell, Terrain.EMBERS, this );
+			laidScorch.add( key );
+			if (live) xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.updateMap( cell );
+		}
+	}
+
+	//the hero's step on the surface: the window's events set to rights when one came on, went
+	//off or cooled (or the day turned), the markets' crowds, what the hero hears of, and what
+	//is shown of them
+	private void tickEvents( int heroPos ){
+		long t0 = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
+		int turn = eventTurn();
+		int day = WorldEvents.day( turn );
+		HashMap<Long, Integer> live = new HashMap<>();
+		for (WorldEvents.Event e : nearEvents()){
+			int stage = e.activeAt( turn ) ? 1 : e.scarredAt( turn ) ? 2 : 0;
+			if (stage != 0) live.put( e.id, stage );
+		}
+		if (day != eventDay || !live.equals( liveEvents )){
+			eventDay = day;
+			liveEvents = live;
+			settleEvents( turn );
+		}
+		refreshMarkets( turn );
+		announceEvents( heroPos, turn );
+		//the events that keep their own book: raids on the villages, then the packs' night hunts
+		RaidEvent.onHeroStep( this );
+		HuntEvent.onHeroStep( this );
+		showEventDecor( turn );
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW events", t0 );
+	}
+
+	private void settleEvents( int turn ){
+		expireEvents( turn, true );
+		stampCraters();
+		placeEvents( true );
+	}
+
+	//the settlements a market is in now and still trading (one chased off is over)
+	private void refreshMarkets( int turn ){
+		java.util.HashSet<Long> now = new java.util.HashSet<>();
+		for (WorldEvents.Event e : nearEvents()){
+			if (e.type == WorldEvents.Type.MARKET && e.activeAt( turn ) && !eventLog.resolved.containsKey( e.id )){
+				now.add( WorldStructures.sectorOf( e.sx, e.sy ) );
+			}
+		}
+		if (!now.equals( marketSectors )) marketSectors = now;
+	}
+
+	/** Is a travelling market up in this settlement (a sector key) now? Its folk crowd the well
+	 *  (Settler). Any thread: a snapshot the hero's steps keep. */
+	public boolean marketActiveAt( long sectorKey ){
+		return marketSectors.contains( sectorKey );
+	}
+
+	/** Settles an event for good (a star looted, a market chased off): it is laid, announced and
+	 *  pinned no more, and remembered until keepUntil (the later of two asks). */
+	public void resolveEvent( long id, int keepUntil ){
+		eventLog.resolved.merge( id, keepUntil, Math::max );
+	}
+
+	/** Is this event settled for good? Any thread: the log's concurrent map. */
+	public boolean eventResolved( long id ){
+		return eventLog.resolved.containsKey( id );
+	}
+
+	//has the party heard of this event? (it is pinned on the map while it is on)
+	boolean eventAnnounced( long id ){
+		return eventLog.announced.containsKey( id );
+	}
+
+	//an event that says itself (a raid by its smoke, a hunt by its howl) has been heard of
+	void markAnnounced( WorldEvents.Event e ){
+		eventLog.announced.put( e.id, e.endTurn );
+	}
+
+	//is this event under way on the ground (a hunt's pack loosed)? heard of is not begun: a hunt
+	//is heard from afar as night falls and begins only when a hero comes near its ground
+	boolean eventBegun( long id ){
+		return eventLog.begun.containsKey( id );
+	}
+
+	void markBegun( WorldEvents.Event e ){
+		eventLog.begun.put( e.id, e.endTurn );
+	}
+
+	/** A player's own words about something on the surface (tellParty): handed his hero and the
+	 *  world cell he stands on, null for nothing to say. */
+	interface PartyLine {
+		String of( xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero, int wx, int wy );
+	}
+
+	//a line for every player, each in his own words: the host's is his and his spectators' (who
+	//watch through his hero's eyes and are known by the id -1), each co-op guest's his alone
+	void tellParty( PartyLine line ){
+		int w = width();
+		xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero host = Dungeon.hero;
+		String mine = line.of( host, worldX + host.pos % w, worldY + host.pos / w );
+		if (mine != null){
+			xyz.gabriwar.warpedpixeldungeon.net.NetManager.heroLog( host, mine );
+			if (xyz.gabriwar.warpedpixeldungeon.net.NetManager.isHost()){
+				xyz.gabriwar.warpedpixeldungeon.net.StateSerializer.recordLogMessageForHero( -1, mine );
+			}
+		}
+		if (!xyz.gabriwar.warpedpixeldungeon.net.NetManager.isHost()) return;
+		for (xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero nh : xyz.gabriwar.warpedpixeldungeon.net.NetManager.getNetHeroes()){
+			if (!nh.isAlive() || nh.pos < 0 || nh.pos >= length()) continue;
+			String theirs = line.of( nh, worldX + nh.pos % w, worldY + nh.pos / w );
+			if (theirs != null) xyz.gabriwar.warpedpixeldungeon.net.NetManager.heroLog( nh, theirs );
+		}
+	}
+
+	//does a hero see a cell of the window: the host's by the level's field of view, a co-op
+	//guest's by his own
+	boolean heroSees( xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero, int cell ){
+		boolean[] fov = hero == Dungeon.hero ? heroFOV : hero.fieldOfView;
+		return fov != null && cell >= 0 && cell < fov.length && fov[cell];
+	}
+
+	/** Debug scenes: an event forced through the very registry the world reads (WorldEvents.eventsNear). */
+	public void forceEvent( WorldEvents.Event e ){
+		eventLog.force( e );
+		liveEvents = null;
+	}
+
+	/** Debug scenes: the hero's step pass now, so a forced event happens in front of the tester. */
+	public void pollEvents(){
+		if (network || altitude != 0 || Dungeon.hero == null || Dungeon.level != this) return;
+		liveEvents = null;
+		tickEvents( Dungeon.hero.pos );
+	}
+
+	/** The world map (render thread): the events on now that the party has heard of and that are
+	 *  not settled, inside the chart's [ox, ox+span) x [oy, oy+span). Pure placement and the
+	 *  log's concurrent maps: safe off the actor thread. A co-op guest's mirror reads the log its
+	 *  host shipped it (adoptSharedEvents), so his map pins what the host's does. */
+	public ArrayList<WorldEvents.Event> mapEvents( int ox, int oy, int span ){
+		if (altitude != 0) return new ArrayList<>();
+		int turn = eventLog.peekClock( xyz.gabriwar.warpedpixeldungeon.actors.WorldClock.turn() );
+		int cx = Math.floorDiv( ox + span/2, WorldStructures.SECTOR ), cy = Math.floorDiv( oy + span/2, WorldStructures.SECTOR );
+		return WorldEvents.mapMarkers( WorldEvents.eventsNear( worldSeed, cx, cy, span / 2 / WorldStructures.SECTOR + 1,
+						WorldEvents.day( turn ), eventLog.forced ),
+				eventLog.announced, eventLog.resolved, turn, ox, oy, span );
+	}
+
+	/** Today's raids anchored about the window that are on and not beaten off, worked out afresh
+	 *  from the world and the log - pure placement and the log's concurrent maps, so any thread
+	 *  may ask. What RaidEvent reads where no snapshot of its own answers for the level: above all
+	 *  a co-op guest's mirror, which takes no stock and holds the raids its host settled (and any
+	 *  he forced) through adoptSharedEvents. */
+	public ArrayList<WorldEvents.Event> raidsNow(){
+		ArrayList<WorldEvents.Event> out = new ArrayList<>();
+		if (altitude != 0) return out;
+		int turn = eventLog.peekClock( xyz.gabriwar.warpedpixeldungeon.actors.WorldClock.turn() );
+		int cx = Math.floorDiv( worldX + WIDTH/2, WorldStructures.SECTOR );
+		int cy = Math.floorDiv( worldY + HEIGHT/2, WorldStructures.SECTOR );
+		for (WorldEvents.Event e : WorldEvents.eventsNear( worldSeed, cx, cy, EVENT_RADIUS, WorldEvents.day( turn ), eventLog.forced )){
+			if (e.type == WorldEvents.Type.RAID && e.activeAt( turn ) && !eventLog.resolved.containsKey( e.id )) out.add( e );
+		}
+		return out;
+	}
+
+	/** Co-op host (StateSerializer): a fingerprint of what his guests' maps are built from, so it
+	 *  is shipped again only when it changed (an event heard of, settled, forgotten or forced). */
+	public long sharedEventsSig(){
+		return eventLog.sharedSig();
+	}
+
+	/** Co-op host: what his guests' maps are built from (WorldEventLog.storeShared), as a bundle's
+	 *  text. Any thread: the log's shared part is concurrent. */
+	public String sharedEvents(){
+		Bundle b = new Bundle();
+		eventLog.storeShared( b );
+		return b.toString();
+	}
+
+	/** A co-op guest's mirror takes over its host's heard-of, settled and forced events
+	 *  (sharedEvents): the world map pins them as the host's does. Called before the mirror is
+	 *  the level, or on the render thread, which is the only one reading it then. */
+	public void adoptSharedEvents( String text ){
+		if (!network || text == null || text.isEmpty()) return;
+		try {
+			eventLog.restoreShared( Bundle.read( new java.io.ByteArrayInputStream( text.getBytes() ) ) );
+		} catch (java.io.IOException e){
+			//Bundle.read has reported it. the map stays as it was; the next change ships it whole again
+		}
+	}
+
+	/** Co-op host (StateSerializer): a fingerprint of the cracked ice his guests see (HazardWatch). */
+	public long sharedHazardsSig(){
+		return hazards.sharedSig();
+	}
+
+	/** Co-op host: the cracked ice as his guests see it, as a bundle's text. Any thread (a snapshot). */
+	public String sharedHazards(){
+		return hazards.shared();
+	}
+
+	/** A co-op guest's mirror takes over its host's cracked ice (sharedHazards): drawn and examined
+	 *  as the host's. Called before the mirror is the level, or on the render thread. */
+	public void adoptSharedHazards( String text ){
+		if (!network || text == null || text.isEmpty()) return;
+		try {
+			hazards.adoptShared( Bundle.read( new java.io.ByteArrayInputStream( text.getBytes() ) ) );
+		} catch (java.io.IOException e){
+			//Bundle.read has reported it. the cracks stay as they were; the next change ships them again
+		}
+	}
+
+	//every event on now laid down in the window: a star's fragment in its crater, a market's
+	//stalls round its well. idempotent (lootAt, marketOpen); `fx` false inside a rebase
+	private void placeEvents( boolean fx ){
+		if (network || altitude != 0) return;
+		int turn = eventTurn();
+		for (WorldEvents.Event e : nearEvents()){
+			if (!e.activeAt( turn ) || eventLog.resolved.containsKey( e.id )) continue;
+			switch (e.type){
+				case FALLEN_STAR: layStar( e ); break;
+				case MARKET: openMarket( e, fx ); break;
+				//a raid's band and a hunt's beasts come out only on the hero's step (RaidEvent, HuntEvent)
+				case RAID: case HUNT: break;
+			}
+		}
+	}
+
+	//the star's fragment, tagged with it, on its heart or the nearest open crater ground
+	private void layStar( WorldEvents.Event e ){
+		//laid already: on the ground, or in the heap store
+		if (eventLog.lootAt.containsKey( e.id )) return;
+		int cell = localCell( e.wx, e.wy );
+		if (cell == -1) return;
+		int w = width(), x = cell % w, y = cell / w;
+		if (x < STAR_MARGIN || y < STAR_MARGIN || x >= w - STAR_MARGIN || y >= height() - STAR_MARGIN) return;
+		int at = -1;
+		for (int r = 0; r <= 2 && at == -1; r++){
+			for (int dy = -r; dy <= r && at == -1; dy++){
+				for (int dx = -r; dx <= r && at == -1; dx++){
+					if (Math.max( Math.abs( dx ), Math.abs( dy ) ) != r) continue;
+					int c = cell + dx + dy * w;
+					if (passable[c] && !water[c] && heaps.get( c ) == null && link[c] == WindowGenerator.LINK_NONE
+							&& WorldEvents.scorchable( pristine[c] )) at = c;
+				}
+			}
+		}
+		if (at == -1){
+			//none of the crater is open ground at this point of the year (a pond froze over it):
+			//nothing to find there, so nothing to hear of or pin
+			resolveEvent( e.id, e.endTurn );
+			return;
+		}
+		xyz.gabriwar.warpedpixeldungeon.items.StarFragment f = new xyz.gabriwar.warpedpixeldungeon.items.StarFragment();
+		f.eventId = e.id;
+		f.eventEnd = e.endTurn;
+		drop( f, at );
+		eventLog.lootAt.put( e.id, worldKey( worldX + at % w, worldY + at / w ) );
+		eventLog.lootEnds.put( e.id, e.endTurn );
+	}
+
+	//is any trader of this market about, in the window or parked?
+	private boolean marketOpen( long id ){
+		for (Mob m : mobs){
+			if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant
+					&& ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant) m).eventId == id) return true;
+		}
+		for (Mob m : parkedMobs.values()){
+			if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant
+					&& ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant) m).eventId == id) return true;
+		}
+		return false;
+	}
+
+	//the market's two or three stalls round the well, spread round it from a hashed bearing,
+	//each a different speciality: off the roads on the rings 4 to 8 where there is room, on any
+	//open ground out to MARKET_RING where there is not - never out past the houses, to the fence
+	private void openMarket( WorldEvents.Event e, boolean fx ){
+		if (marketOpen( e.id )) return;
+		int well = localCell( e.wx, e.wy );
+		if (well == -1) return;
+		int w = width(), x = well % w, y = well / w;
+		if (x < MARKET_MARGIN || y < MARKET_MARGIN || x >= w - MARKET_MARGIN || y >= height() - MARKET_MARGIN) return;
+		int[] layout = WorldStructures.settlementLayout( worldSeed, e.sx, e.sy );
+		int reach = Math.min( MARKET_RING, layout[0] );
+		int stalls = 2 + (int)((e.id >>> 11) & 1L);
+		int bearing = (int) Math.floorMod( e.id >>> 17, 8L );
+		int first = (int) Math.floorMod( e.id >>> 23, (long) xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant.SPECIALITIES );
+		ArrayList<Integer> picked = new ArrayList<>();
+		for (int i = 0; i < stalls; i++){
+			int spot = -1;
+			for (int pass = 0; pass < 2 && spot == -1; pass++){
+				for (int r = 4; r <= (pass == 0 ? Math.min( 8, reach ) : reach) && spot == -1; r++){
+					int perim = 8 * r;
+					//each stall aims at its own share of the ring, and takes the nearest room to it
+					int aim = (bearing * perim / 8 + i * perim / stalls) % perim;
+					for (int k = 0; k < perim && spot == -1; k++){
+						int idx = Math.floorMod( aim + ((k & 1) == 0 ? k / 2 : -(k + 1) / 2), perim );
+						int dx = VillageRoutine.ringX( r, idx ), dy = VillageRoutine.ringY( r, idx );
+						int c = well + dx + dy * w;
+						if (stallSpot( c, dx, dy, layout, picked, pass == 0 )) spot = c;
+					}
+				}
+			}
+			if (spot != -1) picked.add( spot );
+		}
+		boolean show = fx && liveScene();
+		int opened = 0;
+		for (int i = 0; i < picked.size(); i++){
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant m
+					= xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant.of( first + i, e.id, e.endTurn );
+			if (!addMob( m, picked.get( i ) )) continue;
+			m.openShop();
+			opened++;
+			//the wagon rolls up in a cloud of road dust
+			if (show) xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.get( m.pos ).burst(
+					xyz.gabriwar.warpedpixeldungeon.effects.Speck.factory( xyz.gabriwar.warpedpixeldungeon.effects.Speck.DUST ), 8 );
+		}
+		//not a stall's room anywhere round the well: no market to hear of or pin
+		if (opened == 0) resolveEvent( e.id, e.endTurn );
+	}
+
+	//may a trader pitch his stall here: open, dry, unclaimed ground with room for his four wares
+	//round him, a clear cell between his shelf and every house, and room between the stalls and
+	//from any other keeper's goods (whose shelf is what his strike would sweep)
+	private boolean stallSpot( int cell, int dx, int dy, int[] layout, ArrayList<Integer> picked, boolean offRoad ){
+		int w = width(), x = cell % w, y = cell / w;
+		if (x < 3 || y < 3 || x > w - 4 || y > height() - 4) return false;
+		if (!passable[cell] || water[cell] || occupied( cell ) || heaps.get( cell ) != null) return false;
+		int t = map[cell];
+		if (t == Terrain.DOOR || t == Terrain.OPEN_DOOR || t == Terrain.SIGN || t == Terrain.BRIDGE) return false;
+		if (offRoad && t == Terrain.DIRT_PATH) return false;
+		for (int i = 1; i + 1 < layout.length; i += 2){
+			if (Math.max( Math.abs( dx - layout[i] ), Math.abs( dy - layout[i+1] ) ) < 5) return false;
+		}
+		for (int p : picked){
+			if (distance( p, cell ) < 4) return false;
+		}
+		for (Mob m : mobs){
+			if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Shopkeeper && distance( m.pos, cell ) < 4) return false;
+		}
+		int open = 0;
+		for (int n : com.watabou.utils.PathFinder.NEIGHBOURS8){
+			int c = cell + n;
+			Heap h = heaps.get( c );
+			if (h != null && h.type == Heap.Type.FOR_SALE) return false;
+			if (passable[c] && !water[c] && h == null && map[c] != Terrain.DOOR && map[c] != Terrain.OPEN_DOOR) open++;
+		}
+		return open >= 4;
+	}
+
+	//whatever has run its time goes: a market's traders with their stalls (in the window or
+	//parked), a star's fragment nobody picked up; then the log forgets what is over. `fx`
+	//false inside a rebase or a load
+	private void expireEvents( int turn, boolean fx ){
+		if (network || altitude != 0) return;
+		for (Mob m : mobs.toArray( new Mob[0] )){
+			if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant
+					&& ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant) m).endTurn <= turn){
+				strikeMerchant( (xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant) m, fx );
+			}
+		}
+		java.util.Iterator<HashMap.Entry<Long, Mob>> it = parkedMobs.entrySet().iterator();
+		while (it.hasNext()){
+			HashMap.Entry<Long, Mob> e = it.next();
+			if (!(e.getValue() instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant)) continue;
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant m
+					= (xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant) e.getValue();
+			if (m.endTurn > turn) continue;
+			sweepStall( m, (int)(e.getKey() & 0xFFFFFFFFL), (int)(e.getKey() >> 32) );
+			it.remove();
+			parkedAt.remove( e.getKey() );
+		}
+		for (Long id : new ArrayList<>( eventLog.lootEnds.keySet() )){
+			if (eventLog.lootEnds.get( id ) > turn) continue;
+			Long key = eventLog.lootAt.remove( id );
+			eventLog.lootEnds.remove( id );
+			if (key != null) takeBackFragment( id, key, fx );
+		}
+		eventLog.prune( turn );
+	}
+
+	//a trader's goods, laid out round the cell he pitched on (his stall's world cell; failing
+	//that, where he stands): on the window and in the heap store. never Heap.destroy(), which
+	//reads Dungeon.level - not this level during a load
+	private void sweepStall( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant m, int wx, int wy ){
+		int sx = m.stallX != Integer.MIN_VALUE ? m.stallX : wx, sy = m.stallY != Integer.MIN_VALUE ? m.stallY : wy;
+		for (int dy = -1; dy <= 1; dy++){
+			for (int dx = -1; dx <= 1; dx++){
+				long key = worldKey( sx + dx, sy + dy );
+				Heap away = storedHeaps.get( key );
+				if (away != null && away.type == Heap.Type.FOR_SALE) storedHeaps.remove( key );
+				int cell = localCell( sx + dx, sy + dy );
+				Heap h = cell != -1 ? heaps.get( cell ) : null;
+				if (h == null || h.type != Heap.Type.FOR_SALE) continue;
+				heaps.remove( cell );
+				if (h.sprite != null) h.sprite.kill();
+				h.items.clear();
+			}
+		}
+	}
+
+	//the stall comes down with the trader, and only his own shelf. never his destroy(): a
+	//shopkeeper's takes his flight with it (TravellingMerchant routes it here)
+	private void strikeMerchant( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant m, boolean fx ){
+		sweepStall( m, worldX + m.pos % width(), worldY + m.pos / width() );
+		if (fx && liveScene()) xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.get( m.pos ).burst(
+				xyz.gabriwar.warpedpixeldungeon.effects.particles.SmokeParticle.FACTORY, 4 );
+		vanish( this, m );
+	}
+
+	/** A travelling trader chased off (TravellingMerchant.flee, destroy): the whole troupe packs up
+	 *  - every stall of the market, in the window or parked, each with only its own shelf - and
+	 *  the market is over for good, its pin gone and its crowd dispersed. */
+	public void merchantFled( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant m ){
+		//one already gone with his troupe (every keeper on the level told to flee at once)
+		if (network || !mobs.contains( m )) return;
+		boolean live = liveScene();
+		GLog.n( Messages.get( m, "flee" ) );
+		for (Mob o : mobs.toArray( new Mob[0] )){
+			if (!(o instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant)
+					|| ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant) o).eventId != m.eventId) continue;
+			if (live) xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.get( o.pos ).burst(
+					xyz.gabriwar.warpedpixeldungeon.effects.particles.ElmoParticle.FACTORY, 6 );
+			strikeMerchant( (xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant) o, false );
+		}
+		java.util.Iterator<HashMap.Entry<Long, Mob>> it = parkedMobs.entrySet().iterator();
+		while (it.hasNext()){
+			HashMap.Entry<Long, Mob> e = it.next();
+			if (!(e.getValue() instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant)
+					|| ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant) e.getValue()).eventId != m.eventId) continue;
+			sweepStall( (xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant) e.getValue(),
+					(int)(e.getKey() & 0xFFFFFFFFL), (int)(e.getKey() >> 32) );
+			it.remove();
+			parkedAt.remove( e.getKey() );
+		}
+		resolveEvent( m.eventId, m.endTurn );
+		refreshMarkets( eventTurn() );
+	}
+
+	//a star nobody reached cools: only its own tagged fragment is taken back - whatever a
+	//player left in the heap with it stays
+	private void takeBackFragment( long id, long key, boolean fx ){
+		int cell = localCell( (int)(key & 0xFFFFFFFFL), (int)(key >> 32) );
+		Heap h = cell != -1 ? heaps.get( cell ) : null;
+		//a heap the window could not put back (its cell taken) is still in the store
+		boolean stored = h == null || fragmentIn( h, id ) == null;
+		if (stored) h = storedHeaps.get( key );
+		if (h == null) return;
+		for (Item it; (it = fragmentIn( h, id )) != null; ) h.items.remove( it );
+		if (!h.items.isEmpty()){
+			if (!stored && h.sprite != null && liveScene()) h.sprite.view( h ).place( h.pos );
+			return;
+		}
+		if (stored){
+			storedHeaps.remove( key );
+			return;
+		}
+		heaps.remove( cell );
+		if (h.sprite != null) h.sprite.kill();
+		if (fx && liveScene()) xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.get( cell ).burst(
+				xyz.gabriwar.warpedpixeldungeon.effects.particles.SmokeParticle.FACTORY, 6 );
+	}
+
+	//a star's own fragment in a heap, or null
+	private static Item fragmentIn( Heap h, long id ){
+		for (Item it : h.items){
+			if (it instanceof xyz.gabriwar.warpedpixeldungeon.items.StarFragment
+					&& ((xyz.gabriwar.warpedpixeldungeon.items.StarFragment) it).eventId == id) return it;
+		}
+		return null;
+	}
+
+	/** StarFragment.doPickUp: the star is settled for good, and its fixed chance at something more
+	 *  (WorldEvents.starBonus) turns up where the fragment lay - once the pickup is over, on the
+	 *  next actor turn: Hero.actPickUp takes the heap's top item after doPickUp, so a drop now
+	 *  would be what it took. */
+	public void starLooted( long id, int endTurn, int cell ){
+		if (network) return;
+		resolveEvent( id, endTurn );
+		eventLog.lootAt.remove( id );
+		eventLog.lootEnds.remove( id );
+		int kind = WorldEvents.starBonus( id );
+		if (kind < 0) return;
+		final Item gift = xyz.gabriwar.warpedpixeldungeon.items.Generator.random( kind == 0
+				? xyz.gabriwar.warpedpixeldungeon.items.Generator.Category.RING : kind == 1
+				? xyz.gabriwar.warpedpixeldungeon.items.Generator.Category.WAND
+				: xyz.gabriwar.warpedpixeldungeon.items.Generator.Category.ARTIFACT );
+		//what a star brings down is clean
+		gift.cursed = false;
+		Actor.add( new Actor(){
+			{
+				actPriority = VFX_PRIO;
+			}
+
+			@Override
+			protected boolean act(){
+				//once: off the scheduler before it returns
+				Actor.remove( this );
+				Heap h = drop( gift, cell );
+				if (liveScene() && h.sprite != null) h.sprite.drop();
+				GLog.p( Messages.get( WorldEvents.class, "star_bonus" ) );
+				return true;
+			}
+		} );
+	}
+
+	//what the party hears of, each event once, as the host's hero steps: every player in his own
+	//words - the way it lies and whether it is close, from where his own hero stands. the host's
+	//line is his alone and his spectators' (who watch through his hero's eyes and are known by the
+	//id -1), each co-op guest's goes to him alone. then what the host's screen shows of it
+	private void announceEvents( int heroPos, int turn ){
+		int w = width(), hwx = worldX + heroPos % w, hwy = worldY + heroPos / w;
+		for (WorldEvents.Event e : WorldEvents.toAnnounce( nearEvents(), eventLog.announced, eventLog.resolved,
+				Math.floorDiv( hwx, WorldStructures.SECTOR ), Math.floorDiv( hwy, WorldStructures.SECTOR ), turn,
+				worldX, worldY, WIDTH, HEIGHT )){
+			eventLog.announced.put( e.id, e.endTurn );
+			String line = GLog.HIGHLIGHT + eventLine( e, turn, hwx, hwy );
+			xyz.gabriwar.warpedpixeldungeon.net.NetManager.heroLog( Dungeon.hero, line );
+			if (xyz.gabriwar.warpedpixeldungeon.net.NetManager.isHost()){
+				xyz.gabriwar.warpedpixeldungeon.net.StateSerializer.recordLogMessageForHero( -1, line );
+				for (xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero nh
+						: xyz.gabriwar.warpedpixeldungeon.net.NetManager.getNetHeroes()){
+					if (!nh.isAlive() || nh.pos < 0 || nh.pos >= length()) continue;
+					xyz.gabriwar.warpedpixeldungeon.net.NetManager.heroLog( nh,
+							GLog.HIGHLIGHT + eventLine( e, turn, worldX + nh.pos % w, worldY + nh.pos / w ) );
+				}
+			}
+			if (e.type == WorldEvents.Type.FALLEN_STAR) showFall( e, heroPos, hwx, hwy, turn );
+			else if (liveScene()) com.watabou.noosa.audio.Sample.INSTANCE.play( Assets.Sounds.GOLD, 0.7f );
+		}
+	}
+
+	//how a hero on world cell (hwx, hwy) hears of an event. a star heard of as it falls: close by,
+	//screaming down; further off, streaking across the sky the way it went, or flaring through
+	//the clouds. heard of later, by the glow it left while its crater is hot, by the crater once
+	//it is cold. a market by its bunting and music
+	private String eventLine( WorldEvents.Event e, int turn, int hwx, int hwy ){
+		String dir = WorldEvents.direction( e.wx - hwx, e.wy - hwy );
+		boolean near = dir.equals( "here" );
+		String where = near ? "" : Messages.get( WorldEvents.class, "dir_" + dir );
+		if (e.type == WorldEvents.Type.MARKET){
+			String name = WorldStructures.villageName( worldSeed, e.sx, e.sy );
+			int berth = WorldStructures.settlementLayout( worldSeed, e.sx, e.sy )[0] + 3;
+			//"here" reaches only STAR_NEAR, so past it there is always a way to name
+			if (Math.max( Math.abs( e.wx - hwx ), Math.abs( e.wy - hwy ) ) <= Math.max( berth, WorldEvents.STAR_NEAR )){
+				return Messages.get( WorldEvents.class, "market_here", name );
+			}
+			return Messages.get( WorldEvents.class, "market_opens", name, where );
+		}
+		int since = turn - e.startTurn;
+		if (since >= WorldEvents.STAR_HOT){
+			return near ? Messages.get( WorldEvents.class, "star_cold_near" ) : Messages.get( WorldEvents.class, "star_cold", where );
+		}
+		if (since >= WorldEvents.STAR_FRESH){
+			return near ? Messages.get( WorldEvents.class, "star_glow_near" ) : Messages.get( WorldEvents.class, "star_glow", where );
+		}
+		if (near) return Messages.get( WorldEvents.class, "star_falls_near" );
+		if (clouded()) return Messages.get( WorldEvents.class, "star_falls_clouded", where );
+		return Messages.get( WorldEvents.class, "star_falls", where );
+	}
+
+	//cloud, rain or snow overhead: a falling star is only a flash through it
+	private static boolean clouded(){
+		return xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager.isRaining()
+				|| xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager.isStorming()
+				|| xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager.isSnowing();
+	}
+
+	//what a player's screen shows of a star heard of as it falls: close by it screams down onto
+	//its crater and the birds and the hares bolt from it; further off it streaks across the sky
+	//the way it went - or only rumbles, unseen through the clouds. the host's on his step, a
+	//co-op guest's from his mirror (EventDecorMirror), each from where his own hero stands
+	void showFall( WorldEvents.Event e, int heroPos, int hwx, int hwy, int turn ){
+		if (turn - e.startTurn >= WorldEvents.STAR_FRESH) return;
+		boolean live = liveScene();
+		if (WorldEvents.direction( e.wx - hwx, e.wy - hwy ).equals( "here" )){
+			int impact = localCell( e.wx, e.wy );
+			OverworldCritters.noise( impact );
+			if (live){
+				final com.watabou.utils.PointF to = xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap.tileCenterToWorld( impact );
+				//down out of the sky over the hero's side, onto the crater
+				final float side = e.wx >= hwx ? 1 : -1;
+				com.watabou.noosa.Game.runOnRenderThread( () -> xyz.gabriwar.warpedpixeldungeon.effects.StarStreak.fall(
+						new com.watabou.utils.PointF( to.x - side * 6 * 16, to.y - 9 * 16 ), to, 0.4f, true ) );
+				com.watabou.noosa.audio.Sample.INSTANCE.play( Assets.Sounds.FALLING, 0.7f, 1.4f );
+			}
+			return;
+		}
+		if (!live) return;
+		if (clouded()){
+			com.watabou.noosa.audio.Sample.INSTANCE.play( Assets.Sounds.ROCKS, 0.5f, 0.7f );
+			return;
+		}
+		//from high over the hero's shoulder away across the sky toward it, sinking as it goes
+		final com.watabou.utils.PointF p = xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap.tileCenterToWorld( heroPos );
+		float len = (float) Math.hypot( e.wx - hwx, e.wy - hwy );
+		final float ux = (e.wx - hwx) / len, uy = (e.wy - hwy) / len;
+		com.watabou.noosa.Game.runOnRenderThread( () -> xyz.gabriwar.warpedpixeldungeon.effects.StarStreak.fall(
+				new com.watabou.utils.PointF( p.x - ux * 4 * 16, p.y - uy * 4 * 16 - 6 * 16 ),
+				new com.watabou.utils.PointF( p.x + ux * 14 * 16, p.y + uy * 14 * 16 - 2 * 16 ), 0.9f, false ) );
+		com.watabou.noosa.audio.Sample.INSTANCE.play( Assets.Sounds.FALLING, 0.6f, 1.3f );
+	}
+
+	//what the window shows of its events: the craters still hot, and the markets with their
+	//traders about. posted to the render thread only when that changed (or the scene did),
+	//positions taken now - after this step's slide, so they are the new frame's
+	private void showEventDecor( int turn ){
+		if (!liveScene()) return;
+		final int sceneId = System.identityHashCode( com.watabou.noosa.Game.scene() );
+		final ArrayList<xyz.gabriwar.warpedpixeldungeon.effects.WorldEventDecor.Crater> craters = new ArrayList<>();
+		final ArrayList<xyz.gabriwar.warpedpixeldungeon.effects.WorldEventDecor.Fair> fairs = new ArrayList<>();
+		eventDecor( nearEvents(), turn, OverworldLevel::tradesFor, craters, fairs );
+		if (sceneId == decorScene && xyz.gabriwar.warpedpixeldungeon.effects.WorldEventDecor.same(
+				craters, fairs, decorCraters, decorFairs )) return;
+		decorScene = sceneId;
+		decorCraters = craters;
+		decorFairs = fairs;
+		final xyz.gabriwar.warpedpixeldungeon.effects.WorldEventDecor d = decor;
+		com.watabou.noosa.Game.runOnRenderThread( () -> d.show( sceneId, craters, fairs ) );
+	}
+
+	//the host's traders: each knows the market he came with
+	static boolean tradesFor( Mob m, WorldEvents.Event e ){
+		return m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant
+				&& ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant) m).eventId == e.id;
+	}
+
+	/** A co-op guest's traders: the host's stand-ins under a market stall's sprite round the
+	 *  market's well (no two markets share a village). Render thread, on the guest's mirror. */
+	boolean guestTradesFor( Mob m, WorldEvents.Event e ){
+		if (!(m instanceof xyz.gabriwar.warpedpixeldungeon.net.SpectatorReceiver.SpectatorMob) || m.spriteClass == null
+				|| !xyz.gabriwar.warpedpixeldungeon.sprites.TravellingMerchantSprite.class.isAssignableFrom( m.spriteClass )) return false;
+		int well = localCell( e.wx, e.wy );
+		return well != -1 && m.pos >= 0 && m.pos < length() && distance( m.pos, well ) <= MARKET_RING + 2;
+	}
+
+	/** What the window shows of its events (effects/WorldEventDecor), laid out in its scene
+	 *  pixels: the craters still hot, and the markets on and not settled with their traders
+	 *  about (`trader`: does a mob trade for that market). The host's step (showEventDecor) and a
+	 *  co-op guest's mirror (EventDecorMirror) both build theirs here, so every screen shows the
+	 *  same smoke, glow and bunting. */
+	void eventDecor( java.util.List<WorldEvents.Event> events, int turn,
+			java.util.function.BiPredicate<Mob, WorldEvents.Event> trader,
+			java.util.List<xyz.gabriwar.warpedpixeldungeon.effects.WorldEventDecor.Crater> craters,
+			java.util.List<xyz.gabriwar.warpedpixeldungeon.effects.WorldEventDecor.Fair> fairs ){
+		int w = width();
+		for (WorldEvents.Event e : events){
+			int c = localCell( e.wx, e.wy );
+			if (c == -1) continue;
+			com.watabou.utils.PointF at = xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap.tileToWorld( c );
+			if (e.type == WorldEvents.Type.FALLEN_STAR){
+				int since = turn - e.startTurn;
+				if (since < 0 || since >= WorldEvents.STAR_HOT) continue;
+				craters.add( new xyz.gabriwar.warpedpixeldungeon.effects.WorldEventDecor.Crater(
+						e.id, at.x, at.y, 3 - since * 3 / WorldEvents.STAR_HOT ) );
+			} else if (e.type == WorldEvents.Type.MARKET && e.activeAt( turn ) && !eventLog.resolved.containsKey( e.id )){
+				ArrayList<Mob> traders = new ArrayList<>();
+				for (Mob m : mobs){
+					if (trader.test( m, e )) traders.add( m );
+				}
+				if (traders.isEmpty()) continue;
+				//by the world cell each stands on: the same order whatever the window
+				java.util.Collections.sort( traders, (a, b) -> Long.compare(
+						worldKey( worldX + a.pos % w, worldY + a.pos / w ), worldKey( worldX + b.pos % w, worldY + b.pos / w ) ) );
+				long[] keys = new long[traders.size()];
+				float[] xy = new float[traders.size() * 2];
+				for (int i = 0; i < traders.size(); i++){
+					int pos = traders.get( i ).pos;
+					keys[i] = worldKey( worldX + pos % w, worldY + pos / w );
+					com.watabou.utils.PointF p = xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap.tileToWorld( pos );
+					xy[2 * i] = p.x;
+					xy[2 * i + 1] = p.y;
+				}
+				fairs.add( new xyz.gabriwar.warpedpixeldungeon.effects.WorldEventDecor.Fair( e.id, at.x, at.y, keys, xy ) );
+			}
+		}
+	}
+
+	//the log of the window's events, for a co-op guest's mirror (EventDecorMirror): the shared
+	//part its host shipped, read as the world map reads it
+	WorldEventLog eventLog(){
+		return eventLog;
 	}
 
 	private static final String WORLD_SEED = "world_seed";
@@ -2701,6 +5291,15 @@ public class OverworldLevel extends Level {
 	private static final String WP_Y       = "wp_y";
 	private static final String SEASON_STAMP = "season_stamp";
 	private static final String WINDOW_VER = "window_version";
+	private static final String AMBUSH_DONE_DAY = "ambush_done_day";
+	private static final String AMBUSH_DONE = "ambush_done";
+	//the slices' found places (CaveSites, MountainSites) and their periodic keys (dueOnce)
+	private static final String FOUND_AT   = "layer_sites_found_at";
+	private static final String FOUND_KIND = "layer_sites_found_kind";
+	private static final String DUE_KEYS   = "layer_due_keys";
+	private static final String DUE_DAYS   = "layer_due_days";
+	private static final String ORE_DROP_DAY = "ore_drop_day";
+	private static final String ORE_DROPS = "ore_drops";
 
 	@Override
 	public void storeInBundle( Bundle bundle ) {
@@ -2768,6 +5367,33 @@ public class OverworldLevel extends Level {
 		i = 0;
 		for (Long k : sitesCleared) cleared[i++] = k;
 		bundle.put( CLEARED, cleared );
+		long[] fought = new long[ambushDone.size()];
+		i = 0;
+		for (Long k : ambushDone) fought[i++] = k;
+		bundle.put( AMBUSH_DONE_DAY, ambushDoneDay );
+		bundle.put( AMBUSH_DONE, fought );
+		long[] foundAt = new long[foundSites.size()];
+		int[] foundKind = new int[foundSites.size()];
+		i = 0;
+		for (java.util.Map.Entry<Long, Integer> e : foundSites.entrySet()){
+			foundAt[i] = e.getKey();
+			foundKind[i++] = e.getValue();
+		}
+		bundle.put( FOUND_AT, foundAt );
+		bundle.put( FOUND_KIND, foundKind );
+		long[] dueKeys = new long[dueDays.size()];
+		int[] dueVals = new int[dueDays.size()];
+		i = 0;
+		for (java.util.Map.Entry<Long, Integer> e : dueDays.entrySet()){
+			dueKeys[i] = e.getKey();
+			dueVals[i++] = e.getValue();
+		}
+		bundle.put( DUE_KEYS, dueKeys );
+		bundle.put( DUE_DAYS, dueVals );
+		bundle.put( ORE_DROP_DAY, oreDropDay );
+		bundle.put( ORE_DROPS, oreDrops );
+		eventLog.storeInBundle( bundle );
+		hazards.storeInBundle( bundle );
 	}
 
 	@Override
@@ -2865,6 +5491,36 @@ public class OverworldLevel extends Level {
 		sitesCleared.clear();
 		long[] cleared = bundle.getLongArray( CLEARED );
 		if (cleared != null) for (long k : cleared) sitesCleared.add( k );
+		ambushDone.clear();
+		ambushDoneDay = bundle.contains( AMBUSH_DONE_DAY ) ? bundle.getInt( AMBUSH_DONE_DAY ) : Integer.MIN_VALUE;
+		long[] fought = bundle.contains( AMBUSH_DONE ) ? bundle.getLongArray( AMBUSH_DONE ) : null;
+		if (fought != null) for (long k : fought) ambushDone.add( k );
+		//older saves found no places: none known, none due
+		foundSites.clear();
+		foundBoxes.clear();
+		long[] foundAt = bundle.contains( FOUND_AT ) ? bundle.getLongArray( FOUND_AT ) : null;
+		int[] foundKind = bundle.contains( FOUND_KIND ) ? bundle.getIntArray( FOUND_KIND ) : null;
+		if (foundAt != null && foundKind != null){
+			for (int i = 0; i < Math.min( foundAt.length, foundKind.length ); i++){
+				//a kind this build does not know is skipped, never guessed at
+				if (foundKind[i] < 0 || (altitude < 0 && foundKind[i] >= CaveSites.Type.values().length)
+						|| (altitude > 0 && foundKind[i] >= MountainSites.Kind.values().length)) continue;
+				foundSites.put( foundAt[i], foundKind[i] );
+			}
+		}
+		rebuildFoundSnapshot();
+		dueDays.clear();
+		long[] dueKeys = bundle.contains( DUE_KEYS ) ? bundle.getLongArray( DUE_KEYS ) : null;
+		int[] dueVals = bundle.contains( DUE_DAYS ) ? bundle.getIntArray( DUE_DAYS ) : null;
+		if (dueKeys != null && dueVals != null){
+			for (int i = 0; i < Math.min( dueKeys.length, dueVals.length ); i++) dueDays.put( dueKeys[i], dueVals[i] );
+		}
+		oreDropDay = bundle.contains( ORE_DROP_DAY ) ? bundle.getInt( ORE_DROP_DAY ) : -1;
+		oreDrops = bundle.contains( ORE_DROPS ) ? bundle.getInt( ORE_DROPS ) : 0;
+		//before the window is derived: a star a debug scene forced scorches it too
+		eventLog.restoreFromBundle( bundle );
+		//spent firedamp and cracked ice, by world position (absent from older saves: none)
+		hazards.restoreFromBundle( bundle );
 
 		//the stamp is kept as SAVED (not re-read): the window is re-derived
 		//below for the calendar as it stands, and if the year moved on while
@@ -2883,7 +5539,60 @@ public class OverworldLevel extends Level {
 		//and rebuilds the pristine cache in the same pass
 		regenWindow();
 		placeTransitions();
+		//a save from before a place stood here may have the hero (or a co-op guest) on a cell its
+		//walls or props took since, or shut inside a tomb: each is set down on the nearest open
+		//ground outside it. a mob or a heap left where a prop or a wall stands now comes out too.
+		//solid only: a hero saved floating over a drop (levitating, flying) stays where he was
+		if (!network && Dungeon.depth == WorldLayers.depthOf( altitude )){
+			if (Dungeon.hero != null && Dungeon.hero.pos >= 0 && Dungeon.hero.pos < length()
+					&& (solid[Dungeon.hero.pos] || inSealedTomb( Dungeon.hero.pos ))){
+				Dungeon.hero.pos = openGroundNear( Dungeon.hero.pos, false );
+			}
+			for (xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero nh
+					: xyz.gabriwar.warpedpixeldungeon.net.NetManager.allKnownNetHeroes()){
+				if (nh.pos >= 0 && nh.pos < length() && (solid[nh.pos] || inSealedTomb( nh.pos ))){
+					nh.pos = openGroundNear( nh.pos, false );
+				}
+			}
+			for (Mob m : mobs){
+				if (m.pos < 0 || m.pos >= length() || !solid[m.pos]) continue;
+				int to = freeSpotWithin( m.pos, 6 );
+				m.pos = to != -1 ? to : openGroundNear( m.pos, false );
+			}
+			for (Heap h : heaps.valueList()){
+				if (!solid[h.pos]) continue;
+				heaps.remove( h.pos );
+				h.pos = openGroundNear( h.pos, true );
+				heaps.put( h.pos, h );
+			}
+		}
+		if (altitude == 0){
+			//a market's village crowds its well from the first (Settler)
+			refreshMarkets( eventTurn() );
+			//a raid is read from the first too, not from the hero's first step: a level read
+			//back is a new one, and until then its shops would trade and a raider cut down would
+			//settle nothing (RaidEvent)
+			RaidEvent.takeStock( this );
+			resettleFolk();
+		}
 		populateTown();
+		//what ended while the save lay waiting goes before any scene shows it
+		if (altitude == 0) expireEvents( eventTurn(), false );
+	}
+
+	//a saved window's settlements, as it comes back: whoever's part of the day turned while it
+	//lay in the save (the hero was below, or away) is put straight where the day has got to,
+	//before any sprite exists - one still on the way in the same part of it walks on. the
+	//guards are put at the hour's post
+	private void resettleFolk(){
+		for (Mob m : mobs){
+			int wx = worldX + m.pos % width(), wy = worldY + m.pos / width();
+			if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Settler
+					? !((xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Settler) m).dayMovedOn( this, wx, wy )
+					: !(m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.OverworldGuard)) continue;
+			int at = VillageRoutine.arrivalCell( this, m, wx, wy );
+			if (at != -1) m.pos = at;
+		}
 	}
 
 	/** The biome at a window cell, in world coordinates. */
@@ -2893,7 +5602,75 @@ public class OverworldLevel extends Level {
 	}
 
 	@Override
+	public String tileNameAt( int cell ){
+		String place = placeKind( cell );
+		if (place != null) return Messages.get( CaveSites.class, place );
+		if (hazards.crackedAt( cell ) && map[cell] == Terrain.FROZEN_WATER) return Messages.get( HazardWatch.class, "cracked_name" );
+		String kind = builtWall( cell );
+		if (kind != null) return Messages.get( this, kind );
+		String peak = placeCell( cell );
+		if (peak != null) return Messages.get( MountainSites.class, peak );
+		Ores.Kind ore = shownOre( cell );
+		return ore == null ? null : Messages.capitalize( Messages.get( this, "vein", Messages.get( ore.item, "name" ) ) );
+	}
+
+	@Override
+	public String tileDescAt( int cell ){
+		String place = placeKind( cell );
+		if (place != null) return Messages.get( CaveSites.class, place + "_desc" );
+		if (hazards.crackedAt( cell ) && map[cell] == Terrain.FROZEN_WATER) return Messages.get( HazardWatch.class, "cracked_desc" );
+		String kind = builtWall( cell );
+		if (kind != null) return Messages.get( this, kind + "_desc" );
+		String peak = placeCell( cell );
+		if (peak != null) return Messages.get( MountainSites.class, peak + "_desc" );
+		Ores.Kind ore = shownOre( cell );
+		return ore == null ? null : Messages.get( this, "vein_desc", Messages.capitalize( Messages.get( ore.item, "name" ) ) );
+	}
+
+	//a cave place's prop, crack or wall on this cell, by its string key (CaveSites), else null
+	private String placeKind( int cell ){
+		if (altitude >= 0 || cell < 0 || cell >= length()) return null;
+		return CaveSites.cellKind( layerSites, worldX + cell % width(), worldY + cell / width(), map[cell] );
+	}
+
+	//a wall of the surface that people built, by its string key: a village house's or a gnoll
+	//hut's shell (one shape for all, WorldStructures), else null - the land's own rock
+	private String builtWall( int cell ){
+		if (cell < 0 || cell >= length() || map[cell] != Terrain.WALL) return null;
+		int wx = worldX + cell % width(), wy = worldY + cell / width();
+		//on the peaks: the hermit's hut, a waystation's shelter, a watchtower's ring (MountainSites)
+		if (altitude > 0) return MountainSites.wallKey( worldSeed, peakSites, wx, wy );
+		if (altitude != 0) return null;
+		if (WorldStructures.wallSite( worldSeed, wx, wy ) != WorldStructures.Site.VILLAGE) return null;
+		int sx = Math.floorDiv( wx, WorldStructures.SECTOR ), sy = Math.floorDiv( wy, WorldStructures.SECTOR );
+		//the nearest village's faction: a house wall stands within its own sector's reach
+		WorldStructures.Faction f = null;
+		int best = Integer.MAX_VALUE;
+		for (int dy = -1; dy <= 1; dy++){
+			for (int dx = -1; dx <= 1; dx++){
+				if (WorldStructures.siteType( worldSeed, sx+dx, sy+dy ) != WorldStructures.Site.VILLAGE) continue;
+				int d = Math.abs( WorldStructures.siteX( worldSeed, sx+dx, sy+dy ) - wx )
+						+ Math.abs( WorldStructures.siteY( worldSeed, sx+dx, sy+dy ) - wy );
+				if (d < best){
+					best = d;
+					f = WorldStructures.faction( worldSeed, sx+dx, sy+dy );
+				}
+			}
+		}
+		return f == WorldStructures.Faction.HUMAN ? "house_wall" : "hut_wall";
+	}
+
+	//a place of the peaks' own cell by its string key: an eyrie's nest, a waystation's hearth, a
+	//hot spring, a watchtower's top (MountainSites), else null
+	private String placeCell( int cell ){
+		if (altitude <= 0 || cell < 0 || cell >= length()) return null;
+		return MountainSites.cellKey( worldSeed, peakSites, worldX + cell % width(), worldY + cell / width(), map[cell] );
+	}
+
+	@Override
 	public String cellDescExtra( int cell ){
+		//the biome is the surface's: under it, in the caves, it would name the sky's weather above
+		if (altitude < 0) return null;
 		return Messages.get( this, "biome",
 				Messages.get( this, "biome_" + biomeAtCell( cell ).name().toLowerCase() ) );
 	}
@@ -2929,6 +5706,17 @@ public class OverworldLevel extends Level {
 				return "Mushrooms";
 			case Terrain.BARRICADE:
 				return "Wooden fence";
+			case Terrain.MINE_CRYSTAL:
+				return Messages.get( this, "crystal" );
+			case Terrain.MINE_BOULDER:
+				return Messages.get( this, "loose_rock" );
+			case Terrain.SHRUB:
+				return Messages.get( this, "shrub" );
+			case Terrain.SNOW:
+				return Messages.get( this, "snow" );
+			case Terrain.DIRT_PATH:
+				//the surface's roads; on the peaks the same ground is a tunnel's floor
+				return Messages.get( this, altitude == 0 ? "road" : "tunnel" );
 			default:
 				return super.tileName( tile );
 		}
@@ -2968,6 +5756,12 @@ public class OverworldLevel extends Level {
 				return "A cluster of marsh mushrooms.";
 			case Terrain.BARRICADE:
 				return "A paling fence of split logs, ringing the village. It would burn.";
+			case Terrain.MINE_BOULDER:
+				return Messages.get( this, "loose_rock_desc" );
+			case Terrain.SNOW:
+				return Messages.get( this, "snow_desc" );
+			case Terrain.DIRT_PATH:
+				return Messages.get( this, altitude == 0 ? "road_desc" : "tunnel_desc" );
 			default:
 				return super.tileDesc( tile );
 		}

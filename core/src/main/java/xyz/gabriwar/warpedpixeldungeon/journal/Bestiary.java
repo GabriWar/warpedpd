@@ -512,6 +512,11 @@ public enum Bestiary {
 		classConversions.put(DwarfKing.DKGolem.class,          Golem.class);
 
 		classConversions.put(OverworldDragon.class,            AdultDragonViolet.class);
+		//the caves' places keep a rift's fire elementals and a shrine pool's albino piranha
+		classConversions.put(xyz.gabriwar.warpedpixeldungeon.actors.mobs.RiftElemental.class, Elemental.FireElemental.class);
+		classConversions.put(xyz.gabriwar.warpedpixeldungeon.actors.mobs.ShrinePiranha.class, AlbinoPiranha.class);
+		//a raid's bandits are bandits
+		classConversions.put(xyz.gabriwar.warpedpixeldungeon.actors.mobs.Raider.class, xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldBandit.class);
 
 		//the Sokoban puzzles' sheep are sheep
 		classConversions.put(xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SheepSokoban.class,       Sheep.class);
@@ -554,6 +559,11 @@ public enum Bestiary {
 			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.BellowsValve.class,
 			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.BreakersBench.class,
 			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TemperingAnvil.class,
+			//the caves' places' furniture: a shrine's idol, an ancient forge
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.LakeShrine.class,
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.DwarvenForge.class,
+			//a summit's cairn on the peaks (levels/overworld/MountainSites)
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SummitCairn.class,
 			xyz.gabriwar.warpedpixeldungeon.net.SpectatorReceiver.NetHeroMob.class,
 			xyz.gabriwar.warpedpixeldungeon.net.SpectatorReceiver.SpectatorMob.class ) );
 
