@@ -641,7 +641,8 @@ public final class WindowGenerator {
 
 	//the walls the world's places build (a mountain's huts and towers, the surface's lairs,
 	//ruins and barrows) stand under the open sky too: their roof is the ground round them,
-	//snowed under or grown over like everything else, instead of the dungeon's black
+	//snowed under or grown over like everything else, instead of the dungeon's black. A
+	//village's houses are the exception: plain walls
 	private static void builtTops( long seed, int altitude, int ox, int oy, float shift, Window w ){
 		WorldModel.Sample smp = new WorldModel.Sample();
 		for (int y = 1; y < HEIGHT - 1; y++){
@@ -649,6 +650,9 @@ public final class WindowGenerator {
 				int cell = x + y * WIDTH;
 				if (!builtWall( w.terrain[cell] ) || w.top[cell] != -1) continue;
 				int wx = ox + x, wy = oy + y;
+				//a village's houses are walls as they always were: their own roofs are the art's,
+				//and ground laid over them would show their doors' frames as black notches
+				if (altitude == 0 && WorldStructures.wallSite( seed, wx, wy ) == WorldStructures.Site.VILLAGE) continue;
 				WorldModel.sample( seed, wx, wy, shift, smp );
 				int t;
 				boolean frost;
