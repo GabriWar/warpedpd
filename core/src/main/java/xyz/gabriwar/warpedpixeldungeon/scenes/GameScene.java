@@ -342,6 +342,16 @@ public class GameScene extends PixelScene {
 		levelVisuals = Dungeon.level.addVisuals();
 		add(levelVisuals);
 
+		//the place's small life and its sounds (levels/ambience). The life goes ahead of the layers
+		//its pictures live in: one taking wing moves to the effects before the floor's layer updates
+		//it again, and its pictures are gone before those layers are destroyed
+		xyz.gabriwar.warpedpixeldungeon.levels.ambience.DungeonLife life
+				= xyz.gabriwar.warpedpixeldungeon.levels.ambience.DungeonLife.forLevel( Dungeon.level );
+		if (life != null) add( life );
+		xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientSounds sounds
+				= xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientSounds.forLevel( Dungeon.level );
+		if (sounds != null) add( sounds );
+
 		floorEmitters = new Group();
 		add(floorEmitters);
 

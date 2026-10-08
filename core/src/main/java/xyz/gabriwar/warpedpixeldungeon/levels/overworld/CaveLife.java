@@ -24,7 +24,6 @@
 
 package xyz.gabriwar.warpedpixeldungeon.levels.overworld;
 
-import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -34,9 +33,10 @@ import xyz.gabriwar.warpedpixeldungeon.effects.SliceCritterSprite;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.CaveMoteParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.DripParticle;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
+import xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientPlayer;
+import xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientSound;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTileSheet;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 
 import java.util.ArrayList;
@@ -73,14 +73,14 @@ public final class CaveLife extends SliceLife {
 	//never more drops a second than this
 	static final float MAX_DRIPS = 6f;
 
-	//the caves' far sounds, in one place: what, how loud, how high. none is a gameplay cue -
-	//ROCKS warns of a falling rock and DEWDROP is the pickup, so neither is heard here idly
+	//the caves' far sounds, in one place: what, how loud, how high. the ambience's own, on its
+	//channel (AmbientPlayer), so the ambience volume and switch govern them
 	static final int SOUND_DRIP = 0, SOUND_RUMBLE = 1, SOUND_CHIRP = 2;
-	private static final String[] SOUND = { Assets.Sounds.WATER, Assets.Sounds.STURDY, Assets.Sounds.CHARMS };
-	private static final float[] SOUND_VOLUME = { 0.12f, 0.10f, 0.08f };
-	private static final float[] SOUND_PITCH_LO = { 1.6f, 0.4f, 1.9f }, SOUND_PITCH_HI = { 1.9f, 0.5f, 1.9f };
+	static final AmbientSound[] SOUND = { AmbientSound.DRIP, AmbientSound.RUMBLE, AmbientSound.BAT };
+	private static final float[] SOUND_VOLUME = { 0.8f, 0.85f, 0.75f };
+	private static final float[] SOUND_PITCH_LO = { 0.85f, 0.85f, 0.95f }, SOUND_PITCH_HI = { 1.15f, 1.05f, 1.1f };
 	//a squeak's echo: a moment later, a little higher
-	private static final float ECHO_DELAY = 0.14f, ECHO_PITCH = 2.15f;
+	private static final float ECHO_DELAY = 0.14f, ECHO_RISE = 1.12f;
 	//turns between two sounds at least
 	static final int SOUND_TURNS = 6;
 
@@ -461,7 +461,9 @@ public final class CaveLife extends SliceLife {
 	//what the last look round found near the hero
 	private int water, batWalls, fishWaters, hotN;
 	private final int[] hot = new int[4];
-	private float thinkIn = 0.5f, dripIn = 1f, fishIn = 2f, soundIn = 8f, echoIn = -1f;
+	private float thinkIn = 0.5f, dripIn = 1f, fishIn = 2f, soundIn = 8f, echoIn = -1f, echoPitch;
+	//the squeak the echo throws back
+	private String echoTake;
 	private int turn, forcedFish, forcedDrips;
 	private int soundTurn = -SOUND_TURNS;
 	private final Turns turns = new Turns();
@@ -774,7 +776,7 @@ public final class CaveLife extends SliceLife {
 	private void sound( float dt ){
 		turns.see( Dungeon.cycleTurn, (int)(Statistics.duration + Actor.now()), Dungeon.hero.pos );
 		if (echoIn > 0f && (echoIn -= dt) <= 0f){
-			Sample.INSTANCE.play( SOUND[SOUND_CHIRP], SOUND_VOLUME[SOUND_CHIRP] * 0.7f, ECHO_PITCH );
+			AmbientPlayer.playTake( echoTake, SOUND[SOUND_CHIRP].gain, SOUND_VOLUME[SOUND_CHIRP] * 0.7f, echoPitch, 0f );
 		}
 		if ((soundIn -= dt) > 0f) return;
 		if (!soundDue( turns.count, soundTurn )){
@@ -782,8 +784,15 @@ public final class CaveLife extends SliceLife {
 			return;
 		}
 		int s = pickSound( OverworldCritters.RNG.nextFloat(), wetness( water ), altitude, !colonies.isEmpty() );
-		Sample.INSTANCE.play( SOUND[s], SOUND_VOLUME[s], OverworldCritters.rf( SOUND_PITCH_LO[s], SOUND_PITCH_HI[s] ) );
-		if (s == SOUND_CHIRP) echoIn = ECHO_DELAY;
+		//the take and the pitch picked here, once: a squeak's echo is that very squeak thrown back
+		String take = SOUND[s].takes[OverworldCritters.RNG.nextInt( SOUND[s].takes.length )];
+		float pitch = AmbientPlayer.nudge( OverworldCritters.RNG, OverworldCritters.rf( SOUND_PITCH_LO[s], SOUND_PITCH_HI[s] ) );
+		AmbientPlayer.playTake( take, SOUND[s].gain, SOUND_VOLUME[s], pitch, 0f );
+		if (s == SOUND_CHIRP){
+			echoIn = ECHO_DELAY;
+			echoTake = take;
+			echoPitch = pitch * ECHO_RISE;
+		}
 		soundTurn = turns.count;
 		soundIn = OverworldCritters.rf( 12f, 28f );
 	}

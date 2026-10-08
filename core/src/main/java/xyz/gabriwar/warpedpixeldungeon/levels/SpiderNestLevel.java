@@ -45,6 +45,12 @@ import java.util.ArrayList;
 //you back at the top, so it is a repeatable farm rather than a dead end.
 public class SpiderNestLevel extends RegularLevel {
 
+	@Override
+	public xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place ambience() {
+		return xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place.NEST;
+	}
+
+
 	public static final int SPIDER_BRANCH = 5;
 	public static final int FIRST_DEPTH   = 6;
 	public static final int LAST_DEPTH    = 10;

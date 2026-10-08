@@ -926,6 +926,13 @@ public abstract class Level implements Bundlable {
 		return items;
 	}
 
+	/** Whose ambience this floor has (levels/ambience: the small life on it and its sounds), or null
+	 *  for none: boss floors, arenas and interiors stay quiet. Named by the level's class, never by
+	 *  its depth number (the barrows and the branches reuse the region classes at other depths). */
+	public xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place ambience() {
+		return null;
+	}
+
 	public Group addVisuals() {
 		if (visuals == null || visuals.parent == null){
 			visuals = new Group();

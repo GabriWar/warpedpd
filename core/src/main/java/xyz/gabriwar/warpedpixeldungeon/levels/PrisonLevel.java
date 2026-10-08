@@ -62,6 +62,12 @@ import java.util.ArrayList;
 
 public class PrisonLevel extends RegularLevel {
 
+	@Override
+	public xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place ambience() {
+		return xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place.PRISON;
+	}
+
+
 	{
 		color1 = 0x6a723d;
 		color2 = 0x88924c;

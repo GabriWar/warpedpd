@@ -39,6 +39,12 @@ import java.util.ArrayList;
 
 public class CatacombLevel extends Level {
 
+	@Override
+	public xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place ambience() {
+		return xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place.CATACOMB;
+	}
+
+
 	private static final int SIZE = 48;
 
 	{

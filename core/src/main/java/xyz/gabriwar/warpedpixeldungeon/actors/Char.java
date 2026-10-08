@@ -466,8 +466,11 @@ public abstract class Char extends Actor {
 		if (enemy == null) return false;
 		
 		boolean visibleFight = Dungeon.level.heroFOV[pos] || Dungeon.level.heroFOV[enemy.pos];
-		//a fight in sight scatters the surface's birds and hares (pictures only)
-		if (visibleFight) xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldCritters.noise( pos );
+		//a fight in sight scatters the surface's birds and hares and the dungeon's small life (pictures only)
+		if (visibleFight){
+			xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldCritters.noise( pos );
+			xyz.gabriwar.warpedpixeldungeon.levels.ambience.DungeonLife.noise( pos );
+		}
 
 		if (enemy.isInvulnerable(getClass())) {
 

@@ -27,8 +27,8 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Chill;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Drenched;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Frost;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Heatstroke;
@@ -141,6 +141,13 @@ public class HoardSquirrel extends Mob {
 	@Override
 	public float spawningWeight(){
 		return 0f;
+	}
+
+	//dropped on the floor awake, it would snatch what is lying about and be gone before
+	//anyone could look at it: a debug spawn gets the squirrel as its hollow holds it
+	@Override
+	public AiState debugSpawnState(){
+		return SLEEPING;
 	}
 
 	private class Fleeing extends Mob.Fleeing {

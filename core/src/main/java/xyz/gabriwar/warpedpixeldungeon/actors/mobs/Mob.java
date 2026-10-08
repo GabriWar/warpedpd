@@ -158,6 +158,12 @@ public abstract class Mob extends Char {
 	public AiState FLEEING		= new Fleeing();
 	public AiState PASSIVE		= new Passive();
 	public AiState state = SLEEPING;
+
+	/** the state a debug spawn starts in. A mob whose whole behaviour is "wakes once,
+	 *  then leaves" would delete itself before it could be looked at (HoardSquirrel) */
+	public AiState debugSpawnState(){
+		return WANDERING;
+	}
 	
 	public Class<? extends CharSprite> spriteClass;
 	

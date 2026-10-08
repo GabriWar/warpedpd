@@ -123,6 +123,13 @@ import java.util.HashSet;
 
 public class VaultLevel extends CityLevel {
 
+	//the vault is a stealth floor: the city's life, kept quiet
+	@Override
+	public xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place ambience() {
+		return xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place.VAULT;
+	}
+
+
 	@Override
 	public void playLevelMusic() {
 		Music.INSTANCE.play(Assets.Music.CITY_TENSE, true);

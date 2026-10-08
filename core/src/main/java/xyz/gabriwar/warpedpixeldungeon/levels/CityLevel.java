@@ -78,6 +78,12 @@ import java.util.ArrayList;
 
 public class CityLevel extends RegularLevel {
 
+	@Override
+	public xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place ambience() {
+		return xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place.CITY;
+	}
+
+
 	{
 		color1 = 0x4b6636;
 		color2 = 0xf2f2f2;

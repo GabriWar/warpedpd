@@ -72,6 +72,12 @@ import java.util.ArrayList;
 
 public class CavesLevel extends RegularLevel {
 
+	@Override
+	public xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place ambience() {
+		return xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place.CAVES;
+	}
+
+
 	{
 		color1 = 0x534f3e;
 		color2 = 0xb9d661;

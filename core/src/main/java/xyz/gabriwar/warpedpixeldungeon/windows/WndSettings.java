@@ -960,6 +960,9 @@ public class WndSettings extends WndTabbed {
 		ColorBlock sep2;
 		OptionSlider optSFX;
 		CheckBox chkMuteSFX;
+		ColorBlock sepAmbience;
+		OptionSlider optAmbience;
+		CheckBox chkMuteAmbience;
 		ColorBlock sep3;
 		CheckBox chkIgnoreSilent;
 		CheckBox chkMusicBG;
@@ -1025,6 +1028,37 @@ public class WndSettings extends WndTabbed {
 			chkMuteSFX.checked(!WPDSettings.soundFx());
 			add( chkMuteSFX );
 
+			//the ambience channel: a place's water, small life and air (levels/ambience)
+			sepAmbience = new ColorBlock(1, 1, 0xFF000000);
+			add(sepAmbience);
+
+			optAmbience = new OptionSlider(Messages.get(this, "ambience_vol"), "0", "10", 0, 10) {
+				@Override
+				protected void onChange() {
+					WPDSettings.ambienceVol(getSelectedValue());
+					//a taste of what it sets: one of the places' sounds, at its own mix
+					xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientPlayer.play( Random.oneOf(
+							xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientSound.DRIP,
+							xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientSound.FROG,
+							xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientSound.CRICKET,
+							xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientSound.BIRD,
+							xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientSound.SPLASH ), 1.5f );
+				}
+			};
+			optAmbience.setSelectedValue(WPDSettings.ambienceVol());
+			add(optAmbience);
+
+			chkMuteAmbience = new CheckBox( Messages.get(this, "ambience_mute") ) {
+				@Override
+				protected void onClick() {
+					super.onClick();
+					WPDSettings.ambience(!checked());
+					Sample.INSTANCE.play( Assets.Sounds.CLICK );
+				}
+			};
+			chkMuteAmbience.checked(!WPDSettings.ambience());
+			add( chkMuteAmbience );
+
 			if (DeviceCompat.isiOS()){
 
 				sep3 = new ColorBlock(1, 1, 0xFF000000);
@@ -1084,17 +1118,29 @@ public class WndSettings extends WndTabbed {
 				chkMuteSFX.setRect(0, optSFX.bottom() + GAP, width, BTN_HEIGHT);
 			}
 
-			height = chkMuteSFX.bottom();
+			sepAmbience.size(width, 1);
+			sepAmbience.y = chkMuteSFX.bottom() + GAP;
+			if (width > 200) {
+				//the slider and its switch side by side, like the two above
+				optAmbience.setRect(0, sepAmbience.y + 1 + GAP, width/2-1, SLIDER_HEIGHT);
+				chkMuteAmbience.setRect(optAmbience.right()+2,
+						optAmbience.top() + (SLIDER_HEIGHT - BTN_HEIGHT)/2f, width/2-1, BTN_HEIGHT);
+				height = optAmbience.bottom();
+			} else {
+				optAmbience.setRect(0, sepAmbience.y + 1 + GAP, width, SLIDER_HEIGHT);
+				chkMuteAmbience.setRect(0, optAmbience.bottom() + GAP, width, BTN_HEIGHT);
+				height = chkMuteAmbience.bottom();
+			}
 
 			if (chkIgnoreSilent != null){
 				sep3.size(width, 1);
-				sep3.y = chkMuteSFX.bottom() + GAP;
+				sep3.y = height + GAP;
 
 				chkIgnoreSilent.setRect(0, sep3.y + 1 + GAP, width, BTN_HEIGHT);
 				height = chkIgnoreSilent.bottom();
 			} else if (chkMusicBG != null){
 				sep3.size(width, 1);
-				sep3.y = chkMuteSFX.bottom() + GAP;
+				sep3.y = height + GAP;
 
 				chkMusicBG.setRect(0, sep3.y + 1 + GAP, width, BTN_HEIGHT);
 				height = chkMusicBG.bottom();

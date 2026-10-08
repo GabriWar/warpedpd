@@ -111,6 +111,12 @@ public class OverworldLevel extends Level {
 		return dungeonSeed ^ 0x0E4A9B1DL;
 	}
 
+	//the surface's sounds, the peaks' wind; the cave slices' life and sounds are CaveLife's own
+	@Override
+	public xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place ambience() {
+		return altitude < 0 ? xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place.CAVE_SLICES : altitude > 0 ? xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place.PEAKS : xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place.SURFACE;
+	}
+
 	/** The slice this level is (see WorldLayers). */
 	public int altitude(){ return altitude; }
 

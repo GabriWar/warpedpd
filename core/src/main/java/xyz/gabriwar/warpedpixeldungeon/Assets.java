@@ -34,6 +34,8 @@ public class Assets {
 		public static final String LAYER_CRITTERS = "effects/layer_critters.png";
 		public static final String SETTLEMENT_LIGHTS = "effects/settlement_lights.png";
 		public static final String MARKET_BUNTING = "effects/market_bunting.png";
+		//the dungeon's small life (levels/ambience/DungeonLife), drawn by tools/dungeon_critters_gen.py
+		public static final String DUNGEON_CRITTERS = "effects/dungeon_critters.png";
 	}
 
 	public static class Environment {

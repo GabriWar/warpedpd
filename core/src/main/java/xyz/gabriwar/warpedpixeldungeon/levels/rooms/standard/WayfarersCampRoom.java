@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.levels.painters.Painter;
 import xyz.gabriwar.warpedpixeldungeon.plants.Firebloom;
 import xyz.gabriwar.warpedpixeldungeon.tiles.WarpedRoomTiles;
 import com.watabou.utils.Point;
+import com.watabou.utils.Random;
 
 /**
  * A Wayfarer's Camp: somebody's old camp in an ordinary chamber. A ring of stones round a
@@ -79,6 +80,13 @@ public class WayfarersCampRoom extends StandardRoom {
 		int seat = pit + 1;
 		Painter.set( level, seat, Terrain.CUSTOM_DECO_EMPTY );
 		WarpedRoomTiles.place( level, seat, WarpedRoomTiles.LOG_SEAT, "log_seat" );
+
+		//the ground the fire has been burning over: soot, a burnt stick, an ember. One of
+		//three, so no two camps leave the same mark
+		int ash = pit + w;
+		Painter.set( level, ash, Terrain.CUSTOM_DECO_EMPTY );
+		WarpedRoomTiles.place( level, ash,
+				WarpedRoomTiles.ASH_SPILL + Random.Int( WarpedRoomTiles.ASH_SPILLS ), "ash_spill" );
 
 		int crate = pit + w + 1;
 		Painter.set( level, crate, Terrain.CUSTOM_DECO_EMPTY );

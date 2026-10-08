@@ -505,19 +505,6 @@ public class WndDebug extends WndTabbed {
 		protected void layout() {
 			float pos = y;
 
-			//debug scenes: a whole test situation around the hero in one tap (DebugScenes)
-			RedButton scenes = new RedButton("Scenes...") {
-				@Override
-				protected void onClick() {
-					hide();
-					GameScene.show(new WndDebugScenes());
-				}
-			};
-			scenes.textColor(0xFFDD88);
-			add(scenes);
-			scenes.setRect(x, pos, width, BTN_HEIGHT);
-			pos = scenes.bottom() + GAP;
-
 			// All mobs button
 			RedButton allMobs = new RedButton("All Mobs") {
 				@Override
@@ -1095,6 +1082,19 @@ public class WndDebug extends WndTabbed {
 			add(header);
 			header.setPos(x, pos);
 			pos = header.bottom() + GAP;
+
+			//debug scenes: a whole test situation around the hero in one tap (DebugScenes)
+			RedButton scenes = new RedButton("Scenes...") {
+				@Override
+				protected void onClick() {
+					hide();
+					GameScene.show(new WndDebugScenes());
+				}
+			};
+			scenes.textColor(0xFFDD88);
+			add(scenes);
+			scenes.setRect(x, pos, width, BTN_HEIGHT);
+			pos = scenes.bottom() + GAP;
 
 			RedButton teleport = new RedButton("Teleport to Cursor") {
 				@Override

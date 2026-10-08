@@ -53,6 +53,13 @@ import java.util.ArrayList;
 
 public class SewerBossLevel extends SewerLevel {
 
+	//the boss floor stays quiet: no sewer life or sounds on it
+	@Override
+	public xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place ambience() {
+		return null;
+	}
+
+
 	{
 		color1 = 0x48763c;
 		color2 = 0x59994a;

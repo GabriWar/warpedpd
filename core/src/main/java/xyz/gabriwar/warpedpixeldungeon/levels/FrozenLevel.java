@@ -51,6 +51,12 @@ import com.watabou.utils.Random;
 //palette, the wetter-than-caves layout and the icy-water naming.
 public class FrozenLevel extends RegularLevel {
 
+	@Override
+	public xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place ambience() {
+		return xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place.FROZEN;
+	}
+
+
 	//the frozen branch runs 21-24; you arrive at the top
 	public static final int FIRST_DEPTH = 21;
 

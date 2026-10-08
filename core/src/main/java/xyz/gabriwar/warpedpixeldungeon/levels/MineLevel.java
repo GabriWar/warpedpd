@@ -45,6 +45,12 @@ import java.util.ArrayList;
 
 public class MineLevel extends Level {
 
+	@Override
+	public xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place ambience() {
+		return xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place.MINES;
+	}
+
+
 	private static final int SIZE = 32;
 
 	{

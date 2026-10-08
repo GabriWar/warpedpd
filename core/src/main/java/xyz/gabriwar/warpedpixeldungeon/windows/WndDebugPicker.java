@@ -79,7 +79,7 @@ public class WndDebugPicker extends Window {
 	}
 
 	public static WndDebugPicker forMobCategory(Bestiary bestiary) {
-		return new WndDebugPicker(bestiary.name(), buildMobEntries(bestiary));
+		return new WndDebugPicker(bestiary.name(), buildMobEntries(bestiary), true);
 	}
 
 	public static WndDebugPicker forAllMobs() {
@@ -112,12 +112,14 @@ public class WndDebugPicker extends Window {
 					@SuppressWarnings("unchecked")
 					final Class<? extends Mob> mobCls = (Class<? extends Mob>) cls;
 					final String mobName = name;
-					entries.add(new Entry(name, icon, () -> selectCellForMob(mobCls, mobName)));
+					Entry entry = new Entry(name, icon, () -> selectCellForMob(mobCls, mobName));
+					entry.searchText = name + " " + cls.getSimpleName();
+					entries.add(entry);
 				} catch (Exception ignored) { }
 			}
 		}
 		Collections.sort(entries);
-		return new WndDebugPicker("ALL MOBS (" + entries.size() + ")", entries);
+		return new WndDebugPicker("ALL MOBS (" + entries.size() + ")", entries, true);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -391,7 +393,8 @@ public class WndDebugPicker extends Window {
 			RedButton search = new RedButton("Search (" + entries.size() + ")", 6) {
 				private String query = "";
 				@Override protected void onClick() {
-					GameScene.show(new WndTextInput("Search items", "Name or class name. Leave empty to show all.",
+					GameScene.show(new WndTextInput("Search " + title.toLowerCase(java.util.Locale.ROOT),
+							"Name or class name. Leave empty to show all.",
 							query, 80, false, "Search", "Cancel") {
 						@Override public void onSelect(boolean positive, String text) {
 							if (!positive) return;
@@ -503,7 +506,9 @@ public class WndDebugPicker extends Window {
 				@SuppressWarnings("unchecked")
 				final Class<? extends Mob> mobCls = (Class<? extends Mob>) cls;
 				final String mobName = name;
-				entries.add(new Entry(name, icon, () -> selectCellForMob(mobCls, mobName)));
+				Entry entry = new Entry(name, icon, () -> selectCellForMob(mobCls, mobName));
+				entry.searchText = name + " " + cls.getSimpleName();
+				entries.add(entry);
 			} catch (Exception ignored) { }
 		}
 
@@ -698,7 +703,7 @@ public class WndDebugPicker extends Window {
 					Mob mob = Reflection.newInstance(mobCls);
 					if (mob == null) return;
 					mob.pos = cell;
-					mob.state = mob.WANDERING;
+					mob.state = mob.debugSpawnState();
 					GameScene.add(mob);
 				}
 			}

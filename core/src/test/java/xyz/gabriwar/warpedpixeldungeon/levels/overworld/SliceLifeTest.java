@@ -30,6 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar;
 import xyz.gabriwar.warpedpixeldungeon.effects.CloudSea;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
+import xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientSound;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldCritters.Sky;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.SliceLife.Kind;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.WarpedRoomsTest;
@@ -382,6 +383,10 @@ public class SliceLifeTest {
 		}
 		assertEquals( CaveLife.SOUND_DRIP, CaveLife.pickSound( 0f, 0f, -3, false ) );
 		assertEquals( CaveLife.SOUND_CHIRP, CaveLife.pickSound( 0.999f, 0f, -3, true ) );
+		//heard on the ambience channel: the ambience's own drip, rumble and bats
+		assertEquals( AmbientSound.DRIP, CaveLife.SOUND[CaveLife.SOUND_DRIP] );
+		assertEquals( AmbientSound.RUMBLE, CaveLife.SOUND[CaveLife.SOUND_RUMBLE] );
+		assertEquals( AmbientSound.BAT, CaveLife.SOUND[CaveLife.SOUND_CHIRP] );
 		assertEquals( 2, CaveLife.motes( -9, 0.99f ) );
 		assertEquals( 0, CaveLife.motes( -2, 0.99f ) );
 	}

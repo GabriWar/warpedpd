@@ -38,6 +38,12 @@ import com.watabou.utils.Random;
 
 public class FishingLevel extends Level {
 
+	@Override
+	public xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place ambience() {
+		return xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place.SHORE;
+	}
+
+
 	private static final int SIZE = 48;
 
 	{

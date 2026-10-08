@@ -35,6 +35,12 @@ import com.watabou.utils.Random;
 
 public class FieldLevel extends Level {
 
+	@Override
+	public xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place ambience() {
+		return xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place.MEADOW;
+	}
+
+
 	private static final int SIZE = 48;
 
 	{

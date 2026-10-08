@@ -54,6 +54,12 @@ import com.watabou.utils.Reflection;
 
 public class TempleNewLevel extends Level {
 
+	@Override
+	public xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place ambience() {
+		return xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place.TEMPLE;
+	}
+
+
     {
         color1 = 0x64bb4c;
         color2 = 0x569545;

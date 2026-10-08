@@ -91,6 +91,9 @@ public class WarpedRoomTiles {
 	public static final int PORTCULLIS_OPEN = 48;
 	public static final int FIRE_RING_LIT   = 49;
 	public static final int WARNING_SIGN    = 50;
+	/** the ash beside a fire, three of them: ASH_SPILL .. ASH_SPILL + ASH_SPILLS - 1 */
+	public static final int ASH_SPILL       = 51;
+	public static final int ASH_SPILLS      = 3;
 
 	/** A single cell of furniture or floor art. {@code key} names its strings:
 	 *  tiles.warpedroomtiles.&lt;key&gt;_name and _desc. */

@@ -497,6 +497,8 @@ public class WPDSettings extends GameSettings {
 	public static final String KEY_SFX_VOL      = "sfx_vol";
 	public static final String KEY_IGNORE_SILENT= "ignore_silent";
 	public static final String KEY_MUSIC_BG     = "music_bg";
+	public static final String KEY_AMBIENCE     = "ambience";
+	public static final String KEY_AMBIENCE_VOL = "ambience_vol";
 	
 	public static void music( boolean value ) {
 		Music.INSTANCE.enable( value );
@@ -532,6 +534,25 @@ public class WPDSettings extends GameSettings {
 	
 	public static int SFXVol() {
 		return getInt( KEY_SFX_VOL, 10, 0, 10 );
+	}
+
+	//the ambience channel: a place's background sounds (levels/ambience), apart from the effects
+	public static void ambience( boolean value ) {
+		Sample.INSTANCE.ambientEnable( value );
+		put( KEY_AMBIENCE, value );
+	}
+
+	public static boolean ambience() {
+		return getBoolean( KEY_AMBIENCE, true );
+	}
+
+	public static void ambienceVol( int value ) {
+		Sample.INSTANCE.ambientVolume( value*value/100f );
+		put( KEY_AMBIENCE_VOL, value );
+	}
+
+	public static int ambienceVol() {
+		return getInt( KEY_AMBIENCE_VOL, 10, 0, 10 );
 	}
 
 	public static void ignoreSilentMode( boolean value ){

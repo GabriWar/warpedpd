@@ -69,6 +69,12 @@ import java.util.ArrayList;
 
 public class HallsLevel extends RegularLevel {
 
+	@Override
+	public xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place ambience() {
+		return xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place.HALLS;
+	}
+
+
 	{
 		
 		viewDistance = Math.min( 26 - Dungeon.depth, viewDistance );

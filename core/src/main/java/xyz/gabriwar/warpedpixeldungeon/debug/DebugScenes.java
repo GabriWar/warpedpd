@@ -50,6 +50,9 @@ import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfFireblast;
 import xyz.gabriwar.warpedpixeldungeon.journal.Bestiary;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
+import xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientPlayer;
+import xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientSounds;
+import xyz.gabriwar.warpedpixeldungeon.levels.ambience.DungeonLife;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.CaravanAmbush;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.CaveLife;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.CaveSites;
@@ -83,7 +86,7 @@ import java.util.Locale;
 /**
  * Debug scenes: a named situation set up around the hero in one tap, for testing
  * something specific without walking the dungeon for it. Applied from the debug
- * menu (Mobs tab, "Scenes") on the current run, or straight from the command line
+ * menu (Travel tab, "Scenes...") on the current run, or straight from the command line
  * on a fresh run:
  *
  *   ./gradlew :desktop:debug -Pscene=fliers-paralysed
@@ -177,6 +180,17 @@ import java.util.Locale;
  * which all lake ice is thin) and
  * layers-hazard-thinair (on a ridge at +9 or the nearest high slice with one, the wind held at
  * 16, the hero warmed against the cold).
+ *
+ * The dungeon's small life and sounds (levels/ambience, docs/ambience.md) have one scene a place,
+ * each on a floor of its own kind: ambience-sewers (dusk: frogs, roaches, snails, striders, gnats,
+ * the pipes spilling), ambience-sewers-day (birdsong through the grates), ambience-prison,
+ * ambience-caves, ambience-city, ambience-city-day (swifts and butterflies), ambience-halls,
+ * ambience-frozen, ambience-nest, ambience-vault, ambience-temple, ambience-mines,
+ * ambience-meadow, ambience-meadow-night (fireflies and crickets), ambience-shore and
+ * ambience-catacomb. Each walks the clock on to the hour its life is out, sets the hero down
+ * where the ground of the most of its kinds is in sight (DungeonLife.liveliest), puts the fog
+ * back on and logs what lives there and what is heard at this hour. The life turns up over the
+ * next seconds, in the cells the hero sees.
  */
 public final class DebugScenes {
 
@@ -257,6 +271,22 @@ public final class DebugScenes {
 			new WarpedRoomsScene( "warped-rooms", "Warped rooms: all, live, with supplies", false, false ),
 			new WarpedRoomsScene( "warped-rooms-night", "Warped rooms at nightfall (market open)", true, false ),
 			new WarpedRoomsScene( "warped-rooms-only", "Warped rooms only: one of each, no standard rooms", false, true ),
+			new AmbienceScene( "ambience-sewers", "Sewers at dusk: frogs, roaches, snails, striders, gnats", 2, 0, DayNightCycle.Phase.DUSK ),
+			new AmbienceScene( "ambience-sewers-day", "Sewers by day: birdsong through the grates, striders", 2, 0, DayNightCycle.Phase.DAY ),
+			new AmbienceScene( "ambience-prison", "Prison at dusk: moths at the torches, mice, spiders on silk", 7, 0, DayNightCycle.Phase.DUSK ),
+			new AmbienceScene( "ambience-caves", "Caves at dusk: newts, centipedes, beetles, glow-worms", 12, 0, DayNightCycle.Phase.DUSK ),
+			new AmbienceScene( "ambience-city", "City at dusk: moths at the flames, silverfish, lizards", 17, 0, DayNightCycle.Phase.DUSK ),
+			new AmbienceScene( "ambience-city-day", "City by day: swifts on the statues, butterflies", 17, 0, DayNightCycle.Phase.DAY ),
+			new AmbienceScene( "ambience-halls", "Halls at dusk: salamanders, ember beetles, crows, embers", 22, 0, DayNightCycle.Phase.DUSK ),
+			new AmbienceScene( "ambience-frozen", "Frozen branch at dusk: snow hares, frost moths, ice fish", 22, 2, DayNightCycle.Phase.DUSK ),
+			new AmbienceScene( "ambience-nest", "Spider nest: spiderlings, flies stuck in the webbing", 7, 5, DayNightCycle.Phase.DUSK ),
+			new AmbienceScene( "ambience-vault", "Dwarven vault: the city's life, kept quiet", 17, 1, DayNightCycle.Phase.DUSK ),
+			new AmbienceScene( "ambience-temple", "Temple: a few moths, dust, far chimes", 14, 3, DayNightCycle.Phase.DUSK ),
+			new AmbienceScene( "ambience-mines", "Kupua mines: centipedes, beetles, drips", 57, 0, DayNightCycle.Phase.DUSK ),
+			new AmbienceScene( "ambience-meadow", "Postgame field by day: butterflies, finches, hares", 27, 0, DayNightCycle.Phase.DAY ),
+			new AmbienceScene( "ambience-meadow-night", "Postgame field at night: fireflies, crickets", 27, 0, DayNightCycle.Phase.NIGHT ),
+			new AmbienceScene( "ambience-shore", "Postgame shore: gulls, leaping fish, lapping water", 29, 0, DayNightCycle.Phase.DAY ),
+			new AmbienceScene( "ambience-catacomb", "Postgame catacombs: roaches, moths, spiders, mice", 31, 0, DayNightCycle.Phase.DUSK ),
 	};
 
 	public static Scene byId( String id ){
@@ -1823,6 +1853,44 @@ public final class DebugScenes {
 			GLog.i( "Warped rooms: the signs name each room; supplies are in the two rows by the entrance." );
 			GLog.i( "The floor's climate is a sewer floor's: the debug menu's weather, temperature and hour overrides all reach it." );
 			if (night) GLog.i( "Clock moved to nightfall: the black market's dealer sets up on his next turn." );
+		}
+	}
+
+	//a floor of one place below ground, with its small life and its sounds: the clock walked on to
+	//the hour the place's life is out, the hero set down where the ground of the most of its kinds
+	//is in sight, the fog back on (what players see), and a log of what lives there and is heard
+	private static final class AmbienceScene implements Scene {
+		final String id, title;
+		final int depth, branch;
+		final DayNightCycle.Phase phase;
+		//set while the hero is on his way to the floor, so the arrival finishes the scene
+		//instead of sending him off again
+		boolean travelling;
+		AmbienceScene( String id, String title, int depth, int branch, DayNightCycle.Phase phase ){
+			this.id = id; this.title = title; this.depth = depth; this.branch = branch; this.phase = phase;
+		}
+		@Override public String id(){ return id; }
+		@Override public String title(){ return title; }
+		@Override public void apply( Hero hero ){
+			if (!travelling && (Dungeon.depth != depth || Dungeon.branch != branch)){
+				travelling = true;
+				pending = this;
+				starting = true;
+				InterlevelScene.mode = InterlevelScene.Mode.RETURN;
+				InterlevelScene.returnDepth = depth;
+				InterlevelScene.returnBranch = branch;
+				InterlevelScene.returnPos = -1;
+				Game.switchScene( InterlevelScene.class );
+				return;
+			}
+			travelling = false;
+			if (!walkClock( null, phase, 0.3f )) GLog.w( "Scene: a real-clock run keeps its own hour" );
+			int cell = DungeonLife.liveliest( Dungeon.level, hero.pos );
+			if (cell >= 0 && cell != hero.pos) ScrollOfTeleportation.appear( hero, cell );
+			Dungeon.debugNoFog = false;
+			GLog.i( "Scene: " + DungeonLife.showcase( Dungeon.level ) );
+			GLog.i( "Scene: " + AmbientSounds.showcase( Dungeon.level ) );
+			if (!AmbientPlayer.audible()) GLog.w( "Scene: the ambience is muted or at zero (Settings > Audio)" );
 		}
 	}
 

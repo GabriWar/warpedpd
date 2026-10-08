@@ -38,6 +38,11 @@ public enum Sample {
 	private boolean enabled = true;
 	private float globalVolume = 1f;
 
+	//the ambience channel: a place's background sounds (water, small life, its air), with a
+	//switch and a volume of their own, apart from the game's effects
+	private boolean ambientEnabled = true;
+	private float ambientVolume = 1f;
+
 	public synchronized void reset() {
 
 		for (Sound sound : ids.values()){
@@ -171,6 +176,34 @@ public enum Sample {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Plays a sound on the ambience channel: scaled by the ambience volume instead of the effects'
+	 * one, silent while ambience is off whatever the effects do. Pan runs -1 (left) to 1 (right);
+	 * pitch is held to 0.5-2, the range every platform plays (Android's SoundPool clamps there).
+	 */
+	public synchronized long playAmbient( Object id, float volume, float pitch, float pan ) {
+		if (ambientEnabled && ambientVolume > 0 && volume > 0 && ids.containsKey( id )) {
+			return ids.get( id ).play( ambientVolume * volume,
+					Math.max( 0.5f, Math.min( 2f, pitch ) ),
+					Math.max( -1f, Math.min( 1f, pan ) ) );
+		} else {
+			return -1;
+		}
+	}
+
+	public void ambientEnable( boolean value ) {
+		ambientEnabled = value;
+	}
+
+	public void ambientVolume( float value ) {
+		ambientVolume = value;
+	}
+
+	/** Is anything on the ambience channel audible at all (on, and not at zero)? */
+	public boolean ambientAudible() {
+		return ambientEnabled && ambientVolume > 0;
 	}
 
 	public void enable( boolean value ) {

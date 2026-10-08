@@ -78,8 +78,11 @@ public class WarpedPixelDungeon extends Game {
 		Music.INSTANCE.volume( WPDSettings.musicVol()*WPDSettings.musicVol()/100f );
 		Sample.INSTANCE.enable( WPDSettings.soundFx() );
 		Sample.INSTANCE.volume( WPDSettings.SFXVol()*WPDSettings.SFXVol()/100f );
+		Sample.INSTANCE.ambientEnable( WPDSettings.ambience() );
+		Sample.INSTANCE.ambientVolume( WPDSettings.ambienceVol()*WPDSettings.ambienceVol()/100f );
 
 		Sample.INSTANCE.load( Assets.Sounds.all );
+		Sample.INSTANCE.load( xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientSound.assets() );
 		
 	}
 

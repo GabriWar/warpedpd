@@ -64,6 +64,12 @@ import com.watabou.utils.Random;
 
 public class SewerLevel extends RegularLevel {
 
+	@Override
+	public xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place ambience() {
+		return xyz.gabriwar.warpedpixeldungeon.levels.ambience.Place.SEWERS;
+	}
+
+
 	{
 		color1 = 0x48763c;
 		color2 = 0x59994a;
