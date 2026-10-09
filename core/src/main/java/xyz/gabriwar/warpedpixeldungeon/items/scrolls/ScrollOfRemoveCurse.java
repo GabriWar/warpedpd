@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Degrade;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Belongings;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.TormentedSpirit;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.EquipableItem;
@@ -39,7 +40,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 public class ScrollOfRemoveCurse extends InventoryScroll {
@@ -60,7 +60,7 @@ public class ScrollOfRemoveCurse extends InventoryScroll {
 		}
 		if (spirit != null){
 			identify();
-			Sample.INSTANCE.play( Assets.Sounds.READ );
+			SpatialSound.play( Assets.Sounds.READ, curUser );
 			readAnimation();
 
 			new Flare( 6, 32 ).show( curUser.sprite, 2f );

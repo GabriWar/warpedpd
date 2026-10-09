@@ -37,6 +37,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Piranha;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Statue;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Swarm;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Wraith;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SacrificialParticle;
@@ -45,7 +46,6 @@ import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.special.SacrificeRoom;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -188,7 +188,7 @@ public class SacrificialFire extends Blob {
 					volume -= exp;
 					bonusSpawns++;
 					CellEmitter.get(firePos).burst( SacrificialParticle.FACTORY, 20 );
-					Sample.INSTANCE.play(Assets.Sounds.BURNING );
+					SpatialSound.play(Assets.Sounds.BURNING, firePos );
 					GLog.w( Messages.get(SacrificialFire.class, "worthy"));
 				} else {
 					clear(firePos);
@@ -197,9 +197,9 @@ public class SacrificialFire extends Blob {
 					for (int i : PathFinder.NEIGHBOURS9){
 						CellEmitter.get(firePos+i).burst( SacrificialParticle.FACTORY, 20 );
 					}
-					Sample.INSTANCE.play(Assets.Sounds.BURNING );
-					Sample.INSTANCE.play(Assets.Sounds.BURNING );
-					Sample.INSTANCE.play(Assets.Sounds.BURNING );
+					SpatialSound.play(Assets.Sounds.BURNING, firePos );
+					SpatialSound.play(Assets.Sounds.BURNING, firePos );
+					SpatialSound.play(Assets.Sounds.BURNING, firePos );
 					GLog.w( Messages.get(SacrificialFire.class, "reward"));
 					if (prize != null) {
 						Dungeon.level.drop(prize, firePos).sprite.drop();

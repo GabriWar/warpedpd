@@ -29,11 +29,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Fire;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.BArray;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.PointF;
@@ -54,7 +54,7 @@ public class GeyserTrap extends Trap {
 	@Override
 	public void activate() {
 		Splash.at( DungeonTilemap.tileCenterToWorld( pos ), -PointF.PI/2, PointF.PI/2, 0x5bc1e3, 100, 0.01f);
-		Sample.INSTANCE.play(Assets.Sounds.GAS, 1f, 0.75f);
+		SpatialSound.play(Assets.Sounds.GAS, pos, 1f, 0.75f);
 
 		Fire fire = (Fire) Dungeon.level.blobs.get(Fire.class);
 		PathFinder.buildDistanceMap( pos, BArray.not( Dungeon.level.solid, null ), 2 );

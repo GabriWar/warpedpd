@@ -23,12 +23,12 @@ package xyz.gabriwar.warpedpixeldungeon.items.stones;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CheckedCell;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfMagicMapping;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.ShadowCaster;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Point;
 
 public class StoneOfClairvoyance extends Runestone {
@@ -79,10 +79,10 @@ public class StoneOfClairvoyance extends Runestone {
 		}
 		
 		if (noticed) {
-			Sample.INSTANCE.play( Assets.Sounds.SECRET );
+			SpatialSound.play( Assets.Sounds.SECRET, cell );
 		}
 		
-		Sample.INSTANCE.play( Assets.Sounds.TELEPORT );
+		SpatialSound.play( Assets.Sounds.TELEPORT, cell );
 		GameScene.updateFog();
 		
 		

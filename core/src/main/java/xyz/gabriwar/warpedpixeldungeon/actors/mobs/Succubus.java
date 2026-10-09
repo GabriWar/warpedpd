@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barrier;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Charm;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Light;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
@@ -40,7 +41,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfUpgrade;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.SuccubusSprite;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -95,7 +95,7 @@ public class Succubus extends Mob {
 				sprite.showStatusWithIcon(CharSprite.POSITIVE, "5", FloatingText.HEALING);
 			}
 			if (Dungeon.level.heroFOV[pos]) {
-				Sample.INSTANCE.play( Assets.Sounds.CHARMS );
+				SpatialSound.play( Assets.Sounds.CHARMS, pos );
 			}
 		} else if (Random.Int( 3 ) == 0) {
 			Charm c = Buff.affect( enemy, Charm.class, Charm.DURATION/2f );
@@ -103,7 +103,7 @@ public class Succubus extends Mob {
 			c.ignoreNextHit = true; //so that the -5 duration from succubus hit is ignored
 			if (Dungeon.level.heroFOV[enemy.pos]) {
 				enemy.sprite.centerEmitter().start(Speck.factory(Speck.HEART), 0.2f, 5);
-				Sample.INSTANCE.play(Assets.Sounds.CHARMS);
+				SpatialSound.play(Assets.Sounds.CHARMS, enemy);
 			}
 		}
 		

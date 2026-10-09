@@ -184,6 +184,10 @@ public class ClimateManager {
 	public static float debugPrecipOverride = Float.NaN;  // 0.0 - 1.0
 	public static PrecipType debugPrecipTypeOverride = null; // null = disabled
 	public static float debugWindDirOverride = Float.NaN; // degrees 0-359, NaN = disabled
+	// A storm on demand (the debug scenes): isStorming() is true while it is set. The climate's
+	// own storms come on about 5.5% of wet turns (mostly summer and autumn), and no other
+	// override reaches the weather state
+	public static boolean debugForceStorm = false;
 
 	public static float localTemp() {
 		return Float.isNaN(debugTempOverride) ? localTemp : debugTempOverride;
@@ -243,7 +247,7 @@ public class ClimateManager {
 	}
 
 	public static boolean isStorming() {
-		return weatherState == WeatherState.STORM;
+		return debugForceStorm || weatherState == WeatherState.STORM;
 	}
 
 	public static boolean isFoggy() {
@@ -271,6 +275,9 @@ public class ClimateManager {
 		return !(Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel)
 				|| ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).rainbowPossible();
 	}
+	//the events themselves, whether or not this level's sky shows them (the debug toggles)
+	public static boolean isAuroraActive()  { return auroraActive; }
+	public static boolean isRainbowActive() { return rainbowActive; }
 
 	public static boolean isClear() {
 		return weatherState == WeatherState.CLEAR || weatherState == WeatherState.FAIR;
@@ -1059,7 +1066,8 @@ public class ClimateManager {
 			}
 		}
 
-		precipRate = clamp((cloudCover - 0.4f) * surfaceHumidity * frontIntensity, 0f, 1f);
+		// x1.25: without it the rate topped out near 0.55, and no front could ever bring a storm
+		precipRate = clamp((cloudCover - 0.4f) * surfaceHumidity * frontIntensity * 1.25f, 0f, 1f);
 
 		if (precipRate <= 0.01f) {
 			precipRate = 0f;
@@ -1091,7 +1099,12 @@ public class ClimateManager {
 		}
 
 		// Storm: high wind + heavy precip
-		if (precipRate > 0.6f && surfaceWindSpeed > 12f) {
+		// A storm holds until the rain or the wind clearly drops: the wind's per-turn wobble
+		// would otherwise flicker it on and off every few turns
+		if (prevWeatherState == WeatherState.STORM && precipRate > 0.35f && surfaceWindSpeed > 5f) {
+			return WeatherState.STORM;
+		}
+		if (precipRate > 0.52f && surfaceWindSpeed > 10f) {
 			return WeatherState.STORM;
 		}
 
@@ -1278,7 +1291,7 @@ public class ClimateManager {
 			}
 
 			// Intensity by season
-			float baseIntensity = 0.3f + rng.nextFloat() * 0.7f; // 0.3-1.0
+			float baseIntensity = 0.3f + rng.nextFloat() * 0.9f; // 0.3-1.2
 			switch (season) {
 				case SPRING: baseIntensity *= 0.75f; break; // spring: gentler
 				case SUMMER: baseIntensity *= 1.1f;  break; // summer: intense but brief

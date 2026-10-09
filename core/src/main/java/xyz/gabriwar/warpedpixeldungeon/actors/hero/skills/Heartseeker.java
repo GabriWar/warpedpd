@@ -26,12 +26,12 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
-import com.watabou.noosa.audio.Sample;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.HeartseekerArrow;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 
 /**
@@ -72,7 +72,7 @@ public class Heartseeker extends Skill {
 		Buff.affect( enemy, HeartseekerArrow.class ).set( level );
 		castTextYell();
 		if (enemy.sprite != null) enemy.sprite.emitter().burst( Speck.factory( Speck.HEART ), 3 );
-		Sample.INSTANCE.play( Assets.Sounds.HIT_ARROW, 1f, 0.8f );
+		SpatialSound.play( Assets.Sounds.HIT_ARROW, enemy, 1f, 0.8f );
 		return damage;
 	}
 }

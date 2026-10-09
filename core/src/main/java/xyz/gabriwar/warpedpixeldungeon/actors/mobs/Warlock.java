@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AscensionChallenge;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Degrade;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.food.MonsterMeat;
@@ -38,7 +39,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.WarlockSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 public class Warlock extends Mob {
@@ -117,7 +117,7 @@ public class Warlock extends Mob {
 			//TODO would be nice for this to work on ghost/statues too
 			if (enemy == Dungeon.hero && Random.Int( 2 ) == 0) {
 				Buff.prolong( enemy, Degrade.class, Degrade.DURATION );
-				Sample.INSTANCE.play( Assets.Sounds.DEGRADE );
+				SpatialSound.play( Assets.Sounds.DEGRADE, enemy );
 			}
 			
 			int dmg = Random.NormalIntRange( 12, 18 );

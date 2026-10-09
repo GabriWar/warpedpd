@@ -25,8 +25,8 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.PhysicalEmpower;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 
 public class BrokenHilt extends RemainsItem {
 
@@ -37,6 +37,6 @@ public class BrokenHilt extends RemainsItem {
 	@Override
 	protected void doEffect(Hero hero) {
 		Buff.affect( hero, PhysicalEmpower.class).set(Math.max(2, hero.lvl/3), 2);
-		Sample.INSTANCE.play(Assets.Sounds.UNLOCK);
+		SpatialSound.play(Assets.Sounds.UNLOCK, hero);
 	}
 }

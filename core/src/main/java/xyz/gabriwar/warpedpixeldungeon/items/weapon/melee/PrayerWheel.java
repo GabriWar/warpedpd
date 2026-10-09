@@ -50,9 +50,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 public class PrayerWheel extends MeleeWeapon {
@@ -82,7 +82,7 @@ public class PrayerWheel extends MeleeWeapon {
 		int damage = super.damageRoll(owner);
 		if (charge >= CHARGE_CAP) {
 			damage *= 5;
-			Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG);
+			SpatialSound.play(Assets.Sounds.HIT_STRONG, owner);
 		}
 		return damage;
 	}
@@ -139,7 +139,7 @@ public class PrayerWheel extends MeleeWeapon {
 			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 8 );
 			new Flare( 6, 18 ).color( 0xFFE9A0, true ).show( hero.sprite, 0.8f ).angularSpeed = 180;
 		}
-		Sample.INSTANCE.play( Assets.Sounds.CHARMS, 1f, 1.1f );
+		SpatialSound.play( Assets.Sounds.CHARMS, hero, 1f, 1.1f );
 		hero.sprite.operate( hero.pos );
 		hero.next();
 		afterAbilityUsed( hero );

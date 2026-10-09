@@ -33,9 +33,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Fire;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 public class PotionOfLiquidFlame extends Potion {
@@ -51,8 +51,8 @@ public class PotionOfLiquidFlame extends Potion {
 		if (Dungeon.level.heroFOV[cell]) {
 			identify();
 
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER );
-			Sample.INSTANCE.play( Assets.Sounds.BURNING );
+			SpatialSound.play( Assets.Sounds.SHATTER, cell );
+			SpatialSound.play( Assets.Sounds.BURNING, cell );
 		}
 
 		// Hotter ambient = fire burns longer; water dampens it

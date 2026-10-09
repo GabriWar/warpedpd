@@ -321,6 +321,14 @@ public class CityLevel extends RegularLevel {
 
 		@Override
 		public void update() {
+			//its wall broken (a pick, a bomb), its fire goes with it
+			if (Dungeon.level.map[pos] != Terrain.REGION_DECO && Dungeon.level.map[pos] != Terrain.REGION_DECO_ALT){
+				killAndErase();
+				//its images let go of their vertex buffers now, not when the scene changes
+				destroy();
+				return;
+			}
+
 			if (visible = (pos < Dungeon.level.heroFOV.length && Dungeon.level.heroFOV[pos])) {
 				super.update();
 			}
@@ -364,6 +372,14 @@ public class CityLevel extends RegularLevel {
 		
 		@Override
 		public void update() {
+			//its wall broken (a pick, a bomb), its smoke goes with it
+			if (Dungeon.level.map[pos] != Terrain.WALL_DECO){
+				killAndErase();
+				//its images let go of their vertex buffers now, not when the scene changes
+				destroy();
+				return;
+			}
+
 			if (visible = (pos < Dungeon.level.heroFOV.length && Dungeon.level.heroFOV[pos])) {
 				super.update();
 			}

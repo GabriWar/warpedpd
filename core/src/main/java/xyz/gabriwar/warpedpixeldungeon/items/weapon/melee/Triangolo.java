@@ -31,7 +31,6 @@ import com.watabou.utils.Callback;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
@@ -41,6 +40,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfForce;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import com.watabou.utils.PathFinder;
@@ -123,8 +123,8 @@ public class Triangolo extends MeleeWeapon {
 		}
 		hero.sprite.operate(hero.pos);
 		new Flare(6, 18).color(0xFFE080, true).show(hero.sprite, 0.6f).angularSpeed = 180;
-		Sample.INSTANCE.play(Assets.Sounds.HIT_PARRY, 1f, 1.6f);
-		Sample.INSTANCE.playDelayed(Assets.Sounds.HIT_PARRY, 0.15f, 0.8f, 1.9f);
+		SpatialSound.play(Assets.Sounds.HIT_PARRY, hero, 1f, 1.6f);
+		SpatialSound.playDelayed(Assets.Sounds.HIT_PARRY, 0.15f, hero, 0.8f, 1.9f);
 		Invisibility.dispel();
 		hero.spendAndNext(hero.attackDelay());
 		wep.afterAbilityUsed(hero);

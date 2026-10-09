@@ -28,9 +28,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Electricity;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import com.watabou.utils.BArray;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 public class StormTrap extends Trap {
@@ -44,7 +44,7 @@ public class StormTrap extends Trap {
 	public void activate() {
 		
 		if (Dungeon.level.heroFOV[pos]){
-			Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
+			SpatialSound.play( Assets.Sounds.LIGHTNING, pos );
 		}
 		
 		PathFinder.buildDistanceMap( pos, BArray.not( Dungeon.level.solid, null ), 2 );

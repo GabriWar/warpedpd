@@ -24,7 +24,6 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
@@ -34,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Daze;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CircleArc;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -84,7 +84,7 @@ public class SixthSense extends Skill {
 			if (hero.sprite.parent != null) new CircleArc( 16, 12 ).color( 0x88CC66, true ).show( hero.sprite, 0.45f );
 			hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 6 );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 1.5f );
+		SpatialSound.play( Assets.Sounds.MISS, hero, 1f, 1.5f );
 		if (level >= MAX_LEVEL && source instanceof Char && source != hero && ((Char) source).isAlive()){
 			Char striker = (Char) source;
 			Buff.prolong( striker, Daze.class, DAZE_TURNS );

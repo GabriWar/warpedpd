@@ -28,12 +28,12 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import com.watabou.noosa.Camera;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -69,7 +69,7 @@ public class FirmHand extends PassiveSkillB1 {
 			enemy.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "stagger" ) );
 			Camera.main.shake( 1, 0.15f );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 0.8f, 0.9f );
+		SpatialSound.play( Assets.Sounds.HIT_CRUSH, enemy, 0.8f, 0.9f );
 		return damage;
 	}
 
@@ -87,7 +87,7 @@ public class FirmHand extends PassiveSkillB1 {
 			spread = true;
 		}
 		if (spread){
-			Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 0.9f, 0.7f );
+			SpatialSound.play( Assets.Sounds.HIT_CRUSH, mob, 0.9f, 0.7f );
 			Camera.main.shake( 1, 0.2f );
 		}
 	}

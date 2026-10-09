@@ -24,6 +24,7 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.ButterEffect;
 import xyz.gabriwar.warpedpixeldungeon.effects.DarkBlock;
 import xyz.gabriwar.warpedpixeldungeon.effects.EmoIcon;
@@ -35,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.ShieldHalo;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.effects.TorchHalo;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxModules;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.HalomethaneFlameParticle;
@@ -51,7 +53,6 @@ import com.watabou.noosa.Camera;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.MovieClip;
 import com.watabou.noosa.NoosaScript;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.tweeners.AlphaTweener;
 import com.watabou.noosa.tweeners.PosTweener;
@@ -89,8 +90,11 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 
 	public boolean visibleOutOfFFOV = false;
 
+	//the last eight came with the effects kit: the characters area draws them, any area may add them
+	//(replicated to co-op guests by name, as every state)
 	public enum State {
-		BURNING, LEVITATING, INVISIBLE, PARALYSED, FROZEN, ILLUMINATED, CHILLED, DARKENED, MARKED, HEALING, SHIELDED, HEARTS, GLOWING, AURA, ELECTRIC, BUTTER, HALOMETHANEBURNING, HEATSTROKE, HYPOTHERMIA
+		BURNING, LEVITATING, INVISIBLE, PARALYSED, FROZEN, ILLUMINATED, CHILLED, DARKENED, MARKED, HEALING, SHIELDED, HEARTS, GLOWING, AURA, ELECTRIC, BUTTER, HALOMETHANEBURNING, HEATSTROKE, HYPOTHERMIA,
+		TORCHLIT, ROOTED, BARKED, VERDANT, HERB, POISONED, CORRODED, OOZED
 	}
 	
 	protected Animation idle;
@@ -138,6 +142,9 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 
 	//used to prevent the actor associated with this sprite from acting until movement completes
 	public volatile boolean isMoving = false;
+
+	/** Each effects area's own state for this sprite, at its index (FxModules), the kit's last. */
+	public final Object[] fxSlots = new Object[FxModules.COUNT + 1];
 	
 	public CharSprite() {
 		super();
@@ -352,9 +359,7 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 		} );
 
 		//neither of these touches the sprite's own state: no lock held for them
-		if (visible && Dungeon.level.water[from] && ch != null && !ch.flying) {
-			GameScene.ripple( from );
-		}
+		FxModules.stepped( this, from, to );
 
 		xyz.gabriwar.warpedpixeldungeon.net.NetVisuals.recordMove(ch, from, to);
 	}
@@ -571,7 +576,7 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 				burning = emitter();
 				burning.pour(FlameParticle.FACTORY, 0.06f);
 				if (visible) {
-					Sample.INSTANCE.play(Assets.Sounds.BURNING);
+					SpatialSound.play(Assets.Sounds.BURNING, ch);
 				}
 				break;
 			case LEVITATING:
@@ -656,7 +661,7 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 				halomethaneBurning = emitter();
 				halomethaneBurning.pour(HalomethaneFlameParticle.FACTORY, 0.06f);
 				if (visible) {
-					Sample.INSTANCE.play(Assets.Sounds.BURNING);
+					SpatialSound.play(Assets.Sounds.BURNING, ch);
 				}
 				break;
 			case HEATSTROKE:
@@ -1024,6 +1029,9 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 		if (health != null){
 			health.killAndErase();
 		}
+
+		//what the effects keep for it (its orbits, the areas' slots) let go of
+		FxModules.gone( this );
 	}
 
 	private float[] shadowMatrix = new float[16];
@@ -1070,7 +1078,10 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 			script.drawQuad(buffer);
 		}
 
+		//what circles it: its far side behind it, its near side and the areas' own over it
+		FxModules.beforeDraw( this );
 		super.draw();
+		FxModules.afterDraw( this );
 
 	}
 
@@ -1078,9 +1089,7 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 	public void onComplete( Tweener tweener ) {
 		if (tweener == jumpTweener) {
 
-			if (visible && Dungeon.level.water[ch.pos] && !ch.flying) {
-				GameScene.ripple( ch.pos );
-			}
+			FxModules.jumped( this );
 			finishJump(false);
 			GameScene.sortMobSprites();
 

@@ -30,7 +30,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Tengu;
 import com.watabou.noosa.particles.Emitter;
 import java.util.ArrayList;
 import com.watabou.noosa.Camera;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.BArray;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
@@ -41,6 +40,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.BlastParticle;
@@ -141,7 +141,7 @@ public class TenguSmokeBomb extends Buff {
 		}
 
 		clearItem();
-		Sample.INSTANCE.play( Assets.Sounds.BLAST );
+		SpatialSound.play( Assets.Sounds.BLAST, cell );
 		if (Dungeon.level.heroFOV[cell]){
 			CellEmitter.center( cell ).burst( BlastParticle.FACTORY, 30 );
 			Camera.main.shake( 3, 0.5f );

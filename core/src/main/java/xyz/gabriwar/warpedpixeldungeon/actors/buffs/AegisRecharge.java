@@ -24,9 +24,9 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Aegis;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -50,7 +50,7 @@ public class AegisRecharge extends FlavourBuff {
 		if (target.isAlive() && target.sprite != null && target.sprite.parent != null){
 			new Flare( 5, 16 ).color( 0xFFEE88, true ).show( target.sprite, 0.4f );
 			target.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( Aegis.class, "ready" ) );
-			Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 0.4f, 1.4f );
+			SpatialSound.play( Assets.Sounds.HIT_PARRY, target, 0.4f, 1.4f );
 		}
 		return super.act();
 	}

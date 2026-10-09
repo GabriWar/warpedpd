@@ -22,42 +22,48 @@
 package xyz.gabriwar.warpedpixeldungeon.effects;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRing;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.WaterFX;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
-import com.watabou.noosa.Game;
-import com.watabou.noosa.Image;
 
-public class Ripple extends Image {
+/**
+ * A ring on the water (WaterFX): the painted ring frames spreading on the water's surface,
+ * mirrored so their far crest catches the sky, in the level's liquid's foam (added, on lava),
+ * masked by the shore's tiles. Its y is still a caller's to nudge after it is made (the sewers'
+ * pipes ring a cell up). Pooled by the game's scene; WaterFX.ring is the way to make one.
+ */
+public class Ripple extends FxRing {
 
-	private static final float TIME_TO_FADE = 0.5f;
-	
-	private float time;
-	
-	public Ripple() {
-		super( Effects.get( Effects.Type.RIPPLE ) );
+	public Ripple(){
+		super();
 	}
-	
-	public void reset( int p ) {
-		revive();
-		
-		x = (p % Dungeon.level.width()) * DungeonTilemap.SIZE;
-		y = (p / Dungeon.level.width()) * DungeonTilemap.SIZE;
-		
-		origin.set( width / 2, height / 2 );
-		scale.set( 0 );
-		
-		time = TIME_TO_FADE;
+
+	/** A middling ring (WaterFX.M) on the middle of a cell. */
+	public void reset( int p ){
+		int w = Dungeon.level.width();
+		reset( (p % w + 0.5f) * DungeonTilemap.SIZE, (p / w + 0.5f) * DungeonTilemap.SIZE, WaterFX.M );
 	}
-	
-	@Override
-	public void update() {
-		super.update();
-		
-		if ((time -= Game.elapsed) <= 0) {
-			kill();
-		} else {
-			float p = time / TIME_TO_FADE;
-			scale.set( 1 - p );
-			alpha( p );
-		}
+
+	/** A ring of a size (WaterFX.S, M or L) on a point, the liquid's own. */
+	public void reset( float x, float y, int size ){
+		Element.Liquid l = WaterFX.liquid();
+		reset( x, y, size, l.foam, WaterFX.alphaOf( size ), l.ringAdditive );
+	}
+
+	/** A ring of a size on a point in a colour and alpha of its own, as light or as matter. */
+	public void reset( float x, float y, int size, int color, float alpha, boolean light ){
+		int s = WaterFX.sizeOf( size );
+		setup( x, y, WaterFX.FROM[s], WaterFX.TO[s], WaterFX.LIFE[s], color, alpha, light );
+		mirrorY();
+	}
+
+	/** The second ring after a middling or large one: a size of ring smaller, a little later. */
+	public void second( Ripple first, int size, int color, float alpha, boolean light ){
+		int s = WaterFX.sizeOf( size );
+		setup( first.centerX(), first.centerY(), WaterFX.SECOND_FROM[s], WaterFX.SECOND_TO[s], WaterFX.LIFE[s], color, alpha, light );
+		mirrorY();
+		delay( WaterFX.SECOND_AFTER );
+		follow( first );
 	}
 }

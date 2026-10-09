@@ -27,7 +27,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Tengu;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
@@ -35,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
@@ -72,7 +72,7 @@ public class TenguShockBomb extends Buff {
 		//the shocker sits where it landed, sparking, for as long as it arcs
 		Dungeon.level.drop( new RogueShockerItem(), cell );
 		if (Dungeon.level.heroFOV[cell]) CellEmitter.center( cell ).burst( SparkParticle.FACTORY, 8 );
-		Sample.INSTANCE.play( Assets.Sounds.ZAP, 1f, 0.8f );
+		SpatialSound.play( Assets.Sounds.ZAP, cell, 1f, 0.8f );
 		spend( TICK );
 	}
 
@@ -98,14 +98,14 @@ public class TenguShockBomb extends Buff {
 				: new int[]{ cell - w, cell + w, cell - 1, cell + 1 };
 		if (Dungeon.level.heroFOV[cell] && target.sprite != null && target.sprite.parent != null){
 			if (diagonals){
-				target.sprite.parent.add( new Lightning( cell - 1 - w, cell + 1 + w, null ) );
-				target.sprite.parent.add( new Lightning( cell - 1 + w, cell + 1 - w, null ) );
+				target.sprite.parent.add( new Lightning( cell - 1 - w, cell + 1 + w, null ).noGlow() );
+				target.sprite.parent.add( new Lightning( cell - 1 + w, cell + 1 - w, null ).noGlow() );
 			} else {
-				target.sprite.parent.add( new Lightning( cell - w, cell + w, null ) );
-				target.sprite.parent.add( new Lightning( cell - 1, cell + 1, null ) );
+				target.sprite.parent.add( new Lightning( cell - w, cell + w, null ).noGlow() );
+				target.sprite.parent.add( new Lightning( cell - 1, cell + 1, null ).noGlow() );
 			}
 			CellEmitter.center( cell ).burst( SparkParticle.FACTORY, 4 );
-			Sample.INSTANCE.play( Assets.Sounds.LIGHTNING, 0.8f, Random.Float( 0.9f, 1.2f ) );
+			SpatialSound.play( Assets.Sounds.LIGHTNING, cell, 0.8f, Random.Float( 0.9f, 1.2f ) );
 		}
 		int lvl = target instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero
 				? ((xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero) target).lvl : Dungeon.scalingDepth();

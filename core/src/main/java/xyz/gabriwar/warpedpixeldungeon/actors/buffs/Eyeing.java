@@ -27,6 +27,7 @@ package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfMagicMapping;
@@ -36,7 +37,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import com.watabou.noosa.Image;
-import com.watabou.noosa.audio.Sample;
 
 // OV: reveals all hidden traps and secret doors on the current level
 public class Eyeing extends FlavourBuff {
@@ -79,7 +79,7 @@ public class Eyeing extends FlavourBuff {
 		GameScene.updateFog();
 
 		if (noticed) {
-			Sample.INSTANCE.play( Assets.Sounds.SECRET );
+			SpatialSound.play( Assets.Sounds.SECRET, target );
 		}
 	}
 

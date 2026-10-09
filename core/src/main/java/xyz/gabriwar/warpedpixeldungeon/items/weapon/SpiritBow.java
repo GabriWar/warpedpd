@@ -30,6 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.RevealedArea;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.huntress.NaturesPower;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
@@ -47,7 +48,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MissileSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.QuickSlotButton;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
@@ -394,8 +394,8 @@ public class SpiritBow extends Weapon {
 		}
 
 		@Override
-		public void throwSound() {
-			Sample.INSTANCE.play( Assets.Sounds.ATK_SPIRITBOW, 1, Random.Float(0.87f, 1.15f) );
+		public void throwSound(Char thrower) {
+			SpatialSound.play( Assets.Sounds.ATK_SPIRITBOW, thrower, 1, Random.Float(0.87f, 1.15f) );
 		}
 
 		int flurryCount = -1;
@@ -431,7 +431,7 @@ public class SpiritBow extends Weapon {
 				
 				user.busy();
 				
-				throwSound();
+				throwSound(user);
 
 				user.sprite.zap(cell);
 				((MissileSprite) user.sprite.parent.recycle(MissileSprite.class)).

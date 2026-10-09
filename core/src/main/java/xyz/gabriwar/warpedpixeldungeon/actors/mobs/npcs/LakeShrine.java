@@ -32,6 +32,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bless;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldLayers;
@@ -42,7 +43,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CaveShrineSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
 import com.watabou.noosa.Game;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 /**
@@ -103,7 +103,7 @@ public class LakeShrine extends NPC {
 				if (pay( hero, index )){
 					if (sprite != null && sprite.parent != null){
 						CellEmitter.center( pos ).burst( Speck.factory( Speck.LIGHT ), 6 );
-						Sample.INSTANCE.play( Assets.Sounds.GOLD );
+						SpatialSound.play( Assets.Sounds.GOLD, pos );
 					}
 					GLog.p( Messages.get( LakeShrine.class, index == 0 ? "blessed_small" : index == 1 ? "blessed_mid" : "blessed_large" ) );
 					hero.spendAndNext( 1f );

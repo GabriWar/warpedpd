@@ -25,6 +25,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.quest.vault.VaultBossElemental;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
@@ -35,7 +36,6 @@ import xyz.gabriwar.warpedpixeldungeon.levels.rooms.Room;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.vault.VaultFinalRoom;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
@@ -146,11 +146,11 @@ public class VaultBossElementalSprite extends MobSprite {
 								((VaultBossElemental) ch).onZapComplete();
 							}
 						} );
-				Sample.INSTANCE.play( Assets.Sounds.ZAP );
+				SpatialSound.play( Assets.Sounds.ZAP, ch );
 				break;
 			case FROST:
 				((VaultBossElemental) ch).onZapComplete();
-				Sample.INSTANCE.play( Assets.Sounds.SHATTER );
+				SpatialSound.play( Assets.Sounds.SHATTER, ch );
 				break;
 			case SHOCK:
 				zap( cell, null );
@@ -161,7 +161,7 @@ public class VaultBossElementalSprite extends MobSprite {
 				((VaultBossElemental)ch).onZapComplete();
 
 				parent.add( new Lightning(center(), cell, null));
-				Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
+				SpatialSound.play( Assets.Sounds.LIGHTNING, ch );
 				break;
 		}
 

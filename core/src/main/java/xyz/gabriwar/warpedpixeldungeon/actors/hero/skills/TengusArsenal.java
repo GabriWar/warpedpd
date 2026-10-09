@@ -24,7 +24,6 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
@@ -40,6 +39,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.TenguShockBomb;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.TenguSmokeBomb;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Tengu;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
@@ -128,7 +128,7 @@ public class TengusArsenal extends Skill {
 			Item look = kind == SHOCK ? new TenguShockBomb.RogueShockerItem() : new TenguSmokeBomb.RogueBombItem();
 			hero.busy();
 			hero.sprite.zap( cell );
-			Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 1.2f + 0.15f * kind );
+			SpatialSound.play( Assets.Sounds.MISS, hero, 1f, 1.2f + 0.15f * kind );
 			SkillFX.streak( hero.sprite, cell, look, () -> {
 				land( hero, cell );
 				hero.spendAndNext( TIME_TO_USE );
@@ -143,7 +143,7 @@ public class TengusArsenal extends Skill {
 			}
 			switch (kind){
 				case FIRE:
-					Sample.INSTANCE.play( Assets.Sounds.BURNING, 1f, 0.9f );
+					SpatialSound.play( Assets.Sounds.BURNING, cell, 1f, 0.9f );
 					//the burst at the centre first, then the ring of flame catching around it
 					if (Dungeon.level.heroFOV[cell]) CellEmitter.center( cell ).burst( FlameParticle.FACTORY, 10 );
 					FxTimeline flames = FxTimeline.start();

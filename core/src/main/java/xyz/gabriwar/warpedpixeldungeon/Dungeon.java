@@ -1007,6 +1007,8 @@ public class Dungeon {
 		xyz.gabriwar.warpedpixeldungeon.levels.features.FallenMob.land( level );
 		//and the black market's collector, for a hero who has drawn too much heat
 		xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.WarpedRooms.onArrive( level );
+		//first steps somewhere new write its pages into the Descent Guide
+		xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph.onArrive( depth, branch );
 
 		Actor.init();
 
@@ -1596,8 +1598,7 @@ public class Dungeon {
 	
 	//debug toggle: the whole level stays visible
 	public static boolean debugNoFog = false;
-	//debug toggles: the hero's invisibility never dispels; every hero attack lands and kills
-	public static boolean debugInvisible = false;
+	//debug toggle: every hero attack lands and kills
 	public static boolean debugOneHitKill = false;
 	public static boolean debugInfiniteMana = false;
 

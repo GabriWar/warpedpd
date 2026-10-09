@@ -27,13 +27,13 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -118,7 +118,7 @@ public class Parkour extends SubSkill2 {
 			hero.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( this, vault ? "vault" : "roll" ) );
 		}
 		CellEmitter.bottom( from ).burst( Speck.factory( Speck.DUST ), 8 );
-		Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 0.8f );
+		SpatialSound.play( Assets.Sounds.MISS, hero, 1f, 0.8f );
 	}
 
 	private static boolean safe( Hero hero, int cell ){

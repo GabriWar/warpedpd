@@ -31,11 +31,11 @@ import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.UndyingWillWard;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
@@ -73,7 +73,7 @@ public class UndyingWill extends SubSkill3 {
 			Buff.affect( hero, UndyingWillWard.class ).raise( SkillInteractions.ofHealth( hero.HT, 0.05f + 0.05f * level ) );
 			hero.MP -= getManaCost();
 			castTextYell();
-			Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 1f, 0.7f );
+			SpatialSound.play( Assets.Sounds.CHALLENGE, hero, 1f, 0.7f );
 			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.RED_LIGHT ), 5 );
 			new Flare( 6, 22 ).color( 0xFF5544, true ).show( hero.sprite, 0.8f );
 			Camera.main.shake( 1, 0.2f );
@@ -101,7 +101,7 @@ public class UndyingWill extends SubSkill3 {
 			new Flare( 8, 26 ).color( 0xFF2222, true ).show( hero.sprite, 1f );
 			hero.sprite.showStatus( CharSprite.NEGATIVE, Messages.get( this, "hold" ) );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 1f, 0.5f );
+		SpatialSound.play( Assets.Sounds.CHALLENGE, hero, 1f, 0.5f );
 		Camera.main.shake( 2, 0.3f );
 		return damage - (endurance - 1);
 	}

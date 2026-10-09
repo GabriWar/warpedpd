@@ -38,12 +38,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.GlowingGas;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Smoke;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfGlowing;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfSmoke;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.BArray;
 import com.watabou.utils.PathFinder;
 
@@ -57,8 +57,8 @@ public class BlindingBrew extends Brew {
 	public void shatter( int cell ) {
 		splash( cell );
 		if (Dungeon.level.heroFOV[cell]) {
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER );
-			Sample.INSTANCE.play( Assets.Sounds.BLAST );
+			SpatialSound.play( Assets.Sounds.SHATTER, cell );
+			SpatialSound.play( Assets.Sounds.BLAST, cell );
 		}
 
 		for (int offset : PathFinder.NEIGHBOURS9) {

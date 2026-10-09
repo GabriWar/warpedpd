@@ -26,6 +26,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.quest.MetalShard;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfMagicMapping;
@@ -38,7 +39,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Reflection;
 
@@ -66,7 +66,7 @@ public class ReclaimTrap extends TargetedSpell {
 			if (t != null && t.active && t.visible) {
 				t.disarm(); //even disarms traps that normally wouldn't be
 				
-				Sample.INSTANCE.play(Assets.Sounds.LIGHTNING);
+				SpatialSound.play(Assets.Sounds.LIGHTNING, bolt.collisionPos);
 				ScrollOfRecharging.charge(hero);
 				Buff.affect(hero, ReclaimedTrap.class).trap = t.getClass();
 				Bestiary.setSeen(t.getClass());

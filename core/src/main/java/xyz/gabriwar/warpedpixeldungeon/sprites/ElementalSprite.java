@@ -24,6 +24,7 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Elemental;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ElmoParticle;
@@ -32,7 +33,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.particles.RainbowParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Callback;
 
@@ -118,7 +118,7 @@ public abstract class ElementalSprite extends MobSprite {
 						((Elemental)ch).onZapComplete();
 					}
 				} );
-		Sample.INSTANCE.play( Assets.Sounds.ZAP );
+		SpatialSound.play( Assets.Sounds.ZAP, ch );
 	}
 	
 	@Override
@@ -210,7 +210,7 @@ public abstract class ElementalSprite extends MobSprite {
 			
 			((Elemental)ch).onZapComplete();
 			parent.add( new Beam.LightRay(center(), DungeonTilemap.raisedTileCenterToWorld(cell)));
-			Sample.INSTANCE.play( Assets.Sounds.RAY );
+			SpatialSound.play( Assets.Sounds.RAY, ch );
 		}
 		
 		@Override

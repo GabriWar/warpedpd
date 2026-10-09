@@ -477,6 +477,8 @@ public class DayNightCycle {
 		ClimateManager.onHeroTurn();
 		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "ClimateManager.onHeroTurn", tClimate );
 		WeatherBlobSpawner.onHeroTurn();
+		StormStrikes.onHeroTurn();
+		if (Dungeon.level instanceof OverworldLevel) ((OverworldLevel) Dungeon.level).rainMends();
 		long tPlants = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
 		PlantGrowthManager.onHeroTurn(Dungeon.level);
 		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "PlantGrowthManager.onHeroTurn", tPlants );

@@ -26,7 +26,6 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
@@ -38,6 +37,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.SkillDecoy;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.WindParticle;
@@ -85,7 +85,7 @@ public class Awareness extends PassiveSkillA2 {
 		Buff.affect( attacker, Read.class );
 		castTextYell();
 		if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
-		Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 1.4f );
+		SpatialSound.play( Assets.Sounds.MISS, hero, 1f, 1.4f );
 		//answered once the enemy's own attack is over
 		SkillInteractions.defer( () -> {
 			if (hero.isAlive()) returnFire( hero, attacker );
@@ -105,10 +105,10 @@ public class Awareness extends PassiveSkillA2 {
 		int damage = Math.max( 1, Math.round( arrow.damageRoll( hero ) * RETURN_DAMAGE ) );
 		attacker.damage( damage, this );
 		if (hero.sprite != null) hero.sprite.zap( attacker.pos );
-		Sample.INSTANCE.play( Assets.Sounds.ATK_SPIRITBOW, 1f, 1.3f );
+		SpatialSound.play( Assets.Sounds.ATK_SPIRITBOW, hero, 1f, 1.3f );
 		SkillFX.streak( hero.sprite, attacker.pos, arrow, () -> {
 			SkillFX.flash( attacker );
-			Sample.INSTANCE.play( Assets.Sounds.HIT_ARROW, 1f, 1.1f );
+			SpatialSound.play( Assets.Sounds.HIT_ARROW, attacker, 1f, 1.1f );
 		} );
 		//+3: the return arrow pins the attacker, so a melee enemy can't follow when you step back
 		if (level >= MAX_LEVEL && attacker.isAlive() && !Char.hasProp( attacker, Char.Property.BOSS )){

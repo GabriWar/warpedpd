@@ -128,6 +128,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Necromancer;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Tengu;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.MirrorImage;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.PrismaticImage;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
@@ -184,7 +185,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MobSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.TargetHealthIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.BArray;
 import com.watabou.utils.Bundlable;
 import com.watabou.utils.Bundle;
@@ -410,8 +410,15 @@ public abstract class Char extends Actor {
 		}
 	}
 
-	public void hitSound( float pitch ){
-		Sample.INSTANCE.play(Assets.Sounds.HIT, 1, pitch);
+	//the sound of a blow of this char's landing on the defender, from where it lands
+	//a sound's pitch for a fight out of sight, off the seeded game RNG: that one is drawn only for
+	//what the hero sees, as it always was
+	private static float unseenPitch( float lo, float hi ){
+		return lo + java.util.concurrent.ThreadLocalRandom.current().nextFloat() * (hi - lo);
+	}
+
+	public void hitSound( float pitch, Char defender ){
+		SpatialSound.play(Assets.Sounds.HIT, defender, 1, pitch);
 	}
 
 	public boolean blockSound( float pitch ) {
@@ -477,7 +484,9 @@ public abstract class Char extends Actor {
 			if (visibleFight) {
 				enemy.sprite.showStatus( CharSprite.POSITIVE, Messages.get(this, "invulnerable") );
 
-				Sample.INSTANCE.play(Assets.Sounds.HIT_PARRY, 1f, Random.Float(0.96f, 1.05f));
+				SpatialSound.play(Assets.Sounds.HIT_PARRY, enemy, 1f, Random.Float(0.96f, 1.05f));
+			} else {
+				SpatialSound.playUnseen(Assets.Sounds.HIT_PARRY, enemy.pos, 1f, unseenPitch(0.96f, 1.05f));
 			}
 
 			return false;
@@ -624,8 +633,12 @@ public abstract class Char extends Actor {
 			}
 			if (visibleFight) {
 				if (effectiveDamage > 0 || !enemy.blockSound(Random.Float(0.96f, 1.05f))) {
-					hitSound(Random.Float(0.87f, 1.15f));
+					hitSound(Random.Float(0.87f, 1.15f), enemy);
 				}
+			} else {
+				//out of sight but in earshot: the blow, as far off and through what stands between as it is
+				SpatialSound.playUnseen(effectiveDamage > 0 ? Assets.Sounds.HIT : Assets.Sounds.HIT_PARRY,
+						enemy.pos, 1f, unseenPitch(0.87f, 1.15f));
 			}
 
 			// If the enemy is already dead, interrupt the attack.
@@ -735,7 +748,9 @@ public abstract class Char extends Actor {
 			}
 			if (visibleFight) {
 				//TODO enemy.defenseSound? currently miss plays for monks/crab even when they parry
-				Sample.INSTANCE.play(Assets.Sounds.MISS);
+				SpatialSound.play(Assets.Sounds.MISS, enemy);
+			} else {
+				SpatialSound.playUnseen(Assets.Sounds.MISS, enemy.pos, 1f, 1f);
 			}
 
 			//skill tree: answers to a swing that missed the hero (deferred until this attack is over)

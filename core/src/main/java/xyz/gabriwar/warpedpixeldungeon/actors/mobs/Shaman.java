@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hex;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vulnerable;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.food.MonsterMeat;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
@@ -38,7 +39,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ShamanSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 public abstract class Shaman extends Mob {
@@ -118,7 +118,7 @@ public abstract class Shaman extends Mob {
 			
 			if (Random.Int( 2 ) == 0) {
 				debuff( enemy );
-				if (enemy == Dungeon.hero) Sample.INSTANCE.play( Assets.Sounds.DEBUFF );
+				if (enemy == Dungeon.hero) SpatialSound.play( Assets.Sounds.DEBUFF, enemy );
 			}
 			
 			int dmg = Random.NormalIntRange( 6, 15 );

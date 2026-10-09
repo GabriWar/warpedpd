@@ -30,6 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -38,7 +39,6 @@ import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import com.watabou.noosa.Camera;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.BArray;
 import com.watabou.utils.Callback;
 import com.watabou.utils.PathFinder;
@@ -67,7 +67,7 @@ public class WandOfAvalanche extends DamageWand {
 	@Override
 	public void onZap(Ballistica bolt) {
 
-		Sample.INSTANCE.play(Assets.Sounds.ROCKS);
+		SpatialSound.play(Assets.Sounds.ROCKS, bolt.collisionPos);
 
 		int level = buffedLvl();
 		int size = 1 + level / 3;
@@ -112,7 +112,7 @@ public class WandOfAvalanche extends DamageWand {
 				curUser.sprite,
 				bolt.collisionPos,
 				callback);
-		Sample.INSTANCE.play(Assets.Sounds.ZAP);
+		SpatialSound.play(Assets.Sounds.ZAP, curUser);
 	}
 
 	@Override

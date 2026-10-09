@@ -21,11 +21,11 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items;
 
-import com.watabou.noosa.audio.Sample;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.SafeLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
@@ -228,6 +228,12 @@ public class BuildersTool extends Item {
 	}
 
 	public static void applyTerrain(int cell, int terrain) {
+		applyTerrain(cell, terrain, true);
+	}
+
+	/** As applyTerrain, the builder's sound for the new tile played only `withSound`: a blast
+	 *  breaking walls (Bomb) plays them breaking as one instead. */
+	public static void applyTerrain(int cell, int terrain, boolean withSound) {
 		Level.set(cell, terrain);
 		Dungeon.level.cleanWalls();
 		Dungeon.level.visited[cell] = true;
@@ -235,21 +241,22 @@ public class BuildersTool extends Item {
 		GameScene.updateMap();
 		Dungeon.observe();
 
+		if (!withSound) return;
 		switch (terrain) {
 			case Terrain.WALL:
-				Sample.INSTANCE.play(Assets.Sounds.ROCKS_LIGHT);
+				SpatialSound.play(Assets.Sounds.ROCKS_LIGHT, cell);
 				break;
 			case Terrain.EMPTY:
-				Sample.INSTANCE.play(Assets.Sounds.HIT_CRUSH);
+				SpatialSound.play(Assets.Sounds.HIT_CRUSH, cell);
 				break;
 			case Terrain.WATER:
-				Sample.INSTANCE.play(Assets.Sounds.WATER);
+				SpatialSound.play(Assets.Sounds.WATER, cell);
 				break;
 			case Terrain.GRASS:
-				Sample.INSTANCE.play(Assets.Sounds.GRASS);
+				SpatialSound.play(Assets.Sounds.GRASS, cell);
 				break;
 			case Terrain.DOOR:
-				Sample.INSTANCE.play(Assets.Sounds.OPEN);
+				SpatialSound.play(Assets.Sounds.OPEN, cell);
 				break;
 		}
 	}

@@ -27,6 +27,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Regeneration;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.DriedRose;
@@ -36,7 +37,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.MissileWeapon;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.GameMath;
 import com.watabou.utils.Random;
@@ -84,14 +84,14 @@ public class Crystal extends Weapon.Enchantment {
 					durability = Math.max(durability, 1);
 					visualDurability = Math.max(visualDurability, 1);
 
-					Sample.INSTANCE.play( Assets.Sounds.SHATTER );
+					SpatialSound.play( Assets.Sounds.SHATTER, attacker );
 					if (attacker instanceof Hero) {
 						GLog.n(Messages.get(this, "alert_cracked"));
 					} else if (attacker instanceof DriedRose.GhostHero){
 						GLog.n(Messages.get(this, "alert_cracked_ghost"));
 					}
 				} else if (visualDurability <= 0) {
-					Sample.INSTANCE.play( Assets.Sounds.SHATTER );
+					SpatialSound.play( Assets.Sounds.SHATTER, attacker );
 					Splash.at(attacker.pos, 0x0088FF, 15);
 					if (attacker instanceof Hero) {
 						if (weapon.isEquipped((Hero) attacker)) {

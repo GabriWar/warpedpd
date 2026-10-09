@@ -29,9 +29,9 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.VineLasher;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.tweeners.AlphaTweener;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 
@@ -52,7 +52,7 @@ public class PotionOfVine extends Potion {
         splash(cell);
         if (Dungeon.level.heroFOV[cell]) {
             identify();
-            Sample.INSTANCE.play(Assets.Sounds.SHATTER);
+            SpatialSound.play(Assets.Sounds.SHATTER, cell);
         }
         spawnAt(cell);
     }

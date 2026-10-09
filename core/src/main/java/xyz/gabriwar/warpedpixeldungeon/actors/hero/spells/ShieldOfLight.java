@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.cleric.PowerOfMany;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.HolyTome;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
@@ -39,7 +40,6 @@ import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
 import xyz.gabriwar.warpedpixeldungeon.ui.QuickSlotButton;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 public class ShieldOfLight extends TargetedClericSpell {
@@ -76,7 +76,7 @@ public class ShieldOfLight extends TargetedClericSpell {
 
 		QuickSlotButton.target(ch);
 
-		Sample.INSTANCE.play(Assets.Sounds.READ);
+		SpatialSound.play(Assets.Sounds.READ, ch);
 		hero.sprite.operate(hero.pos);
 
 		//1 turn less as the casting is instant

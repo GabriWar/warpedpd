@@ -27,6 +27,7 @@ package xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Enchanting;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.SpellSprite;
@@ -35,7 +36,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfRemoveCurse;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 
 /**
  * Exotic Scroll of Multi-Upgrade. Instead of five levels on one item, every piece of
@@ -72,8 +72,8 @@ public class ScrollOfAscension extends ExoticScroll {
 		}
 		curUser.sprite.emitter().start( Speck.factory( Speck.UP ), 0.2f, 6 );
 		SpellSprite.show( curUser, SpellSprite.CHARGE, 1f, 0.9f, 0.3f );
-		Sample.INSTANCE.play( Assets.Sounds.READ );
-		Sample.INSTANCE.play( Assets.Sounds.CHARGEUP );
+		SpatialSound.play( Assets.Sounds.READ, curUser );
+		SpatialSound.play( Assets.Sounds.CHARGEUP, curUser );
 		Invisibility.dispel();
 		identify();
 		readAnimation();

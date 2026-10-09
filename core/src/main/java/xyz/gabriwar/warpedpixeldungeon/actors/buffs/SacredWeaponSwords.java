@@ -26,7 +26,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.PointF;
@@ -39,6 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
@@ -111,7 +111,7 @@ public class SacredWeaponSwords extends Buff {
 		final int cell = best;
 		KindOfWeapon look = target instanceof Hero ? ((Hero) target).belongings.weapon() : null;
 		SkillFX.rain( cell, look, 1, () -> CellEmitter.center( cell ).burst( Speck.factory( Speck.LIGHT ), 6 ) );
-		Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 0.9f, 0.9f );
+		SpatialSound.play( Assets.Sounds.HIT_MAGIC, cell, 0.9f, 0.9f );
 		fx( true );
 		return true;
 	}
@@ -149,7 +149,7 @@ public class SacredWeaponSwords extends Buff {
 				SkillSpectacleFX.fly( SkillSpectacleFX.SABER, c, ch.pos, 0, .25f );
 				ch.damage( Math.max( 1, Math.round( roll( hero ) * CUT ) ), this );
 				SkillFX.flash( ch );
-				Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 0.8f, 1.2f );
+				SpatialSound.play( Assets.Sounds.HIT_SLASH, ch, 0.8f, 1.2f );
 				break;
 			}
 			if (--left[i] > 0){
@@ -185,7 +185,7 @@ public class SacredWeaponSwords extends Buff {
 		KindOfWeapon look = hero.belongings.weapon();
 		if (look != null) SkillFX.streak( from, struck.pos, look, () -> SkillFX.flash( struck ) );
 		else SkillSpectacleFX.fly( SkillSpectacleFX.SABER, from, struck.pos, 0, .3f );
-		Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 1.2f );
+		SpatialSound.play( Assets.Sounds.MISS, hero, 1f, 1.2f );
 		struck.damage( Math.max( 1, Math.round( roll( hero ) * THROW ) ), this );
 	}
 

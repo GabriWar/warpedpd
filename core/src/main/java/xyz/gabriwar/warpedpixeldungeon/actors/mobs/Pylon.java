@@ -30,6 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Electricity;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.LockedFloor;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
@@ -39,7 +40,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.PylonSprite;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -121,7 +121,7 @@ public class Pylon extends Mob {
 						DungeonTilemap.raisedTileCenterToWorld(cell), null));
 				CellEmitter.get(cell).burst(SparkParticle.FACTORY, 3);
 			}
-			Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
+			SpatialSound.play( Assets.Sounds.LIGHTNING, pos );
 		}
 
 		for (int cell : shockCells) {

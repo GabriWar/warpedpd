@@ -353,7 +353,7 @@ public class LagMonitor {
 				protected void onSelect( int index ){
 					prompting = false;
 					if (index == 0) save( report );
-					else if (index == 1) GameScene.show( new WndTitledMessage( xyz.gabriwar.warpedpixeldungeon.ui.Icons.get( xyz.gabriwar.warpedpixeldungeon.ui.Icons.WARNING ), "Lag profile", report ) );
+					else if (index == 1) GameScene.show( new xyz.gabriwar.warpedpixeldungeon.windows.WndDebugReport( "Lag profile", report ) );
 					else if (index == 3) setEnabled( false );
 				}
 				@Override
@@ -479,7 +479,8 @@ public class LagMonitor {
 		final String message = fileResult + "\n\n" + clipResult;
 		Game.runOnRenderThread( () -> {
 			if (Game.scene() instanceof PixelScene){
-				Game.scene().addToFront( new WndTitledMessage( xyz.gabriwar.warpedpixeldungeon.ui.Icons.get( xyz.gabriwar.warpedpixeldungeon.ui.Icons.WARNING ), "Lag profile", message ) );
+				Game.scene().addToFront( new WndTitledMessage( xyz.gabriwar.warpedpixeldungeon.ui.Icons.get( xyz.gabriwar.warpedpixeldungeon.ui.Icons.WARNING ),
+						prefix.equals( "profile" ) ? "Profile saved" : "Lag profile saved", message ) );
 			}
 		} );
 	}

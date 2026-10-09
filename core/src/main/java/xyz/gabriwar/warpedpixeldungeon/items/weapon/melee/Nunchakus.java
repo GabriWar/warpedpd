@@ -29,7 +29,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import com.watabou.utils.Callback;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -41,6 +40,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import com.watabou.utils.Random;
 
@@ -84,11 +84,11 @@ public class Nunchakus extends MeleeWeapon {
 				AttackIndicator.target( enemy );
 				new Flare( 5, 14 ).color( 0xCCCCCC, true ).show( hero.sprite, 0.4f ).angularSpeed = 720;
 				if (hero.attack( enemy, 1f, boost, Char.INFINITE_ACCURACY )){
-					Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 1f, 1.2f );
+					SpatialSound.play( Assets.Sounds.HIT_CRUSH, enemy, 1f, 1.2f );
 					if (enemy.isAlive()){
 						if (hero.attack( enemy, 0.75f, boost, Char.INFINITE_ACCURACY )){
 							Wound.hit( enemy );
-							Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 1f, 1.4f );
+							SpatialSound.play( Assets.Sounds.HIT_CRUSH, enemy, 1f, 1.4f );
 						}
 					}
 					if (!enemy.isAlive()) onAbilityKill( hero, enemy );

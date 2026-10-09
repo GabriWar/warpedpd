@@ -35,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SheepSokoban;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SheepSokobanBlack;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SheepSokobanCorner;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SheepSokobanSwitch;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Gold;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
@@ -53,7 +54,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.plants.Phaseshift;
 import xyz.gabriwar.warpedpixeldungeon.plants.Starflower;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundlable;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
@@ -479,7 +479,7 @@ public class SokobanTeleportLevel extends Level {
 
 		if (trapTriggered) {
 			if (Dungeon.level.heroFOV[cell]) {
-				Sample.INSTANCE.play(Assets.Sounds.TRAP);
+				SpatialSound.play(Assets.Sounds.TRAP, cell);
 			}
 			if (fleeced) {
 				set(cell, Terrain.WOOL_RUG);

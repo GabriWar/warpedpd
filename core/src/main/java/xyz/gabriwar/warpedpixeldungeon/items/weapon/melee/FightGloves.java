@@ -30,7 +30,6 @@ import com.watabou.utils.Callback;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
@@ -41,6 +40,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import com.watabou.utils.Random;
 
@@ -120,7 +120,7 @@ public class FightGloves extends MeleeWeapon {
 				for (int i = 0; i < 3 && enemy.isAlive(); i++){
 					if (hero.attack(enemy, share, 0, Char.INFINITE_ACCURACY)){
 						landed++;
-						Sample.INSTANCE.play(Assets.Sounds.HIT_CRUSH, 1f, 1.1f + 0.2f * i);
+						SpatialSound.play(Assets.Sounds.HIT_CRUSH, enemy, 1f, 1.1f + 0.2f * i);
 						if (enemy.sprite != null) enemy.sprite.emitter().burst(Speck.factory(Speck.STAR), 2);
 					}
 				}

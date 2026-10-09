@@ -30,6 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FlavourBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Effects;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
@@ -47,7 +48,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
 import com.watabou.noosa.Image;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.PointF;
@@ -71,7 +71,7 @@ public class WandOfBlastWave extends DamageWand {
 
 	@Override
 	public void onZap(Ballistica bolt) {
-		Sample.INSTANCE.play( Assets.Sounds.BLAST );
+		SpatialSound.play( Assets.Sounds.BLAST, bolt.collisionPos );
 		BlastWave.blast(bolt.collisionPos);
 
 		//presses all tiles in the AOE first, with the exception of tengu dart traps
@@ -202,7 +202,7 @@ public class WandOfBlastWave extends DamageWand {
 			int dmg = Hero.heroDamageIntRange(8+2*buffedLvl(), 12+3*buffedLvl());
 			defender.damage(Math.round(procChanceMultiplier(attacker) * dmg), this);
 			BlastWave.blast(defender.pos);
-			Sample.INSTANCE.play( Assets.Sounds.BLAST );
+			SpatialSound.play( Assets.Sounds.BLAST, defender );
 
 			//brief immunity, to prevent stacking absurd damage with it with things like para gas
 			Buff.prolong(defender, BWaveOnHitTracker.class, 3f);
@@ -223,7 +223,7 @@ public class WandOfBlastWave extends DamageWand {
 				curUser.sprite,
 				bolt.collisionPos,
 				callback);
-		Sample.INSTANCE.play(Assets.Sounds.ZAP);
+		SpatialSound.play(Assets.Sounds.ZAP, curUser);
 	}
 
 	@Override

@@ -38,10 +38,12 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.SkillSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.RenderedTextBlock;
+import xyz.gabriwar.warpedpixeldungeon.ui.ScrollPane;
 import xyz.gabriwar.warpedpixeldungeon.ui.Window;
 import com.watabou.noosa.BitmapText;
 import com.watabou.noosa.ColorBlock;
 import com.watabou.noosa.Image;
+import com.watabou.noosa.ui.Component;
 import xyz.gabriwar.warpedpixeldungeon.ui.Button;
 
 import java.util.List;
@@ -59,8 +61,11 @@ public class WndQuickSkills extends Window {
 	private static final int CELL_H  = SLOT + PIPS + 4;
 	private static final int COLS    = 4;
 	private static final int TITLE_H = 14;
+	private static final int CLEAR_H = 18;
 
 	private final java.util.function.Consumer<Skill> selection;
+	//only when the skills are more than the screen holds (every class's, from the debug window)
+	private ScrollPane pane;
 
 	public WndQuickSkills(){
 		this(null);
@@ -89,8 +94,8 @@ public class WndQuickSkills extends Window {
 		title.setPos( icon.x + icon.width() + 3, (TITLE_H - title.height()) / 2f );
 		PixelScene.align( title );
 		add( title );
-		if (selection == null && Skill.availableSkill > 0){
-			RenderedTextBlock pts = PixelScene.renderTextBlock( Messages.get( this, "points", Skill.availableSkill ), 6 );
+		if (selection == null && Dungeon.hero.heroSkills.availableSkill > 0){
+			RenderedTextBlock pts = PixelScene.renderTextBlock( Messages.get( this, "points", Dungeon.hero.heroSkills.availableSkill ), 6 );
 			pts.hardlight( 0x8ce08c );
 			pts.setPos( width - pts.width() - 2, (TITLE_H - pts.height()) / 2f );
 			PixelScene.align( pts );
@@ -111,12 +116,31 @@ public class WndQuickSkills extends Window {
 		}
 
 		int rows = (usable.size() + COLS - 1) / COLS;
-		for (int i = 0; i < usable.size(); i++){
-			SkillButton btn = new SkillButton( usable.get(i) );
-			btn.setRect( (i % COLS) * CELL_W + 2, TITLE_H + 3 + (i / COLS) * CELL_H, SLOT, SLOT );
-			add( btn );
+		int room = (int)PixelScene.uiCamera.height - chrome.marginVer() - 20 - TITLE_H - 3
+				- (selection == null ? 0 : CLEAR_H + 2);
+		if (rows * CELL_H <= room){
+			for (int i = 0; i < usable.size(); i++){
+				SkillButton btn = new SkillButton( usable.get(i) );
+				btn.setRect( (i % COLS) * CELL_W + 2, TITLE_H + 3 + (i / COLS) * CELL_H, SLOT, SLOT );
+				add( btn );
+			}
+			resize( width, TITLE_H + 3 + rows * CELL_H );
+		} else {
+			//the pane before its buttons: pointer listeners fire newest first, so a pane made
+			//after the buttons on it would take their presses
+			pane = new ScrollPane( new Component() );
+			for (int i = 0; i < usable.size(); i++){
+				SkillButton btn = new SkillButton( usable.get(i) );
+				btn.setRect( (i % COLS) * CELL_W + 2, 2 + (i / COLS) * CELL_H, SLOT, SLOT );
+				pane.content().add( btn );
+			}
+			pane.content().setSize( width, 2 + rows * CELL_H );
+			//resize() before the pane goes in: its camera is placed from the window's
+			resize( width, TITLE_H + 3 + room );
+			add( pane );
+			pane.setRect( 0, TITLE_H + 1, width, room + 2 );
+			pane.dragOverButtons();
 		}
-		resize( width, TITLE_H + 3 + rows * CELL_H );
 		addClearButton(width);
 	}
 
@@ -128,7 +152,7 @@ public class WndQuickSkills extends Window {
 				selection.accept(null);
 			}
 		};
-		clear.setRect(0, height + 2, width, 18);
+		clear.setRect(0, height + 2, width, CLEAR_H);
 		add(clear);
 		resize(width, (int)clear.bottom());
 	}
@@ -278,8 +302,12 @@ public class WndQuickSkills extends Window {
 			} else {
 				//a toggle: flip it and stay put so several can be set in a row
 				skill.execute( Dungeon.hero, action );
+				//a list long enough to scroll comes back scrolled where it was
+				float scrolled = pane == null ? 0 : pane.content().camera.scroll.y;
 				hide();
-				GameScene.show( new WndQuickSkills() );
+				WndQuickSkills again = new WndQuickSkills();
+				if (again.pane != null) again.pane.scrollTo( 0, scrolled );
+				GameScene.show( again );
 			}
 		}
 

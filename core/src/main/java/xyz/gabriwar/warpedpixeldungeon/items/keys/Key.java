@@ -24,13 +24,13 @@ package xyz.gabriwar.warpedpixeldungeon.items.keys;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.SkeletonKey;
 import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
 import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndJournal;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 public abstract class Key extends Item {
@@ -58,7 +58,7 @@ public abstract class Key extends Item {
 		GameScene.pickUpJournal(this, pos);
 		WndJournal.last_index = 0;
 		Notes.add(this);
-		Sample.INSTANCE.play( Assets.Sounds.ITEM );
+		SpatialSound.play( Assets.Sounds.ITEM, hero );
 		hero.spendAndNext( pickupDelay() );
 		GameScene.updateKeyDisplay();
 

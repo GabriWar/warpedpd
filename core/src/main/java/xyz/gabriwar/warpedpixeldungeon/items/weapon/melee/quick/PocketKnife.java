@@ -28,6 +28,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Belongings;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
@@ -40,7 +41,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
-import com.watabou.noosa.audio.Sample;
 
 import java.util.ArrayList;
 
@@ -114,7 +114,7 @@ public class PocketKnife extends QuickWeapon {
             if (item == null) return;
 
             item.upgrade();
-            Sample.INSTANCE.play( Assets.Sounds.EVOKE );
+            SpatialSound.play( Assets.Sounds.EVOKE, curUser );
             CellEmitter.center( curUser.pos ).burst( Speck.factory( Speck.STAR ), 7 );
             curUser.sprite.operate( curUser.pos );
             PocketKnife.this.detach( curUser.belongings.backpack );

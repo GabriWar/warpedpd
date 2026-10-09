@@ -27,7 +27,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 import com.watabou.glwrap.Blending;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Halo;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PointF;
 
@@ -37,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -91,7 +91,7 @@ public class AvatarOfLightHalo extends Buff {
 				boolean unholy = Char.hasProp( m, Char.Property.UNDEAD ) || Char.hasProp( m, Char.Property.DEMONIC );
 				if (target.sprite != null && target.sprite.parent != null && m.sprite != null)
 					target.sprite.parent.add( new Beam.LightRay( target.sprite.center(), m.sprite.center() ) );
-				Sample.INSTANCE.play( Assets.Sounds.RAY, 0.8f, 1.3f );
+				SpatialSound.play( Assets.Sounds.RAY, m, 0.8f, 1.3f );
 				m.damage( unholy ? SEAR * 2 : SEAR, this );
 				SkillFX.flash( m );
 				if (m.isAlive()) Buff.prolong( m, Blindness.class, BLIND );

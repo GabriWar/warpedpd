@@ -25,12 +25,12 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FlavourBuff;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.EarthParticle;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Bundle;
 
@@ -86,7 +86,7 @@ public class DelayedRockFall extends FlavourBuff {
 		}
 
 		PixelScene.shake( 3, 0.7f );
-		Sample.INSTANCE.play(Assets.Sounds.ROCKS);
+		SpatialSound.play(Assets.Sounds.ROCKS, target);
 
 		detach();
 		return super.act();

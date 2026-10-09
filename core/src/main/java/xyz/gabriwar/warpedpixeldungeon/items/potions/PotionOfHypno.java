@@ -29,7 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Corruption;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
-import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 
 public class PotionOfHypno extends Potion {
@@ -43,7 +43,7 @@ public class PotionOfHypno extends Potion {
         splash(cell);
         if (Dungeon.level.heroFOV[cell]) {
             identify();
-            Sample.INSTANCE.play(Assets.Sounds.SHATTER);
+            SpatialSound.play(Assets.Sounds.SHATTER, cell);
         }
 
         for(Mob mob : Dungeon.level.mobs.toArray(new Mob[0])){

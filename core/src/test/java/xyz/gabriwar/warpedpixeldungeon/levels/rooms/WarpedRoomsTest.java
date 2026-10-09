@@ -128,6 +128,10 @@ public class WarpedRoomsTest {
 	public static void boot(){
 		GdxNativesLoader.load();
 		Gdx.files = new AssetFiles();
+		//saves into the build's own folder, as GuideGraphTest's do: a test that reaches the journal
+		//(a guide page found on the way) needs a file type, whichever test happened to run first
+		com.watabou.utils.FileUtils.setDefaultFileProperties( com.badlogic.gdx.Files.FileType.Absolute,
+				new java.io.File( "build/test-saves" ).getAbsolutePath() + "/" );
 		final HashMap<String, Object> store = new HashMap<>();
 		final Preferences prefs = (Preferences) Proxy.newProxyInstance( Preferences.class.getClassLoader(),
 				new Class<?>[]{ Preferences.class }, (proxy, m, args) -> {

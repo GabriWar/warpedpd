@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.WorldClock;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.AdamantArmor;
 import xyz.gabriwar.warpedpixeldungeon.items.AdamantRing;
@@ -57,7 +58,6 @@ import xyz.gabriwar.warpedpixeldungeon.windows.WndBlacksmith2;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndQuest;
 import com.watabou.noosa.Game;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 
 public class Blacksmith2 extends NPC {
@@ -148,7 +148,7 @@ public class Blacksmith2 extends NPC {
 		if (!core.collect( Dungeon.hero.belongings.backpack )){
 			Dungeon.level.drop( core, Dungeon.hero.pos ).sprite.drop();
 		}
-		Sample.INSTANCE.play( Assets.Sounds.EVOKE );
+		SpatialSound.play( Assets.Sounds.EVOKE, pos );
 		Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 8 );
 		GLog.p( Messages.get( this, "starforged" ) );
 		Dungeon.hero.spendAndNext( 2f );
@@ -194,7 +194,7 @@ public class Blacksmith2 extends NPC {
 			tell( Messages.get( this, "smelt_short", k.batch, name, have ) );
 			return;
 		}
-		Sample.INSTANCE.play( Assets.Sounds.EVOKE );
+		SpatialSound.play( Assets.Sounds.EVOKE, pos );
 		Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.FORGE ), 8 );
 		GLog.p( Messages.get( this, "smelted", k.batch, name ) );
 		if (k.bonus > 0) GLog.p( Messages.get( this, "smelted_bonus", k.bonus ) );

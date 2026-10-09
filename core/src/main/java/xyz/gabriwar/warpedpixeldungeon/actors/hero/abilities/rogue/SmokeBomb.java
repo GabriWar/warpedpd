@@ -40,6 +40,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.ArmorAbility;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.NPC;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
@@ -52,7 +53,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.MobSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.BArray;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -139,7 +139,7 @@ public class SmokeBomb extends ArmorAbility {
 
 			CellEmitter.get( hero.pos ).burst( Speck.factory( Speck.WOOL ), 10 );
 			ScrollOfTeleportation.appear( hero, target );
-			Sample.INSTANCE.play( Assets.Sounds.PUFF );
+			SpatialSound.play( Assets.Sounds.PUFF, hero );
 			Dungeon.level.occupyCell( hero );
 			Dungeon.observe();
 			GameScene.updateFog();

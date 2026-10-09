@@ -48,6 +48,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.cleric.AscendedForm;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.cleric.PowerOfMany;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.glyphs.Viscosity;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.HolyTome;
@@ -61,7 +62,6 @@ import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
 import xyz.gabriwar.warpedpixeldungeon.ui.QuickSlotButton;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 
 public class MnemonicPrayer extends TargetedClericSpell {
 
@@ -125,7 +125,7 @@ public class MnemonicPrayer extends TargetedClericSpell {
 	private void affectChar( Char ch, float extension ){
 		if (ch.alignment == Char.Alignment.ALLY){
 
-			Sample.INSTANCE.play(Assets.Sounds.CHARGEUP);
+			SpatialSound.play(Assets.Sounds.CHARGEUP, ch);
 			ch.sprite.emitter().start(Speck.factory(Speck.UP), 0.15f, 4);
 
 			for (Buff b : ch.buffs()){
@@ -163,7 +163,7 @@ public class MnemonicPrayer extends TargetedClericSpell {
 
 		} else {
 
-			Sample.INSTANCE.play(Assets.Sounds.DEBUFF);
+			SpatialSound.play(Assets.Sounds.DEBUFF, ch);
 			ch.sprite.emitter().start(Speck.factory(Speck.DOWN), 0.15f, 4);
 
 			Buff.affect(ch, GuidingLight.Illuminated.class);

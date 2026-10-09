@@ -28,7 +28,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import com.watabou.noosa.Camera;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -39,6 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
@@ -136,7 +136,7 @@ public class HolyCharge extends SubSkill2 {
 		castTextYell();
 		Invisibility.dispel();
 		hero.busy();
-		Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 1f, 1.3f );
+		SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 1f, 1.3f );
 
 		final int from = hero.pos;
 		final int dest = land;
@@ -181,11 +181,11 @@ public class HolyCharge extends SubSkill2 {
 				new Flare( 8, 28 ).color( 0xFFEE88, true ).show( victim.sprite, 0.6f );
 				victim.sprite.emitter().burst( Speck.factory( Speck.STAR ), 8 );
 			}
-			Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 1f, 0.9f );
+			SpatialSound.play( Assets.Sounds.HIT_STRONG, victim, 1f, 0.9f );
 			Camera.main.shake( 3, 0.3f );
 		} else {
 			CellEmitter.bottom( hero.pos ).burst( Speck.factory( Speck.DUST ), 6 );
-			Sample.INSTANCE.play( Assets.Sounds.TRAMPLE, 1f, 1f );
+			SpatialSound.play( Assets.Sounds.TRAMPLE, hero, 1f, 1f );
 		}
 
 		//at mastery the streak of light blinds whatever stands beside it

@@ -24,12 +24,12 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfWarding;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.Game;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.tweeners.AlphaTweener;
 
 public class WardSprite extends MobSprite {
@@ -71,7 +71,7 @@ public class WardSprite extends MobSprite {
 		} else {
 			parent.add(new Beam.DeathRay(center(), DungeonTilemap.raisedTileCenterToWorld(pos)));
 		}
-		Sample.INSTANCE.play( Assets.Sounds.RAY );
+		SpatialSound.play( Assets.Sounds.RAY, ch );
 		((WandOfWarding.Ward)ch).onZapComplete();
 	}
 	

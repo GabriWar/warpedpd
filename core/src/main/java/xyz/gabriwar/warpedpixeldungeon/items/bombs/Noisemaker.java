@@ -26,11 +26,11 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 public class Noisemaker extends Bomb {
@@ -98,7 +98,7 @@ public class Noisemaker extends Bomb {
 
 							if (left <= 0){
 								CellEmitter.center( heap.pos ).start( Speck.factory( Speck.SCREAM ), 0.3f, 3 );
-								Sample.INSTANCE.play( Assets.Sounds.ALERT );
+								SpatialSound.play( Assets.Sounds.ALERT, heap.pos );
 
 								for (Mob mob : Dungeon.level.mobs.toArray( new Mob[0] )) {
 									mob.beckon( heap.pos );

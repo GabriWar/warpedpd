@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.DwarfKing;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.BrokenSeal;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
@@ -46,7 +47,6 @@ import xyz.gabriwar.warpedpixeldungeon.windows.WndCombo;
 import com.watabou.noosa.BitmapText;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.Visual;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.BArray;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
@@ -458,7 +458,7 @@ public class Combo extends Buff implements ActionIndicator.Action {
 					});
 				} else {
 					furyHitsLeft = 0;
-					Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG);
+					SpatialSound.play(Assets.Sounds.HIT_STRONG, enemy);
 					ActionIndicator.clearAction(Combo.this);
 					hero.next();
 				}

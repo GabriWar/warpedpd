@@ -31,11 +31,11 @@ import xyz.gabriwar.warpedpixeldungeon.effects.particles.BloodParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import com.watabou.utils.Random;
 
 public class Hamstring extends Skill {
@@ -67,7 +67,7 @@ public class Hamstring extends Skill {
 				CellEmitter.bottom( enemy.pos ).burst( Speck.factory( Speck.DUST ), 3 );
 				enemy.sprite.flash();
 			}
-			Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 1f, 0.7f );
+			SpatialSound.play( Assets.Sounds.HIT_CRUSH, enemy, 1f, 0.7f );
 		}
 		if (!ranged && level > 0 && enemy != null && enemy.isAlive()
 				&& Random.Int( 100 ) < 8 * level){
@@ -77,7 +77,7 @@ public class Hamstring extends Skill {
 				enemy.sprite.emitter().burst( BloodParticle.FACTORY, 3 );
 				CellEmitter.bottom( enemy.pos ).burst( Speck.factory( Speck.DUST ), 2 );
 			}
-			Sample.INSTANCE.play( Assets.Sounds.HIT_STAB, 1f, 0.8f );
+			SpatialSound.play( Assets.Sounds.HIT_STAB, enemy, 1f, 0.8f );
 		}
 		return damage;
 	}

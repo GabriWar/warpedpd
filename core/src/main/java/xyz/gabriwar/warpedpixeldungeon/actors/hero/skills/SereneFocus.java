@@ -32,10 +32,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Slow;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfMagic;
 
 
@@ -74,7 +74,7 @@ public class SereneFocus extends Skill {
 			}
 		}
 		if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 3 );
-		Sample.INSTANCE.play( Assets.Sounds.MELD, 0.6f, 1.4f );
+		SpatialSound.play( Assets.Sounds.MELD, hero, 0.6f, 1.4f );
 	}
 
 	private static void calm( Char ch, float duration ){

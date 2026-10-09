@@ -34,7 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 /**
  * A snowflake, in one of four sizes from a speck to a crystal, wandering down on
  * its own wobble and carried by the wind; in a blizzard it is a white streak
- * driven sideways.
+ * driven sideways, or, in its thick, a flake blown along with the streaks.
  */
 public class AmbientSnowParticle extends WeatherParticle {
 
@@ -59,6 +59,22 @@ public class AmbientSnowParticle extends WeatherParticle {
 		@Override
 		public void emit(Emitter emitter, int index, float x, float y) {
 			((AmbientSnowParticle) emitter.recycle(AmbientSnowParticle.class)).resetStorm(x, y);
+		}
+	};
+
+	/** the thick of a blizzard (WeatherOverlay): a flake of any size blown along with the wind */
+	public static final Emitter.Factory DRIVEN = new Emitter.Factory() {
+		@Override
+		public void emit(Emitter emitter, int index, float x, float y) {
+			((AmbientSnowParticle) emitter.recycle(AmbientSnowParticle.class)).resetDriven(x, y);
+		}
+	};
+
+	/** and its fastest snow: a streak racing nearly level with the wind */
+	public static final Emitter.Factory GALE = new Emitter.Factory() {
+		@Override
+		public void emit(Emitter emitter, int index, float x, float y) {
+			((AmbientSnowParticle) emitter.recycle(AmbientSnowParticle.class)).resetGale(x, y);
 		}
 	};
 
@@ -127,6 +143,29 @@ public class AmbientSnowParticle extends WeatherParticle {
 		frame(Random.Float() < 0.6f ? WeatherSprites.STREAK_3 : WeatherSprites.STREAK_4);
 		angle = (float) Math.toDegrees(Math.atan2(speed.y, speed.x));
 		left = lifespan = Random.Float(0.8f, 1.6f);
+	}
+
+	/** a flake, any of the four sizes, carried hard along the wind and falling slowly under it:
+	 *  gone in a second or two */
+	public void resetDriven(float x, float y) {
+		reset(x, y);
+		storm = true;
+		float wind = Math.max(8f, ClimateManager.localWindSpeed()) * (1f + 0.4f * WeatherSprites.gust());
+		float windRad = (float) Math.toRadians(ClimateManager.surfaceWindDir());
+		speed.set((float) Math.sin(windRad) * wind * 2f + Random.Float(-6, 6),
+				-(float) Math.cos(windRad) * wind * 0.6f + Random.Float(8, 18));
+		windBias = speed.x;
+		left = lifespan = Random.Float(1.2f, 2.4f);
+	}
+
+	/** a blizzard streak driven half again as fast and flatter, the long one, gone sooner */
+	public void resetGale(float x, float y) {
+		resetStorm(x, y);
+		speed.set(speed.x * 1.8f, speed.y * 1.2f);
+		windBias = speed.x;
+		frame(WeatherSprites.STREAK_4);
+		angle = (float) Math.toDegrees(Math.atan2(speed.y, speed.x));
+		left = lifespan = Random.Float(0.5f, 1f);
 	}
 
 	@Override

@@ -30,13 +30,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.cleric.PowerOfMany;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.HolyTome;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 
 public class LayOnHands extends TargetedClericSpell {
 
@@ -79,7 +79,7 @@ public class LayOnHands extends TargetedClericSpell {
 			return;
 		}
 
-		Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
+		SpatialSound.play(Assets.Sounds.TELEPORT, ch);
 
 		affectChar(hero, ch);
 

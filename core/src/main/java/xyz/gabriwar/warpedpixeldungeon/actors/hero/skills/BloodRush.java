@@ -28,7 +28,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import com.watabou.noosa.Camera;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -39,6 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Slow;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -144,7 +144,7 @@ public class BloodRush extends SubSkill2 {
 			castTextYell();
 			Invisibility.dispel();
 			hero.busy();
-			Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 1f, 1.1f );
+			SpatialSound.play( Assets.Sounds.CHALLENGE, hero, 1f, 1.1f );
 			new Flare( 5, 16 ).color( 0xFF3333, true ).show( hero.sprite, 0.5f );
 			for (int c : trail) CellEmitter.get( c ).burst( BloodParticle.FACTORY, 6 );
 
@@ -156,7 +156,7 @@ public class BloodRush extends SubSkill2 {
 				GameScene.updateFog();
 				WarriorImpactFX.show( land );
 				hero.sprite.emitter().burst( Speck.factory( Speck.RED_LIGHT ), 6 );
-				Sample.INSTANCE.play( Assets.Sounds.TRAMPLE, 1f, 0.9f );
+				SpatialSound.play( Assets.Sounds.TRAMPLE, hero, 1f, 0.9f );
 				Camera.main.shake( 2, 0.2f );
 				hero.spendAndNext( TIME_TO_USE );
 			} );
@@ -187,7 +187,7 @@ public class BloodRush extends SubSkill2 {
 			WarriorImpactFX.show( to );
 			ch.damage( Math.round( hero.damageRoll() * SLAM ), this );
 			Wound.hit( ch );
-			Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 1f, 0.9f );
+			SpatialSound.play( Assets.Sounds.HIT_STRONG, ch, 1f, 0.9f );
 			return true;
 		}
 		return false;

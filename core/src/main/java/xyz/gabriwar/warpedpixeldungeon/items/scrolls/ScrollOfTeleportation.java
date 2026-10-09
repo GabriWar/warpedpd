@@ -28,6 +28,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.levels.RegularLevel;
@@ -41,7 +42,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.vault.treasure.VaultTreasureRoom;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.tweeners.AlphaTweener;
 import com.watabou.utils.BArray;
 import com.watabou.utils.PathFinder;
@@ -60,7 +60,7 @@ public class ScrollOfTeleportation extends Scroll {
 	public void doRead() {
 
 		detach(curUser.belongings.backpack);
-		Sample.INSTANCE.play( Assets.Sounds.READ );
+		SpatialSound.play( Assets.Sounds.READ, curUser );
 		
 		if (teleportPreferringUnseen( curUser )){
 			readAnimation();
@@ -203,7 +203,7 @@ public class ScrollOfTeleportation extends Scroll {
 			Dungeon.level.occupyCell( hero );
 			Buff.detach(hero, Roots.class);
 			if (secretDoor && level.map[doorPos] == Terrain.SECRET_DOOR){
-				Sample.INSTANCE.play( Assets.Sounds.SECRET );
+				SpatialSound.play( Assets.Sounds.SECRET, doorPos );
 				int oldValue = Dungeon.level.map[doorPos];
 				GameScene.discoverTile( doorPos, oldValue );
 				Dungeon.level.discover( doorPos );
@@ -285,15 +285,17 @@ public class ScrollOfTeleportation extends Scroll {
 
 		ch.sprite.interruptMotion();
 
-		if (Dungeon.level.heroFOV[pos] || Dungeon.level.heroFOV[ch.pos]){
-			Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
-		}
+		boolean heard = Dungeon.level.heroFOV[pos] || Dungeon.level.heroFOV[ch.pos];
 
 		if (Dungeon.level.heroFOV[ch.pos] && ch != Dungeon.hero ) {
 			CellEmitter.get(ch.pos).start(Speck.factory(Speck.LIGHT), 0.2f, 3);
 		}
 
 		ch.move( pos, false );
+		//from where it lands, once it is there: the hero's own is heard on him
+		if (heard){
+			SpatialSound.play(Assets.Sounds.TELEPORT, pos);
+		}
 		if (ch.pos == pos) {
 			ch.sprite.interruptMotion();
 			ch.sprite.place(pos);
@@ -317,7 +319,7 @@ public class ScrollOfTeleportation extends Scroll {
 	//just plays the VFX for teleporting, without any position changes, does re-press cells though
 	public static void appearVFX( Char ch ){
 		if (Dungeon.level.heroFOV[ch.pos]){
-			Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
+			SpatialSound.play(Assets.Sounds.TELEPORT, ch);
 		}
 
 		Dungeon.level.occupyCell(ch);

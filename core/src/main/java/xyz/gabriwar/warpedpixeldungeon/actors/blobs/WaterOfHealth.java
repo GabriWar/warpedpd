@@ -28,6 +28,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Healing;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
@@ -44,7 +45,6 @@ import xyz.gabriwar.warpedpixeldungeon.journal.Notes.Landmark;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 
 public class WaterOfHealth extends WellWater {
 	
@@ -53,7 +53,7 @@ public class WaterOfHealth extends WellWater {
 		
 		if (!hero.isAlive()) return false;
 		
-		Sample.INSTANCE.play( Assets.Sounds.DRINK );
+		SpatialSound.play( Assets.Sounds.DRINK, hero );
 
 		PotionOfHealing.cure( hero );
 		hero.belongings.uncurseEquipped();
@@ -82,18 +82,18 @@ public class WaterOfHealth extends WellWater {
 		if (item instanceof Waterskin && !((Waterskin)item).isFull()) {
 			((Waterskin)item).fill();
 			CellEmitter.get( pos ).start( Speck.factory( Speck.HEALING ), 0.4f, 4 );
-			Sample.INSTANCE.play( Assets.Sounds.DRINK );
+			SpatialSound.play( Assets.Sounds.DRINK, pos );
 			return item;
 		} else if ( item instanceof Ankh && !(((Ankh) item).isBlessed())){
 			((Ankh) item).bless();
 			CellEmitter.get( pos ).start(Speck.factory(Speck.LIGHT), 0.2f, 3);
-			Sample.INSTANCE.play( Assets.Sounds.DRINK );
+			SpatialSound.play( Assets.Sounds.DRINK, pos );
 			return item;
 		} else if (ScrollOfRemoveCurse.uncursable(item)) {
 			if (ScrollOfRemoveCurse.uncurse( null, item )){
 				CellEmitter.get( pos ).start( ShadowParticle.UP, 0.05f, 10 );
 			}
-			Sample.INSTANCE.play( Assets.Sounds.DRINK );
+			SpatialSound.play( Assets.Sounds.DRINK, pos );
 			return item;
 		}
 		return null;

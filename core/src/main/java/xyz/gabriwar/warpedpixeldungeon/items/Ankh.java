@@ -23,13 +23,13 @@ package xyz.gabriwar.warpedpixeldungeon.items;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite.Glowing;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 import java.util.ArrayList;
@@ -83,7 +83,7 @@ public class Ankh extends Item {
 				hero.busy();
 
 
-				Sample.INSTANCE.play( Assets.Sounds.DRINK );
+				SpatialSound.play( Assets.Sounds.DRINK, hero );
 				CellEmitter.get(hero.pos).start(Speck.factory(Speck.LIGHT), 0.2f, 3);
 				hero.sprite.operate( hero.pos );
 			}

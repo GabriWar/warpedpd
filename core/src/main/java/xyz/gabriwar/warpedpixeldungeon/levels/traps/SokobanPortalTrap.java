@@ -29,10 +29,10 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTeleportation;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 public class SokobanPortalTrap extends Trap {
@@ -58,7 +58,7 @@ public class SokobanPortalTrap extends Trap {
 		if (ch instanceof Hero && destPos != -1) {
 			// Teleport the hero to the destination cell
 			if (ScrollOfTeleportation.teleportToLocation(ch, destPos)) {
-				Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
+				SpatialSound.play(Assets.Sounds.TELEPORT, ch);
 				CellEmitter.get(pos).burst(Speck.factory(Speck.LIGHT), 4);
 				CellEmitter.get(destPos).burst(Speck.factory(Speck.LIGHT), 4);
 			}

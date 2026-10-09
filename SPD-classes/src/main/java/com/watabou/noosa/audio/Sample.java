@@ -91,11 +91,22 @@ public enum Sample {
 		}
 	}
 
-	public synchronized void unload( Object src ) {
-		if (ids.containsKey( src )) {
-			ids.get( src ).dispose();
-			ids.remove( src );
+	public void unload( Object src ) {
+		//one still waiting in the queue is dropped from it, or it would load after all
+		synchronized (loadingQueue) {
+			loadingQueue.remove( src );
 		}
+		synchronized (this) {
+			if (ids.containsKey( src )) {
+				ids.get( src ).dispose();
+				ids.remove( src );
+			}
+		}
+	}
+
+	/** Has this sound been loaded? On Android it may still be decoding for a moment after. */
+	public synchronized boolean isLoaded( Object id ) {
+		return ids.containsKey( id );
 	}
 
 	public long play( Object id ) {

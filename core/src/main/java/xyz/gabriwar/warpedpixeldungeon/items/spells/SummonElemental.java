@@ -32,6 +32,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.huntress.SpiritHawk;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Elemental;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.RainbowParticle;
@@ -51,7 +52,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -199,25 +199,25 @@ public class SummonElemental extends Spell {
 
 			item.detach(Dungeon.hero.belongings.backpack);
 			if (item instanceof PotionOfLiquidFlame) {
-				Sample.INSTANCE.play(Assets.Sounds.BURNING);
+				SpatialSound.play(Assets.Sounds.BURNING, curUser);
 				curUser.sprite.emitter().burst( FlameParticle.FACTORY, 12 );
 				summonClass = Elemental.FireElemental.class;
 				image = ItemSpriteSheet.SUMMON_ELE_FIRE;
 
 			} else if (item instanceof PotionOfFrost){
-				Sample.INSTANCE.play(Assets.Sounds.SHATTER);
+				SpatialSound.play(Assets.Sounds.SHATTER, curUser);
 				curUser.sprite.emitter().burst( MagicMissile.MagicParticle.FACTORY, 12 );
 				summonClass = Elemental.FrostElemental.class;
 				image = ItemSpriteSheet.SUMMON_ELE_FROST;
 
 			} else if (item instanceof ScrollOfRecharging){
-				Sample.INSTANCE.play(Assets.Sounds.ZAP);
+				SpatialSound.play(Assets.Sounds.ZAP, curUser);
 				curUser.sprite.emitter().burst( ShaftParticle.FACTORY, 12 );
 				summonClass = Elemental.ShockElemental.class;
 				image = ItemSpriteSheet.SUMMON_ELE_SHOCK;
 
 			} else if (item instanceof ScrollOfTransmutation){
-				Sample.INSTANCE.play(Assets.Sounds.READ);
+				SpatialSound.play(Assets.Sounds.READ, curUser);
 				curUser.sprite.emitter().burst( RainbowParticle.BURST, 12 );
 				summonClass = Elemental.ChaosElemental.class;
 				image = ItemSpriteSheet.SUMMON_ELE_CHAOS;

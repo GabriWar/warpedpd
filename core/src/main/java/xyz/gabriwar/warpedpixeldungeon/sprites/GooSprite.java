@@ -24,11 +24,11 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ElmoParticle;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.particles.Emitter.Factory;
 import com.watabou.noosa.particles.PixelParticle;
@@ -94,7 +94,7 @@ public class GooSprite extends MobSprite {
 		pumpUpEmitterDist = warnDist;
 		if (warnDist > 0){
 			play(pump);
-			Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 1f, warnDist == 1 ? 0.8f : 1f );
+			SpatialSound.play( Assets.Sounds.CHARGEUP, ch, 1f, warnDist == 1 ? 0.8f : 1f );
 		}
 		updateEmitters();
 	}
@@ -131,7 +131,7 @@ public class GooSprite extends MobSprite {
 		for (Emitter e : pumpUpEmitters){
 			e.burst(ElmoParticle.FACTORY, 10);
 		}
-		Sample.INSTANCE.play( Assets.Sounds.BURNING );
+		SpatialSound.play( Assets.Sounds.BURNING, ch );
 		pumpUpEmitterDist = 0;
 		pumpUpEmitters.clear();
 	}

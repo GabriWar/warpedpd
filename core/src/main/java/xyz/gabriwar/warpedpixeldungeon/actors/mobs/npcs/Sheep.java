@@ -25,11 +25,11 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.journal.Bestiary;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.SheepSprite;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
@@ -83,7 +83,7 @@ public class Sheep extends NPC {
 			// Spend the interactor's turn — was Dungeon.hero (the host) before, which
 			// made remote players' sheep clicks burn the host's turn instead of their own.
 			((xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero) c).spendAndNext(1f);
-			Sample.INSTANCE.play(Assets.Sounds.SHEEP, 1, Random.Float(0.91f, 1.1f));
+			SpatialSound.play(Assets.Sounds.SHEEP, pos, 1, Random.Float(0.91f, 1.1f));
 			//sheep summoned by woolly bomb can be dispelled by interacting
 			if (lifespan >= 20){
 				spend(-cooldown());

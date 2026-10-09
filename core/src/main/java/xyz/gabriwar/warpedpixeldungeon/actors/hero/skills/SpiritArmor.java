@@ -28,12 +28,12 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SpiritArmorMotes;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAura;
 
@@ -79,7 +79,7 @@ public class SpiritArmor extends PassiveSkillA3 {
 			Skill other = hero.heroSkills.get( Transcendence.class );
 			if (other != null) other.active = false;
 			if (hero.sprite != null){
-				Sample.INSTANCE.play( Assets.Sounds.MELD, 1f, 1.3f );
+				SpatialSound.play( Assets.Sounds.MELD, hero, 1f, 1.3f );
 				hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 6 );
 				new Flare( 6, 18 ).color( 0x66CCFF, true ).show( hero.sprite, 0.5f );
 			}
@@ -87,7 +87,7 @@ public class SpiritArmor extends PassiveSkillA3 {
 			active = false;
 			//the ring scatters when the ward drops
 			Buff.detach( hero, SpiritArmorMotes.class );
-			Sample.INSTANCE.play( Assets.Sounds.MELD, 0.5f, 0.8f );
+			SpatialSound.play( Assets.Sounds.MELD, hero, 0.5f, 0.8f );
 			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 3 );
 		}
 		//the ward hums: a faint blue mote now and then while it is up
@@ -106,7 +106,7 @@ public class SpiritArmor extends PassiveSkillA3 {
 		hero.MP -= absorbed;
 		if (hero.sprite != null){
 			hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 1 + absorbed / 2 );
-			if (absorbed >= 3) Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 0.5f, 1.3f );
+			if (absorbed >= 3) SpatialSound.play( Assets.Sounds.HIT_MAGIC, hero, 0.5f, 1.3f );
 		}
 		Buff.affect( hero, SpiritArmorMotes.class ).absorb( absorbed, level );
 		return absorbed;

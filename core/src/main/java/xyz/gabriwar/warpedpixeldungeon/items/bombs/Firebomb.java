@@ -25,12 +25,12 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Fire;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import com.watabou.utils.BArray;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 public class Firebomb extends Bomb {
@@ -59,7 +59,7 @@ public class Firebomb extends Bomb {
 				CellEmitter.get(i).burst(FlameParticle.FACTORY, 5);
 			}
 		}
-		Sample.INSTANCE.play(Assets.Sounds.BURNING);
+		SpatialSound.play(Assets.Sounds.BURNING, cell);
 	}
 	
 	@Override

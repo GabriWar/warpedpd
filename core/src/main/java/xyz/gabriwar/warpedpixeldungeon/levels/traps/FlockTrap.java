@@ -27,11 +27,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Sheep;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.journal.Bestiary;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.BArray;
 import com.watabou.utils.PathFinder;
 
@@ -78,8 +78,8 @@ public class FlockTrap extends Trap {
 				Buff.prolong(Actor.findChar(i), Trap.HazardAssistTracker.class, HazardAssistTracker.DURATION);
 			}
 		}
-		Sample.INSTANCE.play(Assets.Sounds.PUFF);
-		Sample.INSTANCE.play(Assets.Sounds.SHEEP);
+		SpatialSound.play(Assets.Sounds.PUFF, pos);
+		SpatialSound.play(Assets.Sounds.SHEEP, pos);
 	}
 
 }

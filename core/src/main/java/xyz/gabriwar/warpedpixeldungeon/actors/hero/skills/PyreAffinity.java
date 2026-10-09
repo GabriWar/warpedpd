@@ -28,13 +28,13 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
@@ -67,7 +67,7 @@ public class PyreAffinity extends Skill {
 			target.sprite.emitter().burst( FlameParticle.FACTORY, 3 + level );
 			new Flare( 5, 12 ).color( 0xFF8418, true ).show( target.sprite, 0.4f );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.BURNING, 0.6f, 1.2f );
+		SpatialSound.play( Assets.Sounds.BURNING, target, 0.6f, 1.2f );
 		//at mastery the flames leap to one enemy standing next to the target
 		if (level >= MAX_LEVEL){
 			for (int n : PathFinder.NEIGHBOURS8){
@@ -93,7 +93,7 @@ public class PyreAffinity extends Skill {
 				to.sprite.emitter().burst( FlameParticle.FACTORY, 6 );
 				to.sprite.flash();
 			}
-			Sample.INSTANCE.play( Assets.Sounds.BURNING, 0.6f, 1.4f );
+			SpatialSound.play( Assets.Sounds.BURNING, to, 0.6f, 1.4f );
 		} );
 	}
 

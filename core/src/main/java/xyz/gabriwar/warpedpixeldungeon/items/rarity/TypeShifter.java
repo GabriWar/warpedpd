@@ -26,6 +26,7 @@ package xyz.gabriwar.warpedpixeldungeon.items.rarity;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Enchanting;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
@@ -34,7 +35,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
-import com.watabou.noosa.audio.Sample;
 
 import java.util.ArrayList;
 
@@ -107,7 +107,7 @@ public class TypeShifter extends Item {
 			curUser.sprite.operate( curUser.pos );
 			curUser.spend( 1f );
 			curUser.busy();
-			Sample.INSTANCE.play( Assets.Sounds.READ );
+			SpatialSound.play( Assets.Sounds.READ, curUser );
 			curUser.sprite.burst( q.type.color, 10 );
 			Enchanting.show( curUser, item );
 			GLog.p( Messages.get( TypeShifter.class, "shifted", item.name(), q.type.title() ) );

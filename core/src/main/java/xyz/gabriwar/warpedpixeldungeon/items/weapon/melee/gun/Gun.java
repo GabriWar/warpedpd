@@ -40,6 +40,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Brute;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.BlastParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SmokeParticle;
@@ -55,7 +56,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -308,7 +308,7 @@ public class Gun extends MeleeWeapon {
 			quickReload();
 		}
 		hero.sprite.operate(hero.pos);
-		Sample.INSTANCE.play(Assets.Sounds.UNLOCK);
+		SpatialSound.play(Assets.Sounds.UNLOCK, hero);
 		hero.next();
 		afterAbilityUsed(hero);
 	}
@@ -338,7 +338,7 @@ public class Gun extends MeleeWeapon {
 
 		hero.busy();
 		hero.sprite.operate(hero.pos);
-		Sample.INSTANCE.play(Assets.Sounds.UNLOCK);
+		SpatialSound.play(Assets.Sounds.UNLOCK, hero);
 		hero.spendAndNext(reloadTime(hero));
 		GLog.i(Messages.get(this, "reload"));
 	}
@@ -783,7 +783,7 @@ public class Gun extends MeleeWeapon {
 
 				}
 
-				Sample.INSTANCE.play( Assets.Sounds.BLAST );
+				SpatialSound.play( Assets.Sounds.BLAST, cell );
 			} else {
 				Char enemy = Actor.findChar( cell );
 				for (int i = 0; i < shotPerShoot(); i++) { //데미지 입히는 것과 발사 시 주변에서 나는 연기를 shotPerShoot만큼 반복
@@ -829,8 +829,8 @@ public class Gun extends MeleeWeapon {
 		}
 
 		@Override
-		public void throwSound() {
-			Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 1, Random.Float(0.33f, 0.66f) );
+		public void throwSound(Char thrower) {
+			SpatialSound.play( Assets.Sounds.HIT_CRUSH, thrower, 1, Random.Float(0.33f, 0.66f) );
 		}
 
 		@Override

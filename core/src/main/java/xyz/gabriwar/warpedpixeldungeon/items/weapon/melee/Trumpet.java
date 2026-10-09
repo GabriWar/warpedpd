@@ -33,7 +33,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import com.watabou.utils.Callback;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -44,6 +43,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -106,8 +106,8 @@ public class Trumpet extends MeleeWeapon {
 			hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 6 );
 		}
 		Camera.main.shake( any ? 2 : 1, 0.3f );
-		Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 1f, 1.3f );
-		Sample.INSTANCE.play( Assets.Sounds.BEACON, 0.8f, 1.5f );
+		SpatialSound.play( Assets.Sounds.CHALLENGE, hero, 1f, 1.3f );
+		SpatialSound.play( Assets.Sounds.BEACON, hero, 0.8f, 1.5f );
 		hero.sprite.operate( hero.pos );
 		Invisibility.dispel();
 		hero.spendAndNext( 1f );

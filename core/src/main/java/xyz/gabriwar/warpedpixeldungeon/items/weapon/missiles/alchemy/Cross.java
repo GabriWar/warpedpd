@@ -30,6 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.bombs.HolyBomb;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Bible;
@@ -37,7 +38,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.HeavyBoomerang;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.MissileWeapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MissileSprite;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.tweeners.AlphaTweener;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
@@ -210,7 +210,7 @@ public class Cross extends MissileWeapon {
     public int proc(Char attacker, Char defender, int damage) {
         if (defender.properties().contains(Char.Property.DEMONIC) || defender.properties().contains(Char.Property.UNDEAD)){
             defender.sprite.emitter().start( ShadowParticle.UP, 0.05f, 10 );
-            Sample.INSTANCE.play(Assets.Sounds.BURNING);
+            SpatialSound.play(Assets.Sounds.BURNING, defender);
 
             damage *= 1.33f; //deals more damage to the demons and the undeads
         }

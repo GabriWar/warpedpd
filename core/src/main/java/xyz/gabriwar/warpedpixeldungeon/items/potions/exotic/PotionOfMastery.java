@@ -24,6 +24,7 @@ package xyz.gabriwar.warpedpixeldungeon.items.potions.exotic;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.SpiritBow;
@@ -36,7 +37,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 public class PotionOfMastery extends ExoticPotion {
@@ -114,7 +114,7 @@ public class PotionOfMastery extends ExoticPotion {
 				}
 				updateQuickslot();
 
-				Sample.INSTANCE.play( Assets.Sounds.DRINK );
+				SpatialSound.play( Assets.Sounds.DRINK, curUser );
 				curUser.sprite.operate(curUser.pos);
 
 				if (!identifiedByUse) {

@@ -32,12 +32,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Fire;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.poisonparticles.ChillisnapperPoisonParticle;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.Callback;
@@ -119,7 +119,7 @@ public class Chillisnapper extends Plant {
 				bolt.path.get(dist/2),
 				callback );
 		if (Dungeon.level.heroFOV[bolt.sourcePos] || Dungeon.level.heroFOV[bolt.collisionPos]){
-			Sample.INSTANCE.play( Assets.Sounds.ZAP );
+			SpatialSound.play( Assets.Sounds.ZAP, bolt.sourcePos );
 		}
 	}
 

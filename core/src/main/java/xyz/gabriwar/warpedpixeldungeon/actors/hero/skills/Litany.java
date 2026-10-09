@@ -26,7 +26,6 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -34,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bless;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -84,7 +84,7 @@ public class Litany extends SubSkill1 {
 			if (m.alignment == Char.Alignment.ALLY && m.isAlive() && Dungeon.level.distance( hero.pos, m.pos ) <= VERSE_RANGE)
 				mend( hero, m, bless );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.CHARMS, 0.6f, 1.3f );
+		SpatialSound.play( Assets.Sounds.CHARMS, hero, 0.6f, 1.3f );
 	}
 
 	private void mend( Hero hero, Char ch, boolean bless ){

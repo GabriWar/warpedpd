@@ -29,10 +29,10 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 
 import java.util.ArrayList;
 
@@ -84,8 +84,8 @@ public class WildCall extends SubSkill3 {
 			Buff.affect( prey, SpiritHunt.class ).set( level, HUNT_TURNS );
 			hero.MP -= getManaCost();
 			castTextYell();
-			Sample.INSTANCE.play( Assets.Sounds.TRAMPLE, 1f, 0.9f );
-			Sample.INSTANCE.playDelayed( Assets.Sounds.GRASS, 0.2f, 1f, 1.1f );
+			SpatialSound.play( Assets.Sounds.TRAMPLE, prey, 1f, 0.9f );
+			SpatialSound.playDelayed( Assets.Sounds.GRASS, 0.2f, prey, 1f, 1.1f );
 			hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
 			xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.get( prey.pos ).burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle.GENERAL, 10 );
 			hero.spend( TIME_TO_USE );
@@ -119,7 +119,7 @@ public class WildCall extends SubSkill3 {
 			if (!prey.isAlive()) return;
 			Buff.affect( prey, SpiritHunt.class ).set( level, left );
 			xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.get( prey.pos ).burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle.GENERAL, 8 );
-			Sample.INSTANCE.play( Assets.Sounds.TRAMPLE, 0.8f, 1.2f );
+			SpatialSound.play( Assets.Sounds.TRAMPLE, prey, 0.8f, 1.2f );
 		} );
 	}
 
@@ -160,7 +160,7 @@ public class WildCall extends SubSkill3 {
 			xyz.gabriwar.warpedpixeldungeon.effects.Wound.hit( target );
 			if (target.sprite != null && Dungeon.level.heroFOV[target.pos]){
 				target.sprite.emitter().burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle.GENERAL, 4 );
-				Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 0.7f, 0.8f );
+				SpatialSound.play( Assets.Sounds.HIT_SLASH, target, 0.7f, 0.8f );
 			}
 			left -= TICK;
 			if (left <= 0 || !target.isAlive()) detach();

@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FlavourBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.LostInventory;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -42,7 +43,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.HeroSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
-import com.watabou.noosa.audio.Sample;
 
 public class Bible extends MeleeWeapon {
 
@@ -94,8 +94,8 @@ public class Bible extends MeleeWeapon {
 		((HeroSprite)hero.sprite).read();
 		CellEmitter.get( Dungeon.hero.pos ).burst( Speck.factory( Speck.WOOL ), 6 );
 		new Flare( 6, 32 ).color(0xFFFF00, true).show( curUser.sprite, 2f );
-		Sample.INSTANCE.play( Assets.Sounds.PUFF );
-		Sample.INSTANCE.play( Assets.Sounds.READ );
+		SpatialSound.play( Assets.Sounds.PUFF, hero );
+		SpatialSound.play( Assets.Sounds.READ, hero );
 		wep.afterAbilityUsed(hero);
 	}
 

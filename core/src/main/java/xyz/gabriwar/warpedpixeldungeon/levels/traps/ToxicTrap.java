@@ -28,9 +28,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 public class ToxicTrap extends Trap{
@@ -44,7 +44,7 @@ public class ToxicTrap extends Trap{
 	public void activate() {
 
 		GameScene.add( Blob.seed( pos, 300 + 20 * scalingDepth(), ToxicGas.class ) );
-		Sample.INSTANCE.play(Assets.Sounds.GAS);
+		SpatialSound.play(Assets.Sounds.GAS, pos);
 
 		for( int i : PathFinder.NEIGHBOURS9) {
 			if (Actor.findChar(pos+i) instanceof Mob){

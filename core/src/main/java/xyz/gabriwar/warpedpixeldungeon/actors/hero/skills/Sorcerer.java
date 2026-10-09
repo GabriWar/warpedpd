@@ -28,12 +28,12 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
@@ -76,7 +76,7 @@ public class Sorcerer extends PassiveSkillB2 {
 			target.sprite.centerEmitter().burst( SparkParticle.FACTORY, 8 );
 			target.sprite.showStatus( xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite.WARNING, xyz.gabriwar.warpedpixeldungeon.messages.Messages.get( Sorcerer.class, "overload" ) );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.LIGHTNING, 0.5f, 1.4f );
+		SpatialSound.play( Assets.Sounds.LIGHTNING, target, 0.5f, 1.4f );
 	}
 
 	//+3: an overloaded enemy that dies before it discharges bursts at once, twice as wide
@@ -135,7 +135,7 @@ public class Sorcerer extends PassiveSkillB2 {
 				}
 				ch.damage( damage, source );
 			}
-			Sample.INSTANCE.play( Assets.Sounds.LIGHTNING, 0.8f, 1.1f );
+			SpatialSound.play( Assets.Sounds.LIGHTNING, center, 0.8f, 1.1f );
 		}
 
 		@Override

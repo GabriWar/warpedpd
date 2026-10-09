@@ -29,7 +29,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -38,6 +37,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
@@ -60,18 +60,18 @@ public class EmberArrows extends ActiveSkill {
 	public void execute( Hero hero, String action ){
 		super.execute(hero, action);
 		if (action.equals(Skill.AC_ACTIVATE)){
-			Sample.INSTANCE.play( Assets.Sounds.BURNING, 1f, 1.3f );
+			SpatialSound.play( Assets.Sounds.BURNING, hero, 1f, 1.3f );
 			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 3 );
 			hero.sprite.emitter().burst( FlameParticle.FACTORY, 6 );
 			//mutually exclusive with its fork partner
-			for (Skill s : hero.heroSkills.activeSkills){
+			for (Skill s : hero.heroSkills.toggleGroup()){
 				if (s instanceof FrostArrows) s.active = false;
 			}
 			StanceAuraBuff.sync( hero, RogueHuntressAuras.Frost.class, false );
 			StanceAuraBuff.sync( hero, RogueHuntressAuras.Ember.class, true );
 		} else if (action.equals(Skill.AC_DEACTIVATE)){
 			//the pitch pinched out
-			Sample.INSTANCE.play( Assets.Sounds.PUFF, 0.6f, 1.3f );
+			SpatialSound.play( Assets.Sounds.PUFF, hero, 0.6f, 1.3f );
 			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.SMOKE ), 3 );
 			StanceAuraBuff.sync( hero, RogueHuntressAuras.Ember.class, false );
 		}
@@ -122,7 +122,7 @@ public class EmberArrows extends ActiveSkill {
 						((MagicMissile) enemy.sprite.parent.recycle( MagicMissile.class )).reset(
 								MagicMissile.FIRE, enemy.sprite.center(), ch.sprite.center(), () -> {
 									flames( next );
-									Sample.INSTANCE.play( Assets.Sounds.BURNING, 0.5f, 1.6f );
+									SpatialSound.play( Assets.Sounds.BURNING, next, 0.5f, 1.6f );
 								} );
 					} else {
 						flames( ch );
@@ -132,7 +132,7 @@ public class EmberArrows extends ActiveSkill {
 			}
 		}
 
-		Sample.INSTANCE.play( Assets.Sounds.BURNING, 0.6f, 1.3f );
+		SpatialSound.play( Assets.Sounds.BURNING, enemy, 0.6f, 1.3f );
 		return damage;
 	}
 
@@ -155,6 +155,6 @@ public class EmberArrows extends ActiveSkill {
 				Buff.affect( ch, Burning.class ).reignite( ch );
 			}
 		}
-		Sample.INSTANCE.play( Assets.Sounds.BURNING, 1f, 0.9f );
+		SpatialSound.play( Assets.Sounds.BURNING, mob, 1f, 0.9f );
 	}
 }

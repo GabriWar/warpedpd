@@ -39,9 +39,9 @@ import com.watabou.utils.PathFinder;
 import com.watabou.utils.Callback;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 public class StoneCross extends MeleeWeapon {
@@ -71,7 +71,7 @@ public class StoneCross extends MeleeWeapon {
 		int damage = super.damageRoll(owner);
 		if (charge >= CHARGE_CAP) {
 			damage *= 5;
-			Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG);
+			SpatialSound.play(Assets.Sounds.HIT_STRONG, owner);
 		}
 		return damage;
 	}
@@ -156,10 +156,10 @@ public class StoneCross extends MeleeWeapon {
 				float multi = unholy(enemy) ? 2f : 1f;
 				int boost = augment.damageFactor(holyBoost());
 				if (hero.attack(enemy, multi, boost, Char.INFINITE_ACCURACY)){
-					Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG, 1f, 0.8f);
+					SpatialSound.play(Assets.Sounds.HIT_STRONG, enemy, 1f, 0.8f);
 				}
 				SkillFX.pillar(enemy.pos, 0xFFEE99);
-				Sample.INSTANCE.play(Assets.Sounds.CHARMS, 0.8f, 1.1f);
+				SpatialSound.play(Assets.Sounds.CHARMS, enemy, 0.8f, 1.1f);
 				//hallowed ground: the cell and its ring
 				int turns = blessTurns();
 				for (int n : PathFinder.NEIGHBOURS9){

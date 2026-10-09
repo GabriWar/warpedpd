@@ -27,6 +27,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.MagicalHolster;
@@ -37,7 +38,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
-import com.watabou.noosa.audio.Sample;
 
 import java.util.ArrayList;
 
@@ -137,7 +137,7 @@ public class ArcaneResin extends Item {
 					Item.updateQuickslot();
 
 					curUser.sprite.operate(curUser.pos);
-					Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
+					SpatialSound.play(Assets.Sounds.TELEPORT, curUser);
 					curUser.sprite.emitter().start( Speck.factory( Speck.UP ), 0.2f, 3 );
 
 					curUser.spendAndNext(Actor.TICK);

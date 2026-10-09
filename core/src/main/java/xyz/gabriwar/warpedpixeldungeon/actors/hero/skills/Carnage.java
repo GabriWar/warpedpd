@@ -27,7 +27,6 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -37,8 +36,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Berserk;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
-import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.BloodParticle;
@@ -66,16 +65,17 @@ public class Carnage extends SubSkill1 {
 
 	//every melee kill stokes the berserker's rage by 10% per level. Berserk.damage() is the
 	//rage's own intake (power grows by a quarter of the share of max health it is fed),
-	//so 0.4 * HT per level is +10% power; it takes nothing while already berserking
+	//so 0.4 * HT per level is +10% power; it takes nothing while already berserking.
+	//Only a Berserker has it at home; borrowed by another hero (debug), it starts a rage of his own
 	@Override
 	public void onKill( Mob mob, boolean ranged ){
 		Hero hero = Dungeon.hero;
-		if (ranged || level <= 0 || hero == null || hero.subClass != HeroSubClass.BERSERKER) return;
+		if (ranged || level <= 0 || hero == null) return;
 		Buff.affect( hero, Berserk.class ).damage( Math.round( hero.HT * 0.4f * level ) );
 		if (hero.sprite != null){
 			hero.sprite.emitter().burst( Speck.factory( Speck.RED_LIGHT ), 2 + level );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 0.5f, 1.3f );
+		SpatialSound.play( Assets.Sounds.CHALLENGE, hero, 0.5f, 1.3f );
 
 		//fully trained, a kill while berserking pours back into the berserk shield
 		Berserk berserk = hero.buff( Berserk.class );

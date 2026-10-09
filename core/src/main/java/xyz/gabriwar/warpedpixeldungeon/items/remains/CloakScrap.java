@@ -24,9 +24,9 @@ package xyz.gabriwar.warpedpixeldungeon.items.remains;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ArtifactRecharge;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfRecharging;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 
 public class CloakScrap extends RemainsItem {
 
@@ -38,6 +38,6 @@ public class CloakScrap extends RemainsItem {
 	protected void doEffect(Hero hero) {
 		ArtifactRecharge.chargeArtifacts(hero, 4f);
 		ScrollOfRecharging.charge(hero);
-		Sample.INSTANCE.play( Assets.Sounds.CHARGEUP );
+		SpatialSound.play( Assets.Sounds.CHARGEUP, hero );
 	}
 }

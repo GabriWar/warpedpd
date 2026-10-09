@@ -28,10 +28,10 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blizzard;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfFrost;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 public class BlizzardBrew extends Brew {
@@ -44,8 +44,8 @@ public class BlizzardBrew extends Brew {
 	public void shatter(int cell) {
 		splash( cell );
 		if (Dungeon.level.heroFOV[cell]) {
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER );
-			Sample.INSTANCE.play( Assets.Sounds.GAS );
+			SpatialSound.play( Assets.Sounds.SHATTER, cell );
+			SpatialSound.play( Assets.Sounds.GAS, cell );
 		}
 
 		int centerVolume = 120;

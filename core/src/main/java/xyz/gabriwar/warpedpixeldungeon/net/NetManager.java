@@ -642,19 +642,12 @@ public class NetManager {
 			JSONObject copy = new JSONObject(heroJson.toString());
 			float base = (float) copy.optDouble("time", 0);
 			rebaseActors(copy, base);
-			//a static on the host, not a field of the hero: leave ours alone
-			copy.remove("skillsavailable");
 			JSONObject wrap = new JSONObject();
 			wrap.put("hero", copy);
 			com.watabou.utils.Bundle b = com.watabou.utils.Bundle.read(
 					new java.io.ByteArrayInputStream(wrap.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8)));
-			int keepSkill = xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.availableSkill;
-			Hero h;
-			try {
-				h = (Hero) b.get("hero");
-			} finally {
-				xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.availableSkill = keepSkill;
-			}
+			//his skill points come back with him: they are his tree's, the host's are not touched
+			Hero h = (Hero) b.get("hero");
 			if (h == null) return null;
 			h.isRemote = true;
 			h.netOwnerName = playerName;

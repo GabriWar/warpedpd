@@ -23,10 +23,10 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.ShieldHalo;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ElmoParticle;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 
 public class WandmakerSprite extends MobSprite {
 	
@@ -65,7 +65,7 @@ public class WandmakerSprite extends MobSprite {
 		emitter().start( ElmoParticle.FACTORY, 0.03f, 60 );
 
 		if (visible) {
-			Sample.INSTANCE.play( Assets.Sounds.BURNING );
+			SpatialSound.play( Assets.Sounds.BURNING, ch );
 		}
 	}
 

@@ -211,6 +211,14 @@ public class FrozenLevel extends RegularLevel {
 
 		@Override
 		public void update() {
+			//its wall broken (a pick, a bomb), its melt stops dripping
+			if (Dungeon.level.map[pos] != Terrain.WALL_DECO){
+				killAndErase();
+				//its images let go of their vertex buffers now, not when the scene changes
+				destroy();
+				return;
+			}
+
 			if (visible = (pos < Dungeon.level.heroFOV.length && Dungeon.level.heroFOV[pos])) {
 				super.update();
 			}

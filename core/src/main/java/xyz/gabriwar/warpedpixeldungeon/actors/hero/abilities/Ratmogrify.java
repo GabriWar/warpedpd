@@ -35,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Rat;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Statue;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.ClassArmor;
@@ -48,7 +49,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.RatSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
 import xyz.gabriwar.warpedpixeldungeon.ui.TargetHealthIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -128,7 +128,7 @@ public class Ratmogrify extends ArmorAbility {
 			} else {
 				((TransmogRat) ch).makeAlly();
 				ch.sprite.emitter().start(Speck.factory(Speck.HEART), 0.2f, 5);
-				Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
+				SpatialSound.play(Assets.Sounds.TELEPORT, ch);
 				if (hero.pointsInTalent(Talent.RATLOMACY) > 1){
 					Buff.affect(ch, Adrenaline.class, 2*(hero.pointsInTalent(Talent.RATLOMACY)-1));
 				}
@@ -161,7 +161,7 @@ public class Ratmogrify extends ArmorAbility {
 
 			TargetHealthIndicator.instance.target(null);
 			CellEmitter.get(rat.pos).burst(Speck.factory(Speck.WOOL), 4);
-			Sample.INSTANCE.play(Assets.Sounds.PUFF);
+			SpatialSound.play(Assets.Sounds.PUFF, rat);
 
 			//for rare cases where a buff was keeping a mob alive (e.g. gnoll brute rage)
 			if (!rat.isAlive()){
@@ -243,7 +243,7 @@ public class Ratmogrify extends ArmorAbility {
 				destroy();
 				sprite.killAndErase();
 				CellEmitter.get(original.pos).burst(Speck.factory(Speck.WOOL), 4);
-				Sample.INSTANCE.play(Assets.Sounds.PUFF);
+				SpatialSound.play(Assets.Sounds.PUFF, original);
 				return true;
 			} else {
 				return super.act();

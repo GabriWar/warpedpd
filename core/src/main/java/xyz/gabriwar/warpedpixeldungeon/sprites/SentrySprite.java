@@ -24,12 +24,12 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.special.SentryRoom;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.Game;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 
 //a generic class for various different sentry NPCs
@@ -67,7 +67,7 @@ public abstract class SentrySprite extends MobSprite {
 		} else {
 			parent.add(new Beam.DeathRay(center(), DungeonTilemap.raisedTileCenterToWorld(pos)));
 		}
-		Sample.INSTANCE.play( Assets.Sounds.RAY );
+		SpatialSound.play( Assets.Sounds.RAY, ch );
 		((SentryRoom.Sentry)ch).onZapComplete();
 	}
 
@@ -100,7 +100,7 @@ public abstract class SentrySprite extends MobSprite {
 
 	public void charge(){
 		play(charging);
-		if (visible && ch != null) Sample.INSTANCE.play( Assets.Sounds.CHARGEUP );
+		if (visible && ch != null) SpatialSound.play( Assets.Sounds.CHARGEUP, ch );
 	}
 
 	@Override

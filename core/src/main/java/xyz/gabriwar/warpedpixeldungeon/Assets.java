@@ -36,6 +36,12 @@ public class Assets {
 		public static final String MARKET_BUNTING = "effects/market_bunting.png";
 		//the dungeon's small life (levels/ambience/DungeonLife), drawn by tools/dungeon_critters_gen.py
 		public static final String DUNGEON_CRITTERS = "effects/dungeon_critters.png";
+		//the halo every lightning's stroke is laid on (effects/Lightning.Arc), painted by tools/lightning_halo_gen.py
+		public static final String LIGHTNING_HALO = "effects/lightning_halo.png";
+		//the effects kit's sprite sheet and its light sheet (effects/fx/FxFrames), painted by
+		//tools/fx_sheet_gen.py and tools/fx_light_gen.py
+		public static final String FX_SHEET = "effects/fx_sheet.png"; // fx:kit
+		public static final String FX_LIGHT = "effects/fx_light.png"; // fx:kit
 	}
 
 	public static class Environment {
@@ -292,6 +298,12 @@ public class Assets {
 		public static final String MINE    = "sounds/mine.mp3";
 		//a wolf pack's howl (the surface's night hunts, HuntEvent)
 		public static final String HOWL     = "sounds/howl.mp3";
+		//a wall breaking, three takes (tools/effect_sound_gen.py): audio/WallBreak plays them
+		public static final String WALL_BREAK_1 = "sounds/wall_break_1.mp3";
+		public static final String WALL_BREAK_2 = "sounds/wall_break_2.mp3";
+		public static final String WALL_BREAK_3 = "sounds/wall_break_3.mp3";
+		//what a bomb in the open throws up, coming back down after its blast (Bomb.explode)
+		public static final String DEBRIS   = "sounds/debris.mp3";
 
 		public static final String[] all = new String[]{
 				CLICK, BADGE, GOLD,
@@ -304,7 +316,8 @@ public class Assets {
 				DESCEND, EAT, READ, LULLABY, DRINK, SHATTER, ZAP, LIGHTNING, LEVELUP, DEATH,
 				CHALLENGE, CURSED, TRAP, EVOKE, TOMB, ALERT, MELD, BOSS, BLAST, PLANT, RAY, BEACON,
 				TELEPORT, CHARMS, MASTERY, PUFF, ROCKS, ROCKS_LIGHT, BURNING, FALLING, GHOST, SECRET, BONES,
-				BEE, DEGRADE, MIMIC, DEBUFF, CHARGEUP, GAS, CHAINS, SCAN, SHEEP, MINE, HOWL
+				BEE, DEGRADE, MIMIC, DEBUFF, CHARGEUP, GAS, CHAINS, SCAN, SHEEP, MINE, HOWL,
+				WALL_BREAK_1, WALL_BREAK_2, WALL_BREAK_3, DEBRIS
 		};
 	}
 

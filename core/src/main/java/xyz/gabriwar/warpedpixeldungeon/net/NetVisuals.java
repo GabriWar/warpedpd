@@ -365,6 +365,31 @@ public class NetVisuals {
 		} catch (JSONException ignored) {}
 	}
 
+	/**
+	 * Record a storm's ground bolt (StormStrikes) or a storm cloud's (`cloud`, StormCloud), with
+	 * where it ran (StormStrikes.discharge: its arcs, "a", and its crawl over the water, "w", pairs
+	 * of cells, sent only when there are any): the guest's overlay draws it, or only thunders when
+	 * a storm's bolt is out of the guest's sight.
+	 */
+	public static void recordStrike(int cell, boolean cloud, int[] arcs, int[] water) {
+		if (!NetManager.isHost()) return;
+		try {
+			JSONObject evt = new JSONObject();
+			evt.put("t", "sk");
+			evt.put("c", cell);
+			if (cloud) evt.put("k", true);
+			if (arcs.length > 0) evt.put("a", cells(arcs));
+			if (water.length > 0) evt.put("w", cells(water));
+			pendingEvents.add(evt);
+		} catch (JSONException ignored) {}
+	}
+
+	private static JSONArray cells(int[] cells) {
+		JSONArray a = new JSONArray();
+		for (int c : cells) a.put(c);
+		return a;
+	}
+
 	// --- Serialization ---
 
 	/**
@@ -505,7 +530,31 @@ public class NetVisuals {
 			case "ft": replayFloatingText(evt); break;
 			case "ms": replayMissile(evt); break;
 			case "cc": replayCheckedCell(evt); break;
+			case "sk": replayStrike(evt); break;
 		}
+	}
+
+	private static void replayStrike(JSONObject evt) throws JSONException {
+		int cell = evt.getInt("c");
+		if (Dungeon.level == null || cell < 0 || cell >= Dungeon.level.length()) return;
+		xyz.gabriwar.warpedpixeldungeon.actors.StormStrikes.show(Dungeon.level, cell, evt.optBoolean("k", false),
+				pairs(evt.optJSONArray("a")), pairs(evt.optJSONArray("w")));
+	}
+
+	//a strike's pairs of cells (from, to), those with both on the level: none where the host sent
+	//none (as one from before the arcs)
+	private static int[] pairs(JSONArray a) {
+		if (a == null) return new int[0];
+		int len = Dungeon.level.length();
+		int[] out = new int[a.length()];
+		int n = 0;
+		for (int i = 0; i + 1 < a.length(); i += 2) {
+			int from = a.optInt(i, -1), to = a.optInt(i + 1, -1);
+			if (from < 0 || from >= len || to < 0 || to >= len) continue;
+			out[n++] = from;
+			out[n++] = to;
+		}
+		return java.util.Arrays.copyOf(out, n);
 	}
 
 	private static void replayMove(JSONObject evt) throws JSONException {

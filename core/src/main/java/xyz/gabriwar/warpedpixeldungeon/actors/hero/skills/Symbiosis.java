@@ -27,7 +27,6 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
@@ -38,6 +37,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Healing;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
 
@@ -74,7 +74,7 @@ public class Symbiosis extends SubSkill2 {
 		int heal = Math.max( 1, Math.round( hpLost * (0.15f + 0.15f * level) ) );
 		Buff.affect( hero, Healing.class ).setHeal( heal, 0.34f, 0 );
 		if (hero.sprite != null) hero.sprite.emitter().burst( LeafParticle.GENERAL, 6 );
-		Sample.INSTANCE.play( Assets.Sounds.GRASS, 0.8f, 1.2f );
+		SpatialSound.play( Assets.Sounds.GRASS, hero, 0.8f, 1.2f );
 	}
 
 	//+3: while the leaves are mending you, enemies that strike you are caught by clinging vines

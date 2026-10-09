@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import com.watabou.noosa.audio.Sample;
 
@@ -52,7 +53,7 @@ public class PotionOfSun extends Potion {
         if (Dungeon.level.heroFOV[cell]) {
             identify();
             splash(cell);
-            Sample.INSTANCE.play(Assets.Sounds.SHATTER);
+            SpatialSound.play(Assets.Sounds.SHATTER, cell);
         }
         killUndead();
     }

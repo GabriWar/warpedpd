@@ -2,13 +2,13 @@
 package xyz.gabriwar.warpedpixeldungeon.sprites;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SnowParticle;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 
 import java.util.ArrayList;
@@ -60,7 +60,7 @@ public class DemonLordSprite extends MobSprite {
 			e.pour( SnowParticle.FACTORY, 0.06f );
 			warnings.add( e );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 1f, 0.8f );
+		SpatialSound.play( Assets.Sounds.CHARGEUP, ch, 1f, 0.8f );
 	}
 
 	//each turn of the charge: keep the markers up and thicken the falling frost
@@ -70,7 +70,7 @@ public class DemonLordSprite extends MobSprite {
 			GameScene.targetedCell( cell, turns );
 			CellEmitter.get( cell ).burst( SnowParticle.FACTORY, 2 );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 0.8f, 0.8f + 0.15f * (3 - turns) );
+		SpatialSound.play( Assets.Sounds.CHARGEUP, ch, 0.8f, 0.8f + 0.15f * (3 - turns) );
 	}
 
 	//the release: every marked tile erupts in a blast of ice shards, snow and light

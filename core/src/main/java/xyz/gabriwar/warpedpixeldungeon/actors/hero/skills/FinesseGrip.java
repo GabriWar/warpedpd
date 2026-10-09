@@ -34,8 +34,8 @@ import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
 import com.watabou.utils.Random;
@@ -84,14 +84,14 @@ public class FinesseGrip extends Skill {
 		}
 		enemy.damage( cut, this );
 		Wound.hit( enemy );
-		Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 0.8f, 1.4f );
+		SpatialSound.play( Assets.Sounds.HIT_SLASH, enemy, 0.8f, 1.4f );
 		//+3: a second cut that lands can flick in a third at the same odds
 		if (level >= MAX_LEVEL && enemy.isAlive() && enemy.HP > 1 && Random.Int( 100 ) < 5 + 10 * level){
 			int third = Math.min( Math.round( damage * 0.4f ), enemy.HP - 1 );
 			if (third > 0){
 				enemy.damage( third, this );
 				Wound.hit( enemy );
-				Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 0.8f, 1.6f );
+				SpatialSound.play( Assets.Sounds.HIT_SLASH, enemy, 0.8f, 1.6f );
 			}
 		}
 		return damage;

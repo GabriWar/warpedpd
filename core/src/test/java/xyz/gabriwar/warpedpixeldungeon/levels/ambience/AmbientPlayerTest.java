@@ -25,13 +25,17 @@
 package xyz.gabriwar.warpedpixeldungeon.levels.ambience;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.WarpedRoomsTest;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashSet;
 
 import static org.junit.Assert.assertEquals;
@@ -41,13 +45,28 @@ import static org.junit.Assert.assertTrue;
  * The ambience's sounds on disk and how they are placed: every take of every AmbientSound is
  * there, short enough for Android's SoundPool, and as long as its `length` says (the beds start
  * their next play by it); the prison's chains are the game's own effect, loaded at boot; a
- * source falls off with distance and pans to its side, both bounded.
+ * source falls off with distance and pans to its side, both bounded; with spatial sound on,
+ * sooner and harder, as far as the same reach.
  */
 public class AmbientPlayerTest {
 
 	@BeforeClass
 	public static void boot(){
 		WarpedRoomsTest.boot();
+	}
+
+	private boolean wasOn;
+
+	//the classic curve unless a test says otherwise (spatial sound off)
+	@Before
+	public void classicCurve(){
+		wasOn = SpatialSound.on;
+		SpatialSound.on = false;
+	}
+
+	@After
+	public void restore(){
+		SpatialSound.on = wasOn;
 	}
 
 	/**
@@ -125,6 +144,23 @@ public class AmbientPlayerTest {
 	}
 
 	@Test
+	public void everyWeatherBedLeadsByLessThanHalfAndRunsItsWholeLength(){
+		//the weather's beds carry their lead on the sound (WeatherSounds has no Voice): every one
+		//of them has one, and none of its one-shots does
+		EnumSet<AmbientSound> beds = EnumSet.of( AmbientSound.RAIN_LIGHT, AmbientSound.RAIN,
+				AmbientSound.RAIN_HEAVY, AmbientSound.RAIN_WATER, AmbientSound.RAIN_LEAVES,
+				AmbientSound.RAIN_ROOF, AmbientSound.GALE, AmbientSound.HAIL, AmbientSound.SLEET,
+				AmbientSound.SNOW, AmbientSound.BLIZZARD, AmbientSound.SANDSTORM );
+		for (AmbientSound s : AmbientSound.values()){
+			assertEquals( s + " leads as a bed", beds.contains( s ), s.lead > 0f );
+			if (s.lead == 0f) continue;
+			//the next play starts inside the last one, not over its first half
+			assertTrue( s + "'s lead", s.lead < s.length / 2f );
+			for (String t : s.takes) assertEquals( t, s.length, secondsOf( t ), 0.15 );
+		}
+	}
+
+	@Test
 	public void theChainsAreTheGamesOwnAndAsLong(){
 		assertTrue( Arrays.asList( Assets.Sounds.all ).contains( Assets.Sounds.CHAINS ) );
 		assertEquals( AmbientSounds.CHAINS_LENGTH, secondsOf( Assets.Sounds.CHAINS ), 0.15 );
@@ -163,5 +199,48 @@ public class AmbientPlayerTest {
 		}
 		assertEquals( AmbientPlayer.MAX_PAN, AmbientPlayer.pan( AmbientPlayer.PAN_CELLS ), 1e-6f );
 		assertEquals( AmbientPlayer.MAX_PAN, AmbientPlayer.pan( 100f ), 1e-6f );
+	}
+
+	@Test
+	public void withSpatialSoundASourceFallsOffSoonerAndPansHarder(){
+		SpatialSound.on = true;
+		assertEquals( 1f, AmbientPlayer.falloff( 0f ), 0f );
+		assertEquals( "half at WIDE_HALF_CELLS", 0.5f, AmbientPlayer.falloff( AmbientPlayer.WIDE_HALF_CELLS ), 1e-6f );
+		assertEquals( "gone from the same HEARD_CELLS", 0f, AmbientPlayer.falloff( AmbientPlayer.HEARD_CELLS ), 0f );
+		float last = 1f;
+		for (float d = 0f; d <= 20f; d += 0.1f){
+			float f = AmbientPlayer.falloff( d );
+			assertTrue( f >= 0f && f <= 1f );
+			assertTrue( "never louder further off: " + d, f <= last + 1e-6f );
+			last = f;
+		}
+		//quieter at a distance than the classic curve, never louder
+		for (float d = 1f; d < AmbientPlayer.HEARD_CELLS; d += 1f){
+			SpatialSound.on = false;
+			float classic = AmbientPlayer.falloff( d );
+			SpatialSound.on = true;
+			assertTrue( "sooner: " + d, AmbientPlayer.falloff( d ) < classic );
+		}
+
+		last = -1f;
+		for (float dx = -20f; dx <= 20f; dx += 0.5f){
+			float p = AmbientPlayer.pan( dx );
+			assertTrue( Math.abs( p ) <= AmbientPlayer.WIDE_MAX_PAN );
+			assertTrue( "further right, further right", p >= last );
+			assertEquals( "the same either side", -p, AmbientPlayer.pan( -dx ), 1e-6f );
+			last = p;
+		}
+		assertEquals( AmbientPlayer.WIDE_MAX_PAN, AmbientPlayer.pan( AmbientPlayer.WIDE_PAN_CELLS ), 1e-6f );
+		assertTrue( "harder than the classic", AmbientPlayer.WIDE_MAX_PAN > AmbientPlayer.MAX_PAN );
+		assertTrue( "never wholly into one ear", AmbientPlayer.WIDE_MAX_PAN < 1f );
+	}
+
+	@Test
+	public void withSpatialSoundASourcePansAsAnEffectFromTheSameSideDoes(){
+		//a bolt's thunder (the ambience's) and its crack (an effect) come from one side, as wide
+		SpatialSound.on = true;
+		for (float dx = -20f; dx <= 20f; dx += 0.5f){
+			assertEquals( "at " + dx, SpatialSound.pan( dx ), AmbientPlayer.pan( dx ), 0f );
+		}
 	}
 }

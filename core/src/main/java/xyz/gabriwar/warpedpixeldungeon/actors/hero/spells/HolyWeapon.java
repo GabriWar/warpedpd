@@ -27,13 +27,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FlavourBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Enchanting;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.HolyTome;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
-import com.watabou.noosa.audio.Sample;
 
 public class HolyWeapon extends ClericSpell {
 
@@ -55,7 +55,7 @@ public class HolyWeapon extends ClericSpell {
 		Buff.affect(hero, HolyWepBuff.class, 50f);
 		Item.updateQuickslot();
 
-		Sample.INSTANCE.play(Assets.Sounds.READ);
+		SpatialSound.play(Assets.Sounds.READ, hero);
 
 		hero.sprite.operate(hero.pos);
 		if (hero.belongings.weapon() != null) Enchanting.show(hero, hero.belongings.weapon());

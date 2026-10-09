@@ -893,7 +893,8 @@ public class AlchemyScene extends PixelScene {
 
 		bubbleEmitter.start(Speck.factory( Speck.BUBBLE ), 0.01f, 100 );
 		sparkEmitter.burst(SparkParticle.FACTORY, 20);
-		Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
+		//at half: the lightning is a whole bolt now, and this is a window's spark
+		Sample.INSTANCE.play( Assets.Sounds.LIGHTNING, 0.5f );
 
 		//queue a save here, as items may be in the input windows and we don't want to clear them
 		// but if the game becomes paused we do this to prevent exploits

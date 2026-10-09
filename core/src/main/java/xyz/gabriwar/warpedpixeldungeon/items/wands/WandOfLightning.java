@@ -29,10 +29,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FlavourBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.DwarfKing;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MagesStaff;
+import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
@@ -41,13 +43,14 @@ import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Image;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.BArray;
 import com.watabou.utils.Callback;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class WandOfLightning extends DamageWand {
 
@@ -58,6 +61,11 @@ public class WandOfLightning extends DamageWand {
 	private ArrayList<Char> affected = new ArrayList<>();
 
 	private ArrayList<Lightning.Arc> arcs = new ArrayList<>();
+
+	//how many steps out the charge runs over the water (runOverWater): a storm bolt's (StormStrikes)
+	static final int CRAWL = 3;
+	//the most of its steps drawn: one start's whole 7x7 window (WeatherOverlay draws a frame's so)
+	static final int DRAWN_STEPS = 48;
 
 	public int min(int lvl){
 		return 5+lvl;
@@ -116,7 +124,7 @@ public class WandOfLightning extends DamageWand {
 			FlavourBuff.prolong(attacker, LightningCharge.class, powerMulti*LightningCharge.DURATION);
 			attacker.sprite.centerEmitter().burst( SparkParticle.FACTORY, 10 );
 			attacker.sprite.flash();
-			Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
+			SpatialSound.play( Assets.Sounds.LIGHTNING, attacker );
 
 		}
 	}
@@ -168,7 +176,56 @@ public class WandOfLightning extends DamageWand {
 			arc(hit);
 		}
 	}
-	
+
+	/**
+	 * After its arcs the charge runs out over the water: from the struck cell if it is water, and
+	 * from everyone hit standing in water and not flying, eight ways and breadth first over the
+	 * water, up to CRAWL steps from where it set off (the 7x7 window round it: never a whole lake),
+	 * each cell once. Whoever stands in that water and does not fly is hit too, the caster as well
+	 * (for half, as ever: onZap), though an ally off the struck cell is still spared there; the run
+	 * goes on from none it reaches. Its steps are drawn as a crackle over the water lit as it gets
+	 * there, nearest first and DRAWN_STEPS at most, in the zap's own lightning.
+	 */
+	private void runOverWater( int cell ) {
+		Level level = Dungeon.level;
+		HashMap<Integer, Integer> steps = new HashMap<>();
+		ArrayDeque<Integer> run = new ArrayDeque<>();
+		if (level.water[cell]){
+			steps.put( cell, 0 );
+			run.add( cell );
+		}
+		for (Char ch : affected){
+			if (level.water[ch.pos] && !ch.flying && !steps.containsKey( ch.pos )){
+				steps.put( ch.pos, 0 );
+				run.add( ch.pos );
+			}
+		}
+		int w = level.width(), h = level.height(), drawn = 0;
+		while (!run.isEmpty()){
+			int c = run.poll();
+			int s = steps.get( c );
+			if (s == CRAWL) continue;
+			int x = c % w, y = c / w;
+			for (int dy = -1; dy <= 1; dy++){
+				for (int dx = -1; dx <= 1; dx++){
+					int nx = x + dx, ny = y + dy;
+					if ((dx == 0 && dy == 0) || nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+					int n = nx + ny * w;
+					if (!level.water[n] || steps.containsKey( n )) continue;
+					steps.put( n, s + 1 );
+					run.add( n );
+					Char in = Actor.findChar( n );
+					if (in != null && !in.flying && !affected.contains( in )){
+						affected.add( in );
+					}
+					if (drawn++ < DRAWN_STEPS){
+						arcs.add( new Lightning.Arc( c, n ).crawl( s + 1 ) );
+					}
+				}
+			}
+		}
+	}
+
 	@Override
 	public void fx(Ballistica bolt, Callback callback) {
 
@@ -191,9 +248,15 @@ public class WandOfLightning extends DamageWand {
 			CellEmitter.center( cell ).burst( SparkParticle.FACTORY, 3 );
 		}
 
+		runOverWater( cell );
+
 		//don't want to wait for the effect before processing damage.
-		curUser.sprite.parent.addToFront( new Lightning( arcs, null ) );
-		Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
+		curUser.sprite.parent.addToFront( new Lightning( arcs, null ).thunderous( cell ) );
+		SpatialSound.play( Assets.Sounds.LIGHTNING, curUser );
+		//and where it strikes it goes off like a storm's bolt: the thunder cracks there with its first
+		//frame (Lightning.thunderous, at full), and a blast, at 0.6 level with the crack (its file is
+		//4 dB the louder) and a little high so it snaps rather than booms
+		SpatialSound.play( Assets.Sounds.BLAST, cell, 0.6f, 1.1f );
 		callback.call();
 	}
 

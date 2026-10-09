@@ -30,10 +30,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bee;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Honeypot;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfHealing;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 
 public class ElixirOfHoneyedHealing extends Elixir {
 	
@@ -53,7 +53,7 @@ public class ElixirOfHoneyedHealing extends Elixir {
 	public void shatter(int cell) {
 		splash( cell );
 		if (Dungeon.level.heroFOV[cell]) {
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER );
+			SpatialSound.play( Assets.Sounds.SHATTER, cell );
 		}
 		
 		Char ch = Actor.findChar(cell);

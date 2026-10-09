@@ -33,7 +33,6 @@ import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -42,6 +41,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
@@ -123,12 +123,12 @@ public class BearTrap extends Skill {
 			//the mechanism is seen tossed to its spot; it clicks open as it settles in the dust
 			final int at = cell;
 			Item look = new Item(){{ image = ItemSpriteSheet.TRAP_MECHANISM; }};
-			Sample.INSTANCE.play( Assets.Sounds.MISS, 0.8f, 1.2f );
+			SpatialSound.play( Assets.Sounds.MISS, curUser, 0.8f, 1.2f );
 			SkillFX.streak( curUser.sprite, cell, look, () -> {
 				CellEmitter.get( at ).burst( Speck.factory( Speck.DUST ), 4 );
 				CellEmitter.center( at ).burst( SparkParticle.FACTORY, 3 );
 				SkillSpectacleFX.show( SkillSpectacleFX.JAW, at );
-				Sample.INSTANCE.play( Assets.Sounds.STURDY, 1f, 1.3f );
+				SpatialSound.play( Assets.Sounds.STURDY, at, 1f, 1.3f );
 			} );
 			curUser.spend( TIME_TO_USE );
 			curUser.busy();
@@ -165,14 +165,14 @@ public class BearTrap extends Skill {
 	private static void spring( Char c, int pos, int rank ){
 		//the jaws snap shut, sparks flying off the teeth, and bite down once more as they settle
 		SkillSpectacleFX.show(SkillSpectacleFX.JAW,pos);
-		Sample.INSTANCE.play( Assets.Sounds.TRAP, 1f, 0.8f );
+		SpatialSound.play( Assets.Sounds.TRAP, pos, 1f, 0.8f );
 		Camera.main.shake( 1, 0.2f );
 		CellEmitter.center( pos ).burst( Speck.factory( Speck.STAR ), 4 );
 		CellEmitter.center( pos ).burst( SparkParticle.FACTORY, 8 );
 		FxTimeline.start().at( 0.14f, () -> {
 			SkillSpectacleFX.show( SkillSpectacleFX.JAW, pos );
 			CellEmitter.center( pos ).burst( SparkParticle.FACTORY, 4 );
-			Sample.INSTANCE.play( Assets.Sounds.TRAP, 0.6f, 1.2f );
+			SpatialSound.play( Assets.Sounds.TRAP, pos, 0.6f, 1.2f );
 		} );
 		if (c != null && c.isAlive() && c.pos == pos){
 			if (c.sprite != null) c.sprite.showStatus( CharSprite.NEGATIVE, "Caught" );

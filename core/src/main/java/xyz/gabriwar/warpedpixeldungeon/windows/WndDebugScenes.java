@@ -30,24 +30,20 @@ import xyz.gabriwar.warpedpixeldungeon.ui.RedButton;
 import xyz.gabriwar.warpedpixeldungeon.ui.RenderedTextBlock;
 import xyz.gabriwar.warpedpixeldungeon.ui.ScrollPane;
 import xyz.gabriwar.warpedpixeldungeon.ui.Window;
-import com.watabou.noosa.PointerArea;
 import com.watabou.noosa.ui.Component;
-
-import java.util.ArrayList;
 
 //the debug scenes, one button each. A WndOptions grows with its options and has no
 //scrolling, so past a screenful of scenes the list ran off the bottom: this one scrolls
 public class WndDebugScenes extends Window {
 
-	private static final int WIDTH_P = 122;
-	private static final int WIDTH_L = 200;
 	private static final int GAP = 2;
 	private static final int BTN_HEIGHT = 16;
 
 	public WndDebugScenes(){
 		super();
 
-		int width = PixelScene.landscape() ? WIDTH_L : WIDTH_P;
+		//as wide as the debug window it opens from
+		int width = WndDebug.width( chrome.marginHor() );
 
 		RenderedTextBlock title = PixelScene.renderTextBlock( "Debug scenes", 9 );
 		title.hardlight( TITLE_COLOR );
@@ -55,7 +51,7 @@ public class WndDebugScenes extends Window {
 		add( title );
 
 		RenderedTextBlock note = PixelScene.renderTextBlock(
-				"Sets a situation up around the hero: the hero gets infinite health and the fog is lifted. "
+				"Sets a situation up around the hero: the hero gets infinite health and the fog is lifted (both stay on; the Hero tab turns them off). "
 				+ "Also from the command line: ./gradlew :desktop:debug -Pscene=<id>", 6 );
 		note.maxWidth( width );
 		note.setPos( 0, title.bottom() + GAP );
@@ -63,37 +59,27 @@ public class WndDebugScenes extends Window {
 		float top = note.bottom() + GAP * 2;
 
 		//the pane before its buttons: pointer listeners fire newest first, so a pane made
-		//after the buttons under it would take their presses (see WndDebug). The buttons fill
-		//the list, so they let presses through to the pane (NEVER_BLOCK) or it could never be
-		//dragged; a tap is the pane's own click, which a drag cancels, so a scroll never runs
-		//the scene under the finger
-		final ArrayList<RedButton> buttons = new ArrayList<>();
-		ScrollPane pane = new ScrollPane( new Component() ){
-			@Override
-			public void onClick( float x, float y ){
-				for (int i = 0; i < buttons.size(); i++){
-					if (buttons.get( i ).inside( x, y )){
-						WndDebugScenes.this.hide();
-						DebugScenes.run( DebugScenes.SCENES[i] );
-						return;
-					}
-				}
-			}
-		};
+		//after the buttons under it would take their presses (see WndDebug). Dragged over its
+		//buttons it scrolls, and a drag never runs the scene under the finger
+		ScrollPane pane = new ScrollPane( new Component() );
 		Component content = pane.content();
 		float pos = 0;
 		for (final DebugScenes.Scene scene : DebugScenes.SCENES){
 			RedButton btn = new RedButton( scene.title(), 6 ){
-				{ hotArea.blockLevel = PointerArea.NEVER_BLOCK; }
+				@Override
+				protected void onClick(){
+					WndDebugScenes.this.hide();
+					DebugScenes.run( scene );
+				}
 			};
 			btn.multiline = true;
 			btn.setRect( 0, pos, width, BTN_HEIGHT );
 			if (btn.reqHeight() > BTN_HEIGHT) btn.setRect( 0, pos, width, btn.reqHeight() + 2 );
 			content.add( btn );
-			buttons.add( btn );
 			pos = btn.bottom() + GAP;
 		}
 		content.setSize( width, pos - GAP );
+		pane.dragOverButtons();
 
 		int maxH = (int)(PixelScene.uiCamera.height - chrome.marginVer() - 20);
 		float paneH = Math.min( content.height(), maxH - top );

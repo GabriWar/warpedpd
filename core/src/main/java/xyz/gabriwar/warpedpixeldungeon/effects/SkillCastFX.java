@@ -53,10 +53,15 @@ public class SkillCastFX extends Group {
     public static void play(Skill skill,Hero hero){
         int sprite=sprite(skill);
         if(sprite<0||hero==null||hero.sprite==null||hero.sprite.parent==null||skill.level<=0)return;
-        // One active cast halo per hero: rapid toggle taps cannot accumulate sprites.
-        for(Gizmo child:hero.sprite.parent.membersView().toArray(new Gizmo[0]))
-            if(child instanceof SkillCastFX){child.killAndErase();child.destroy();}
-        hero.sprite.parent.add(new SkillCastFX(hero,skill,sprite));
+        // Casts come from the actor thread too (a skill disarming a trap underfoot): the old halo's
+        // destroy() frees GL buffers, which only the render thread may do.
+        Game.runOnRenderThread(()->{
+            if(hero.sprite==null||hero.sprite.parent==null)return;
+            // One active cast halo per hero: rapid toggle taps cannot accumulate sprites.
+            for(Gizmo child:hero.sprite.parent.membersView().toArray(new Gizmo[0]))
+                if(child instanceof SkillCastFX){child.killAndErase();child.destroy();}
+            hero.sprite.parent.add(new SkillCastFX(hero,skill,sprite));
+        });
     }
     private SkillCastFX(Hero hero,Skill skill,int sprite){
         this.hero=hero;depth=Dungeon.depth;branch=Dungeon.branch;pattern=sprite%3;

@@ -32,6 +32,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.PrismaticGuard;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
@@ -40,7 +41,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfEvasion;
 import xyz.gabriwar.warpedpixeldungeon.levels.features.Chasm;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.PrismaticSprite;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
@@ -260,7 +260,7 @@ public class PrismaticImage extends NPC {
 				destroy();
 				CellEmitter.get(pos).start( Speck.factory(Speck.LIGHT), 0.2f, 3 );
 				sprite.die();
-				Sample.INSTANCE.play( Assets.Sounds.TELEPORT );
+				SpatialSound.play( Assets.Sounds.TELEPORT, pos );
 				return true;
 			} else {
 				return super.act(enemyInFOV, justAlerted);

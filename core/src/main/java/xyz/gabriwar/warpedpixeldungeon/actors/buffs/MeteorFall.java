@@ -25,7 +25,6 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
 import com.watabou.noosa.Camera;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
@@ -34,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -79,7 +79,7 @@ public class MeteorFall extends Buff {
         if (Dungeon.level.heroFOV[cell] && hero.sprite != null && hero.sprite.parent != null){
             SkillFX.rain(cell, new Bomb(), 1, this::impactFX);
         }else{
-            Sample.INSTANCE.play(Assets.Sounds.BLAST);
+            SpatialSound.play(Assets.Sounds.BLAST, cell);
         }
 
         for (int c : xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.area(cell,1)){
@@ -111,8 +111,8 @@ public class MeteorFall extends Buff {
             if(Dungeon.level.heroFOV[c])CellEmitter.get(c).burst(FlameParticle.FACTORY,4);
         }
         if(Camera.main!=null)Camera.main.shake(4,.6f);
-        Sample.INSTANCE.play(Assets.Sounds.BLAST);
-        Sample.INSTANCE.play(Assets.Sounds.ROCKS,1f,.8f);
+        SpatialSound.play(Assets.Sounds.BLAST, cell);
+        SpatialSound.play(Assets.Sounds.ROCKS,cell,1f,.8f);
     }
 
 	@Override

@@ -21,12 +21,15 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects;
 
+import xyz.gabriwar.warpedpixeldungeon.WPDSettings;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FlashGate;
 import com.watabou.noosa.Camera;
 import com.watabou.noosa.ColorBlock;
 import com.watabou.noosa.Game;
 
 /**
- * Brief full-screen white flash that simulates lightning during storms.
+ * Brief full-screen white flash that simulates lightning during storms, and for every other
+ * lightning struck in the hero's sight (WeatherOverlay.struck), at most once in 0.7 s for all.
  * Self-destructs after the flash fades. Call {@link #flash()} to trigger.
  * <p>
  * Flash profile: instant white spike → rapid exponential decay → done.
@@ -43,15 +46,25 @@ public class LightningFlash extends ColorBlock {
 		left = DURATION;
 	}
 
-	/** Trigger a lightning flash covering the entire camera viewport. */
+	/** Trigger a lightning flash covering the entire camera viewport. It shows only as FlashGate
+	 *  lets a storm's flash show (0.7 s apart, three in ten seconds with the game's own); one it
+	 *  refuses runs its course unseen and shakes nothing. */
 	public static LightningFlash flash() {
 		LightningFlash f = new LightningFlash();
+		if (!FlashGate.storm()) {
+			f.visible = false;
+			return f;
+		}
 		Camera cam = Camera.main;
 		if (cam != null) {
 			f.size(cam.width, cam.height);
 			f.x = cam.scroll.x;
 			f.y = cam.scroll.y;
-			cam.shake(2, 0.15f);
+			//as hard as the screen shake setting lets it (none with it off), never past the 2 px the
+			//blizzard's vignette overhangs the screen by (WeatherOverlay): every lightning in sight
+			//flashes now, not only a storm's
+			int shake = Math.min(2, WPDSettings.screenShake());
+			if (shake > 0) cam.shake(shake, 0.15f);
 		}
 		return f;
 	}

@@ -32,10 +32,10 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import com.watabou.utils.Random;
 
 public class CrusadersZeal extends Skill {
@@ -81,7 +81,7 @@ public class CrusadersZeal extends Skill {
 				PulseRingFX.around( hero.sprite, 0xFFE070, 20, 0.5f );
 				hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "crippled" ) );
 			}
-			Sample.INSTANCE.play( Assets.Sounds.RAY, 1f, 1.1f );
+			SpatialSound.play( Assets.Sounds.RAY, hero, 1f, 1.1f );
 			zeal.flames = 0;
 		}
 		return damage + bonus;
@@ -106,6 +106,17 @@ public class CrusadersZeal extends Skill {
 		}
 
 		int flames = 0;
+
+		//only the skill snuffs the flames: once it is gone (taken away in the debug window) they go too
+		@Override
+		public boolean act(){
+			if (CurrentSkills.skillLevel( target, CrusadersZeal.class ) <= 0){
+				detach();
+				return true;
+			}
+			spend( TICK );
+			return true;
+		}
 
 		@Override
 		public int icon(){ return xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator.FIRE; }

@@ -28,7 +28,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 import java.util.ArrayList;
 import com.watabou.utils.Bundle;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -37,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.WarriorImpactFX;
 import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfForce;
@@ -190,7 +190,7 @@ public class Smash extends ActiveSkill1 {
             try {
                 if (finishThrow(enemy, other, floor, origin, landing, damage)){
                     WarriorImpactFX.show(landing, true);
-                    Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG, 1f, 0.9f);
+                    SpatialSound.play(Assets.Sounds.HIT_STRONG, landing, 1f, 0.9f);
                 }
                 if (Dungeon.level == floor){
                     Dungeon.observe();

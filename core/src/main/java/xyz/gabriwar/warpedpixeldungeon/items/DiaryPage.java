@@ -34,7 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.Badges;
-import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import com.watabou.utils.Bundle;
 
 import java.util.ArrayList;
@@ -73,11 +73,11 @@ public class DiaryPage extends Item {
 
 		detach( hero.belongings.backpack );
 		if (ScrollOfMagicMapping.mapCurrentLevel()) {
-			Sample.INSTANCE.play( Assets.Sounds.SECRET );
+			SpatialSound.play( Assets.Sounds.SECRET, hero );
 		}
 		GLog.i( Messages.get( ScrollOfMagicMapping.class, "layout" ) );
 		SpellSprite.show( hero, SpellSprite.MAP );
-		Sample.INSTANCE.play( Assets.Sounds.READ );
+		SpatialSound.play( Assets.Sounds.READ, hero );
 		Badges.validateWellRead();
 		hero.spendAndNext( 1f );
 	}

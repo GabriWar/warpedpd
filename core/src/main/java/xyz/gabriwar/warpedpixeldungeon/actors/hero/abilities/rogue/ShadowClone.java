@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.ArmorAbility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.huntress.SpiritHawk;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.DirectableAlly;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SmokeParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.ClassArmor;
@@ -44,7 +45,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.MobSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.tweeners.Tweener;
 import com.watabou.utils.BArray;
@@ -325,7 +325,7 @@ public class ShadowClone extends ArmorAbility {
 			ch.sprite.interruptMotion();
 
 			if (Dungeon.level.heroFOV[pos] || Dungeon.level.heroFOV[ch.pos]){
-				Sample.INSTANCE.play(Assets.Sounds.PUFF);
+				SpatialSound.play(Assets.Sounds.PUFF, pos);
 			}
 
 			ch.move( pos );

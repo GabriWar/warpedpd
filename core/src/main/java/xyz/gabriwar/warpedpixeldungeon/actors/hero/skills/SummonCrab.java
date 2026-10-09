@@ -28,11 +28,11 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SummonedPet;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
@@ -89,7 +89,7 @@ public class SummonCrab extends ActiveSkill2 {
 
 				hero.MP -= getManaCost();
 				castTextYell();
-				Sample.INSTANCE.play( Assets.Sounds.PUFF, 1f, 0.9f );
+				SpatialSound.play( Assets.Sounds.PUFF, pet, 1f, 0.9f );
 				hero.spend( TIME_TO_USE );
 				hero.busy();
 				hero.sprite.operate( hero.pos );

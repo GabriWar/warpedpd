@@ -28,7 +28,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -38,6 +37,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SummonedPet;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfMagic;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -100,7 +100,7 @@ public class Meditation extends PassiveSkillA2 {
 				if (hero.sprite != null) new Flare( 8, 30 ).color( 0x99DDFF, true ).show( hero.sprite, 0.8f );
 			} );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.MELD, 0.6f, 1.2f );
+		SpatialSound.play( Assets.Sounds.MELD, hero, 0.6f, 1.2f );
 
 		if (level < MAX_LEVEL) return;
 		//the calm reaches the servants in sight and mends them

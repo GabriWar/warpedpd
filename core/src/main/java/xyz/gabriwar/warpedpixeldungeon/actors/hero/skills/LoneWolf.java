@@ -24,7 +24,6 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
-import com.watabou.noosa.audio.Sample;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -34,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SummonedPet;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -83,7 +83,7 @@ public class LoneWolf extends Skill {
 			castText = Messages.get( this, alone ? "cast_alone" : "cast_company" );
 			castTextYell();
 			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( alone ? Speck.STAR : Speck.DUST ), 4 );
-			Sample.INSTANCE.play( Assets.Sounds.MISS, 0.7f, alone ? 1.3f : 0.8f );
+			SpatialSound.play( Assets.Sounds.MISS, hero, 0.7f, alone ? 1.3f : 0.8f );
 		}
 		return alone;
 	}
@@ -116,7 +116,7 @@ public class LoneWolf extends Skill {
 		}
 		if (howled){
 			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.SCREAM ), 3 );
-			Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 0.8f, 1.3f );
+			SpatialSound.play( Assets.Sounds.CHALLENGE, hero, 0.8f, 1.3f );
 		}
 
 		//fully trained, a kill made alone mends 5% of full health
@@ -127,6 +127,6 @@ public class LoneWolf extends Skill {
 			hero.sprite.showStatus( CharSprite.POSITIVE, Integer.toString( heal ) );
 			hero.sprite.emitter().burst( Speck.factory( Speck.HEALING ), 3 );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 0.6f, 0.7f );
+		SpatialSound.play( Assets.Sounds.HIT_STRONG, hero, 0.6f, 0.7f );
 	}
 }

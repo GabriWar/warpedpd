@@ -28,12 +28,12 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.EnergyParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
@@ -96,7 +96,7 @@ public class Wizard extends PassiveSkillB1 {
 				hero.sprite.centerEmitter().burst( EnergyParticle.FACTORY, 8 );
 				hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( Wizard.class, "snap" ) );
 			}
-			Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 0.7f, 1.5f );
+			SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 0.7f, 1.5f );
 		}
 	}
 
@@ -122,7 +122,7 @@ public class Wizard extends PassiveSkillB1 {
 			hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( Wizard.class, "ricochet" ) );
 		}
 		if (next.sprite != null) next.sprite.centerEmitter().burst( EnergyParticle.FACTORY, 6 );
-		Sample.INSTANCE.play( Assets.Sounds.ZAP, 1f, 1.3f );
+		SpatialSound.play( Assets.Sounds.ZAP, next, 1f, 1.3f );
 		bouncing = true;
 		try {
 			wand.onZap( new Ballistica( from, next.pos, wand.collisionProperties( next.pos ) ) );

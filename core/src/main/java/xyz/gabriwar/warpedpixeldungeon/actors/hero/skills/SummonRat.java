@@ -30,11 +30,11 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SummonedPet;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -111,12 +111,12 @@ public class SummonRat extends ActiveSkill1 {
 				final int hole = newPos;
 				StaggerFX.after( 0.3f, () -> {
 					CellEmitter.get( hole ).burst( Speck.factory( Speck.DUST ), 4 );
-					Sample.INSTANCE.play( Assets.Sounds.PUFF, 0.6f, 1.4f );
+					SpatialSound.play( Assets.Sounds.PUFF, hole, 0.6f, 1.4f );
 				} );
 
 				hero.MP -= getManaCost();
 				castTextYell();
-				Sample.INSTANCE.play( Assets.Sounds.PUFF, 1f, 1.1f );
+				SpatialSound.play( Assets.Sounds.PUFF, hero, 1f, 1.1f );
 				hero.spend( TIME_TO_USE );
 				hero.busy();
 				hero.sprite.operate( hero.pos );

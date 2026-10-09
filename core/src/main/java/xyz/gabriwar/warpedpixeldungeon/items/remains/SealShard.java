@@ -25,10 +25,10 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barrier;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 
 public class SealShard extends RemainsItem {
 
@@ -40,7 +40,7 @@ public class SealShard extends RemainsItem {
 	protected void doEffect(Hero hero) {
 		Buff.affect(hero, Barrier.class).incShield(Math.round(hero.HT/5f));
 		hero.sprite.showStatusWithIcon( CharSprite.POSITIVE, Integer.toString(Math.round(hero.HT/5f)), FloatingText.SHIELDING );
-		Sample.INSTANCE.play(Assets.Sounds.UNLOCK);
+		SpatialSound.play(Assets.Sounds.UNLOCK, hero);
 	}
 
 }

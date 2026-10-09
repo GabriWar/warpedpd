@@ -755,6 +755,13 @@ public abstract class RegularLevel extends Level {
 	protected int randomDropCell(){
 		return randomDropCell(StandardRoom.class);
 	}
+
+	//a guide page lies where items do: in a standard room, never behind a locked or secret door
+	@Override
+	protected int randomDescentPageCell(){
+		int cell = randomDropCell();
+		return cell != -1 ? cell : super.randomDescentPageCell();
+	}
 	
 	protected int randomDropCell( Class<?extends Room> roomType ) {
 		int tries = 100;

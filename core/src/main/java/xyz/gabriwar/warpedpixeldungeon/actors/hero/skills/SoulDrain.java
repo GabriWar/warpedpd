@@ -29,7 +29,7 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 
 
 public class SoulDrain extends SubSkill1 {
@@ -95,7 +95,7 @@ public class SoulDrain extends SubSkill1 {
 						xyz.gabriwar.warpedpixeldungeon.actors.buffs.SoulMark.DURATION );
 				if (target.sprite != null) target.sprite.emitter().burst( ShadowParticle.CURSE, 6 );
 			}
-			Sample.INSTANCE.play( Assets.Sounds.GHOST, 0.6f, 1.3f );
+			SpatialSound.play( Assets.Sounds.GHOST, mob, 0.6f, 1.3f );
 		} );
 	}
 }

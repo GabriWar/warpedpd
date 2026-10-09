@@ -35,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Chill;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
@@ -56,7 +57,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.ElementalSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.audio.Music;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 import com.watabou.utils.GameMath;
@@ -389,7 +389,7 @@ public abstract class Elemental extends Mob {
 						}
 					}
 				}
-				Sample.INSTANCE.play(Assets.Sounds.BURNING);
+				SpatialSound.play(Assets.Sounds.BURNING, targetingPos);
 			}
 
 			targetingPos = -1;
@@ -560,7 +560,7 @@ public abstract class Elemental extends Mob {
 
 			if (visible) {
 				sprite.parent.addToFront(new Lightning(arcs, null));
-				Sample.INSTANCE.play(Assets.Sounds.LIGHTNING);
+				SpatialSound.play(Assets.Sounds.LIGHTNING, enemy);
 			}
 		}
 		

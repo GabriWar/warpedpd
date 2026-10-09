@@ -25,12 +25,12 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Sheep;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import com.watabou.utils.BArray;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 import java.util.ArrayList;
@@ -71,8 +71,8 @@ public class WoollyBomb extends Bomb {
 			}
 		}
 		
-		Sample.INSTANCE.play(Assets.Sounds.PUFF);
-		Sample.INSTANCE.play(Assets.Sounds.SHEEP);
+		SpatialSound.play(Assets.Sounds.PUFF, cell);
+		SpatialSound.play(Assets.Sounds.SHEEP, cell);
 		
 	}
 	

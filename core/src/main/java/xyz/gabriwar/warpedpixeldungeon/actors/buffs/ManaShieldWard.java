@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.CurrentSkills;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.ManaShield;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -38,7 +39,6 @@ import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import com.watabou.noosa.Camera;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
@@ -92,7 +92,7 @@ public class ManaShieldWard extends Barrier {
 					owner.sprite.showStatus( CharSprite.POSITIVE, Messages.get( ManaShield.class, "reform" ) );
 					owner.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 8 );
 				}
-				Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 0.8f, 1.4f );
+				SpatialSound.play( Assets.Sounds.CHARGEUP, owner, 0.8f, 1.4f );
 			}
 		}
 		return left;
@@ -105,7 +105,7 @@ public class ManaShieldWard extends Barrier {
 			owner.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 10 );
 			owner.sprite.showStatus( CharSprite.POSITIVE, Messages.get( ManaShield.class, "charged", 1 + level ) );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.SHATTER, 1f, 1.2f );
+		SpatialSound.play( Assets.Sounds.SHATTER, owner, 1f, 1.2f );
 		Camera.main.shake( 1, 0.2f );
 		Buff.affect( owner, ManaShield.Charged.class ).set( 1 + level );
 	}

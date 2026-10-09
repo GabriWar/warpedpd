@@ -24,6 +24,7 @@ package xyz.gabriwar.warpedpixeldungeon.levels.traps;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.EquipableItem;
@@ -36,7 +37,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MagesStaff;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.MissileWeapon;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -52,7 +52,7 @@ public class CursingTrap extends Trap {
 	public void activate() {
 		if (Dungeon.level.heroFOV[ pos ]) {
 			CellEmitter.get(pos).burst(ShadowParticle.UP, 5);
-			Sample.INSTANCE.play(Assets.Sounds.CURSED);
+			SpatialSound.play(Assets.Sounds.CURSED, pos);
 		}
 
 		Heap heap = Dungeon.level.heaps.get( pos );

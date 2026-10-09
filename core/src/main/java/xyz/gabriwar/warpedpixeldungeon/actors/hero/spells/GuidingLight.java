@@ -30,6 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FlavourBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.HolyTome;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.Wand;
@@ -42,7 +43,6 @@ import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
 import xyz.gabriwar.warpedpixeldungeon.ui.QuickSlotButton;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Image;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
 
@@ -75,7 +75,7 @@ public class GuidingLight extends TargetedClericSpell {
 		}
 
 		hero.busy();
-		Sample.INSTANCE.play( Assets.Sounds.ZAP );
+		SpatialSound.play( Assets.Sounds.ZAP, hero );
 		hero.sprite.zap(target);
 		MagicMissile.boltFromChar(hero.sprite.parent, MagicMissile.LIGHT_MISSILE, hero.sprite, aim.collisionPos, new Callback() {
 			@Override
@@ -84,7 +84,7 @@ public class GuidingLight extends TargetedClericSpell {
 				Char ch = Actor.findChar( aim.collisionPos );
 				if (ch != null) {
 					ch.damage(Hero.heroDamageIntRange(2, 8), GuidingLight.this);
-					Sample.INSTANCE.play(Assets.Sounds.HIT_MAGIC, 1, Random.Float(0.87f, 1.15f));
+					SpatialSound.play(Assets.Sounds.HIT_MAGIC, ch, 1, Random.Float(0.87f, 1.15f));
 					ch.sprite.burst(0xFFFFFF44, 3);
 					if (ch.isAlive()){
 						Buff.affect(ch, Illuminated.class);

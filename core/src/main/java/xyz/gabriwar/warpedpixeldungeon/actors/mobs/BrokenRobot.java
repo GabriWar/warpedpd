@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Vampiric;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.BlastParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.PurpleParticle;
@@ -46,7 +47,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.BrokenRobotSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -198,7 +198,7 @@ public class BrokenRobot extends Mob implements Callback {
 	}
 
 	public void explode( int cell ) {
-		Sample.INSTANCE.play( Assets.Sounds.BLAST, 2 );
+		SpatialSound.play( Assets.Sounds.BLAST, cell, 2 );
 
 		if (Dungeon.level.heroFOV[cell]) {
 			CellEmitter.center(cell).burst(BlastParticle.FACTORY, 30);

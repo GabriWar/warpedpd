@@ -28,6 +28,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -35,7 +36,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPsionicBlast;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MonsterBoxSprite;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Bundlable;
 import com.watabou.utils.PathFinder;
@@ -159,7 +159,7 @@ public class MonsterBox extends Mob {
 
 		if (Dungeon.level.heroFOV[pos]) {
 			CellEmitter.get(pos).burst(Speck.factory(Speck.STAR), 10);
-			Sample.INSTANCE.play(Assets.Sounds.MIMIC);
+			SpatialSound.play(Assets.Sounds.MIMIC, pos);
 		}
 
 		return box;

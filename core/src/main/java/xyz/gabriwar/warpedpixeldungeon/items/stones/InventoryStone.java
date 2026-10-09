@@ -25,12 +25,12 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MagicImmune;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
-import com.watabou.noosa.audio.Sample;
 
 import java.util.ArrayList;
 
@@ -71,7 +71,7 @@ public abstract class InventoryStone extends Runestone {
 		curUser.busy();
 		curUser.sprite.operate(curUser.pos);
 
-		Sample.INSTANCE.play( Assets.Sounds.READ );
+		SpatialSound.play( Assets.Sounds.READ, curUser );
 		Invisibility.dispel();
 	}
 

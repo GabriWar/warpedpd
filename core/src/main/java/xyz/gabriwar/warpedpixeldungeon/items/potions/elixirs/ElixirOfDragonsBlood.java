@@ -25,10 +25,10 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FireImbue;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfDragonsBreath;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 
 public class ElixirOfDragonsBlood extends Elixir {
 	
@@ -41,7 +41,7 @@ public class ElixirOfDragonsBlood extends Elixir {
 		Buff.affect(hero, FireImbue.class).set(FireImbue.DURATION);
 		if (Float.isNaN(hero.bodyTemp)) hero.bodyTemp = 20f;
 		hero.bodyTemp += 15f;
-		Sample.INSTANCE.play( Assets.Sounds.BURNING );
+		SpatialSound.play( Assets.Sounds.BURNING, hero );
 		hero.sprite.emitter().burst(FlameParticle.FACTORY, 10);
 	}
 	

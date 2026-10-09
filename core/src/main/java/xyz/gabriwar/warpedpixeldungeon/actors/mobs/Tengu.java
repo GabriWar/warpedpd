@@ -43,6 +43,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
@@ -74,7 +75,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.TenguSprite;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.ui.BossHealthBar;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.BArray;
 import com.watabou.utils.Bundle;
@@ -334,7 +334,7 @@ public class Tengu extends Mob {
 				move( newPos );
 				
 				if (level.heroFOV[newPos]) CellEmitter.get( newPos ).burst( Speck.factory( Speck.WOOL ), 6 );
-				Sample.INSTANCE.play( Assets.Sounds.PUFF );
+				SpatialSound.play( Assets.Sounds.PUFF, newPos );
 
 				float fill = 0.9f - 0.5f*((HP-(HT/2f))/(HT/2f));
 				level.placeTrapsInTenguCell(fill);
@@ -366,7 +366,7 @@ public class Tengu extends Mob {
 				if (arenaJumps < 4) arenaJumps++;
 				
 				if (level.heroFOV[newPos]) CellEmitter.get( newPos ).burst( Speck.factory( Speck.WOOL ), 6 );
-				Sample.INSTANCE.play( Assets.Sounds.PUFF );
+				SpatialSound.play( Assets.Sounds.PUFF, newPos );
 				
 			}
 			
@@ -382,7 +382,7 @@ public class Tengu extends Mob {
 			move( newPos );
 			
 			if (level.heroFOV[newPos]) CellEmitter.get( newPos ).burst( Speck.factory( Speck.WOOL ), 6 );
-			Sample.INSTANCE.play( Assets.Sounds.PUFF );
+			SpatialSound.play( Assets.Sounds.PUFF, newPos );
 			
 		}
 		
@@ -725,7 +725,7 @@ public class Tengu extends Mob {
 						}
 					}
 				}
-				Sample.INSTANCE.play(Assets.Sounds.BLAST);
+				SpatialSound.play(Assets.Sounds.BLAST, bombPos);
 				detach();
 				return true;
 			}
@@ -919,7 +919,8 @@ public class Tengu extends Mob {
 			protected void evolve() {
 				
 				boolean observe = false;
-				boolean burned = false;
+				//the cell nearest the hero that caught, where the sound comes from
+				int burned = -1;
 				
 				int cell;
 				for (int i = area.left; i < area.right; i++){
@@ -960,7 +961,7 @@ public class Tengu extends Mob {
 								GameScene.updateMap( cell );
 							}
 							
-							burned = true;
+							burned = SpatialSound.nearer( burned, cell );
 							CellEmitter.get(cell).start(FlameParticle.FACTORY, 0.03f, 10);
 						}
 					}
@@ -970,8 +971,8 @@ public class Tengu extends Mob {
 					Dungeon.observe();
 				}
 				
-				if (burned){
-					Sample.INSTANCE.play(Assets.Sounds.BURNING);
+				if (burned >= 0){
+					SpatialSound.play(Assets.Sounds.BURNING, burned);
 				}
 			}
 			
@@ -1051,22 +1052,22 @@ public class Tengu extends Mob {
 				spreadblob();
 			} else if (shockingOrdinals){
 				
-				target.sprite.parent.add(new Lightning(shockerPos - 1 - Dungeon.level.width(), shockerPos + 1 + Dungeon.level.width(), null));
-				target.sprite.parent.add(new Lightning(shockerPos - 1 + Dungeon.level.width(), shockerPos + 1 - Dungeon.level.width(), null));
+				target.sprite.parent.add(new Lightning(shockerPos - 1 - Dungeon.level.width(), shockerPos + 1 + Dungeon.level.width(), null).noGlow());
+				target.sprite.parent.add(new Lightning(shockerPos - 1 + Dungeon.level.width(), shockerPos + 1 - Dungeon.level.width(), null).noGlow());
 				
 				if (Dungeon.level.distance(Dungeon.hero.pos, shockerPos) <= 1){
-					Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
+					SpatialSound.play( Assets.Sounds.LIGHTNING, shockerPos );
 				}
 				
 				shockingOrdinals = false;
 				spreadblob();
 			} else {
 				
-				target.sprite.parent.add(new Lightning(shockerPos - Dungeon.level.width(), shockerPos + Dungeon.level.width(), null));
-				target.sprite.parent.add(new Lightning(shockerPos - 1, shockerPos + 1, null));
+				target.sprite.parent.add(new Lightning(shockerPos - Dungeon.level.width(), shockerPos + Dungeon.level.width(), null).noGlow());
+				target.sprite.parent.add(new Lightning(shockerPos - 1, shockerPos + 1, null).noGlow());
 				
 				if (Dungeon.level.distance(Dungeon.hero.pos, shockerPos) <= 1){
-					Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
+					SpatialSound.play( Assets.Sounds.LIGHTNING, shockerPos );
 				}
 				
 				shockingOrdinals = true;
@@ -1113,7 +1114,8 @@ public class Tengu extends Mob {
 			@Override
 			protected void evolve() {
 
-				boolean shocked = false;
+				//the cell nearest the hero that sparked, where the sound comes from
+				int shocked = -1;
 				
 				int cell;
 				for (int i = area.left; i < area.right; i++){
@@ -1127,7 +1129,7 @@ public class Tengu extends Mob {
 						
 						if (cur[cell] > 0 && off[cell] == 0){
 
-							shocked = true;
+							shocked = SpatialSound.nearer( shocked, cell );
 							
 							Char ch = Actor.findChar(cell);
 							if (ch != null && !(ch instanceof Tengu)){
@@ -1147,7 +1149,7 @@ public class Tengu extends Mob {
 					}
 				}
 
-				if (shocked) Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
+				if (shocked >= 0) SpatialSound.play( Assets.Sounds.LIGHTNING, shocked );
 				
 			}
 			

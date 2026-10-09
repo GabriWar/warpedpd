@@ -26,12 +26,12 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MagicImmune;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.journal.Document;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 import java.util.ArrayList;
@@ -112,7 +112,7 @@ public abstract class EquipableItem extends Item {
 
 	public static void equipCursed( Hero hero ) {
 		hero.sprite.emitter().burst( ShadowParticle.CURSE, 6 );
-		Sample.INSTANCE.play( Assets.Sounds.CURSED );
+		SpatialSound.play( Assets.Sounds.CURSED, hero );
 	}
 
 	protected float timeToEquip( Hero hero ) {

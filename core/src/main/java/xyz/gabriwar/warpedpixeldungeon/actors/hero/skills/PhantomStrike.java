@@ -38,7 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.*;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import com.watabou.noosa.tweeners.AlphaTweener;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
@@ -81,7 +81,7 @@ public class PhantomStrike extends Skill {
                     SkillSpectacleFX.fly(SkillSpectacleFX.SHADOW,old,cell,0,.4f);
                     SkillSpectacleFX.fly(SkillSpectacleFX.SHADOW,cell,old,0,.4f);
                     CellEmitter.get(old).burst(ShadowParticle.UP,5);CellEmitter.get(cell).burst(ShadowParticle.UP,5);
-                    Sample.INSTANCE.play(Assets.Sounds.MELD,1f,1.2f);
+                    SpatialSound.play(Assets.Sounds.MELD,hero,1f,1.2f);
                     Dungeon.level.occupyCell(shadow);Dungeon.level.occupyCell(hero);
                 }else{
                     if(!Dungeon.level.heroFOV[cell]||Dungeon.level.distance(hero.pos,cell)>6||!SkillInteractions.clear(hero.pos,cell)
@@ -105,7 +105,7 @@ public class PhantomStrike extends Skill {
                                 if(shadow.sprite==null||!shadow.sprite.exists)return;
                                 shadow.sprite.parent.add(new AlphaTweener(shadow.sprite,shown,0.35f));
                                 CellEmitter.get(at).burst(ShadowParticle.UP,6);
-                                Sample.INSTANCE.play(Assets.Sounds.MELD,0.8f,1.1f+0.1f*order);
+                                SpatialSound.play(Assets.Sounds.MELD,at,0.8f,1.1f+0.1f*order);
                             });
                         }
                         created++;

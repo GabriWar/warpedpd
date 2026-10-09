@@ -24,16 +24,21 @@
 
 package xyz.gabriwar.warpedpixeldungeon.debug;
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Challenges;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.GamesInProgress;
+import xyz.gabriwar.warpedpixeldungeon.QuickSlot;
 import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
 import xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle;
 import xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar;
+import xyz.gabriwar.warpedpixeldungeon.actors.PrecipType;
+import xyz.gabriwar.warpedpixeldungeon.actors.WeatherState;
 import xyz.gabriwar.warpedpixeldungeon.actors.WorldClock;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Comfy;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FlavourBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Frost;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
@@ -43,13 +48,19 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Goat;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Settler;
+import xyz.gabriwar.warpedpixeldungeon.items.Item;
+import xyz.gabriwar.warpedpixeldungeon.audio.Earshot;
+import xyz.gabriwar.warpedpixeldungeon.audio.RoomAcoustics;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Torch;
 import xyz.gabriwar.warpedpixeldungeon.items.quest.Pickaxe;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTeleportation;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfFireblast;
+import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfLightning;
 import xyz.gabriwar.warpedpixeldungeon.journal.Bestiary;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
+import xyz.gabriwar.warpedpixeldungeon.levels.TownInteriorLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientPlayer;
 import xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientSounds;
 import xyz.gabriwar.warpedpixeldungeon.levels.ambience.DungeonLife;
@@ -76,10 +87,13 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.InterlevelScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Game;
+import com.watabou.noosa.tweeners.Delayer;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Reflection;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Locale;
 
@@ -93,6 +107,10 @@ import java.util.Locale;
  *
  * which starts a new game, lands on the surface and applies the scene there. Every
  * scene keeps the hero safe (infinite health) and lifts the fog.
+ *
+ * The lightning (effects/Lightning, items/wands/WandOfLightning) has lightning-water: the blank
+ * room with a pool beside the hero, monsters standing in it and one on dry ground, and a wand of
+ * lightning +3 to zap them with, its charge running over the water (into the hero too, a step in).
  *
  * The rooms Warped adds have scenes of their own, all on levels/WarpedRoomsLevel:
  * warped-rooms, warped-rooms-night (the same floor after dark, so the market is open) and
@@ -191,6 +209,40 @@ import java.util.Locale;
  * where the ground of the most of its kinds is in sight (DungeonLife.liveliest), puts the fog
  * back on and logs what lives there and what is heard at this hour. The life turns up over the
  * next seconds, in the cells the hero sees.
+ *
+ * Room acoustics (audio/RoomAcoustics, docs/ambience.md) has one scene a kind of space:
+ * acoustics-room (the prison room nearest the landing, floor 7), acoustics-corridor (the middle of
+ * the prison's longest corridor), acoustics-sewers (a sewer room on floor 2: it must ring),
+ * acoustics-hall (the biggest space in the demon halls, 22), acoustics-cave (the biggest chamber in
+ * the caves, 12), acoustics-cavern (the biggest space round a chamber of the world's caves at -9:
+ * the cavern's tail and the echo off a far wall), acoustics-peaks (the nearest spot with an echo off
+ * the rock, on alpine meadow at +3 on a summer's day, the rain held off), acoustics-field (the
+ * postgame field, 27: it must stay dry), acoustics-church (the town's church) and acoustics-busy (a
+ * chamber of the caves at -6, a cavern too, a storm forced and four foes set on the hero: listen for
+ * the rain and the cave's own sounds dropping out while the blows ring). Each puts the fog back on,
+ * logs the space as a sound finds it (Earshot.Snapshot.describe), waits for the muffled copies to be
+ * in use (10 s after they load, 20 s at most), then plays three rounds 1.5 s apart - a heavy blow on
+ * the hero, a blast six cells off, a blow behind the nearest door and a mine behind the nearest
+ * rock - and logs what the budget let through and held back each round.
+ *
+ * The weather and its sounds (levels/ambience/WeatherSounds, docs/weather-sounds.md) have one scene
+ * a condition, each holding the sky through the climate's debug overrides - every one a weather
+ * scene touches is set, so nothing is left over from the scene before - with the fog back on and a
+ * log of what to listen for and from which side: weather-rain-light, weather-rain and
+ * weather-rain-heavy (0.08, 0.25 and 0.5, the wind held calm; the heavy one rolls far thunder),
+ * weather-storm (a storm forced through ClimateManager.debugForceStorm, heavy rain in a 15 m/s wind
+ * from the west; the Weather tab's Force storm box or weather-clear ends it) and weather-fog (the
+ * rain held off and the wind calm, the clock walked on a turn at a time, the climate stepping with
+ * it, until fog or the clearing after rain, when the trees drip, has held for FOG_HOLD turns), all
+ * by a river and a wood (OverworldCritters.findCritterGround), the hero set down with open water
+ * within three cells and a tree within five and told where each lies; weather-gale (16 m/s from the
+ * west), weather-sleet and weather-hail on open plains, weather-snow and weather-blizzard (15 m/s
+ * from the east) on the tundra or a snowfield, where the overlay draws snow (it falls only over
+ * frozen ground, rain and sleet's streaks only over thawed), and weather-sandstorm (18 m/s from the
+ * east, its sound and the overlay's driven sand and haze) in the desert (biomeGround), every ground
+ * looked for near the origin off the render thread;
+ * weather-indoors-rain (rain over the town, the hero in its inn: only the roof); and weather-clear,
+ * which releases every weather override, the temperature's and the clouds' too.
  */
 public final class DebugScenes {
 
@@ -202,13 +254,20 @@ public final class DebugScenes {
 		void apply( Hero hero );
 	}
 
+	//the wind the weather scenes hold when the wind is not the point: under the gusts' 7 m/s, so
+	//what is heard is the rain (or the snow, the sleet, the hail) alone
+	static final float CALM = 2f;
+
 	//all the scenes there are, in menu order
-	public static final Scene[] SCENES = {
+	public static final Scene[] SCENES = concat( new Scene[]{
 			new Room(),
 			new Fliers( "fliers-paralysed", "All fliers, paralysed", Paralysis.class ),
 			new Fliers( "fliers-frozen", "All fliers, frozen", Frost.class ),
 			new Fliers( "fliers-free", "All fliers, free", null ),
 			new Pit(),
+			new LightningWater() },
+			//the effects gallery (debug/FxGallery) and every effects area's own scenes
+			FxGallery.SCENES, new Scene[]{
 			new Edges(),
 			new Critters( false ),
 			new Critters( true ),
@@ -287,7 +346,82 @@ public final class DebugScenes {
 			new AmbienceScene( "ambience-meadow-night", "Postgame field at night: fireflies, crickets", 27, 0, DayNightCycle.Phase.NIGHT ),
 			new AmbienceScene( "ambience-shore", "Postgame shore: gulls, leaping fish, lapping water", 29, 0, DayNightCycle.Phase.DAY ),
 			new AmbienceScene( "ambience-catacomb", "Postgame catacombs: roaches, moths, spiders, mice", 31, 0, DayNightCycle.Phase.DUSK ),
-	};
+			new AcousticsScene( "acoustics-room", "Room acoustics: a prison room", 7, 0, 0, AcousticsScene.Spot.ROOM, false ),
+			new AcousticsScene( "acoustics-corridor", "Room acoustics: the prison's longest corridor", 7, 0, 0, AcousticsScene.Spot.CORRIDOR, false ),
+			new AcousticsScene( "acoustics-sewers", "Room acoustics: a sewer room, which must ring", 2, 0, 0, AcousticsScene.Spot.ROOM, false ),
+			new AcousticsScene( "acoustics-hall", "Room acoustics: the biggest space in the demon halls", 22, 0, 0, AcousticsScene.Spot.LARGEST, false ),
+			new AcousticsScene( "acoustics-cave", "Room acoustics: the biggest chamber in the caves", 12, 0, 0, AcousticsScene.Spot.LARGEST, false ),
+			new AcousticsScene( "acoustics-cavern", "Room acoustics: a cavern of the world's caves at -9", 0, 0, -9, AcousticsScene.Spot.LARGEST, false ),
+			new AcousticsScene( "acoustics-peaks", "Room acoustics: facing a rock face on the peaks at +3", 0, 0, 3, AcousticsScene.Spot.ECHO, false ),
+			new AcousticsScene( "acoustics-field", "Room acoustics: the postgame field, which must stay dry", 27, 0, 0, AcousticsScene.Spot.HERE, false ),
+			new AcousticsScene( "acoustics-church", "Room acoustics: the town's church", 1, TownInteriorLevel.BRANCH, 0, AcousticsScene.Spot.HERE, false ),
+			new AcousticsScene( "acoustics-busy", "Room acoustics: a fight in the caves at -6 in a storm", 0, 0, -6, AcousticsScene.Spot.HERE, true ),
+			new WeatherScene( "weather-rain-light", "Weather: light rain by a river",
+					new Sky( PrecipType.RAIN, 0.08f, CALM, Float.NaN, false ), WeatherScene.Ground.RIVER, false,
+					"light rain held at 0.08, the wind calm: a soft, dark patter left and right (the light rain bed),"
+					+ " and the rain on the water from the water's side; more than six cells from the water, the rain"
+					+ " in the leaves from the trees' side instead" ),
+			new WeatherScene( "weather-rain", "Weather: steady rain by a river",
+					new Sky( PrecipType.RAIN, 0.25f, CALM, Float.NaN, false ), WeatherScene.Ground.RIVER, false,
+					"steady rain held at 0.25, the wind calm: the rain bed left and right, and the rain on the water"
+					+ " (or in the leaves, away from it) from its side, staying put as you walk" ),
+			new WeatherScene( "weather-rain-heavy", "Weather: heavy rain by a river, far thunder",
+					new Sky( PrecipType.RAIN, 0.5f, CALM, Float.NaN, false ), WeatherScene.Ground.RIVER, false,
+					"heavy rain held at 0.5, the wind calm: the heavy rain bed, denser and lower, the water or the"
+					+ " leaves from their side, and a far roll of thunder every 25 to 70 seconds" ),
+			new WeatherScene( "weather-storm", "Weather: a thunderstorm by a river",
+					new Sky( PrecipType.RAIN, 0.6f, 15f, 90f, true ), WeatherScene.Ground.RIVER, false,
+					"a storm forced (no need to wait for one), heavy rain at 0.6 in a 15 m/s wind: the heavy rain bed,"
+					+ " the gale and its gusts from the wind's side, and thunder with each flash - a crack with the flash for a bolt in sight or"
+					+ " within 8 cells, a far roll within half a second for one beyond out of sight or for sheet lightning, quieter the"
+					+ " farther it struck. The bolts come down on your"
+					+ " turns (about every third turn, within 10 cells: stand still and only sheet lightning flashes); one in sight is"
+					+ " drawn, burns its cell to embers and sets the grass round it alight (never by you or anyone), and hurts and stuns"
+					+ " whatever it hits, you too. Rest and the bolts come fast: each in sight drawn, the flash and thunder at most every 0.7 s" ),
+			new WeatherScene( "weather-gale", "Weather: a gale over open plains",
+					new Sky( null, 0f, 16f, 90f, false ), WeatherScene.Ground.PLAINS, false,
+					"dry, the wind held at 16 m/s: the gale bed from the wind's side, and a gust from the same side"
+					+ " as the rain would lean on screen, one in 4 seconds at most" ),
+			new WeatherScene( "weather-sandstorm", "Weather: a sandstorm in the desert",
+					new Sky( null, 0f, 18f, 270f, false ), WeatherScene.Ground.DESERT, false,
+					"dry desert, the wind held at 18 m/s: the sandstorm in place of the gale, from the wind's side,"
+					+ " and gusts with it; on screen, sand driven low toward the west, puffs of dust rolling after it"
+					+ " and a tan haze, all surging in the gusts" ),
+			new WeatherScene( "weather-snow", "Weather: snowfall on the tundra",
+					new Sky( PrecipType.SNOW, 0.3f, CALM, Float.NaN, false ), WeatherScene.Ground.FROZEN, false,
+					"snow held at 0.3, the wind calm: the snow bed left and right, a hush, very quiet by design" ),
+			new WeatherScene( "weather-sleet", "Weather: sleet on open ground",
+					new Sky( PrecipType.SLEET, 0.3f, CALM, Float.NaN, false ), WeatherScene.Ground.PLAINS, false,
+					"sleet held at 0.3, the wind calm: the sleet bed left and right, wet and slushy" ),
+			new WeatherScene( "weather-hail", "Weather: hail on open ground",
+					new Sky( PrecipType.HAIL, 0.35f, CALM, Float.NaN, false ), WeatherScene.Ground.PLAINS, false,
+					"hail held at 0.35 (it never falls naturally), the wind calm: the hail bed left and right, dull"
+					+ " knocks and ticks" ),
+			new WeatherScene( "weather-blizzard", "Weather: a blizzard on the tundra",
+					new Sky( PrecipType.BLIZZARD, 0.35f, 15f, 270f, false ), WeatherScene.Ground.FROZEN, false,
+					"a blizzard held at 0.35 in a 15 m/s wind: the blizzard bed and no gale (the blizzard is the wind),"
+					+ " gusts from the wind's side; on screen snow driven toward the west over the snowfall, a white vignette"
+					+ " closing in from the edges and pulsing with the gusts, and a brief whiteout as a strong gust comes"
+					+ " (about every 17 s)" ),
+			new WeatherScene( "weather-fog", "Weather: fog or the clearing after rain, by the trees",
+					new Sky( null, 0f, CALM, Float.NaN, false ), WeatherScene.Ground.RIVER, true,
+					"no rain, the wind calm: drips off the trees within six cells, every 2 to 6 seconds, each from its"
+					+ " tree's side" ),
+			new WeatherScene( "weather-indoors-rain", "Weather: rain on the roof of the inn",
+					new Sky( PrecipType.RAIN, 0.3f, Float.NaN, Float.NaN, false ), WeatherScene.Ground.INDOORS, false,
+					"rain held at 0.3 over the town, the hero in the inn: only the rain on the roof, low and muffled;"
+					+ " no rain bed, no wind, no drips (the debug rain is drawn indoors too: the override reaches"
+					+ " every level, where a real rain stops at the door)" ),
+			new WeatherScene( "weather-clear", "Weather: release every weather override",
+					null, WeatherScene.Ground.HERE, false, null ),
+	} );
+
+	//lists of scenes one after another
+	private static Scene[] concat( Scene[]... parts ){
+		ArrayList<Scene> all = new ArrayList<>();
+		for (Scene[] part : parts) all.addAll( Arrays.asList( part ) );
+		return all.toArray( new Scene[0] );
+	}
 
 	public static Scene byId( String id ){
 		for (Scene s : SCENES) if (s.id().equals( id )) return s;
@@ -298,14 +432,21 @@ public final class DebugScenes {
 	public static void run( Scene scene ){
 		Hero hero = Dungeon.hero;
 		if (hero == null || Dungeon.level == null) return;
-		hero.migrateDebugGodmode();
+		boolean wasSafe = hero.debugInfiniteHealth && Dungeon.debugNoFog;
 		hero.debugInfiniteHealth = true;
 		hero.HP = hero.HT;
 		Dungeon.debugNoFog = true;
+		//a gallery page still playing stops first
+		FxGallery.stopRunning();
 		scene.apply( hero );
 		Dungeon.observe();
 		GameScene.updateFog();
 		GLog.p( "Scene: " + scene.title() );
+		//both stay on after the scene (the debug window's Hero tab turns them off); a scene that
+		//needs the real thing turns them off itself
+		if (!wasSafe && hero.debugInfiniteHealth && Dungeon.debugNoFog){
+			GLog.i( "Debug: infinite health and no fog of war are on." );
+		}
 	}
 
 	// ----------------------------------------------------- command line start
@@ -456,7 +597,7 @@ public final class DebugScenes {
 	//a bare walled room around the hero: 15 by 11 of plain floor and nothing else in it.
 	//The world's slices are painted over their terrain (town art, dress layers), so from
 	//there the hero is first sent to the first sewer floor and the room carved on arrival
-	private static final class Room implements Scene {
+	static final class Room implements Scene {
 		static final int HALF_W = 7, HALF_H = 5;
 		@Override public String id(){ return "blank-room"; }
 		@Override public String title(){ return "Blank room around the hero"; }
@@ -658,6 +799,7 @@ public final class DebugScenes {
 			}
 			if (!walkClock( season, phase, into )) GLog.w( "Scene: a real-clock run keeps its own hour - the clock was not moved" );
 			ClimateManager.debugPrecipOverride = 0f;
+			ClimateManager.debugForceStorm = false;
 			int[] s = front ? SettlementLights.standCell( seed, found[0], found[1] ) : new int[]{ found[2], found[3] };
 			travelling = true;
 			pending = this;
@@ -1367,6 +1509,7 @@ public final class DebugScenes {
 			}
 			if (!walkClock( season, phase, into )) GLog.w( "Scene: a real-clock run keeps its own season and hour" );
 			ClimateManager.debugPrecipOverride = 0f;
+			ClimateManager.debugForceStorm = false;
 			final long seed = OverworldLevel.worldSeedOf( Dungeon.seed );
 			final float shift = WorldModel.calendarShift();
 			search( clouds ? "a summit above the clouds" : "thawed alpine meadow by the edge of slice +" + altitude,
@@ -1523,6 +1666,7 @@ public final class DebugScenes {
 					GLog.w( "Scene: a real-clock run keeps its own season and hour" );
 				}
 				ClimateManager.debugPrecipOverride = 0f;
+				ClimateManager.debugForceStorm = false;
 				int[] at = MountainSites.standCell( seed, site );
 				travelling = true;
 				pending = this;
@@ -1891,6 +2035,631 @@ public final class DebugScenes {
 			GLog.i( "Scene: " + DungeonLife.showcase( Dungeon.level ) );
 			GLog.i( "Scene: " + AmbientSounds.showcase( Dungeon.level ) );
 			if (!AmbientPlayer.audible()) GLog.w( "Scene: the ambience is muted or at zero (Settings > Audio)" );
+			if (ClimateManager.debugForceStorm){
+				GLog.w( "Scene: a storm is still forced (weather-storm), and the calm voices keep quiet in it: the Weather"
+						+ " tab's Force storm box or the weather-clear scene ends it" );
+			}
+		}
+	}
+
+	//room acoustics (audio/RoomAcoustics, docs/ambience.md): a place with one kind of space, the hero
+	//set down in it and the fog back on, the space logged as a sound finds it (Earshot), then, once
+	//the muffled copies are in use, three rounds 1.5 s apart of a heavy blow on the hero, a blast six
+	//cells off, a blow behind the nearest door and a mine going off behind the nearest rock, with
+	//what the budget let through each round
+	static final class AcousticsScene implements Scene {
+		//where on the floor: where the hero lands, the nearest room, the middle of the longest
+		//corridor, the biggest space, or the nearest spot with an echo
+		enum Spot { HERE, ROOM, CORRIDOR, LARGEST, ECHO }
+		static final int ROUNDS = 3;
+		static final float ROUND = 1.5f;
+		//how long the rounds wait for the muffled copies at most (s)
+		static final float COPIES_WAIT = 20f;
+
+		final String id, title;
+		final int depth, branch;   //a floor of the dungeon; 0 for a slice of the world
+		final int altitude;        //the slice, for depth 0
+		final Spot spot;
+		final boolean fight;       //a storm forced and a fight started round the hero
+		//set while the hero is on his way there, so the arrival sets the scene instead of sending him off again
+		boolean travelling;
+
+		AcousticsScene( String id, String title, int depth, int branch, int altitude, Spot spot, boolean fight ){
+			this.id = id; this.title = title; this.depth = depth; this.branch = branch;
+			this.altitude = altitude; this.spot = spot; this.fight = fight;
+		}
+		@Override public String id(){ return id; }
+		@Override public String title(){ return title; }
+		@Override public void apply( Hero hero ){
+			if (travelling || (depth > 0 && Dungeon.depth == depth && Dungeon.branch == branch)){
+				travelling = false;
+				arrive( hero );
+				return;
+			}
+			if (depth > 0){
+				travelling = true;
+				pending = this;
+				starting = true;
+				InterlevelScene.mode = InterlevelScene.Mode.RETURN;
+				InterlevelScene.returnDepth = depth;
+				InterlevelScene.returnBranch = branch;
+				InterlevelScene.returnPos = -1;
+				Game.switchScene( InterlevelScene.class );
+				return;
+			}
+			final long seed = OverworldLevel.worldSeedOf( Dungeon.seed );
+			if (altitude > 0){
+				//the alpine meadow at the edge of the slice, the rock of the next one up rising over it,
+				//on a dry summer's day: the meadow must be thawed to be found
+				if (!walkClock( GameCalendar.Season.SUMMER, DayNightCycle.Phase.DAY, 0.3f )) GLog.w( "Scene: a real-clock run keeps its own season and hour" );
+				ClimateManager.debugPrecipOverride = 0f;
+				ClimateManager.debugForceStorm = false;
+				final float shift = WorldModel.calendarShift();
+				search( "thawed alpine meadow by the edge of slice +" + altitude,
+						() -> PeakLife.findMeadowEdge( seed, altitude, shift ), at -> {
+					if (at == null){
+						GLog.w( "Scene: no thawed alpine meadow by the edge of slice +" + altitude + " near the origin" );
+						return;
+					}
+					travelling = true;
+					pending = this;
+					starting = true;
+					toSlice( altitude, at[0], at[1] );
+				} );
+				return;
+			}
+			int[] at = CaveLife.findChamber( seed, altitude );
+			if (at == null){
+				GLog.w( "Scene: no cave chamber near the origin at " + altitude );
+				return;
+			}
+			travelling = true;
+			pending = this;
+			starting = true;
+			toSlice( altitude, at[0], at[1] );
+		}
+
+		private void arrive( Hero hero ){
+			Level level = Dungeon.level;
+			boolean there = depth > 0 ? Dungeon.depth == depth && Dungeon.branch == branch
+					: level instanceof OverworldLevel && ((OverworldLevel) level).altitude() == altitude;
+			if (!there){
+				GLog.w( "Scene: could not get there" );
+				return;
+			}
+			int to = pick( level, hero.pos );
+			if (to == -1) GLog.w( "Scene: no such spot on this floor: the test runs where you stand" );
+			else if (to != hero.pos) ScrollOfTeleportation.appear( hero, to );
+			Dungeon.debugNoFog = false;
+			if (fight){
+				new Sky( PrecipType.RAIN, 0.6f, 15f, 90f, true ).hold();
+				brawl( hero );
+				GLog.i( "Scene: a storm forced (the Weather tab's Force storm box or weather-clear ends it) and a"
+						+ " fight round you: rest or strike, and listen for the rain and the cave's own sounds"
+						+ " dropping out while the blows ring" );
+			}
+			Earshot.Snapshot s = Earshot.of( level, hero.pos );
+			if (s == null){
+				GLog.w( "Scene: room acoustics cannot tell the space here" );
+				return;
+			}
+			GLog.i( "Scene: " + s.describe() );
+			GLog.i( "Scene: " + RoomAcoustics.describe() );
+			if (!RoomAcoustics.on) GLog.w( "Scene: room acoustics is off (Settings > Audio): only the dry sounds play" );
+			int blast = near( level, hero.pos, 6, 6, c -> s.relation( c ) == Earshot.Relation.CLEAR );
+			int door = near( level, hero.pos, 1, Earshot.RADIUS, c -> s.relation( c ) == Earshot.Relation.DOOR );
+			int rock = near( level, hero.pos, 1, Earshot.RADIUS, c -> s.relation( c ) == Earshot.Relation.WALL );
+			GLog.i( "Scene: " + ROUNDS + " rounds, " + ROUND + " s apart: a heavy blow on you, a blast "
+					+ (blast < 0 ? "(no open cell 6 off)" : "6 cells " + where( level, hero.pos, blast ))
+					+ ", a blow " + (door < 0 ? "(no door in reach)" : "behind the door " + where( level, hero.pos, door ))
+					+ ", a mine " + (rock < 0 ? "(no rock in reach)" : "behind the rock " + where( level, hero.pos, rock )) );
+			waitForCopies( 0f, () -> rounds( hero, blast, door, rock ) );
+		}
+
+		//the rounds, 1.5 s apart: a heavy blow on the hero, a blast six cells off, a blow behind the
+		//door and a mine behind the rock, and what the budget let through and held back each round
+		private static void rounds( Hero hero, int blast, int door, int rock ){
+			for (int r = 0; r < ROUNDS; r++){
+				final int round = r + 1;
+				final int[] before = new int[2];
+				float at = 0.5f + ROUND * r;
+				after( at, () -> {
+					before[0] = RoomAcoustics.scheduled();
+					before[1] = RoomAcoustics.skipped();
+					SpatialSound.play( Assets.Sounds.HIT_STRONG, hero.pos );
+				} );
+				if (blast >= 0) after( at + 0.3f, () -> SpatialSound.play( Assets.Sounds.BLAST, blast ) );
+				if (door >= 0) after( at + 0.6f, () -> SpatialSound.play( Assets.Sounds.HIT, door ) );
+				after( at + 0.9f, () -> {
+					if (rock >= 0) SpatialSound.play( Assets.Sounds.MINE, rock );
+					GLog.i( "Scene: round " + round + " of " + ROUNDS + ": " + (RoomAcoustics.scheduled() - before[0])
+							+ " tails and echoes played, " + (RoomAcoustics.skipped() - before[1]) + " held back by the budget" );
+				} );
+			}
+		}
+
+		//the muffled copies come into use 10 s after the last of them loads (RoomAcoustics): the
+		//rounds wait for that, COPIES_WAIT s at most, or the blows behind the door and the rock play dry
+		private static void waitForCopies( float waited, Runnable then ){
+			if (!RoomAcoustics.on || RoomAcoustics.muffledReady()){
+				then.run();
+			} else if (waited >= COPIES_WAIT){
+				GLog.w( "Scene: the muffled copies are still not ready: the blows behind the door and the rock play dry" );
+				then.run();
+			} else {
+				if (waited == 0f) GLog.i( "Scene: waiting for the muffled copies, in use 10 s after they load: stand still" );
+				after( 0.5f, () -> waitForCopies( waited + 0.5f, then ) );
+			}
+		}
+
+		//the cell to stand on, -1 when the floor has none of the kind
+		int pick( Level level, int from ){
+			switch (spot){
+				case ROOM:
+					return near( level, from, 0, Math.max( level.width(), level.height() ), c -> {
+						Earshot.Snapshot s = Earshot.of( level, c );
+						return s != null && s.space == Earshot.Space.ROOM;
+					} );
+				case CORRIDOR:
+					return corridor( level );
+				case LARGEST:
+					return largest( level, from, depth > 0 ? Math.max( level.width(), level.height() ) : 12 );
+				case ECHO:
+					return near( level, from, 0, 15, c -> {
+						Earshot.Snapshot s = Earshot.of( level, c );
+						return s != null && s.echoDelay > 0f;
+					} );
+				default:
+					return from;
+			}
+		}
+
+		//a cell to stand on or to sound from: open ground with nobody on it
+		private static boolean free( Level level, int c, int from ){
+			return level.passable[c] && !level.pit[c] && (c == from || Actor.findChar( c ) == null);
+		}
+
+		//the free cell nearest `from`, `min` to `max` cells off, the test likes; -1 when none
+		static int near( Level level, int from, int min, int max, java.util.function.IntPredicate test ){
+			int w = level.width(), fx = from % w, fy = from / w;
+			for (int d = min; d <= max; d++){
+				for (int dy = -d; dy <= d; dy++){
+					for (int dx = -d; dx <= d; dx++){
+						if (Math.max( Math.abs( dx ), Math.abs( dy ) ) != d) continue;
+						int x = fx + dx, y = fy + dy;
+						if (x < 1 || y < 1 || x >= w - 1 || y >= level.height() - 1) continue;
+						int c = x + y * w;
+						if (free( level, c, from ) && test.test( c )) return c;
+					}
+				}
+			}
+			return -1;
+		}
+
+		//the middle of the longest straight run of open cells walled in on both sides; -1 for none
+		static int corridor( Level level ){
+			int w = level.width(), h = level.height(), best = -1, bestLength = 0;
+			for (int pass = 0; pass < 2; pass++){
+				boolean across = pass == 0;
+				int lines = across ? h : w, along = across ? w : h;
+				for (int a = 1; a < lines - 1; a++){
+					int run = 0;
+					for (int b = 1; b < along; b++){
+						int c = across ? b + a * w : a + b * w;
+						int side = across ? w : 1;
+						boolean walled = b < along - 1 && free( level, c, -1 ) && level.solid[c - side] && level.solid[c + side];
+						if (walled){
+							run++;
+						} else {
+							if (run > bestLength){
+								bestLength = run;
+								int mid = b - 1 - run / 2;
+								best = across ? mid + a * w : a + mid * w;
+							}
+							run = 0;
+						}
+					}
+				}
+			}
+			return best;
+		}
+
+		//the free cell within `reach` of `from`, every other one, in the biggest space, the one with
+		//most open ground round it among those; -1 for none
+		static int largest( Level level, int from, int reach ){
+			int w = level.width(), fx = from % w, fy = from / w, best = -1, bestScore = -1;
+			for (int y = Math.max( 2, fy - reach ); y <= Math.min( level.height() - 3, fy + reach ); y += 2){
+				for (int x = Math.max( 2, fx - reach ); x <= Math.min( w - 3, fx + reach ); x += 2){
+					int c = x + y * w;
+					if (!free( level, c, from )) continue;
+					Earshot.Snapshot s = Earshot.of( level, c );
+					if (s == null) continue;
+					int open = 0;
+					for (int dy = -2; dy <= 2; dy++) for (int dx = -2; dx <= 2; dx++) if (level.passable[c + dx + dy * w]) open++;
+					int score = s.area * 32 + open;
+					if (score > bestScore){
+						bestScore = score;
+						best = c;
+					}
+				}
+			}
+			return best;
+		}
+
+		//four foes round the hero, hunting him
+		private static void brawl( Hero hero ){
+			Class<?>[] kinds = { xyz.gabriwar.warpedpixeldungeon.actors.mobs.Gnoll.class,
+					xyz.gabriwar.warpedpixeldungeon.actors.mobs.Gnoll.class,
+					xyz.gabriwar.warpedpixeldungeon.actors.mobs.Crab.class,
+					xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bat.class };
+			ArrayList<Integer> cells = cellsAround( hero, kinds.length );
+			for (int i = 0; i < kinds.length && i < cells.size(); i++){
+				@SuppressWarnings("unchecked") Mob mob = spawn( (Class<? extends Mob>) kinds[i], cells.get( i ) );
+				if (mob != null) mob.aggro( hero );
+			}
+		}
+
+		//runs `then` on the render thread `seconds` from now, while this game scene lasts
+		private static void after( float seconds, Runnable then ){
+			Game.scene().add( new Delayer( seconds ){
+				@Override
+				protected void onComplete(){
+					then.run();
+				}
+			} );
+		}
+	}
+
+	/** The weather a weather scene holds: every climate override a weather scene sets, all set at
+	 *  once, so none is left over from the scene before. NaN (null for the type) releases one. */
+	static final class Sky {
+		final PrecipType type;
+		final float rate, wind, dir;
+		final boolean storm;
+		Sky( PrecipType type, float rate, float wind, float dir, boolean storm ){
+			this.type = type; this.rate = rate; this.wind = wind; this.dir = dir; this.storm = storm;
+		}
+		void hold(){
+			ClimateManager.debugPrecipTypeOverride = type;
+			ClimateManager.debugPrecipOverride = rate;
+			ClimateManager.debugWindOverride = wind;
+			ClimateManager.debugWindDirOverride = dir;
+			ClimateManager.debugForceStorm = storm;
+		}
+	}
+
+	/** weather-clear: every weather override released, the temperature's and the clouds' too. */
+	static void clearWeather(){
+		new Sky( null, Float.NaN, Float.NaN, Float.NaN, false ).hold();
+		ClimateManager.debugTempOverride = Float.NaN;
+		ClimateManager.debugCloudOverride = Float.NaN;
+	}
+
+	//the weather and its sounds (levels/ambience/WeatherSounds, docs/weather-sounds.md): the sky
+	//held through the climate's debug overrides, the hero set down where the weather has something
+	//to fall on or blow over, the fog back on (what players see) and a log of what to listen for
+	static final class WeatherScene implements Scene {
+		//where a scene takes the hero: a meadow by a river and a wood (OverworldCritters), open
+		//plains, the desert, frozen ground (the tundra or a snowfield: the overlay draws snow only
+		//over frozen ground, rain and sleet's streaks only over thawed), the town's inn, or nowhere
+		enum Ground { RIVER, PLAINS, DESERT, FROZEN, INDOORS, HERE }
+		//the inn among the town's buildings (Dungeon.newLevel, branch 6)
+		static final int INN = 6;
+		//the clearing walk gives up after four days: a day has two spells of rain on average
+		static final int CLEARING_TURNS = 4 * DayNightCycle.FULL_CYCLE;
+
+		final String id, title;
+		final Sky sky;            //null: weather-clear, every override released
+		final Ground ground;
+		final boolean clearing;   //the clock walked on to fog, or to the clearing after rain
+		final String listen;
+		//set while the hero is on his way there, so the arrival sets the scene instead of sending him off again
+		boolean travelling;
+		WeatherScene( String id, String title, Sky sky, Ground ground, boolean clearing, String listen ){
+			this.id = id; this.title = title; this.sky = sky; this.ground = ground;
+			this.clearing = clearing; this.listen = listen;
+		}
+		@Override public String id(){ return id; }
+		@Override public String title(){ return title; }
+		@Override public void apply( Hero hero ){
+			if (travelling){
+				travelling = false;
+				arrive( hero );
+				return;
+			}
+			if (sky == null){
+				clearWeather();
+				Dungeon.debugNoFog = false;
+				GLog.i( "Scene: every weather override released (the temperature's and the clouds' too): the sky is the"
+						+ " climate's own - " + ClimateManager.weatherState().name().toLowerCase( Locale.ENGLISH ) + ", "
+						+ ClimateManager.localPrecipType().name().toLowerCase( Locale.ENGLISH )
+						+ String.format( Locale.ENGLISH, " at %.2f, wind %.1f m/s", ClimateManager.localPrecipRate(), ClimateManager.localWindSpeed() ) );
+				return;
+			}
+			sky.hold();
+			if (clearing){
+				if (walkToClearing( CLEARING_TURNS )){
+					GLog.i( "Scene: the clock walked on to " + ClimateManager.weatherState().name().toLowerCase( Locale.ENGLISH )
+							+ ": it holds while you stand, and ends as the clouds thin" );
+				} else {
+					GLog.w( Dungeon.isChallenged( Challenges.REAL_CLOCK ) ? "Scene: a real-clock run keeps its own sky - no drips without fog or a clearing"
+							: "Scene: no fog and no clearing after rain within four days - no drips without one" );
+				}
+			}
+			if (ground == Ground.INDOORS){
+				if (Dungeon.depth == INN && Dungeon.branch == TownInteriorLevel.BRANCH){
+					arrive( hero );
+					return;
+				}
+				travelling = true;
+				pending = this;
+				starting = true;
+				InterlevelScene.mode = InterlevelScene.Mode.RETURN;
+				InterlevelScene.returnDepth = INN;
+				InterlevelScene.returnBranch = TownInteriorLevel.BRANCH;
+				InterlevelScene.returnPos = -1;
+				Game.switchScene( InterlevelScene.class );
+				return;
+			}
+			final long seed = OverworldLevel.worldSeedOf( Dungeon.seed );
+			final float shift = WorldModel.calendarShift();
+			String what = ground == Ground.RIVER ? "a meadow by a river and a wood"
+					: ground == Ground.PLAINS ? "open plains" : ground == Ground.FROZEN ? "open tundra or snowfield" : "open desert";
+			search( what + " near the origin", () -> find( ground, seed, shift ), spot -> {
+				if (spot == null){
+					GLog.w( "Scene: no " + what + " near the origin in this world" );
+					return;
+				}
+				travelling = true;
+				pending = this;
+				starting = true;
+				OverworldLevel.arriveAt( spot[0], spot[1] );
+				OverworldLevel.travelToSurface();
+			} );
+		}
+
+		/** Debug and tooling: the world cell an overworld ground lies at near the origin, null when
+		 *  none. Pure: it runs off the render thread (search). */
+		static int[] find( Ground ground, long seed, float shift ){
+			switch (ground){
+				case RIVER:  return OverworldCritters.findCritterGround( seed, shift );
+				case PLAINS: return biomeGround( seed, shift, WorldModel.Biome.PLAINS );
+				case FROZEN: return biomeGround( seed, shift, WorldModel.Biome.TUNDRA, WorldModel.Biome.SNOWFIELD );
+				default:     return biomeGround( seed, shift, WorldModel.Biome.DESERT );
+			}
+		}
+
+		private void arrive( Hero hero ){
+			Dungeon.debugNoFog = false;
+			if (ground == Ground.INDOORS ? !Comfy.indoors()
+					: !(Dungeon.level instanceof OverworldLevel) || ((OverworldLevel) Dungeon.level).altitude() != 0){
+				GLog.w( ground == Ground.INDOORS ? "Scene: could not reach the inn" : "Scene: could not reach the surface" );
+				return;
+			}
+			if (ground == Ground.RIVER) settleByTheWater( hero, (OverworldLevel) Dungeon.level );
+			GLog.i( "Scene: " + listen + " (fog on: what players see)" );
+			if (!Float.isNaN( sky.wind ) && !Float.isNaN( sky.dir ) && ground != Ground.INDOORS){
+				GLog.i( "Scene: " + windSide( sky.dir ) );
+			}
+			GLog.i( "Scene: the Weather tab of the debug menu releases the overrides" + (sky.storm ? " (the storm too, by its Force storm box)" : "")
+					+ ", or the weather-clear scene all at once" );
+			if (!AmbientPlayer.audible()) GLog.w( "Scene: the ambience is muted or at zero (Settings > Audio)" );
+		}
+	}
+
+	//the hero set down where the rain falls on open water and in the trees beside it - the dry cell
+	//nearest the landing with water within three cells and a tree within five - and the nearest of
+	//each named with its side, to check the panning by
+	private static void settleByTheWater( Hero hero, OverworldLevel ow ){
+		int to = byWaterAndTrees( ow, hero.pos, 12 );
+		if (to == -1) GLog.w( "Scene: no dry ground with water and trees close by within 12 cells of the landing" );
+		else if (to != hero.pos) ScrollOfTeleportation.appear( hero, to );
+		int water = HazardScene.nearest( ow, hero.pos, 12, c -> water( ow.map[c] ) );
+		int tree = HazardScene.nearest( ow, hero.pos, 12, c -> tree( ow.map[c] ) );
+		GLog.i( "Scene: " + (water == -1 ? "no open water within 12 cells" : "open water " + where( ow, hero.pos, water ))
+				+ ", " + (tree == -1 ? "no tree within 12 cells" : "the nearest tree " + where( ow, hero.pos, tree )) );
+	}
+
+	/** Debug and tooling: the dry cell nearest `from` (rings out to `radius`) with open water within
+	 *  three cells and a tree within five, nobody on it; -1 when none. */
+	static int byWaterAndTrees( OverworldLevel ow, int from, int radius ){
+		return HazardScene.nearest( ow, from, radius, c -> ow.passable[c] && !ow.pit[c] && !water( ow.map[c] )
+				&& within( ow, c, 3, n -> water( ow.map[n] ) ) && within( ow, c, 5, n -> tree( ow.map[n] ) ) );
+	}
+
+	static boolean water( int t ){
+		return (Terrain.flags[t] & Terrain.LIQUID) != 0;
+	}
+
+	static boolean tree( int t ){
+		return t == Terrain.TREE_OAK || t == Terrain.TREE_PINE;
+	}
+
+	//any cell within r of c (straight-line, as the weather's sounds reach: WeatherScape.NEAR_CELLS is
+	//6, so a tree within five is one its drips and its leaves are heard from) the test likes
+	private static boolean within( Level level, int c, int r, java.util.function.IntPredicate test ){
+		int w = level.width(), cx = c % w, cy = c / w;
+		for (int y = Math.max( 0, cy - r ); y <= Math.min( level.height() - 1, cy + r ); y++){
+			for (int x = Math.max( 0, cx - r ); x <= Math.min( w - 1, cx + r ); x++){
+				if ((x - cx) * (x - cx) + (y - cy) * (y - cy) > r * r) continue;
+				if (test.test( x + y * w )) return true;
+			}
+		}
+		return false;
+	}
+
+	//"3 cells to the north-east" of `from`: north is up the screen
+	private static String where( Level level, int from, int cell ){
+		int w = level.width(), dx = cell % w - from % w, dy = cell / w - from / w;
+		int d = Math.max( Math.abs( dx ), Math.abs( dy ) );
+		if (d == 0) return "under you";
+		return d + (d == 1 ? " cell" : " cells") + " to the " + compass( (float) Math.toDegrees( Math.atan2( dx, -dy ) ) );
+	}
+
+	/** The compass point nearest a bearing in degrees (0 = north, up the screen; 90 = east). */
+	static String compass( float degrees ){
+		String[] points = { "north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west" };
+		return points[Math.floorMod( Math.round( degrees / 45f ), 8 )];
+	}
+
+	/** Where a wind blowing toward `dir` (degrees, ClimateManager.surfaceWindDir) is heard: it comes
+	 *  from dir + 180, so its side is the pan sign -sin(dir). */
+	static String windSide( float dir ){
+		float pan = (float) -Math.sin( Math.toRadians( dir ) );
+		String side = Math.abs( pan ) < 0.2f ? "in both ears alike" : pan < 0 ? "on your left" : "on your right";
+		return "the wind blows toward the " + compass( dir ) + ": it comes from the " + compass( dir + 180f ) + ", " + side;
+	}
+
+	//the turns in a row the fog or the clearing must have held before the walk stops on it: in a front
+	//the wind wobbles up to 2 m/s a turn about the fog's 3 m/s, so a fog of a few turns is a flicker
+	//the arrival's own turn (DayNightCycle.onHeroTurn) or the first steps end - and a flicker of fog
+	//ends a clearing too (it no longer follows rain). measured: stopping on the first turn, 20 walks in
+	//480 found it gone within three more; after 8 turns held, 7 in 1200; after 20, none in 1200. longer
+	//holds land later in the clearing, nearer its end
+	static final int FOG_HOLD = 20;
+
+	/** Debug and tooling: walks the clock on a turn at a time, the climate stepping with it as it does
+	 *  in play, until the sky has been fogged in or clearing after rain (when the trees drip) for
+	 *  FOG_HOLD turns in a row, at most `turns` turns; forward only, the game's duration with it. False
+	 *  when neither came, or on a real-clock run. */
+	static boolean walkToClearing( int turns ){
+		if (Dungeon.isChallenged( Challenges.REAL_CLOCK )) return false;
+		int held = foggedOrClearing() ? 1 : 0;
+		for (int t = 0; t < turns && held < FOG_HOLD; t++){
+			Dungeon.cycleTurn++;
+			Statistics.duration++;
+			ClimateManager.onHeroTurn();
+			held = foggedOrClearing() ? held + 1 : 0;
+		}
+		return held >= FOG_HOLD;
+	}
+
+	private static boolean foggedOrClearing(){
+		WeatherState s = ClimateManager.weatherState();
+		return s == WeatherState.FOG || s == WeatherState.CLEARING;
+	}
+
+	/**
+	 * Debug and tooling: open ground of a biome (or of any of a few) near the world's origin, for the
+	 * weather scenes: a cell on dry ground, out of the town and every village, whose 5x5 samples four
+	 * cells apart are all of the biomes given at the seasonal shift given and at a climate band either
+	 * side (the live window adds the weather's band to the calendar, OverworldLevel.refreshSeasonShift).
+	 * On rings 64 cells apart out to 6400, the nearest of the first ring that has one; null when none.
+	 * Pure: it runs off the render thread (search).
+	 */
+	static int[] biomeGround( long seed, float shift, WorldModel.Biome... biomes ){
+		EnumSet<WorldModel.Biome> biome = EnumSet.copyOf( Arrays.asList( biomes ) );
+		WorldModel.Sample s = new WorldModel.Sample();
+		float[] shifts = { shift, shift - WorldModel.CLIMATE_SHIFT, shift + WorldModel.CLIMATE_SHIFT };
+		final int step = 64, rings = 100;
+		for (int r = 0; r <= rings; r++){
+			int[] best = null;
+			long bestD = Long.MAX_VALUE;
+			for (int j = -r; j <= r; j++){
+				for (int i = -r; i <= r; i++){
+					if (Math.max( Math.abs( i ), Math.abs( j ) ) != r) continue;
+					int cx = i * step, cy = j * step;
+					if (!biomeGroundAt( seed, cx, cy, shifts, biome, s )) continue;
+					long d = (long) cx * cx + (long) cy * cy;
+					if (d < bestD){
+						bestD = d;
+						best = new int[]{ cx, cy };
+					}
+				}
+			}
+			if (best != null) return best;
+		}
+		return null;
+	}
+
+	private static boolean biomeGroundAt( long seed, int cx, int cy, float[] shifts, EnumSet<WorldModel.Biome> biome, WorldModel.Sample s ){
+		if (!biome.contains( WorldModel.sample( seed, cx, cy, shifts[0], s ).biome )) return false;
+		int t = WorldModel.wildTerrain( seed, cx, cy, s );
+		if ((Terrain.flags[t] & Terrain.PASSABLE) == 0 || water( t )) return false;
+		if (WorldStructures.townCell( cx, cy ) != -1 || OverworldFauna.nearSettlement( seed, cx, cy )) return false;
+		for (float shift : shifts){
+			for (int y = -8; y <= 8; y += 4){
+				for (int x = -8; x <= 8; x += 4){
+					if (!biome.contains( WorldModel.sample( seed, cx + x, cy + y, shift, s ).biome )) return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	//in the blank room, a pool of water from the cell east of the hero to the room's east side, a
+	//rat standing in it three cells off, two more and a bat flying over it three steps from that
+	//one (out of its arcs' reach, in the run's), and a gnoll on dry ground to the west, all stock
+	//still and hardy enough for a few zaps; a wand of lightning +3 in hand, charged and quickslotted.
+	//For the wand's run over the water (WandOfLightning.runOverWater) and every lightning's look,
+	//flash and crack (effects/Lightning)
+	private static final class LightningWater implements Scene {
+		//the pool's reach east of the hero, and each way north and south
+		static final int POOL_EAST = Room.HALF_W - 1, POOL_HALF = 3;
+		//the stand-ins' health: a few zaps of a +3 wand at the whole blow
+		static final int HARDY = 300;
+		@Override public String id(){ return "lightning-water"; }
+		@Override public String title(){ return "Lightning: a wand of lightning by a pool of monsters"; }
+		@Override public void apply( Hero hero ){
+			if (!Room.ensure( this, hero )) return;
+			for (int dy = -POOL_HALF; dy <= POOL_HALF; dy++){
+				for (int dx = 1; dx <= POOL_EAST; dx++){
+					int cell = off( hero, dx, dy );
+					if (cell != -1) Level.set( cell, Terrain.WATER );
+				}
+			}
+			GameScene.updateMap();
+			//the one to zap, then those only the water reaches from him, the bat it passes under,
+			//and one to zap on dry ground
+			hardy( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Rat.class, off( hero, 3, 0 ) );
+			hardy( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Rat.class, off( hero, 6, -2 ) );
+			hardy( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Rat.class, off( hero, 5, 3 ) );
+			hardy( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bat.class, off( hero, 6, 1 ) );
+			hardy( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Gnoll.class, off( hero, -3, -2 ) );
+
+			//the one this scene gave before, or another as strong
+			WandOfLightning wand = null;
+			for (WandOfLightning w : hero.belongings.getAllItems( WandOfLightning.class )){
+				if (w.level() >= 3) wand = w;
+			}
+			if (wand == null){
+				wand = new WandOfLightning();
+				wand.upgrade( 3 );
+				wand.identify();
+				wand.collect( hero.belongings.backpack );
+			}
+			wand.curCharges = wand.maxCharges;
+			if (!Dungeon.quickslot.contains( wand )){
+				for (int s = 0; s < QuickSlot.SIZE; s++){
+					if (Dungeon.quickslot.getItem( s ) == null){
+						Dungeon.quickslot.setSlot( s, wand );
+						break;
+					}
+				}
+			}
+			Item.updateQuickslot();
+			GLog.i( "Scene: zap the rat in the pool: its arcs reach two cells through the water, then the charge runs"
+					+ " three steps over it into the two rats further off (not the bat flying over it), every lightning"
+					+ " in sight flashing and cracking as a storm's. Step into the pool and zap him again: the water"
+					+ " carries it back into you, for half. Zap the gnoll on dry ground: no run. Run the scene again to"
+					+ " recharge the wand." );
+		}
+
+		//the cell this far from the hero, -1 off the level's inner cells (the room is cut short by
+		//the level's edge as well)
+		private static int off( Hero hero, int dx, int dy ){
+			int w = Dungeon.level.width(), x = hero.pos % w + dx, y = hero.pos / w + dy;
+			if (x <= 0 || y <= 0 || x >= w - 1 || y >= Dungeon.level.height() - 1) return -1;
+			return x + y * w;
+		}
+
+		//a monster that stands where it is put and takes a few zaps
+		private static void hardy( Class<? extends Mob> kind, int cell ){
+			if (cell == -1 || !Dungeon.level.passable[cell] || Actor.findChar( cell ) != null) return;
+			Mob mob = spawn( kind, cell );
+			if (mob == null) return;
+			mob.HP = mob.HT = HARDY;
+			mob.state = mob.PASSIVE;
 		}
 	}
 

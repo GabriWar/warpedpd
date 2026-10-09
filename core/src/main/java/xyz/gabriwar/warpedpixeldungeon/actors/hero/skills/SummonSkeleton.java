@@ -31,11 +31,11 @@ import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SummonedPet;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -114,12 +114,12 @@ public class SummonSkeleton extends ActiveSkill3 {
 				final int grave = newPos;
 				StaggerFX.after( 0.35f, () -> {
 					CellEmitter.get( grave ).burst( Speck.factory( Speck.BONE ), 6 );
-					Sample.INSTANCE.play( Assets.Sounds.BONES, 1f, 1.1f );
+					SpatialSound.play( Assets.Sounds.BONES, grave, 1f, 1.1f );
 				} );
 
 				hero.MP -= getManaCost();
 				castTextYell();
-				Sample.INSTANCE.play( Assets.Sounds.BONES, 0.7f, 0.8f );
+				SpatialSound.play( Assets.Sounds.BONES, hero, 0.7f, 0.8f );
 				hero.spend( TIME_TO_USE );
 				hero.busy();
 				hero.sprite.operate( hero.pos );

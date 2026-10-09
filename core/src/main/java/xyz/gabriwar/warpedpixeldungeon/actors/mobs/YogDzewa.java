@@ -32,6 +32,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Light;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.LockedFloor;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Sheep;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
@@ -52,7 +53,6 @@ import xyz.gabriwar.warpedpixeldungeon.ui.BossHealthBar;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.audio.Music;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 import com.watabou.utils.GameMath;
@@ -213,7 +213,7 @@ public class YogDzewa extends Mob {
 						}
 					}
 				}
-				Sample.INSTANCE.play( Assets.Sounds.RAY );
+				SpatialSound.play( Assets.Sounds.RAY, pos );
 				if (terrainAffected) {
 					Dungeon.observe();
 				}

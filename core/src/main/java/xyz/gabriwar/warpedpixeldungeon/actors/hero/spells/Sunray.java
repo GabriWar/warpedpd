@@ -32,6 +32,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.HolyTome;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.Wand;
@@ -41,7 +42,6 @@ import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
 import xyz.gabriwar.warpedpixeldungeon.ui.QuickSlotButton;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 public class Sunray extends TargetedClericSpell {
@@ -91,12 +91,12 @@ public class Sunray extends TargetedClericSpell {
 		}
 
 		hero.busy();
-		Sample.INSTANCE.play( Assets.Sounds.RAY );
+		SpatialSound.play( Assets.Sounds.RAY, hero );
 		hero.sprite.zap(target);
 
 		hero.sprite.parent.add(
 				new Beam.SunRay(hero.sprite.center(), DungeonTilemap.raisedTileCenterToWorld(aim.collisionPos)));
-		Sample.INSTANCE.play( Assets.Sounds.RAY );
+		SpatialSound.play( Assets.Sounds.RAY, aim.collisionPos );
 
 		Char ch = Actor.findChar( aim.collisionPos );
 		if (ch != null) {

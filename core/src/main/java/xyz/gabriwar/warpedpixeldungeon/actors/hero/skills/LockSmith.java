@@ -31,11 +31,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Haste;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Gold;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import com.watabou.utils.Random;
@@ -59,7 +59,7 @@ public class LockSmith extends PassiveSkillA3 {
 		if (hero != null && hero.sprite != null){
 			CellEmitter.center( hero.pos ).burst( SparkParticle.FACTORY, 6 );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.UNLOCK, 1f, 1.1f );
+		SpatialSound.play( Assets.Sounds.UNLOCK, hero, 1f, 1.1f );
 		if (level >= Skill.MAX_LEVEL && hero != null) readMechanism( hero );
 		return true;
 	}
@@ -78,7 +78,7 @@ public class LockSmith extends PassiveSkillA3 {
 		}
 		if (found){
 			if (hero.sprite != null) hero.sprite.showStatus( xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite.NEUTRAL, Messages.get( this, "found" ) );
-			Sample.INSTANCE.play( Assets.Sounds.SECRET, 0.8f, 1.2f );
+			SpatialSound.play( Assets.Sounds.SECRET, hero, 0.8f, 1.2f );
 		}
 	}
 

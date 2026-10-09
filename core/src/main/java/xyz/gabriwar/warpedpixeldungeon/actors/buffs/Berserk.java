@@ -25,6 +25,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.SpellSprite;
 import xyz.gabriwar.warpedpixeldungeon.items.BrokenSeal.WarriorShield;
@@ -39,7 +40,6 @@ import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.BitmapText;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.Visual;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.GameMath;
 import com.watabou.utils.Random;
@@ -188,7 +188,7 @@ public class Berserk extends ShieldBuff implements ActionIndicator.Action {
 	private void startBerserking(){
 		state = State.BERSERK;
 		SpellSprite.show(target, SpellSprite.BERSERK);
-		Sample.INSTANCE.play( Assets.Sounds.CHALLENGE );
+		SpatialSound.play( Assets.Sounds.CHALLENGE, target );
 		GameScene.flash(0xFF0000);
 
 		if (target.HP > 0) {

@@ -27,7 +27,6 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 import com.watabou.noosa.Camera;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
@@ -38,6 +37,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -87,7 +87,7 @@ public class HeadShot extends SubSkill2 {
 			if (!boss) enemy.sprite.showStatus( CharSprite.NEGATIVE, Messages.get( HeadShot.class, "down" ) );
 			Camera.main.shake( 1.5f, 0.2f );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 1f, 0.8f );
+		SpatialSound.play( Assets.Sounds.HIT_STRONG, enemy, 1f, 0.8f );
 
 		//the knockdown lands after the blow itself, so the blow cannot shake it off at once
 		Actor.add( new Actor(){

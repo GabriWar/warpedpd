@@ -32,12 +32,12 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfForce;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -84,7 +84,7 @@ public class CounterTime extends Skill {
 		if (level >= MAX_LEVEL && enemy.isAlive()){
 			Buff.prolong( enemy, Cripple.class, 2f );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 1f, 1.0f );
+		SpatialSound.play( Assets.Sounds.HIT_PARRY, enemy, 1f, 1.0f );
 		if (hero.sprite != null){
 			hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "cast" ) );
 			hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );

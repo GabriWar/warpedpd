@@ -26,6 +26,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ArtifactRecharge;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Recharging;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.SpellSprite;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.quest.MetalShard;
@@ -34,7 +35,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.wands.CursedWand;
 import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 
 import java.util.ArrayList;
@@ -57,8 +57,8 @@ public class WildEnergy extends TargetedSpell {
 	
 	@Override
 	protected void affectTarget(Ballistica bolt, final Hero hero) {
-		Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
-		Sample.INSTANCE.play( Assets.Sounds.CHARGEUP );
+		SpatialSound.play( Assets.Sounds.LIGHTNING, hero );
+		SpatialSound.play( Assets.Sounds.CHARGEUP, hero );
 		ScrollOfRecharging.charge(hero);
 		SpellSprite.show(hero, SpellSprite.CHARGE);
 

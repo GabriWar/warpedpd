@@ -25,6 +25,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Identification;
 import xyz.gabriwar.warpedpixeldungeon.items.EquipableItem;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
@@ -33,7 +34,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.wands.Wand;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 
 public class HolyIntuition extends InventoryClericSpell {
 
@@ -78,7 +78,7 @@ public class HolyIntuition extends InventoryClericSpell {
 		hero.sprite.operate(hero.pos);
 		hero.sprite.parent.add( new Identification( hero.sprite.center().offset( 0, -16 ) ) );
 
-		Sample.INSTANCE.play( Assets.Sounds.READ );
+		SpatialSound.play( Assets.Sounds.READ, hero );
 		onSpellCast(tome, hero);
 
 	}

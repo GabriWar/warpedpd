@@ -28,7 +28,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ArrowRain;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -37,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
@@ -98,7 +98,7 @@ public class ArrowStorm extends Skill {
 			curUser.sprite.zap( cell );
 			curUser.MP -= getManaCost();
 			castTextYell();
-			Sample.INSTANCE.play( Assets.Sounds.ATK_SPIRITBOW, 1f, 0.8f );
+			SpatialSound.play( Assets.Sounds.ATK_SPIRITBOW, curUser, 1f, 0.8f );
 			//the storm falls now and keeps falling for two more turns
 			Buff.append( curUser, ArrowRain.class ).set( cell, level, 3 );
 			//the volley, seen: a fan of arrows loosed skyward one after another, the string a note
@@ -113,7 +113,7 @@ public class ArrowStorm extends Skill {
 						if (curUser.sprite == null || curUser.sprite.parent == null) return;
 						PointF sky = new PointF( top.x + (k - (n - 1) / 2f) * 6f, top.y - DungeonTilemap.SIZE * 6 );
 						((MissileSprite) curUser.sprite.parent.recycle( MissileSprite.class )).reset( curUser.sprite.center(), sky, new Dart(), null );
-						Sample.INSTANCE.play( Assets.Sounds.ATK_SPIRITBOW, 0.7f, 0.9f + 0.08f * k );
+						SpatialSound.play( Assets.Sounds.ATK_SPIRITBOW, curUser, 0.7f, 0.9f + 0.08f * k );
 					} );
 				}
 				int order = 0;
@@ -122,7 +122,7 @@ public class ArrowStorm extends Skill {
 					final int at = c, k = order++;
 					t.at( 0.45f + 0.05f * k, () -> {
 						CellEmitter.bottom( at ).burst( Speck.factory( Speck.DUST ), 3 );
-						if (k % 3 == 0) Sample.INSTANCE.play( Assets.Sounds.HIT_ARROW, 0.5f, 1.1f + 0.05f * k );
+						if (k % 3 == 0) SpatialSound.play( Assets.Sounds.HIT_ARROW, at, 0.5f, 1.1f + 0.05f * k );
 					} );
 				}
 			}

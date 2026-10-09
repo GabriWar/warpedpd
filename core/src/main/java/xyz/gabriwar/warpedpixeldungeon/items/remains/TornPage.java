@@ -23,10 +23,10 @@ package xyz.gabriwar.warpedpixeldungeon.items.remains;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 
 public class TornPage extends RemainsItem {
 
@@ -39,7 +39,7 @@ public class TornPage extends RemainsItem {
 		int toHeal = Math.round(hero.HT/10f);
 		hero.HP = Math.min(hero.HP + toHeal, hero.HT);
 		hero.sprite.showStatusWithIcon( CharSprite.POSITIVE, Integer.toString(toHeal), FloatingText.HEALING );
-		Sample.INSTANCE.play( Assets.Sounds.READ );
+		SpatialSound.play( Assets.Sounds.READ, hero );
 	}
 
 }

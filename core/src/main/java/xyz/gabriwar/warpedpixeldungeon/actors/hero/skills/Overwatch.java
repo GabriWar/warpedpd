@@ -26,13 +26,13 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
@@ -70,7 +70,7 @@ public class Overwatch extends SubSkill1 {
 		if (enemy.sprite != null && Dungeon.level.heroFOV[enemy.pos]){
 			enemy.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 3 );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 0.8f, 1.2f );
+		SpatialSound.play( Assets.Sounds.HIT_STRONG, enemy, 0.8f, 1.2f );
 
 		if (enemy.rooted || Char.hasProp( enemy, Char.Property.IMMOVABLE )){
 			//nowhere to go: the full force lands at once

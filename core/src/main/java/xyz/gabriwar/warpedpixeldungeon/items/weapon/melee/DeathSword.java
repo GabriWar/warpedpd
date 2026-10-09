@@ -31,7 +31,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import com.watabou.utils.Callback;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
@@ -42,6 +41,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import com.watabou.utils.Bundle;
@@ -169,8 +169,8 @@ public class DeathSword extends MeleeWeapon {
                     }
                     if (enemy.sprite != null) enemy.sprite.emitter().burst( ShadowParticle.UP, 6 );
                     Wound.hit( enemy );
-                    Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 1f, 0.8f );
-                    Sample.INSTANCE.play( Assets.Sounds.GHOST, 0.7f, 1.2f );
+                    SpatialSound.play( Assets.Sounds.HIT_STRONG, enemy, 1f, 0.8f );
+                    SpatialSound.play( Assets.Sounds.GHOST, enemy, 0.7f, 1.2f );
                     if (!enemy.isAlive()) onAbilityKill( hero, enemy );
                 }
                 Invisibility.dispel();

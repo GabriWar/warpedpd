@@ -24,11 +24,11 @@ package xyz.gabriwar.warpedpixeldungeon.levels.traps;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 
 public class AlarmTrap extends Trap {
 
@@ -49,6 +49,6 @@ public class AlarmTrap extends Trap {
 			CellEmitter.center( pos ).start( Speck.factory( Speck.SCREAM ), 0.3f, 3 );
 		}
 
-		Sample.INSTANCE.play( Assets.Sounds.ALERT );
+		SpatialSound.play( Assets.Sounds.ALERT, pos );
 	}
 }

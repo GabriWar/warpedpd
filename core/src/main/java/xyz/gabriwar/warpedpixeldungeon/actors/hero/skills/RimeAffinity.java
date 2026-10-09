@@ -28,11 +28,11 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Chill;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Frost;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SnowParticle;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import com.watabou.utils.Random;
@@ -79,7 +79,7 @@ public class RimeAffinity extends Skill {
 			xyz.gabriwar.warpedpixeldungeon.effects.Splash.at( target.pos, 0xCCEEFF, 10 );
 			if (target.sprite != null) target.sprite.flash();
 			com.watabou.noosa.Camera.main.shake( 1, 0.15f );
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER, 1f, 1.1f );
+			SpatialSound.play( Assets.Sounds.SHATTER, target, 1f, 1.1f );
 			return;
 		}
 		if (!target.isAlive() || Random.Int(100) >= 10 * level) return;
@@ -89,7 +89,7 @@ public class RimeAffinity extends Skill {
 			target.sprite.emitter().burst( SnowParticle.FACTORY, 3 + level );
 			new xyz.gabriwar.warpedpixeldungeon.effects.Flare( 6, 12 ).color( 0xA4E9FF, true ).show( target.sprite, 0.5f );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.SHATTER, 0.5f, 1.4f );
+		SpatialSound.play( Assets.Sounds.SHATTER, target, 0.5f, 1.4f );
 	}
 
 	@Override

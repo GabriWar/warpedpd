@@ -23,6 +23,7 @@ package xyz.gabriwar.warpedpixeldungeon.items.scrolls;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.SpellSprite;
@@ -32,7 +33,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 
 public class ScrollOfMagicMapping extends Scroll {
 
@@ -56,11 +56,11 @@ public class ScrollOfMagicMapping extends Scroll {
 		
 		GLog.i( Messages.get(this, "layout") );
 		if (noticed) {
-			Sample.INSTANCE.play( Assets.Sounds.SECRET );
+			SpatialSound.play( Assets.Sounds.SECRET, curUser );
 		}
 		
 		SpellSprite.show( curUser, SpellSprite.MAP );
-		Sample.INSTANCE.play( Assets.Sounds.READ );
+		SpatialSound.play( Assets.Sounds.READ, curUser );
 
 		identify();
 

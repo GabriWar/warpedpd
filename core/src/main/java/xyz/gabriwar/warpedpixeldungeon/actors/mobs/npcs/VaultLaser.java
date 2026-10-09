@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Eye;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.PurpleParticle;
@@ -39,7 +40,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.SentrySprite;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
@@ -100,7 +100,7 @@ public class VaultLaser extends NPC {
 						CellEmitter.center( pos ).burst( PurpleParticle.BURST, Random.IntRange( 1, 2 ) );
 					}
 					if (ch == Dungeon.hero){
-						Sample.INSTANCE.play( Assets.Sounds.RAY );
+						SpatialSound.play( Assets.Sounds.RAY, ch );
 						SFXLastPlayed = WarpedPixelDungeon.realTime;
 						if (Imp.Quest.hazardFreebies > 0){
 							Imp.Quest.hazardFreebies--;
@@ -118,7 +118,7 @@ public class VaultLaser extends NPC {
 			if (visible){
 				sprite.parent.add(new Beam.DeathRay(sprite.center(), DungeonTilemap.raisedTileCenterToWorld(beam.collisionPos)));
 				if (SFXLastPlayed+80 < WarpedPixelDungeon.realTime) {
-					Sample.INSTANCE.play(Assets.Sounds.RAY, 0.5f);
+					SpatialSound.play(Assets.Sounds.RAY, pos, 0.5f);
 					SFXLastPlayed = WarpedPixelDungeon.realTime;
 				}
 			}

@@ -34,13 +34,14 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Crab;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Scorpio;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Spinner;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Swarm;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
+import xyz.gabriwar.warpedpixeldungeon.audio.WallBreak;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
 import xyz.gabriwar.warpedpixeldungeon.levels.MiningLevel;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 
 import java.util.ArrayList;
@@ -112,7 +113,8 @@ public class Pickaxe extends MeleeWeapon {
 					xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene.shake( 0.5f, 0.5f );
 					xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.get( hero.pos ).burst(
 							xyz.gabriwar.warpedpixeldungeon.effects.Speck.factory( xyz.gabriwar.warpedpixeldungeon.effects.Speck.ROCK ), 6 );
-					Sample.INSTANCE.play( Assets.Sounds.MINE );
+					//the rock floor giving way under the last swing: a wall's break, a little deeper
+					WallBreak.play( hero.pos, WallBreak.PICK, 0.9f );
 					GLog.i( Messages.get( Pickaxe.class, "dug_down" ) );
 					hero.sprite.idle();
 					ow.digDown( hero );
@@ -173,7 +175,7 @@ public class Pickaxe extends MeleeWeapon {
 					} else {
 						onAbilityKill(hero, enemy);
 					}
-					Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG);
+					SpatialSound.play(Assets.Sounds.HIT_STRONG, enemy);
 				}
 				Invisibility.dispel();
 				hero.spendAndNext(hero.attackDelay());

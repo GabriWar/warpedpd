@@ -27,11 +27,11 @@ package xyz.gabriwar.warpedpixeldungeon.items.potions;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.tiles.butters.PotionButterVariant1;
 import xyz.gabriwar.warpedpixeldungeon.tiles.butters.PotionButterVariant2;
 import xyz.gabriwar.warpedpixeldungeon.tiles.butters.PotionButterVariant3;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
@@ -53,7 +53,7 @@ public class PotionOfButter extends Potion {
         splash(cell);
         if (Dungeon.level.heroFOV[cell]) {
             identify();
-            Sample.INSTANCE.play(Assets.Sounds.SHATTER);
+            SpatialSound.play(Assets.Sounds.SHATTER, cell);
         }
         for (int offset : PathFinder.NEIGHBOURS9) {
             int pos = cell + offset;

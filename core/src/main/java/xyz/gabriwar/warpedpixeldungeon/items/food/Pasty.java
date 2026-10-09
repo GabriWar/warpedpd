@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Charm;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.RainbowParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfExperience;
@@ -40,7 +41,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.ui.TargetHealthIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.Holiday;
-import com.watabou.noosa.audio.Sample;
 
 public class Pasty extends Food {
 
@@ -90,14 +90,14 @@ public class Pasty extends Food {
 	}
 
 	@Override
-	protected void eatSFX() {
+	protected void eatSFX( Hero hero ) {
 		switch(Holiday.getCurrentHoliday()){
 			case PRIDE:
 			case NEW_YEARS:
-				Sample.INSTANCE.play( Assets.Sounds.DRINK );
+				SpatialSound.play( Assets.Sounds.DRINK, hero );
 				return;
 		}
-		super.eatSFX();
+		super.eatSFX( hero );
 	}
 
 	@Override
@@ -120,7 +120,7 @@ public class Pasty extends Food {
 				}
 				break;
 			case APRIL_FOOLS:
-				Sample.INSTANCE.play(Assets.Sounds.MIMIC);
+				SpatialSound.play(Assets.Sounds.MIMIC, hero);
 			case EASTER:
 				ArtifactRecharge.chargeArtifacts(hero, 2f);
 				ScrollOfRecharging.charge( hero );

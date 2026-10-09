@@ -26,7 +26,6 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
-import com.watabou.noosa.audio.Sample;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -36,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.Surprise;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
@@ -78,7 +78,7 @@ public class Hunting extends PassiveSkillA3 {
 			Surprise.hit( enemy );
 			enemy.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 0.8f, 1.2f );
+		SpatialSound.play( Assets.Sounds.HIT_STRONG, enemy, 0.8f, 1.2f );
 		//the stun lands after the blow does, or the blow itself would shake it off
 		final Char prey = enemy;
 		final float turns = 1 + level;
@@ -123,7 +123,7 @@ public class Hunting extends PassiveSkillA3 {
 		castText = Messages.get( this, "cast_trail" );
 		castTextYell();
 		if (hero.sprite != null) hero.sprite.emitter().burst( LeafParticle.GENERAL, 8 );
-		Sample.INSTANCE.play( Assets.Sounds.GRASS, 1f, 0.9f );
+		SpatialSound.play( Assets.Sounds.GRASS, hero, 1f, 0.9f );
 	}
 
 	@Override

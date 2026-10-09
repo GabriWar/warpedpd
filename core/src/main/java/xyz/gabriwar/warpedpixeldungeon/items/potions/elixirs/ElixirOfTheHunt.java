@@ -29,12 +29,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.TalismanOfForesight;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.HuntersFocus;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MindVision;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.SpellSprite;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfHaste;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfMindVision;
@@ -59,7 +59,7 @@ public class ElixirOfTheHunt extends Elixir {
 	public void shatter( int cell ) {
 		splash( cell );
 		if (Dungeon.level.heroFOV[cell]) {
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER );
+			SpatialSound.play( Assets.Sounds.SHATTER, cell );
 		}
 
 		boolean revealed = false;

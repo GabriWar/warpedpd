@@ -26,13 +26,13 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
-import com.watabou.noosa.audio.Sample;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.PoacherBait;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 
@@ -68,6 +68,6 @@ public class Poacher extends Skill {
 			CellEmitter.get( cell ).burst( Speck.factory( Speck.STENCH ), 6 );
 			SkillInteractions.flare( cell, 0xB5D67A );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.PUFF, 0.8f, 0.8f );
+		SpatialSound.play( Assets.Sounds.PUFF, cell, 0.8f, 0.8f );
 	}
 }

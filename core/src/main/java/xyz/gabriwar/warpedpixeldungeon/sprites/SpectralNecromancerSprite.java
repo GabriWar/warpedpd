@@ -25,10 +25,10 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Necromancer;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 
 public class SpectralNecromancerSprite extends MobSprite {
@@ -107,7 +107,8 @@ public class SpectralNecromancerSprite extends MobSprite {
 
 	public void finishSummoning(){
 		if (summoningParticles.visible) {
-			Sample.INSTANCE.play(Assets.Sounds.CURSED);
+			//where the wraith rises, beside its target
+			SpatialSound.play(Assets.Sounds.CURSED, ((Necromancer) ch).summoningPos);
 			summoningParticles.burst(ShadowParticle.CURSE, 5);
 		} else {
 			summoningParticles.on = false;
@@ -130,7 +131,7 @@ public class SpectralNecromancerSprite extends MobSprite {
 			summoningParticles = CellEmitter.get(((Necromancer) ch).summoningPos);
 			summoningParticles.pour(ShadowParticle.MISSILE, 0.1f);
 			summoningParticles.visible = Dungeon.level.heroFOV[((Necromancer) ch).summoningPos];
-			if (visible || summoningParticles.visible ) Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 1f, 0.8f );
+			if (visible || summoningParticles.visible ) SpatialSound.play( Assets.Sounds.CHARGEUP, ch, 1f, 0.8f );
 		}
 	}
 

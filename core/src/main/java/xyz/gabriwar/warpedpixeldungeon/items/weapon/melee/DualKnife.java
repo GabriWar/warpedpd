@@ -30,7 +30,6 @@ import com.watabou.utils.Callback;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
@@ -40,6 +39,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import com.watabou.utils.Random;
 
@@ -110,10 +110,10 @@ public class DualKnife extends MeleeWeapon {
 				wep.beforeAbilityUsed(hero, enemy);
 				AttackIndicator.target(enemy);
 				boolean hit = hero.attack(enemy, share, 0, Char.INFINITE_ACCURACY);
-				if (hit) Sample.INSTANCE.play(Assets.Sounds.HIT_STAB, 1f, 1.1f);
+				if (hit) SpatialSound.play(Assets.Sounds.HIT_STAB, enemy, 1f, 1.1f);
 				if (enemy.isAlive()){
 					if (hero.attack(enemy, share, 0, Char.INFINITE_ACCURACY)){
-						Sample.INSTANCE.play(Assets.Sounds.HIT_STAB, 1f, 1.4f);
+						SpatialSound.play(Assets.Sounds.HIT_STAB, enemy, 1f, 1.4f);
 						Wound.hit(enemy);
 					}
 				}

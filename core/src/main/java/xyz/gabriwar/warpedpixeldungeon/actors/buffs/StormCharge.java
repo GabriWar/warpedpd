@@ -31,11 +31,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ChargedSteam;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Electricity;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import com.watabou.noosa.Image;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
@@ -75,7 +75,7 @@ public class StormCharge extends FlavourBuff {
 			victim.sprite.centerEmitter().burst( SparkParticle.FACTORY, 3 );
 		}
 		if (Dungeon.level.heroFOV[victim.pos]) {
-			Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
+			SpatialSound.play( Assets.Sounds.LIGHTNING, victim );
 		}
 		victim.damage( Random.NormalIntRange( 1 + Dungeon.scalingDepth()/4, 4 + Dungeon.scalingDepth()/2 ), this );
 	}

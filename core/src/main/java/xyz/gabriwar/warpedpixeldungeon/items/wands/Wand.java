@@ -44,6 +44,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.mage.WildMagic;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.DivineSense;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.GuidingLight;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
@@ -65,7 +66,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.ui.QuickSlotButton;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 import com.watabou.utils.PointF;
@@ -478,7 +478,7 @@ public abstract class Wand extends Item {
 				curUser.sprite,
 				bolt.collisionPos,
 				callback);
-		Sample.INSTANCE.play( Assets.Sounds.ZAP );
+		SpatialSound.play( Assets.Sounds.ZAP, curUser );
 	}
 
 	public void staffFx( MagesStaff.StaffParticle particle ){
@@ -749,7 +749,7 @@ public abstract class Wand extends Item {
 						curUser.sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(Math.round(shield)), FloatingText.SHIELDING);
 						curWand.curCharges = 0;
 						curUser.sprite.operate(curUser.pos);
-						Sample.INSTANCE.play(Assets.Sounds.CHARGEUP);
+						SpatialSound.play(Assets.Sounds.CHARGEUP, curUser);
 						ScrollOfRecharging.charge(curUser);
 						updateQuickslot();
 						curUser.spendAndNext(Actor.TICK);

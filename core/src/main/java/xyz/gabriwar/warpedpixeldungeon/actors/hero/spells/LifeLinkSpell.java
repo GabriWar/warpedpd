@@ -31,13 +31,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.LifeLink;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.cleric.PowerOfMany;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.HolyTome;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
-import com.watabou.noosa.audio.Sample;
 
 public class LifeLinkSpell extends ClericSpell {
 
@@ -76,7 +76,7 @@ public class LifeLinkSpell extends ClericSpell {
 			hero.sprite.zap(ally.pos);
 			hero.sprite.parent.add(
 					new Beam.HealthRay(hero.sprite.center(), ally.sprite.center()));
-			Sample.INSTANCE.play( Assets.Sounds.RAY );
+			SpatialSound.play( Assets.Sounds.RAY, ally );
 
 			Buff.prolong(hero, LifeLink.class, duration).object = ally.id();
 		} else {
@@ -84,7 +84,7 @@ public class LifeLinkSpell extends ClericSpell {
 			hero.sprite.operate(hero.pos);
 			hero.sprite.parent.add(
 					new Beam.HealthRay(DungeonTilemap.tileCenterToWorld(hero.pos), hero.sprite.center()));
-			Sample.INSTANCE.play( Assets.Sounds.RAY );
+			SpatialSound.play( Assets.Sounds.RAY, hero );
 		}
 
 		Buff.prolong(ally, LifeLink.class, duration).object = hero.id();

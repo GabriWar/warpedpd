@@ -28,7 +28,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
@@ -38,6 +37,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Gold;
 
 public class MasterThief extends Skill {
@@ -75,7 +75,7 @@ public class MasterThief extends Skill {
 		if (level <= 0 || hero == null || gold <= 0) return 0;
 		Buff.affect( hero, MasterThiefCoins.class ).load( COINS_PER_PILE, maxCoins() );
 		if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.COIN ), 4 );
-		Sample.INSTANCE.play( Assets.Sounds.GOLD, 0.8f, 1.5f );
+		SpatialSound.play( Assets.Sounds.GOLD, hero, 0.8f, 1.5f );
 		return 0;
 	}
 
@@ -90,7 +90,7 @@ public class MasterThief extends Skill {
 		coins.spendCoin();
 
 		Buff.prolong( enemy, Blindness.class, BLIND_TURNS );
-		Sample.INSTANCE.play( Assets.Sounds.GOLD, 1f, 1.7f );
+		SpatialSound.play( Assets.Sounds.GOLD, hero, 1f, 1.7f );
 		if (hero.sprite != null){
 			SkillFX.streak( hero.sprite, enemy.pos, new Gold(), () -> struck( enemy ) );
 		} else {
@@ -115,6 +115,6 @@ public class MasterThief extends Skill {
 
 	private static void struck( Char ch ){
 		if (ch.sprite != null) ch.sprite.emitter().burst( Speck.factory( Speck.COIN ), 4 );
-		Sample.INSTANCE.play( Assets.Sounds.HIT, 0.7f, 1.6f );
+		SpatialSound.play( Assets.Sounds.HIT, ch, 0.7f, 1.6f );
 	}
 }

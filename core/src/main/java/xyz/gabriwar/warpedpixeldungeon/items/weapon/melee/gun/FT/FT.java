@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Fire;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.gun.Gun;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
@@ -44,7 +45,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 
 import java.util.ArrayList;
@@ -149,8 +149,8 @@ public class FT extends Gun {
         }
 
         @Override
-        public void throwSound() {
-            Sample.INSTANCE.play(Assets.Sounds.BURNING, 1f);
+        public void throwSound(Char thrower) {
+            SpatialSound.play(Assets.Sounds.BURNING, thrower, 1f);
         }
     }
 }

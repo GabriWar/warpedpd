@@ -27,6 +27,7 @@ package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.TileTemperature;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
@@ -38,7 +39,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.tiles.WarpedRoomTiles;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 
@@ -137,7 +137,7 @@ public class ElementalLock extends Blob {
 			case BLOOM: CellEmitter.get( cell ).burst( LeafParticle.GENERAL, 10 ); break;
 			case TIDE:  CellEmitter.get( cell ).burst( Speck.factory( Speck.BUBBLE ), 10 ); break;
 		}
-		Sample.INSTANCE.play( Assets.Sounds.TELEPORT, 0.6f, 1.4f );
+		SpatialSound.play( Assets.Sounds.TELEPORT, cell, 0.6f, 1.4f );
 		GLog.p( Messages.get( this, "wake_" + kind ) );
 	}
 
@@ -155,8 +155,8 @@ public class ElementalLock extends Blob {
 		if (Dungeon.level.heroFOV[gate]){
 			CellEmitter.get( gate ).burst( Speck.factory( Speck.LIGHT ), 12 );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.UNLOCK );
-		Sample.INSTANCE.play( Assets.Sounds.SECRET );
+		SpatialSound.play( Assets.Sounds.UNLOCK, gate );
+		SpatialSound.play( Assets.Sounds.SECRET, gate );
 		GLog.p( Messages.get( this, "opened" ) );
 	}
 

@@ -66,7 +66,7 @@ public class WndSkill extends Window {
 	}
 
 	private boolean canUpgradeNow(){
-		return skill.level < Skill.MAX_LEVEL && Skill.availableSkill >= skill.upgradeCost()
+		return skill.level < Skill.MAX_LEVEL && Dungeon.hero.heroSkills.availableSkill >= skill.upgradeCost()
 				&& !skill.pathLocked();
 	}
 

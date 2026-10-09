@@ -26,6 +26,7 @@ package xyz.gabriwar.warpedpixeldungeon.items.rarity;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Enchanting;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
@@ -35,7 +36,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
-import com.watabou.noosa.audio.Sample;
 
 /**
  * Masterwork Core: dropped by bosses, spent at the troll blacksmith in town
@@ -94,7 +94,7 @@ public class MasterworkCore extends Item {
 		hero.sprite.operate( hero.pos );
 		hero.spend( 1f );
 		hero.busy();
-		Sample.INSTANCE.play( Assets.Sounds.EVOKE );
+		SpatialSound.play( Assets.Sounds.EVOKE, hero );
 		hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
 		Enchanting.show( hero, item );
 		item.updateQuickslot();

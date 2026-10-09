@@ -27,6 +27,7 @@ import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Degrade;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfUpgrade;
@@ -39,7 +40,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndUpgrade;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 public class MagicalInfusion extends InventorySpell {
@@ -79,7 +79,7 @@ public class MagicalInfusion extends InventorySpell {
 		curUser.busy();
 		(curUser.sprite).operate(curUser.pos);
 
-		Sample.INSTANCE.play(Assets.Sounds.READ);
+		SpatialSound.play(Assets.Sounds.READ, curUser);
 		Invisibility.dispel();
 
 		Catalog.countUse(curItem.getClass());

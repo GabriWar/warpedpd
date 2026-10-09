@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
@@ -46,7 +47,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -126,14 +126,14 @@ public class PotionOfDragonsBreath extends ExoticPotion {
 				potionAlreadyUsed = true;
 				identifiedByUse = false;
 				curUser.busy();
-				Sample.INSTANCE.play( Assets.Sounds.DRINK );
+				SpatialSound.play( Assets.Sounds.DRINK, curUser );
 				curUser.sprite.operate(curUser.pos, new Callback() {
 					@Override
 					public void call() {
 
 						curUser.sprite.idle();
 						curUser.sprite.zap(cell);
-						Sample.INSTANCE.play( Assets.Sounds.BURNING );
+						SpatialSound.play( Assets.Sounds.BURNING, curUser );
 
 						final Ballistica bolt = new Ballistica(curUser.pos, cell, Ballistica.WONT_STOP);
 
@@ -240,7 +240,7 @@ public class PotionOfDragonsBreath extends ExoticPotion {
 				if (target.isAlive()) Buff.affect(target, Burning.class).reignite(target);
 			}
 		}
-		Sample.INSTANCE.play(Assets.Sounds.BURNING);
+		SpatialSound.play(Assets.Sounds.BURNING, enemy);
 	}
 
 	@Override

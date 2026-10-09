@@ -32,9 +32,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Fire;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 public class BottleFire extends MissileWeapon {
@@ -65,7 +65,7 @@ public class BottleFire extends MissileWeapon {
 				}
 			}
 			if (Dungeon.level.heroFOV[cell]) {
-				Sample.INSTANCE.play(Assets.Sounds.SHATTER);
+				SpatialSound.play(Assets.Sounds.SHATTER, cell);
 			}
 		} else {
 			super.onThrow(cell);

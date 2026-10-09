@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Heavy;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.poisonparticles.ButterlionPoisonParticle;
@@ -40,7 +41,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Camera;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.PathFinder;
@@ -59,7 +59,7 @@ public class Butterlion extends Plant {
 		if (Dungeon.level.heroFOV[ch.pos]) {
 			CellEmitter.get( ch.pos ).start( Speck.factory( Speck.ROCK ), 0.07f, 10 );
 			Camera.main.shake( 1, 0.7f );
-			Sample.INSTANCE.play( Assets.Sounds.ROCKS );
+			SpatialSound.play( Assets.Sounds.ROCKS, ch );
 		}
 		ch.damage(1, this);
 		if (ch == Dungeon.hero && !ch.isAlive()){
@@ -73,7 +73,7 @@ public class Butterlion extends Plant {
 		if (Dungeon.level.heroFOV[enemy.pos]) {
 			CellEmitter.get( enemy.pos ).start( Speck.factory( Speck.ROCK ), 0.07f, 10 );
 			Camera.main.shake( 3, 0.7f );
-			Sample.INSTANCE.play( Assets.Sounds.ROCKS );
+			SpatialSound.play( Assets.Sounds.ROCKS, enemy );
 		}
 		enemy.damage(damage, this);
 		if (enemy == Dungeon.hero && !enemy.isAlive()){
@@ -95,7 +95,7 @@ public class Butterlion extends Plant {
 			if (Dungeon.level.heroFOV[pos]) {
 				CellEmitter.get( pos ).start( Speck.factory( Speck.ROCK ), 0.07f, 10 );
 				Camera.main.shake( 3, 0.7f );
-				Sample.INSTANCE.play( Assets.Sounds.ROCKS );
+				SpatialSound.play( Assets.Sounds.ROCKS, pos );
 			}
 			for (int i = 0; i < PathFinder.NEIGHBOURS8.length; i++) {
 				Char ch1 = Actor.findChar(pos + PathFinder.NEIGHBOURS8[i]);
@@ -112,7 +112,7 @@ public class Butterlion extends Plant {
 		if (Dungeon.level.heroFOV[ch.pos]) {
 			CellEmitter.get( ch.pos ).start( Speck.factory( Speck.ROCK ), 0.07f, 10 );
 			Camera.main.shake( 3, 0.7f );
-			Sample.INSTANCE.play( Assets.Sounds.ROCKS );
+			SpatialSound.play( Assets.Sounds.ROCKS, ch );
 		}
 		ch.damage(Math.round(ch.HP/8), this);
 		if (ch == Dungeon.hero && !ch.isAlive()){

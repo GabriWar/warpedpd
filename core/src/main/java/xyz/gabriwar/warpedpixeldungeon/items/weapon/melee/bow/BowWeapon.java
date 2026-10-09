@@ -35,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.GreaterHaste;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.ArrowItem;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfSharpshooting;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
@@ -50,7 +51,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Image;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
@@ -183,7 +183,7 @@ public class BowWeapon extends MeleeWeapon {
         hero.sprite.operate(hero.pos);
         hero.spendAndNext(0);
         Buff.affect(hero, PenetrationShotBuff.class);
-        Sample.INSTANCE.play(Assets.Sounds.MISS);
+        SpatialSound.play(Assets.Sounds.MISS, hero);
 
         afterAbilityUsed(hero);
     }
@@ -302,7 +302,7 @@ public class BowWeapon extends MeleeWeapon {
 
                 if (hero.buff(PenetrationShotBuff.class) != null) {
                     damage = hero.buff(PenetrationShotBuff.class).proc(damage, this.buffedLvl(), this.tier);
-                    Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG);
+                    SpatialSound.play(Assets.Sounds.HIT_STRONG, hero);
                 }
 
                 if (hero.buff(BowFatigue.class) != null) {
@@ -393,8 +393,8 @@ public class BowWeapon extends MeleeWeapon {
         }
 
         @Override
-        public void throwSound() {
-            Sample.INSTANCE.play( Assets.Sounds.ATK_SPIRITBOW, 1, Random.Float(0.87f, 1.15f) );
+        public void throwSound(Char thrower) {
+            SpatialSound.play( Assets.Sounds.ATK_SPIRITBOW, thrower, 1, Random.Float(0.87f, 1.15f) );
         }
 
         @Override

@@ -25,6 +25,7 @@
 package xyz.gabriwar.warpedpixeldungeon.levels.ambience;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import com.watabou.noosa.audio.Music;
 import com.watabou.noosa.audio.Sample;
 
@@ -48,6 +49,11 @@ public final class AmbientPlayer {
 	public static final float HALF_CELLS = 5f, HEARD_CELLS = 16f;
 	//a source PAN_CELLS to one side is panned as far as it goes, MAX_PAN: never fully into one ear
 	public static final float PAN_CELLS = 8f, MAX_PAN = 0.75f;
+	//while spatial sound is on (SpatialSound.on) the curve is the wide one: half at
+	//WIDE_HALF_CELLS, and panned as far as WIDE_MAX_PAN from WIDE_PAN_CELLS to a side, as the
+	//effects are: a sound pans the same on either channel
+	public static final float WIDE_HALF_CELLS = 4f, WIDE_PAN_CELLS = SpatialSound.PAN_CELLS,
+			WIDE_MAX_PAN = SpatialSound.MAX_PAN;
 	//how far off pitch a play may be, either way
 	public static final float PITCH_SPREAD = 0.06f;
 
@@ -55,7 +61,7 @@ public final class AmbientPlayer {
 	public static float falloff( float cells ){
 		if (cells <= 0) return 1f;
 		if (cells >= HEARD_CELLS) return 0f;
-		float d = cells / HALF_CELLS;
+		float d = cells / (SpatialSound.on ? WIDE_HALF_CELLS : HALF_CELLS);
 		float near = 1f / (1f + d * d);
 		//the last quarter of the reach fades to nothing
 		float edge = Math.min( 1f, (HEARD_CELLS - cells) / (HEARD_CELLS * 0.25f) );
@@ -64,7 +70,9 @@ public final class AmbientPlayer {
 
 	/** The pan of a source this many cells to the hero's right (negative: left). */
 	public static float pan( float dx ){
-		return Math.max( -MAX_PAN, Math.min( MAX_PAN, dx / PAN_CELLS ) );
+		boolean wide = SpatialSound.on;
+		float max = wide ? WIDE_MAX_PAN : MAX_PAN;
+		return Math.max( -max, Math.min( max, dx / (wide ? WIDE_PAN_CELLS : PAN_CELLS) ) );
 	}
 
 	/** Is the ambience heard at all right now: on, not at zero, and the game not in the background. */
@@ -97,7 +105,9 @@ public final class AmbientPlayer {
 	 */
 	public static void playTake( String take, float gain, float volume, float pitch, float pan ){
 		if (!audible() || volume <= 0) return;
-		Sample.INSTANCE.playAmbient( take, gain * volume, pitch, pan );
+		//as the device pans (SpatialSound.devicePan): as given while spatial sound is off
+		Sample.INSTANCE.playAmbient( take, SpatialSound.deviceVolume( gain * volume, pan ), pitch,
+				SpatialSound.devicePan( pan ) );
 	}
 
 	/** A pitch nudged a little off, either way, on these dice: a repeat never sounds like a loop. */

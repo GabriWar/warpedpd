@@ -37,7 +37,6 @@ public class Effects {
 		DEATH_RAY,
 		LIGHT_RAY,
 		HEALTH_RAY,
-		THUNDERBOLT,
 		SUPERNOVA_RAY
 	}
 	
@@ -72,9 +71,6 @@ public class Effects {
 				break;
 			case HEALTH_RAY:
 				icon.frame(icon.texture.uvRect(16, 30, 32, 38));
-				break;
-			case THUNDERBOLT:
-				icon.frame(icon.texture.uvRect(0, 39, 32, 45));
 				break;
 			case SUPERNOVA_RAY:
 				icon.frame(icon.texture.uvRect(16, 62, 32, 70));

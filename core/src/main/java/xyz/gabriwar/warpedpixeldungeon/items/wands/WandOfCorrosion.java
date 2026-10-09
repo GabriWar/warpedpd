@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.CorrosiveGas;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Ooze;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.DwarfKing;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -40,7 +41,6 @@ import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 import com.watabou.utils.ColorMath;
 import com.watabou.utils.PathFinder;
@@ -60,7 +60,7 @@ public class WandOfCorrosion extends Wand {
 		CellEmitter.get(bolt.collisionPos).burst(Speck.factory(Speck.CORROSION), 10 );
 		gas.setStrength(2 + buffedLvl(), getClass());
 		GameScene.add(gas);
-		Sample.INSTANCE.play(Assets.Sounds.GAS);
+		SpatialSound.play(Assets.Sounds.GAS, bolt.collisionPos);
 
 		for (int i : PathFinder.NEIGHBOURS9) {
 			Char ch = Actor.findChar(bolt.collisionPos + i);
@@ -86,7 +86,7 @@ public class WandOfCorrosion extends Wand {
 				curUser.sprite,
 				bolt.collisionPos,
 				callback);
-		Sample.INSTANCE.play(Assets.Sounds.ZAP);
+		SpatialSound.play(Assets.Sounds.ZAP, curUser);
 	}
 
 	@Override

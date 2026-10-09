@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.GnollArcher;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.GnollTrickster;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.GreatCrab;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
@@ -133,7 +134,7 @@ public class Ghost extends NPC {
 	public boolean interact(Char c) {
 		sprite.turnTo( pos, c.pos );
 
-		Sample.INSTANCE.play( Assets.Sounds.GHOST );
+		SpatialSound.play( Assets.Sounds.GHOST, pos );
 
 		// Multiplayer: every hero gets their own run of the quest. State, objective mob
 		// and reward are tracked per-hero (keyed by hero id). The ghost persists across

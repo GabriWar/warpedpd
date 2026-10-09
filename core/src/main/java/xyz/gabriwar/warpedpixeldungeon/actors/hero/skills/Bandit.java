@@ -30,7 +30,6 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.Challenges;
 import xyz.gabriwar.warpedpixeldungeon.Statistics;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -39,6 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Gold;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.MasterThievesArmband;
@@ -78,7 +78,7 @@ public class Bandit extends PassiveSkillA1 {
 			mark.sprite.emitter().burst( Speck.factory( Speck.COIN ), 5 );
 			mark.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( Bandit.class, "pickpocket" ) );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 1.5f );
+		SpatialSound.play( Assets.Sounds.MISS, mark, 1f, 1.5f );
 
 		final Item loot = level >= 2 ? snatchLoot( mark ) : null;
 		MasterThief.pocket( MasterThief.COINS_PER_PILE );
@@ -92,7 +92,7 @@ public class Bandit extends PassiveSkillA1 {
 			}
 			SkillFX.streak( mark.pos, hero.pos, new Gold(), () -> {
 				if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.COIN ), 4 );
-				Sample.INSTANCE.play( Assets.Sounds.GOLD, 1f, 1.2f );
+				SpatialSound.play( Assets.Sounds.GOLD, hero, 1f, 1.2f );
 			} );
 		} else {
 			//the item sails over and lands at your feet, to be picked up like any other
@@ -101,7 +101,7 @@ public class Bandit extends PassiveSkillA1 {
 			SkillFX.streak( mark.pos, cell, loot, () -> {
 				Dungeon.level.drop( loot, cell ).sprite.drop();
 				if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
-				Sample.INSTANCE.play( Assets.Sounds.ITEM, 1f, 1.1f );
+				SpatialSound.play( Assets.Sounds.ITEM, cell, 1f, 1.1f );
 			} );
 		}
 		return damage;

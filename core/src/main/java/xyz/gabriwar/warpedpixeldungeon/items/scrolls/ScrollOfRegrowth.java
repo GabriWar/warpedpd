@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Water;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.SpellSprite;
@@ -36,7 +37,6 @@ import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 
 public class ScrollOfRegrowth extends Scroll {
@@ -84,11 +84,11 @@ public class ScrollOfRegrowth extends Scroll {
 
 		GLog.i(Messages.get(this, "layout"));
 		if (noticed) {
-			Sample.INSTANCE.play(Assets.Sounds.SECRET);
+			SpatialSound.play(Assets.Sounds.SECRET, curUser);
 		}
 
 		SpellSprite.show(curUser, SpellSprite.MAP);
-		Sample.INSTANCE.play(Assets.Sounds.READ);
+		SpatialSound.play(Assets.Sounds.READ, curUser);
 		Invisibility.dispel();
 
 		identify();

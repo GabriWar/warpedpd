@@ -27,7 +27,6 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 import com.watabou.noosa.Image;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -35,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -80,7 +80,7 @@ public class StoneSkin extends Skill {
 			hero.sprite.emitter().burst( Speck.factory( Speck.ROCK ), 6 );
 			hero.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( this, "plates_left", level - plates.broken ) );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.ROCKS, 0.7f, 1.3f );
+		SpatialSound.play( Assets.Sounds.ROCKS, hero, 0.7f, 1.3f );
 
 		if (source instanceof Char && source != hero){
 			Char attacker = (Char) source;
@@ -125,7 +125,7 @@ public class StoneSkin extends Skill {
 				if (target.sprite != null){
 					target.sprite.emitter().burst( Speck.factory( Speck.ROCK ), 3 );
 				}
-				Sample.INSTANCE.play( Assets.Sounds.ROCKS_LIGHT, 0.6f, 1.4f );
+				SpatialSound.play( Assets.Sounds.ROCKS_LIGHT, target, 0.6f, 1.4f );
 			}
 			spend( TICK );
 			if (broken <= 0) detach();

@@ -217,7 +217,7 @@ public class WndJournal extends WndTabbed {
 
 					@Override
 					protected String hoverText() {
-						return "Descent Guide";
+						return Messages.get(GuideScene.class, "title");
 					}
 				}
 		};

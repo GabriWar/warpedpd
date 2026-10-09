@@ -37,11 +37,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Deer;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.GrayWolf;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.HuntPack;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.net.NetManager;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 import java.util.ArrayList;
@@ -267,7 +267,9 @@ public final class HuntEvent {
 				if (dir.equals( "here" )) return GLog.WARNING + Messages.get( HuntEvent.class, "heard_near" );
 				return GLog.WARNING + Messages.get( HuntEvent.class, "start_far", Messages.get( WorldEvents.class, "dir_" + dir ) );
 			} );
-			if (level.liveScene() && hears( level, Dungeon.hero, e )) Sample.INSTANCE.play( Assets.Sounds.HOWL, 0.35f );
+			if (level.liveScene() && hears( level, Dungeon.hero, e )){
+				SpatialSound.playPanned( Assets.Sounds.HOWL, 0f, 0.35f, 1f, level.panTowards( e.wx ) );
+			}
 		}
 	}
 
@@ -378,7 +380,7 @@ public final class HuntEvent {
 			Hero host = Dungeon.hero;
 			boolean close = level.heroSees( host, seenDeer ) || level.heroSees( host, seenPack )
 					|| distance( level, host, e.wx, e.wy ) <= WorldEvents.STAR_NEAR;
-			Sample.INSTANCE.play( Assets.Sounds.HOWL, close ? 0.8f : 0.35f );
+			SpatialSound.playPanned( Assets.Sounds.HOWL, 0f, close ? 0.8f : 0.35f, 1f, level.panTowards( e.wx ) );
 		}
 		return true;
 	}

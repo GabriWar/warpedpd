@@ -31,12 +31,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vulnerable;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.BlastParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SmokeParticle;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MissileSprite;
 import com.watabou.utils.Callback;
@@ -321,7 +321,7 @@ public class ShootGun extends Weapon {
 
 		//the report, the smoke and the kick of a shot
 		protected void fired( Hero user ){
-			Sample.INSTANCE.play( Assets.Sounds.BLAST, 0.6f, 1.5f );
+			SpatialSound.play( Assets.Sounds.BLAST, user, 0.6f, 1.5f );
 			if (user.sprite != null) user.sprite.centerEmitter().burst( SmokeParticle.FACTORY, 5 );
 			PixelScene.shake( 1f, 0.15f );
 		}
@@ -376,7 +376,7 @@ public class ShootGun extends Weapon {
 		//every round at once: a louder report, a cloud of smoke, a real kick
 		@Override
 		protected void fired( Hero user ){
-			Sample.INSTANCE.play( Assets.Sounds.BLAST, 1f, 1.1f );
+			SpatialSound.play( Assets.Sounds.BLAST, user, 1f, 1.1f );
 			if (user.sprite != null) user.sprite.centerEmitter().burst( SmokeParticle.FACTORY, 12 );
 			PixelScene.shake( 3f, 0.3f );
 		}
@@ -439,7 +439,7 @@ public class ShootGun extends Weapon {
 	//one round of the volley: a report, a puff, a slug flying nose first, sparks where it lands
 	private void volleyRound( Hero hero, final int cell ){
 		if (hero.sprite == null || hero.sprite.parent == null) return;
-		Sample.INSTANCE.play( Assets.Sounds.BLAST, 0.4f, 1.7f );
+		SpatialSound.play( Assets.Sounds.BLAST, hero, 0.4f, 1.7f );
 		hero.sprite.centerEmitter().burst( SmokeParticle.FACTORY, 2 );
 		PixelScene.shake( 0.6f, 0.08f );
 		((MissileSprite) hero.sprite.parent.recycle( MissileSprite.class )).reset(
@@ -447,7 +447,7 @@ public class ShootGun extends Weapon {
 					@Override
 					public void call(){
 						CellEmitter.center( cell ).burst( SparkParticle.FACTORY, 5 );
-						Sample.INSTANCE.play( Assets.Sounds.HIT, 0.5f, 1.3f );
+						SpatialSound.play( Assets.Sounds.HIT, cell, 0.5f, 1.3f );
 					}
 				} );
 	}

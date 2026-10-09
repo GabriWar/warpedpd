@@ -25,7 +25,6 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
 import com.watabou.noosa.Camera;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -34,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.UndyingWill;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.BloodParticle;
@@ -95,7 +95,7 @@ public class UndyingWillWard extends Barrier {
 			bearer.sprite.emitter().burst( Speck.factory( Speck.SCREAM ), 4 );
 			bearer.sprite.showStatus( CharSprite.WARNING, Messages.get( UndyingWill.class, "shatter" ) );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 1f, 0.6f );
+		SpatialSound.play( Assets.Sounds.CHALLENGE, bearer, 1f, 0.6f );
 		Camera.main.shake( 2, 0.25f );
 	}
 }

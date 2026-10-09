@@ -26,11 +26,11 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import com.watabou.noosa.Camera;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 
 public class DwarfLichSprite extends MobSprite {
 
@@ -70,7 +70,7 @@ public class DwarfLichSprite extends MobSprite {
 			if (Dungeon.level.heroFOV[cell]) {
 				CellEmitter.center( cell ).start( Speck.factory( Speck.RATTLE ), 0.1f, 3 );
 				CellEmitter.center( cell ).start( Speck.factory( Speck.ROCK ), 0.07f, 10 );
-				Sample.INSTANCE.play( Assets.Sounds.BONES );
+				SpatialSound.play( Assets.Sounds.BONES, cell );
 			}
 
 			play( attack );

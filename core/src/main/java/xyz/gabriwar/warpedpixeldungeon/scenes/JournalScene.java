@@ -235,7 +235,7 @@ public class JournalScene extends PixelScene {
 			}
 			@Override
 			protected String hoverText() {
-				return "Descent Guide";
+				return Messages.get(GuideScene.class, "title");
 			}
 		};
 		btnGuideMap.icon(Icons.MAGNIFY.get());

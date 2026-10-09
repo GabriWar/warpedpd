@@ -29,7 +29,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -37,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 
 import java.util.ArrayList;
 
@@ -92,7 +92,7 @@ public class DarkPact extends SubSkill3 {
 				}
 			}
 			castTextYell();
-			Sample.INSTANCE.play( Assets.Sounds.CURSED, 1f, 0.9f );
+			SpatialSound.play( Assets.Sounds.CURSED, hero, 1f, 0.9f );
 			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.SMOKE ), 6 );
 			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.RED_LIGHT ), 4 );
 			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 4 + level );

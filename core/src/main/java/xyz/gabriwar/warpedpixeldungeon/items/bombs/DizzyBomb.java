@@ -28,6 +28,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.NPC;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.BlastParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SmokeParticle;
@@ -36,7 +37,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
@@ -53,7 +53,7 @@ public class DizzyBomb extends Bomb {
 			this.fuse = null;
 		}
 
-		Sample.INSTANCE.play(Assets.Sounds.BLAST);
+		SpatialSound.play(Assets.Sounds.BLAST, cell);
 
 		if (Dungeon.level.heroFOV[cell]) {
 			CellEmitter.center(cell).burst(BlastParticle.FACTORY, 30);

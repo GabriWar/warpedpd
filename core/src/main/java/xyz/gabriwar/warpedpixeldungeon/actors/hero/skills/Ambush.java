@@ -28,7 +28,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -36,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
@@ -74,12 +74,12 @@ public class Ambush extends SubSkill1 {
 		}
 		Buff.affect( enemy, Opened.class );
 		Wound.hit( enemy );
-		Sample.INSTANCE.play( Assets.Sounds.HIT_STAB, 1f, 0.7f );
+		SpatialSound.play( Assets.Sounds.HIT_STAB, enemy, 1f, 0.7f );
 		stake( enemy );
 
 		//at mastery the stake splinters: every enemy beside the mark is staked too
 		if (level >= Skill.MAX_LEVEL){
-			Sample.INSTANCE.play( Assets.Sounds.CHAINS, 1f, 0.8f );
+			SpatialSound.play( Assets.Sounds.CHAINS, enemy, 1f, 0.8f );
 			for (int n : PathFinder.NEIGHBOURS8){
 				Char ch = Actor.findChar( enemy.pos + n );
 				if (ch instanceof Mob && ch.isAlive() && ch.alignment == Char.Alignment.ENEMY){

@@ -27,7 +27,6 @@ package xyz.gabriwar.warpedpixeldungeon.effects;
 import com.watabou.noosa.Camera;
 import com.watabou.noosa.Group;
 import com.watabou.noosa.Visual;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 import com.watabou.utils.PointF;
 import com.watabou.utils.Random;
@@ -35,6 +34,7 @@ import com.watabou.utils.Random;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MissileSprite;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
@@ -90,7 +90,7 @@ public final class SkillFX {
 	public static void land( int cell ){
 		CellEmitter.bottom( cell ).burst( Speck.factory( Speck.DUST ), 8 );
 		Camera.main.shake( 2, 0.25f );
-		Sample.INSTANCE.play( Assets.Sounds.STURDY, 1f, 0.8f );
+		SpatialSound.play( Assets.Sounds.STURDY, cell, 1f, 0.8f );
 	}
 
 	/** a flash on whoever was struck, if anyone is there to see it */

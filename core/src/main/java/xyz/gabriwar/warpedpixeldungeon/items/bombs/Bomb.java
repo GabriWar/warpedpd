@@ -28,6 +28,8 @@ import xyz.gabriwar.warpedpixeldungeon.WPDSettings;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
+import xyz.gabriwar.warpedpixeldungeon.audio.WallBreak;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.BlastParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SmokeParticle;
@@ -58,7 +60,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.BArray;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
@@ -141,6 +142,28 @@ public class Bomb extends Item {
 		return super.doPickUp(hero, pos);
 	}
 
+	//when a blast's debris and its walls last sounded (System.nanoTime): a cluster's bombs go off
+	//together, and one of each is plenty
+	private static long lastDebris = System.nanoTime() - 1_000_000_000L, lastWalls = lastDebris;
+
+	/**
+	 * What a destructive blast at `cell` brings down after its BLAST: the walls it broke breaking as
+	 * one (WallBreak.playAll), or in the open the dirt and grit it threw up coming back down a
+	 * moment later. Each at most once a tenth of a second, however many bombs go off at once.
+	 */
+	private static synchronized void debris(int cell, ArrayList<Integer> walls){
+		long now = System.nanoTime();
+		if (walls.isEmpty()) {
+			if (now - lastDebris < 100_000_000L) return;
+			lastDebris = now;
+			SpatialSound.playDelayed( Assets.Sounds.DEBRIS, 0.1f, cell, 1f, 1f );
+		} else {
+			if (now - lastWalls < 100_000_000L) return;
+			lastWalls = now;
+			WallBreak.playAll( walls, 0.9f, 1f );
+		}
+	}
+
 	public void explode(int cell){
 		//We're blowing up, so no need for a fuse anymore.
 		if (fuse != null) {
@@ -148,7 +171,7 @@ public class Bomb extends Item {
 			this.fuse = null;
 		}
 
-		Sample.INSTANCE.play( Assets.Sounds.BLAST );
+		SpatialSound.play( Assets.Sounds.BLAST, cell );
 
 		if (explodesDestructively()) {
 
@@ -194,13 +217,13 @@ public class Bomb extends Item {
 			}
 
 			for (int w : wallsToBreak){
-				BuildersTool.applyTerrain(w, Terrain.EMPTY);
+				BuildersTool.applyTerrain(w, Terrain.EMPTY, false);
 				if (Dungeon.level.heroFOV[w]) {
 					CellEmitter.get(w).burst(BlastParticle.FACTORY, 6);
 				}
-				Sample.INSTANCE.play(Assets.Sounds.ROCKS_LIGHT);
 				terrainAffected = true;
 			}
+			debris(cell, wallsToBreak);
 
 			for (int i : affectedCells){
 				if (Dungeon.level.heroFOV[i]) {

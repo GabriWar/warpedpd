@@ -29,12 +29,12 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.DivineWrathGround;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -71,10 +71,10 @@ public class DivineWrath extends ActiveSkill {
 				hero.sprite.emitter().burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle.FACTORY, 8 );
 				xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PulseRingFX.around( hero.sprite, 0xFFB050, 12, 0.4f );
 			}
-			Sample.INSTANCE.play( Assets.Sounds.BURNING, 0.7f, 1.2f );
+			SpatialSound.play( Assets.Sounds.BURNING, hero, 0.7f, 1.2f );
 		} else if (action.equals( Skill.AC_DEACTIVATE )){
 			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.SMOKE ), 3 );
-			Sample.INSTANCE.play( Assets.Sounds.DEGRADE, 0.5f, 1.2f );
+			SpatialSound.play( Assets.Sounds.DEGRADE, hero, 0.5f, 1.2f );
 		}
 		xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraBuff.sync( hero, Embers.class, active && level > 0 );
 	}
@@ -118,8 +118,8 @@ public class DivineWrath extends ActiveSkill {
 			new xyz.gabriwar.warpedpixeldungeon.effects.Flare( 5, 12 ).color( 0xFFB050, true ).show( enemy.sprite, 0.3f );
 		}
 		for (int c : cells) xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.floor( c ).burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle.FACTORY, 2 );
-		Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 0.8f, 1.3f );
-		Sample.INSTANCE.play( Assets.Sounds.BURNING, 0.5f, 1.4f );
+		SpatialSound.play( Assets.Sounds.HIT_MAGIC, enemy, 0.8f, 1.3f );
+		SpatialSound.play( Assets.Sounds.BURNING, enemy, 0.5f, 1.4f );
 
 		return damage;
 	}

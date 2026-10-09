@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Belongings;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
@@ -48,7 +49,6 @@ import xyz.gabriwar.warpedpixeldungeon.windows.IconTitle;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndTitledMessage;
-import com.watabou.noosa.audio.Sample;
 
 import java.util.ArrayList;
 
@@ -96,7 +96,7 @@ public class GunSmithingTool extends Item {
         curUser.busy();
         (curUser.sprite).operate( curUser.pos );
 
-        Sample.INSTANCE.play( Assets.Sounds.EVOKE );
+        SpatialSound.play( Assets.Sounds.EVOKE, curUser );
         CellEmitter.center( curUser.pos ).burst( Speck.factory( Speck.STAR ), 7 );
         Invisibility.dispel();
 

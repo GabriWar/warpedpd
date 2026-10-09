@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Charm;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mimic;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
@@ -44,7 +45,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 import com.watabou.utils.PointF;
@@ -136,7 +136,7 @@ public class WandOfTransfusion extends DamageWand {
 				} else {
 					ch.damage(damageRoll(), this);
 					ch.sprite.emitter().start(ShadowParticle.UP, 0.05f, 10 + buffedLvl());
-					Sample.INSTANCE.play(Assets.Sounds.BURNING);
+					SpatialSound.play(Assets.Sounds.BURNING, ch);
 				}
 
 			}
@@ -174,7 +174,7 @@ public class WandOfTransfusion extends DamageWand {
 	public void fx(Ballistica beam, Callback callback) {
 		curUser.sprite.parent.add(
 				new Beam.HealthRay(curUser.sprite.center(), DungeonTilemap.raisedTileCenterToWorld(beam.collisionPos)));
-		Sample.INSTANCE.play( Assets.Sounds.RAY );
+		SpatialSound.play( Assets.Sounds.RAY, curUser );
 		callback.call();
 	}
 

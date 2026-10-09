@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -110,7 +111,7 @@ public class PotionOfDivineInspiration extends ExoticPotion {
 				if (index != -1){
 					Buff.affect(curUser, DivineInspirationTracker.class).setBoosted(index+1);
 					//fused economy: the boost is 2 points into the shared pool
-					xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.availableSkill += 2;
+					curUser.heroSkills.availableSkill += 2;
 
 					if (!identifiedByUse) {
 						curItem.detach(curUser.belongings.backpack);
@@ -136,7 +137,7 @@ public class PotionOfDivineInspiration extends ExoticPotion {
 
 					GameScene.showlevelUpStars();
 
-					Sample.INSTANCE.play( Assets.Sounds.DRINK );
+					SpatialSound.play( Assets.Sounds.DRINK, curUser );
 					Sample.INSTANCE.playDelayed(Assets.Sounds.LEVELUP, 0.3f, 0.7f, 1.2f);
 					Sample.INSTANCE.playDelayed(Assets.Sounds.LEVELUP, 0.6f, 0.7f, 1.2f);
 					new Flare( 6, 32 ).color(0xFFFF00, true).show( curUser.sprite, 2f );

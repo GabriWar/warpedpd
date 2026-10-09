@@ -27,6 +27,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MagicImmune;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.VelvetPouch;
@@ -39,7 +40,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
@@ -220,12 +220,12 @@ public class Dart extends MissileWeapon {
 	}
 
 	@Override
-	public void throwSound() {
+	public void throwSound(Char thrower) {
 		updateCrossbow();
 		if (bow != null) {
-			Sample.INSTANCE.play(Assets.Sounds.ATK_CROSSBOW, 1, Random.Float(0.87f, 1.15f));
+			SpatialSound.play(Assets.Sounds.ATK_CROSSBOW, thrower, 1, Random.Float(0.87f, 1.15f));
 		} else {
-			super.throwSound();
+			super.throwSound(thrower);
 		}
 	}
 	

@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle;
 import xyz.gabriwar.warpedpixeldungeon.actors.TileTemperature;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
@@ -39,7 +40,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.artifacts.ClimateCrystal;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ClimateCrystalSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 /**
@@ -155,7 +155,7 @@ public class ClimateCrystalWard extends NPC {
 			Dungeon.level.drop( item, hero.pos ).sprite.drop();
 		}
 		GLog.i( Messages.get( this, "picked_up" ) );
-		Sample.INSTANCE.play( Assets.Sounds.ITEM );
+		SpatialSound.play( Assets.Sounds.ITEM, hero );
 		CellEmitter.get( pos ).burst( Speck.factory( Speck.LIGHT ), 6 );
 
 		crystal = null;

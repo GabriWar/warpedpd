@@ -24,6 +24,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.CurrentSkills;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.MasterThief;
 import xyz.gabriwar.warpedpixeldungeon.effects.MasterThiefCoinsFX;
 
 /** Master Thief: the coins circling the hero, waiting to be flicked. The count is bundled by CounterBuff. */
@@ -49,6 +51,17 @@ public class MasterThiefCoins extends CounterBuff {
 	public void spendCoin(){
 		countDown( 1 );
 		if (count() < 1) detach();
+	}
+
+	//only Master Thief flicks the coins away: once it is gone (taken away in the debug window) they go too
+	@Override
+	public boolean act(){
+		if (CurrentSkills.skillLevel( target, MasterThief.class ) <= 0){
+			detach();
+			return true;
+		}
+		spend( TICK );
+		return true;
 	}
 
 	@Override

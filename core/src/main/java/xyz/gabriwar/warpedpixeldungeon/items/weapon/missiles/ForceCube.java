@@ -28,12 +28,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SnipersMark;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.levels.traps.TenguDartTrap;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 import java.util.ArrayList;
@@ -58,7 +58,7 @@ public class ForceCube extends MissileWeapon {
 	}
 
 	@Override
-	public void hitSound(float pitch) {
+	public void hitSound(float pitch, Char defender) {
 		//no hitsound as it never hits enemies directly
 	}
 
@@ -137,6 +137,6 @@ public class ForceCube extends MissileWeapon {
 		}
 		
 		WandOfBlastWave.BlastWave.blast(cell);
-		Sample.INSTANCE.play( Assets.Sounds.BLAST );
+		SpatialSound.play( Assets.Sounds.BLAST, cell );
 	}
 }

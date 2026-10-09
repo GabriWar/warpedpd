@@ -32,6 +32,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Regeneration;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfEnergy;
@@ -42,7 +43,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Image;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 import java.util.ArrayList;
@@ -95,7 +95,7 @@ public class CloakOfShadows extends Artifact {
 				else {
 					hero.spend( 1f );
 					hero.busy();
-					Sample.INSTANCE.play(Assets.Sounds.MELD);
+					SpatialSound.play(Assets.Sounds.MELD, hero);
 					activeBuff = activeBuff();
 					activeBuff.attachTo(hero);
 					Talent.onArtifactUsed(Dungeon.hero);

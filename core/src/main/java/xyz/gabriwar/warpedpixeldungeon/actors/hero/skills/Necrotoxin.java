@@ -29,7 +29,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.PoisonParticle;
@@ -39,6 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
@@ -94,7 +94,7 @@ public class Necrotoxin extends Skill {
 		CellEmitter.center( enemy.pos ).burst( PoisonParticle.SPLASH, 10 );
 		CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.TOXIC ), 6 );
 		if (enemy.sprite != null) new Flare( 6, 20 ).color( 0x66DD44, true ).show( enemy.sprite, 0.6f );
-		Sample.INSTANCE.play( Assets.Sounds.GAS, 0.9f, 0.8f );
+		SpatialSound.play( Assets.Sounds.GAS, enemy, 0.9f, 0.8f );
 
 		//at mastery the rupture sprays onto every enemy next to it
 		if (level >= MAX_LEVEL){

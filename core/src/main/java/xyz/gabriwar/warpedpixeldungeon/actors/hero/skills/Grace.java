@@ -27,11 +27,11 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfMagic;
@@ -77,6 +77,6 @@ public class Grace extends PassiveSkillA2 {
 				hero.sprite.showStatus( 0x8ac0ff, "+" + gain );
 			}
 		}
-		Sample.INSTANCE.play( Assets.Sounds.CHARMS, 0.5f, 1.5f );
+		SpatialSound.play( Assets.Sounds.CHARMS, hero, 0.5f, 1.5f );
 	}
 }

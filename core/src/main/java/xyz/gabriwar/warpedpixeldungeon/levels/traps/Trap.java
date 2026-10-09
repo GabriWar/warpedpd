@@ -24,6 +24,7 @@ package xyz.gabriwar.warpedpixeldungeon.levels.traps;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FlavourBuff;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
@@ -31,7 +32,6 @@ import xyz.gabriwar.warpedpixeldungeon.journal.Bestiary;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndInfoTrap;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundlable;
 import com.watabou.utils.Bundle;
 
@@ -100,8 +100,11 @@ public abstract class Trap implements Bundlable {
 	public void trigger() {
 		if (active) {
 			if (Dungeon.level.heroFOV[pos]) {
-				Sample.INSTANCE.play(Assets.Sounds.TRAP);
+				SpatialSound.play(Assets.Sounds.TRAP, pos);
 				CellEmitter.get(pos).burst(SparkParticle.FACTORY, 5);
+			} else {
+				//out of sight but in earshot
+				SpatialSound.playUnseen(Assets.Sounds.TRAP, pos, 1f, 1f);
 			}
 			if (disarmedByActivation) disarm();
 			Dungeon.level.discover(pos);

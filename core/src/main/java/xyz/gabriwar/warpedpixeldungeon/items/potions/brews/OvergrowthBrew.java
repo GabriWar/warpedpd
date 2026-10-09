@@ -36,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Regrowth;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfRegrowth;
@@ -43,7 +44,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfVine;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.BArray;
 import com.watabou.utils.PathFinder;
 
@@ -57,8 +57,8 @@ public class OvergrowthBrew extends Brew {
 	public void shatter( int cell ) {
 		splash( cell );
 		if (Dungeon.level.heroFOV[cell]) {
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER );
-			Sample.INSTANCE.play( Assets.Sounds.PLANT );
+			SpatialSound.play( Assets.Sounds.SHATTER, cell );
+			SpatialSound.play( Assets.Sounds.PLANT, cell );
 		}
 
 		PathFinder.buildDistanceMap( cell, BArray.not( Dungeon.level.solid, null ), 2 );
@@ -90,7 +90,7 @@ public class OvergrowthBrew extends Brew {
 		int level = 2 + hero.lvl/3;
 		Barkskin.conditionallyAppend( hero, level, 4 );
 		Buff.prolong( hero, Thornbark.class, level * 4f );
-		Sample.INSTANCE.play( Assets.Sounds.PLANT );
+		SpatialSound.play( Assets.Sounds.PLANT, hero );
 		hero.sprite.emitter().burst( LeafParticle.GENERAL, 10 );
 	}
 

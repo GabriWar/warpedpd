@@ -32,13 +32,13 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SummonedPet;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.WarriorImpactFX;
@@ -130,7 +130,7 @@ public class Shieldbearer extends Skill {
 					}
 					//the bash rings out around him as he lands
 					StaggerFX.after( 0.3f, () -> {
-						Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 1f, 0.9f );
+						SpatialSound.play( Assets.Sounds.HIT_CRUSH, hero, 1f, 0.9f );
 						Camera.main.shake( 2, 0.2f );
 					} );
 					StaggerFX.ring( stand, 1, 0.38f, ( c, r ) -> {
@@ -141,7 +141,7 @@ public class Shieldbearer extends Skill {
 
 				hero.MP -= getManaCost();
 				castTextYell();
-				Sample.INSTANCE.play( Assets.Sounds.STURDY, 1f, 1.0f );
+				SpatialSound.play( Assets.Sounds.STURDY, hero, 1f, 1.0f );
 				hero.spend( TIME_TO_USE );
 				hero.busy();
 				hero.sprite.operate( hero.pos );

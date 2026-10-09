@@ -46,6 +46,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.CaveIn;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
@@ -63,7 +64,6 @@ import xyz.gabriwar.warpedpixeldungeon.net.NetManager;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.GameMath;
 import com.watabou.utils.PathFinder;
@@ -528,7 +528,7 @@ public final class HazardWatch {
 				CellEmitter.get( cells.get( i ) ).burst( BlastParticle.FACTORY, 3 );
 				CellEmitter.get( cells.get( i ) ).burst( SmokeParticle.FACTORY, 2 );
 			}
-			Sample.INSTANCE.play( Assets.Sounds.BLAST );
+			SpatialSound.play( Assets.Sounds.BLAST, origin );
 			if (OverworldLevel.heroDistance( level, origin ) <= 12) PixelScene.shake( 3, 0.7f );
 		}
 		OverworldCritters.noise( origin );
@@ -622,7 +622,7 @@ public final class HazardWatch {
 				GameScene.targetedCell( c, delay );
 				CellEmitter.get( c ).burst( EarthParticle.FALLING, 4 );
 			}
-			Sample.INSTANCE.play( Assets.Sounds.ROCKS, 0.5f, 0.7f );
+			SpatialSound.play( Assets.Sounds.ROCKS, dst, 0.5f, 0.7f );
 			PixelScene.shake( 1f, 0.6f );
 		}
 		OverworldCritters.noise( dst );
@@ -657,7 +657,7 @@ public final class HazardWatch {
 		publish();
 		if (live()){
 			Splash.at( c, 0xE8F4FA, 4 );
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER, 0.6f, 0.6f );
+			SpatialSound.play( Assets.Sounds.SHATTER, c, 0.6f, 0.6f );
 		}
 		State s = state( h );
 		int turn = WorldClock.turn();
@@ -690,7 +690,7 @@ public final class HazardWatch {
 				if (live()){
 					Splash.at( c, 0x1E3C54, 8 );
 					GameScene.ripple( c );
-					Sample.INSTANCE.play( Assets.Sounds.SHATTER, 0.4f, 0.5f );
+					SpatialSound.play( Assets.Sounds.SHATTER, c, 0.4f, 0.5f );
 				}
 			} else if (s.strain >= LayerHazards.STRAIN_BREAK){
 				final int wx = level.worldX + c % level.width(), wy = level.worldY + c / level.width();
@@ -728,8 +728,8 @@ public final class HazardWatch {
 		if (live()){
 			Splash.at( c, 0xCFE3EE, 10 );
 			GameScene.ripple( c );
-			Sample.INSTANCE.play( Assets.Sounds.WATER );
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER, 0.8f, 0.8f );
+			SpatialSound.play( Assets.Sounds.WATER, c );
+			SpatialSound.play( Assets.Sounds.SHATTER, c, 0.8f, 0.8f );
 		}
 		Char ch = Actor.findChar( c );
 		if (ch == null || ch.flying) return;

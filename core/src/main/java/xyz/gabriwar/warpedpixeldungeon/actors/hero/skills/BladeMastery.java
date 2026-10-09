@@ -31,10 +31,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vulnerable;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 public class BladeMastery extends PassiveSkillB3 {
@@ -87,7 +87,7 @@ public class BladeMastery extends PassiveSkillB3 {
 	public void onDodge( Char attacker ){
 		xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero = xyz.gabriwar.warpedpixeldungeon.Dungeon.hero;
 		if (hero != null && hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 3 );
-		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 0.8f, 1.4f );
+		SpatialSound.play( Assets.Sounds.HIT_PARRY, hero, 0.8f, 1.4f );
 	}
 
 	/** the Duelist has read this enemy's form */

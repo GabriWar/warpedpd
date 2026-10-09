@@ -40,6 +40,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.PinCushion;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.ClericSpell;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
@@ -65,7 +66,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.VaultBossElementalSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
 import xyz.gabriwar.warpedpixeldungeon.ui.BossHealthBar;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.GameMath;
@@ -177,7 +177,7 @@ public class VaultBossElemental extends Mob {
 		e.pos(sprite, 4, 4, 24, 24);
 		if (form == ElementalForm.FIRE){
 			e.burst(FlameParticle.FACTORY, 50);
-			Sample.INSTANCE.play(Assets.Sounds.BURNING, 2f);
+			SpatialSound.play(Assets.Sounds.BURNING, pos, 2f);
 
 			for (Buff b : buffs()){
 				if (b instanceof Chill || b instanceof Frost){
@@ -186,7 +186,7 @@ public class VaultBossElemental extends Mob {
 			}
 		} else if (form == ElementalForm.FROST){
 			e.burst(MagicMissile.MagicParticle.FACTORY, 50);
-			Sample.INSTANCE.play(Assets.Sounds.SHATTER, 2f);
+			SpatialSound.play(Assets.Sounds.SHATTER, pos, 2f);
 
 			for (Buff b : buffs()){
 				if (b instanceof Burning){
@@ -195,7 +195,7 @@ public class VaultBossElemental extends Mob {
 			}
 		} else if (form == ElementalForm.SHOCK){
 			e.burst(SparkParticle.FACTORY, 50);
-			Sample.INSTANCE.play(Assets.Sounds.LIGHTNING, 2f);
+			SpatialSound.play(Assets.Sounds.LIGHTNING, pos, 2f);
 		}
 
 		//don't want to follow through now that form changed, so force a new sp attack instead
@@ -326,7 +326,7 @@ public class VaultBossElemental extends Mob {
 		if (form == ElementalForm.SHOCK && enemy == Dungeon.hero && !(Dungeon.hero.belongings.attackingWeapon() instanceof MissileWeapon)){
 			enemy.sprite.parent.addToFront( new Lightning( sprite.center(), enemy.sprite.center(), null ) );
 			enemy.damage( Random.IntRange(5, 10), new Shocking() );
-			Sample.INSTANCE.play(Assets.Sounds.LIGHTNING);
+			SpatialSound.play(Assets.Sounds.LIGHTNING, enemy);
 			PixelScene.shake( 2, 0.3f );
 			enemy.sprite.centerEmitter().burst(SparkParticle.FACTORY, 3);
 			enemy.sprite.flash();
@@ -359,7 +359,7 @@ public class VaultBossElemental extends Mob {
 					GLog.p(Messages.get(this, "fire_weak"));
 					weakAnnounced = true;
 				}
-				Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG);
+				SpatialSound.play(Assets.Sounds.HIT_STRONG, pos);
 				dmg += 10;
 			}
 		//frost form is resistant to thrown weapons and weak to melee (only from the hero though!)
@@ -373,7 +373,7 @@ public class VaultBossElemental extends Mob {
 					GLog.p(Messages.get(this, "frost_weak"));
 					weakAnnounced = true;
 				}
-				Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG);
+				SpatialSound.play(Assets.Sounds.HIT_STRONG, pos);
 				dmg += 10;
 			}
 		//shock form is resistant to melee and weak to magic
@@ -387,7 +387,7 @@ public class VaultBossElemental extends Mob {
 				if (src instanceof Wand || src instanceof ClericSpell){
 					Dungeon.hero.belongings.charge(0.2f);
 				}
-				Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG);
+				SpatialSound.play(Assets.Sounds.HIT_STRONG, pos);
 				dmg += 10;
 			} else if (src instanceof Char && !(src == Dungeon.hero && Dungeon.hero.belongings.attackingWeapon() instanceof MissileWeapon)){
 				//resisted text already in defenseproc, as well as shock penalty (only for the hero)
@@ -653,7 +653,7 @@ public class VaultBossElemental extends Mob {
 
 	public void doFireBall( int cell ){
 
-		Sample.INSTANCE.play(Assets.Sounds.BURNING);
+		SpatialSound.play(Assets.Sounds.BURNING, cell);
 		for (int i : PathFinder.NEIGHBOURS9){
 			if (Dungeon.level.solid[cell+i]) {
 				continue;
@@ -780,7 +780,7 @@ public class VaultBossElemental extends Mob {
 						if (ch != null && !(ch instanceof VaultBossElemental)){
 							Buff.affect(ch, Burning.class).reignite(ch, 5); //~20 effective damage
 							if (ch == Dungeon.hero){
-								Sample.INSTANCE.play(Assets.Sounds.BURNING);
+								SpatialSound.play(Assets.Sounds.BURNING, ch);
 								Statistics.questScores[3] -= 100;
 							}
 						}
@@ -790,7 +790,8 @@ public class VaultBossElemental extends Mob {
 				cells[i] += direction;
 			}
 
-			Sample.INSTANCE.play(Assets.Sounds.BURNING, 0.5f);
+			//from the middle of the wall
+			SpatialSound.play(Assets.Sounds.BURNING, cells.length > 0 ? cells[cells.length / 2] : -1, 0.5f);
 
 			if (left-- <= 0){
 				detach();
@@ -936,7 +937,7 @@ public class VaultBossElemental extends Mob {
 						Buff.affect(ch, FrostResist.class);
 						if (ch == Dungeon.hero){
 							Statistics.questScores[3] -= 100;
-							Sample.INSTANCE.play(Assets.Sounds.SHATTER);
+							SpatialSound.play(Assets.Sounds.SHATTER, ch);
 							if (!ch.isAlive()){
 								Badges.validateDeathFromEnemyMagic();
 								Dungeon.fail(target);
@@ -1090,12 +1091,12 @@ public class VaultBossElemental extends Mob {
 						Buff.affect(ch, Frost.class, 5f);
 						Buff.affect(ch, FrostResist.class);
 						if (ch == Dungeon.hero){
-							Sample.INSTANCE.play(Assets.Sounds.SHATTER);
+							SpatialSound.play(Assets.Sounds.SHATTER, ch);
 							Statistics.questScores[3] -= 100;
 						}
 					}
 				}
-				Sample.INSTANCE.play(Assets.Sounds.GAS, 0.25f);
+				SpatialSound.play(Assets.Sounds.GAS, targetCell, 0.25f);
 				spend(TICK);
 				return true;
 			}
@@ -1253,7 +1254,7 @@ public class VaultBossElemental extends Mob {
 				ch.sprite.centerEmitter().burst(SparkParticle.FACTORY, 3);
 				ch.sprite.flash();
 				if (ch == Dungeon.hero){
-					Sample.INSTANCE.play(Assets.Sounds.LIGHTNING);
+					SpatialSound.play(Assets.Sounds.LIGHTNING, ch);
 					PixelScene.shake( 2, 0.3f );
 					Statistics.questScores[3] -= 100;
 					if (!ch.isAlive()){
@@ -1265,9 +1266,9 @@ public class VaultBossElemental extends Mob {
 		}
 
 		sprite.parent.add(new Lightning(cell + PathFinder.CIRCLE8[lightningOfs],
-				cell + PathFinder.CIRCLE8[lightningOfs+4], null));
+				cell + PathFinder.CIRCLE8[lightningOfs+4], null).noGlow());
 		sprite.parent.add(new Lightning(cell + PathFinder.CIRCLE8[lightningOfs+2],
-				cell + PathFinder.CIRCLE8[lightningOfs+6], null));
+				cell + PathFinder.CIRCLE8[lightningOfs+6], null).noGlow());
 
 	}
 
@@ -1416,7 +1417,7 @@ public class VaultBossElemental extends Mob {
 
 			//prevents many instances from all making their sfx at once
 			if (Actor.now() > lastSFXTime) {
-				Sample.INSTANCE.play(Assets.Sounds.LIGHTNING, 0.5f);
+				SpatialSound.play(Assets.Sounds.LIGHTNING, curCell, 0.5f);
 				lastSFXTime = Actor.now();
 			}
 
@@ -1433,7 +1434,7 @@ public class VaultBossElemental extends Mob {
 			ch.sprite.centerEmitter().burst(SparkParticle.FACTORY, 3);
 			ch.sprite.flash();
 			if (ch == Dungeon.hero){
-				Sample.INSTANCE.play(Assets.Sounds.LIGHTNING);
+				SpatialSound.play(Assets.Sounds.LIGHTNING, ch);
 				PixelScene.shake( 2, 0.3f );
 				Statistics.questScores[3] -= 100;
 				if (!ch.isAlive()){

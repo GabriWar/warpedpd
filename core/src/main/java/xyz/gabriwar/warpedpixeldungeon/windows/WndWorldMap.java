@@ -141,6 +141,9 @@ public class WndWorldMap extends Window {
 		super();
 
 		this.level = level;
+		//the chart shows the wild places: the guide's page on them writes itself
+		xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph.reveal(
+				xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph.TAG_WORLD_MAP );
 
 		//while the map is up, the wheel belongs to the map. Registered before the
 		//pane's own controller, so the dispatch stack reads: pane first, then this,

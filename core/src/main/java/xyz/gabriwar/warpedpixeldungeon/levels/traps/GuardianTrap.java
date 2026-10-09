@@ -25,6 +25,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Statue;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
@@ -33,7 +34,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.StatueSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 
 public class GuardianTrap extends Trap {
 
@@ -54,7 +54,7 @@ public class GuardianTrap extends Trap {
 			CellEmitter.center(pos).start( Speck.factory(Speck.SCREAM), 0.3f, 3 );
 		}
 
-		Sample.INSTANCE.play( Assets.Sounds.ALERT );
+		SpatialSound.play( Assets.Sounds.ALERT, pos );
 
 		for (int i = 0; i < (scalingDepth() - 5)/5; i++){
 			Guardian guardian = new Guardian();

@@ -37,10 +37,10 @@ import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 
 import java.util.ArrayList;
 
@@ -84,7 +84,7 @@ public class MassHeal extends SubSkill2 {
 					.at( 0.2f, () -> PulseRingFX.around( hero.sprite, 0xFFF1A1, 24, 0.55f ) )
 					.at( 0.45f, () -> hero.sprite.emitter().burst( Speck.factory( Speck.HEALING ), 5 ) );
 			castTextYell();
-			Sample.INSTANCE.play( Assets.Sounds.CHARMS, 1f, 1.0f );
+			SpatialSound.play( Assets.Sounds.CHARMS, hero, 1f, 1.0f );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
 			hero.busy();
@@ -139,7 +139,7 @@ public class MassHeal extends SubSkill2 {
 						ch.damage( FADE_DAMAGE, this );
 						SkillInteractions.flare( c, 0xFFF1A1 );
 					}
-					Sample.INSTANCE.play( Assets.Sounds.RAY, 0.8f, 1.2f );
+					SpatialSound.play( Assets.Sounds.RAY, hero, 0.8f, 1.2f );
 				}
 				detach();
 			} else {

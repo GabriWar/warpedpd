@@ -29,9 +29,9 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.EnergyParticle;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfMagic;
 
 
@@ -69,14 +69,14 @@ public class SpellBlade extends SubSkill1 {
 					enemy.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 6 );
 					enemy.sprite.flash();
 				}
-				Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 0.8f, 1.2f );
+				SpatialSound.play( Assets.Sounds.HIT_MAGIC, enemy, 0.8f, 1.2f );
 				return damage + OVERFLOW_DAMAGE;
 			}
 			hero.MP = Math.max( hero.MP, Math.min( effectiveMT, hero.MP + 1 + level ) );
 			//the blade drinks, and it shows
 			if (hero.sprite != null){
 				hero.sprite.emitter().burst( EnergyParticle.FACTORY, 2 + level );
-				Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 0.4f, 1.6f );
+				SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 0.4f, 1.6f );
 			}
 		}
 		return damage;

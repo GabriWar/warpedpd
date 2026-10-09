@@ -36,11 +36,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Chill;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SnowParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 import java.util.ArrayList;
@@ -85,7 +85,7 @@ public class FrostNova extends Skill {
 
 			CellEmitter.center( hero.pos ).burst( SnowParticle.FACTORY, 12 );
 			new Flare( 6, 32 ).color( 0x88DDFF, true ).show( hero.sprite, 0.8f );
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER, 1f, 0.9f );
+			SpatialSound.play( Assets.Sounds.SHATTER, hero, 1f, 0.9f );
 			Camera.main.shake( 1, 0.3f );
 
 			//the cold lands on everyone at once; only the crystals take their time crawling out
@@ -107,7 +107,7 @@ public class FrostNova extends Skill {
 			} );
 			for (int r = 1; r <= RADIUS; r++){
 				final float pitch = 1.1f + 0.15f * r;
-				StaggerFX.after( 0.09f * r, () -> Sample.INSTANCE.play( Assets.Sounds.SHATTER, 0.5f, pitch ) );
+				StaggerFX.after( 0.09f * r, () -> SpatialSound.play( Assets.Sounds.SHATTER, hero, 0.5f, pitch ) );
 			}
 
 			hero.MP -= getManaCost();

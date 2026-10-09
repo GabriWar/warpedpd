@@ -34,6 +34,13 @@ import com.watabou.utils.PointF;
 public abstract class OptionSlider extends Component {
 
 	private PointerArea pointerArea;
+	//a press on the knob, held until it is let go (or called off by a scroll pane)
+	private boolean pressed = false;
+	//the slider under the finger right now, for a scroll pane that is dragged over it
+	static OptionSlider pressedSlider;
+	private int titleColor = -1;
+	//the title drops to the small font when it is too wide (see layout)
+	private boolean smallTitle = false;
 
 	private RenderedTextBlock title;
 	private RenderedTextBlock minTxt;
@@ -87,6 +94,36 @@ public abstract class OptionSlider extends Component {
 		layout();
 	}
 
+	public String getTitle(){
+		return title.text();
+	}
+
+	/** Tints the title, e.g. green while what the slider sets is in force. */
+	public void titleColor(int color){
+		titleColor = color;
+		title.hardlight(color);
+	}
+
+	/** True while a finger (or the mouse) holds the knob. */
+	public boolean pressed(){
+		return pressed;
+	}
+
+	//in a pane dragged over its controls (ScrollPane.dragOverButtons) the pane sees the press too
+	void letPressesThrough(){
+		pointerArea.blockLevel = PointerArea.NEVER_BLOCK;
+	}
+
+	//the press turned into a scroll of the pane under it: the knob goes back, nothing changes
+	void cancelPress(){
+		if (!pressed) return;
+		pressed = false;
+		if (pressedSlider == this) pressedSlider = null;
+		pointerArea.reset();
+		sliderNode.resetColor();
+		setSelectedValue(selectedVal);
+	}
+
 	public int getSelectedValue(){
 		return selectedVal;
 	}
@@ -94,7 +131,7 @@ public abstract class OptionSlider extends Component {
 	public void setSelectedValue(int val) {
 		this.selectedVal = val;
 		sliderNode.x = (int)(x + tickDist*(selectedVal-minVal)) + 0.5f;
-		sliderNode.y = sliderBG.y-4;
+		sliderNode.y = sliderBG.y-3;
 		PixelScene.align(sliderNode);
 	}
 
@@ -122,11 +159,10 @@ public abstract class OptionSlider extends Component {
 		sliderNode.size(4, 7);
 
 		pointerArea = new PointerArea(0, 0, 0, 0){
-			boolean pressed = false;
-
 			@Override
 			protected void onPointerDown( PointerEvent event ) {
 				pressed = true;
+				pressedSlider = OptionSlider.this;
 				PointF p = camera().screenToCamera((int) event.current.x, (int) event.current.y);
 				sliderNode.x = GameMath.gate(sliderBG.x-2, p.x - sliderNode.width()/2, sliderBG.x+sliderBG.width()-2);
 				sliderNode.brightness(1.5f);
@@ -143,8 +179,9 @@ public abstract class OptionSlider extends Component {
 					selectedVal = minVal + Math.round((sliderNode.x - x) / tickDist);
 					sliderNode.x = x + tickDist * (selectedVal - minVal) + 0.5f;
 					PixelScene.align(sliderNode);
-					onChange();
 					pressed = false;
+					if (pressedSlider == OptionSlider.this) pressedSlider = null;
+					onChange();
 				}
 			}
 
@@ -160,15 +197,27 @@ public abstract class OptionSlider extends Component {
 
 	}
 
+	private void titleSize(int size){
+		String titleText = title.text;
+		remove(title);
+		title.destroy();
+		title = PixelScene.renderTextBlock(size);
+		add(title);
+		title.text(titleText);
+		if (titleColor != -1) title.hardlight(titleColor);
+		title.alpha(active ? 1f : 0.3f);
+		smallTitle = size != 9;
+	}
+
 	@Override
 	protected void layout() {
 
-		if (title.width() > 0.6f*width){
-			String titleText = title.text;
-			remove(title);
-			title = PixelScene.renderTextBlock(6);
-			add(title);
-			title.text(titleText);
+		//from the full size each time (a new title, or a wider slider, may fit it again), then
+		//small when wide, or running into the end labels on either side of it
+		if (smallTitle) titleSize(9);
+		float beside = Math.max(minTxt.width(), maxTxt.width()) + 3;
+		if (title.width() > 0.6f*width || title.width() > width - 2*beside){
+			titleSize(6);
 		}
 
 		title.setPos(

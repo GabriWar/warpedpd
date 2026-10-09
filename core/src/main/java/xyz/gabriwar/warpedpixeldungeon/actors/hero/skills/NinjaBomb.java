@@ -34,7 +34,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.items.bombs.Bomb;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -42,6 +41,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MagicalSleep;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
@@ -88,7 +88,7 @@ public class NinjaBomb extends ActiveSkill2 {
 			if (target == null) return;
 			final Hero curUser = Dungeon.hero;
 			final Skill skill = curUser.heroSkills.get( NinjaBomb.class );
-			if (skill.level <= 0 || curUser.MP < skill.getManaCost()) return;
+			if (skill == null || skill.level <= 0 || curUser.MP < skill.getManaCost()) return;
 			Ballistica shot = new Ballistica( curUser.pos, target, Ballistica.PROJECTILE );
 			final int cell = shot.collisionPos;
 			curUser.MP -= skill.getManaCost();
@@ -98,9 +98,9 @@ public class NinjaBomb extends ActiveSkill2 {
 			//the bomb is seen flying, and the gas goes off where it lands
 			curUser.busy();
 			curUser.sprite.zap( cell );
-			Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 1.3f );
+			SpatialSound.play( Assets.Sounds.MISS, curUser, 1f, 1.3f );
 			SkillFX.streak( curUser.sprite, cell, new Bomb(), () -> {
-				Sample.INSTANCE.play( Assets.Sounds.PUFF, 1f, 1.0f );
+				SpatialSound.play( Assets.Sounds.PUFF, cell, 1f, 1.0f );
                 for(int c:SkillInteractions.area(cell,skill.level)) GameScene.add(
                         xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob.seed(c,4+skill.level,
                         xyz.gabriwar.warpedpixeldungeon.actors.blobs.SmokeScreen.class));
@@ -116,7 +116,7 @@ public class NinjaBomb extends ActiveSkill2 {
 				CellEmitter.get( cell ).burst( SmokeParticle.FACTORY, 8 );
 				CellEmitter.get( cell ).start( SmokeParticle.FACTORY, 0.06f, 20 );
 				FxTimeline t = FxTimeline.start();
-				t.at( 0.25f, () -> Sample.INSTANCE.play( Assets.Sounds.PUFF, 0.7f, 0.8f ) );
+				t.at( 0.25f, () -> SpatialSound.play( Assets.Sounds.PUFF, cell, 0.7f, 0.8f ) );
 				for (int r = 1; r <= skill.level; r++){
 					final int ring = r;
 					t.at( 0.09f * r, () -> {

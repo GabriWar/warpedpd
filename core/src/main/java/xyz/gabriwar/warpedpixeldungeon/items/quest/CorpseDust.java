@@ -30,13 +30,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Wraith;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.audio.Music;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
@@ -133,7 +133,7 @@ public class CorpseDust extends Item {
 				}
 				if (!candidates.isEmpty()){
 					Wraith.spawnAt(Random.element(candidates), DustWraith.class);
-					Sample.INSTANCE.play(Assets.Sounds.CURSED);
+					SpatialSound.play(Assets.Sounds.CURSED, target);
 					spawnPower -= powerNeeded;
 				} else {
 					//prevents excessive spawn power buildup

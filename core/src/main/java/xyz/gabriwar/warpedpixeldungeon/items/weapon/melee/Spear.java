@@ -27,6 +27,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
@@ -34,7 +35,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 
 public class Spear extends MeleeWeapon {
@@ -119,7 +119,7 @@ public class Spear extends MeleeWeapon {
 					} else if (!enemy.isAlive()) {
 						wep.onAbilityKill(hero, enemy);
 					}
-					Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG);
+					SpatialSound.play(Assets.Sounds.HIT_STRONG, enemy);
 				}
 				Invisibility.dispel();
 				hero.spendAndNext(hero.attackDelay());

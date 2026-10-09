@@ -27,6 +27,7 @@ import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.quest.DwarfToken;
@@ -39,7 +40,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.VaultTokenDoorSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndTitledMessage;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 
 public class VaultTokenDoor extends NPC {
@@ -91,8 +91,8 @@ public class VaultTokenDoor extends NPC {
 								super.onSelect(index);
 								if (index == 0){
 									c.sprite.operate(pos);
-									Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
-									Sample.INSTANCE.playDelayed(Assets.Sounds.UNLOCK, 0.25f);
+									SpatialSound.play(Assets.Sounds.TELEPORT, pos);
+									SpatialSound.playDelayed(Assets.Sounds.UNLOCK, 0.25f, pos);
 									GLog.p(Messages.get(VaultTokenDoor.class, "unlocked"));
 									VaultTokenDoor.this.destroy();
 									Level.set(pos, Terrain.DOOR);

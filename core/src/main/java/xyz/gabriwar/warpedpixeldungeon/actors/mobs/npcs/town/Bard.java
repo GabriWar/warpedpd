@@ -28,13 +28,13 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Sleepiness;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.BardSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
 import com.watabou.noosa.Game;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 
 //Remixed PD town flavour NPC, no mechanics.
@@ -71,7 +71,7 @@ public class Bard extends FlavorNPC {
 						}
 						TownLedger.songDay = TownLedger.today();
 						TownLedger.used( TownLedger.SONG );
-						Sample.INSTANCE.play( Assets.Sounds.LULLABY );
+						SpatialSound.play( Assets.Sounds.LULLABY, pos );
 						Sleepiness tired = Dungeon.hero.buff( Sleepiness.class );
 						if (tired != null && tired.level() > 0) {
 							tired.wake( tired.level() / 2f );

@@ -30,13 +30,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.relic.RelicMeleeWeapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import com.watabou.noosa.Camera;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 import java.util.ArrayList;
@@ -97,7 +97,7 @@ public class NeptuneShock extends Weapon.Enchantment {
 
 		if (procced) {
 			attacker.sprite.parent.addToFront(new Lightning(arcs, null));
-			Sample.INSTANCE.play(Assets.Sounds.LIGHTNING);
+			SpatialSound.play(Assets.Sounds.LIGHTNING, defender);
 			Camera.main.shake(2, 0.3f);
 		}
 

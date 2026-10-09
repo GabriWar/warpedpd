@@ -25,9 +25,9 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 public class Shadows extends Invisibility {
@@ -65,7 +65,7 @@ public class Shadows extends Invisibility {
 		}
 		if (super.attachTo( target )) {
 			if (Dungeon.level != null) {
-				Sample.INSTANCE.play( Assets.Sounds.MELD );
+				SpatialSound.play( Assets.Sounds.MELD, target );
 				Dungeon.observe();
 			}
 			return true;

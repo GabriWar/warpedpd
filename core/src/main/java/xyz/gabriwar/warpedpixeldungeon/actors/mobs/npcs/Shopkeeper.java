@@ -23,7 +23,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs;
 
 import com.watabou.utils.Random;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -37,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AscensionChallenge;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.BlobImmunity;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ElmoParticle;
@@ -515,7 +515,7 @@ public class Shopkeeper extends NPC {
 		if (hero != null && hero.sprite != null) {
 			hero.sprite.showStatusWithIcon( CharSprite.NEUTRAL, Integer.toString(amount), FloatingText.GOLD );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.GOLD, 1f, Random.Float( 0.9f, 1.1f ) );
+		SpatialSound.play( Assets.Sounds.GOLD, hero, 1f, Random.Float( 0.9f, 1.1f ) );
 	}
 
 	private void stashForBuyback(Item item) {

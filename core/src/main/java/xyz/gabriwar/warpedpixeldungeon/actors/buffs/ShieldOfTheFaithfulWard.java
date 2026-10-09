@@ -27,7 +27,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 import com.watabou.noosa.Camera;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.PointF;
@@ -40,6 +39,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.CurrentSkills;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.ShieldOfTheFaithful;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.ShieldHalo;
@@ -102,7 +102,7 @@ public class ShieldOfTheFaithfulWard extends Buff {
 			halo.putOut();
 			target.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 4 );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 1f, 1.3f );
+		SpatialSound.play( Assets.Sounds.HIT_PARRY, target, 1f, 1.3f );
 
 		//at mastery a shot from afar is thrown back along the line it came
 		if (rank >= Skill.MAX_LEVEL && source instanceof Char){
@@ -111,7 +111,7 @@ public class ShieldOfTheFaithfulWard extends Buff {
 					&& !Dungeon.level.adjacent( target.pos, shooter.pos )){
 				if (target.sprite != null && target.sprite.parent != null)
 					MagicMissile.boltFromChar( target.sprite.parent, MagicMissile.LIGHT_MISSILE, target.sprite, shooter.pos, null );
-				Sample.INSTANCE.play( Assets.Sounds.RAY, 0.8f, 1.2f );
+				SpatialSound.play( Assets.Sounds.RAY, target, 0.8f, 1.2f );
 				shooter.damage( blocked, this );
 			}
 		}
@@ -125,7 +125,7 @@ public class ShieldOfTheFaithfulWard extends Buff {
 		cracks = 0;
 		caught = 0;
 		broken = REFORM;
-		Sample.INSTANCE.play( Assets.Sounds.DEGRADE, 0.8f, 1.2f );
+		SpatialSound.play( Assets.Sounds.DEGRADE, target, 0.8f, 1.2f );
 		CellEmitter.center( target.pos ).burst( Speck.factory( Speck.LIGHT ), 8 );
 		if (target.sprite != null) target.sprite.showStatus( CharSprite.WARNING, Messages.get( ShieldOfTheFaithful.class, "shatter" ) );
 	}
@@ -137,7 +137,7 @@ public class ShieldOfTheFaithfulWard extends Buff {
 			return true;
 		}
 		if (broken > 0 && --broken == 0){
-			Sample.INSTANCE.play( Assets.Sounds.CHARMS, 0.8f, 1.2f );
+			SpatialSound.play( Assets.Sounds.CHARMS, target, 0.8f, 1.2f );
 			if (target.sprite != null){
 				target.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
 				target.sprite.showStatus( CharSprite.POSITIVE, Messages.get( ShieldOfTheFaithful.class, "reform" ) );

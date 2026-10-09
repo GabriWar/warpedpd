@@ -35,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Haste;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfRemoveCurse;
@@ -44,7 +45,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
@@ -144,7 +144,7 @@ public class DewVial2 extends Item {
 				hero.spend(TIME_TO_DRINK);
 				hero.busy();
 
-				Sample.INSTANCE.play(Assets.Sounds.DRINK);
+				SpatialSound.play(Assets.Sounds.DRINK, hero);
 				hero.sprite.operate(hero.pos);
 
 				updateQuickslot();
@@ -185,7 +185,7 @@ public class DewVial2 extends Item {
 			hero.spend(TIME_TO_DRINK);
 			hero.busy();
 
-			Sample.INSTANCE.play(Assets.Sounds.DRINK);
+			SpatialSound.play(Assets.Sounds.DRINK, hero);
 			hero.sprite.operate(hero.pos);
 
 			updateQuickslot();
@@ -240,7 +240,7 @@ public class DewVial2 extends Item {
 			hero.spend(TIME_TO_BLESS);
 			hero.busy();
 
-			Sample.INSTANCE.play(Assets.Sounds.DRINK);
+			SpatialSound.play(Assets.Sounds.DRINK, hero);
 			hero.sprite.operate(hero.pos);
 
 			updateQuickslot();

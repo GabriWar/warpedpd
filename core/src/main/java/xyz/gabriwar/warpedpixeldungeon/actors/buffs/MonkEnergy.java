@@ -32,6 +32,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.RipperDemon;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Wraith;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.YogDzewa;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfForce;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
@@ -52,7 +53,6 @@ import xyz.gabriwar.warpedpixeldungeon.windows.WndMonkAbilities;
 import com.watabou.noosa.BitmapText;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.Visual;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 import com.watabou.utils.GameMath;
@@ -507,7 +507,7 @@ public class MonkEnergy extends Buff implements ActionIndicator.Action {
 				}
 
 				hero.busy();
-				Sample.INSTANCE.play(Assets.Sounds.MISS);
+				SpatialSound.play(Assets.Sounds.MISS, hero);
 				hero.sprite.emitter().start(Speck.factory(Speck.JET), 0.01f, Math.round(4 + 2*Dungeon.level.trueDistance(hero.pos, target)));
 				hero.sprite.jump(hero.pos, target, 0, 0.1f, new Callback() {
 					@Override
@@ -575,7 +575,7 @@ public class MonkEnergy extends Buff implements ActionIndicator.Action {
 
 						int oldPos = enemy.pos;
 						if (hero.attack(enemy, empowered ? 9f : 6f, 0, Char.INFINITE_ACCURACY)){
-							Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG);
+							SpatialSound.play(Assets.Sounds.HIT_STRONG, enemy);
 						}
 
 						if (oldPos == enemy.pos){
@@ -630,7 +630,7 @@ public class MonkEnergy extends Buff implements ActionIndicator.Action {
 
 				hero.sprite.operate(hero.pos);
 				GameScene.flash(0x88000000, false);
-				Sample.INSTANCE.play(Assets.Sounds.SCAN);
+				SpatialSound.play(Assets.Sounds.SCAN, hero);
 
 				for (Buff b : hero.buffs()){
 					if (b.type == Buff.buffType.NEGATIVE

@@ -26,6 +26,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Chains;
 import xyz.gabriwar.warpedpixeldungeon.effects.Effects;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
@@ -35,7 +36,6 @@ import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.GuardSprite;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
@@ -96,8 +96,8 @@ public class Guard extends Mob {
 
 				if (sprite.visible || enemy.sprite.visible) {
 					yell(Messages.get(this, "scorpion"));
-					new Item().throwSound();
-					Sample.INSTANCE.play(Assets.Sounds.CHAINS);
+					new Item().throwSound(this);
+					SpatialSound.play(Assets.Sounds.CHAINS, pos);
 					sprite.parent.add(new Chains(sprite.center(),
 							enemy.sprite.destinationCenter(),
 							Effects.Type.CHAIN,

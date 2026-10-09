@@ -23,28 +23,56 @@ package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
 import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
-import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.actors.StormStrikes;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Drenched;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
+import xyz.gabriwar.warpedpixeldungeon.levels.Level;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.net.NetVisuals;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
-import com.watabou.noosa.audio.Sample;
-import com.watabou.utils.PointF;
+import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 
 public class StormCloud extends Blob {
+
+	//every cloud strikes: at least once in its life, and twice TWICE of the time, its own chance
+	//strikes counting toward it. Seeds within SAME_CLOUD of one made the same moment are one cloud
+	//(the weather lays a patch at once); a cloud's cells are looked for within REACH of its seed,
+	//and while its thickest is FADING or less it is about to go and strikes what it owes at once
+	private static final float TWICE = 0.75f;
+	private static final int SAME_CLOUD = 6, REACH = 6, FADING = 6;
+
+	private static class Owed {
+		int anchor, left, age, due;
+		float born = -1;
+	}
+
+	private final ArrayList<Owed> owed = new ArrayList<>();
+
+	@Override
+	public void seed(Level level, int cell, int amount) {
+		super.seed(level, cell, amount);
+		for (Owed o : owed) {
+			if (o.born == Actor.now() && level.distance(o.anchor, cell) <= SAME_CLOUD) return;
+		}
+		Owed o = new Owed();
+		o.anchor = cell;
+		o.left = Random.Float() < TWICE ? 2 : 1;
+		o.due = Random.IntRange(1, 3);
+		o.born = Actor.now();
+		owed.add(o);
+	}
 
 	@Override
 	protected void evolve() {
@@ -69,7 +97,7 @@ public class StormCloud extends Blob {
 
 						// Fiery enemies take damage
 						if (Char.hasProp(ch, Char.Property.FIERY)) {
-							ch.damage(1 + Dungeon.scalingDepth() / 5, this);
+							ch.damage(quench(ch), this);
 						}
 					}
 
@@ -79,10 +107,12 @@ public class StormCloud extends Blob {
 					odds *= 0.6f + ClimateManager.localPrecipRate();
 					if (Random.Float() < odds) {
 						strike(cell);
+						credit(cell);
 					}
 				}
 			}
 		}
+		payOwed();
 
 		//a storm cloud with no rain left in the sky rains itself out
 		xyz.gabriwar.warpedpixeldungeon.actors.PrecipType pt = ClimateManager.localPrecipType();
@@ -93,65 +123,158 @@ public class StormCloud extends Blob {
 		if (!wet) dissipate(0.75f);
 	}
 
-	private void strike(int cell) {
-		// Visual: lightning arc from sky to tile
-		PointF ground = DungeonTilemap.tileCenterToWorld(cell);
-		//it comes out of the cloud deck the blob draws two cells up, not from nowhere
-		PointF sky = new PointF(ground.x + Random.IntRange(-10, 10), ground.y - Random.IntRange(34, 52));
+	//what the rain does to a fiery one a turn: 1 + depth/5 on a dungeon floor; on the world's slices
+	//by share, a fourteenth of its health (as much as a fire elemental takes deep in the dungeon), at
+	//least 1, since their slot depths (97 the surface) made it 18-23 a turn
+	static int quench(Char ch) {
+		return Dungeon.level instanceof OverworldLevel
+				? Math.max(1, Math.round(ch.HT / 14f))
+				: 1 + Dungeon.scalingDepth() / 5;
+	}
 
-		//a channel that zigzags down, with a fork off one of the upper joints
-		ArrayList<Lightning.Arc> arcs = new ArrayList<>();
-		int steps = 4 + Random.Int(3);
-		PointF prev = sky;
-		PointF forkFrom = null;
-		for (int i = 1; i <= steps; i++) {
-			float t = i / (float)steps;
-			PointF next = i == steps ? ground : new PointF(
-					sky.x + (ground.x - sky.x) * t + Random.Float(-7f, 7f),
-					sky.y + (ground.y - sky.y) * t + Random.Float(-3f, 3f));
-			arcs.add(new Lightning.Arc(prev, next));
-			if (i == 1 + Random.Int(2)) forkFrom = next;
-			prev = next;
-		}
-		if (forkFrom != null) {
-			PointF a = forkFrom;
-			for (int i = 0; i < 2; i++) {
-				PointF b = new PointF(a.x + Random.Float(-14f, 14f), a.y + Random.Float(6f, 14f));
-				arcs.add(new Lightning.Arc(a, b));
-				a = b;
+	//a chance strike pays toward the cloud it fell in, the nearest one still owing
+	private void credit(int cell) {
+		Owed to = null;
+		for (Owed o : owed) {
+			if (o.left > 0 && Dungeon.level.distance(o.anchor, cell) <= REACH
+					&& (to == null || Dungeon.level.distance(o.anchor, cell) < Dungeon.level.distance(to.anchor, cell))) {
+				to = o;
 			}
 		}
+		if (to != null) to.left--;
+	}
 
-		if (Dungeon.hero.fieldOfView[cell]) {
-			Dungeon.hero.sprite.parent.addToFront(new Lightning(arcs, null));
-			CellEmitter.center(cell).burst(SparkParticle.FACTORY, 8);
-			Sample.INSTANCE.play(Assets.Sounds.LIGHTNING, 0.8f, Random.Float(0.9f, 1.1f));
+	//what each cloud still owes: one strike once it is due, the next a few turns on, or all of it
+	//at once while it fades; a cloud gone (cleared, blown off its seed) owes nothing
+	private void payOwed() {
+		int w = Dungeon.level.width(), h = Dungeon.level.height();
+		ArrayList<Integer> cells = new ArrayList<>();
+		for (Iterator<Owed> it = owed.iterator(); it.hasNext(); ) {
+			Owed o = it.next();
+			o.age++;
+			if (o.left <= 0) {
+				it.remove();
+				continue;
+			}
+			cells.clear();
+			int most = 0;
+			int ax = o.anchor % w, ay = o.anchor / w;
+			for (int y = Math.max(0, ay - REACH); y <= Math.min(h - 1, ay + REACH); y++) {
+				for (int x = Math.max(0, ax - REACH); x <= Math.min(w - 1, ax + REACH); x++) {
+					int c = x + y * w;
+					if (cur[c] > 0) {
+						cells.add(c);
+						most = Math.max(most, cur[c]);
+					}
+				}
+			}
+			if (cells.isEmpty()) {
+				it.remove();
+				continue;
+			}
+			boolean fading = most <= FADING;
+			if (o.age < o.due && !fading) continue;
+			for (int n = fading ? o.left : 1; n > 0 && !cells.isEmpty(); n--) {
+				strike(cells.remove(Random.Int(cells.size())));
+				o.left--;
+			}
+			o.due = o.age + Random.IntRange(2, 4);
 		}
+	}
 
-		// Damage character on the tile
-		Char ch = Actor.findChar(cell);
-		if (ch != null && !ch.isImmune(getClass())) {
-			int dmg = Random.IntRange(2, 4) + Dungeon.scalingDepth() / 3;
-			ch.damage(dmg, this);
-			// Brief paralysis from shock
-			Buff.prolong(ch, Paralysis.class, 1f);
+	private static final String OWED = "owed";
+
+	@Override
+	public void storeInBundle(Bundle bundle) {
+		super.storeInBundle(bundle);
+		int[] flat = new int[owed.size() * 4];
+		for (int i = 0; i < owed.size(); i++) {
+			Owed o = owed.get(i);
+			flat[i * 4] = o.anchor;
+			flat[i * 4 + 1] = o.left;
+			flat[i * 4 + 2] = o.age;
+			flat[i * 4 + 3] = o.due;
 		}
+		bundle.put(OWED, flat);
+	}
+
+	@Override
+	public void restoreFromBundle(Bundle bundle) {
+		super.restoreFromBundle(bundle);
+		owed.clear();
+		if (!bundle.contains(OWED)) return;
+		int[] flat = bundle.getIntArray(OWED);
+		for (int i = 0; i + 3 < flat.length; i += 4) {
+			Owed o = new Owed();
+			o.anchor = flat[i];
+			o.left = flat[i + 1];
+			o.age = flat[i + 2];
+			o.due = flat[i + 3];
+			owed.add(o);
+		}
+	}
+
+	@Override
+	public void fullyClear() {
+		super.fullyClear();
+		owed.clear();
+	}
+
+	private void strike(int cell) {
+		//on the world's slices by share, as the sky's own bolts: by their slot depths (97 the
+		//surface, 87-112 the peaks and caves) it would be a blow of 31-41
+		StormStrikes.Discharge d = jolt(cell, this, Dungeon.level instanceof OverworldLevel
+				? StormStrikes::share
+				: ch -> Random.IntRange(2, 4) + Dungeon.scalingDepth() / 3);
+
+		//drawn as the storm's own bolts are, on the render thread (WeatherOverlay): the bolt from the
+		//top of the view, its glow, its arcs, the flash and the thunder, where the hero sees it; a
+		//co-op guest's overlay draws it too
+		StormStrikes.show(Dungeon.level, cell, true, d.arcs, d.water);
+		NetVisuals.recordStrike(cell, true, d.arcs, d.water);
 
 		// Ignite flammable tiles
 		if (Dungeon.level.flamable[cell]) {
 			GameScene.add(Blob.seed(cell, 4, Fire.class));
 		}
+	}
 
-		// Electricity spreads through adjacent water
-		for (int n : com.watabou.utils.PathFinder.NEIGHBOURS4) {
-			int adj = cell + n;
-			if (adj >= 0 && adj < Dungeon.level.length() && Dungeon.level.water[adj]) {
-				Char adjCh = Actor.findChar(adj);
-				if (adjCh != null && !adjCh.isImmune(getClass())) {
-					adjCh.damage(Random.IntRange(1, 3), this);
-					CellEmitter.center(adj).burst(SparkParticle.FACTORY, 3);
-				}
-			}
+	/** A bolt's blow on one it hits, before it is shared out (jolt). */
+	public interface Blow {
+		int on(Char ch);
+	}
+
+	/**
+	 * What a bolt does where it lands, a storm cloud's or the open sky's (StormStrikes): it runs
+	 * as the wand of lightning's zap does (StormStrikes.discharge) and each one it hits takes his
+	 * `blow` as the wand's are shared out, 0.4 + 0.6 / how many it hit, all of it where it struck
+	 * standing water; the one it struck is stunned a turn. Whom its crawl over the water runs into
+	 * takes 1-3, as whoever stood in the water beside a bolt always did. `src` is the blow's
+	 * source, what they must be immune to and what a hero it kills died of. What the bolt sets
+	 * burning is the caller's. Where it ran, for the overlay to draw.
+	 */
+	public static StormStrikes.Discharge jolt(int cell, Object src, Blow blow) {
+		Char struck = Actor.findChar(cell);
+		StormStrikes.Discharge d = StormStrikes.discharge(Dungeon.level, cell, src.getClass());
+		float multiplier = d.full ? 1f : 0.4f + 0.6f / d.hit.size();
+		for (Char ch : d.hit) {
+			ch.damage(Math.round(blow.on(ch) * multiplier), src);
+			// Brief paralysis from shock
+			if (ch == struck) Buff.prolong(ch, Paralysis.class, 1f);
+			killedHero(ch, src);
+		}
+		//the water's splash: it flows round the hero's side (discharge), so no hero dies of it
+		for (Char ch : d.wet) {
+			ch.damage(Random.IntRange(1, 3), src);
+		}
+		return d;
+	}
+
+	//a bolt is no Hero.Doom: the run is failed and the death told here, as Electricity does
+	private static void killedHero(Char ch, Object src) {
+		if (ch == Dungeon.hero && !ch.isAlive()) {
+			Dungeon.fail(src);
+			GLog.n(Messages.get(src, "ondeath"));
 		}
 	}
 

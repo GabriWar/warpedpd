@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.ArmorAbility;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.ClassArmor;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -41,7 +42,6 @@ import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Image;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.BArray;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
@@ -195,8 +195,8 @@ public class DeathMark extends ArmorAbility {
 			if (!target.isAlive()){
 				target.sprite.flash();
 				target.sprite.bloodBurstA(target.sprite.center(), target.HT*2);
-				Sample.INSTANCE.play(Assets.Sounds.HIT_STAB);
-				Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG);
+				SpatialSound.play(Assets.Sounds.HIT_STAB, target);
+				SpatialSound.play(Assets.Sounds.HIT_STRONG, target);
 				target.die(this);
 				int shld = Math.round(initialHP * (0.125f*Dungeon.hero.pointsInTalent(Talent.DEATHLY_DURABILITY)));
 				if (shld > 0 && target.alignment != Char.Alignment.ALLY){
@@ -214,8 +214,8 @@ public class DeathMark extends ArmorAbility {
 			if (!target.isAlive()){
 				target.sprite.flash();
 				target.sprite.bloodBurstA(target.sprite.center(), target.HT*2);
-				Sample.INSTANCE.play(Assets.Sounds.HIT_STAB);
-				Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG);
+				SpatialSound.play(Assets.Sounds.HIT_STAB, target);
+				SpatialSound.play(Assets.Sounds.HIT_STRONG, target);
 				int shld = Math.round(initialHP * (0.125f*Dungeon.hero.pointsInTalent(Talent.DEATHLY_DURABILITY)));
 				if (shld > 0 && target.alignment != Char.Alignment.ALLY){
 					Dungeon.hero.sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(shld), FloatingText.SHIELDING);

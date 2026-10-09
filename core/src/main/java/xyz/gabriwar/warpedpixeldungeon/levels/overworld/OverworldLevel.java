@@ -29,11 +29,16 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
+import xyz.gabriwar.warpedpixeldungeon.actors.PrecipType;
+import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
+import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Fire;
 import xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.BlueCat;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.NPC;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Alter;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.alchemy.Cross;
@@ -666,6 +671,9 @@ public class OverworldLevel extends Level {
 		foundSites.put( key, kind );
 		foundBoxes.put( key, box );
 		rebuildFoundSnapshot();
+		xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph.reveal( altitude > 0
+				? xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph.TAG_PEAK_SITE
+				: xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph.TAG_CAVE_SITE );
 		for (xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero h : heroesOn( this )){
 			if (distance( h.pos, c ) <= 12) xyz.gabriwar.warpedpixeldungeon.net.NetManager.heroLog( h, GLog.HIGHLIGHT + line );
 		}
@@ -3303,6 +3311,13 @@ public class OverworldLevel extends Level {
 		return best;
 	}
 
+	/** The pan spatial sound gives a sound from world column wx, as this game's hero hears it:
+	 *  for one too far off to be in the window (a howl, a raid's smoke), only its side. */
+	public float panTowards( int wx ){
+		xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero h = Dungeon.hero;
+		return h == null ? 0f : SpatialSound.pan( wx - (worldX + h.pos % width()) );
+	}
+
 	/** Every hero in play on a level, the ones heroDistance counts: the host's own and, on a
 	 *  host, every claimed remote one still in play. */
 	public static ArrayList<xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero> heroesOn( Level level ){
@@ -4697,6 +4712,36 @@ public class OverworldLevel extends Level {
 
 	//the standing window's scorch brought in line with the stars down now: a star that came
 	//down on it is stamped, one whose scar is gone gives the land back its own ground
+	/**
+	 * Rain mends burnt growth under the open sky: while rain or sleet falls here, each cell of
+	 * grass or brush burnt to embers has a chance a turn (more in a heavier rain) to grow back as
+	 * it was. A cell still burning waits, a fallen star's scorch is its event's to take back, and
+	 * a bush does not grow round someone standing in it. Once a world turn (DayNightCycle).
+	 */
+	public void rainMends(){
+		if (pristine == null || !openSky()) return;
+		PrecipType type = ClimateManager.localPrecipType();
+		float rate = ClimateManager.localPrecipRate();
+		if ((type != PrecipType.RAIN && type != PrecipType.SLEET) || rate <= 0.05f) return;
+		//a steady rain (0.25) mends a cell in about 50 turns, a downpour (0.6) in about 30
+		float odds = 0.01f + 0.04f * rate;
+		Blob fire = blobs.get( Fire.class );
+		boolean live = liveScene();
+		for (int y = 1; y < HEIGHT-1; y++){
+			for (int x = 1; x < WIDTH-1; x++){
+				int cell = x + y * width();
+				if (map[cell] != Terrain.EMBERS || !naturalDecay( pristine[cell], Terrain.EMBERS )) continue;
+				if (fire != null && fire.volume > 0 && fire.cur[cell] > 0) continue;
+				if (laidScorch.contains( worldKey( worldX + x, worldY + y ) )) continue;
+				if ((Terrain.flags[pristine[cell]] & Terrain.SOLID) != 0
+						&& (occupied( cell ) || heaps.get( cell ) != null)) continue;
+				if (Random.Float() >= odds) continue;
+				set( cell, pristine[cell], this );
+				if (live) xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.updateMap( cell );
+			}
+		}
+	}
+
 	private void stampCraters(){
 		if (network || altitude != 0 || pristine == null) return;
 		HashMap<Long, Integer> want = scorchFor( worldX, worldY );
@@ -5239,6 +5284,8 @@ public class OverworldLevel extends Level {
 			eventLog.announced.put( e.id, e.endTurn );
 			String line = GLog.HIGHLIGHT + eventLine( e, turn, hwx, hwy );
 			xyz.gabriwar.warpedpixeldungeon.net.NetManager.heroLog( Dungeon.hero, line );
+			xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph.reveal(
+					xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph.TAG_WORLD_EVENT );
 			if (xyz.gabriwar.warpedpixeldungeon.net.NetManager.isHost()){
 				xyz.gabriwar.warpedpixeldungeon.net.StateSerializer.recordLogMessageForHero( -1, line );
 				for (xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero nh
@@ -5305,13 +5352,14 @@ public class OverworldLevel extends Level {
 				final float side = e.wx >= hwx ? 1 : -1;
 				com.watabou.noosa.Game.runOnRenderThread( () -> xyz.gabriwar.warpedpixeldungeon.effects.StarStreak.fall(
 						new com.watabou.utils.PointF( to.x - side * 6 * 16, to.y - 9 * 16 ), to, 0.4f, true ) );
-				com.watabou.noosa.audio.Sample.INSTANCE.play( Assets.Sounds.FALLING, 0.7f, 1.4f );
+				SpatialSound.play( Assets.Sounds.FALLING, impact, 0.7f, 1.4f );
 			}
 			return;
 		}
 		if (!live) return;
 		if (clouded()){
-			com.watabou.noosa.audio.Sample.INSTANCE.play( Assets.Sounds.ROCKS, 0.5f, 0.7f );
+			//far off: only the side it lies on
+			SpatialSound.playPanned( Assets.Sounds.ROCKS, 0f, 0.5f, 0.7f, SpatialSound.pan( e.wx - hwx ) );
 			return;
 		}
 		//from high over the hero's shoulder away across the sky toward it, sinking as it goes
@@ -5321,7 +5369,7 @@ public class OverworldLevel extends Level {
 		com.watabou.noosa.Game.runOnRenderThread( () -> xyz.gabriwar.warpedpixeldungeon.effects.StarStreak.fall(
 				new com.watabou.utils.PointF( p.x - ux * 4 * 16, p.y - uy * 4 * 16 - 6 * 16 ),
 				new com.watabou.utils.PointF( p.x + ux * 14 * 16, p.y + uy * 14 * 16 - 2 * 16 ), 0.9f, false ) );
-		com.watabou.noosa.audio.Sample.INSTANCE.play( Assets.Sounds.FALLING, 0.6f, 1.3f );
+		SpatialSound.playPanned( Assets.Sounds.FALLING, 0f, 0.6f, 1.3f, SpatialSound.pan( e.wx - hwx ) );
 	}
 
 	//what the window shows of its events: the craters still hot, and the markets with their

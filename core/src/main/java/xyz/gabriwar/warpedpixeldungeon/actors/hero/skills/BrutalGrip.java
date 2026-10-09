@@ -29,11 +29,11 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
@@ -85,7 +85,7 @@ public class BrutalGrip extends Skill {
 			enemy.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "crush" ) );
 		}
 		Camera.main.shake( 1, 0.2f );
-		Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 1f, 0.8f );
+		SpatialSound.play( Assets.Sounds.HIT_CRUSH, enemy, 1f, 0.8f );
 		int heroPos = Dungeon.hero.pos;
 		if (level >= MAX_LEVEL && enemy.pos != heroPos){
 			Ballistica trajectory = new Ballistica( enemy.pos, enemy.pos + (enemy.pos - heroPos), Ballistica.MAGIC_BOLT );

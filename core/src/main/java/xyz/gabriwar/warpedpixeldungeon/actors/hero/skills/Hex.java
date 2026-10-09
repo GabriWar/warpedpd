@@ -41,10 +41,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 
 import java.util.ArrayList;
 
@@ -96,7 +96,7 @@ public class Hex extends SubSkill2 {
 			if (level >= MAX_LEVEL) Buff.prolong( ch, Cripple.class, 2 + level );
 			hero.MP -= getManaCost();
 			castTextYell();
-			Sample.INSTANCE.play( Assets.Sounds.CURSED, 1f, 1.1f );
+			SpatialSound.play( Assets.Sounds.CURSED, ch, 1f, 1.1f );
 			hero.sprite.zap( cell );
 			MagicMissile.boltFromChar( hero.sprite.parent, MagicMissile.SHADOW, hero.sprite, cell, () -> {
 				if (ch.sprite != null){

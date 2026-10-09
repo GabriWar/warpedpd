@@ -29,7 +29,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import com.watabou.utils.Callback;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -40,6 +39,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 
 public class BroadSword extends MeleeWeapon {
@@ -91,7 +91,7 @@ public class BroadSword extends MeleeWeapon {
 						if (!ch.isAlive()) onAbilityKill( hero, ch );
 					}
 				}
-				if (any) Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 1f, 0.8f );
+				if (any) SpatialSound.play( Assets.Sounds.HIT_SLASH, hero, 1f, 0.8f );
 				for (int n : PathFinder.NEIGHBOURS8){
 					if (Dungeon.level.heroFOV[hero.pos + n]) CellEmitter.get( hero.pos + n ).burst( Speck.factory( Speck.DUST ), 1 );
 				}

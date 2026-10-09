@@ -185,10 +185,10 @@ public class AmbientSoundsTest {
 
 	@Test
 	public void theBedsAreWhereTheTableSays(){
-		//the water spilling from the sewers' pipes, within six cells: one bed, the sewers' only
+		//the water spilling from the sewers' pipes, within four cells: one bed, the sewers' only
 		//one, trickling from a pipe or pouring from those that pour
 		Voice spill = bed( Place.SEWERS, AmbientSound.TRICKLE );
-		assertEquals( 6f, spill.radius, 0f );
+		assertEquals( 4f, spill.radius, 0f );
 		assertArrayEquals( new Source[]{ Source.PIPE }, spill.from );
 		assertSame( AmbientSound.POUR, spill.alt.sound );
 		assertArrayEquals( new Source[]{ Source.PIPE_POUR }, spill.alt.from );
@@ -406,8 +406,12 @@ public class AmbientSoundsTest {
 			Soundscape.Air a = outside( Phase.DAY, Season.AUTUMN, b );
 			a.wind = 2f;
 			assertFalse( "a calm in " + b, wind.allowed( a ) );
-			a.wind = 9f;
+			a.wind = 6f;
 			assertEquals( b.toString(), open.contains( b ), wind.allowed( a ) );
+			//from a gust's wind the weather's own wind takes over (WeatherSounds: the gusts and
+			//the gale, from the wind's side), never the place's from the air as well
+			a.wind = WeatherScape.GUST_WIND;
+			assertFalse( "the weather's wind in " + b, wind.allowed( a ) );
 		}
 		//louder and oftener the harder it blows, and bounded
 		float lastLevel = 0f, lastRate = 0f;
@@ -424,9 +428,15 @@ public class AmbientSoundsTest {
 		Soundscape.Air still = air( Phase.NIGHT, Season.WINTER );
 		assertTrue( peaks.allowed( still ) );
 		assertEquals( 0.5f, peaks.loudness( still ), 1e-6f );
+		still.wind = 6.5f;
+		assertTrue( peaks.allowed( still ) );
 		still.wind = 20f;
 		assertEquals( 1f, peaks.loudness( still ), 1e-6f );
 		assertEquals( 3f, peaks.rate( still ), 1e-6f );
+		//but from a gust's wind it is the weather's
+		assertFalse( peaks.allowed( still ) );
+		still.wind = WeatherScape.GUST_WIND;
+		assertFalse( peaks.allowed( still ) );
 	}
 
 	@Test

@@ -24,7 +24,6 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Bundle;
 
@@ -35,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -80,7 +80,7 @@ public class BannerStandard extends Buff {
 		banner.branch = Dungeon.branch;
 		banner.fx( true );
 		SkillFX.pillar( cell, GOLD );
-		Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 0.7f, 1.3f );
+		SpatialSound.play( Assets.Sounds.CHARGEUP, cell, 0.7f, 1.3f );
 	}
 
 	private boolean onFloor(){
@@ -111,7 +111,7 @@ public class BannerStandard extends Buff {
 		}
 		if (--left <= 0){
 			CellEmitter.get( cell ).burst( Speck.factory( Speck.DUST ), 8 );
-			Sample.INSTANCE.play( Assets.Sounds.TRAMPLE, 1f, 0.8f );
+			SpatialSound.play( Assets.Sounds.TRAMPLE, cell, 1f, 0.8f );
 			detach();
 		} else {
 			spend( TICK );

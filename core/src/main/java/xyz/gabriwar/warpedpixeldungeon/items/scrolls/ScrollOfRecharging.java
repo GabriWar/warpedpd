@@ -25,12 +25,12 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Recharging;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.SpellSprite;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.EnergyParticle;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 
 public class ScrollOfRecharging extends Scroll {
@@ -46,8 +46,8 @@ public class ScrollOfRecharging extends Scroll {
 		Buff.affect(curUser, Recharging.class, Recharging.DURATION);
 		charge(curUser);
 
-		Sample.INSTANCE.play( Assets.Sounds.READ );
-		Sample.INSTANCE.play( Assets.Sounds.CHARGEUP );
+		SpatialSound.play( Assets.Sounds.READ, curUser );
+		SpatialSound.play( Assets.Sounds.CHARGEUP, curUser );
 
 		GLog.i( Messages.get(this, "surge") );
 		SpellSprite.show( curUser, SpellSprite.CHARGE );

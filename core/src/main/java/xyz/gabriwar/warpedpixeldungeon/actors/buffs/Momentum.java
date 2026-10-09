@@ -24,6 +24,7 @@ package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.SpellSprite;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -35,7 +36,6 @@ import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
 import com.watabou.noosa.BitmapText;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.Visual;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.GameMath;
 
@@ -236,7 +236,7 @@ public class Momentum extends Buff implements ActionIndicator.Action {
 		freerunTurns = 2*momentumStacks;
 		//cooldown is functionally 10+2*stacks when active effect ends
 		freerunCooldown = 10 + 4*momentumStacks;
-		Sample.INSTANCE.play(Assets.Sounds.MISS, 1f, 0.8f);
+		SpatialSound.play(Assets.Sounds.MISS, target, 1f, 0.8f);
 		target.sprite.emitter().burst(Speck.factory(Speck.JET), 5+ momentumStacks);
 		SpellSprite.show(target, SpellSprite.HASTE, 1, 1, 0);
 		momentumStacks = 0;

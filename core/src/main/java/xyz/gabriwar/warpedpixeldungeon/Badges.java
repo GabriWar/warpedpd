@@ -936,7 +936,9 @@ public class Badges {
 	//once a hero turn: what the surface is doing around the hero
 	public static void validateWorldTurn() {
 		if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) {
-			if (xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager.isStorming()) validateLocal(Badge.STORM_CHASER);
+			//the climate's own storm: the debug menu's (ClimateManager.debugForceStorm) earns nothing
+			if (xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager.weatherState()
+					== xyz.gabriwar.warpedpixeldungeon.actors.WeatherState.STORM) validateLocal(Badge.STORM_CHASER);
 			if (xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager.isAurora())   validateLocal(Badge.AURORA_WATCHER);
 		} else if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.VillageHouseLevel) {
 			validateLocal(Badge.VILLAGER);

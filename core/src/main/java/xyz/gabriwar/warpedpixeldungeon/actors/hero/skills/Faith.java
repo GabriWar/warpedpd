@@ -28,13 +28,13 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PulseRingFX;
 
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfMagic;
@@ -98,7 +98,7 @@ public class Faith extends PassiveSkillA1 {
 			if (gain > 0) hero.sprite.showStatus( 0x8ac0ff, "+" + gain );
 			if (blocks) hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.CHARMS, 1f, 1.3f );
+		SpatialSound.play( Assets.Sounds.CHARMS, hero, 1f, 1.3f );
 		GLog.p( Messages.get( this, "answered" ) );
 		return blocks ? Math.min( PRAYER_BLOCK, damage ) : 0;
 	}

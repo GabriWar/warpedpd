@@ -35,6 +35,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.DM300;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Pylon;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Tower;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
+import xyz.gabriwar.warpedpixeldungeon.audio.WallBreak;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -59,7 +61,6 @@ import com.watabou.noosa.Group;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.Tilemap;
 import com.watabou.noosa.audio.Music;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
@@ -328,7 +329,7 @@ public class CavesBossLevel extends Level {
 
 		CellEmitter.get( entrance ).start( Speck.factory( Speck.ROCK ), 0.07f, 10 );
 		PixelScene.shake( 3, 0.7f );
-		Sample.INSTANCE.play( Assets.Sounds.ROCKS );
+		SpatialSound.play( Assets.Sounds.ROCKS, entrance );
 
 		DM300 boss = new DM300();
 		boss.state = boss.WANDERING;
@@ -362,6 +363,8 @@ public class CavesBossLevel extends Level {
 		blobs.get(PylonEnergy.class).fullyClear();
 
 		set( entrance(), Terrain.ENTRANCE );
+		//the rubble sealing the way in (seal: ROCKS) breaks open again
+		WallBreak.play( entrance(), 1f, 0.85f );
 		int i = gate.top*width();
 		for (int j = gate.left; j < gate.right; j++){
 			set( i+j, Terrain.EMPTY );
@@ -920,7 +923,7 @@ public class CavesBossLevel extends Level {
 								Buff.prolong(ch, Trap.HazardAssistTracker.class, Trap.HazardAssistTracker.DURATION);
 							}
 
-							Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
+							SpatialSound.play( Assets.Sounds.LIGHTNING, cell );
 							ch.damage( Random.NormalIntRange(6, 12), new Electricity());
 							ch.sprite.flash();
 

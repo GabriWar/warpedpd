@@ -28,12 +28,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfRetribution;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 
 import java.util.ArrayList;
 
@@ -49,7 +49,7 @@ public class ScrollOfPsionicBlast extends ExoticScroll {
 		detach(curUser.belongings.backpack);
 		GameScene.flash( 0x80FFFFFF );
 		
-		Sample.INSTANCE.play( Assets.Sounds.BLAST );
+		SpatialSound.play( Assets.Sounds.BLAST, curUser );
 		GLog.i(Messages.get(ScrollOfRetribution.class, "blast"));
 
 		ArrayList<Mob> targets = new ArrayList<>();

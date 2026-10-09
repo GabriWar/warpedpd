@@ -25,10 +25,10 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Electricity;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PointF;
 import com.watabou.utils.Random;
 
@@ -52,8 +52,8 @@ public class ShockingDart extends TippedDart {
 				ArrayList<Lightning.Arc> arcs = new ArrayList<>();
 				arcs.add(new Lightning.Arc(new PointF(s.x, s.y + s.height / 2), new PointF(s.x + s.width, s.y + s.height / 2)));
 				arcs.add(new Lightning.Arc(new PointF(s.x + s.width / 2, s.y), new PointF(s.x + s.width / 2, s.y + s.height)));
-				s.parent.add(new Lightning(arcs, null));
-				Sample.INSTANCE.play(Assets.Sounds.LIGHTNING);
+				s.parent.add(new Lightning(arcs, null).noGlow());
+				SpatialSound.play(Assets.Sounds.LIGHTNING, defender);
 			}
 		}
 		

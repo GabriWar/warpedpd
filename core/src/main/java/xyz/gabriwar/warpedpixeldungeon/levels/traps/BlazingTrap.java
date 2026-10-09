@@ -28,11 +28,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Fire;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import com.watabou.utils.BArray;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 public class BlazingTrap extends Trap {
@@ -59,6 +59,6 @@ public class BlazingTrap extends Trap {
 				}
 			}
 		}
-		Sample.INSTANCE.play(Assets.Sounds.BURNING);
+		SpatialSound.play(Assets.Sounds.BURNING, pos);
 	}
 }

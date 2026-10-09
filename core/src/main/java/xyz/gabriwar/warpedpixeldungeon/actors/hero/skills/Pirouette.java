@@ -32,7 +32,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PulseRingFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -43,6 +42,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barrier;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 
 import java.util.ArrayList;
@@ -111,7 +111,7 @@ public class Pirouette extends Skill {
 		//the ribbon: two arcs wound round her, spinning with her through the whole leap
 		ArcSpinFX.around( hero.sprite, 0xCCE0FF, 10, 0.5f, 0, 1080, 0.5f );
 		ArcSpinFX.around( hero.sprite, 0xFFFFFF, 7, 0.35f, 180, 1080, 0.5f );
-		Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 1.2f );
+		SpatialSound.play( Assets.Sounds.MISS, hero, 1f, 1.2f );
 		Dungeon.hero.heroSkills.lastUsed = this;
 		hero.sprite.jump( from, target, 4f, 0.25f, () -> {
 			hero.move( target, false );
@@ -123,7 +123,7 @@ public class Pirouette extends Skill {
 			//she lands and the shield settles round her
 			PulseRingFX.around( hero.sprite, 0xCCE0FF, 12, 0.4f );
 			CellEmitter.bottom( target ).burst( Speck.factory( Speck.DUST ), 4 );
-			Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 0.7f, 1.5f );
+			SpatialSound.play( Assets.Sounds.HIT_PARRY, target, 0.7f, 1.5f );
 			//+3: the enemies you spun away from are left reeling
 			if (level >= MAX_LEVEL){
 				for (Char ch : left){

@@ -27,6 +27,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FlavourBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Identification;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
@@ -40,7 +41,6 @@ import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
 import com.watabou.noosa.Image;
-import com.watabou.noosa.audio.Sample;
 
 import java.util.ArrayList;
 
@@ -126,7 +126,7 @@ public class ShardOfOblivion extends Trinket {
 				item.identify();
 				Badges.validateItemLevelAquired(item);
 				curUser.sprite.operate(curUser.pos);
-				Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
+				SpatialSound.play(Assets.Sounds.TELEPORT, curUser);
 				curUser.sprite.parent.add( new Identification( curUser.sprite.center().offset( 0, -16 ) ) );
 				GLog.p(Messages.get(ShardOfOblivion.class, "identify"));
 			} else {

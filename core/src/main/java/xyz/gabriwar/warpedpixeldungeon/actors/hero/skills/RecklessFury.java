@@ -35,7 +35,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.BloodParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAura;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -43,6 +42,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
@@ -71,17 +71,17 @@ public class RecklessFury extends ActiveSkill {
 		super.execute(hero, action);
 		if (action.equals(Skill.AC_ACTIVATE)){
 			// only one stance or attack toggle at a time
-			for (Skill s : hero.heroSkills.activeSkills){
+			for (Skill s : hero.heroSkills.toggleGroup()){
 				if (s != this) s.active = false;
 			}
-			Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 1f, 1.2f );
+			SpatialSound.play( Assets.Sounds.CHALLENGE, hero, 1f, 1.2f );
 			//the guard drops: a red flare off the chest, and embers keep rising from him while it stays down
 			if (hero.sprite != null){
 				hero.sprite.emitter().burst( Speck.factory( Speck.RED_LIGHT ), 4 );
 				new xyz.gabriwar.warpedpixeldungeon.effects.Flare( 6, 16 ).color( 0xFF3322, true ).show( hero.sprite, 0.4f );
 			}
 		} else if (action.equals(Skill.AC_DEACTIVATE)){
-			Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 0.5f, 0.7f );
+			SpatialSound.play( Assets.Sounds.CHALLENGE, hero, 0.5f, 0.7f );
 		}
 		StanceAura.sync( hero );
 	}
@@ -139,7 +139,7 @@ public class RecklessFury extends ActiveSkill {
 			enemy.sprite.emitter().burst( BloodParticle.BURST, 4 + Math.min( 8, bonus / 4 ) );
 		}
 		if (hero.sprite != null) new xyz.gabriwar.warpedpixeldungeon.effects.Flare( 6, 20 ).color( 0xFF3322, true ).show( hero.sprite, 0.5f );
-		Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 1f, 0.8f );
+		SpatialSound.play( Assets.Sounds.HIT_CRUSH, enemy, 1f, 0.8f );
 		Camera.main.shake( 1, 0.2f );
 		return damage + bonus;
 	}

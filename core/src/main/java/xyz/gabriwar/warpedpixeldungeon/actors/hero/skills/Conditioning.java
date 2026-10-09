@@ -31,11 +31,11 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 public class Conditioning extends PassiveSkillA1 {
@@ -84,7 +84,7 @@ public class Conditioning extends PassiveSkillA1 {
 			hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "rally", heal ) );
 			hero.sprite.emitter().burst( Speck.factory( Speck.HEALING ), 4 + 2 * level );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.DRINK, 1f, 1.2f );
+		SpatialSound.play( Assets.Sounds.DRINK, hero, 1f, 1.2f );
 		return 0;
 	}
 

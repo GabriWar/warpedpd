@@ -22,6 +22,7 @@
 package xyz.gabriwar.warpedpixeldungeon.items.scrolls;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -29,7 +30,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
-import com.watabou.noosa.audio.Sample;
 
 public abstract class InventoryScroll extends Scroll {
 
@@ -131,7 +131,7 @@ public abstract class InventoryScroll extends Scroll {
 
 				if (!(curItem instanceof ScrollOfUpgrade)) {
 					((InventoryScroll) curItem).readAnimation();
-					Sample.INSTANCE.play(Assets.Sounds.READ);
+					SpatialSound.play(Assets.Sounds.READ, curUser);
 				}
 				
 			} else if (identifiedByUse && !((Scroll)curItem).anonymous) {

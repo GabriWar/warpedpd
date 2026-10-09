@@ -28,10 +28,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.PrismaticGuard;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.Stasis;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.PrismaticImage;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 
 public class ScrollOfPrismaticImage extends ExoticScroll {
 	
@@ -65,7 +65,7 @@ public class ScrollOfPrismaticImage extends ExoticScroll {
 
 		identify();
 		
-		Sample.INSTANCE.play( Assets.Sounds.READ );
+		SpatialSound.play( Assets.Sounds.READ, curUser );
 	
 		readAnimation();
 	}

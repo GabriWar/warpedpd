@@ -24,7 +24,6 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
@@ -35,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -153,7 +153,7 @@ public class Leap extends Skill {
 
 			final int land = landing;
 			hero.busy();
-			Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 0.7f );
+			SpatialSound.play( Assets.Sounds.MISS, hero, 1f, 0.7f );
 			//the push-off kicks up the floor behind him
 			CellEmitter.bottom( hero.pos ).burst( Speck.factory( Speck.DUST ), 4 );
 			hero.sprite.jump( hero.pos, land, () -> {
@@ -171,7 +171,7 @@ public class Leap extends Skill {
 					int dmg = Math.round( roll * (1f + 0.1f * level) );
 					victim.damage( dmg, Leap.this );
 					Wound.hit( victim );
-					Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 1f, 0.9f );
+					SpatialSound.play( Assets.Sounds.HIT_STRONG, victim, 1f, 0.9f );
 					if (victim.isAlive() && !victim.properties().contains( Char.Property.BOSS )){
 						Buff.affect( victim, Paralysis.class, 1f );
 					}

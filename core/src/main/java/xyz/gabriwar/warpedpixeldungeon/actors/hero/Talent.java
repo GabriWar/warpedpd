@@ -47,6 +47,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.Ratmogrify;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.DivineSense;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.RecallInscription;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
@@ -82,7 +83,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Image;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.GameMath;
 import com.watabou.utils.PathFinder;
@@ -798,7 +798,7 @@ public enum Talent {
 		if (hero.hasTalent(INSCRIBED_STEALTH)){
 			// 3/5 turns of stealth
 			Buff.affect(hero, Invisibility.class, factor * (1 + 2*hero.pointsInTalent(INSCRIBED_STEALTH)));
-			Sample.INSTANCE.play( Assets.Sounds.MELD );
+			SpatialSound.play( Assets.Sounds.MELD, hero );
 		}
 		if (hero.hasTalent(RECALL_INSCRIPTION) && Scroll.class.isAssignableFrom(cls) && cls != ScrollOfUpgrade.class){
 			if (hero.heroClass == HeroClass.CLERIC){

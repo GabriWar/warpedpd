@@ -28,7 +28,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -38,6 +37,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import com.watabou.utils.Random;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
@@ -69,7 +69,7 @@ public class Predation extends Skill {
 				enemy.sprite.flash();
 				enemy.sprite.showStatus( CharSprite.WARNING, name() );
 			}
-			Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 0.8f, 0.7f );
+			SpatialSound.play( Assets.Sounds.HIT_SLASH, enemy, 0.8f, 0.7f );
 		}
 		return damage;
 	}
@@ -88,6 +88,6 @@ public class Predation extends Skill {
 			new Flare( 4, 12 ).color( 0xCC1111, true ).show( hero.sprite, 0.4f );
 			hero.sprite.showStatus( CharSprite.POSITIVE, Integer.toString( heal ) );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.DRINK, 0.7f, 0.8f );
+		SpatialSound.play( Assets.Sounds.DRINK, hero, 0.7f, 0.8f );
 	}
 }

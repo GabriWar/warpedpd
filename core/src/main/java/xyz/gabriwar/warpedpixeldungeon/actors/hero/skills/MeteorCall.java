@@ -24,7 +24,6 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
-import com.watabou.noosa.audio.Sample;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -32,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MeteorFall;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -161,7 +161,7 @@ public class MeteorCall extends Skill {
 			CellEmitter.center( cell ).burst( Speck.factory( Speck.RED_LIGHT ), 6 );
 			xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX.ring( cell, 1, 0.15f,
 					( c, r ) -> CellEmitter.get( c ).burst( Speck.factory( Speck.RED_LIGHT ), 2 ) );
-			Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 1f, 0.7f );
+			SpatialSound.play( Assets.Sounds.CHARGEUP, cell, 1f, 0.7f );
 			Buff.append( hero, MeteorFall.class ).set( cell, level );
 
 			hero.spendAndNext( TIME_TO_USE );

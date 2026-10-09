@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Bone;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
@@ -38,7 +39,6 @@ import xyz.gabriwar.warpedpixeldungeon.levels.features.Chasm;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MossySkeletonSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
@@ -117,7 +117,7 @@ public class MossySkeleton extends Mob {
 		}
 
 		if (Dungeon.level.heroFOV[pos]) {
-			Sample.INSTANCE.play( Assets.Sounds.BONES );
+			SpatialSound.play( Assets.Sounds.BONES, pos );
 		}
 
 		if (heroKilled) {

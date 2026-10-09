@@ -30,6 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Imp;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ElmoParticle;
@@ -37,7 +38,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.plants.Plant;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 import java.util.Arrays;
@@ -79,7 +79,8 @@ public class VaultFlameTraps extends Blob {
 	protected void evolve() {
 		int cell;
 
-		boolean playSfx = false;
+		//the cell nearest the hero seen burning, where the sound comes from
+		int playSfx = -1;
 		for (int i = area.left; i < area.right; i++) {
 			for (int j = area.top; j < area.bottom; j++) {
 				cell = i + j* Dungeon.level.width();
@@ -88,7 +89,7 @@ public class VaultFlameTraps extends Blob {
 					Char ch = Actor.findChar( cell );
 					if (ch != null && !ch.isImmune(getClass())) {
 						if (ch == Dungeon.hero) {
-							Sample.INSTANCE.play(Assets.Sounds.BURNING);
+							SpatialSound.play(Assets.Sounds.BURNING, cell);
 							SFXLastPlayed = WarpedPixelDungeon.realTime;
 							if (Imp.Quest.hazardFreebies > 0){
 								Imp.Quest.hazardFreebies--;
@@ -115,7 +116,7 @@ public class VaultFlameTraps extends Blob {
 
 					if (Dungeon.level.heroFOV[cell]) {
 						CellEmitter.get(cell).start(ElmoParticle.FACTORY, 0.02f, 10);
-						playSfx = true;
+						playSfx = SpatialSound.nearer( playSfx, cell );
 					}
 
 					off[cell] = cur[cell] - 1;
@@ -126,8 +127,8 @@ public class VaultFlameTraps extends Blob {
 			}
 		}
 
-		if (playSfx && SFXLastPlayed +80 < WarpedPixelDungeon.realTime) {
-			Sample.INSTANCE.play(Assets.Sounds.BURNING, 0.5f);
+		if (playSfx >= 0 && SFXLastPlayed +80 < WarpedPixelDungeon.realTime) {
+			SpatialSound.play(Assets.Sounds.BURNING, playSfx, 0.5f);
 			SFXLastPlayed = WarpedPixelDungeon.realTime;
 		}
 	}

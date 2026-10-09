@@ -610,6 +610,9 @@ public enum Bestiary {
 	}
 
 	public static void setSeen(Class<?> cls){
+		//the Descent Guide knows a boss by its own class: the lair dragon has a chapter of its
+		//own, though the bestiary files it under the purple dragon
+		Class<?> faced = cls;
 		if (classConversions.containsKey(cls)){
 			cls = classConversions.get(cls);
 		}
@@ -621,10 +624,7 @@ public enum Bestiary {
 		}
 
 		//facing a guide boss opens its chapter in the Descent Guide
-		String guideKey = GuideGraph.keyForMob(cls);
-		if (guideKey != null){
-			GuideProgress.findPage(guideKey);
-		}
+		GuideGraph.faced(faced);
 
 		Badges.validateCatalogBadges();
 	}

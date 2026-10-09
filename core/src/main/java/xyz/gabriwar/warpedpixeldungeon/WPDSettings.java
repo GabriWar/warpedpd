@@ -21,6 +21,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon;
 
+import xyz.gabriwar.warpedpixeldungeon.audio.RoomAcoustics;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.messages.Languages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
@@ -499,7 +501,9 @@ public class WPDSettings extends GameSettings {
 	public static final String KEY_MUSIC_BG     = "music_bg";
 	public static final String KEY_AMBIENCE     = "ambience";
 	public static final String KEY_AMBIENCE_VOL = "ambience_vol";
-	
+	public static final String KEY_SPATIAL      = "spatial_audio";
+	public static final String KEY_ACOUSTICS    = "room_acoustics";
+
 	public static void music( boolean value ) {
 		Music.INSTANCE.enable( value );
 		put( KEY_MUSIC, value );
@@ -553,6 +557,28 @@ public class WPDSettings extends GameSettings {
 
 	public static int ambienceVol() {
 		return getInt( KEY_AMBIENCE_VOL, 10, 0, 10 );
+	}
+
+	//spatial sound (audio.SpatialSound): every effect and the ambience panned harder to its side
+	//and quieter further off; off, both sound as they always have
+	public static void spatialAudio( boolean value ) {
+		SpatialSound.on = value;
+		put( KEY_SPATIAL, value );
+	}
+
+	public static boolean spatialAudio() {
+		return getBoolean( KEY_SPATIAL, true );
+	}
+
+	//room acoustics (audio.RoomAcoustics): the effects with their room's reverb and echo, and dull
+	//through doors and rock; off, they sound as they always have
+	public static void roomAcoustics( boolean value ) {
+		RoomAcoustics.enable( value );
+		put( KEY_ACOUSTICS, value );
+	}
+
+	public static boolean roomAcoustics() {
+		return getBoolean( KEY_ACOUSTICS, true );
 	}
 
 	public static void ignoreSilentMode( boolean value ){

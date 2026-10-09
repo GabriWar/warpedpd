@@ -32,6 +32,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MagicImmune;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Belongings;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.SpellSprite;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
@@ -47,7 +48,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 import java.util.ArrayList;
@@ -140,7 +140,7 @@ public class HornOfPlenty extends Artifact {
 		hero.sprite.operate(hero.pos);
 		hero.busy();
 		SpellSprite.show(hero, SpellSprite.FOOD);
-		Sample.INSTANCE.play(Assets.Sounds.EAT);
+		SpatialSound.play(Assets.Sounds.EAT, hero);
 		GLog.i( Messages.get(this, "eat") );
 
 		if (Dungeon.hero.hasTalent(Talent.IRON_STOMACH)

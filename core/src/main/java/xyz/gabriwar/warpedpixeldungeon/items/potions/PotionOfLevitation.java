@@ -31,11 +31,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ConfusionGas;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Levitation;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 
 public class PotionOfLevitation extends Potion {
 
@@ -50,8 +50,8 @@ public class PotionOfLevitation extends Potion {
 		if (Dungeon.level.heroFOV[cell]) {
 			identify();
 
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER );
-			Sample.INSTANCE.play( Assets.Sounds.GAS );
+			SpatialSound.play( Assets.Sounds.SHATTER, cell );
+			SpatialSound.play( Assets.Sounds.GAS, cell );
 		}
 
 		GameScene.add( Blob.seed( cell, 1000, ConfusionGas.class ) );

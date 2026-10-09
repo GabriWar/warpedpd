@@ -27,6 +27,7 @@ package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -46,7 +47,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.relic.LokisFlail;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.relic.NeptunusTrident;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.JupitersWraith;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
@@ -118,7 +118,7 @@ public class Alter extends Blob {
 
 		if (count >= NORNSTONES_REQUIRED) {
 			CellEmitter.get(heap.pos).burst(Speck.factory(Speck.WOOL), 6);
-			Sample.INSTANCE.play(Assets.Sounds.PUFF);
+			SpatialSound.play(Assets.Sounds.PUFF, heap.pos);
 
 			heap.destroy();
 

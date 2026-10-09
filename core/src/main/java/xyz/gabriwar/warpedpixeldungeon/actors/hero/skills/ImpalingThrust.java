@@ -35,7 +35,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -43,6 +42,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfForce;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
@@ -134,7 +134,7 @@ public class ImpalingThrust extends Skill {
 				if (body && ch.sprite != null){
 					ch.sprite.flash();
 					Wound.hit( ch );
-					Sample.INSTANCE.play( Assets.Sounds.HIT_STAB, 0.9f, pitch );
+					SpatialSound.play( Assets.Sounds.HIT_STAB, ch, 0.9f, pitch );
 				}
 			} );
 			if (!body) continue;
@@ -152,7 +152,7 @@ public class ImpalingThrust extends Skill {
 		SkillSpectacleFX.fly(SkillSpectacleFX.LANCE, hero.pos, traj.path.get(reach), 0, .4f);
 		hero.MP -= getManaCost();
 		castTextYell();
-		Sample.INSTANCE.play( Assets.Sounds.HIT_STAB, 1f, 1.0f );
+		SpatialSound.play( Assets.Sounds.HIT_STAB, hero, 1f, 1.0f );
 		Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 3 );
 		Dungeon.hero.heroSkills.lastUsed = this;
 		hero.spend( TIME_TO_USE );

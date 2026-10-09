@@ -30,6 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.TileTemperature;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
@@ -47,7 +48,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.IceBlockSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 /**
@@ -189,7 +189,7 @@ public class IceBlock extends Mob {
 			GameScene.updateMap( cell );
 		}
 		Splash.at( cell, 0xFF9FD4E8, 12 );
-		Sample.INSTANCE.play( Assets.Sounds.WATER, 1f, 0.8f );
+		SpatialSound.play( Assets.Sounds.WATER, cell, 1f, 0.8f );
 		if (prize != null){
 			Dungeon.level.drop( prize, cell ).sprite.drop();
 			if (Dungeon.level.heroFOV[cell]) GLog.p( Messages.get( this, "thawed", prize.name() ) );
@@ -204,7 +204,7 @@ public class IceBlock extends Mob {
 		prize = null;
 		super.die( cause );
 
-		Sample.INSTANCE.play( Assets.Sounds.SHATTER );
+		SpatialSound.play( Assets.Sounds.SHATTER, cell );
 		//an ice block going to pieces carries: everything on the floor heard that
 		for (Mob mob : Dungeon.level.mobs.toArray( new Mob[0] )){
 			if (mob != this) mob.beckon( cell );

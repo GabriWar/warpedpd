@@ -24,8 +24,8 @@ package xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Foresight;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 
 public class ScrollOfForesight extends ExoticScroll {
 	
@@ -37,7 +37,7 @@ public class ScrollOfForesight extends ExoticScroll {
 	public void doRead() {
 
 		detach(curUser.belongings.backpack);
-		Sample.INSTANCE.play( Assets.Sounds.READ );
+		SpatialSound.play( Assets.Sounds.READ, curUser );
 		
 		Buff.affect(curUser, Foresight.class, Foresight.DURATION);
 

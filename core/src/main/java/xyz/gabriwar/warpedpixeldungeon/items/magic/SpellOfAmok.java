@@ -31,8 +31,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Amok;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 
 public class SpellOfAmok extends ManaSpell {
@@ -62,7 +62,7 @@ public class SpellOfAmok extends ManaSpell {
 
 	@Override
 	protected void fx(int cell, Callback callback) {
-		Sample.INSTANCE.play(Assets.Sounds.ZAP);
+		SpatialSound.play(Assets.Sounds.ZAP, curUser);
 		MagicMissile.boltFromChar(curUser.sprite.parent, MagicMissile.SHADOW, curUser.sprite, cell, callback);
 	}
 }

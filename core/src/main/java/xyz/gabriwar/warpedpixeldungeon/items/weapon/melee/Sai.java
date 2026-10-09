@@ -35,7 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Corruption;
-import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 
@@ -122,7 +122,7 @@ public class Sai extends MeleeWeapon {
 				Invisibility.dispel();
 				hero.spendAndNext(hero.attackDelay());
 				if (recentHits >= 2 && hit){
-					Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG);
+					SpatialSound.play(Assets.Sounds.HIT_STRONG, enemy);
 				}
 
 				wep.afterAbilityUsed(hero);

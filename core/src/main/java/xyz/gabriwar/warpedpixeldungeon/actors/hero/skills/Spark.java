@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
@@ -42,7 +43,6 @@ import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
 
@@ -101,7 +101,7 @@ public class Spark extends ActiveSkill2 {
 			//the whole cast is one turn; the mage only waits for the last arc to fade
 			curUser.spend( TIME_TO_USE );
 			curUser.busy();
-			Sample.INSTANCE.play( Assets.Sounds.ZAP );
+			SpatialSound.play( Assets.Sounds.ZAP, curUser );
 			curUser.sprite.centerEmitter().burst( SparkParticle.FACTORY, 4 );
 			MagicMissile.boltFromChar( curUser.sprite.parent,
 					MagicMissile.MAGIC_MISSILE,
@@ -111,6 +111,8 @@ public class Spark extends ActiveSkill2 {
 						@Override
 						public void call(){
 							Spark sk = Dungeon.hero.heroSkills.get( Spark.class );
+							//taken away (debug) while the bolt flew: the one that was cast still lands
+							if (sk == null) sk = skill;
 							CellEmitter.center( cell ).burst( SparkParticle.FACTORY, 4 + 2 * sk.level );
 							//damage lands now, in bolt order; the arcs then show it body by body
 							ArrayList<Integer> struck = new ArrayList<>();
@@ -168,7 +170,7 @@ public class Spark extends ActiveSkill2 {
 			return;
 		}
 		final int to = struck.get( i );
-		Sample.INSTANCE.play( Assets.Sounds.LIGHTNING, 0.7f, 1.1f + 0.1f * i );
+		SpatialSound.play( Assets.Sounds.LIGHTNING, to, 0.7f, 1.1f + 0.1f * i );
 		CellEmitter.center( to ).burst( SparkParticle.FACTORY, 6 );
 		Char ch = Actor.findChar( to );
 		if (ch != null && ch.sprite != null) ch.sprite.flash();

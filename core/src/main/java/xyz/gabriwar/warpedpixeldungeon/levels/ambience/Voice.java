@@ -45,9 +45,11 @@ final class Voice {
 		ANY,
 		/** hushed by a storm, and by rain or snow falling (birds, crickets) */
 		CALM,
-		/** heard only while the wind blows (WIND_BLOWS or more), louder and oftener the harder */
+		/** heard only while the wind blows (WIND_BLOWS or more), louder and oftener the harder,
+		 *  until the weather's own wind takes over (WeatherScape.GUST_WIND) */
 		WINDY,
-		/** always there, louder and oftener the harder the wind blows (the peaks) */
+		/** always there, louder and oftener the harder the wind blows (the peaks), until the
+		 *  weather's own wind takes over (WeatherScape.GUST_WIND) */
 		GUSTY
 	}
 
@@ -296,10 +298,13 @@ final class Voice {
 				|| (rainLifts && a.rain > WET)
 				|| (a.biome != null && (anyHourIn & (1 << a.biome.ordinal())) != 0);
 		if (!hour || a.temp < minTemp) return false;
+		//from a gust's wind the weather's own takes over under the open sky (WeatherSounds: gusts
+		//and the gale from the wind's side), so the place's centred wind hands over to it
 		switch (weather){
-			case CALM:  return !a.storm && a.rain <= WET;
-			case WINDY: return a.wind >= WIND_BLOWS;
-			default:    return true;
+			case CALM:   return !a.storm && a.rain <= WET;
+			case WINDY:  return a.wind >= WIND_BLOWS && a.wind < WeatherScape.GUST_WIND;
+			case GUSTY:  return a.wind < WeatherScape.GUST_WIND;
+			default:     return true;
 		}
 	}
 

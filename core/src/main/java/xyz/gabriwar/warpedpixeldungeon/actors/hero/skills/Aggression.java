@@ -27,7 +27,6 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -37,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 
 public class Aggression extends PassiveSkillB2 {
 
@@ -96,7 +96,7 @@ public class Aggression extends PassiveSkillB2 {
 					ch.sprite.flash();
 					ch.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
 				}
-				Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 1f, 0.9f );
+				SpatialSound.play( Assets.Sounds.HIT_SLASH, ch, 1f, 0.9f );
 				ch.damage( dmg, hero );
 				if (struck == ch && ch.isAlive()) struck = null;
 				return;

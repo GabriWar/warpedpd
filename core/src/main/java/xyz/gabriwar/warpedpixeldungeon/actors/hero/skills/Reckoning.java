@@ -34,13 +34,13 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vulnerable;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -109,7 +109,7 @@ public class Reckoning extends Skill {
 						mob.sprite.flash();
 						mob.sprite.showStatus( colour, word );
 					}
-					Sample.INSTANCE.play( Assets.Sounds.RAY, 0.8f, pitch );
+					SpatialSound.play( Assets.Sounds.RAY, mob, 0.8f, pitch );
 				} );
 
 				Vulnerable brand = mob.buff( Vulnerable.class );
@@ -137,7 +137,7 @@ public class Reckoning extends Skill {
 			}
 
 			castTextYell();
-			Sample.INSTANCE.play( Assets.Sounds.RAY, 1f, 0.9f );
+			SpatialSound.play( Assets.Sounds.RAY, hero, 1f, 0.9f );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
 			hero.busy();

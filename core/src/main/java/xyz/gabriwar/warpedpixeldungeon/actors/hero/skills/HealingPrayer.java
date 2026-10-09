@@ -35,9 +35,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.effects.ShieldHalo;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 
@@ -96,7 +96,7 @@ public class HealingPrayer extends ActiveSkill2 {
 			payMana( hero, getManaCost() );
 			AsceticVow.tithe( hero, healed );
 			castTextYell();
-			Sample.INSTANCE.play( Assets.Sounds.CHARMS, 1f, 1.2f );
+			SpatialSound.play( Assets.Sounds.CHARMS, hero, 1f, 1.2f );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
 			hero.busy();

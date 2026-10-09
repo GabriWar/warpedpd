@@ -44,6 +44,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Slow;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.WallOfLight;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
+import xyz.gabriwar.warpedpixeldungeon.audio.WallBreak;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.TargetedCell;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
@@ -65,7 +67,6 @@ import xyz.gabriwar.warpedpixeldungeon.ui.BossHealthBar;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.audio.Music;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 import com.watabou.utils.GameMath;
@@ -220,7 +221,7 @@ public class DM300 extends Mob {
 								return false;
 							} else {
 								ventGas(enemy);
-								Sample.INSTANCE.play(Assets.Sounds.GAS);
+								SpatialSound.play(Assets.Sounds.GAS, pos);
 								return true;
 							}
 						//if we can't gas, or if target is inorganic then drop rocks
@@ -233,7 +234,7 @@ public class DM300 extends Mob {
 								return false;
 							} else {
 								dropRocks(enemy);
-								Sample.INSTANCE.play(Assets.Sounds.ROCKS);
+								SpatialSound.play(Assets.Sounds.ROCKS, enemy);
 								return true;
 							}
 						}
@@ -272,7 +273,7 @@ public class DM300 extends Mob {
 								return false;
 							} else {
 								ventGas(enemy);
-								Sample.INSTANCE.play(Assets.Sounds.GAS);
+								SpatialSound.play(Assets.Sounds.GAS, pos);
 								return true;
 							}
 						} else {
@@ -281,7 +282,7 @@ public class DM300 extends Mob {
 								return false;
 							} else {
 								dropRocks(enemy);
-								Sample.INSTANCE.play(Assets.Sounds.ROCKS);
+								SpatialSound.play(Assets.Sounds.ROCKS, enemy);
 								return true;
 							}
 						}
@@ -340,7 +341,7 @@ public class DM300 extends Mob {
 				if (buff(Barrier.class) == null) {
 					GLog.w(Messages.get(this, "shield"));
 				}
-				Sample.INSTANCE.play(Assets.Sounds.LIGHTNING);
+				SpatialSound.play(Assets.Sounds.LIGHTNING, pos);
 				sprite.emitter().start(SparkParticle.STATIC, 0.05f, 20);
 				sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(30 + (HT - HP)/10), FloatingText.SHIELDING);
 			}
@@ -640,9 +641,8 @@ public class DM300 extends Mob {
 				}
 			}
 			if (bestpos != pos){
-				Sample.INSTANCE.play( Assets.Sounds.ROCKS );
-
 				Rect gate = CavesBossLevel.gate;
+				ArrayList<Integer> smashed = new ArrayList<>();
 				for (int i : PathFinder.NEIGHBOURS9){
 					if (Dungeon.level.map[pos+i] == Terrain.WALL || Dungeon.level.map[pos+i] == Terrain.WALL_DECO){
 						Point p = Dungeon.level.cellToPoint(pos+i);
@@ -654,11 +654,16 @@ public class DM300 extends Mob {
 						}
 						Level.set(pos+i, Terrain.EMPTY_DECO);
 						GameScene.updateMap(pos+i);
+						smashed.add(pos+i);
 					}
 					if (Dungeon.level.blobs.get(WallOfLight.LightWall.class) != null){
 						Dungeon.level.blobs.get(WallOfLight.LightWall.class).clear(pos+i);
 					}
 				}
+				//the rock it smashes through breaks, heavy and deep (audio/WallBreak); with none in
+				//its way, the rumble of its charge
+				if (smashed.isEmpty()) SpatialSound.play( Assets.Sounds.ROCKS, pos );
+				else WallBreak.playAll( smashed, 1f, 0.8f );
 				Dungeon.level.cleanWalls();
 				Dungeon.observe();
 				spend(Dungeon.isChallenged(Challenges.STRONGER_BOSSES) ? 2f : 3f);

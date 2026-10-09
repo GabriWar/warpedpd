@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Healing;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.VialOfBlood;
 import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
@@ -38,7 +39,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 
 public class Dewdrop extends Item {
 	
@@ -73,7 +73,7 @@ public class Dewdrop extends Item {
 			
 		}
 		
-		Sample.INSTANCE.play( Assets.Sounds.DEWDROP );
+		SpatialSound.play( Assets.Sounds.DEWDROP, hero );
 		hero.spendAndNext( pickupDelay() );
 		
 		return true;

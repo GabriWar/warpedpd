@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FlavourBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.WeaponEnhance;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
@@ -42,7 +43,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Image;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 import java.text.DecimalFormat;
@@ -60,7 +60,7 @@ public class UpgradeDust extends Spell {
 		Buff.affect(hero, ArmorEnhance.class).set(1+hero.lvl/10, 20);
 
 		hero.sprite.operate(hero.pos);
-		Sample.INSTANCE.play( Assets.Sounds.EVOKE );
+		SpatialSound.play( Assets.Sounds.EVOKE, hero );
 		CellEmitter.center( hero.pos ).burst( Speck.factory( Speck.STAR ), 7 );
 
 		GLog.p( Messages.get(this, "empower") );

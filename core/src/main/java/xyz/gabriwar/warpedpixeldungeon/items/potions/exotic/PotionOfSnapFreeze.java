@@ -32,8 +32,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Freezing;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 public class PotionOfSnapFreeze extends ExoticPotion {
@@ -49,7 +49,7 @@ public class PotionOfSnapFreeze extends ExoticPotion {
 		if (Dungeon.level.heroFOV[cell]) {
 			identify();
 
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER );
+			SpatialSound.play( Assets.Sounds.SHATTER, cell );
 		}
 		
 		for (int offset : PathFinder.NEIGHBOURS9){

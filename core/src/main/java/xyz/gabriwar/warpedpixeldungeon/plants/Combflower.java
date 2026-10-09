@@ -34,11 +34,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SugarRush;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bee;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.poisonparticles.CombflowerPoisonParticle;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.noosa.tweeners.AlphaTweener;
@@ -72,7 +72,7 @@ public class Combflower extends Plant {
 			bee.sprite.alpha( 0 );
 			bee.sprite.parent.add( new AlphaTweener( bee.sprite, 1, 0.15f ) );
 
-			Sample.INSTANCE.play( Assets.Sounds.BEE );
+			SpatialSound.play( Assets.Sounds.BEE, pos );
 			return;
 		}
 

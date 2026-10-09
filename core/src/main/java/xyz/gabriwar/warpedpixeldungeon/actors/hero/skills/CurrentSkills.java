@@ -30,6 +30,8 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import com.watabou.utils.Bundle;
 
@@ -37,13 +39,19 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public enum CurrentSkills {
-
-	WARRIOR, MAGE, ROGUE, HUNTRESS, DUELIST, CLERIC;
+/** a hero's skill tree. Every hero holds one of his own, so two of one class (a co-op host and his
+ *  guest) never share levels, stances, slots, borrowed skills or points */
+public class CurrentSkills {
 
 	public enum BRANCHES { PASSIVEA, PASSIVEB, ACTIVE, FOURTH, SUBCLASS }
 
 	public static final String TYPE = "TYPE";
+
+	/** whose tree this is: the class picks its skills, and its name goes out as the TYPE */
+	public final HeroClass heroClass;
+
+	/** the points the hero has to spend, on skills and talents alike */
+	public int availableSkill = Skill.STARTING_SKILL;
 
 	//branches hold any number of skills; the numbered fields below stay as
 	//aliases onto the first three so the tree UI and the toggle code that
@@ -79,8 +87,22 @@ public enum CurrentSkills {
 
 	/** every core (non-subclass) skill, in tree order; rebuilt by buildTree() */
 	private final List<Skill> coreSkills = new ArrayList<>();
-	/** core + subclass, cached because damageRoll/attackProc run per swing */
+	/** skills from other classes' trees and other callings, given by the debug window. They sit
+	 *  after the hero's own in allSkills, so every hook, slot and lookup sees them; a new run
+	 *  (buildTree) drops them */
+	private final List<Skill> foreignSkills = new ArrayList<>();
+	/** of each foreign skill's levels, how many the debug tools gave for nothing: any above them
+	 *  were bought with points, which come back when it goes. A skill the hero's calling took over
+	 *  from a foreign one keeps its count, until "All skills, all classes" off takes those levels back */
+	private final java.util.HashMap<Skill, Integer> foreignFree = new java.util.HashMap<>();
+	/** core + subclass + foreign, cached because damageRoll/attackProc run per swing */
 	private final List<Skill> allSkills = new ArrayList<>();
+
+	/** a foreign skill's tag: tags repeat between classes ("A1" is Smash, Summon Rat, Double
+	 *  Stab...), and both the save keys and the skill slots go by tag */
+	public static final String FOREIGN_TAG = "X:";
+	private static final String FOREIGN_SKILLS = "foreign_skills";
+	private static final String FOREIGN_FREE = "FOREIGN_FREE";
 
 	public Skill lastUsed = null;
 
@@ -107,7 +129,8 @@ public enum CurrentSkills {
 		quickslots[index] = skill == null ? null : skill.tag;
 	}
 
-	CurrentSkills(){
+	public CurrentSkills( HeroClass heroClass ){
+		this.heroClass = heroClass;
 		//eagerly build the tree so the fields are never null, even before
 		//a run properly init()s them (e.g. status pane peeking at a hero
 		//that is still being constructed)
@@ -122,7 +145,7 @@ public enum CurrentSkills {
 		hero.heroSkills = this;
 		lastUsed = null;
 		java.util.Arrays.fill(quickslots, null);
-		//enum constants outlive a run, so the per-turn dodge cache has to be cleared
+		//a tree can be init()ed again, so the per-turn dodge cache has to be cleared
 		//with the rest of the state or the first roll of a new game reads the last one
 		lastDodgeTurn = -1f;
 		lastDodgeAttacker = -1;
@@ -132,7 +155,7 @@ public enum CurrentSkills {
 	}
 
 	private void buildTree(){
-		switch (this) {
+		switch (heroClass) {
 			case WARRIOR: {
 				Skill stone = new StoneSkin(), blood = new Bloodthirst();
 				Skill iron = new IronStance(), reckless = new RecklessFury();
@@ -231,6 +254,8 @@ public enum CurrentSkills {
 		}
 		branchS = null;
 		subSkills.clear();
+		foreignSkills.clear();
+		foreignFree.clear();
 		indexTree();
 		indexSub();
 	}
@@ -248,9 +273,19 @@ public enum CurrentSkills {
 
 	/** the active branch holds toggles: turning one on turns every other one off */
 	public void deactivateOtherToggles( Skill keep ){
-		for (Skill s : activeSkills){
+		for (Skill s : toggleGroup()){
 			if (s != keep) s.active = false;
 		}
+	}
+
+	/** the hero's active branch, and the skills taken from other classes' active branches */
+	public List<Skill> toggleGroup(){
+		List<Skill> group = new ArrayList<>( activeSkills );
+		for (Skill s : foreignSkills){
+			Origin o = origin( s.getClass() );
+			if (o != null && o.branch == BRANCHES.ACTIVE) group.add( s );
+		}
+		return group;
 	}
 
 	/** re-points the legacy 1/2/3 fields and rebuilds the core/all caches */
@@ -275,6 +310,7 @@ public enum CurrentSkills {
 		allSkills.clear();
 		allSkills.addAll(coreSkills);
 		allSkills.addAll(subSkills);
+		allSkills.addAll(foreignSkills);
 	}
 
 	private static Skill at( List<Skill> list, int i ){
@@ -285,6 +321,7 @@ public enum CurrentSkills {
 	public void initSubclassBranch( Hero hero ){
 		subSkills.clear();
 		subSkills.addAll(subclassSkills(hero.subClass));
+		absorbForeign(subSkills);
 		if (subSkills.isEmpty()){
 			branchS = null;
 			indexSub();
@@ -343,6 +380,146 @@ public enum CurrentSkills {
 		return skills;
 	}
 
+	// ---- skills from other classes (debug) ----
+
+	/** where a skill grows natively: a class's core column, or a calling's branch (SUBCLASS) */
+	public static final class Origin {
+		public final Class<? extends Skill> cls;
+		public final HeroClass heroClass;
+		public final HeroSubClass subClass;   //NONE for a core skill
+		public final BRANCHES branch;
+
+		Origin( Class<? extends Skill> cls, HeroClass heroClass, HeroSubClass subClass, BRANCHES branch ){
+			this.cls = cls;
+			this.heroClass = heroClass;
+			this.subClass = subClass;
+			this.branch = branch;
+		}
+
+		/** the class, or the calling, the skill belongs to */
+		public String title(){
+			return subClass != HeroSubClass.NONE ? subClass.title() : heroClass.title();
+		}
+	}
+
+	private static List<Origin> catalog;
+
+	/** every skill of every class and calling, class by class in tree order, each once */
+	public static synchronized List<Origin> catalog(){
+		if (catalog != null) return catalog;
+		List<Origin> out = new ArrayList<>();
+		for (HeroClass cls : HeroClass.values()){
+			CurrentSkills tree = new CurrentSkills( cls );
+			for (BRANCHES b : new BRANCHES[]{ BRANCHES.PASSIVEA, BRANCHES.PASSIVEB, BRANCHES.ACTIVE, BRANCHES.FOURTH }){
+				for (Skill s : tree.branchSkills( b )) out.add( new Origin( s.getClass(), cls, HeroSubClass.NONE, b ) );
+			}
+			for (HeroSubClass sub : cls.subClasses()){
+				for (Skill s : subclassSkills( sub )) out.add( new Origin( s.getClass(), cls, sub, BRANCHES.SUBCLASS ) );
+			}
+		}
+		catalog = Collections.unmodifiableList( out );
+		return catalog;
+	}
+
+	public static Origin origin( Class<? extends Skill> cls ){
+		for (Origin o : catalog()) if (o.cls == cls) return o;
+		return null;
+	}
+
+	public List<Skill> foreignSkills(){
+		return Collections.unmodifiableList( foreignSkills );
+	}
+
+	public boolean isForeign( Skill skill ){
+		return foreignSkills.contains( skill );
+	}
+
+	/** the hero's copy of this very skill, his own or a foreign one (get() would also take a subclass of it), or null */
+	public Skill exact( Class<? extends Skill> cls ){
+		return exact( allSkills, cls );
+	}
+
+	public boolean holds( Class<? extends Skill> cls ){
+		return exact( cls ) != null;
+	}
+
+	private static Skill exact( List<Skill> list, Class<? extends Skill> cls ){
+		for (Skill s : list) if (s.getClass() == cls) return s;
+		return null;
+	}
+
+	/** gives the hero another class's skill, at the level it already has (for nothing); false if he has it */
+	public boolean addForeign( Skill skill ){
+		if (holds( skill.getClass() )) return false;
+		skill.tag = FOREIGN_TAG + skill.getClass().getSimpleName();
+		//its fork partner stays in the other class's tree
+		skill.exclusiveWith = null;
+		foreignSkills.add( skill );
+		foreignFree.put( skill, skill.level );
+		rebuildAll();
+		return true;
+	}
+
+	/** takes a foreign skill (or one his calling took over from it) up to level for nothing (the debug
+	 *  tools); the levels bought for it stay bought. Any other skill is left alone */
+	public void raiseForeign( Skill skill, int level ){
+		Integer free = foreignFree.get( skill );
+		if (free == null || level <= skill.level) return;
+		foreignFree.put( skill, free + level - skill.level );
+		skill.setLevel( level );
+	}
+
+	/** takes a foreign skill away again, out of the slots too, and hands back the points bought
+	 *  levels cost; false if he has no such foreign skill */
+	public boolean removeForeign( Class<? extends Skill> cls ){
+		Skill s = exact( foreignSkills, cls );
+		if (s == null) return false;
+		s.active = false;
+		Integer free = foreignFree.remove( s );
+		if (free != null && s.level > free) availableSkill += (s.level - free) * s.upgradeCost();
+		foreignSkills.remove( s );
+		for (int i = 0; i < quickslots.length; i++) if (s.tag.equals( quickslots[i] )) quickslots[i] = null;
+		if (lastUsed == s) lastUsed = null;
+		rebuildAll();
+		return true;
+	}
+
+	public void clearForeign(){
+		for (Skill s : new ArrayList<>( foreignSkills )) removeForeign( s.getClass() );
+	}
+
+	/** the skills his calling took over from foreign ones give back what the debug tools lent them:
+	 *  each keeps only the levels bought for it, and one left at nothing is switched off and leaves
+	 *  the slots. Points are not handed back: what was bought stays his */
+	public void takeBackLentLevels(){
+		for (Skill s : new ArrayList<>( foreignFree.keySet() )){
+			if (isForeign( s )) continue;
+			s.setLevel( Math.max( 0, s.level - foreignFree.remove( s ) ) );
+			if (s.level > 0) continue;
+			s.active = false;
+			for (int i = 0; i < quickslots.length; i++) if (s.tag.equals( quickslots[i] )) quickslots[i] = null;
+			if (lastUsed == s) lastUsed = null;
+		}
+	}
+
+	/** a calling taken now owns skills the hero held as foreign: his own copy takes their level,
+	 *  stance and slots, and the foreign one goes, so no hook runs twice. What the debug tools lent
+	 *  the foreign one stays lent to his copy */
+	private void absorbForeign( List<Skill> natives ){
+		for (Skill own : natives){
+			Skill f = exact( foreignSkills, own.getClass() );
+			if (f == null) continue;
+			own.level = Math.max( own.level, f.level );
+			own.active |= f.active;
+			for (int i = 0; i < quickslots.length; i++) if (f.tag.equals( quickslots[i] )) quickslots[i] = own.tag;
+			if (lastUsed == f) lastUsed = own;
+			foreignSkills.remove( f );
+			Integer free = foreignFree.remove( f );
+			if (free != null) foreignFree.put( own, free );
+		}
+		rebuildAll();
+	}
+
 	// ---- aggregates so hero hooks can query the subclass branch as one ----
 
 	public int subToHitBonus(){
@@ -362,6 +539,14 @@ public enum CurrentSkills {
 			if (cls.isInstance(s)) return s.level;
 		}
 		return 0;
+	}
+
+	/** the same for the hero a buff sits on, 0 for anyone else: a skill's own buff asks it, to let
+	 *  go of him once the skill is gone (taken away in the debug window) */
+	public static int skillLevel( Char ch, Class<? extends Skill> cls ){
+		if (!(ch instanceof Hero) || ((Hero) ch).heroSkills == null) return 0;
+		Skill s = ((Hero) ch).heroSkills.get( cls );
+		return s == null ? 0 : s.level;
 	}
 
 	public float allDamageModifier( boolean ranged ){
@@ -703,15 +888,9 @@ public enum CurrentSkills {
 		return null;
 	}
 
+	/** a new tree of the hero's class, his alone */
 	public static CurrentSkills forHero( Hero hero ){
-		switch (hero.heroClass){
-			case WARRIOR: default: return WARRIOR;
-			case MAGE:     return MAGE;
-			case ROGUE:    return ROGUE;
-			case HUNTRESS: return HUNTRESS;
-			case DUELIST:  return DUELIST;
-			case CLERIC:   return CLERIC;
-		}
+		return new CurrentSkills( hero.heroClass );
 	}
 
 	public List<Skill> branchSkills( BRANCHES branch ){
@@ -766,22 +945,48 @@ public enum CurrentSkills {
 	}
 
 	public void storeInBundle( Bundle bundle ){
-		bundle.put( TYPE, toString() );
+		bundle.put( TYPE, heroClass.name() );
 		for (int i = 0; i < quickslots.length; i++) bundle.put("skill_quickslot_" + i, quickslots[i] == null ? "" : quickslots[i]);
+		//which foreign skills the hero holds; their levels go out with the rest, under their own tags
+		String[] foreign = new String[foreignSkills.size()];
+		for (int i = 0; i < foreign.length; i++) foreign[i] = foreignSkills.get(i).getClass().getName();
+		bundle.put(FOREIGN_SKILLS, foreign);
+		for (Skill s : foreignSkills){
+			Integer free = foreignFree.get(s);
+			bundle.put(FOREIGN_FREE + " " + s.tag, free == null ? s.level : free);
+		}
+		//and what is still lent to those his calling took over from them
+		for (Skill s : subSkills){
+			Integer free = foreignFree.get(s);
+			if (free != null) bundle.put(FOREIGN_FREE + " " + s.tag, free);
+		}
 		for (Skill s : allSkills) s.storeInBundle(bundle);
 	}
 
 	public static CurrentSkills restoreFromBundle( Bundle bundle ){
 		String value = bundle.getString( TYPE );
 		try {
-			return valueOf( value );
+			return new CurrentSkills( HeroClass.valueOf( value ) );
 		} catch (Exception e) {
-			return WARRIOR;
+			return new CurrentSkills( HeroClass.WARRIOR );
 		}
 	}
 
 	public void restoreSkillsFromBundle( Bundle bundle ){
 		for (int i = 0; i < quickslots.length; i++) quickslots[i] = bundle.getString("skill_quickslot_" + i);
+		foreignSkills.clear();
+		foreignFree.clear();
+		//addForeign asks the cache whether he holds a skill already: the ones just cleared must not answer
+		rebuildAll();
+		if (bundle.contains(FOREIGN_SKILLS)){
+			for (String name : bundle.getStringArray(FOREIGN_SKILLS)){
+				Class<?> cls = com.watabou.utils.Reflection.forName(name);
+				if (cls == null || !Skill.class.isAssignableFrom(cls)) continue;
+				Skill s = (Skill) com.watabou.utils.Reflection.newInstance(cls);
+				if (s != null) addForeign(s);
+			}
+		}
+		rebuildAll();
 		//a save from before a skill was added to a branch simply has no key for it
 		for (Skill s : allSkills){
 			if (bundle.contains( Skill.SKILL_LEVEL + " " + s.tag )){
@@ -789,6 +994,16 @@ public enum CurrentSkills {
 			} else {
 				s.level = 0;
 			}
+		}
+		//a save that does not say how a foreign skill's levels came takes them all as given
+		for (Skill s : foreignSkills){
+			String key = FOREIGN_FREE + " " + s.tag;
+			foreignFree.put( s, bundle.contains( key ) ? Math.min( s.level, bundle.getInt( key ) ) : s.level );
+		}
+		//one his calling took over from a foreign skill says what is still lent it
+		for (Skill s : subSkills){
+			String key = FOREIGN_FREE + " " + s.tag;
+			if (bundle.contains( key )) foreignFree.put( s, Math.min( s.level, bundle.getInt( key ) ) );
 		}
 	}
 }

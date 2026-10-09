@@ -32,6 +32,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MagicImmune;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Regeneration;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Chains;
 import xyz.gabriwar.warpedpixeldungeon.effects.Effects;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
@@ -47,7 +48,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.utils.BArray;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -184,8 +184,8 @@ public class EtherealChains extends Artifact {
 		}
 		
 		hero.busy();
-		throwSound();
-		Sample.INSTANCE.play( Assets.Sounds.CHAINS );
+		throwSound(hero);
+		SpatialSound.play( Assets.Sounds.CHAINS, enemy );
 		hero.sprite.parent.add(new Chains(hero.sprite.center(),
 				enemy.sprite.center(),
 				Effects.Type.ETHEREAL_CHAIN,
@@ -252,8 +252,8 @@ public class EtherealChains extends Artifact {
 		}
 		
 		hero.busy();
-		throwSound();
-		Sample.INSTANCE.play( Assets.Sounds.CHAINS );
+		throwSound(hero);
+		SpatialSound.play( Assets.Sounds.CHAINS, hero );
 		hero.sprite.parent.add(new Chains(hero.sprite.center(),
 				DungeonTilemap.raisedTileCenterToWorld(newHeroPos),
 				Effects.Type.ETHEREAL_CHAIN,

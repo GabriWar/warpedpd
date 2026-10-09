@@ -23,12 +23,12 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.DM201;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 
 public class DM201Sprite extends MobSprite {
@@ -82,11 +82,11 @@ public class DM201Sprite extends MobSprite {
 				new Callback() {
 					@Override
 					public void call() {
-						Sample.INSTANCE.play( Assets.Sounds.GAS );
+						SpatialSound.play( Assets.Sounds.GAS, ch );
 						((DM201)ch).onZapComplete();
 					}
 				} );
-		Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 1.5f );
+		SpatialSound.play( Assets.Sounds.MISS, ch, 1f, 1.5f );
 		GLog.w(Messages.get(DM201.class, "vent"));
 	}
 

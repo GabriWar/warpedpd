@@ -30,7 +30,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import com.watabou.utils.Callback;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -47,6 +46,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.MineSentinel;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Otiluke;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Zot;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.ZotPhase;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import com.watabou.utils.Random;
 
@@ -100,7 +100,7 @@ public class Spork extends MeleeWeapon {
 				beforeAbilityUsed( hero, enemy );
 				AttackIndicator.target( enemy );
 				if (hero.attack( enemy, 1f, boost, Char.INFINITE_ACCURACY )){
-					Sample.INSTANCE.play( Assets.Sounds.HIT_STAB, 1f, 1.3f );
+					SpatialSound.play( Assets.Sounds.HIT_STAB, enemy, 1f, 1.3f );
 					if (enemy.isAlive()){
 						Buff.affect( enemy, Bleeding.class ).set( bleed );
 						Splash.at( enemy.pos, 0xAA1111, 5 );

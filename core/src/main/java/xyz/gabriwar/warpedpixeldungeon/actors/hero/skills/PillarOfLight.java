@@ -27,7 +27,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PillarRiseFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillSequence;
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
@@ -39,6 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -110,12 +110,12 @@ public class PillarOfLight extends Skill {
 			PillarRiseFX.show( cell, 0xFFEE88, () -> {
 				SkillInteractions.flare( cell, 0xFFF1A1 );
 				SkillFX.flash( struck );
-				Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 0.8f, 0.9f );
+				SpatialSound.play( Assets.Sounds.HIT_MAGIC, cell, 0.8f, 0.9f );
 			} );
             SkillSpectacleFX.show(SkillSpectacleFX.SPIRE,cell);
             if (level >= MAX_LEVEL)
                 SkillSequence.start(hero,SkillSequence.CATHEDRAL,2,cell,SPIRE_DAMAGE,2,java.util.Collections.emptyList());
-			Sample.INSTANCE.play( Assets.Sounds.RAY, 1f, 1.1f );
+			SpatialSound.play( Assets.Sounds.RAY, cell, 1f, 1.1f );
 
 			int dmg = Random.NormalIntRange( 5 + 3 * level, 10 + 6 * level );
 			if (ch.properties().contains( Char.Property.UNDEAD ) || ch.properties().contains( Char.Property.DEMONIC )){

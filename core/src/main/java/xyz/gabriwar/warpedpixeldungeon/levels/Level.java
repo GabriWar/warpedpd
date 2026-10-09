@@ -80,6 +80,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.pets.Spider;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.pets.SugarplumFairy;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.pets.Velocirooster;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.pets.VioletDragon;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlowParticle;
@@ -130,7 +131,6 @@ import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.effects.TargetedCell;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.BArray;
 import com.watabou.utils.Bundlable;
 import com.watabou.utils.Bundle;
@@ -399,15 +399,18 @@ public abstract class Level implements Bundlable {
 		Random.popGenerator();
 	}
 
-	private int randomDescentPageCell(){
-		int tries = 300;
-		while (tries-- > 0){
-			int cell = Random.Int( length() );
+	//where a Descent Guide page is left lying: anywhere open (RegularLevel keeps it out of
+	//locked and secret rooms)
+	protected int randomDescentPageCell(){
+		//every open cell, not a handful of random tries: on a big, mostly solid map (the
+		//sokoban floors) a few hundred tries could miss every floor tile and lose the page
+		ArrayList<Integer> cells = new ArrayList<>();
+		for (int cell = 0; cell < length(); cell++){
 			if (passable[cell] && !avoid[cell] && heaps.get( cell ) == null && findMob( cell ) == null){
-				return cell;
+				cells.add( cell );
 			}
 		}
-		return -1;
+		return cells.isEmpty() ? -1 : Random.element( cells );
 	}
 	
 	public void setSize(int w, int h){
@@ -1723,12 +1726,12 @@ public abstract class Level implements Bundlable {
 
 		if (trap != null) {
 			if (bubble != null){
-				Sample.INSTANCE.play(Assets.Sounds.TRAP);
+				SpatialSound.play(Assets.Sounds.TRAP, cell);
 				discover(cell);
 				bubble.setDelayedPress(cell);
 				
 			} else if (timeFreeze != null){
-				Sample.INSTANCE.play(Assets.Sounds.TRAP);
+				SpatialSound.play(Assets.Sounds.TRAP, cell);
 				discover(cell);
 				timeFreeze.setDelayedPress(cell);
 				
@@ -1750,11 +1753,11 @@ public abstract class Level implements Bundlable {
 		Plant plant = plants.get( cell );
 		if (plant != null) {
 			if (bubble != null){
-				Sample.INSTANCE.play(Assets.Sounds.TRAMPLE, 1, Random.Float( 0.96f, 1.05f ) );
+				SpatialSound.play(Assets.Sounds.TRAMPLE, cell, 1, Random.Float( 0.96f, 1.05f ) );
 				bubble.setDelayedPress(cell);
 
 			} else if (timeFreeze != null){
-				Sample.INSTANCE.play(Assets.Sounds.TRAMPLE, 1, Random.Float( 0.96f, 1.05f ) );
+				SpatialSound.play(Assets.Sounds.TRAMPLE, cell, 1, Random.Float( 0.96f, 1.05f ) );
 				timeFreeze.setDelayedPress(cell);
 
 			} else {

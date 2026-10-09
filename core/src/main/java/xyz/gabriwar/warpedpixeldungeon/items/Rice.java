@@ -26,6 +26,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.bombs.DumplingBomb;
@@ -33,7 +34,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.RiceBall;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 
 import java.util.ArrayList;
 
@@ -125,7 +125,7 @@ public class Rice extends Item {
 				GLog.w(Messages.get(this, "oni"));
 				CellEmitter.center(Dungeon.hero.pos).start(
 						Speck.factory(Speck.SCREAM), 0.3f, 3);
-				Sample.INSTANCE.play(Assets.Sounds.CHALLENGE);
+				SpatialSound.play(Assets.Sounds.CHALLENGE, hero);
 			}
 			return true;
 		} else {

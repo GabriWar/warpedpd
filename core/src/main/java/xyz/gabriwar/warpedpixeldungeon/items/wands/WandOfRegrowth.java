@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.mage.WildMagic;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.DwarfKing;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.NPC;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.items.Dewdrop;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
@@ -47,7 +48,6 @@ import xyz.gabriwar.warpedpixeldungeon.plants.Sungrass;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.sprites.LotusSprite;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 import com.watabou.utils.ColorMath;
@@ -271,7 +271,7 @@ public class WandOfRegrowth extends Wand {
 				curUser.sprite,
 				longestRay.path.get(longestRay.dist/2),
 				callback );
-		Sample.INSTANCE.play( Assets.Sounds.ZAP );
+		SpatialSound.play( Assets.Sounds.ZAP, curUser );
 	}
 
 	@Override

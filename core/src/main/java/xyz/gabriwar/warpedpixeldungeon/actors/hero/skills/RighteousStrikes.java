@@ -28,12 +28,12 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
 
 
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -83,7 +83,7 @@ public class RighteousStrikes extends PassiveSkillB1 {
 			new Flare( 6, 20 ).color( 0xFFEE88, true ).show( enemy.sprite, 0.6f );
 			enemy.sprite.emitter().burst( Speck.factory( Speck.YELLOW_LIGHT ), 6 );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 0.8f, 1.2f );
+		SpatialSound.play( Assets.Sounds.HIT_MAGIC, enemy, 0.8f, 1.2f );
 
 		//the released light leaps from enemy to enemy, one more leap per level
 		//the light leaps one enemy after another, each leap a shade higher
@@ -102,7 +102,7 @@ public class RighteousStrikes extends PassiveSkillB1 {
 			if (next == null) break;
 			final Char a = from, b = next;
 			final float pitch = 1.2f + 0.1f * i;
-			chain.at( 0.1f * (i + 1), () -> { ray( a, b ); Sample.INSTANCE.play( Assets.Sounds.RAY, 0.5f, pitch ); } );
+			chain.at( 0.1f * (i + 1), () -> { ray( a, b ); SpatialSound.play( Assets.Sounds.RAY, b, 0.5f, pitch ); } );
 			struck.add( next );
 			next.damage( holy( next ), this );
 			from = next;

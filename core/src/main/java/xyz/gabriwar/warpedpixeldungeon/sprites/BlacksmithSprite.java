@@ -24,10 +24,10 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import com.watabou.noosa.TextureFilm;
 import com.watabou.noosa.audio.Music;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 
 public class BlacksmithSprite extends MobSprite {
@@ -80,7 +80,7 @@ public class BlacksmithSprite extends MobSprite {
 			emitter.burst( Speck.factory( Speck.FORGE ), 3 );
 			if (!Music.INSTANCE.paused()) {
 				float volume = 0.2f / (Dungeon.level.distance(ch.pos, Dungeon.hero.pos));
-				Sample.INSTANCE.play(Assets.Sounds.EVOKE, volume, volume, 0.8f);
+				SpatialSound.play(Assets.Sounds.EVOKE, ch, volume, 0.8f);
 			}
 		}
 	}

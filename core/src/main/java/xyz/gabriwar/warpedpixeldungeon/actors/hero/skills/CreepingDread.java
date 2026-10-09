@@ -28,7 +28,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -37,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import com.watabou.utils.Random;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
@@ -82,7 +82,7 @@ public class CreepingDread extends Skill {
 					} );
 				}
 			}
-			Sample.INSTANCE.play( Assets.Sounds.GHOST, 0.8f, 0.8f );
+			SpatialSound.play( Assets.Sounds.GHOST, enemy, 0.8f, 0.8f );
 		}
 		return damage;
 	}

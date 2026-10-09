@@ -64,13 +64,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Piranha;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Statue;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Swarm;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Wraith;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MagesStaff;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
 
@@ -185,7 +185,7 @@ public class WandOfCorruption extends Wand {
 			}
 
 			wandProc(ch, chargesPerCast());
-			Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 1, 0.8f * Random.Float(0.87f, 1.15f) );
+			SpatialSound.play( Assets.Sounds.HIT_MAGIC, ch, 1, 0.8f * Random.Float(0.87f, 1.15f) );
 			
 		} else {
 			Dungeon.level.pressCell(bolt.collisionPos);
@@ -268,7 +268,7 @@ public class WandOfCorruption extends Wand {
 				curUser.sprite,
 				bolt.collisionPos,
 				callback);
-		Sample.INSTANCE.play( Assets.Sounds.ZAP );
+		SpatialSound.play( Assets.Sounds.ZAP, curUser );
 	}
 
 	@Override

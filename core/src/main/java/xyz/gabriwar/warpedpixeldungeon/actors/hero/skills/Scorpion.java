@@ -28,7 +28,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.PoisonParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -37,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import com.watabou.utils.Random;
 
 public class Scorpion extends PassiveSkillB2 {
@@ -67,7 +67,7 @@ public class Scorpion extends PassiveSkillB2 {
 			}
 			Buff.prolong( enemy, Cripple.class, 2 + level );
 			CellEmitter.center( enemy.pos ).burst( PoisonParticle.SPLASH, 5 );
-			Sample.INSTANCE.play( Assets.Sounds.DEBUFF, 0.8f, 0.8f );
+			SpatialSound.play( Assets.Sounds.DEBUFF, enemy, 0.8f, 0.8f );
 		}
 		return damage;
 	}

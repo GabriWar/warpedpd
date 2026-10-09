@@ -157,10 +157,9 @@ public enum HeroClass {
 		}
 
 		// skill tree: fresh run, fresh points, class-matched tree
-		xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.availableSkill =
-				xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.STARTING_SKILL;
 		hero.heroSkills = xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.CurrentSkills.forHero(hero);
 		hero.heroSkills.init(hero);
+		hero.heroSkills.availableSkill = xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.STARTING_SKILL;
 
 		// skills system: every class starts with a mana pool sized to how
 		// casty it is (Skillful PD gave 20/40/30/35 to the original four)

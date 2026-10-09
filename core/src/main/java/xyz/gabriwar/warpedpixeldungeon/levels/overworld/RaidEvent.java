@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Raider;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.OverworldGuard;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Settler;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.Gold;
@@ -412,7 +413,7 @@ public final class RaidEvent {
 			return GLog.WARNING + Messages.get( RaidEvent.class, "smoke", name,
 					Messages.get( WorldEvents.class, "dir_" + WorldEvents.direction( raid.cx - wx, raid.cy - wy ) ) );
 		} );
-		if (level.liveScene()) Sample.INSTANCE.play( Assets.Sounds.BURNING, 0.6f );
+		if (level.liveScene()) SpatialSound.playPanned( Assets.Sounds.BURNING, 0f, 0.6f, 1f, level.panTowards( raid.cx ) );
 	}
 
 	//the band is out: the birds go up off the roofs, and whoever is in the streets hears it
@@ -423,7 +424,7 @@ public final class RaidEvent {
 		level.tellParty( ( h, wx, wy ) -> Math.max( Math.abs( raid.cx - wx ), Math.abs( raid.cy - wy ) ) <= near
 				? GLog.NEGATIVE + Messages.get( RaidEvent.class, "live", name ) : null );
 		if (level.liveScene() && OverworldLevel.heroDistance( level, well ) <= near){
-			Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 0.8f );
+			SpatialSound.play( Assets.Sounds.CHALLENGE, well, 0.8f );
 		}
 	}
 

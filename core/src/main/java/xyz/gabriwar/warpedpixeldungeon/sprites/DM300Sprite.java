@@ -24,13 +24,13 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.DM300;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.BlastParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Callback;
 
@@ -97,7 +97,7 @@ public class DM300Sprite extends MobSprite {
 						((DM300)ch).onZapComplete();
 					}
 				} );
-		Sample.INSTANCE.play( Assets.Sounds.GAS );
+		SpatialSound.play( Assets.Sounds.GAS, ch );
 	}
 
 	public void charge(){
@@ -107,7 +107,7 @@ public class DM300Sprite extends MobSprite {
 	public void slam( int cell ){
 		turnTo( ch.pos , cell );
 		play( slam );
-		Sample.INSTANCE.play( Assets.Sounds.ROCKS );
+		SpatialSound.play( Assets.Sounds.ROCKS, ch );
 		PixelScene.shake( 3, 0.7f );
 	}
 
@@ -125,7 +125,7 @@ public class DM300Sprite extends MobSprite {
 		super.onComplete( anim );
 		
 		if (anim == die) {
-			Sample.INSTANCE.play(Assets.Sounds.BLAST);
+			SpatialSound.play(Assets.Sounds.BLAST, ch);
 			emitter().burst( BlastParticle.FACTORY, 100 );
 			killAndErase();
 		}

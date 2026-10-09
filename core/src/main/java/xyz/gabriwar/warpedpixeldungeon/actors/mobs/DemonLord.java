@@ -35,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Sleep;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SnowParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.ClimateCrystal;
@@ -51,7 +52,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.DemonLordSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.BossHealthBar;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -195,8 +195,8 @@ public class DemonLord extends Mob {
 		if (sprite instanceof DemonLordSprite) {
 			((DemonLordSprite) sprite).breathe( cone.cells );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.BLAST, 1f, 0.6f );
-		Sample.INSTANCE.play( Assets.Sounds.SHATTER, 1f, 0.7f );
+		SpatialSound.play( Assets.Sounds.BLAST, pos, 1f, 0.6f );
+		SpatialSound.play( Assets.Sounds.SHATTER, pos, 1f, 0.7f );
 		if (Dungeon.level.heroFOV[pos]) {
 			PixelScene.shake( 5, 0.6f );
 			GameScene.flash( 0x3A6EA8 );
@@ -227,7 +227,7 @@ public class DemonLord extends Mob {
 		BossHealthBar.bleed( true );
 		sprite.showStatus( CharSprite.WARNING, Messages.get( this, "enraged" ) );
 		yell( Messages.get( this, "rage" ) );
-		Sample.INSTANCE.play( Assets.Sounds.CHALLENGE );
+		SpatialSound.play( Assets.Sounds.CHALLENGE, pos );
 		breathCooldown = 0;
 
 		int summoned = 0;

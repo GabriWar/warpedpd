@@ -25,6 +25,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.WPDAction;
 import xyz.gabriwar.warpedpixeldungeon.WPDSettings;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.journal.Document;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -34,7 +35,6 @@ import xyz.gabriwar.warpedpixeldungeon.ui.GameLog;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.input.ControllerHandler;
 import com.watabou.input.KeyBindings;
-import com.watabou.noosa.audio.Sample;
 
 public class Guidebook extends Item {
 
@@ -66,7 +66,7 @@ public class Guidebook extends Item {
 			GLog.p(Messages.get(GameScene.class, "tutorial_guidebook_desktop", KeyBindings.getKeyName(KeyBindings.getFirstKeyForAction(WPDAction.JOURNAL, ControllerHandler.isControllerConnected()))));
 		}
 		GameScene.flashForDocument(Document.ADVENTURERS_GUIDE, Document.GUIDE_INTRO);
-		Sample.INSTANCE.play( Assets.Sounds.ITEM );
+		SpatialSound.play( Assets.Sounds.ITEM, hero );
 		hero.spendAndNext( pickupDelay() );
 		return true;
 	}

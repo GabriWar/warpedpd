@@ -28,6 +28,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.MonsterBox;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Wraith;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Shopkeeper;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ElmoParticle;
@@ -57,7 +58,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.YellowDewdrop;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundlable;
 import com.watabou.utils.Bundle;
 
@@ -120,7 +120,7 @@ public class Heap implements Bundlable {
 					GLog.n( Messages.capitalize(Messages.get(Char.class, "kill", Messages.get(Wraith.class, "name"))));
 				}
 			}
-			Sample.INSTANCE.play( Assets.Sounds.CURSED );
+			SpatialSound.play( Assets.Sounds.CURSED, pos );
 		}
 
 		type = Type.HEAP;
@@ -423,7 +423,7 @@ public class Heap implements Bundlable {
 
 	public static void burnFX( int pos ) {
 		CellEmitter.get( pos ).burst( ElmoParticle.FACTORY, 6 );
-		Sample.INSTANCE.play( Assets.Sounds.BURNING );
+		SpatialSound.play( Assets.Sounds.BURNING, pos );
 	}
 	
 	public static void evaporateFX( int pos ) {

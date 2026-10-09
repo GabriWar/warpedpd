@@ -28,12 +28,12 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Gold;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.WarpedRooms;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CollectorSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
@@ -89,7 +89,7 @@ public class Collector extends Mob {
 			if (!announced){
 				announced = true;
 				GLog.n( Messages.get( this, "arrive" ) );
-				Sample.INSTANCE.play( Assets.Sounds.ALERT, 0.7f, 0.8f );
+				SpatialSound.play( Assets.Sounds.ALERT, pos, 0.7f, 0.8f );
 			}
 			//no searching, no losing the trail: it walks straight at the debt
 			if (state != HUNTING && state != FLEEING) state = HUNTING;

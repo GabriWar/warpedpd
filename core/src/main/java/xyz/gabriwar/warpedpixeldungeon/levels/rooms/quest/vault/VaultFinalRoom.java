@@ -28,6 +28,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Imp;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.quest.vault.VaultBossElemental;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
@@ -54,7 +55,6 @@ import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndTitledMessage;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.Tilemap;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 import com.watabou.utils.PathFinder;
@@ -305,7 +305,7 @@ public class VaultFinalRoom extends SpecialRoom {
 				lockTriggered = true;
 			} else if (distance == 4 && warnState < 2) {
 				GLog.n(Messages.get(VaultFinalRoom.class, "final_warning"));
-				Sample.INSTANCE.play(Assets.Sounds.CHARGEUP);
+				SpatialSound.play(Assets.Sounds.CHARGEUP, hero);
 				hero.interrupt();
 				warnState = 2;
 			} else if (distance >= 5 && warnState == 2){

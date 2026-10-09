@@ -32,12 +32,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.cleric.PowerOfMany;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.HolyTome;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfCleansing;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
-import com.watabou.noosa.audio.Sample;
 
 import java.util.ArrayList;
 
@@ -112,7 +112,7 @@ public class Cleanse extends ClericSpell {
 		hero.spend( 1f );
 		hero.busy();
 		hero.sprite.operate(hero.pos);
-		Sample.INSTANCE.play(Assets.Sounds.READ);
+		SpatialSound.play(Assets.Sounds.READ, hero);
 
 		onSpellCast(tome, hero);
 

@@ -30,11 +30,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.cleric.AscendedForm;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.HolyTome;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
 
@@ -66,7 +66,7 @@ public class Judgement extends ClericSpell {
 			@Override
 			public void call() {
 				GameScene.flash( 0x80FFFFFF );
-				Sample.INSTANCE.play(Assets.Sounds.BLAST);
+				SpatialSound.play(Assets.Sounds.BLAST, hero);
 
 				int damageBase = Math.round((5 + 5*hero.pointsInTalent(Talent.JUDGEMENT)) * Math.max(1f, hero.lvl/20f));
 				damageBase += Math.round(damageBase*hero.buff(AscendedForm.AscendBuff.class).spellCasts/3f);

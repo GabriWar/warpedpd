@@ -28,7 +28,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -42,6 +41,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Charm;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
@@ -73,7 +73,7 @@ public class PanicHarvest extends Skill {
 		int gain = Math.min( level, 2 );
 		hero.MP = Math.min( hero.MT, hero.MP + gain );
 		CellEmitter.get( enemy.pos ).burst( ShadowParticle.UP, 5 );
-		Sample.INSTANCE.play( Assets.Sounds.GHOST, 0.5f, 1.4f );
+		SpatialSound.play( Assets.Sounds.GHOST, enemy, 0.5f, 1.4f );
 		if (hero.sprite != null){
 			//the fear is seen leaving the victim and streaking into the rogue, where it lands as mana
 			final String words = Messages.get( this, "harvest", gain );
@@ -82,7 +82,7 @@ public class PanicHarvest extends Skill {
 						MagicMissile.SHADOW, enemy.sprite.center(), hero.sprite.center(), () -> {
 							hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 4 );
 							hero.sprite.showStatus( MANA_COLOR, words );
-							Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 0.4f, 1.7f );
+							SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 0.4f, 1.7f );
 						} );
 			} else {
 				hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 3 );
@@ -109,7 +109,7 @@ public class PanicHarvest extends Skill {
 		if (!spread) return;
 		CellEmitter.get( mob.pos ).burst( Speck.factory( Speck.SCREAM ), 3 );
 		if (mob.sprite != null) new Flare( 5, 24 ).color( 0x663399, true ).show( mob.sprite, 0.6f );
-		Sample.INSTANCE.play( Assets.Sounds.GHOST, 1f, 0.6f );
+		SpatialSound.play( Assets.Sounds.GHOST, mob, 1f, 0.6f );
 	}
 
 	private static boolean isPanicked( Char enemy ){

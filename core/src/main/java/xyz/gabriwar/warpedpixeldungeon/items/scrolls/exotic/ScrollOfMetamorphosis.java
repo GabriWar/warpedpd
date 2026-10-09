@@ -25,6 +25,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.Transmuting;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.InventoryScroll;
@@ -39,7 +40,6 @@ import xyz.gabriwar.warpedpixeldungeon.ui.TalentsPane;
 import xyz.gabriwar.warpedpixeldungeon.ui.Window;
 import xyz.gabriwar.warpedpixeldungeon.windows.IconTitle;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 import java.util.ArrayList;
@@ -71,7 +71,7 @@ public class ScrollOfMetamorphosis extends ExoticScroll {
 	public static void onMetamorph( Talent oldTalent, Talent newTalent ){
 		if (curItem instanceof ScrollOfMetamorphosis) {
 			((ScrollOfMetamorphosis) curItem).readAnimation();
-			Sample.INSTANCE.play(Assets.Sounds.READ);
+			SpatialSound.play(Assets.Sounds.READ, curUser);
 		}
 		curUser.sprite.emitter().start(Speck.factory(Speck.CHANGE), 0.2f, 10);
 		Transmuting.show(curUser, oldTalent, newTalent);

@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfEarthenArmor;
@@ -37,7 +38,6 @@ import xyz.gabriwar.warpedpixeldungeon.plants.Plant;
 
 import java.util.ArrayList;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Reflection;
 
 public class SeasonChange extends Spell {
@@ -61,7 +61,7 @@ public class SeasonChange extends Spell {
 				Dungeon.level.drop(Reflection.newInstance(plant.seedClass()), plant.pos);
 			}
 		}
-		Sample.INSTANCE.play(Assets.Sounds.READ);
+		SpatialSound.play(Assets.Sounds.READ, hero);
 		Invisibility.dispel();
 		detach(curUser.belongings.backpack);
 		updateQuickslot();

@@ -27,7 +27,6 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
@@ -39,6 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barrier;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -85,7 +85,7 @@ public class LastStand extends Skill {
 				if (hero.sprite != null) new Flare( 8, 28 ).color( 0xFFE6A1, true ).show( hero.sprite, 0.5f );
 			} );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.STURDY, 1f, 0.8f );
+		SpatialSound.play( Assets.Sounds.STURDY, hero, 1f, 0.8f );
 
 		if (level >= MAX_LEVEL){
 			SkillFX.land( hero.pos );

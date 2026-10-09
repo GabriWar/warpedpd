@@ -36,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.ArmorAbility;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.ClassArmor;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
@@ -48,7 +49,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.MirrorSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
 import xyz.gabriwar.warpedpixeldungeon.ui.TargetHealthIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.tweeners.AlphaTweener;
 import com.watabou.noosa.tweeners.Delayer;
 import com.watabou.utils.Callback;
@@ -101,7 +101,7 @@ public class Feint extends ArmorAbility {
 		}
 
 		hero.busy();
-		Sample.INSTANCE.play(Assets.Sounds.MISS);
+		SpatialSound.play(Assets.Sounds.MISS, hero);
 		hero.sprite.jump(hero.pos, target, 0, 0.1f, new Callback() {
 			@Override
 			public void call() {

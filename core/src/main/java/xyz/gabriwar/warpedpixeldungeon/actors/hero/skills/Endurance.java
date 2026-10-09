@@ -28,7 +28,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import com.watabou.noosa.Camera;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -39,6 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barrier;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
@@ -114,7 +114,7 @@ public class Endurance extends PassiveSkillA1 {
 			}
 		}
 		SkillFX.land( hero.pos );
-		Sample.INSTANCE.play( Assets.Sounds.ROCKS, 1f, 0.8f );
+		SpatialSound.play( Assets.Sounds.ROCKS, hero, 1f, 0.8f );
 		Camera.main.shake( 3, 0.3f );
 		//the cracks run out from under his boots one ring at a time
 		StaggerFX.ring( hero.pos, level, 0.1f, ( c, r ) -> {

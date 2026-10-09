@@ -24,7 +24,6 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
@@ -34,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Poacher;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -101,7 +101,7 @@ public class PoacherBait extends Buff {
 				prey.sprite.showStatus( CharSprite.NEGATIVE, Messages.get( Poacher.class, "snared" ) );
 			}
 		}
-		Sample.INSTANCE.play( Assets.Sounds.TRAP, 1f, 1.2f );
+		SpatialSound.play( Assets.Sounds.TRAP, cell, 1f, 1.2f );
 	}
 
 	private static final String CELL = "cell";

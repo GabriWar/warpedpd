@@ -28,12 +28,12 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PointF;
 import com.watabou.utils.Random;
 
@@ -79,7 +79,7 @@ public class ThunderCloud extends Blob {
                             ArrayList<Lightning.Arc> arcs = new ArrayList<>();
                             arcs.add(new Lightning.Arc(from, to));
                             Dungeon.hero.sprite.parent.add(new Lightning(arcs, null));
-                            Sample.INSTANCE.play(Assets.Sounds.LIGHTNING, 0.7f, 1f);
+                            SpatialSound.play(Assets.Sounds.LIGHTNING, cell, 0.7f, 1f);
                         }
 
                         Char ch = Actor.findChar(cell);

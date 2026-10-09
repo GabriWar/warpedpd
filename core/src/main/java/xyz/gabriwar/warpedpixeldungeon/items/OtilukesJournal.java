@@ -28,6 +28,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Belongings;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ElmoParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.misc.Spectacles;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
@@ -42,7 +43,6 @@ import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
 import com.watabou.noosa.Game;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 import java.util.ArrayList;
@@ -282,7 +282,7 @@ public class OtilukesJournal extends Item {
 				hero.sprite.operate(hero.pos);
 				hero.busy();
 				hero.spend(2f);
-				Sample.INSTANCE.play(Assets.Sounds.BURNING);
+				SpatialSound.play(Assets.Sounds.BURNING, hero);
 				hero.sprite.emitter().burst(ElmoParticle.FACTORY, 12);
 
 				item.detach(hero.belongings.backpack);

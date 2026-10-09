@@ -35,9 +35,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.RogueHuntressAuras;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraBuff;
@@ -59,15 +59,16 @@ public class AimedShot extends ActiveSkill1 {
 	public void execute( Hero hero, String action ){
 		super.execute(hero, action);
 		if (action.equals(Skill.AC_ACTIVATE)){
-			Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 1f, 1.5f );
+			SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 1f, 1.5f );
 			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
-			hero.heroSkills.active2.active = false; // Disable Double shot
-			hero.heroSkills.active3.active = false; // Disable Bombvoyage
+			//by class, not by place: on another class's hero those places hold his own stances
+			switchOff( hero, DoubleShot.class );
+			switchOff( hero, Bombvoyage.class );
 			StanceAuraBuff.sync( hero, RogueHuntressAuras.Double.class, false );
 			StanceAuraBuff.sync( hero, RogueHuntressAuras.Fuse.class, false );
 			StanceAuraBuff.sync( hero, RogueHuntressAuras.Aimed.class, true );
 		} else if (action.equals(Skill.AC_DEACTIVATE)){
-			Sample.INSTANCE.play( Assets.Sounds.DEGRADE, 0.6f, 1.2f );
+			SpatialSound.play( Assets.Sounds.DEGRADE, hero, 0.6f, 1.2f );
 			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 2 );
 			StanceAuraBuff.sync( hero, RogueHuntressAuras.Aimed.class, false );
 		}
@@ -95,7 +96,7 @@ public class AimedShot extends ActiveSkill1 {
 				enemy.sprite.showStatus( CharSprite.NEGATIVE, "Pinned" );
 			}
 		}
-		Sample.INSTANCE.play( Assets.Sounds.HIT_ARROW, 1f, 0.7f );
+		SpatialSound.play( Assets.Sounds.HIT_ARROW, enemy, 1f, 0.7f );
 		return damage;
 	}
 
@@ -110,7 +111,7 @@ public class AimedShot extends ActiveSkill1 {
 			hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 4 );
 			hero.sprite.showStatus( CharSprite.POSITIVE, "+" + getManaCost() );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 0.6f, 2f );
+		SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 0.6f, 2f );
 	}
 
 	@Override
@@ -121,5 +122,11 @@ public class AimedShot extends ActiveSkill1 {
 	@Override
 	public int getManaCost(){
 		return (int)Math.ceil(mana * (1 + 0.55 * level));
+	}
+
+	/** the three bow stances (Aimed Shot, Double Shot, Bombvoyage) take turns: one going up lowers another, if the hero has it */
+	static void switchOff( Hero hero, Class<? extends Skill> stance ){
+		Skill s = hero.heroSkills.get( stance );
+		if (s != null) s.active = false;
 	}
 }

@@ -27,9 +27,9 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.SpectralRat;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 
 public class SpectralRatSprite extends MobSprite {
@@ -71,7 +71,7 @@ public class SpectralRatSprite extends MobSprite {
 						((SpectralRat) ch).onZapComplete();
 					}
 				} );
-		Sample.INSTANCE.play( Assets.Sounds.ZAP );
+		SpatialSound.play( Assets.Sounds.ZAP, ch );
 	}
 
 	@Override

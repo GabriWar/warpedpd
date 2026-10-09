@@ -34,7 +34,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import com.watabou.utils.Callback;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
@@ -44,6 +43,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.MineSentinel;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Otiluke;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Zot;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.ZotPhase;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.BuzzSaw;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
@@ -179,7 +179,7 @@ public class Chainsaw extends MeleeWeapon {
 				for (int i = 0; i < 3 && enemy.isAlive(); i++){
 					if (hero.attack(enemy, 0.6f, 0, Char.INFINITE_ACCURACY)){
 						any = true;
-						Sample.INSTANCE.play(Assets.Sounds.HIT_SLASH, 1f, 0.7f + 0.15f * i);
+						SpatialSound.play(Assets.Sounds.HIT_SLASH, enemy, 1f, 0.7f + 0.15f * i);
 						if (enemy.isAlive()) Buff.affect(enemy, Bleeding.class).set(bleed);
 						if (enemy.sprite != null) enemy.sprite.emitter().burst(BloodParticle.BURST, 4);
 					}

@@ -30,12 +30,12 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MagesStaff;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.tweeners.AlphaTweener;
 import com.watabou.utils.Callback;
 
@@ -93,7 +93,7 @@ public class WandOfBlink extends Wand {
 		}
 
 		curUser.sprite.emitter().start(Speck.factory(Speck.LIGHT), 0.2f, 3);
-		Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
+		SpatialSound.play(Assets.Sounds.TELEPORT, curUser);
 
 		Dungeon.level.occupyCell(curUser);
 		Dungeon.observe();
@@ -110,7 +110,7 @@ public class WandOfBlink extends Wand {
 				curUser.sprite,
 				bolt.collisionPos,
 				callback);
-		Sample.INSTANCE.play(Assets.Sounds.ZAP);
+		SpatialSound.play(Assets.Sounds.ZAP, curUser);
 	}
 
 	@Override

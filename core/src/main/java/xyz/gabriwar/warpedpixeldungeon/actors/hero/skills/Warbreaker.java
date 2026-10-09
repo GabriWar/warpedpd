@@ -33,10 +33,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vulnerable;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import com.watabou.utils.Random;
 
 public class Warbreaker extends Skill {
@@ -62,7 +62,7 @@ public class Warbreaker extends Skill {
 			castTextYell();
 			Wound.hit( enemy );
 			if (enemy.sprite != null && enemy.sprite.visible) enemy.sprite.emitter().burst( Speck.factory( Speck.STAR ), 5 );
-			Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 1f, 0.8f );
+			SpatialSound.play( Assets.Sounds.HIT_CRUSH, enemy, 1f, 0.8f );
 			Camera.main.shake( 1, 0.15f );
 
 			//fully trained, the shattered guard leaves everyone standing beside it open too

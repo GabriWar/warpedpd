@@ -22,6 +22,7 @@
 package xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Identification;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.Potion;
@@ -36,7 +37,6 @@ import xyz.gabriwar.warpedpixeldungeon.ui.RenderedTextBlock;
 import xyz.gabriwar.warpedpixeldungeon.ui.Window;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.IconTitle;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 import com.watabou.utils.Reflection;
 
@@ -55,7 +55,7 @@ public class ScrollOfDivination extends ExoticScroll {
 		detach(curUser.belongings.backpack);
 		curUser.sprite.parent.add( new Identification( curUser.sprite.center().offset( 0, -16 ) ) );
 		
-		Sample.INSTANCE.play( Assets.Sounds.READ );
+		SpatialSound.play( Assets.Sounds.READ, curUser );
 		
 		HashSet<Class<? extends Potion>> potions = Potion.getUnknown();
 		HashSet<Class<? extends Scroll>> scrolls = Scroll.getUnknown();

@@ -212,7 +212,7 @@ public class ScreenshotTour {
 		act( () -> {
 			closeWindows();
 			Dungeon.hero.lvl = 12;
-			Skill.availableSkill = 3;
+			Dungeon.hero.heroSkills.availableSkill = 3;
 			int bought = 0;
 			for (Skill sk : Dungeon.hero.heroSkills.passiveASkills) if (bought++ < 2) sk.setLevel( 1 );
 			bought = 0;

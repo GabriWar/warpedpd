@@ -24,10 +24,10 @@ package xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ArtifactRecharge;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.SpellSprite;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfRecharging;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 
 public class ScrollOfMysticalEnergy extends ExoticScroll {
 	
@@ -42,8 +42,8 @@ public class ScrollOfMysticalEnergy extends ExoticScroll {
 		//append buff
 		Buff.affect(curUser, ArtifactRecharge.class).set( 30 ).ignoreHornOfPlenty = false;
 
-		Sample.INSTANCE.play( Assets.Sounds.READ );
-		Sample.INSTANCE.play( Assets.Sounds.CHARGEUP );
+		SpatialSound.play( Assets.Sounds.READ, curUser );
+		SpatialSound.play( Assets.Sounds.CHARGEUP, curUser );
 		
 		SpellSprite.show( curUser, SpellSprite.CHARGE, 0, 1, 1 );
 		identify();

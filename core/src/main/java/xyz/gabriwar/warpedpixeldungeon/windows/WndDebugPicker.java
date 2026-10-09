@@ -42,6 +42,7 @@ import xyz.gabriwar.warpedpixeldungeon.ui.RedButton;
 import xyz.gabriwar.warpedpixeldungeon.ui.RenderedTextBlock;
 import xyz.gabriwar.warpedpixeldungeon.ui.ScrollingListPane;
 import xyz.gabriwar.warpedpixeldungeon.ui.Window;
+import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
 import com.watabou.utils.PathFinder;
@@ -49,14 +50,15 @@ import com.watabou.utils.RectF;
 import com.watabou.utils.Reflection;
 
 import java.util.function.IntConsumer;
+import java.util.function.IntPredicate;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 
 public class WndDebugPicker extends Window {
 
-	private static final int WIDTH  = 120;
 	private static final int HEADER_HEIGHT = 14;
 
 	private static final Generator.Category[] WEAPON_TIERS = {
@@ -249,10 +251,8 @@ public class WndDebugPicker extends Window {
 		});
 	}
 
-	public static WndDebugPicker forTravel() {
-		ArrayList<Entry> entries = new ArrayList<>();
-		// depth, branch, label
-		Object[][] levels = {
+	// depth, branch, label: every place the fast travel list goes
+	static final Object[][] TRAVEL_LEVELS = {
 				// Main dungeon
 				{1, 0, "Sewers 1"},
 				{2, 0, "Sewers 2"},
@@ -314,8 +314,9 @@ public class WndDebugPicker extends Window {
 				{65, 0, "Mines Boss"},
 				{66, 0, "Sokoban Vault"},
 				{67, 0, "Dragon Cave"},
+				{85, 0, "Rooms Showcase (debug)"},
+				{86, 0, "Warped Rooms (debug)"},
 				{97, 0, "Overworld (debug)"},
-				{98, 0, "Rooms Showcase (debug)"},
 				{99, 0, "Zot Boss"},
 				// Branch 1
 				{11, 1, "Mining 11 (branch 1)"},
@@ -349,9 +350,11 @@ public class WndDebugPicker extends Window {
 				{4, 6, "Town: Shop (branch 6)"},
 				{5, 6, "Town: Fortune Teller (branch 6)"},
 				{6, 6, "Town: Inn (branch 6)"},
-		};
+	};
 
-		for (Object[] l : levels) {
+	public static WndDebugPicker forTravel() {
+		ArrayList<Entry> entries = new ArrayList<>();
+		for (Object[] l : TRAVEL_LEVELS) {
 			final int depth = (int) l[0];
 			final int branch = (int) l[1];
 			final String name = (String) l[2];
@@ -373,22 +376,24 @@ public class WndDebugPicker extends Window {
 
 	private WndDebugPicker(String title, ArrayList<Entry> entries, boolean searchable) {
 		super();
+		//as wide as the debug window it opens from
+		final int width = WndDebug.width(chrome.marginHor());
 		final int listTop = HEADER_HEIGHT + (searchable ? 20 : 0);
 
 		int maxH = (int)(Game.height / PixelScene.defaultZoom * 0.8f);
 		int contentH = entries.size() * 18;
 		int finalH = (int) Math.min(maxH, listTop + Math.max(18, contentH) + 4);
 
-		resize(WIDTH, finalH);
+		resize(width, finalH);
 
 		RenderedTextBlock header = PixelScene.renderTextBlock(title, 9);
 		header.hardlight(Window.TITLE_COLOR);
 		add(header);
-		header.setPos((WIDTH - header.width()) / 2f, 0);
+		header.setPos((width - header.width()) / 2f, 0);
 
 		ScrollingListPane list = new ScrollingListPane();
 		add(list);
-		list.setRect(0, listTop, WIDTH, finalH - listTop);
+		list.setRect(0, listTop, width, finalH - listTop);
 		if (searchable) {
 			RedButton search = new RedButton("Search (" + entries.size() + ")", 6) {
 				private String query = "";
@@ -406,7 +411,7 @@ public class WndDebugPicker extends Window {
 				}
 			};
 			add(search);
-			search.setRect(0, HEADER_HEIGHT, WIDTH, 18);
+			search.setRect(0, HEADER_HEIGHT, width, 18);
 		}
 		populate(list, entries, "");
 	}
@@ -519,7 +524,7 @@ public class WndDebugPicker extends Window {
 	// --- Quantity picker helper ---
 
 	//the most the debug picker places at once: items can pile a hundred deep on a
-	//cell; monsters all stand on the one tapped cell, so they stay at ten
+	//cell; monsters each need a cell of their own around the tapped one
 	private static final int MAX_ITEMS = 100;
 	private static final int MAX_MOBS = 10;
 
@@ -527,7 +532,8 @@ public class WndDebugPicker extends Window {
 		final int[] qty = {1};
 		WarpedPixelDungeon.scene().addToFront(new Window() {
 			{
-				int w = 140;
+				//140, or less on a phone too narrow for it
+				int w = (int)Math.min(140, PixelScene.uiCamera.width - chrome.marginHor() - 1);
 
 				RenderedTextBlock title = PixelScene.renderTextBlock("", 7);
 				title.hardlight(TITLE_COLOR);
@@ -699,10 +705,14 @@ public class WndDebugPicker extends Window {
 			@Override
 			public void onSelect(Integer cell) {
 				if (cell == null || Dungeon.level == null) return;
-				for (int i = 0; i < count; i++) {
+				if (cell < 0 || cell >= Dungeon.level.length()) return;
+				ArrayList<Integer> cells = spawnCells(cell, count, Dungeon.level.width(),
+						Dungeon.level.passable, c -> Actor.findChar(c) != null);
+				if (cells.size() < count) GLog.w("Room for only " + cells.size() + " of " + count + " there.");
+				for (int c : cells) {
 					Mob mob = Reflection.newInstance(mobCls);
 					if (mob == null) return;
-					mob.pos = cell;
+					mob.pos = c;
 					mob.state = mob.debugSpawnState();
 					GameScene.add(mob);
 				}
@@ -713,6 +723,33 @@ public class WndDebugPicker extends Window {
 				return "Tap to spawn x" + count + ": " + name;
 			}
 		}));
+	}
+
+	/**
+	 * Where spawned monsters stand: the tapped cell whatever its terrain (a bat over a chasm, as
+	 * the window always allowed) unless someone stands there, then the nearest open, free cells
+	 * reached from it without crossing a wall, one monster to a cell.
+	 */
+	static ArrayList<Integer> spawnCells(int cell, int count, int width, boolean[] passable, IntPredicate occupied) {
+		ArrayList<Integer> out = new ArrayList<>();
+		boolean[] seen = new boolean[passable.length];
+		int[] around = { -width - 1, -width, -width + 1, -1, 1, width - 1, width, width + 1 };
+		ArrayDeque<Integer> queue = new ArrayDeque<>();
+		queue.add(cell);
+		seen[cell] = true;
+		while (!queue.isEmpty() && out.size() < count) {
+			int c = queue.poll();
+			if ((c == cell || passable[c]) && !occupied.test(c)) out.add(c);
+			for (int o : around) {
+				int n = c + o;
+				//no wrapping from one row's end to the next row's start
+				if (n < 0 || n >= passable.length || Math.abs(n % width - c % width) > 1) continue;
+				if (seen[n] || !passable[n]) continue;
+				seen[n] = true;
+				queue.add(n);
+			}
+		}
+		return out;
 	}
 
 	private static void selectCellForBlob(Class<? extends Blob> blobCls, String name) {

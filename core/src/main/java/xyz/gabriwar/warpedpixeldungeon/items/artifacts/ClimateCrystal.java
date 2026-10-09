@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MagicImmune;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Regeneration;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.ClimateCrystalWard;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfEnergy;
@@ -41,7 +42,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 
 import java.util.ArrayList;
 
@@ -119,7 +119,7 @@ public class ClimateCrystal extends Artifact {
 			Dungeon.level.occupyCell( ward );
 
 			CellEmitter.get( cell ).burst( Speck.factory( Speck.LIGHT ), 10 );
-			Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 1f, 1.2f );
+			SpatialSound.play( Assets.Sounds.CHARGEUP, cell, 1f, 1.2f );
 			GLog.i( Messages.get( ClimateCrystal.class, "placed" ) );
 
 			hero.sprite.operate( cell );

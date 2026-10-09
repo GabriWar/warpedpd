@@ -31,7 +31,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -40,6 +39,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
@@ -104,10 +104,10 @@ public class Blackout extends Skill {
                     xyz.gabriwar.warpedpixeldungeon.actors.blobs.SmokeScreen.class));
 			curUser.MP -= getManaCost();
 			castTextYell();
-			Sample.INSTANCE.play( Assets.Sounds.PUFF, 1f, 0.8f );
+			SpatialSound.play( Assets.Sounds.PUFF, cell, 1f, 0.8f );
 
 			CellEmitter.get( cell ).burst( Speck.factory( Speck.SMOKE ), 6 );
-			Sample.INSTANCE.play( Assets.Sounds.MELD, 0.7f, 0.6f );
+			SpatialSound.play( Assets.Sounds.MELD, cell, 0.7f, 0.6f );
 			//lights out: a dark flare blooms where it lands and the darkness rolls out ring by ring
 			if (curUser.sprite.parent != null && Dungeon.level.heroFOV[cell]){
 				new Flare( 8, 36 ).color( 0x1A0A2A, false ).show( curUser.sprite.parent, DungeonTilemap.tileCenterToWorld( cell ), 0.6f );

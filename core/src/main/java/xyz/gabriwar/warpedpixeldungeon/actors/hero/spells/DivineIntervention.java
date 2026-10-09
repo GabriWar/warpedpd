@@ -30,12 +30,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ShieldBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.cleric.AscendedForm;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.HolyTome;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
-import com.watabou.noosa.audio.Sample;
 
 public class DivineIntervention extends ClericSpell {
 
@@ -62,7 +62,7 @@ public class DivineIntervention extends ClericSpell {
 	@Override
 	public void onCast(HolyTome tome, Hero hero) {
 
-		Sample.INSTANCE.play(Assets.Sounds.CHARGEUP, 1, 1.2f);
+		SpatialSound.play(Assets.Sounds.CHARGEUP, hero, 1, 1.2f);
 		hero.sprite.operate(hero.pos);
 
 		for (Char ch : Actor.chars()){

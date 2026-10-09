@@ -26,9 +26,9 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.pets.ShadowDragon;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 
 public class ShadowDragonSprite extends MobSprite {
@@ -71,7 +71,7 @@ public class ShadowDragonSprite extends MobSprite {
 						((ShadowDragon)ch).onZapComplete();
 					}
 				} );
-		Sample.INSTANCE.play( Assets.Sounds.ZAP );
+		SpatialSound.play( Assets.Sounds.ZAP, ch );
 	}
 
 	@Override

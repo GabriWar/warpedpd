@@ -37,12 +37,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Slownesscloud;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Slow;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfDirt;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfSlowness;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 public class QuicksandBrew extends Brew {
@@ -55,7 +55,7 @@ public class QuicksandBrew extends Brew {
 	public void shatter( int cell ) {
 		splash( cell );
 		if (Dungeon.level.heroFOV[cell]) {
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER );
+			SpatialSound.play( Assets.Sounds.SHATTER, cell );
 		}
 
 		for (int offset : PathFinder.NEIGHBOURS9) {

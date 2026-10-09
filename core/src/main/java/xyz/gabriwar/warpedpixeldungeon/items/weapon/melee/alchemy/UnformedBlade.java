@@ -30,6 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.spells.Evolution;
@@ -41,7 +42,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
@@ -182,13 +182,13 @@ public class UnformedBlade extends MeleeWeapon implements AlchemyWeapon {
 						use = false;
 						GLog.n(Messages.get(this, "power_off"));
 						curUser.busy();
-						Sample.INSTANCE.play(Assets.Sounds.UNLOCK, 2, 1.1f);
+						SpatialSound.play(Assets.Sounds.UNLOCK, hero, 2, 1.1f);
 						curUser.sprite.operate(curUser.pos);
 					} else {
 						use = true;
 						GLog.p(Messages.get(this, "power_on"));
 						curUser.busy();
-						Sample.INSTANCE.play(Assets.Sounds.BURNING, 2, 1.1f);
+						SpatialSound.play(Assets.Sounds.BURNING, hero, 2, 1.1f);
 						hero.sprite.emitter().start( ShadowParticle.UP, 0.05f, 10 );
 						curUser.sprite.operate(curUser.pos);
 					}

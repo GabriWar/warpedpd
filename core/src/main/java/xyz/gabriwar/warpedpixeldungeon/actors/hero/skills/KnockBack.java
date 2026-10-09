@@ -29,11 +29,11 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import com.watabou.noosa.Camera;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX;
@@ -55,11 +55,11 @@ public class KnockBack extends ActiveSkill2 {
 		super.execute(hero, action);
 		if (action.equals(Skill.AC_ACTIVATE)){
 			hero.heroSkills.deactivateOtherToggles( this );
-			Sample.INSTANCE.play( Assets.Sounds.STURDY, 0.8f, 1.3f );
+			SpatialSound.play( Assets.Sounds.STURDY, hero, 0.8f, 1.3f );
 			//the arm sets: a shower of forge sparks, then a slow trickle of them while the stance holds
 			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.FORGE ), 6 );
 		} else if (action.equals(Skill.AC_DEACTIVATE)){
-			Sample.INSTANCE.play( Assets.Sounds.STURDY, 0.5f, 0.8f );
+			SpatialSound.play( Assets.Sounds.STURDY, hero, 0.5f, 0.8f );
 		}
 		StanceAura.sync( hero );
 	}
@@ -91,7 +91,7 @@ public class KnockBack extends ActiveSkill2 {
 		castTextYell();
 		hero.MP -= getManaCost();
 		if (room){
-			Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 1f, 0.7f );
+			SpatialSound.play( Assets.Sounds.HIT_STRONG, enemy, 1f, 0.7f );
 			final int from = enemy.pos;
 			SkillInteractions.push( enemy, hero.pos, 1, 0 );
 			//the shove reads as two puffs a beat apart: one where it stood, one where it came down
@@ -111,7 +111,7 @@ public class KnockBack extends ActiveSkill2 {
 			CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.ROCK ), 4 );
 			Camera.main.shake( 2, 0.2f );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 1f, 0.8f );
+		SpatialSound.play( Assets.Sounds.HIT_CRUSH, enemy, 1f, 0.8f );
 		return Math.round( damage * 1.25f );
 	}
 

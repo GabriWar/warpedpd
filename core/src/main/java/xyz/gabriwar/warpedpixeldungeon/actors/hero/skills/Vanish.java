@@ -30,13 +30,13 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 
 import java.util.ArrayList;
 
@@ -68,7 +68,7 @@ public class Vanish extends SubSkill3 {
 		if (action.equals(Skill.AC_CAST) && level > 0 && hero.MP >= getManaCost()){
 			hero.MP -= getManaCost();
 			castTextYell();
-			Sample.INSTANCE.play( Assets.Sounds.MELD, 1f, 1.1f );
+			SpatialSound.play( Assets.Sounds.MELD, hero, 1f, 1.1f );
 			hero.sprite.emitter().burst( ShadowParticle.UP, 10 );
 			loseTrail( hero );
 			Buff.affect( hero, Invisibility.class, level >= Skill.MAX_LEVEL ? 3f : 1f );

@@ -24,9 +24,9 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Pylon;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.BlastParticle;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 
 public class PylonSprite extends MobSprite {
 
@@ -83,7 +83,7 @@ public class PylonSprite extends MobSprite {
 		if (anim == die){
 			turnTo(ch.pos, ch.pos+1); //always face right to merge with custom tiles
 			emitter().burst(BlastParticle.FACTORY, 20);
-			Sample.INSTANCE.play(Assets.Sounds.BLAST);
+			SpatialSound.play(Assets.Sounds.BLAST, ch);
 		}
 		super.play(anim);
 	}

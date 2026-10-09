@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Ooze;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfToxicGas;
@@ -36,7 +37,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.quest.GooBlob;
 import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import com.watabou.utils.BArray;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 import java.util.ArrayList;
@@ -52,7 +52,7 @@ public class CausticBrew extends Brew {
 
 		splash( cell );
 		if (Dungeon.level.heroFOV[cell]) {
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER );
+			SpatialSound.play( Assets.Sounds.SHATTER, cell );
 		}
 		
 		PathFinder.buildDistanceMap( cell, BArray.not( Dungeon.level.solid, null ), 3 );
@@ -100,7 +100,7 @@ public class CausticBrew extends Brew {
 				}
 			}
 		}
-		Sample.INSTANCE.play(Assets.Sounds.SHATTER);
+		SpatialSound.play(Assets.Sounds.SHATTER, enemy);
 	}
 
 	@Override

@@ -261,11 +261,14 @@ public class PrisonLevel extends RegularLevel {
 	public static class Torch extends Emitter {
 		
 		private int pos;
+		//the wall it burns on: a decorated one, or (the sewers' boss) a plain one by the exit
+		private final int wall;
 		
 		public Torch( int pos ) {
 			super();
 			
 			this.pos = pos;
+			wall = Dungeon.level != null && pos < Dungeon.level.length() ? Dungeon.level.map[pos] : -1;
 			
 			PointF p = DungeonTilemap.tileCenterToWorld( pos );
 			pos( p.x - 1, p.y + 2, 2, 0 );
@@ -277,6 +280,14 @@ public class PrisonLevel extends RegularLevel {
 		
 		@Override
 		public void update() {
+			//its wall broken (a pick, a bomb), its fire goes with it
+			if (wall != -1 && Dungeon.level.map[pos] != wall){
+				killAndErase();
+				//its images let go of their vertex buffers now, not when the scene changes
+				destroy();
+				return;
+			}
+
 			if (visible = (pos < Dungeon.level.heroFOV.length && Dungeon.level.heroFOV[pos])) {
 				super.update();
 			}

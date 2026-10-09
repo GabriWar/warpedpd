@@ -35,10 +35,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Slow;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -115,8 +115,8 @@ public class Harp extends MeleeWeapon {
 		hero.sprite.operate(hero.pos);
 		hero.sprite.emitter().burst(Speck.factory(Speck.NOTE), 8);
 		new Flare(6, 22).color(0xCCDDFF, true).show(hero.sprite, 0.9f).angularSpeed = 45;
-		Sample.INSTANCE.play(Assets.Sounds.CHARMS, 1f, 0.8f);
-		Sample.INSTANCE.playDelayed(Assets.Sounds.CHARMS, 0.25f, 1f, 1.2f);
+		SpatialSound.play(Assets.Sounds.CHARMS, hero, 1f, 0.8f);
+		SpatialSound.playDelayed(Assets.Sounds.CHARMS, 0.25f, hero, 1f, 1.2f);
 
 		int slow = requiemSlow();
 		for (Char ch : enemies){

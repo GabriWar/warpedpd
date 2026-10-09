@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import com.watabou.utils.Random;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
@@ -76,8 +77,8 @@ public class SilentDeath extends PassiveSkillB3 {
 		if (Dungeon.hero != null && Dungeon.hero.sprite != null){
 			Dungeon.hero.sprite.emitter().burst( ShadowParticle.UP, 6 );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.HIT_STAB, 1f, 0.6f );
-		Sample.INSTANCE.play( Assets.Sounds.GHOST, 0.5f, 0.7f );
+		SpatialSound.play( Assets.Sounds.HIT_STAB, enemy, 1f, 0.6f );
+		SpatialSound.play( Assets.Sounds.GHOST, enemy, 0.5f, 0.7f );
 		return true;
 	}
 

@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AllyBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Charm;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
@@ -37,7 +38,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 
 public class ScrollOfSirensSong extends ExoticScroll {
 	
@@ -82,8 +82,8 @@ public class ScrollOfSirensSong extends ExoticScroll {
 			} else {
 
 				curUser.sprite.centerEmitter().start( Speck.factory( Speck.HEART ), 0.2f, 5 );
-				Sample.INSTANCE.play( Assets.Sounds.CHARMS );
-				Sample.INSTANCE.playDelayed( Assets.Sounds.LULLABY, 0.1f );
+				SpatialSound.play( Assets.Sounds.CHARMS, curUser );
+				SpatialSound.playDelayed( Assets.Sounds.LULLABY, 0.1f, curUser );
 
 				for (Mob mob : Dungeon.level.mobs.toArray( new Mob[0] )) {
 					if (Dungeon.level.heroFOV[mob.pos] && mob != target && mob.alignment != Char.Alignment.ALLY) {

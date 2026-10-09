@@ -27,6 +27,7 @@ package xyz.gabriwar.warpedpixeldungeon.items.ore;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
@@ -37,7 +38,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.net.NetManager;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 
 /**
  * A rough gem out of a crystal of a cave seam (levels/overworld/Ores.gemAt): one class per stone,
@@ -83,7 +83,7 @@ public abstract class Gem extends Item {
 		Ores.GemKind k = kind();
 		Splash.at( cell, k.colour, 8 );
 		CellEmitter.center( cell ).burst( Speck.factory( Speck.STAR ), 4 );
-		Sample.INSTANCE.play( Assets.Sounds.CHARMS, 1f, k.pitch );
+		SpatialSound.play( Assets.Sounds.CHARMS, cell, 1f, k.pitch );
 		mined( hero, cell );
 	}
 
@@ -92,7 +92,7 @@ public abstract class Gem extends Item {
 		NetManager.heroLog( hero, GLog.POSITIVE + Messages.get( Gem.class, "found", name() ) );
 		if (collect( hero.belongings.backpack )){
 			GameScene.pickUp( this, cell );
-			Sample.INSTANCE.play( Assets.Sounds.ITEM );
+			SpatialSound.play( Assets.Sounds.ITEM, hero );
 			return true;
 		}
 		Heap h = Dungeon.level.drop( this, hero.pos );

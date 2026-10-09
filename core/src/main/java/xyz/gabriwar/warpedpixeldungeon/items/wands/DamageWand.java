@@ -25,8 +25,8 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.WandEmpower;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import com.watabou.noosa.audio.Sample;
 
 //for wands that directly damage a target
 //wands with AOE or circumstantial direct damage count here (e.g. fireblast, transfusion), but wands with indirect damage do not (e.g. corrosion)
@@ -69,7 +69,7 @@ public abstract class DamageWand extends Wand{
 			if (emp.left <= 0) {
 				emp.detach();
 			}
-			Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG, 0.75f, 1.2f);
+			SpatialSound.play(Assets.Sounds.HIT_STRONG, curUser, 0.75f, 1.2f);
 		}
 		return dmg;
 	}

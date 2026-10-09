@@ -31,7 +31,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.particles.BloodParticle;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import com.watabou.noosa.Camera;
 import com.watabou.noosa.Image;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -39,6 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -78,7 +78,7 @@ public class Toughness extends PassiveSkillA3 {
 			hero.sprite.emitter().burst( Speck.factory( Speck.FORGE ), 6 );
 			hero.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "grit" ) );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.STURDY, 1f, 0.8f );
+		SpatialSound.play( Assets.Sounds.STURDY, hero, 1f, 0.8f );
 		return damage;
 	}
 
@@ -93,7 +93,7 @@ public class Toughness extends PassiveSkillA3 {
 			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
 			hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "spared", pain.left ) );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 1f, 1.3f );
+		SpatialSound.play( Assets.Sounds.HIT_PARRY, hero, 1f, 1.3f );
 		pain.detach();
 	}
 

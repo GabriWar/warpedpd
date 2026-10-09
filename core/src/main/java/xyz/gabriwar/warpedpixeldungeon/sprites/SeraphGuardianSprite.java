@@ -1,4 +1,5 @@
 package xyz.gabriwar.warpedpixeldungeon.sprites;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import com.watabou.noosa.TextureFilm;
 public class SeraphGuardianSprite extends MobSprite {
     public SeraphGuardianSprite(){
@@ -23,7 +24,7 @@ public class SeraphGuardianSprite extends MobSprite {
         if(parent==null||!visible)return;
         parent.add(new xyz.gabriwar.warpedpixeldungeon.effects.Beam.LightRay(center(),
                 xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap.raisedTileCenterToWorld(cell)));
-        com.watabou.noosa.audio.Sample.INSTANCE.play(xyz.gabriwar.warpedpixeldungeon.Assets.Sounds.RAY,.6f,1.2f);
+        SpatialSound.play(xyz.gabriwar.warpedpixeldungeon.Assets.Sounds.RAY,ch,.6f,1.2f);
     }
     @Override public int blood(){return 0xFFFFE9AF;}
 }

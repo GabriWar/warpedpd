@@ -37,6 +37,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mimic;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Shopkeeper;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Surprise;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfEnergy;
@@ -46,7 +47,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
 
@@ -131,7 +131,7 @@ public class MasterThievesArmband extends Artifact {
 					curUser.sprite.attack(target, new Callback() {
 						@Override
 						public void call() {
-							Sample.INSTANCE.play(Assets.Sounds.HIT);
+							SpatialSound.play(Assets.Sounds.HIT, ch);
 
 							boolean surprised = ((Mob) ch).surprisedBy(curUser, false);
 							float lootMultiplier = 1f + 0.1f*level();
@@ -142,7 +142,7 @@ public class MasterThievesArmband extends Artifact {
 							if (surprised){
 								lootMultiplier += 0.5f;
 								Surprise.hit(ch);
-								Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG);
+								SpatialSound.play(Assets.Sounds.HIT_STRONG, ch);
 								debuffDuration += 2;
 								exp += 2;
 							}

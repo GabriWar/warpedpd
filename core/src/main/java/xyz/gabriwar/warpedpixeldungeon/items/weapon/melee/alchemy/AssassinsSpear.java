@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.LiquidMetal;
 import xyz.gabriwar.warpedpixeldungeon.items.spells.Evolution;
@@ -44,7 +45,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
 
@@ -135,7 +135,7 @@ public class AssassinsSpear extends MeleeWeapon implements AlchemyWeapon {
 				wep.beforeAbilityUsed(hero, enemy);
 				AttackIndicator.target(enemy);
 				if (hero.attack(enemy, dmgMulti, dmgBoost, 0.25f)){
-					Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG);
+					SpatialSound.play(Assets.Sounds.HIT_STRONG, enemy);
 				}
 
 				Invisibility.dispel();

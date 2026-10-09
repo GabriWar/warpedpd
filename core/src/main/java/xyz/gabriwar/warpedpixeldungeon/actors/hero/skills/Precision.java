@@ -34,13 +34,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.PrecisionPin;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.ThrowingSpear;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 
 public class Precision extends PassiveSkillB1 {
@@ -103,7 +103,7 @@ public class Precision extends PassiveSkillB1 {
 			enemy.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "pinned" ) );
 		}
 		if (from >= 0) SkillInteractions.flare( from, 0xE6EDF5 );
-		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 0.8f, 1.5f );
+		SpatialSound.play( Assets.Sounds.HIT_PARRY, enemy, 0.8f, 1.5f );
 	}
 
 	/** a gap found in this enemy's guard: blows on it ignore its armour */

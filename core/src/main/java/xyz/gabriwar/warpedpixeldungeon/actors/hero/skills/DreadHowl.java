@@ -30,7 +30,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -39,6 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -113,7 +113,7 @@ public class DreadHowl extends Skill {
 					}
 				} );
 			}
-			t.at( 0.2f, () -> Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 0.6f, 0.7f ) );
+			t.at( 0.2f, () -> SpatialSound.play( Assets.Sounds.CHALLENGE, hero, 0.6f, 0.7f ) );
 			for (Char ch : terrified){
 				Buff.detach( ch, Terror.class );
 				Buff.prolong( ch, Amok.class, 3 + level );
@@ -131,7 +131,7 @@ public class DreadHowl extends Skill {
 
 			hero.MP -= getManaCost();
 			castTextYell();
-			Sample.INSTANCE.play( Assets.Sounds.GHOST, 1f, 0.6f );
+			SpatialSound.play( Assets.Sounds.GHOST, hero, 1f, 0.6f );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
 			hero.busy();

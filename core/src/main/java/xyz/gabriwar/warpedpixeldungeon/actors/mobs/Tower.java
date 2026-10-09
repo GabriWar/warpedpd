@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Electricity;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.BlastParticle;
@@ -49,7 +50,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.TowerSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -150,7 +150,7 @@ public class Tower extends Mob implements Callback {
 		GLog.w(Messages.get(this, "alert"));
 		CellEmitter.center(pos).start(
 				Speck.factory(Speck.SCREAM), 0.3f, 3);
-		Sample.INSTANCE.play(Assets.Sounds.CHALLENGE);
+		SpatialSound.play(Assets.Sounds.CHALLENGE, pos);
 
 		super.damage(dmg, src);
 	}
@@ -176,7 +176,7 @@ public class Tower extends Mob implements Callback {
 
 	//scatters dewdrops over the wreck, as the source's Mob.explodeDew did
 	private void explodeDew(int cell) {
-		Sample.INSTANCE.play(Assets.Sounds.BLAST, 2);
+		SpatialSound.play(Assets.Sounds.BLAST, cell, 2);
 
 		for (int n : PathFinder.NEIGHBOURS9) {
 			int c = cell + n;
@@ -209,7 +209,7 @@ public class Tower extends Mob implements Callback {
 	}
 
 	public void explode(int cell) {
-		Sample.INSTANCE.play(Assets.Sounds.BLAST, 2);
+		SpatialSound.play(Assets.Sounds.BLAST, cell, 2);
 
 		if (Dungeon.level.heroFOV[cell]) {
 			CellEmitter.center(cell).burst(BlastParticle.FACTORY, 30);

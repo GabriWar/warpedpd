@@ -31,7 +31,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import com.watabou.utils.Callback;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -43,6 +42,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
@@ -102,8 +102,8 @@ public class WindBottle extends MeleeWeapon {
 		ConeAOE cone = new ConeAOE( core, 2, 60, Ballistica.STOP_SOLID );
 		beforeAbilityUsed( hero, null );
 		hero.sprite.zap( target );
-		Sample.INSTANCE.play( Assets.Sounds.PUFF, 1f, 0.7f );
-		Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 0.5f );
+		SpatialSound.play( Assets.Sounds.PUFF, hero, 1f, 0.7f );
+		SpatialSound.play( Assets.Sounds.MISS, hero, 1f, 0.5f );
 		int power = gustPower();
 		boolean any = false;
 		for (int c : cone.cells){

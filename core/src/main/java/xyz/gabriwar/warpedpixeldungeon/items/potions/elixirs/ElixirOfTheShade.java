@@ -36,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FlavourBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ShadeCloak;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfInvisibility;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfShadows;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -55,15 +56,15 @@ public class ElixirOfTheShade extends Elixir {
 		Buff.prolong( hero, Invisibility.class, Invisibility.DURATION );
 		Buff.prolong( hero, ShadeCloak.class, ShadeCloak.DURATION ).reset();
 		GLog.i( Messages.get( this, "shade" ) );
-		Sample.INSTANCE.play( Assets.Sounds.MELD );
+		SpatialSound.play( Assets.Sounds.MELD, hero );
 	}
 
 	@Override
 	public void shatter( int cell ) {
 		splash( cell );
 		if (Dungeon.level.heroFOV[cell]) {
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER );
-			Sample.INSTANCE.play( Assets.Sounds.GAS );
+			SpatialSound.play( Assets.Sounds.SHATTER, cell );
+			SpatialSound.play( Assets.Sounds.GAS, cell );
 		}
 
 		PathFinder.buildDistanceMap( cell, BArray.not( Dungeon.level.solid, null ), 2 );

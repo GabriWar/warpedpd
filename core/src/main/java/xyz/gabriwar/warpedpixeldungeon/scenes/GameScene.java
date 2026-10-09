@@ -59,6 +59,19 @@ import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.Ripple;
 import xyz.gabriwar.warpedpixeldungeon.effects.SpellSprite;
 import xyz.gabriwar.warpedpixeldungeon.effects.GuideTrail;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Afterimage;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FlashGate;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxDecal;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxLight;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxModules;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRing;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Lit;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Steps;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.TerrainWatch;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.WaterFX;
 import xyz.gabriwar.warpedpixeldungeon.items.Ankh;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Honeypot;
@@ -209,6 +222,12 @@ public class GameScene extends PixelScene {
 	private Group levelWallVisuals;
 	private Group customWalls;
 	private Group ripples;
+	//the effects kit's layers (docs/fx/README.md): under the ripples, what lies under the water's
+	//surface and the sheens on it; over the night's tint, the light every emissive effect draws in
+	private Group waterLayer;
+	private Group subsurface;
+	private Group sheen;
+	private Group lights;
 	private Group plants;
 	private Group traps;
 	private Group heaps;
@@ -278,6 +297,18 @@ public class GameScene extends PixelScene {
 		float largeInsetTop = Game.platform.getSafeInsets(PlatformSupport.INSET_LRG).scale(1f/defaultZoom).top;
 
 		scene = this;
+		//the effects kit: this is the render thread, nothing of the last scene's is alive, and the
+		//water scrolls at the plain rate until a liquid says otherwise
+		Fx.sceneCreated();
+		Steps.reset();
+		FxBudget.reset();
+		FxLight.reset();
+		FxDecal.reset();
+		FxRing.reset();
+		Afterimage.reset();
+		WaterFX.sceneCreated();
+		waterScroll = 5f;
+		lastFrameNanos = 0;
 
 		terrain = new Group();
 		add( terrain );
@@ -302,6 +333,14 @@ public class GameScene extends PixelScene {
 		};
 		water.autoAdjust = true;
 		terrain.add( water );
+
+		//under the surface (what swims), then the sheens on it, both masked by the shore's tiles
+		waterLayer = new Group();
+		terrain.add( waterLayer );
+		subsurface = new Group();
+		waterLayer.add( subsurface );
+		sheen = new Group();
+		waterLayer.add( sheen );
 
 		ripples = new Group();
 		terrain.add( ripples );
@@ -351,6 +390,8 @@ public class GameScene extends PixelScene {
 		xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientSounds sounds
 				= xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientSounds.forLevel( Dungeon.level );
 		if (sounds != null) add( sounds );
+		//the weather's sounds, on every level: what reaches the hero there they decide themselves
+		add( xyz.gabriwar.warpedpixeldungeon.levels.ambience.WeatherSounds.forLevel( Dungeon.level ) );
 
 		floorEmitters = new Group();
 		add(floorEmitters);
@@ -443,6 +484,10 @@ public class GameScene extends PixelScene {
 		dayNightOverlay.hardlight(curTintR, curTintG, curTintB);
 		dayNightOverlay.alpha(curTintA);
 
+		//light: over the night's tint, under the weather
+		lights = new Group();
+		add( lights );
+
 		weatherOverlay = new WeatherOverlay();
 		weatherOverlay.setup();
 		add( weatherOverlay );
@@ -513,6 +558,10 @@ public class GameScene extends PixelScene {
 		
 		add( emoicons );
 		add( new xyz.gabriwar.warpedpixeldungeon.debug.HeatOverlay() );
+
+		//every layer stands: the effects' areas set themselves up on it, the terrain taken in as seen
+		TerrainWatch.resync();
+		FxModules.sceneCreated( this );
 		
 		add( cellSelector = new CellSelector( tiles ) );
 		cellSelector.enabled = !xyz.gabriwar.warpedpixeldungeon.net.NetManager.isNetClient();
@@ -586,6 +635,15 @@ public class GameScene extends PixelScene {
 		menu.camera = uiCamera;
 		menu.setPos( menuBarMaxLeft, screentop);
 		add(menu);
+		//a fresh guide page keeps the journal button flashing across floors (and when it was
+		//written while the level loaded) until the guide is opened or the page read
+		if (guideFlash != null){
+			if (xyz.gabriwar.warpedpixeldungeon.journal.GuideProgress.isRead( guideFlash )){
+				guideFlash = null;
+			} else {
+				menu.flashForGuide( guideFlash );
+			}
+		}
 
 		//the map button sits under the menu pane in the top-right corner, where a map
 		//belongs and where nothing else is competing for the corner. Only on the
@@ -1151,6 +1209,13 @@ public class GameScene extends PixelScene {
 
 	private static float waterOfs = 0;
 
+	/** How fast the water's surface scrolls, px/s: the plain rate, set per liquid by the water's
+	 *  life (lava crawls at 2, the city's oil at 3.5); back to 5 with every scene. */
+	public static float waterScroll = 5f;
+
+	//the real time of the last frame, for the effects' budget
+	private static long lastFrameNanos = 0;
+
 	@Override
 	public synchronized void update() {
 		xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.frame();
@@ -1182,8 +1247,15 @@ public class GameScene extends PixelScene {
 
 		if (notifyDelay > 0) notifyDelay -= Game.elapsed;
 
+		long nanos = System.nanoTime();
+		FxBudget.frame( lastFrameNanos == 0 ? 0f : (nanos - lastFrameNanos) / 1e9f );
+		lastFrameNanos = nanos;
+		Fx.frame();
+		WaterFX.frame();
+		TerrainWatch.drain();
+
 		if (!Emitter.freezeEmitters) {
-			waterOfs -= 5 * Game.elapsed;
+			waterOfs -= waterScroll * Game.elapsed;
 			water.offsetTo( 0, waterOfs );
 			waterOfs = water.offsetY(); //re-assign to account for auto adjust
 		}
@@ -1436,7 +1508,19 @@ public class GameScene extends PixelScene {
 	
 	private void addBlobSprite( final Blob gas ) {
 		if (gas.emitter == null) {
-			gases.add( new BlobEmitter( gas ) );
+			blobEmitter( gas, lights, gases );
+		}
+	}
+
+	//a blob's emitter among the gases, or for one that is light in the light layer with its
+	//matter's companion among the gases
+	private static void blobEmitter( Blob gas, Group lights, Group gases ){
+		BlobEmitter e = new BlobEmitter( gas );
+		if (gas.emissive() && lights != null) {
+			lights.add( e );
+			gases.add( e.matter() );
+		} else {
+			gases.add( e );
 		}
 	}
 	
@@ -1677,14 +1761,18 @@ public class GameScene extends PixelScene {
 		}
 	}
 
+	/** A middling ring on the water at a cell's middle (WaterFX.M, the player's: never dropped);
+	 *  its y is still the caller's to nudge. Null off the scene. */
 	public static Ripple ripple( int pos ) {
-		if (scene != null) {
-			Ripple ripple = (Ripple) scene.ripples.recycle(Ripple.class);
-			ripple.reset(pos);
-			return ripple;
-		} else {
-			return null;
-		}
+		if (layer( Layer.SURFACE ) == null || Dungeon.level == null) return null;
+		int w = Dungeon.level.width();
+		return WaterFX.ring( (pos % w + 0.5f) * DungeonTilemap.SIZE, (pos / w + 0.5f) * DungeonTilemap.SIZE, WaterFX.M );
+	}
+
+	/** A ring on the water of a size (WaterFX.S, M, L) at a point. Null off the scene. */
+	public static Ripple ripple( float x, float y, int size ) {
+		if (layer( Layer.SURFACE ) == null) return null;
+		return WaterFX.ring( x, y, size );
 	}
 	
 	public static synchronized SpellSprite spellSprite() {
@@ -1695,6 +1783,9 @@ public class GameScene extends PixelScene {
 		if (scene != null) {
 			Emitter emitter = (Emitter)scene.emitters.recycle( Emitter.class );
 			emitter.revive();
+			//a recycled one may still carry the co-op tag of the cell it last burst on
+			emitter.netCell = -1;
+			emitter.netEmType = null;
 			return emitter;
 		} else {
 			return null;
@@ -1705,6 +1796,8 @@ public class GameScene extends PixelScene {
 		if (scene != null) {
 			Emitter emitter = (Emitter)scene.floorEmitters.recycle( Emitter.class );
 			emitter.revive();
+			emitter.netCell = -1;
+			emitter.netEmType = null;
 			return emitter;
 		} else {
 			return null;
@@ -1723,6 +1816,146 @@ public class GameScene extends PixelScene {
 
 	//the night overlay's current alpha (0 by day): what over-fog smoke darkens itself by
 	public static float nightTintAlpha(){ return curTintA; }
+
+	// ------------------------------------------------------------------ the effects kit's layers
+
+	/** Into the light layer: over the night's tint, under the weather; drawn as the gizmo draws
+	 *  itself (an FxLight or a light-mode emitter adds). World-anchored, slid with a rebase. */
+	public static void light( Gizmo g ){
+		add( Layer.LIGHTS, g );
+	}
+
+	private static void add( Layer layer, Gizmo g ){
+		Group group = layer( layer );
+		if (group != null) group.add( g );
+	}
+
+	/** The layers the effects kit pools its pictures in. */
+	public enum Layer {
+		/** On the floor, under everyone: decals, ground rings (floorEmitters). */
+		FLOOR,
+		/** On the water's surface: rings, wakes, foam, washes (the ripples). */
+		SURFACE,
+		/** Under the water's surface. */
+		SUBSURFACE,
+		/** The water's sheens. */
+		SHEEN,
+		/** Matter in the air, over everyone (the emitters). */
+		EFFECTS,
+		/** Light, over the night's tint. */
+		LIGHTS
+	}
+
+	//stand-ins for the layers off any scene: a test's
+	private static Group[] testLayers;
+
+	/** Test only: groups standing in for the kit's layers (one per Layer, in its order) while there
+	 *  is no game scene; null for none. */
+	public static void useLayersForTests( Group[] layers ){
+		testLayers = layers;
+	}
+
+	/** The group of a layer, null off the scene. */
+	public static Group layer( Layer layer ){
+		if (scene == null) return testLayers == null ? null : testLayers[layer.ordinal()];
+		switch (layer){
+			case FLOOR:      return scene.floorEmitters;
+			case SURFACE:    return scene.ripples;
+			case SUBSURFACE: return scene.subsurface;
+			case SHEEN:      return scene.sheen;
+			case EFFECTS:    return scene.emitters;
+			default:         return scene.lights;
+		}
+	}
+
+	/** A pooled picture of a kind from a layer: a dead one of that exact class brought back to
+	 *  life, or a new one added; null off the scene. The caller sets it up (and revives it, as a
+	 *  reset does). */
+	@SuppressWarnings("unchecked")
+	public static synchronized <T extends Gizmo> T recycle( Layer layer, Class<T> kind ){
+		Group g = layer( layer );
+		return g == null ? null : (T) g.recycle( kind );
+	}
+
+	/** A pooled kit emitter in the light layer. */
+	public static synchronized FxEmitter lightEmitter(){
+		return pooled( layer( Layer.LIGHTS ) );
+	}
+
+	/** A pooled kit emitter among the effects (matter in the air). */
+	public static synchronized FxEmitter fxEmitter(){
+		return pooled( layer( Layer.EFFECTS ) );
+	}
+
+	/** A pooled kit emitter on the floor, under everyone. */
+	public static synchronized FxEmitter floorFxEmitter(){
+		return pooled( layer( Layer.FLOOR ) );
+	}
+
+	private static FxEmitter pooled( Group layer ){
+		if (layer == null) return null;
+		FxEmitter e = (FxEmitter)layer.recycle( FxEmitter.class );
+		e.revive();
+		return e;
+	}
+
+	/** Onto the water's surface (the ripples' slot): rings, wakes, foam, washes; masked by the
+	 *  shore's tiles, under the tint and the fog. */
+	public static void surface( Gizmo g ){
+		add( Layer.SURFACE, g );
+	}
+
+	/** Under the water's surface: what swims there, under its sheens. */
+	public static void subsurface( Gizmo g ){
+		add( Layer.SUBSURFACE, g );
+	}
+
+	/** Onto the water as its sheen, over what swims, under the rings. */
+	public static void sheen( Gizmo g ){
+		add( Layer.SHEEN, g );
+	}
+
+	/** The water's plane, the level's water texture scrolling (null off the scene). */
+	public static SkinnedBlock waterPlane(){
+		return scene != null ? scene.water : null;
+	}
+
+	/**
+	 * A stand-in in the light layer drawing `lit` there while it is visible, so a thing of an
+	 * ordinary layer shows as light over the night's tint; the thing skips its own draw while the
+	 * stand-in exists (Lit). It goes once the thing has left its group. Render thread; null off the
+	 * game's scene.
+	 */
+	public static Gizmo carryLight( Lit lit ){
+		Group lights = layer( Layer.LIGHTS );
+		return lights == null ? null : lights.add( new Carried( lit ) );
+	}
+
+	private static final class Carried extends Gizmo {
+		private final Lit lit;
+
+		Carried( Lit lit ){
+			this.lit = lit;
+		}
+
+		private boolean gone(){
+			if (lit instanceof Gizmo){
+				Gizmo g = (Gizmo) lit;
+				return !g.exists || g.parent == null;
+			}
+			return false;
+		}
+
+		@Override
+		public void update(){
+			if (gone()) killAndErase();
+		}
+
+		@Override
+		public void draw(){
+			if (!gone() && lit.isVisible()) lit.drawLit();
+		}
+	}
 	
 	public static FloatingText status() {
 		return scene != null ? (FloatingText)scene.statuses.recycle( FloatingText.class ) : null;
@@ -1750,6 +1983,23 @@ public class GameScene extends PixelScene {
 			}
 			scene.menu.flashForPage( doc, page );
 		}
+	}
+
+	//the fresh guide page the journal button flashes for, until the guide is opened or it is read
+	private static String guideFlash = null;
+
+	/** Flashes the journal button for a fresh Descent Guide page: pressing it opens the
+	 *  guide on that page. */
+	public static void flashForGuide( String key ){
+		guideFlash = key;
+		if (scene != null && scene.menu != null) {
+			scene.menu.flashForGuide( key );
+		}
+	}
+
+	/** The guide was opened: whatever page the journal button flashed for has been shown. */
+	public static void guideFlashSeen(){
+		guideFlash = null;
 	}
 
 	public static void endIntro(){
@@ -1833,8 +2083,8 @@ public class GameScene extends PixelScene {
 	public static void shiftWorldVisuals( float sx, float sy ){
 		if (scene == null) return;
 		com.watabou.noosa.Group[] groups = {
-				scene.ripples, scene.floorEmitters, scene.emitters, scene.effects,
-				scene.gases, scene.spells, scene.statuses, scene.emoicons,
+				scene.ripples, scene.waterLayer, scene.floorEmitters, scene.emitters, scene.effects,
+				scene.gases, scene.lights, scene.spells, scene.statuses, scene.emoicons,
 				scene.overFogEffects };
 		for (com.watabou.noosa.Group g : groups){
 			if (g != null) shiftRec( g, sx, sy );
@@ -1915,6 +2165,8 @@ public class GameScene extends PixelScene {
 		scene.walls.applyShift( s.walls );
 		scene.wallBlocking.applyShift( s.blocking );
 		scene.fog.shiftContent( s.dcx, s.dcy );
+		//the window slid: its terrain taken in afresh, nothing announced
+		TerrainWatch.resync();
 		updateDayNightTint();
 		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW applyMapShift (render)", t );
 	}
@@ -1933,6 +2185,8 @@ public class GameScene extends PixelScene {
 
 	private static void updateMapImpl() {
 		if (scene != null) {
+			//a whole map redrawn: taken in as it is, nothing announced
+			TerrainWatch.resync();
 			scene.tiles.updateMap();
 			scene.iceFringe.updateMap();
 			scene.occlusion.updateMap();
@@ -1949,6 +2203,7 @@ public class GameScene extends PixelScene {
 	
 	public static void updateMap( int cell ) {
 		if (scene != null) {
+			TerrainWatch.changed( cell );
 			scene.tiles.updateMapCell( cell );
 			scene.iceFringe.updateMapCell( cell );
 			scene.occlusion.updateMapCell( cell );
@@ -2294,7 +2549,7 @@ public class GameScene extends PixelScene {
 		// down. Guard against the NPE — applyPendingBlobs() will resync once the
 		// new GameScene is up.
 		if (scene != null && scene.gases != null && gas.emitter == null) {
-			scene.gases.add( new xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter( gas ) );
+			blobEmitter( gas, scene.lights, scene.gases );
 		}
 	}
 
@@ -2387,23 +2642,40 @@ public class GameScene extends PixelScene {
 		flash( color, true);
 	}
 
+	/**
+	 * A flash of the whole screen. A light one (added) is one of the game's own: it goes only when
+	 * FlashGate lets it (2 s apart, three in ten seconds with the storm's) and never brighter than
+	 * FlashGate.PEAK_GAME; a dark fade (lightmode false) is not a flash and always goes.
+	 */
 	public static void flash( int color, boolean lightmode ) {
-		if (scene != null) {
-			//don't want to do this on the actor thread
-			WarpedPixelDungeon.runOnRenderThread(new Callback() {
-				@Override
-				public void call() {
-					//greater than 0 to account for negative values (which have the first bit set to 1)
-					if (scene != null) {
-						if (color > 0 && color < 0x01000000) {
-							scene.fadeIn(0xFF000000 | color, lightmode);
-						} else {
-							scene.fadeIn(color, lightmode);
-						}
-					}
-				}
-			});
+		if (scene == null) return;
+		//greater than 0 to account for negative values (which have the first bit set to 1)
+		int c = color > 0 && color < 0x01000000 ? 0xFF000000 | color : color;
+		if (lightmode) {
+			if (!FlashGate.game()) return;
+			int cap = Math.round( FlashGate.PEAK_GAME * 255 );
+			c = (Math.min( c >>> 24, cap ) << 24) | (c & 0xFFFFFF);
 		}
+		fade( c, lightmode );
+	}
+
+	/** The hero's red flash for a heavy blow: as it always looked, at most once in
+	 *  FlashGate.DAMAGE_GAP. */
+	public static void damageFlash( int color ) {
+		if (scene == null || !FlashGate.damage()) return;
+		fade( color > 0 && color < 0x01000000 ? 0xFF000000 | color : color, true );
+	}
+
+	private static void fade( final int color, final boolean lightmode ){
+		//don't want to do this on the actor thread
+		WarpedPixelDungeon.runOnRenderThread(new Callback() {
+			@Override
+			public void call() {
+				if (scene != null) {
+					scene.fadeIn(color, lightmode);
+				}
+			}
+		});
 	}
 
 	public static void gameOver() {

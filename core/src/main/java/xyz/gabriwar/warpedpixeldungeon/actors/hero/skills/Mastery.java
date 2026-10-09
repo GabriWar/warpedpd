@@ -28,12 +28,12 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import com.watabou.noosa.Camera;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
@@ -79,7 +79,7 @@ public class Mastery extends PassiveSkillB3 {
 		if (enemy.sprite != null && enemy.sprite.visible){
 			enemy.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 1f, 1.1f );
+		SpatialSound.play( Assets.Sounds.HIT_PARRY, enemy, 1f, 1.1f );
 		Camera.main.shake( 1, 0.15f );
 		enemy.damage( Math.max( 0, wep.damageRoll( hero ) - enemy.drRoll() ), this );
 

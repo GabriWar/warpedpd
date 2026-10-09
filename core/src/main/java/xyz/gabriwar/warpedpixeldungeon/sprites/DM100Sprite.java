@@ -25,10 +25,10 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.DM100;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 import com.watabou.utils.PointF;
 
@@ -97,7 +97,7 @@ public class DM100Sprite extends MobSprite {
 						}
 					} ));
 		}
-		Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
+		SpatialSound.play( Assets.Sounds.LIGHTNING, ch );
 		
 		super.zap( ch.pos );
 		flash();

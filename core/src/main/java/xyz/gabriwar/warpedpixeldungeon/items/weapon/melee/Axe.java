@@ -29,7 +29,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import com.watabou.utils.Callback;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -40,6 +39,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 
 public class Axe extends MeleeWeapon {
@@ -83,7 +83,7 @@ public class Axe extends MeleeWeapon {
 				if (hero.attack( enemy, 1f, boost, Char.INFINITE_ACCURACY )){
 					Wound.hit( enemy );
 					Camera.main.shake( 2, 0.25f );
-					Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 1f, 0.7f );
+					SpatialSound.play( Assets.Sounds.HIT_SLASH, enemy, 1f, 0.7f );
 					if (!enemy.isAlive()) onAbilityKill( hero, enemy );
 				}
 				Invisibility.dispel();

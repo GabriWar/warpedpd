@@ -27,10 +27,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 public class Dazzling extends Weapon.Enchantment {
@@ -51,7 +51,7 @@ public class Dazzling extends Weapon.Enchantment {
 				}
 			}
 			if (Dungeon.level.heroFOV[attacker.pos] || Dungeon.level.heroFOV[defender.pos]){
-				Sample.INSTANCE.play( Assets.Sounds.BLAST );
+				SpatialSound.play( Assets.Sounds.BLAST, defender );
 			}
 		}
 

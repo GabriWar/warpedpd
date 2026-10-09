@@ -31,12 +31,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.BArray;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -296,8 +296,8 @@ abstract public class KindOfWeapon extends EquipableItem {
 		return damage;
 	}
 
-	public void hitSound( float pitch ){
-		Sample.INSTANCE.play(hitSound, 1, pitch * hitSoundPitch);
+	public void hitSound( float pitch, Char defender ){
+		SpatialSound.play(hitSound, defender, 1, pitch * hitSoundPitch);
 	}
 	
 }

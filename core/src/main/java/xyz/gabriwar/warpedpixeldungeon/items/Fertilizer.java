@@ -30,12 +30,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.FarmCrop;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 
 import java.util.ArrayList;
 
@@ -85,7 +85,7 @@ public class Fertilizer extends Item {
 			FarmCrop crop = (FarmCrop) ch;
 			if (crop.fertilize()) {
 				detach( Dungeon.hero.belongings.backpack );
-				Sample.INSTANCE.play( Assets.Sounds.PLANT );
+				SpatialSound.play( Assets.Sounds.PLANT, cell );
 				GLog.p( Messages.get(Fertilizer.class, "applied") );
 				Dungeon.hero.spendAndNext( 1f );
 			} else {

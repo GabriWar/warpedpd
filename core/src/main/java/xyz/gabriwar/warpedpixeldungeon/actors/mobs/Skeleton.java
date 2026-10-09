@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.HolyWard;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.ShieldOfLight;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfLivingEarth;
@@ -40,7 +41,6 @@ import xyz.gabriwar.warpedpixeldungeon.plants.Earthroot;
 import xyz.gabriwar.warpedpixeldungeon.sprites.SkeletonSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.TargetHealthIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
@@ -136,7 +136,7 @@ public class Skeleton extends Mob {
 		}
 		
 		if (Dungeon.level.heroFOV[pos]) {
-			Sample.INSTANCE.play( Assets.Sounds.BONES );
+			SpatialSound.play( Assets.Sounds.BONES, pos );
 		}
 		
 		if (heroKilled) {

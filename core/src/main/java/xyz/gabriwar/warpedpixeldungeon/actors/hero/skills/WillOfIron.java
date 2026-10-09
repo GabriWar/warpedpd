@@ -29,7 +29,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import com.watabou.noosa.Camera;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -37,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -85,7 +85,7 @@ public class WillOfIron extends Skill {
 			new Flare( 6, 20 ).color( 0x88AAFF, true ).show( hero.sprite, 0.5f );
 			hero.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( this, "brace" ) );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.MELD, 0.8f, 1.3f );
+		SpatialSound.play( Assets.Sounds.MELD, hero, 0.8f, 1.3f );
 		return absorbed;
 	}
 
@@ -99,7 +99,7 @@ public class WillOfIron extends Skill {
 			target.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 6 );
 			target.sprite.flash();
 		}
-		Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 1f, 0.8f );
+		SpatialSound.play( Assets.Sounds.HIT_MAGIC, target, 1f, 0.8f );
 		Camera.main.shake( 1, 0.15f );
 	}
 

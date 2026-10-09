@@ -26,7 +26,6 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MercenarySprite;
@@ -87,7 +86,7 @@ public class Mercenary extends FlavorNPC {
 						TownLedger.lessonsTaken++;
 						TownLedger.used( TownLedger.LESSON );
 						Badges.validateDrilled();
-						Skill.availableSkill += LESSON_POINTS;
+						Dungeon.hero.heroSkills.availableSkill += LESSON_POINTS;
 						GLog.p( Messages.get( Mercenary.class, "taught", LESSON_POINTS ) );
 					}
 				} );

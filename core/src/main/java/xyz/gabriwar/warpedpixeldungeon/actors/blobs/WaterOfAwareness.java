@@ -26,6 +26,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Awareness;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Identification;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -37,14 +38,13 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 
 public class WaterOfAwareness extends WellWater {
 
 	@Override
 	protected boolean affectHero( Hero hero ) {
 		
-		Sample.INSTANCE.play( Assets.Sounds.DRINK );
+		SpatialSound.play( Assets.Sounds.DRINK, hero );
 		emitter.parent.add( new Identification( hero.sprite.center() ) );
 		
 		hero.belongings.observe();
@@ -79,7 +79,7 @@ public class WaterOfAwareness extends WellWater {
 		} else {
 			ScrollOfIdentify.IDItem(item);
 			
-			Sample.INSTANCE.play( Assets.Sounds.DRINK );
+			SpatialSound.play( Assets.Sounds.DRINK, pos );
 			emitter.parent.add( new Identification( DungeonTilemap.tileCenterToWorld( pos ) ) );
 			
 			return item;

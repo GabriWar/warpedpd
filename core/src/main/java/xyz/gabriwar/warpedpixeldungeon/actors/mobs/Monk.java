@@ -27,6 +27,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Imp;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.food.Food;
@@ -36,7 +37,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.MonkSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Image;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
@@ -151,7 +151,7 @@ public class Monk extends Mob {
 		} else {
 			f.detach();
 			if (sprite != null && sprite.visible) {
-				Sample.INSTANCE.play(Assets.Sounds.HIT_PARRY, 1, Random.Float(0.96f, 1.05f));
+				SpatialSound.play(Assets.Sounds.HIT_PARRY, pos, 1, Random.Float(0.96f, 1.05f));
 			}
 			focusCooldown = Random.NormalFloat( 6, 7 );
 			return Messages.get(this, "parried");

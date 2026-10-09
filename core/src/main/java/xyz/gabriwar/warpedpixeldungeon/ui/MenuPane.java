@@ -26,11 +26,13 @@ import xyz.gabriwar.warpedpixeldungeon.Challenges;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.WPDAction;
 import xyz.gabriwar.warpedpixeldungeon.WPDSettings;
+import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.journal.Document;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GuideScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndChallenges;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndGame;
@@ -237,6 +239,10 @@ public class MenuPane extends Component {
 		btnJournal.flashingPage = page;
 	}
 
+	public void flashForGuide( String key ){
+		btnJournal.flashingGuide = key;
+	}
+
 	//"Sewers(3)" in the dungeon; just the place on the surface and in buildings
 	private static String placeLine(){
 		String name = Dungeon.placeName();
@@ -286,6 +292,8 @@ public class MenuPane extends Component {
 
 		private Document flashingDoc = null;
 		private String flashingPage = null;
+		//a Descent Guide page just found: pressing the button opens the guide on it
+		private String flashingGuide = null;
 
 		public JournalButton() {
 			super();
@@ -338,7 +346,7 @@ public class MenuPane extends Component {
 		public void update() {
 			super.update();
 
-			if (flashingPage != null){
+			if (flashingPage != null || flashingGuide != null){
 				journalIcon.am = (float)Math.abs(Math.cos( StatusPane.FLASH_RATE * (time += Game.elapsed) ));
 				keyIcon.am = journalIcon.am;
 				bg.brightness(0.5f + journalIcon.am);
@@ -378,6 +386,15 @@ public class MenuPane extends Component {
 		protected void onClick() {
 			time = 0;
 			keyIcon.am = journalIcon.am = 1;
+			//a page of the adventurer's guide (the tutorial's) goes first: the intro waits on it
+			if (flashingGuide != null && flashingPage == null){
+				GuideScene.focusKey = flashingGuide;
+				GuideScene.returnScene = GameScene.class;
+				flashingGuide = null;
+				updateKeyDisplay();
+				WarpedPixelDungeon.switchScene( GuideScene.class );
+				return;
+			}
 			if (flashingPage != null){
 				if (flashingDoc == Document.ALCHEMY_GUIDE){
 					WndJournal.last_index = 2;

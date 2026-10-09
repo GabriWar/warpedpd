@@ -57,6 +57,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Piranha;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.NPC;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Sheep;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
@@ -153,7 +154,7 @@ public class CursedWand {
 					user.sprite,
 					bolt.collisionPos,
 					callback);
-			Sample.INSTANCE.play( Assets.Sounds.ZAP );
+			SpatialSound.play( Assets.Sounds.ZAP, user );
 		}
 
 		public abstract boolean effect(Item origin, Char user, Ballistica bolt, boolean positiveOnly);
@@ -280,7 +281,7 @@ public class CursedWand {
 	public static class RandomGas extends CursedEffect {
 		@Override
 		public boolean effect(Item origin, Char user, Ballistica bolt, boolean positiveOnly) {
-			Sample.INSTANCE.play( Assets.Sounds.GAS );
+			SpatialSound.play( Assets.Sounds.GAS, bolt.collisionPos );
 			tryForWandProc(Actor.findChar(bolt.collisionPos), origin);
 			if (Actor.findChar(bolt.collisionPos) == null){
 				Dungeon.level.pressCell(bolt.collisionPos);
@@ -329,7 +330,7 @@ public class CursedWand {
 					user.sprite,
 					bolt.collisionPos,
 					callback);
-			Sample.INSTANCE.play( Assets.Sounds.ZAP );
+			SpatialSound.play( Assets.Sounds.ZAP, user );
 		}
 
 		@Override
@@ -403,7 +404,7 @@ public class CursedWand {
 					}
 				}
 			}
-			Sample.INSTANCE.play(Assets.Sounds.SHATTER);
+			SpatialSound.play(Assets.Sounds.SHATTER, user);
 			return true;
 		}
 	}
@@ -494,7 +495,7 @@ public class CursedWand {
 				toDamage.sprite.emitter().start(ShadowParticle.UP, 0.05f, 10);
 
 				if (toDamage == Dungeon.hero){
-					Sample.INSTANCE.play(Assets.Sounds.CURSED);
+					SpatialSound.play(Assets.Sounds.CURSED, toDamage);
 					if (!toDamage.isAlive()) {
 						if (user == Dungeon.hero && origin != null) {
 							Badges.validateDeathFromFriendlyMagic();
@@ -506,7 +507,7 @@ public class CursedWand {
 						}
 					}
 				} else {
-					Sample.INSTANCE.play(Assets.Sounds.BURNING);
+					SpatialSound.play(Assets.Sounds.BURNING, toDamage);
 				}
 				tryForWandProc(target, origin);
 				return true;
@@ -535,7 +536,7 @@ public class CursedWand {
 			} else {
 				user.sprite.parent.addToFront(new Lightning(user.sprite.center(), DungeonTilemap.raisedTileCenterToWorld(bolt.collisionPos), null));
 			}
-			Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
+			SpatialSound.play( Assets.Sounds.LIGHTNING, user );
 			callback.call();
 		}
 
@@ -544,10 +545,10 @@ public class CursedWand {
 
 			ArrayList<Char> affected = new ArrayList<>();
 
-			user.sprite.parent.add(new Lightning(user.pos - 1, user.pos + 1, null));
-			user.sprite.parent.add(new Lightning(user.pos - Dungeon.level.width(), user.pos + Dungeon.level.width(), null));
-			user.sprite.parent.add(new Lightning(user.pos - 1 - Dungeon.level.width(), user.pos + 1 + Dungeon.level.width(), null));
-			user.sprite.parent.add(new Lightning(user.pos - 1 + Dungeon.level.width(), user.pos + 1 - Dungeon.level.width(), null));
+			user.sprite.parent.add(new Lightning(user.pos - 1, user.pos + 1, null).noGlow());
+			user.sprite.parent.add(new Lightning(user.pos - Dungeon.level.width(), user.pos + Dungeon.level.width(), null).noGlow());
+			user.sprite.parent.add(new Lightning(user.pos - 1 - Dungeon.level.width(), user.pos + 1 + Dungeon.level.width(), null).noGlow());
+			user.sprite.parent.add(new Lightning(user.pos - 1 + Dungeon.level.width(), user.pos + 1 - Dungeon.level.width(), null).noGlow());
 			for (int i : PathFinder.NEIGHBOURS9){
 				if (Actor.findChar(user.pos+i) != null){
 					affected.add(Actor.findChar(user.pos+i));
@@ -555,10 +556,10 @@ public class CursedWand {
 			}
 
 			int pos = bolt.collisionPos;
-			user.sprite.parent.add(new Lightning(pos - 1, user.pos + 1, null));
-			user.sprite.parent.add(new Lightning(pos - Dungeon.level.width(), pos + Dungeon.level.width(), null));
-			user.sprite.parent.add(new Lightning(pos - 1 - Dungeon.level.width(), pos + 1 + Dungeon.level.width(), null));
-			user.sprite.parent.add(new Lightning(pos - 1 + Dungeon.level.width(), pos + 1 - Dungeon.level.width(), null));
+			user.sprite.parent.add(new Lightning(pos - 1, user.pos + 1, null).noGlow());
+			user.sprite.parent.add(new Lightning(pos - Dungeon.level.width(), pos + Dungeon.level.width(), null).noGlow());
+			user.sprite.parent.add(new Lightning(pos - 1 - Dungeon.level.width(), pos + 1 + Dungeon.level.width(), null).noGlow());
+			user.sprite.parent.add(new Lightning(pos - 1 + Dungeon.level.width(), pos + 1 - Dungeon.level.width(), null).noGlow());
 			for (int i : PathFinder.NEIGHBOURS9){
 				if (Actor.findChar(pos+i) != null && !affected.contains(Actor.findChar(pos+i))){
 					affected.add(Actor.findChar(pos+i));
@@ -651,9 +652,9 @@ public class CursedWand {
 			user.sprite.centerEmitter().start( Speck.factory( Speck.SCREAM ), 0.3f, 3 );
 			if (positiveOnly){
 				Buff.affect(user, ScrollOfChallenge.ChallengeArena.class).setup(user.pos);
-				Sample.INSTANCE.play( Assets.Sounds.CHALLENGE );
+				SpatialSound.play( Assets.Sounds.CHALLENGE, user );
 			} else {
-				Sample.INSTANCE.play(Assets.Sounds.ALERT);
+				SpatialSound.play(Assets.Sounds.ALERT, user);
 			}
 			return true;
 		}
@@ -716,8 +717,8 @@ public class CursedWand {
 				TargetHealthIndicator.instance.target(null);
 				GameScene.add(sheep);
 				CellEmitter.get(sheep.pos).burst(Speck.factory(Speck.WOOL), 4);
-				Sample.INSTANCE.play(Assets.Sounds.PUFF);
-				Sample.INSTANCE.play(Assets.Sounds.SHEEP);
+				SpatialSound.play(Assets.Sounds.PUFF, sheep);
+				SpatialSound.play(Assets.Sounds.SHEEP, sheep);
 				Dungeon.level.occupyCell(sheep);
 				return true;
 			} else {
@@ -826,8 +827,8 @@ public class CursedWand {
 				}
 			}
 			WandOfBlastWave.BlastWave.blast(bolt.collisionPos, 6);
-			Sample.INSTANCE.play(Assets.Sounds.BLAST);
-			Sample.INSTANCE.play(Assets.Sounds.BURNING);
+			SpatialSound.play(Assets.Sounds.BLAST, bolt.collisionPos);
+			SpatialSound.play(Assets.Sounds.BURNING, bolt.collisionPos);
 
 			return false;
 		}
@@ -867,7 +868,7 @@ public class CursedWand {
 					user.sprite,
 					longestRay.path.get(longestRay.dist/2),
 					callback );
-			Sample.INSTANCE.play( Assets.Sounds.ZAP );
+			SpatialSound.play( Assets.Sounds.ZAP, user );
 		}
 
 		@Override
@@ -986,7 +987,7 @@ public class CursedWand {
 		public boolean effect(Item origin, Char user, Ballistica bolt, boolean positiveOnly) {
 
 			Buff.affect(user, TimeStasis.class, 100f);
-			Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
+			SpatialSound.play(Assets.Sounds.TELEPORT, user);
 
 			user.sprite.emitter().burst(Speck.factory(Speck.STEAM), 10);
 			GLog.w(Messages.get(CursedWand.class, "petrify"));
@@ -1031,7 +1032,7 @@ public class CursedWand {
 			}
 
 			new Flare(8, 32).color(0xFFFF66, true).show(user.sprite, 2f);
-			Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
+			SpatialSound.play(Assets.Sounds.TELEPORT, user);
 			GLog.p(Messages.get(CursedWand.class, "grass"));
 			//only grass, no fire, if positive only
 			if (!positiveOnly) {
@@ -1068,7 +1069,7 @@ public class CursedWand {
 			mimic.stopHiding();
 			mimic.alignment = Char.Alignment.ENEMY;
 			//play vfx/sfx manually as mimic isn't in the scene yet
-			Sample.INSTANCE.play(Assets.Sounds.MIMIC, 1, 0.85f);
+			SpatialSound.play(Assets.Sounds.MIMIC, mimic, 1, 0.85f);
 			CellEmitter.get(mimic.pos).burst(Speck.factory(Speck.STAR), 10);
 			mimic.items.clear();
 			GameScene.add(mimic);

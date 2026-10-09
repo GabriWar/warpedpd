@@ -69,7 +69,7 @@ public class PotOThunder extends MissileWeapon {
             ArrayList<Lightning.Arc> arcs = new ArrayList<>();
             arcs.add(new Lightning.Arc(new PointF(s.x, s.y + s.height / 2), new PointF(s.x + s.width, s.y + s.height / 2)));
             arcs.add(new Lightning.Arc(new PointF(s.x + s.width / 2, s.y), new PointF(s.x + s.width / 2, s.y + s.height)));
-            s.parent.add(new Lightning(arcs, null));
+            s.parent.add(new Lightning(arcs, null).noGlow());
         }
 
         return super.proc(attacker, defender, damage);

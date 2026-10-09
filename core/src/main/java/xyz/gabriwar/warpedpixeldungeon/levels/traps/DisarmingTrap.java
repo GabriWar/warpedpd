@@ -26,6 +26,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Statue;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
@@ -35,7 +36,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 public class DisarmingTrap extends Trap{
@@ -66,14 +66,14 @@ public class DisarmingTrap extends Trap{
 				}
 				for (int i : PathFinder.NEIGHBOURS9) Dungeon.level.visited[cell+i] = true;
 				GameScene.updateFog();
-				Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
+				SpatialSound.play(Assets.Sounds.TELEPORT, pos);
 				CellEmitter.get(pos).burst(Speck.factory(Speck.LIGHT), 4);
 			}
 		}
 
 		if (Actor.findChar(pos) instanceof Statue){
 			Actor.findChar(pos).die(this);
-			Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
+			SpatialSound.play(Assets.Sounds.TELEPORT, pos);
 			CellEmitter.get(pos).burst(Speck.factory(Speck.LIGHT), 4);
 		}
 
@@ -108,7 +108,7 @@ public class DisarmingTrap extends Trap{
 
 				GLog.w( Messages.get(this, "disarm") );
 
-				Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
+				SpatialSound.play(Assets.Sounds.TELEPORT, pos);
 				CellEmitter.get(pos).burst(Speck.factory(Speck.LIGHT), 4);
 
 			}

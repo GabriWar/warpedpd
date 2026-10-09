@@ -24,13 +24,13 @@ package xyz.gabriwar.warpedpixeldungeon.items.potions.exotic;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 
 public class PotionOfAllSeeing extends ExoticPotion {
@@ -64,6 +64,6 @@ public class PotionOfAllSeeing extends ExoticPotion {
 
 		GameScene.updateFog();
 		GLog.i(Messages.get(this, "layout"));
-		if (noticed) Sample.INSTANCE.play(Assets.Sounds.SECRET);
+		if (noticed) SpatialSound.play(Assets.Sounds.SECRET, hero);
 	}
 }

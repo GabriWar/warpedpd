@@ -48,6 +48,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.ArmorAbility;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
@@ -102,7 +103,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
 import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
 import com.watabou.noosa.Game;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
 
@@ -268,7 +268,7 @@ public class ElementalStrike extends ArmorAbility {
 					AttackIndicator.target(enemy);
 					oldEnemyPos = enemy.pos;
 					if (hero.attack(enemy, 1, 0, Char.INFINITE_ACCURACY)) {
-						Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG);
+						SpatialSound.play(Assets.Sounds.HIT_STRONG, enemy);
 					}
 				}
 
@@ -281,7 +281,7 @@ public class ElementalStrike extends ArmorAbility {
 			}
 		});
 
-		Sample.INSTANCE.play(Assets.Sounds.CHARGEUP);
+		SpatialSound.play(Assets.Sounds.CHARGEUP, hero);
 		hero.busy();
 
 	}

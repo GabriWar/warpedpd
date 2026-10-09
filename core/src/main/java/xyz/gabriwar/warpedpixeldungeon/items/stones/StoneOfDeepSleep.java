@@ -27,9 +27,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MagicalSleep;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 
 public class StoneOfDeepSleep extends Runestone {
 	
@@ -53,7 +53,7 @@ public class StoneOfDeepSleep extends Runestone {
 
 		}
 		
-		Sample.INSTANCE.play( Assets.Sounds.LULLABY );
+		SpatialSound.play( Assets.Sounds.LULLABY, cell );
 		
 	}
 }

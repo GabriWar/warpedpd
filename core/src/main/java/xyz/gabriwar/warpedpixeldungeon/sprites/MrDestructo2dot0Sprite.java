@@ -27,10 +27,10 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 
 public class MrDestructo2dot0Sprite extends MobSprite {
 
@@ -76,7 +76,7 @@ public class MrDestructo2dot0Sprite extends MobSprite {
 			} else {
 				parent.add(new Beam.DeathRay(center(), DungeonTilemap.raisedTileCenterToWorld(zapPos)));
 			}
-			Sample.INSTANCE.play( Assets.Sounds.RAY );
+			SpatialSound.play( Assets.Sounds.RAY, ch );
 			((xyz.gabriwar.warpedpixeldungeon.actors.mobs.MrDestructo2dot0) ch).deathRay();
 			ch.next();
 		}

@@ -30,11 +30,11 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 public class PressurePoint extends SubSkill1 {
@@ -70,7 +70,7 @@ public class PressurePoint extends SubSkill1 {
 			if (enemy.sprite != null){
 				new Flare( 5, 18 ).color( 0xFFDD66, true ).show( enemy.sprite, 0.4f );
 			}
-			Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 1f, 1.3f );
+			SpatialSound.play( Assets.Sounds.HIT_STRONG, enemy, 1f, 1.3f );
 			return Math.round( damage * LOCKED_MULTIPLIER );
 		}
 		//10% / 15% / 20%
@@ -80,7 +80,7 @@ public class PressurePoint extends SubSkill1 {
 				enemy.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 4 );
 				enemy.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "cast" ) );
 			}
-			Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 1f, 1.5f );
+			SpatialSound.play( Assets.Sounds.HIT_CRUSH, enemy, 1f, 1.5f );
 		}
 		return damage;
 	}

@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Regeneration;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mimic;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CheckedCell;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfEnergy;
@@ -47,7 +48,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 import java.util.ArrayList;
@@ -240,8 +240,8 @@ public class TalismanOfForesight extends Artifact {
 
 				curUser.sprite.zap(target);
 				curUser.spendAndNext(Actor.TICK);
-				Sample.INSTANCE.play(Assets.Sounds.SCAN);
-				if (noticed) Sample.INSTANCE.play(Assets.Sounds.SECRET);
+				SpatialSound.play(Assets.Sounds.SCAN, curUser);
+				if (noticed) SpatialSound.play(Assets.Sounds.SECRET, curUser);
 
 			}
 

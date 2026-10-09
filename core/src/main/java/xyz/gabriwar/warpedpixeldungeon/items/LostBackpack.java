@@ -25,6 +25,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.LostInventory;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.CloakOfShadows;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.HolyTome;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.MagicalHolster;
@@ -34,7 +35,6 @@ import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.HeroSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 
 public class LostBackpack extends Item {
 
@@ -76,7 +76,7 @@ public class LostBackpack extends Item {
 		hero.updateHT(false);
 
 		Item.updateQuickslot();
-		Sample.INSTANCE.play( Assets.Sounds.DEWDROP );
+		SpatialSound.play( Assets.Sounds.DEWDROP, hero );
 		hero.spendAndNext(pickupDelay());
 		GameScene.pickUp( this, pos );
 		((HeroSprite)hero.sprite).updateArmor();

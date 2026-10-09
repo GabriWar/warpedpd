@@ -122,6 +122,35 @@ public final class WeatherSprites {
 		return sheet;
 	}
 
+	private static final Object VIGNETTE_KEY = "weather-vignette";
+	private static final int VIGNETTE = 64;
+	//the vignette is clear out to this share of the way to the frame's edge, and white by this
+	//(past the edges, toward the corners)
+	private static final float VIGNETTE_CLEAR = 0.5f, VIGNETTE_FULL = 1.25f;
+	private static SmartTexture vignette;
+
+	/**
+	 * A blizzard's white closing in from the edges (WeatherOverlay): clear through the middle,
+	 * whitening smoothly to the sides and fully white in the corners. Small, and drawn stretched
+	 * over the screen with linear filtering.
+	 */
+	public static SmartTexture vignette(){
+		if (vignette == null || !TextureCache.contains( VIGNETTE_KEY )){
+			vignette = TextureCache.create( VIGNETTE_KEY, VIGNETTE, VIGNETTE );
+			Pixmap pm = vignette.bitmap;
+			pm.setBlending( Pixmap.Blending.None );
+			for (int y = 0; y < VIGNETTE; y++){
+				for (int x = 0; x < VIGNETTE; x++){
+					double d = Math.hypot( (x + 0.5) / VIGNETTE * 2 - 1, (y + 0.5) / VIGNETTE * 2 - 1 );
+					float t = clamp01( (float)((d - VIGNETTE_CLEAR) / (VIGNETTE_FULL - VIGNETTE_CLEAR)) );
+					a( pm, x, y, Math.round( 255 * t * t * (3 - 2 * t) ) );
+				}
+			}
+			vignette.bitmap( pm );
+		}
+		return vignette;
+	}
+
 	private static void a( Pixmap pm, int x, int y, int alpha ){
 		pm.drawPixel( x, y, rgba( 0xFFFFFF, alpha ) );
 	}

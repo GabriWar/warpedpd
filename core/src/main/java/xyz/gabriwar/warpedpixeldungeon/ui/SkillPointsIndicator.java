@@ -27,7 +27,6 @@
 package xyz.gabriwar.warpedpixeldungeon.ui;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndHero;
@@ -68,7 +67,7 @@ public class SkillPointsIndicator extends Tag {
 	@Override
 	public void update() {
 		visible = Dungeon.hero != null && Dungeon.hero.isAlive()
-				&& (Skill.availableSkill > 0
+				&& (Dungeon.hero.heroSkills.availableSkill > 0
 					|| !Dungeon.hero.heroSkills.usableNow( Dungeon.hero ).isEmpty());
 		super.update();
 	}
@@ -89,8 +88,8 @@ public class SkillPointsIndicator extends Tag {
 
 	@Override
 	protected String hoverText() {
-		return Skill.availableSkill > 0
-				? "Skills (" + Skill.availableSkill + " points to spend)"
+		return Dungeon.hero.heroSkills.availableSkill > 0
+				? "Skills (" + Dungeon.hero.heroSkills.availableSkill + " points to spend)"
 				: "Skills";
 	}
 }

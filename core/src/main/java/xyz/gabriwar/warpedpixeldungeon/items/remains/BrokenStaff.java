@@ -23,9 +23,9 @@ package xyz.gabriwar.warpedpixeldungeon.items.remains;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfRecharging;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 
 public class BrokenStaff extends RemainsItem {
 
@@ -37,7 +37,7 @@ public class BrokenStaff extends RemainsItem {
 	protected void doEffect(Hero hero) {
 		hero.belongings.charge(1f);
 		ScrollOfRecharging.charge(hero);
-		Sample.INSTANCE.play( Assets.Sounds.CHARGEUP );
+		SpatialSound.play( Assets.Sounds.CHARGEUP, hero );
 	}
 
 }

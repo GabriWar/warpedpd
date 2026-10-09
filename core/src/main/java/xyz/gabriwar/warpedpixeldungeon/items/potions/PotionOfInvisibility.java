@@ -28,10 +28,10 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 
 public class PotionOfInvisibility extends Potion {
 
@@ -44,7 +44,7 @@ public class PotionOfInvisibility extends Potion {
 		identify();
 		Buff.prolong( hero, Invisibility.class, Invisibility.DURATION );
 		GLog.i( Messages.get(this, "invisible") );
-		Sample.INSTANCE.play( Assets.Sounds.MELD );
+		SpatialSound.play( Assets.Sounds.MELD, hero );
 	}
 	
 	@Override

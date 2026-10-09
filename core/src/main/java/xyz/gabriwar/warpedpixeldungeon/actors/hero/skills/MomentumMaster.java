@@ -28,13 +28,13 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import com.watabou.noosa.Camera;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.Surprise;
@@ -110,12 +110,13 @@ public class MomentumMaster extends SubSkill3 {
 		Dungeon.observe();
 		GameScene.updateFog();
 		CellEmitter.bottom( from ).burst( Speck.factory( Speck.DUST ), 6 );
-		Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 1.4f );
+		//the hero's own leap: heard on him
+		SpatialSound.play( Assets.Sounds.MISS, hero, 1f, 1.4f );
 		hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "leap" ) );
 		hero.sprite.jump( from, dest, () -> {
 			hero.sprite.place( hero.pos );
 			CellEmitter.bottom( hero.pos ).burst( Speck.factory( Speck.DUST ), 6 );
-			Sample.INSTANCE.play( Assets.Sounds.TRAMPLE, 1f, 1.1f );
+			SpatialSound.play( Assets.Sounds.TRAMPLE, hero, 1f, 1.1f );
 		} );
 		if (level >= MAX_LEVEL) plungeTarget = next.id();
 	}
@@ -137,7 +138,7 @@ public class MomentumMaster extends SubSkill3 {
 		plungeTarget = -1;
 		if (ranged || level < MAX_LEVEL) return damage;
 		Surprise.hit( enemy );
-		Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 1f, 1.2f );
+		SpatialSound.play( Assets.Sounds.HIT_STRONG, enemy, 1f, 1.2f );
 		Camera.main.shake( 2, 0.2f );
 		return Math.round( damage * PLUNGE );
 	}

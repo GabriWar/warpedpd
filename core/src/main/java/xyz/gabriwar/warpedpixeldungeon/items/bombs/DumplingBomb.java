@@ -29,13 +29,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Drowsy;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.NPC;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SmokeParticle;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 public class DumplingBomb extends Bomb {
@@ -56,7 +56,7 @@ public class DumplingBomb extends Bomb {
 			this.fuse = null;
 		}
 
-		Sample.INSTANCE.play(Assets.Sounds.BLAST);
+		SpatialSound.play(Assets.Sounds.BLAST, cell);
 
 		for (int n : PathFinder.NEIGHBOURS9) {
 			int c = cell + n;

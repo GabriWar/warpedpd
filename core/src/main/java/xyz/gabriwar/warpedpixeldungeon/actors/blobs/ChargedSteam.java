@@ -28,12 +28,12 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PointF;
 import com.watabou.utils.Random;
 
@@ -51,7 +51,8 @@ public class ChargedSteam extends Blob {
 	@Override
 	protected void evolve() {
 
-		boolean zapped = false;
+		//the cell nearest the hero a bolt was seen at, where the crack comes from
+		int zapped = -1;
 		int cell;
 		for (int i = area.left; i < area.right; i++) {
 			for (int j = area.top; j < area.bottom; j++) {
@@ -62,7 +63,7 @@ public class ChargedSteam extends Blob {
 						if (Dungeon.level.heroFOV[cell] && ch.sprite != null && ch.sprite.parent != null) {
 							PointF to = ch.sprite.center();
 							ch.sprite.parent.addToFront( new Lightning( new PointF( to.x, to.y - 24 ), to, null ) );
-							zapped = true;
+							zapped = SpatialSound.nearer( zapped, cell );
 						}
 						ch.damage( Math.round( Random.Float( 2 + Dungeon.scalingDepth() / 5f ) ), this );
 						if (!ch.isAlive() && ch == Dungeon.hero){
@@ -79,8 +80,8 @@ public class ChargedSteam extends Blob {
 			}
 		}
 
-		if (zapped) {
-			Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
+		if (zapped >= 0) {
+			SpatialSound.play( Assets.Sounds.LIGHTNING, zapped );
 		}
 	}
 

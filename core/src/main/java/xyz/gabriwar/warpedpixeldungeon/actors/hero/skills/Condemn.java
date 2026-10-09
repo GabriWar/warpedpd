@@ -30,10 +30,10 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vulnerable;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import com.watabou.utils.Random;
@@ -69,7 +69,7 @@ public class Condemn extends Skill {
 			new xyz.gabriwar.warpedpixeldungeon.effects.Flare( 4, 10 ).color( 0xFFEE88, true ).show( enemy.sprite, 0.35f );
 			if (holy) enemy.sprite.emitter().burst( Speck.factory( Speck.YELLOW_LIGHT ), 4 );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.CURSED, 0.6f, holy ? 1.1f : 1.4f );
+		SpatialSound.play( Assets.Sounds.CURSED, enemy, 0.6f, holy ? 1.1f : 1.4f );
 		if (holy)
 			enemy.damage( 6, this );
 

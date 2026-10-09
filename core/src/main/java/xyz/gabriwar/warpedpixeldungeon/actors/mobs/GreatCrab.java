@@ -27,13 +27,13 @@ import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.ClericSpell;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Ghost;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.food.MysteryMeat;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.Wand;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.GreatCrabSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -89,7 +89,7 @@ public class GreatCrab extends Crab {
 				&& enemy.invisible == 0){
 			GLog.n( Messages.get(this, "noticed") );
 			sprite.showStatus( CharSprite.NEUTRAL, Messages.get(this, "def_verb") );
-			Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 1, Random.Float(0.96f, 1.05f));
+			SpatialSound.play( Assets.Sounds.HIT_PARRY, pos, 1, Random.Float(0.96f, 1.05f));
 			Statistics.questScores[0] -= 50;
 		} else {
 			super.damage( dmg, src );
@@ -105,7 +105,7 @@ public class GreatCrab extends Crab {
 				&& enemy == this.enemy
 				&& enemy.invisible == 0){
 			if (sprite != null && sprite.visible) {
-				Sample.INSTANCE.play(Assets.Sounds.HIT_PARRY, 1, Random.Float(0.96f, 1.05f));
+				SpatialSound.play(Assets.Sounds.HIT_PARRY, pos, 1, Random.Float(0.96f, 1.05f));
 				GLog.n( Messages.get(this, "noticed") );
 			}
 			if (enemy == Dungeon.hero){

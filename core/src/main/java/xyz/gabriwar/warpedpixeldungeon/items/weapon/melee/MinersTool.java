@@ -40,10 +40,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import com.watabou.utils.PathFinder;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 
 public class MinersTool extends Spade {
@@ -100,7 +100,7 @@ public class MinersTool extends Spade {
         beforeAbilityUsed(hero, null);
 
         hero.sprite.operate(hero.pos);
-        Sample.INSTANCE.play(Assets.Sounds.ROCKS, 1f, 0.8f);
+        SpatialSound.play(Assets.Sounds.ROCKS, hero, 1f, 0.8f);
         Camera.main.shake(4, 0.6f);
         Item look = new StoneOfClairvoyance();
         for (int n : PathFinder.NEIGHBOURS9){

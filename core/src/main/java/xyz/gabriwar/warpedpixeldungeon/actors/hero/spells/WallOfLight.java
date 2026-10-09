@@ -30,6 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.HolyTome;
@@ -40,7 +41,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 public class WallOfLight extends TargetedClericSpell {
@@ -222,7 +222,7 @@ public class WallOfLight extends TargetedClericSpell {
 			}
 		}
 
-		Sample.INSTANCE.play(Assets.Sounds.CHARGEUP);
+		SpatialSound.play(Assets.Sounds.CHARGEUP, closest);
 
 		hero.sprite.zap(closest);
 		Dungeon.hero.spendAndNext(1f);

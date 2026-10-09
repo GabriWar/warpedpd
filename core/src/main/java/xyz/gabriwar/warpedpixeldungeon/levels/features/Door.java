@@ -25,12 +25,12 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.EarthParticle;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import com.watabou.noosa.audio.Sample;
 
 public class Door {
 
@@ -40,8 +40,11 @@ public class Door {
 
 		if (Dungeon.level.heroFOV[pos]) {
 			Dungeon.observe();
-			Sample.INSTANCE.play( Assets.Sounds.OPEN );
+			SpatialSound.play( Assets.Sounds.OPEN, pos );
 			CellEmitter.get( pos ).burst( EarthParticle.SMALL, 1 );
+		} else {
+			//out of sight but in earshot: someone coming
+			SpatialSound.playUnseen( Assets.Sounds.OPEN, pos, 1f, 1f );
 		}
 	}
 

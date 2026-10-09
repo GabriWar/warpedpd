@@ -34,13 +34,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 public class TrueEdge extends Skill {
@@ -81,7 +81,7 @@ public class TrueEdge extends Skill {
 			enemy.sprite.flash();
 			ArcSpinFX.at( enemy.pos, 0xFFFFFF, 10, 0.3f, 220, 1100, 0.22f );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 1f, 1.4f );
+		SpatialSound.play( Assets.Sounds.HIT_STRONG, enemy, 1f, 1.4f );
 		if (level >= MAX_LEVEL){
 			Buff.affect( enemy, Bleeding.class ).set( crit / 4f );
 		}
@@ -113,7 +113,7 @@ public class TrueEdge extends Skill {
 		if (end != enemy.pos && hero.sprite != null && hero.sprite.parent != null){
 			hero.sprite.parent.add( new Beam.LightRay(
 					DungeonTilemap.tileCenterToWorld( hero.pos ), DungeonTilemap.tileCenterToWorld( end ) ) );
-			Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 1f, 0.8f );
+			SpatialSound.play( Assets.Sounds.HIT_SLASH, hero, 1f, 0.8f );
 		}
 	}
 }

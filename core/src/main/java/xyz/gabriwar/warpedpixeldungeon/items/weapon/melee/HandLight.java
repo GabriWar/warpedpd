@@ -32,7 +32,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import com.watabou.utils.Callback;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -44,6 +43,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 
 public class HandLight extends MeleeWeapon {
@@ -101,7 +101,7 @@ public class HandLight extends MeleeWeapon {
 						new Flare( 8, 24 ).color( 0xFFFFFF, true ).show( enemy.sprite, 0.6f );
 						enemy.sprite.emitter().burst( FlameParticle.FACTORY, 6 );
 					}
-					Sample.INSTANCE.play( Assets.Sounds.BURNING, 1f, 1.1f );
+					SpatialSound.play( Assets.Sounds.BURNING, enemy, 1f, 1.1f );
 					if (enemy.isAlive()) Buff.affect( enemy, Burning.class ).reignite( enemy );
 					else onAbilityKill( hero, enemy );
 					for (int n : PathFinder.NEIGHBOURS8){

@@ -217,10 +217,21 @@ final class Soundscape {
 		return mean * Math.min( 4f, 0.35f + 0.65f * e );
 	}
 
-	/** A bed's level at this distance from its source: whole to a cell short of its reach, half
-	 *  at it - fading as the hero walks off rather than stopping dead. */
+	/** A bed's level at this distance from its source: whole to a cell short of its reach, then
+	 *  dying away smoothly to nothing where it stops being heard (heard), quieter with every step
+	 *  the hero walks off. It used to go from half to nothing in two cells and seemed to cut off. */
 	static float reach( float cells, float radius ){
-		return Math.max( 0f, Math.min( 1f, (radius + 1f - cells) / 2f ) );
+		float full = radius - 1f, end = heard( radius );
+		if (cells <= full) return 1f;
+		if (cells >= end) return 0f;
+		float t = (end - cells) / (end - full);
+		return t * t * (3f - 2f * t);
+	}
+
+	/** How far a bed still hears its source: its reach and a fade past it, two cells at least and
+	 *  three quarters of a wider reach (a torch's 4: to 7 cells). */
+	static float heard( float radius ){
+		return radius + Math.max( 2f, radius * 0.75f );
 	}
 
 	/**
@@ -384,22 +395,23 @@ final class Soundscape {
 		return false;
 	}
 
-	//the bed's nearest source within its reach: the one it had, while it still fits and is in
-	//reach, or a nearer one some of the frame's random cells came upon
+	//the bed's nearest source it still hears (heard: its reach and the fade past it): the one it
+	//had, while it still fits and is heard, or a nearer one some of the frame's random cells came upon
 	private void track( int i, Ground g ){
 		Voice v = voices[i];
 		int c = bedAt[i];
 		float best = Float.MAX_VALUE;
+		float far = heard( v.radius );
 		if (g.inner( c ) && v.fits( g, c ) && !g.hidden( Source.face( g.map, g.w, c ) )) best = g.away( c );
-		if (best > v.radius){
+		if (best > far){
 			c = -1;
 			best = Float.MAX_VALUE;
 		}
 		for (int k = 0; k < BED_PROBES; k++){
-			int p = probe( rng, g, 0f, v.radius, true );
+			int p = probe( rng, g, 0f, far, true );
 			if (p < 0 || p == c) continue;
 			float d = g.away( p );
-			if (d < best && d <= v.radius && v.fits( g, p ) && !g.hidden( Source.face( g.map, g.w, p ) )){
+			if (d < best && d <= far && v.fits( g, p ) && !g.hidden( Source.face( g.map, g.w, p ) )){
 				c = p;
 				best = d;
 			}

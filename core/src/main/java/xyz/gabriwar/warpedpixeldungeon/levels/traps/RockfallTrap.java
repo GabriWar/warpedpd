@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.levels.RegularLevel;
@@ -36,7 +37,6 @@ import xyz.gabriwar.warpedpixeldungeon.levels.rooms.Room;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.BArray;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Point;
@@ -115,7 +115,7 @@ public class RockfallTrap extends Trap {
 		
 		if (seen){
 			PixelScene.shake(3, 0.7f);
-			Sample.INSTANCE.play(Assets.Sounds.ROCKS);
+			SpatialSound.play(Assets.Sounds.ROCKS, pos);
 		}
 
 	}

@@ -30,13 +30,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 public class DisintegrationTrap extends Trap {
@@ -84,9 +84,9 @@ public class DisintegrationTrap extends Trap {
 				Buff.prolong(target, Trap.HazardAssistTracker.class, HazardAssistTracker.DURATION);
 			}
 			if (Dungeon.level.heroFOV[pos] || Dungeon.level.heroFOV[target.pos]) {
-				Sample.INSTANCE.play(Assets.Sounds.RAY);
+				SpatialSound.play(Assets.Sounds.RAY, pos);
 				WarpedPixelDungeon.scene().add(new Beam.DeathRay(DungeonTilemap.tileCenterToWorld(pos), target.sprite.center()));
-				Sample.INSTANCE.play( Assets.Sounds.RAY );
+				SpatialSound.play( Assets.Sounds.RAY, target );
 			}
 			target.damage( Random.NormalIntRange(30, 50) + scalingDepth(), this );
 			if (target == Dungeon.hero){

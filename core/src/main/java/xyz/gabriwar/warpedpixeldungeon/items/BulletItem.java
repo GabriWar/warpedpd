@@ -27,13 +27,13 @@ package xyz.gabriwar.warpedpixeldungeon.items;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfArcaneArmor;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfEarthenArmor;
 import xyz.gabriwar.warpedpixeldungeon.items.quest.GooBlob;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 
 import java.util.ArrayList;
 
@@ -69,7 +69,7 @@ public class BulletItem extends Item {
 		hero.sprite.showStatus( 0xFFFFFF, TXT_VALUE, quantity );
 		hero.spendAndNext( TIME_TO_PICK_UP );
 
-		Sample.INSTANCE.play( Assets.Sounds.ITEM );
+		SpatialSound.play( Assets.Sounds.ITEM, hero );
 
 		updateQuickslot();
 

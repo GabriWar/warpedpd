@@ -28,6 +28,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Light;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
 import xyz.gabriwar.warpedpixeldungeon.effects.TargetedCell;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
@@ -36,7 +37,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.RipperSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 import com.watabou.utils.GameMath;
@@ -198,10 +198,10 @@ public class RipperDemon extends Mob {
 							if (hit(RipperDemon.this, leapVictim, Char.INFINITE_ACCURACY, false)) {
 								Buff.affect(leapVictim, Bleeding.class).set(0.75f * damageRoll());
 								leapVictim.sprite.flash();
-								Sample.INSTANCE.play(Assets.Sounds.HIT);
+								SpatialSound.play(Assets.Sounds.HIT, leapVictim);
 							} else {
 								leapVictim.sprite.showStatus( CharSprite.NEUTRAL, leapVictim.defenseVerb() );
-								Sample.INSTANCE.play(Assets.Sounds.MISS);
+								SpatialSound.play(Assets.Sounds.MISS, leapVictim);
 							}
 						}
 

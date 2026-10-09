@@ -24,7 +24,6 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -34,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.Dart;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
@@ -110,7 +110,7 @@ public class ArrowRain extends Buff {
 		}
         //+3: the arrows stay in the ground and bite whatever steps on them (rank 1: no bow-hit relaunch)
         if(level>=3)SkillField.place(hero,SkillField.ARROWS,1,4,impact);
-		Sample.INSTANCE.play( struck ? Assets.Sounds.HIT_ARROW : Assets.Sounds.ATK_SPIRITBOW, 1f, Random.Float( 0.9f, 1.1f ) );
+		SpatialSound.play( struck ? Assets.Sounds.HIT_ARROW : Assets.Sounds.ATK_SPIRITBOW, center, 1f, Random.Float( 0.9f, 1.1f ) );
 	}
 
 	@Override

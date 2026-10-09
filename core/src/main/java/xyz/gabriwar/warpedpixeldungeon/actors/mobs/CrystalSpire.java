@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Haste;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Blacksmith;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.items.quest.Pickaxe;
@@ -48,7 +49,6 @@ import xyz.gabriwar.warpedpixeldungeon.ui.BossHealthBar;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.audio.Music;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 import com.watabou.utils.GameMath;
@@ -171,7 +171,7 @@ public class CrystalSpire extends Mob {
 			}
 
 			PixelScene.shake( 1, 0.7f );
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER );
+			SpatialSound.play( Assets.Sounds.SHATTER, pos );
 
 			if (!targetedCells.isEmpty()){
 				for (int i : targetedCells.get(0)){
@@ -338,11 +338,11 @@ public class CrystalSpire extends Mob {
 					BossHealthBar.bleed(HP <= HT/3);
 
 					if (isAlive()) {
-						Sample.INSTANCE.play(Assets.Sounds.SHATTER, 1f, Random.Float(1.15f, 1.25f));
+						SpatialSound.play(Assets.Sounds.SHATTER, pos, 1f, Random.Float(1.15f, 1.25f));
 						((CrystalSpireSprite) sprite).updateIdle();
 					} else {
-						Sample.INSTANCE.play(Assets.Sounds.SHATTER);
-						Sample.INSTANCE.playDelayed(Assets.Sounds.ROCKS, 0.1f);
+						SpatialSound.play(Assets.Sounds.SHATTER, pos);
+						SpatialSound.playDelayed(Assets.Sounds.ROCKS, 0.1f, pos);
 						PixelScene.shake( 3, 0.7f );
 						Blacksmith.Quest.beatBoss();
 
@@ -395,11 +395,11 @@ public class CrystalSpire extends Mob {
 					if (hits == 1){
 						GLog.w(Messages.get(CrystalSpire.class, "warning"));
 						PixelScene.shake( 1, 0.7f );
-						Sample.INSTANCE.play( Assets.Sounds.MINE );
+						SpatialSound.play( Assets.Sounds.MINE, pos );
 					} else if (hits >= 3) {
 
 						if (hits == 3){
-							Sample.INSTANCE.play( Assets.Sounds.ROCKS );
+							SpatialSound.play( Assets.Sounds.ROCKS, pos );
 							PixelScene.shake( 3, 0.7f );
 							GLog.n(Messages.get(CrystalSpire.class, "alert"));
 							BossHealthBar.assignBoss(CrystalSpire.this);

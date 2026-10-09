@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ElmoParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
@@ -51,7 +52,6 @@ import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndUseItem;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.Bundle;
@@ -185,7 +185,7 @@ public class MagesStaff extends MeleeWeapon {
 		if (empoweredStrike != null){
 			if (!empoweredStrike.delayedDetach) empoweredStrike.detach();
 			if (!(defender instanceof Mob) || !((Mob) defender).surprisedBy(attacker)){
-				Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG, 0.75f, 1.2f);
+				SpatialSound.play(Assets.Sounds.HIT_STRONG, defender, 0.75f, 1.2f);
 			}
 		}
 		return super.proc(attacker, defender, damage);
@@ -471,7 +471,7 @@ public class MagesStaff extends MeleeWeapon {
 		}
 
 		private void applyWand(Wand wand){
-			Sample.INSTANCE.play(Assets.Sounds.BURNING);
+			SpatialSound.play(Assets.Sounds.BURNING, curUser);
 			curUser.sprite.emitter().burst( ElmoParticle.FACTORY, 12 );
 			evoke(curUser);
 

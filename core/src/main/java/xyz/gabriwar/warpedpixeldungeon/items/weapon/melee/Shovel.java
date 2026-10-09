@@ -40,6 +40,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barrier;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
@@ -52,7 +53,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
@@ -126,7 +126,7 @@ public class Shovel extends MeleeWeapon {
 
         curUser.spend(Actor.TICK);
         curUser.busy();
-        Sample.INSTANCE.play(Assets.Sounds.TRAMPLE, 2, 1.1f);
+        SpatialSound.play(Assets.Sounds.TRAMPLE, pos, 2, 1.1f);
         curUser.sprite.operate(curUser.pos);
     }
 
@@ -180,7 +180,7 @@ public class Shovel extends MeleeWeapon {
 		}
 		CellEmitter.center(cell).burst(Speck.factory(Speck.DUST), 10);
 		SkillFX.flash(enemy);
-		Sample.INSTANCE.play(Assets.Sounds.TRAMPLE, 1f, 1.2f);
+		SpatialSound.play(Assets.Sounds.TRAMPLE, cell, 1f, 1.2f);
 		Invisibility.dispel();
 		hero.spendAndNext(hero.attackDelay());
 		wep.afterAbilityUsed(hero);

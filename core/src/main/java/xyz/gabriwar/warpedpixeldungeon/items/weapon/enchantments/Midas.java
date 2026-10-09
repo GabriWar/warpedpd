@@ -27,11 +27,11 @@ package xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Gold;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 //ported from Unleashed PD: enemies bleed gold
@@ -57,7 +57,7 @@ public class Midas extends Weapon.Enchantment {
 		if (goldValue > 0) {
 			Dungeon.level.drop( new Gold( goldValue ), defender.pos ).sprite.drop();
 			defender.sprite.showStatus( CharSprite.NEUTRAL, Integer.toString( goldValue ) );
-			Sample.INSTANCE.play( Assets.Sounds.GOLD );
+			SpatialSound.play( Assets.Sounds.GOLD, defender );
 		}
 
 		return damage;

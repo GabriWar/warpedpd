@@ -27,10 +27,10 @@ package xyz.gabriwar.warpedpixeldungeon.items.potions;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.TimekeepersHourglass;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 
 public class PotionOfTime extends Potion {
@@ -51,7 +51,7 @@ public class PotionOfTime extends Potion {
         if (Dungeon.level.heroFOV[cell]) {
             setKnown();
             splash(cell);
-            Sample.INSTANCE.play(Assets.Sounds.SHATTER);
+            SpatialSound.play(Assets.Sounds.SHATTER, cell);
         }
         new TimekeepersHourglass().activateTimeFreeze(Dungeon.level.map[cell]);
     }

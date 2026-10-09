@@ -24,7 +24,6 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Bundle;
 
@@ -34,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -103,7 +103,8 @@ public class DivineWrathGround extends Buff {
 			detach();
 			return true;
 		}
-		boolean burned = false;
+		//the cell nearest the hero that burned, where the sound comes from
+		int burned = -1;
 		int kept = 0;
 		int[] nc = new int[cells.length];
 		int[] nl = new int[cells.length];
@@ -117,14 +118,14 @@ public class DivineWrathGround extends Buff {
 				if (Dungeon.level.heroFOV[c]) CellEmitter.center( c ).burst( Speck.factory( Speck.YELLOW_LIGHT ), unholy ? 6 : 3 );
 				if (ch.isAlive() && rank >= Skill.MAX_LEVEL && !Char.hasProp( ch, Char.Property.BOSS ))
 					Buff.prolong( ch, Roots.class, 2f );
-				burned = true;
+				burned = SpatialSound.nearer( burned, c );
 			}
 			if (--left[i] > 0){
 				nc[kept] = c;
 				nl[kept++] = left[i];
 			}
 		}
-		if (burned) Sample.INSTANCE.play( Assets.Sounds.BURNING, 0.6f, 1.4f );
+		if (burned >= 0) SpatialSound.play( Assets.Sounds.BURNING, burned, 0.6f, 1.4f );
 		boolean changed = kept != cells.length;
 		cells = java.util.Arrays.copyOf( nc, kept );
 		left = java.util.Arrays.copyOf( nl, kept );

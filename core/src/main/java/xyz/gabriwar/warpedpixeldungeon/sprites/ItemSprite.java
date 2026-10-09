@@ -23,6 +23,7 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Gold;
@@ -41,7 +42,6 @@ import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.MovieClip;
 import com.watabou.noosa.NoosaScript;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.PointF;
 import com.watabou.utils.Random;
@@ -178,7 +178,7 @@ public class ItemSprite extends MovieClip {
 		
 		if (heap != null && heap.seen && heap.peek() instanceof Gold) {
 			CellEmitter.center( heap.pos ).burst( Speck.factory( Speck.COIN ), 5 );
-			Sample.INSTANCE.play( Assets.Sounds.GOLD, 1, 1, Random.Float( 0.9f, 1.1f ) );
+			SpatialSound.play( Assets.Sounds.GOLD, heap.pos, 1, Random.Float( 0.9f, 1.1f ) );
 		}
 	}
 	
@@ -346,17 +346,17 @@ public class ItemSprite extends MovieClip {
 					}
 
 					if (Dungeon.level.water[heap.pos]) {
-						Sample.INSTANCE.play( Assets.Sounds.WATER, 0.8f, Random.Float( 1f, 1.45f ) );
+						SpatialSound.play( Assets.Sounds.WATER, heap.pos, 0.8f, Random.Float( 1f, 1.45f ) );
 					} else if (Dungeon.level.map[heap.pos] == Terrain.EMPTY_SP) {
-						Sample.INSTANCE.play( Assets.Sounds.STURDY, 0.8f, Random.Float( 1.16f, 1.25f ) );
+						SpatialSound.play( Assets.Sounds.STURDY, heap.pos, 0.8f, Random.Float( 1.16f, 1.25f ) );
 					} else if (Dungeon.level.map[heap.pos] == Terrain.GRASS
 							|| Dungeon.level.map[heap.pos] == Terrain.EMBERS
 							|| Dungeon.level.map[heap.pos] == Terrain.FURROWED_GRASS){
-						Sample.INSTANCE.play( Assets.Sounds.GRASS, 0.8f, Random.Float( 1.16f, 1.25f ) );
+						SpatialSound.play( Assets.Sounds.GRASS, heap.pos, 0.8f, Random.Float( 1.16f, 1.25f ) );
 					} else if (Dungeon.level.map[heap.pos] == Terrain.HIGH_GRASS) {
-						Sample.INSTANCE.play( Assets.Sounds.STEP, 0.8f, Random.Float( 1.16f, 1.25f ) );
+						SpatialSound.play( Assets.Sounds.STEP, heap.pos, 0.8f, Random.Float( 1.16f, 1.25f ) );
 					} else {
-						Sample.INSTANCE.play( Assets.Sounds.STEP, 0.8f, Random.Float( 1.16f, 1.25f ));
+						SpatialSound.play( Assets.Sounds.STEP, heap.pos, 0.8f, Random.Float( 1.16f, 1.25f ));
 					}
 				}
 			}

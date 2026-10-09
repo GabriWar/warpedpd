@@ -33,10 +33,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SlipstreamWind;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.WindParticle;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Haste;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
@@ -93,7 +93,7 @@ public class Slipstream extends SubSkill1 {
 		Buff.prolong( hero, Haste.class, HASTE );
 		hero.MP -= getManaCost();
 		castTextYell();
-		Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 1.5f );
+		SpatialSound.play( Assets.Sounds.MISS, hero, 1f, 1.5f );
 		hero.sprite.emitter().burst( WindParticle.FACTORY, 12 );
 		hero.sprite.emitter().burst( Speck.factory( Speck.DUST ), 6 );
 		hero.heroSkills.lastUsed = this;
@@ -113,7 +113,7 @@ public class Slipstream extends SubSkill1 {
 		hero.heroSkills.lastUsed = this;
 		boolean line = SkillInteractions.clear( hero.pos, dest );
 		wind.gust( hero );
-		Sample.INSTANCE.play( Assets.Sounds.PUFF, 1f, 0.7f );
+		SpatialSound.play( Assets.Sounds.PUFF, hero, 1f, 0.7f );
 		hero.busy();
 		final int from = hero.pos;
 		if (line && hero.sprite.parent != null){

@@ -50,13 +50,16 @@ public class Flare extends Visual {
 	private ShortBuffer indices;
 	
 	private int nRays;
+
+	//one gradient for every flare: the texture cache keys a gradient by its array, so a new array
+	//each time made (and kept) a new texture for every flare ever shown
+	private static final int[] GRADIENT = {0xFFFFFFFF, 0xBBFFFFFF, 0x88FFFFFF, 0x00FFFFFF, 0x00FFFFFF};
 	
 	public Flare( int nRays, float radius ) {
 		
 		super( 0, 0, 0, 0 );
 
-		int gradient[] = {0xFFFFFFFF, 0xBBFFFFFF, 0x88FFFFFF, 0x00FFFF, 0x00FFFFFF};
-		texture = TextureCache.createGradient( gradient );
+		texture = TextureCache.createGradient( GRADIENT );
 		
 		this.nRays = nRays;
 		

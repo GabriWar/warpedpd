@@ -37,6 +37,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SheepSokoban;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SheepSokobanBlack;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SheepSokobanCorner;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SheepSokobanSwitch;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Palantir;
 import xyz.gabriwar.warpedpixeldungeon.items.keys.IronKey;
@@ -47,7 +48,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOtilukeMessage;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
@@ -180,7 +180,7 @@ public class MinesBossLevel extends Level {
 
 		if (trapTriggered) {
 			if (Dungeon.level.heroFOV[cell]) {
-				Sample.INSTANCE.play(Assets.Sounds.TRAP);
+				SpatialSound.play(Assets.Sounds.TRAP, cell);
 			}
 			if (fleeced) {
 				set(cell, Terrain.WOOL_RUG);

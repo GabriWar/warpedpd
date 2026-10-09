@@ -27,7 +27,6 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -35,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
 
@@ -69,7 +69,7 @@ public class ZealPassive extends PassiveSkillB2 {
 		Hero hero = Dungeon.hero;
 		if (hero != null && hero.sprite != null)
 			hero.sprite.emitter().burst( FlameParticle.FACTORY, 10 );
-		Sample.INSTANCE.play( Assets.Sounds.BURNING, 0.6f, 1.4f );
+		SpatialSound.play( Assets.Sounds.BURNING, hero, 0.6f, 1.4f );
 	}
 
 	//the kill that kindles the flame has already passed through here, so it never spends its own flame;
@@ -88,7 +88,7 @@ public class ZealPassive extends PassiveSkillB2 {
 			enemy.sprite.emitter().burst( FlameParticle.FACTORY, 12 );
 			new Flare( 6, 24 ).color( 0xFFAA33, true ).show( enemy.sprite, 0.6f );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.BLAST, 0.8f, 1.2f );
+		SpatialSound.play( Assets.Sounds.BLAST, enemy, 0.8f, 1.2f );
 
 		if (level >= MAX_LEVEL){
 			for (int offset : PathFinder.NEIGHBOURS8){

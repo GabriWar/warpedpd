@@ -85,6 +85,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.DirectableAlly;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.NPC;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town.TownGuardFolk;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town.TownLedger;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.Surprise;
@@ -128,7 +129,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.tweeners.AlphaTweener;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.GameMath;
@@ -1161,9 +1161,9 @@ public abstract class Mob extends Char {
 			// playing the strong hit sound might work best as another property of weapon?
 			if (Dungeon.hero.belongings.attackingWeapon() instanceof SpiritBow.SpiritArrow
 				|| Dungeon.hero.belongings.attackingWeapon() instanceof Dart){
-				Sample.INSTANCE.playDelayed(Assets.Sounds.HIT_STRONG, 0.125f);
+				SpatialSound.playDelayed(Assets.Sounds.HIT_STRONG, 0.125f, this);
 			} else {
-				Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG);
+				SpatialSound.play(Assets.Sounds.HIT_STRONG, this);
 			}
 			if (enemy.buff(Preparation.class) != null) {
 				Wound.hit(this);
@@ -1426,7 +1426,7 @@ public abstract class Mob extends Char {
 				Buff.affect(w, Corruption.class);
 				if (Dungeon.level.heroFOV[pos]) {
 					CellEmitter.get(pos).burst(ShadowParticle.CURSE, 6);
-					Sample.INSTANCE.play(Assets.Sounds.CURSED);
+					SpatialSound.play(Assets.Sounds.CURSED, pos);
 				}
 			}
 		}

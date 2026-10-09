@@ -37,12 +37,12 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 
 import java.util.ArrayList;
 
@@ -72,9 +72,9 @@ public class HolySmite extends ActiveSkill1 {
 				hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 5 );
 				PulseRingFX.around( hero.sprite, 0xFFE9A0, 12, 0.4f );
 			}
-			Sample.INSTANCE.play( Assets.Sounds.CHARMS, 0.8f, 1.3f );
+			SpatialSound.play( Assets.Sounds.CHARMS, hero, 0.8f, 1.3f );
 		} else if (action.equals(Skill.AC_DEACTIVATE)){
-			Sample.INSTANCE.play( Assets.Sounds.DEGRADE, 0.5f, 1.4f );
+			SpatialSound.play( Assets.Sounds.DEGRADE, hero, 0.5f, 1.4f );
 		}
 		StanceAuraBuff.sync( hero, Radiance.class, active && level > 0 );
 	}
@@ -120,7 +120,7 @@ public class HolySmite extends ActiveSkill1 {
 		SkillFX.flash( enemy );
 		if (enemy.sprite != null) new Flare( 6, 14 ).color( 0xFFE9A0, true ).show( enemy.sprite, 0.35f );
 		PulseRingFX.at( enemy.pos, 0xFFE9A0, 8 * reach( level ), 0.45f );
-		Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 0.8f, 0.9f );
+		SpatialSound.play( Assets.Sounds.HIT_MAGIC, enemy, 0.8f, 0.9f );
 
 		int r = reach( level );
 		ArrayList<Mob> caught = new ArrayList<>();

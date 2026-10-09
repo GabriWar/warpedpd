@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.GnollGeomancer;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.GnollGuard;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
@@ -40,7 +41,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.BArray;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -110,7 +110,7 @@ public class GnollRockfallTrap extends RockfallTrap {
 
 		if (seen){
 			PixelScene.shake(3, 0.7f);
-			Sample.INSTANCE.play(Assets.Sounds.ROCKS);
+			SpatialSound.play(Assets.Sounds.ROCKS, pos);
 		}
 
 	}

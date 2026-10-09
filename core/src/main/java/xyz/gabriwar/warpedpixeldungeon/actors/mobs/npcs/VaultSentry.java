@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.DM100;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.journal.Bestiary;
@@ -38,7 +39,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.SentrySprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
@@ -128,7 +128,7 @@ public class VaultSentry extends NPC {
 								}
 								curZaps.add(ch.id());
 								if (ch.sprite.visible || sprite.visible) {
-									Sample.INSTANCE.play(Assets.Sounds.LIGHTNING);
+									SpatialSound.play(Assets.Sounds.LIGHTNING, ch);
 									sprite.parent.add(new Lightning(sprite.center(), ch.sprite.destinationCenter(), null));
 									if (ch.sprite.visible) {
 										Emitter e = GameScene.emitter();
@@ -159,7 +159,7 @@ public class VaultSentry extends NPC {
 			}
 
 			if (visible && SFXLastPlayed+80 < WarpedPixelDungeon.realTime) {
-				Sample.INSTANCE.play(Assets.Sounds.ZAP, 0.5f);
+				SpatialSound.play(Assets.Sounds.ZAP, pos, 0.5f);
 				SFXLastPlayed = WarpedPixelDungeon.realTime;
 			}
 

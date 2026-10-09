@@ -57,13 +57,13 @@ import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.audio.Music;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 import java.util.ArrayList;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.TempleSentry;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 
 //Re-ARranged's temple sentry sprite. Warped's SentryRoom.SentrySprite cannot be
 //reused: its link() casts the Char to SentryRoom.Sentry, so a TempleSentry
@@ -133,7 +133,7 @@ public class TempleSentrySprite extends MobSprite {
 
 		public void charge(){
 			play(charging);
-			if (visible) Sample.INSTANCE.play( Assets.Sounds.CHARGEUP );
+			if (visible) SpatialSound.play( Assets.Sounds.CHARGEUP, ch );
 		}
 
 		@Override

@@ -26,6 +26,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Shopkeeper;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.stones.Runestone;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.Trinket;
@@ -46,7 +47,6 @@ import xyz.gabriwar.warpedpixeldungeon.windows.WndInfoItem;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndTradeItem;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndUpgrade;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 import java.util.ArrayList;
@@ -283,7 +283,7 @@ public class Alchemize extends Spell {
 		}
 
 		private void consumeAlchemize(){
-			Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
+			SpatialSound.play(Assets.Sounds.TELEPORT, curUser);
 			if (curItem.quantity() <= 1){
 				curItem.detachAll(Dungeon.hero.belongings.backpack);
 				if (owner != null) {

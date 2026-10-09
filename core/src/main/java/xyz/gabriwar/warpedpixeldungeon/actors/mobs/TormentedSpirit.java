@@ -24,6 +24,7 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
@@ -32,7 +33,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.TormentedSpiritSprite;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 public class TormentedSpirit extends Wraith {
@@ -57,7 +57,7 @@ public class TormentedSpirit extends Wraith {
 	}
 
 	public void cleanse(){
-		Sample.INSTANCE.play( Assets.Sounds.GHOST );
+		SpatialSound.play( Assets.Sounds.GHOST, pos );
 		yell(Messages.get(this, "thank_you"));
 
 		//50/50 between weapon or armor, always uncursed & enchanted, 50% chance to be +1 if level 0

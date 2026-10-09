@@ -27,9 +27,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bless;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 public class HolyDart extends TippedDart {
@@ -63,7 +63,7 @@ public class HolyDart extends TippedDart {
 
 		if (Char.hasProp(defender, Char.Property.UNDEAD) || Char.hasProp(defender, Char.Property.DEMONIC)){
 			defender.sprite.emitter().start( ShadowParticle.UP, 0.05f, 10+buffedLvl() );
-			Sample.INSTANCE.play(Assets.Sounds.BURNING);
+			SpatialSound.play(Assets.Sounds.BURNING, defender);
 			defender.damage(Random.NormalIntRange(10 + Dungeon.scalingDepth()/3, 20 + Dungeon.scalingDepth()/3), this);
 		//also do not bless enemies if processing charged shot
 		} else if (!processingChargedShot){

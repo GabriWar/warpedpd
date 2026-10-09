@@ -39,6 +39,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -46,7 +47,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 
 import java.util.ArrayList;
@@ -104,8 +104,8 @@ public class ScouringFlame extends Skill {
 			payMana( hero, getManaCost() );
 			castTextYell();
 			hero.sprite.zap( cell );
-			Sample.INSTANCE.play( Assets.Sounds.BURNING, 1f, 1.3f );
-			Sample.INSTANCE.play( Assets.Sounds.RAY, 0.7f, 1.2f );
+			SpatialSound.play( Assets.Sounds.BURNING, hero, 1f, 1.3f );
+			SpatialSound.play( Assets.Sounds.RAY, hero, 0.7f, 1.2f );
 			for (Ballistica ray : cone.rays){
 				MagicMissile.boltFromChar( hero.sprite.parent, MagicMissile.LIGHT_MISSILE, hero.sprite, ray.path.get( ray.dist ), null );
 			}
@@ -130,7 +130,7 @@ public class ScouringFlame extends Skill {
 						target.sprite.flash();
 						CellEmitter.center( target.pos ).burst( HolyFlameParticle.FACTORY, 7 );
 					}
-					Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 0.8f, 0.9f + 0.1f * ring );
+					SpatialSound.play( Assets.Sounds.HIT_MAGIC, target, 0.8f, 0.9f + 0.1f * ring );
 				} );
 				target.damage( hit, ScouringFlame.this );
 				//at level 3 the white fire leaves its survivors blinded

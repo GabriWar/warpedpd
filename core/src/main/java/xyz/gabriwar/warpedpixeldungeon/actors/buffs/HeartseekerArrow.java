@@ -24,7 +24,6 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
@@ -33,6 +32,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Heartseeker;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -81,7 +81,7 @@ public class HeartseekerArrow extends Buff {
 		int beat = BEATS - beats;
 		target.sprite.emitter().burst( Speck.factory( Speck.HEART ), 1 + beat );
 		target.sprite.showStatus( CharSprite.WARNING, Integer.toString( beats ) );
-		Sample.INSTANCE.play( Assets.Sounds.HEALTH_WARN, 0.4f + 0.2f * beat, 1f + 0.15f * beat );
+		SpatialSound.play( Assets.Sounds.HEALTH_WARN, target, 0.4f + 0.2f * beat, 1f + 0.15f * beat );
 	}
 
 	private void burst(){
@@ -98,7 +98,7 @@ public class HeartseekerArrow extends Buff {
 			new Flare( 6, 24 ).color( 0xCC2222, true ).show( victim.sprite, 0.7f );
 			victim.sprite.showStatus( CharSprite.NEGATIVE, Messages.get( Heartseeker.class, "burst" ) );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 1f, 0.9f );
+		SpatialSound.play( Assets.Sounds.HIT_STRONG, pos, 1f, 0.9f );
 		victim.damage( damage, this );
 
 		if (rank >= 3 && !victim.isAlive()) seekNext( victim, pos );
@@ -124,7 +124,7 @@ public class HeartseekerArrow extends Buff {
 			SkillFX.flash( struck );
 			if (struck.sprite != null) struck.sprite.emitter().burst( Speck.factory( Speck.HEART ), 3 );
 		} );
-		Sample.INSTANCE.play( Assets.Sounds.HIT_ARROW, 1f, 0.8f );
+		SpatialSound.play( Assets.Sounds.HIT_ARROW, struck, 1f, 0.8f );
 	}
 
 	private static final String BEATS_LEFT = "beats";

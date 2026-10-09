@@ -31,7 +31,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import com.watabou.utils.Callback;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -48,6 +47,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.MineSentinel;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Otiluke;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Zot;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.ZotPhase;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import com.watabou.utils.Random;
 
@@ -104,7 +104,7 @@ public class RoyalSpork extends MeleeWeapon {
 				for (Char ch : new Char[]{ enemy, behind }){
 					if (ch == null || ch == hero || ch.alignment != Char.Alignment.ENEMY || !ch.isAlive()) continue;
 					if (hero.attack( ch, 1f, boost, Char.INFINITE_ACCURACY )){
-						Sample.INSTANCE.play( Assets.Sounds.HIT_STAB, 1f, 1.4f );
+						SpatialSound.play( Assets.Sounds.HIT_STAB, ch, 1f, 1.4f );
 						Wound.hit( ch );
 						if (ch.isAlive()){
 							Buff.affect( ch, Bleeding.class ).set( bleed );

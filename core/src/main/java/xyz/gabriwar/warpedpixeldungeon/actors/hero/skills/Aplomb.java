@@ -33,11 +33,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Daze;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
-import com.watabou.noosa.audio.Sample;
 
 public class Aplomb extends Skill {
 
@@ -73,7 +73,7 @@ public class Aplomb extends Skill {
 			hero.sprite.emitter().burst( Speck.factory( Speck.FORGE ), 4 );
 			new Flare( 4, 12 ).color( 0xD8D8D8, true ).show( hero.sprite, 0.3f );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.STURDY, 1f, 1.2f );
+		SpatialSound.play( Assets.Sounds.STURDY, hero, 1f, 1.2f );
 
 		Char attacker = (Char) source;
 		if (level >= 2 && attacker.isAlive() && Dungeon.level.adjacent( attacker.pos, hero.pos )){

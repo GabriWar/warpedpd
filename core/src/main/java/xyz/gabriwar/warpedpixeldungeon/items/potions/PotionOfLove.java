@@ -30,10 +30,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Charm;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 
 public class PotionOfLove extends Potion {
@@ -57,7 +57,7 @@ public class PotionOfLove extends Potion {
         splash(cell);
         if (Dungeon.level.heroFOV[cell]) {
             identify();
-            Sample.INSTANCE.play(Assets.Sounds.SHATTER);
+            SpatialSound.play(Assets.Sounds.SHATTER, cell);
         }
         for (Mob mob : Dungeon.level.mobs.toArray(new Mob[0])) {
             if (mob.fieldOfView != null && mob.fieldOfView[cell] && Dungeon.hero.fieldOfView[cell]) {

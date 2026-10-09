@@ -25,6 +25,8 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Chrome;
 import xyz.gabriwar.warpedpixeldungeon.WPDSettings;
 import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
+import xyz.gabriwar.warpedpixeldungeon.audio.RoomAcoustics;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.messages.Languages;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -963,6 +965,9 @@ public class WndSettings extends WndTabbed {
 		ColorBlock sepAmbience;
 		OptionSlider optAmbience;
 		CheckBox chkMuteAmbience;
+		ColorBlock sepSpatial;
+		CheckBox chkSpatial;
+		CheckBox chkAcoustics;
 		ColorBlock sep3;
 		CheckBox chkIgnoreSilent;
 		CheckBox chkMusicBG;
@@ -1059,6 +1064,41 @@ public class WndSettings extends WndTabbed {
 			chkMuteAmbience.checked(!WPDSettings.ambience());
 			add( chkMuteAmbience );
 
+			//spatial sound (audio.SpatialSound): effects and ambience panned to their side and
+			//quieter further off
+			sepSpatial = new ColorBlock(1, 1, 0xFF000000);
+			add(sepSpatial);
+
+			chkSpatial = new CheckBox( Messages.get(this, "spatial") ) {
+				@Override
+				protected void onClick() {
+					super.onClick();
+					WPDSettings.spatialAudio(checked());
+					//a taste of it (the press has clicked already): a step to the left, then
+					//one to the right
+					if (checked()) {
+						SpatialSound.playPanned( Assets.Sounds.STEP, 0.1f, 1f, 1f, -SpatialSound.MAX_PAN );
+						SpatialSound.playPanned( Assets.Sounds.STEP, 0.45f, 1f, 1f, SpatialSound.MAX_PAN );
+					}
+				}
+			};
+			chkSpatial.checked(WPDSettings.spatialAudio());
+			add( chkSpatial );
+
+			//room acoustics (audio.RoomAcoustics): the effects with their room's reverb and echo,
+			//and dull through doors and rock
+			chkAcoustics = new CheckBox( Messages.get(this, "acoustics") ) {
+				@Override
+				protected void onClick() {
+					super.onClick();
+					WPDSettings.roomAcoustics(checked());
+					//a taste of it (the press has clicked already): a heavy blow in a big hall
+					if (checked()) RoomAcoustics.preview();
+				}
+			};
+			chkAcoustics.checked(WPDSettings.roomAcoustics());
+			add( chkAcoustics );
+
 			if (DeviceCompat.isiOS()){
 
 				sep3 = new ColorBlock(1, 1, 0xFF000000);
@@ -1131,6 +1171,17 @@ public class WndSettings extends WndTabbed {
 				chkMuteAmbience.setRect(0, optAmbience.bottom() + GAP, width, BTN_HEIGHT);
 				height = chkMuteAmbience.bottom();
 			}
+
+			sepSpatial.size(width, 1);
+			sepSpatial.y = height + GAP;
+			if (width > 200) {
+				chkSpatial.setRect(0, sepSpatial.y + 1 + GAP, width/2-1, BTN_HEIGHT);
+				chkAcoustics.setRect(chkSpatial.right()+2, chkSpatial.top(), width/2-1, BTN_HEIGHT);
+			} else {
+				chkSpatial.setRect(0, sepSpatial.y + 1 + GAP, width, BTN_HEIGHT);
+				chkAcoustics.setRect(0, chkSpatial.bottom() + GAP, width, BTN_HEIGHT);
+			}
+			height = chkAcoustics.bottom();
 
 			if (chkIgnoreSilent != null){
 				sep3.size(width, 1);

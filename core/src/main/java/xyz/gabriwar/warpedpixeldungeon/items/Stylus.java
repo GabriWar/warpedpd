@@ -24,6 +24,7 @@ package xyz.gabriwar.warpedpixeldungeon.items;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Belongings;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Enchanting;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.PurpleParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
@@ -34,7 +35,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
-import com.watabou.noosa.audio.Sample;
 
 import java.util.ArrayList;
 
@@ -104,7 +104,7 @@ public class Stylus extends Item {
 		curUser.sprite.operate(curUser.pos);
 		curUser.sprite.centerEmitter().start(PurpleParticle.BURST, 0.05f, 10);
 		Enchanting.show(curUser, armor);
-		Sample.INSTANCE.play(Assets.Sounds.BURNING);
+		SpatialSound.play(Assets.Sounds.BURNING, curUser);
 		
 		curUser.spend(TIME_TO_INSCRIBE);
 		curUser.busy();

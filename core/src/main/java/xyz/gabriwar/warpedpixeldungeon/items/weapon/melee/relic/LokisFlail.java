@@ -29,10 +29,10 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 
 import java.util.ArrayList;
 
@@ -63,7 +63,7 @@ public class LokisFlail extends RelicMeleeWeapon {
 			GLog.p(Messages.get(this, "activate"));
 			charge = 0;
 			Buff.affect(hero, Invisibility.class, Invisibility.DURATION);
-			Sample.INSTANCE.play(Assets.Sounds.MELD);
+			SpatialSound.play(Assets.Sounds.MELD, hero);
 			updateQuickslot();
 		}
 	}

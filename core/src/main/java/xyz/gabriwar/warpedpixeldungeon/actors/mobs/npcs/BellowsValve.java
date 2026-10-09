@@ -31,13 +31,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.BellowsValveSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
 import com.watabou.noosa.Game;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 
@@ -111,8 +111,8 @@ public class BellowsValve extends NPC {
 		spent = true;
 		hero.sprite.operate( pos );
 		hero.spendAndNext( 1f );
-		Sample.INSTANCE.play( Assets.Sounds.UNLOCK, 1f, 0.7f );
-		Sample.INSTANCE.play( Assets.Sounds.GAS );
+		SpatialSound.play( Assets.Sounds.UNLOCK, pos, 1f, 0.7f );
+		SpatialSound.play( Assets.Sounds.GAS, pos );
 		if (gallery != null && gallery.length > 0){
 			for (int cell : gallery) GameScene.add( Blob.seed( cell, CHARGE, ToxicGas.class ) );
 		} else {

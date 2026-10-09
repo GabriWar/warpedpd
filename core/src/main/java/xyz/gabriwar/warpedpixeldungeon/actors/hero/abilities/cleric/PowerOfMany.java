@@ -41,6 +41,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.LifeLinkSpell;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.Stasis;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.DirectableAlly;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.ClassArmor;
@@ -55,7 +56,6 @@ import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
@@ -170,7 +170,7 @@ public class PowerOfMany extends ArmorAbility {
 			armor.updateQuickslot();
 
 			hero.sprite.zap(target);
-			Sample.INSTANCE.play(Assets.Sounds.CHARGEUP);
+			SpatialSound.play(Assets.Sounds.CHARGEUP, hero);
 
 			Invisibility.dispel();
 			hero.spendAndNext(Actor.TICK);

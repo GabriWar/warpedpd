@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Degrade;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Belongings;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.MissileWeapon;
@@ -47,7 +48,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MissileSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.QuickSlotButton;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Bundlable;
 import com.watabou.utils.Bundle;
@@ -133,7 +133,7 @@ public class Item implements Bundlable {
 		if (collect( hero.belongings.backpack )) {
 			
 			GameScene.pickUp( this, pos );
-			Sample.INSTANCE.play( Assets.Sounds.ITEM );
+			SpatialSound.play( Assets.Sounds.ITEM, hero );
 			hero.spendAndNext( pickupDelay() );
 			return true;
 			
@@ -733,8 +733,9 @@ public class Item implements Bundlable {
 		return new Ballistica( user.pos, dst, Ballistica.PROJECTILE ).collisionPos;
 	}
 
-	public void throwSound(){
-		Sample.INSTANCE.play(Assets.Sounds.MISS, 0.6f, 0.6f, 1.5f);
+	//the sound of `thrower` letting it fly, heard from where they stand
+	public void throwSound(Char thrower){
+		SpatialSound.play(Assets.Sounds.MISS, thrower, 0.6f, 1.5f);
 	}
 	
 	public void cast( final Hero user, final int dst ) {
@@ -743,7 +744,7 @@ public class Item implements Bundlable {
 		user.sprite.zap( cell );
 		user.busy();
 
-		throwSound();
+		throwSound(user);
 
 		Char enemy = Actor.findChar( cell );
 		QuickSlotButton.target(enemy);
@@ -765,7 +766,7 @@ public class Item implements Bundlable {
 									&& !(Item.this instanceof MissileWeapon)
 									&& curUser.buff(Talent.ImprovisedProjectileCooldown.class) == null){
 								if (enemy != null && enemy.alignment != curUser.alignment){
-									Sample.INSTANCE.play(Assets.Sounds.HIT);
+									SpatialSound.play(Assets.Sounds.HIT, enemy);
 									Buff.affect(enemy, Blindness.class, 1f + curUser.pointsInTalent(Talent.IMPROVISED_PROJECTILES));
 									Buff.affect(curUser, Talent.ImprovisedProjectileCooldown.class, curUser.pointsInTalent(Talent.IMPROVISED_PROJECTILES) >= 3 ? 30f : 50f);
 								}

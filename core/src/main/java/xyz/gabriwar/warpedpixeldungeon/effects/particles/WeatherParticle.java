@@ -53,16 +53,24 @@ public class WeatherParticle extends PixelParticle {
 		am = 0;
 	}
 
-	/** hidden where the hero cannot see; the fog above masks the rest */
+	/** hidden where the hero cannot see (not drawn at all, rather than drawn clear), shown again
+	 *  once he does; the fog above masks the rest */
 	protected void fov() {
-		if (!WeatherSprites.visible( x, y )) am = 0;
+		visible = WeatherSprites.visible( x, y );
 	}
 
 	/** the same test, but against the cell the particle belongs to rather than
 	 *  where it is drawn: a cloud floats above its own ground and must not be
 	 *  hidden by the unseen wall it happens to hang over */
 	protected void fovAt( float sx, float sy ) {
-		if (!WeatherSprites.visible( sx, sy )) am = 0;
+		visible = WeatherSprites.visible( sx, sy );
+	}
+
+	@Override
+	public void revive() {
+		super.revive();
+		//a life starts seen: one hidden at the end of its last is not hidden in this one
+		visible = true;
 	}
 
 	/** an alpha that rises over the first `in` of the life, holds at peak, and

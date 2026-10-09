@@ -174,6 +174,17 @@ public class Button extends Component {
 		}
 	}
 	
+	/**
+	 * A press that turned into a drag of the scroll pane under it (ScrollPane.dragOverButtons):
+	 * no click when it ends, and no long click either.
+	 */
+	void cancelPress() {
+		if (pressedButton == this) pressedButton = null;
+		hotArea.reset();
+		clickReady = false;
+		onPointerUp();
+	}
+
 	protected void onPointerDown() {}
 	protected void onPointerUp() {}
 	protected void onClick() {} //left click, default key type

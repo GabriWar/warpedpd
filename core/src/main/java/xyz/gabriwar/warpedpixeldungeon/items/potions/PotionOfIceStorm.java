@@ -31,8 +31,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.IceStorm;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 
@@ -59,7 +59,7 @@ public class PotionOfIceStorm extends Potion {
         splash(cell);
         if (Dungeon.level.heroFOV[cell]) {
             identify();
-            Sample.INSTANCE.play(Assets.Sounds.SHATTER);
+            SpatialSound.play(Assets.Sounds.SHATTER, cell);
         }
         for (int offset : PathFinder.NEIGHBOURS9) {
             int c = cell + offset;

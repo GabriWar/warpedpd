@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.LivingPlant;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
@@ -46,7 +47,6 @@ import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.particles.PixelParticle;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
@@ -354,7 +354,7 @@ public abstract class Plant implements Bundlable {
 		
 		public Plant couch( int pos, Level level ) {
 			if (level != null && level.heroFOV != null && level.heroFOV[pos]) {
-				Sample.INSTANCE.play(Assets.Sounds.PLANT);
+				SpatialSound.play(Assets.Sounds.PLANT, pos);
 				CellEmitter.get(pos).burst(LeafParticle.GENERAL, 10);
 			}
 			Plant plant = Reflection.newInstance(plantClass);

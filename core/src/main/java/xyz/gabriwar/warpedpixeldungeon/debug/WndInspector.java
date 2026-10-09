@@ -157,6 +157,8 @@ public class WndInspector extends Window {
 			rows.add(row);
 		}
 		listContent.setSize(ww - 3, targets.size() * (ROW_HEIGHT + 1));
+		//letting go after a drag over the rows selects none of them
+		listPane.dragOverButtons();
 
 		int listH = Math.min(4 * (ROW_HEIGHT + 1), targets.size() * (ROW_HEIGHT + 1));
 		listPane.setRect(0, top, ww, listH);

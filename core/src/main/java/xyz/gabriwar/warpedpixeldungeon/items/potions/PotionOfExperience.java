@@ -22,7 +22,6 @@
 package xyz.gabriwar.warpedpixeldungeon.items.potions;
 
 import com.watabou.utils.Random;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.HolyDart;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
@@ -30,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -69,7 +69,7 @@ public class PotionOfExperience extends Potion {
 		if (Char.hasProp(enemy, Char.Property.UNDEAD) || Char.hasProp(enemy, Char.Property.DEMONIC)) {
 			enemy.damage(Random.NormalIntRange(10 + Dungeon.scalingDepth()/3, 20 + Dungeon.scalingDepth()/3), new HolyDart());
 			enemy.sprite.emitter().start( ShadowParticle.UP, 0.05f, 10+buffedLvl() );
-			Sample.INSTANCE.play(Assets.Sounds.BURNING);
+			SpatialSound.play(Assets.Sounds.BURNING, enemy);
 		}
 	}
 

@@ -31,7 +31,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Adrenaline;
@@ -39,6 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barrier;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 
 import java.util.ArrayList;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
@@ -72,7 +72,7 @@ public class BloodDance extends Skill {
 
 			hero.MP -= getManaCost();
 			castTextYell();
-			Sample.INSTANCE.play( Assets.Sounds.HIT_STAB, 1f, 0.9f );
+			SpatialSound.play( Assets.Sounds.HIT_STAB, hero, 1f, 0.9f );
 			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.RED_LIGHT ), 6 );
 			new Flare( 6, 20 ).color( 0xCC2222, true ).show( hero.sprite, 0.6f ).angularSpeed = 120;
 			//the first turn of the waltz: a ring of red sweeping once around him, tile by tile
@@ -84,7 +84,7 @@ public class BloodDance extends Skill {
 				if (!SkillInteractions.valid( c ) || Dungeon.level.solid[c] || !Dungeon.level.heroFOV[c]) continue;
 				t.at( 0.05f * i, () -> Splash.at( c, 0xCC1111, 3 ) );
 			}
-			t.at( 0.4f, () -> Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 0.6f, 1.3f ) );
+			t.at( 0.4f, () -> SpatialSound.play( Assets.Sounds.HIT_SLASH, hero, 0.6f, 1.3f ) );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
 			hero.busy();
@@ -98,7 +98,7 @@ public class BloodDance extends Skill {
 				&& Dungeon.hero != null && Dungeon.hero.buff( Adrenaline.class ) != null){
 			Buff.affect( enemy, Bleeding.class ).set( 1 + level );
 			Splash.at( enemy.pos, 0xCC1111, 3 );
-			Sample.INSTANCE.play( Assets.Sounds.HIT_STAB, 0.8f, 1.1f );
+			SpatialSound.play( Assets.Sounds.HIT_STAB, enemy, 0.8f, 1.1f );
 		}
 		return damage;
 	}

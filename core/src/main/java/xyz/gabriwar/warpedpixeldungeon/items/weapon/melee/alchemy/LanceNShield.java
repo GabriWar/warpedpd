@@ -27,6 +27,7 @@ package xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.alchemy;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.glyphs.AntiMagic;
@@ -38,7 +39,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.RoundShield;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
@@ -90,7 +90,7 @@ public class LanceNShield extends MeleeWeapon implements AlchemyWeapon {
                     GLog.p(Messages.get(this,"change_attack"));
                     stance = true;
                 }
-                Sample.INSTANCE.play(Assets.Sounds.MISS, 1f, 0.8f);
+                SpatialSound.play(Assets.Sounds.MISS, hero, 1f, 0.8f);
                 hero.sprite.emitter().burst(Speck.factory(Speck.JET), 5);
             }
         }

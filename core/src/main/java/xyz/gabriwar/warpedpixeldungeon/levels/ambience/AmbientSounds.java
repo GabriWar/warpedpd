@@ -80,7 +80,7 @@ public final class AmbientSounds extends Gizmo {
 	//an echo comes back from the other side, not as wide
 	private static final float ECHO_PAN = 0.6f;
 	//the prison's chains: the game's own CHAINS, a little under a creak's mix, and its length
-	static final float CHAINS_GAIN = 0.2f, CHAINS_LENGTH = 0.7f;
+	static final float CHAINS_GAIN = 0.12f, CHAINS_LENGTH = 0.7f;
 
 	private final Level level;
 	private final Place place;
@@ -266,10 +266,10 @@ public final class AmbientSounds extends Gizmo {
 	private static Voice[] sewers(){
 		return new Voice[]{
 				v( DRIP ).every( 4f ).level( 0.9f ).pitch( 0.85f, 1.2f ).from( Source.DRIP ).range( 1f, 10f ),
-				v( DRIP_METAL ).every( 13f ).level( 0.8f ).pitch( 0.9f, 1.1f ).from( Source.PIPE ).range( 0f, 10f ),
+				v( DRIP_METAL ).every( 20f ).level( 0.8f ).pitch( 0.9f, 1.1f ).from( Source.PIPE ).range( 0f, 10f ),
 				//water spilling from the pipes, heard on and on near them: one bed, a trickle from
 				//the nearest pipe, or a pour from the one pipe in three that pours
-				v( TRICKLE ).bed( 6f, 1.45f ).pitch( 0.95f, 1.08f ).from( Source.PIPE )
+				v( TRICKLE ).bed( 4f, 1.45f ).pitch( 0.95f, 1.08f ).from( Source.PIPE )
 						.or( v( POUR ).bed( 6f, 1.75f ).pitch( 0.92f, 1.05f ).from( Source.PIPE_POUR ) ),
 				v( GURGLE ).every( 16f ).level( 0.8f ).pitch( 0.85f, 1.1f ).from( Source.DRAIN ).range( 1f, 10f ),
 				v( FROG ).every( 10f ).level( 0.9f ).pitch( 0.9f, 1.15f ).hours( DUSK, NIGHT )
@@ -289,7 +289,7 @@ public final class AmbientSounds extends Gizmo {
 		return new Voice[]{
 				v( DRIP ).every( 8f ).level( 0.8f ).pitch( 0.85f, 1.15f ).from( Source.DRIP ).range( 1f, 10f ),
 				v( CRACKLE ).bed( 4f, 1.05f ).level( 0.55f ).pitch( 0.95f, 1.08f ).from( Source.TORCH ),
-				v( CREAK ).every( 34f ).level( 0.8f ).pitch( 0.85f, 1.05f ).from( Source.CAGE ).range( 1f, 11f ),
+				v( CREAK ).every( 50f ).level( 0.8f ).pitch( 0.85f, 1.05f ).from( Source.CAGE ).range( 1f, 11f ),
 				//a cage stirring on its chain: the game's own chains, low and slow
 				new Voice( Assets.Sounds.CHAINS, CHAINS_GAIN, CHAINS_LENGTH ).every( 26f ).level( 0.8f ).pitch( 0.6f, 0.8f )
 						.from( Source.HANGING, Source.CAGE ).range( 1f, 11f ),
@@ -310,11 +310,11 @@ public final class AmbientSounds extends Gizmo {
 				v( RUMBLE ).every( 75f ).level( 0.85f ).pitch( 0.85f, 1.05f ),
 				v( BAT ).every( 32f ).level( 0.8f ).pitch( 0.95f, 1.1f ).from( Source.ROCK_FACE ).range( 3f, 12f ).echo(),
 				//an underground stream: water running by the big pools
-				v( TRICKLE ).bed( 7f, 1.45f ).level( 0.85f ).pitch( 0.9f, 1.02f ).from( Source.BIG_WATER ),
+				v( TRICKLE ).bed( 5f, 1.45f ).level( 0.85f ).pitch( 0.9f, 1.02f ).from( Source.BIG_WATER ),
 				v( CRICKET ).every( 18f ).level( 0.55f ).pitch( 0.82f, 0.92f )
 						.from( Source.GRASS, Source.WALL_BASE ).range( 2f, 11f ),
 				//a minecart's creak on the tracks over the scaffolds
-				v( CREAK ).every( 45f ).level( 0.75f ).pitch( 0.6f, 0.72f ).from( Source.SCAFFOLD ).range( 1f, 12f ),
+				v( CREAK ).every( 70f ).level( 0.75f ).pitch( 0.6f, 0.72f ).from( Source.SCAFFOLD ).range( 1f, 12f ),
 				v( WIND ).every( 24f ).level( 0.5f ).pitch( 0.9f, 1.1f ).from( Source.CHASM ).range( 0f, 10f )
 		};
 	}
@@ -328,7 +328,7 @@ public final class AmbientSounds extends Gizmo {
 				v( CRACKLE ).bed( 4f, 1.05f ).level( 0.55f ).pitch( 0.72f, 0.8f ).from( Source.FLAME ),
 				//a draught through the smoke vents, or along the halls
 				v( WIND ).every( 36f ).level( 0.45f ).pitch( 0.95f, 1.1f ).from( Source.VENT, Source.AIR ).range( 1f, 10f ),
-				v( TRICKLE ).bed( 6f, 1.45f ).level( 0.7f ).pitch( 1.05f, 1.15f ).from( Source.BIG_WATER ),
+				v( TRICKLE ).bed( 4f, 1.45f ).level( 0.7f ).pitch( 1.05f, 1.15f ).from( Source.BIG_WATER ),
 				v( COO ).every( 30f ).level( 0.65f ).pitch( 0.95f, 1.05f ).hours( DAWN, DAY )
 						.from( Source.STATUE, Source.ROCK_FACE ).range( 2f, 12f ),
 				v( CRICKET ).every( 13f ).level( 0.6f ).pitch( 0.95f, 1.08f ).hours( NIGHT )
@@ -449,13 +449,13 @@ public final class AmbientSounds extends Gizmo {
 						.seasons( SPRING, SUMMER, AUTUMN ).minTemp( 5f ).from( Source.SHORE ).range( 2f, 12f ).chorus(),
 				//rivers and lakes lapping at their banks (ice has none)
 				v( LAP ).every( 6f ).level( 0.55f ).pitch( 0.9f, 1.1f ).from( Source.LAPPING ).range( 1f, 9f ).answer(),
-				//the wind over open ground when it blows
+				//the wind over open ground when it blows, until the weather's gusts take over
 				v( WIND ).every( 14f ).level( 0.55f ).pitch( 0.95f, 1.1f ).biomes( PLAINS, TUNDRA, SNOWFIELD, DESERT, BEACH )
 						.weather( Voice.Weather.WINDY )
 		};
 	}
 
-	//the mountains: always the wind
+	//the mountains: always the wind, the weather's gusts and gale once it really blows
 	private static Voice[] peaks(){
 		return new Voice[]{
 				v( WIND ).every( 10f ).level( 0.6f ).pitch( 0.95f, 1.1f ).weather( Voice.Weather.GUSTY ),

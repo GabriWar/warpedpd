@@ -26,49 +26,71 @@ package xyz.gabriwar.warpedpixeldungeon.journal;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.CrabKing;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.DM300;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.DemonLord;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.DwarfKing;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.DwarfKingTomb;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Goo;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Otiluke;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldDragon;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.ShadowYog;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.SkeletonKing;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.SpiderQueen;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Tengu;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.ThiefKing;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.YogDzewa;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Zot;
+import xyz.gabriwar.warpedpixeldungeon.items.journal.DescentPage;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.ui.Icons;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 
-//In-game node-graph version of the Descent Guide (GUIA.html).
-//POC: real structure of the guide, in English. Node body text comes later.
+//The Descent Guide as a tree: chapters (regions), the pages in them, and the boss
+//chapters. Every node's words live in messages/guide: guide.title.<id>, guide.sub.<id>
+//and, for a page, guide.<key>. Building the tree touches no strings, so it is cheap and
+//can be walked headlessly (GuideGraphTest).
+//
+//How a page is earned:
+//  - floor pages lie on a main-dungeon floor (floor(...)), one floor below the one
+//    they describe so the guide never reads ahead of you;
+//  - branch pages lie on a floor of a side branch (branch(...));
+//  - discovered pages write themselves when you first reach a place or see a thing
+//    (tag(...)): the overworld is streamed, nothing can lie on its floor;
+//  - boss chapters write themselves the first time you face the boss.
 public class GuideGraph {
 
 	public static class Node {
-		public String title;
-		public String subtitle;
+		public final String id;
 		public int color;
 		public Icons icon = null;
 		public Class<? extends Mob> mob = null;
-		//key into the guide messages bundle ("guide.<key>"), null = no page
+		//key into the guide messages bundle ("guide.<key>"), null = a chapter
 		public String key = null;
 
-		//unlock requirements: mob nodes gate on Bestiary.isSeen; otherwise
-		// any visited depth in unlockDepths, or a visited branch, unlocks.
-		// all null = always unlocked.
-		public int[] unlockDepths = null;
-		public String unlockBranch = null; //"mine" or "vault"
+		//how the page is earned (see the class comment); a chapter is open once any page
+		//inside it is, and an always-open node (the root, the topics) never locks
+		public int[] depths = null;
+		public int branch = 0;
+		public String place = null;
+		public String tag = null;
+		public boolean open = false;
 
 		public Node parent = null;
 		public final ArrayList<Node> children = new ArrayList<>();
 		public boolean expanded = false;
 
-		//model-space layout coords, written by GuideScene
-		public float mx, my;
+		//layout, in graph pixels, written by GuideLayout: top-left corner and card size
+		public int lx, ly, lw, lh;
+		//the layout depth (0 = root)
+		public int level;
 
-		public Node( String title, String subtitle, int color ){
-			this.title = title;
-			this.subtitle = subtitle;
+		public Node( String id, int color ){
+			this.id = id;
 			this.color = color;
 		}
 
@@ -87,13 +109,28 @@ public class GuideGraph {
 			return this;
 		}
 
-		public Node unlock( int... depths ){
-			this.unlockDepths = depths;
+		//a page on these main-dungeon floors
+		public Node floor( int... depths ){
+			this.depths = depths;
 			return this;
 		}
 
-		public Node unlockBranch( String branch ){
-			this.unlockBranch = branch;
+		//a page lying on these floors of a side branch
+		public Node branch( int branch, String place, int... depths ){
+			this.branch = branch;
+			this.place = place;
+			this.depths = depths;
+			return this;
+		}
+
+		//a page that writes itself when the tagged discovery happens
+		public Node tag( String tag ){
+			this.tag = tag;
+			return this;
+		}
+
+		public Node open(){
+			this.open = true;
 			return this;
 		}
 
@@ -102,59 +139,191 @@ public class GuideGraph {
 			children.add( c );
 			return this;
 		}
+
+		public boolean isPage(){
+			return key != null;
+		}
+
+		public String title(){
+			return Messages.get( "guide.title." + id );
+		}
+
+		/** The node's subtitle, or null when it has none. */
+		public String subtitle(){
+			String s = Messages.get( "guide.sub." + id );
+			return s.equals( Messages.NO_TEXT_FOUND ) ? null : s;
+		}
+
+		/** The page text, or null when there is none. */
+		public String text(){
+			if (key == null) return null;
+			String s = Messages.get( "guide." + key );
+			return s.equals( Messages.NO_TEXT_FOUND ) ? null : s;
+		}
 	}
 
 	//region accents, roughly matching the guide's tileset-derived palette
 	private static final int SEWERS   = 0x59B848;
 	private static final int PRISON   = 0xE0A54C;
+	private static final int NEST     = 0xB8C060;
 	private static final int CAVES    = 0xB07048;
+	private static final int TEMPLE   = 0x64BB4C;
 	private static final int CITY     = 0x6AA8C8;
 	private static final int HALLS    = 0xC04848;
+	private static final int FROZEN   = 0x88C8F0;
 	private static final int POSTGAME = 0x9AC46A;
 	private static final int DENS     = 0xB05888;
 	private static final int SOKOBAN  = 0x8878C8;
 	private static final int TOWN     = 0x68C8A8;
 	private static final int ZOT      = 0xE8E848;
+	private static final int SURFACE  = 0x84CC5C;
+	private static final int PEAKS    = 0xC8D4E0;
+	private static final int DEEP     = 0x9C8CE0;
+	private static final int BARROW   = 0x50C0B0;
 	private static final int TOPIC    = 0xCCCCCC;
 
+	//--- discoveries: what reaching a place or seeing a thing writes into the guide ---
+
+	public static final String TAG_SURFACE      = "surface";       //first steps on the surface
+	public static final String TAG_TOWN_INSIDE  = "town_inside";   //through a door of the town square
+	public static final String TAG_VILLAGE      = "village";       //through a village door
+	public static final String TAG_WORLD_MAP    = "world_map";     //the world map, opened
+	public static final String TAG_WORLD_EVENT  = "world_event";   //a star, a market, a raid or a hunt heard of
+	public static final String TAG_BARROW       = "barrow";        //down a barrow's stairs
+	public static final String TAG_MOUNTAINS    = "mountains";     //up onto the mountains
+	public static final String TAG_HEIGHTS      = "heights";       //up where the air thins (+7 and up)
+	public static final String TAG_PEAK_SITE    = "peak_site";     //a place of the heights, found
+	public static final String TAG_CAVES        = "caves";         //down into the caves under the world
+	public static final String TAG_CAVES_DEEP   = "caves_deep";    //down where the gas pools (-4 and down)
+	public static final String TAG_CAVE_SITE    = "cave_site";     //a place of the caves, found
+
+	public static final List<String> ALL_TAGS = Collections.unmodifiableList( Arrays.asList(
+			TAG_SURFACE, TAG_TOWN_INSIDE, TAG_VILLAGE, TAG_WORLD_MAP, TAG_WORLD_EVENT, TAG_BARROW,
+			TAG_MOUNTAINS, TAG_HEIGHTS, TAG_PEAK_SITE, TAG_CAVES, TAG_CAVES_DEEP, TAG_CAVE_SITE ) );
+
+	//the save numbering of the places (see Dungeon.newLevel, WorldLayers, Delves)
+	static final int SURFACE_DEPTH = 97;
+	static final int TOP_PEAK = 87, HEIGHTS_FROM = 90, FIRST_PEAK = 96;
+	static final int FIRST_CAVE = 101, DEEP_CAVES_FROM = 104, LAST_CAVE = 112;
+	static final int TOWN_INTERIORS = 6, VILLAGE_HOUSE = 7, BARROWS_FROM = 100;
+
+	/** The discoveries arriving on a level makes. */
+	public static ArrayList<String> arrivalTags( int depth, int branch ){
+		ArrayList<String> tags = new ArrayList<>();
+		if (branch == 0){
+			if (depth == SURFACE_DEPTH) tags.add( TAG_SURFACE );
+			if (depth >= TOP_PEAK && depth <= FIRST_PEAK) tags.add( TAG_MOUNTAINS );
+			if (depth >= TOP_PEAK && depth <= HEIGHTS_FROM) tags.add( TAG_HEIGHTS );
+			if (depth >= FIRST_CAVE && depth <= LAST_CAVE) tags.add( TAG_CAVES );
+			if (depth >= DEEP_CAVES_FROM && depth <= LAST_CAVE) tags.add( TAG_CAVES_DEEP );
+		} else if (branch == TOWN_INTERIORS){
+			tags.add( TAG_TOWN_INSIDE );
+		} else if (branch == VILLAGE_HOUSE){
+			tags.add( TAG_VILLAGE );
+		} else if (branch >= BARROWS_FROM){
+			tags.add( TAG_BARROW );
+		}
+		return tags;
+	}
+
+	/** Records every unfound page the discovery writes. Returns the keys it wrote. */
+	public static ArrayList<String> discover( String tag ){
+		ArrayList<String> found = new ArrayList<>();
+		discover( build(), tag, found );
+		return found;
+	}
+
+	private static void discover( Node n, String tag, ArrayList<String> out ){
+		if (n.key != null && tag.equals( n.tag ) && GuideProgress.findPage( n.key )){
+			out.add( n.key );
+		}
+		for (Node c : n.children) discover( c, tag, out );
+	}
+
+	/** discover(), then tells the player: a line in the log and the journal button flashing. */
+	public static void reveal( String tag ){
+		for (String key : discover( tag )){
+			DescentPage.announce( key );
+		}
+	}
+
+	/** Reveals what arriving on this level discovers. */
+	public static void onArrive( int depth, int branch ){
+		for (String tag : arrivalTags( depth, branch )){
+			reveal( tag );
+		}
+	}
+
+	/** A boss was faced (its health bar came up) or fell: its chapter writes itself, once. */
+	public static void faced( Class<?> mob ){
+		String key = keyForMob( mob );
+		if (key != null && GuideProgress.findPage( key )){
+			DescentPage.announce( key );
+		}
+	}
+
+	//--- unlocking ---
+
 	public static boolean unlocked( Node n ){
+		if (n.open) return true;
 		//bosses: facing the creature is the knowledge. Tracked by the guide
-		// itself (via Bestiary.setSeen) so old bestiary data doesn't pre-unlock.
-		if (n.mob != null){
-			return n.key != null && GuideProgress.pageFound( n.key );
-		}
-		//pages: the knowledge must be picked up off the dungeon floor
-		if (n.key != null && (n.unlockDepths != null || n.unlockBranch != null)){
-			return GuideProgress.pageFound( n.key );
-		}
-		//structural nodes (regions, chapters): visible once any part is known
-		if (n.key == null && !n.children.isEmpty()
-				&& (n.unlockDepths != null || n.unlockBranch != null)){
-			for (Node c : n.children){
-				if (unlocked( c )) return true;
+		// itself (faced(): its health bar coming up, or its kill) so old bestiary
+		// data doesn't pre-unlock.
+		if (n.key != null){
+			if (n.mob != null || n.depths != null || n.tag != null){
+				return GuideProgress.pageFound( n.key );
 			}
-			return false;
+			//a page with no way to earn it is common knowledge
+			return true;
 		}
-		return true;
+		//chapters: visible once any part is known
+		for (Node c : n.children){
+			if (unlocked( c )) return true;
+		}
+		return false;
+	}
+
+	/** Unlocked and not yet opened in the guide. */
+	public static boolean isNew( Node n ){
+		return n.key != null && unlocked( n ) && !GuideProgress.isRead( n.key );
+	}
+
+	/** Pages in this subtree: {unlocked, total, new}. */
+	public static int[] progress( Node n ){
+		int[] out = new int[3];
+		progress( n, out );
+		return out;
+	}
+
+	private static void progress( Node n, int[] out ){
+		if (n.key != null){
+			out[1]++;
+			if (unlocked( n )){
+				out[0]++;
+				if (!GuideProgress.isRead( n.key )) out[2]++;
+			}
+		}
+		for (Node c : n.children) progress( c, out );
 	}
 
 	public static String lockHint( Node n ){
 		if (n.mob != null){
-			return "Face it, and its chapter will write itself";
+			return Messages.get( "guide.hint.boss" );
 		}
-		if (n.unlockBranch != null){
-			return "mine".equals( n.unlockBranch )
-					? "Its torn page lies somewhere in the smith's mine"
-					: "Its torn page lies somewhere in the hidden vault";
+		if (n.key == null){
+			return Messages.get( "guide.hint.chapter" );
 		}
-		if (n.unlockDepths != null){
-			if (n.key == null){
-				return "Find any page from this chapter";
-			}
+		if (n.tag != null){
+			return Messages.get( "guide.hint.tag_" + n.tag );
+		}
+		if (n.place != null){
+			return Messages.get( "guide.hint.place_" + n.place );
+		}
+		if (n.depths != null){
 			int min = Integer.MAX_VALUE;
-			for (int d : n.unlockDepths) min = Math.min( min, d );
+			for (int d : n.depths) min = Math.min( min, d );
 			if (shiftedPage( n )) min = spawnDepthFor( min );
-			return "Its torn page lies somewhere on depth " + min;
+			return Messages.get( "guide.hint.floor", min );
 		}
 		return "";
 	}
@@ -162,18 +331,27 @@ public class GuideGraph {
 	//floor pages describe the floor ABOVE where they drop: you find the page
 	// of depth N while on depth N+1, so the guide never reads ahead of you.
 	// Overviews (region-wide) and topics (general systems) drop unshifted.
-	private static boolean shiftedPage( Node n ){
-		return n.key != null && n.mob == null && n.unlockBranch == null
+	static boolean shiftedPage( Node n ){
+		return n.key != null && n.mob == null && n.place == null && n.tag == null
 				&& !n.key.startsWith( "topic_" ) && !n.key.endsWith( "_overview" );
 	}
 
 	//linear stretches read one floor behind you; teleport specials
 	// (postgame zones, boss dens, sokoban dimensions) and the last floor
 	// of each chain keep their page on the floor itself
-	private static int spawnDepthFor( int described ){
+	static int spawnDepthFor( int described ){
 		if (described >= 1 && described <= 25) return described + 1;   //sewers..halls, ends at 26
-		if (described >= 55 && described <= 64) return described + 1;  //dolyahaven chain, ends at 65
+		if (described >= 56 && described <= 64) return described + 1;  //the town's mines, ends at 65
 		return described;
+	}
+
+	/** The floor (main dungeon, or the page's own branch) a page lies on, or -1 for a page
+	 *  that is never lying anywhere. */
+	public static int spawnDepth( Node n ){
+		if (n.key == null || n.mob != null || n.tag != null || n.depths == null) return -1;
+		int min = Integer.MAX_VALUE;
+		for (int d : n.depths) min = Math.min( min, shiftedPage( n ) ? spawnDepthFor( d ) : d );
+		return min;
 	}
 
 	//keys of pages that should be lying on the floor of this level:
@@ -185,19 +363,13 @@ public class GuideGraph {
 	}
 
 	private static void collectPages( Node n, int depth, int branch, ArrayList<String> keys ){
-		if (n.key != null && n.mob == null && !GuideProgress.pageFound( n.key )){
-			if (branch == 0 && n.unlockDepths != null){
-				boolean shifted = shiftedPage( n );
-				for (int d : n.unlockDepths){
-					if ((shifted ? spawnDepthFor( d ) : d) == depth){
-						keys.add( n.key );
-						break;
-					}
-				}
-			} else if (branch == 1 && n.unlockBranch != null){
-				if (("mine".equals( n.unlockBranch ) && depth >= 12 && depth <= 14)
-						|| ("vault".equals( n.unlockBranch ) && depth >= 16 && depth <= 19)){
+		if (n.key != null && n.mob == null && n.tag == null && n.depths != null
+				&& n.branch == branch && !GuideProgress.pageFound( n.key )){
+			boolean shifted = shiftedPage( n );
+			for (int d : n.depths){
+				if ((shifted ? spawnDepthFor( d ) : d) == depth){
 					keys.add( n.key );
+					break;
 				}
 			}
 		}
@@ -206,18 +378,21 @@ public class GuideGraph {
 		}
 	}
 
+	//--- lookups ---
+
 	//guide key for a mob class, if any boss node covers it
-	private static java.util.HashMap<Class<?>, String> mobKeys = null;
+	private static HashMap<Class<?>, String> mobKeys = null;
 
 	public static String keyForMob( Class<?> cls ){
 		if (mobKeys == null){
-			mobKeys = new java.util.HashMap<>();
-			collectMobKeys( build(), mobKeys );
+			HashMap<Class<?>, String> keys = new HashMap<>();
+			collectMobKeys( build(), keys );
+			mobKeys = keys;
 		}
 		return mobKeys.get( cls );
 	}
 
-	private static void collectMobKeys( Node n, java.util.HashMap<Class<?>, String> out ){
+	private static void collectMobKeys( Node n, HashMap<Class<?>, String> out ){
 		if (n.mob != null && n.key != null){
 			out.put( n.mob, n.key );
 		}
@@ -240,142 +415,207 @@ public class GuideGraph {
 		}
 	}
 
-	//title of the node a page belongs to, for item descriptions
-	public static String titleForKey( String key ){
-		return titleForKey( build(), key );
+	/** Every node of the tree, depth first. */
+	public static ArrayList<Node> all( Node root ){
+		ArrayList<Node> out = new ArrayList<>();
+		collectAll( root, out );
+		return out;
 	}
 
-	private static String titleForKey( Node n, String key ){
-		if (key.equals( n.key )) return n.title;
-		for (Node c : n.children){
-			String t = titleForKey( c, key );
-			if (t != null) return t;
+	private static void collectAll( Node n, ArrayList<Node> out ){
+		out.add( n );
+		for (Node c : n.children) collectAll( c, out );
+	}
+
+	public static Node find( Node root, String key ){
+		if (key == null) return null;
+		if (key.equals( root.key ) || key.equals( root.id )) return root;
+		for (Node c : root.children){
+			Node f = find( c, key );
+			if (f != null) return f;
 		}
 		return null;
 	}
 
+	//title of the node a page belongs to, for item descriptions and the log
+	public static String titleForKey( String key ){
+		Node n = find( build(), key );
+		return n == null ? null : fullTitle( n );
+	}
+
+	/** A node's title, with its chapter's in front where the title alone says little (every
+	 *  chapter has an "Overview"). */
+	public static String fullTitle( Node n ){
+		if (n.parent != null && n.parent.parent != null && n.id.endsWith( "_overview" )){
+			return n.parent.title() + " - " + n.title();
+		}
+		return n.title();
+	}
+
+	//--- the tree ---
+
+	private static Node page( String key, int color, Icons icon ){
+		return new Node( key, color ).key( key ).icon( icon );
+	}
+
+	private static Node boss( String key, int color, Class<? extends Mob> mob ){
+		return new Node( key, color ).key( key ).mob( mob );
+	}
+
 	public static Node build(){
 
-		Node root = new Node( "Descent Guide", "Warped Pixel Dungeon", 0xFFFFFF ).icon( Icons.WPD );
+		Node root = new Node( "guide", 0xFFFFFF ).icon( Icons.WPD ).open();
 		root.expanded = true;
 
-		Node sewers = new Node( "Sewers", "Depths 1-5", SEWERS ).icon( Icons.STAIRS ).unlock( 1 );
-		sewers.child( new Node( "Overview", "The Sewers at a glance", SEWERS ).icon( Icons.INFO ).key( "sewers_overview" ).unlock( 1 ) );
-		sewers.child( new Node( "Sewers - Floor 1", "Depth 1", SEWERS ).icon( Icons.DEPTH ).key( "sewers_f1" ).unlock( 1 ) );
-		sewers.child( new Node( "Sewers - Floor 2", "Depth 2", SEWERS ).icon( Icons.DEPTH ).key( "sewers_f2" ).unlock( 2 ) );
-		sewers.child( new Node( "Sewers - Floor 3", "Depth 3", SEWERS ).icon( Icons.DEPTH ).key( "sewers_f3" ).unlock( 3 ) );
-		sewers.child( new Node( "Sewers - Floor 4", "Depth 4", SEWERS ).icon( Icons.DEPTH ).key( "sewers_f4" ).unlock( 4 ) );
-		sewers.child( new Node( "Goo's Lair", "Depth 5 - boss floor", SEWERS ).icon( Icons.DEPTH_LARGE ).key( "sewers_f5" ).unlock( 5 ) );
-		sewers.child( new Node( "Goo", "Boss", SEWERS ).mob( Goo.class ).key( "boss_goo" ) );
-		root.child( sewers );
+		//the world above: every run starts in the town on its surface
+		Node surface = new Node( "ch_surface", SURFACE ).icon( Icons.STAIRS_GRASS );
+		surface.child( page( "surface_overview", SURFACE, Icons.INFO ).tag( TAG_SURFACE ) );
+		surface.child( page( "surface_villages", SURFACE, Icons.DEPTH_GRASS ).tag( TAG_VILLAGE ) );
+		surface.child( page( "surface_wilds", SURFACE, Icons.COMPASS ).tag( TAG_WORLD_MAP ) );
+		surface.child( page( "surface_events", SURFACE, Icons.ALERT ).tag( TAG_WORLD_EVENT ) );
+		surface.child( page( "surface_barrows", BARROW, Icons.STAIRS_TRAPS ).tag( TAG_BARROW ) );
+		surface.child( boss( "boss_dragon", SURFACE, OverworldDragon.class ) );
+		Node peaks = new Node( "ch_peaks", PEAKS ).icon( Icons.STAIRS_CHASM );
+		peaks.child( page( "peaks_overview", PEAKS, Icons.INFO ).tag( TAG_MOUNTAINS ) );
+		peaks.child( page( "peaks_places", PEAKS, Icons.DEPTH_CHASM ).tag( TAG_PEAK_SITE ) );
+		peaks.child( page( "peaks_heights", PEAKS, Icons.WARNING ).tag( TAG_HEIGHTS ) );
+		surface.child( peaks );
+		Node deep = new Node( "ch_deep", DEEP ).icon( Icons.STAIRS_DARK );
+		deep.child( page( "deep_overview", DEEP, Icons.INFO ).tag( TAG_CAVES ) );
+		deep.child( page( "deep_places", DEEP, Icons.DEPTH_DARK ).tag( TAG_CAVE_SITE ) );
+		deep.child( page( "deep_hazards", DEEP, Icons.WARNING ).tag( TAG_CAVES_DEEP ) );
+		surface.child( deep );
+		root.child( surface );
 
-		Node prison = new Node( "Prison", "Depths 6-10", PRISON ).icon( Icons.STAIRS ).unlock( 6 );
-		prison.child( new Node( "Overview", "The Prison at a glance", PRISON ).icon( Icons.INFO ).key( "prison_overview" ).unlock( 6 ) );
-		prison.child( new Node( "Prison - Floor 1/5", "Depth 6", PRISON ).icon( Icons.DEPTH ).key( "prison_f1" ).unlock( 6 ) );
-		prison.child( new Node( "Prison - Floor 2/5", "Depth 7", PRISON ).icon( Icons.DEPTH ).key( "prison_f2" ).unlock( 7 ) );
-		prison.child( new Node( "Prison - Floor 3/5", "Depth 8", PRISON ).icon( Icons.DEPTH ).key( "prison_f3" ).unlock( 8 ) );
-		prison.child( new Node( "Prison - Floor 4/5", "Depth 9", PRISON ).icon( Icons.DEPTH ).key( "prison_f4" ).unlock( 9 ) );
-		prison.child( new Node( "Tengu's Cell", "Depth 10 - boss floor", PRISON ).icon( Icons.DEPTH_LARGE ).key( "prison_f5" ).unlock( 10 ) );
-		prison.child( new Node( "Tengu", "Boss", PRISON ).mob( Tengu.class ).key( "boss_tengu" ) );
-		root.child( prison );
-
-		Node caves = new Node( "Caves", "Depths 11-15", CAVES ).icon( Icons.STAIRS ).unlock( 11 );
-		caves.child( new Node( "Overview", "The Caves at a glance", CAVES ).icon( Icons.INFO ).key( "caves_overview" ).unlock( 11 ) );
-		caves.child( new Node( "Caves - Level 1", "Depth 11 - SHOP", CAVES ).icon( Icons.DEPTH ).key( "caves_f1" ).unlock( 11 ) );
-		caves.child( new Node( "Caves - Level 2", "Depth 12", CAVES ).icon( Icons.DEPTH ).key( "caves_f2" ).unlock( 12 ) );
-		caves.child( new Node( "The Mine", "Branch 1 - Blacksmith's mine (12-14)", CAVES ).icon( Icons.DEPTH_SECRETS ).key( "caves_mine" ).unlockBranch( "mine" ) );
-		caves.child( new Node( "Caves - Level 3", "Depth 13", CAVES ).icon( Icons.DEPTH ).key( "caves_f3" ).unlock( 13 ) );
-		caves.child( new Node( "Caves - Level 4", "Depth 14 - last before DM-300", CAVES ).icon( Icons.DEPTH ).key( "caves_f4" ).unlock( 14 ) );
-		caves.child( new Node( "DM-300's Arena", "Depth 15 - boss floor", CAVES ).icon( Icons.DEPTH_LARGE ).key( "caves_f5" ).unlock( 15 ) );
-		caves.child( new Node( "DM-300", "Boss", CAVES ).mob( DM300.class ).key( "boss_dm300" ) );
-		root.child( caves );
-
-		Node city = new Node( "Dwarven City", "Depths 16-20", CITY ).icon( Icons.STAIRS ).unlock( 16 );
-		city.child( new Node( "Overview", "The Dwarven City at a glance", CITY ).icon( Icons.INFO ).key( "city_overview" ).unlock( 16 ) );
-		city.child( new Node( "Dwarven Metropolis 1", "Depth 16", CITY ).icon( Icons.DEPTH ).key( "city_f1" ).unlock( 16 ) );
-		city.child( new Node( "Dwarven Metropolis 2", "Depth 17", CITY ).icon( Icons.DEPTH ).key( "city_f2" ).unlock( 17 ) );
-		city.child( new Node( "Ancient Dwarven Vault", "Branch 1, depths 16-19 - upcoming quest", CITY ).icon( Icons.DEPTH_SECRETS ).key( "city_vault" ).unlockBranch( "vault" ) );
-		city.child( new Node( "Dwarven Metropolis 3", "Depth 18", CITY ).icon( Icons.DEPTH ).key( "city_f3" ).unlock( 18 ) );
-		city.child( new Node( "Dwarven Metropolis 4", "Depth 19", CITY ).icon( Icons.DEPTH ).key( "city_f4" ).unlock( 19 ) );
-		city.child( new Node( "Throne Room", "Depth 20 - boss floor", CITY ).icon( Icons.DEPTH_LARGE ).key( "city_f5" ).unlock( 20 ) );
-		city.child( new Node( "King of Dwarves", "Boss", CITY ).mob( DwarfKing.class ).key( "boss_dwarfking" ) );
-		root.child( city );
-
-		Node halls = new Node( "Demon Halls", "Depths 21-26", HALLS ).icon( Icons.STAIRS_DARK ).unlock( 21 );
-		halls.child( new Node( "Overview", "The Demon Halls at a glance", HALLS ).icon( Icons.INFO ).key( "halls_overview" ).unlock( 21 ) );
-		halls.child( new Node( "Demon Halls 1", "Depth 21", HALLS ).icon( Icons.DEPTH_DARK ).key( "halls_f1" ).unlock( 21 ) );
-		halls.child( new Node( "Demon Halls 2", "Depth 22", HALLS ).icon( Icons.DEPTH_DARK ).key( "halls_f2" ).unlock( 22 ) );
-		halls.child( new Node( "Demon Halls 3", "Depth 23", HALLS ).icon( Icons.DEPTH_DARK ).key( "halls_f3" ).unlock( 23 ) );
-		halls.child( new Node( "Demon Halls 4", "Depth 24", HALLS ).icon( Icons.DEPTH_DARK ).key( "halls_f4" ).unlock( 24 ) );
-		halls.child( new Node( "Yog-Dzewa's Arena", "Depth 25 - boss floor", HALLS ).icon( Icons.DEPTH_LARGE ).key( "halls_f5" ).unlock( 25 ) );
-		halls.child( new Node( "The End", "Depth 26 - Amulet of Yendor pedestal", HALLS ).icon( Icons.STAIRS_LARGE ).key( "halls_end" ).unlock( 26 ) );
-		halls.child( new Node( "Yog-Dzewa", "Boss", HALLS ).mob( YogDzewa.class ).key( "boss_yog" ) );
-		root.child( halls );
-
-		Node postgame = new Node( "Sprouted Postgame A", "Depths 27-33", POSTGAME ).icon( Icons.STAIRS_GRASS ).unlock( 27, 28, 29, 30, 31, 32, 33 );
-		postgame.child( new Node( "Overview", "The first postgame stretch at a glance", POSTGAME ).icon( Icons.INFO ).key( "postgame_overview" ).unlock( 27, 28, 29, 30, 31, 32, 33 ) );
-		postgame.child( new Node( "Field", "Depth 27 - Gnoll field", POSTGAME ).icon( Icons.DEPTH_GRASS ).key( "pg_field" ).unlock( 27 ) );
-		postgame.child( new Node( "Battle", "Depth 28 - Battlefield", POSTGAME ).icon( Icons.DEPTH_GRASS ).key( "pg_battle" ).unlock( 28 ) );
-		postgame.child( new Node( "Fishing", "Depth 29 - Fishing lake", POSTGAME ).icon( Icons.DEPTH_WATER ).key( "pg_fishing" ).unlock( 29 ) );
-		postgame.child( new Node( "Vault", "Depth 30 - not the branch VaultLevel", POSTGAME ).icon( Icons.DEPTH ).key( "pg_vault" ).unlock( 30 ) );
-		postgame.child( new Node( "Catacomb", "Depth 31", POSTGAME ).icon( Icons.DEPTH_DARK ).key( "pg_catacomb" ).unlock( 31 ) );
-		postgame.child( new Node( "Fortress", "Depth 32", POSTGAME ).icon( Icons.DEPTH ).key( "pg_fortress" ).unlock( 32 ) );
-		postgame.child( new Node( "Chasm", "Depth 33", POSTGAME ).icon( Icons.DEPTH_CHASM ).key( "pg_chasm" ).unlock( 33 ) );
-		root.child( postgame );
-
-		Node dens = new Node( "Postgame Boss Dens", "Depths 35-41", DENS ).icon( Icons.STAIRS_TRAPS ).unlock( 35, 36, 37, 38, 39, 40, 41 );
-		dens.child( new Node( "Overview", "The boss dens at a glance", DENS ).icon( Icons.INFO ).key( "dens_overview" ).unlock( 35, 36, 37, 38, 39, 40, 41 ) );
-		dens.child( new Node( "Infest Boss Level", "Depth 35 - Shadow Yog's legion", DENS ).icon( Icons.DEPTH_LARGE ).key( "den_infest" ).unlock( 35 ) );
-		dens.child( new Node( "Tengu Den", "Depth 36", DENS ).icon( Icons.DEPTH_LARGE ).key( "den_tengu" ).unlock( 36 ) );
-		dens.child( new Node( "Skeleton King's Hall", "Depth 37", DENS ).icon( Icons.DEPTH_LARGE ).key( "den_skeleton" ).unlock( 37 ) );
-		dens.child( new Node( "Crab King's Beach", "Depth 38", DENS ).icon( Icons.DEPTH_WATER ).key( "den_crab" ).unlock( 38 ) );
-		dens.child( new Node( "Dead End", "Depth 39 - unused", DENS ).icon( Icons.DEPTH ).key( "den_deadend" ).unlock( 39 ) );
-		dens.child( new Node( "Thief King's Vault", "Depth 40", DENS ).icon( Icons.DEPTH_LARGE ).key( "den_thief" ).unlock( 40 ) );
-		dens.child( new Node( "Thief Catch", "Depth 41 - trap, near-inaccessible", DENS ).icon( Icons.DEPTH_TRAPS ).key( "den_thiefcatch" ).unlock( 41 ) );
-		dens.child( new Node( "Shadow Yog", "Boss - legion of 10", DENS ).mob( ShadowYog.class ).key( "boss_shadowyog" ) );
-		dens.child( new Node( "Skeleton King", "Boss", DENS ).mob( SkeletonKing.class ).key( "boss_skeletonking" ) );
-		dens.child( new Node( "Crab King", "Boss", DENS ).mob( CrabKing.class ).key( "boss_crabking" ) );
-		dens.child( new Node( "Thief King", "Boss", DENS ).mob( ThiefKing.class ).key( "boss_thiefking" ) );
-		root.child( dens );
-
-		Node sokoban = new Node( "Otiluke's Journal", "Depths 50-54, 66", SOKOBAN ).icon( Icons.STAIRS_SECRETS ).unlock( 50, 51, 52, 53, 54, 66 );
-		sokoban.child( new Node( "Overview", "The journal dimensions at a glance", SOKOBAN ).icon( Icons.INFO ).key( "sokoban_overview" ).unlock( 50, 51, 52, 53, 54, 66 ) );
-		sokoban.child( new Node( "Safe Room", "Depth 50", SOKOBAN ).icon( Icons.DEPTH ).key( "sok_saferoom" ).unlock( 50 ) );
-		sokoban.child( new Node( "Sokoban Practice", "Depth 51", SOKOBAN ).icon( Icons.DEPTH ).key( "sok_practice" ).unlock( 51 ) );
-		sokoban.child( new Node( "Sokoban Castle", "Depth 52", SOKOBAN ).icon( Icons.DEPTH ).key( "sok_castle" ).unlock( 52 ) );
-		sokoban.child( new Node( "Sokoban Portals", "Depth 53", SOKOBAN ).icon( Icons.DEPTH ).key( "sok_portals" ).unlock( 53 ) );
-		sokoban.child( new Node( "Sokoban Puzzles", "Depth 54", SOKOBAN ).icon( Icons.DEPTH ).key( "sok_puzzles" ).unlock( 54 ) );
-		sokoban.child( new Node( "The Vault", "Depth 66", SOKOBAN ).icon( Icons.DEPTH_SECRETS ).key( "sok_vault" ).unlock( 66 ) );
-		root.child( sokoban );
-
-		Node town = new Node( "Town", "Town, Mines & Dragon Cave (55-67)", TOWN ).icon( Icons.STAIRS_GRASS ).unlock( 55, 56 );
-		town.child( new Node( "Overview", "Town at a glance", TOWN ).icon( Icons.INFO ).key( "town_overview" ).unlock( 55, 56 ) );
-		town.child( new Node( "Town", "Depth 55", TOWN ).icon( Icons.DEPTH_GRASS ).key( "town_dolyahaven" ).unlock( 55 ) );
-		Node mines = new Node( "Town Mines", "Depths 56-65", TOWN ).icon( Icons.STAIRS ).unlock( 56, 57, 58, 59, 60, 61, 62, 63, 64, 65 );
+		Node town = new Node( "ch_town", TOWN ).icon( Icons.STAIRS_GRASS );
+		town.child( page( "town_overview", TOWN, Icons.INFO ).tag( TAG_SURFACE ) );
+		town.child( page( "town_dolyahaven", TOWN, Icons.DEPTH_GRASS ).tag( TAG_TOWN_INSIDE ) );
+		Node mines = new Node( "ch_mines", TOWN ).icon( Icons.STAIRS );
 		for (int i = 1; i <= 9; i++){
-			mines.child( new Node( "Mines - Level " + i, "Depth " + (55 + i), TOWN ).icon( Icons.DEPTH ).key( "mines_f" + i ).unlock( 55 + i ) );
+			mines.child( page( "mines_f" + i, TOWN, Icons.DEPTH ).floor( 55 + i ) );
 		}
-		mines.child( new Node( "Mines - Boss Level", "Depth 65", TOWN ).icon( Icons.DEPTH_LARGE ).key( "mines_boss" ).unlock( 65 ) );
-		mines.child( new Node( "Otiluke", "Boss - stone golem", TOWN ).mob( Otiluke.class ).key( "boss_otiluke" ) );
+		mines.child( page( "mines_boss", TOWN, Icons.DEPTH_LARGE ).floor( 65 ) );
+		mines.child( boss( "boss_otiluke", TOWN, Otiluke.class ) );
 		town.child( mines );
-		town.child( new Node( "Dragon Cave", "Depth 67", TOWN ).icon( Icons.DEPTH_DARK ).key( "town_dragoncave" ).unlock( 67 ) );
+		town.child( page( "town_dragoncave", TOWN, Icons.DEPTH_DARK ).floor( 67 ) );
 		root.child( town );
 
-		Node zot = new Node( "Zot's Prison", "Depth 99", ZOT ).icon( Icons.STAIRS_DARK ).unlock( 99 );
-		zot.child( new Node( "Overview", "Zot's Prison at a glance", ZOT ).icon( Icons.INFO ).key( "zot_overview" ).unlock( 99 ) );
-		zot.child( new Node( "Zot's Prison Level", "Depth 99 - unnamed in-game", ZOT ).icon( Icons.DEPTH_DARK ).key( "zot_level" ).unlock( 99 ) );
-		zot.child( new Node( "Zot", "Boss", ZOT ).mob( Zot.class ).key( "boss_zot" ) );
+		Node sewers = new Node( "ch_sewers", SEWERS ).icon( Icons.STAIRS );
+		sewers.child( page( "sewers_overview", SEWERS, Icons.INFO ).floor( 1 ) );
+		sewers.child( page( "sewers_f1", SEWERS, Icons.DEPTH ).floor( 1 ) );
+		sewers.child( page( "sewers_f2", SEWERS, Icons.DEPTH ).floor( 2 ) );
+		sewers.child( page( "sewers_f3", SEWERS, Icons.DEPTH ).floor( 3 ) );
+		sewers.child( page( "sewers_f4", SEWERS, Icons.DEPTH ).floor( 4 ) );
+		sewers.child( page( "sewers_f5", SEWERS, Icons.DEPTH_LARGE ).floor( 5 ) );
+		sewers.child( boss( "boss_goo", SEWERS, Goo.class ) );
+		root.child( sewers );
+
+		Node prison = new Node( "ch_prison", PRISON ).icon( Icons.STAIRS );
+		prison.child( page( "prison_overview", PRISON, Icons.INFO ).floor( 6 ) );
+		prison.child( page( "prison_f1", PRISON, Icons.DEPTH ).floor( 6 ) );
+		prison.child( page( "prison_f2", PRISON, Icons.DEPTH ).floor( 7 ) );
+		prison.child( page( "prison_f3", PRISON, Icons.DEPTH ).floor( 8 ) );
+		prison.child( page( "prison_f4", PRISON, Icons.DEPTH ).floor( 9 ) );
+		prison.child( page( "prison_f5", PRISON, Icons.DEPTH_LARGE ).floor( 10 ) );
+		prison.child( boss( "boss_tengu", PRISON, Tengu.class ) );
+		Node nest = new Node( "ch_nest", NEST ).icon( Icons.STAIRS_TRAPS );
+		nest.child( page( "nest_overview", NEST, Icons.DEPTH_TRAPS ).branch( 5, "nest", 6 ) );
+		nest.child( boss( "boss_spiderqueen", NEST, SpiderQueen.class ) );
+		prison.child( nest );
+		root.child( prison );
+
+		Node caves = new Node( "ch_caves", CAVES ).icon( Icons.STAIRS );
+		caves.child( page( "caves_overview", CAVES, Icons.INFO ).floor( 11 ) );
+		caves.child( page( "caves_f1", CAVES, Icons.DEPTH ).floor( 11 ) );
+		caves.child( page( "caves_f2", CAVES, Icons.DEPTH ).floor( 12 ) );
+		caves.child( page( "caves_mine", CAVES, Icons.DEPTH_SECRETS ).branch( 1, "mine", 12, 13, 14 ) );
+		caves.child( page( "caves_f3", CAVES, Icons.DEPTH ).floor( 13 ) );
+		caves.child( page( "caves_f4", CAVES, Icons.DEPTH ).floor( 14 ) );
+		caves.child( page( "temple_overview", TEMPLE, Icons.ALTAR_SHRINE ).branch( 3, "temple", 14 ) );
+		caves.child( page( "caves_f5", CAVES, Icons.DEPTH_LARGE ).floor( 15 ) );
+		caves.child( boss( "boss_dm300", CAVES, DM300.class ) );
+		root.child( caves );
+
+		Node city = new Node( "ch_city", CITY ).icon( Icons.STAIRS );
+		city.child( page( "city_overview", CITY, Icons.INFO ).floor( 16 ) );
+		city.child( page( "city_f1", CITY, Icons.DEPTH ).floor( 16 ) );
+		city.child( page( "city_f2", CITY, Icons.DEPTH ).floor( 17 ) );
+		city.child( page( "city_vault", CITY, Icons.DEPTH_SECRETS ).branch( 1, "vault", 16, 17, 18, 19 ) );
+		city.child( page( "city_f3", CITY, Icons.DEPTH ).floor( 18 ) );
+		city.child( page( "city_f4", CITY, Icons.DEPTH ).floor( 19 ) );
+		city.child( page( "city_f5", CITY, Icons.DEPTH_LARGE ).floor( 20 ) );
+		city.child( boss( "boss_dwarfking", CITY, DwarfKing.class ) );
+		city.child( boss( "boss_dwarftomb", CITY, DwarfKingTomb.class ) );
+		root.child( city );
+
+		Node halls = new Node( "ch_halls", HALLS ).icon( Icons.STAIRS_DARK );
+		halls.child( page( "halls_overview", HALLS, Icons.INFO ).floor( 21 ) );
+		halls.child( page( "halls_f1", HALLS, Icons.DEPTH_DARK ).floor( 21 ) );
+		halls.child( page( "halls_f2", HALLS, Icons.DEPTH_DARK ).floor( 22 ) );
+		halls.child( page( "halls_f3", HALLS, Icons.DEPTH_DARK ).floor( 23 ) );
+		halls.child( page( "halls_f4", HALLS, Icons.DEPTH_DARK ).floor( 24 ) );
+		halls.child( page( "halls_f5", HALLS, Icons.DEPTH_LARGE ).floor( 25 ) );
+		halls.child( page( "halls_end", HALLS, Icons.STAIRS_LARGE ).floor( 26 ) );
+		halls.child( boss( "boss_yog", HALLS, YogDzewa.class ) );
+		Node frozen = new Node( "ch_frozen", FROZEN ).icon( Icons.STAIRS_WATER );
+		frozen.child( page( "frozen_overview", FROZEN, Icons.DEPTH_WATER ).branch( 2, "frozen", 21 ) );
+		frozen.child( boss( "boss_demonlord", FROZEN, DemonLord.class ) );
+		halls.child( frozen );
+		root.child( halls );
+
+		Node postgame = new Node( "ch_postgame", POSTGAME ).icon( Icons.STAIRS_GRASS );
+		postgame.child( page( "postgame_overview", POSTGAME, Icons.INFO ).floor( 27, 28, 29, 30, 31, 32, 33 ) );
+		postgame.child( page( "pg_field", POSTGAME, Icons.DEPTH_GRASS ).floor( 27 ) );
+		postgame.child( page( "pg_battle", POSTGAME, Icons.DEPTH_GRASS ).floor( 28 ) );
+		postgame.child( page( "pg_fishing", POSTGAME, Icons.DEPTH_WATER ).floor( 29 ) );
+		postgame.child( page( "pg_vault", POSTGAME, Icons.DEPTH ).floor( 30 ) );
+		postgame.child( page( "pg_catacomb", POSTGAME, Icons.DEPTH_DARK ).floor( 31 ) );
+		postgame.child( page( "pg_fortress", POSTGAME, Icons.DEPTH ).floor( 32 ) );
+		postgame.child( page( "pg_chasm", POSTGAME, Icons.DEPTH_CHASM ).floor( 33 ) );
+		root.child( postgame );
+
+		Node dens = new Node( "ch_dens", DENS ).icon( Icons.STAIRS_TRAPS );
+		dens.child( page( "dens_overview", DENS, Icons.INFO ).floor( 35, 36, 37, 38, 40, 41 ) );
+		dens.child( page( "den_infest", DENS, Icons.DEPTH_LARGE ).floor( 35 ) );
+		dens.child( page( "den_tengu", DENS, Icons.DEPTH_LARGE ).floor( 36 ) );
+		dens.child( page( "den_skeleton", DENS, Icons.DEPTH_LARGE ).floor( 37 ) );
+		dens.child( page( "den_crab", DENS, Icons.DEPTH_WATER ).floor( 38 ) );
+		dens.child( page( "den_thief", DENS, Icons.DEPTH_LARGE ).floor( 40 ) );
+		dens.child( page( "den_thiefcatch", DENS, Icons.DEPTH_TRAPS ).floor( 41 ) );
+		dens.child( boss( "boss_shadowyog", DENS, ShadowYog.class ) );
+		dens.child( boss( "boss_skeletonking", DENS, SkeletonKing.class ) );
+		dens.child( boss( "boss_crabking", DENS, CrabKing.class ) );
+		dens.child( boss( "boss_thiefking", DENS, ThiefKing.class ) );
+		root.child( dens );
+
+		Node sokoban = new Node( "ch_sokoban", SOKOBAN ).icon( Icons.STAIRS_SECRETS );
+		sokoban.child( page( "sokoban_overview", SOKOBAN, Icons.INFO ).floor( 50, 51, 52, 53, 54, 66 ) );
+		sokoban.child( page( "sok_saferoom", SOKOBAN, Icons.DEPTH ).floor( 50 ) );
+		sokoban.child( page( "sok_practice", SOKOBAN, Icons.DEPTH ).floor( 51 ) );
+		sokoban.child( page( "sok_castle", SOKOBAN, Icons.DEPTH ).floor( 52 ) );
+		sokoban.child( page( "sok_portals", SOKOBAN, Icons.DEPTH ).floor( 53 ) );
+		sokoban.child( page( "sok_puzzles", SOKOBAN, Icons.DEPTH ).floor( 54 ) );
+		sokoban.child( page( "sok_vault", SOKOBAN, Icons.DEPTH_SECRETS ).floor( 66 ) );
+		root.child( sokoban );
+
+		Node zot = new Node( "ch_zot", ZOT ).icon( Icons.STAIRS_DARK );
+		zot.child( page( "zot_overview", ZOT, Icons.INFO ).floor( 99 ) );
+		zot.child( page( "zot_level", ZOT, Icons.DEPTH_DARK ).floor( 99 ) );
+		zot.child( boss( "boss_zot", ZOT, Zot.class ) );
 		root.child( zot );
 
-		Node topics = new Node( "Guide Topics", "Everything else", TOPIC ).icon( Icons.JOURNAL );
-		topics.child( new Node( "The Endings", "Amulet exit, Ascension, Zot, Otiluke's Journal", TOPIC ).icon( Icons.STAIRS_LARGE ).key( "topic_endings" ).unlock( 26 ) );
-		topics.child( new Node( "Weather & Seasons", "Climate, temperature, seasons", TOPIC ).icon( Icons.CALENDAR ).key( "topic_weather" ) );
-		topics.child( new Node( "Complete Bestiary", "Every mob in the dungeon", TOPIC ).icon( Icons.SKULL ).key( "topic_bestiary" ).unlock( 10 ) );
-		topics.child( new Node( "Quests, NPCs & Pets", "Allies and questlines", TOPIC ).icon( Icons.SCROLL_COLOR ).key( "topic_quests" ).unlock( 2 ) );
-		topics.child( new Node( "Loot & Unique Drops", "Drop tables and generation", TOPIC ).icon( Icons.GOLD ).key( "topic_loot" ).unlock( 6 ) );
-		topics.child( new Node( "Heroes & Classes", "Talents and badges", TOPIC ).icon( Icons.TALENT ).key( "topic_heroes" ) );
-		topics.child( new Node( "Plants", "Every seed and plant", TOPIC ).icon( Icons.GRASS ).key( "topic_plants" ).unlock( 2 ) );
-		topics.child( new Node( "Metagame", "How to read this guide", TOPIC ).icon( Icons.INFO ).key( "topic_meta" ) );
+		Node topics = new Node( "ch_topics", TOPIC ).icon( Icons.JOURNAL ).open();
+		topics.child( page( "topic_meta", TOPIC, Icons.INFO ) );
+		topics.child( page( "topic_heroes", TOPIC, Icons.TALENT ) );
+		topics.child( page( "topic_weather", TOPIC, Icons.CALENDAR ) );
+		topics.child( page( "topic_quests", TOPIC, Icons.SCROLL_COLOR ).floor( 2 ) );
+		topics.child( page( "topic_plants", TOPIC, Icons.GRASS ).floor( 2 ) );
+		topics.child( page( "topic_skills", TOPIC, Icons.BUFFS ).floor( 3 ) );
+		topics.child( page( "topic_rarity", TOPIC, Icons.CATALOG ).floor( 4 ) );
+		topics.child( page( "topic_loot", TOPIC, Icons.GOLD ).floor( 6 ) );
+		topics.child( page( "topic_rooms", TOPIC, Icons.STAIRS_SECRETS ).floor( 7 ) );
+		topics.child( page( "topic_bestiary", TOPIC, Icons.SKULL ).floor( 10 ) );
+		topics.child( page( "topic_endings", TOPIC, Icons.STAIRS_LARGE ).floor( 26 ) );
 		root.child( topics );
 
 		return root;

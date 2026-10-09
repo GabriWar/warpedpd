@@ -36,11 +36,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Haste;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ShieldBuff;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ClarityBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfExperience;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfMana;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
@@ -62,7 +62,7 @@ public class ElixirOfClarity extends Elixir {
 	public void shatter( int cell ) {
 		splash( cell );
 		if (Dungeon.level.heroFOV[cell]) {
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER );
+			SpatialSound.play( Assets.Sounds.SHATTER, cell );
 		}
 
 		for (int offset : PathFinder.NEIGHBOURS9) {

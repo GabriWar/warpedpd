@@ -38,9 +38,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 
 public class Spade extends Shovel {
@@ -106,7 +106,7 @@ public class Spade extends Shovel {
 
         //dug out of the floor, then thrown: dirt at the feet, the stone in flight
         CellEmitter.bottom(hero.pos).burst(EarthParticle.FACTORY, 8);
-        Sample.INSTANCE.play(Assets.Sounds.TRAMPLE, 1f, 0.9f);
+        SpatialSound.play(Assets.Sounds.TRAMPLE, hero, 1f, 0.9f);
         hero.sprite.zap(target);
         Item look = new StoneOfClairvoyance();
         int dmg = augment.damageFactor(damageRoll(hero)) + augment.damageFactor(boulderBoost());
@@ -114,7 +114,7 @@ public class Spade extends Shovel {
         enemy.damage(dmg, this);
         SkillFX.streak(hero.sprite, target, look, () -> {
             SkillFX.flash(enemy);
-            Sample.INSTANCE.play(Assets.Sounds.ROCKS, 1f, 1.1f);
+            SpatialSound.play(Assets.Sounds.ROCKS, enemy, 1f, 1.1f);
         });
         CellEmitter.get(target).burst(EarthParticle.FACTORY, 6);
         Camera.main.shake(2, 0.3f);

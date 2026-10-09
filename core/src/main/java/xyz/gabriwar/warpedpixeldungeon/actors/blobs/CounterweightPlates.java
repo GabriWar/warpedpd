@@ -28,6 +28,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Gold;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
@@ -39,7 +40,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.tiles.WarpedRoomTiles;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 /**
@@ -125,8 +125,8 @@ public class CounterweightPlates extends Blob {
 		GameScene.updateMap( gate );
 		Dungeon.observe();
 		if (Dungeon.level.heroFOV[gate] || Dungeon.level.distance( gate, Dungeon.hero.pos ) <= 8){
-			Sample.INSTANCE.play( Assets.Sounds.UNLOCK, 1f, 0.6f );
-			Sample.INSTANCE.play( Assets.Sounds.ROCKS, 0.5f, 1.4f );
+			SpatialSound.play( Assets.Sounds.UNLOCK, gate, 1f, 0.6f );
+			SpatialSound.play( Assets.Sounds.ROCKS, gate, 0.5f, 1.4f );
 			GLog.p( Messages.get( this, "raised" ) );
 		}
 	}
@@ -137,7 +137,7 @@ public class CounterweightPlates extends Blob {
 		GameScene.updateMap( gate );
 		Dungeon.observe();
 		if (Dungeon.level.heroFOV[gate] || Dungeon.level.distance( gate, Dungeon.hero.pos ) <= 8){
-			Sample.INSTANCE.play( Assets.Sounds.ROCKS, 0.7f, 0.8f );
+			SpatialSound.play( Assets.Sounds.ROCKS, gate, 0.7f, 0.8f );
 			GLog.w( Messages.get( this, "dropped" ) );
 		}
 	}

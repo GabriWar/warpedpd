@@ -23,12 +23,12 @@ package xyz.gabriwar.warpedpixeldungeon.items.journal;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.journal.Document;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndJournal;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 public abstract class DocumentPage extends Item {
@@ -63,7 +63,7 @@ public abstract class DocumentPage extends Item {
 			WndJournal.CatalogTab.currentItemIdx = 3;
 		}
 		document().findPage(page);
-		Sample.INSTANCE.play( Assets.Sounds.ITEM );
+		SpatialSound.play( Assets.Sounds.ITEM, hero );
 		hero.spendAndNext( pickupDelay() );
 		return true;
 	}

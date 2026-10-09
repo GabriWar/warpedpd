@@ -21,12 +21,10 @@ public class SkillDebugTest {
 		xyz.gabriwar.warpedpixeldungeon.items.AllItemsTest.titleScreen();
 	}
 	private Hero previousHero;
-	private int previousPoints;
 	private Hero hero;
 
 	@Before public void setUp() {
 		previousHero = Dungeon.hero;
-		previousPoints = Skill.availableSkill;
 		hero = new Hero();
 		Dungeon.hero = hero;
 		hero.heroClass = HeroClass.MAGE;
@@ -36,7 +34,6 @@ public class SkillDebugTest {
 
 	@After public void tearDown() {
 		Dungeon.hero = previousHero;
-		Skill.availableSkill = previousPoints;
 	}
 
 	@Test public void oldGodmodeConvertsButNormalProtectionRemains(){
@@ -60,7 +57,9 @@ public class SkillDebugTest {
 		hero.debugInfiniteHealth = true;
 		hero.HP = 1;
 		assertTrue(hero.isAlive());
-		assertEquals(hero.HT, hero.HP);
+		//isAlive() runs on the render thread every frame: it no longer writes HP
+		assertEquals(1, hero.HP);
+		hero.HP = hero.HT;
 		assertFalse(hero.isInvulnerable(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger.class));
 		hero.damage(hero.HT * 10, new xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger());
 		assertEquals(hero.HT, hero.HP);
@@ -85,11 +84,11 @@ public class SkillDebugTest {
 		assertTrue(first.pathLocked());
 		assertFalse(node.unlocked());
 		hero.debugAllSkillPaths = true;
-		Skill.availableSkill = 1;
+		hero.heroSkills.availableSkill = 1;
 		assertTrue(node.canSpend());
 		assertTrue(first.requestUpgrade());
 		assertEquals(1, first.level);
-		assertEquals(0, Skill.availableSkill);
+		assertEquals(0, hero.heroSkills.availableSkill);
 		hero.debugAllSkillPaths = false;
 		assertTrue(first.pathLocked());
 	}
@@ -99,7 +98,7 @@ public class SkillDebugTest {
 		LinkedHashMap<Talent, Integer> tier = new LinkedHashMap<>();
 		tier.put(Talent.HEARTY_MEAL, 0);
 		hero.talents.add(tier);
-		Skill.availableSkill = 7;
+		hero.heroSkills.availableSkill = 7;
 		SkillDebug.maxTree(hero);
 		assertTrue(hero.debugAllSkillPaths);
 		int forks = 0;
@@ -111,8 +110,8 @@ public class SkillDebugTest {
 		}
 		assertTrue(forks > 0);
 		assertEquals(Talent.HEARTY_MEAL.maxPoints(), hero.pointsInTalent(Talent.HEARTY_MEAL));
-		assertEquals(7, Skill.availableSkill);
+		assertEquals(7, hero.heroSkills.availableSkill);
 		SkillDebug.maxTree(hero);
-		assertEquals(7, Skill.availableSkill);
+		assertEquals(7, hero.heroSkills.availableSkill);
 	}
 }

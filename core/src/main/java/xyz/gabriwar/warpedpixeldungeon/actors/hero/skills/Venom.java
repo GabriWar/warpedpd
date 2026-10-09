@@ -36,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import com.watabou.utils.Random;
 
 public class Venom extends PassiveSkillB1 {
@@ -68,7 +69,7 @@ public class Venom extends PassiveSkillB1 {
 				&& ((Mob) enemy).surprisedBy( Dungeon.hero )){
 			Buff.affect( enemy, Poison.class ).set( 2 + level + Dungeon.hero.heroSkills.allVenomBonus() );
 			CellEmitter.center( enemy.pos ).burst( PoisonParticle.SPLASH, 6 );
-			Sample.INSTANCE.play( Assets.Sounds.DEBUFF, 0.8f, 1.2f );
+			SpatialSound.play( Assets.Sounds.DEBUFF, enemy, 0.8f, 1.2f );
 		}
 		return damage;
 	}

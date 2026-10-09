@@ -25,8 +25,8 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.HarvestWind;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 
 public class PotionOfSoil extends ExoticPotion {
@@ -39,7 +39,7 @@ public class PotionOfSoil extends ExoticPotion {
 		if (Dungeon.level.heroFOV[cell]) {
 			identify();
 			splash(cell);
-			Sample.INSTANCE.play(Assets.Sounds.SHATTER);
+			SpatialSound.play(Assets.Sounds.SHATTER, cell);
 		}
 		GameScene.add(Blob.seed(cell, 1000, HarvestWind.class));
 	}

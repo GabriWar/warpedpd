@@ -37,6 +37,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.LifeLink;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.LockedFloor;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.ClericSpell;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Sheep;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
@@ -66,7 +67,6 @@ import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.audio.Music;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
@@ -207,7 +207,7 @@ public class DwarfKing extends Mob {
 				if (summonsMade < 6){
 					if (summonsMade == 0) {
 						sprite.centerEmitter().start(Speck.factory(Speck.SCREAM), 0.4f, 2);
-						Sample.INSTANCE.play(Assets.Sounds.CHALLENGE);
+						SpatialSound.play(Assets.Sounds.CHALLENGE, pos);
 						yell(Messages.get(this, "wave_1"));
 					}
 					summonSubject(3, DKGhoul.class);
@@ -218,7 +218,7 @@ public class DwarfKing extends Mob {
 				} else if (shielding() <= 300 && summonsMade < 12){
 					if (summonsMade == 6) {
 						sprite.centerEmitter().start(Speck.factory(Speck.SCREAM), 0.4f, 2);
-						Sample.INSTANCE.play(Assets.Sounds.CHALLENGE);
+						SpatialSound.play(Assets.Sounds.CHALLENGE, pos);
 						yell(Messages.get(this, "wave_2"));
 					}
 					summonSubject(3, DKGhoul.class);
@@ -234,7 +234,7 @@ public class DwarfKing extends Mob {
 				} else if (shielding() <= 150 && summonsMade < 18) {
 					if (summonsMade == 12) {
 						sprite.centerEmitter().start(Speck.factory(Speck.SCREAM), 0.4f, 2);
-						Sample.INSTANCE.play(Assets.Sounds.CHALLENGE);
+						SpatialSound.play(Assets.Sounds.CHALLENGE, pos);
 						yell(Messages.get(this, "wave_3"));
 						summonSubject(3, DKWarlock.class);
 						summonSubject(3, DKMonk.class);
@@ -258,7 +258,7 @@ public class DwarfKing extends Mob {
 				if (summonsMade < 4) {
 					if (summonsMade == 0) {
 						sprite.centerEmitter().start(Speck.factory(Speck.SCREAM), 0.4f, 2);
-						Sample.INSTANCE.play(Assets.Sounds.CHALLENGE);
+						SpatialSound.play(Assets.Sounds.CHALLENGE, pos);
 						yell(Messages.get(this, "wave_1"));
 					}
 					summonSubject(3, DKGhoul.class);
@@ -268,7 +268,7 @@ public class DwarfKing extends Mob {
 				} else if (shielding() <= 200 && summonsMade < 8) {
 					if (summonsMade == 4) {
 						sprite.centerEmitter().start(Speck.factory(Speck.SCREAM), 0.4f, 2);
-						Sample.INSTANCE.play(Assets.Sounds.CHALLENGE);
+						SpatialSound.play(Assets.Sounds.CHALLENGE, pos);
 						yell(Messages.get(this, "wave_2"));
 					}
 					if (summonsMade == 7) {
@@ -281,7 +281,7 @@ public class DwarfKing extends Mob {
 					return true;
 				} else if (shielding() <= 100 && summonsMade < 12) {
 					sprite.centerEmitter().start(Speck.factory(Speck.SCREAM), 0.4f, 2);
-					Sample.INSTANCE.play(Assets.Sounds.CHALLENGE);
+					SpatialSound.play(Assets.Sounds.CHALLENGE, pos);
 					yell(Messages.get(this, "wave_3"));
 					summonSubject(4, DKWarlock.class);
 					summonSubject(4, DKMonk.class);
@@ -366,7 +366,7 @@ public class DwarfKing extends Mob {
 			Buff.append(this, LifeLink.class, 100f).object = furthest.id();
 			yell(Messages.get(this, "lifelink_" + Random.IntRange(1, 2)));
 			sprite.parent.add(new Beam.HealthRay(sprite.destinationCenter(), furthest.sprite.destinationCenter()));
-			Sample.INSTANCE.play( Assets.Sounds.RAY );
+			SpatialSound.play( Assets.Sounds.RAY, pos );
 			return true;
 
 		}
@@ -522,7 +522,7 @@ public class DwarfKing extends Mob {
 			phase = 3;
 			summonsMade = 1; //monk/warlock on 3rd summon
 			sprite.centerEmitter().start( Speck.factory( Speck.SCREAM ), 0.4f, 2 );
-			Sample.INSTANCE.play( Assets.Sounds.CHALLENGE );
+			SpatialSound.play( Assets.Sounds.CHALLENGE, pos );
 			yell(  Messages.get(this, "enraged", Dungeon.hero.name()) );
 			BossHealthBar.bleed(true);
 			Game.runOnRenderThread(new Callback() {
@@ -674,16 +674,16 @@ public class DwarfKing extends Mob {
 
 				if (summon == DKGolem.class){
 					particles.burst(SparkParticle.FACTORY, 10);
-					Sample.INSTANCE.play(Assets.Sounds.CHARGEUP);
+					SpatialSound.play(Assets.Sounds.CHARGEUP, pos);
 				} else if (summon == DKWarlock.class){
 					particles.burst(ShadowParticle.CURSE, 10);
-					Sample.INSTANCE.play(Assets.Sounds.CURSED);
+					SpatialSound.play(Assets.Sounds.CURSED, pos);
 				} else if (summon == DKMonk.class){
 					particles.burst(ElmoParticle.FACTORY, 10);
-					Sample.INSTANCE.play(Assets.Sounds.BURNING);
+					SpatialSound.play(Assets.Sounds.BURNING, pos);
 				} else {
 					particles.burst(Speck.factory(Speck.BONE), 10);
-					Sample.INSTANCE.play(Assets.Sounds.BONES);
+					SpatialSound.play(Assets.Sounds.BONES, pos);
 				}
 				particles = null;
 

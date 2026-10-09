@@ -172,17 +172,27 @@ public class SoundscapeTest {
 	}
 
 	@Test
-	public void aBedFadesToItsReachAndNoFurther(){
+	public void aBedDiesAwaySmoothlyPastItsReach(){
+		//heard a fade past its reach: two cells at least, three quarters of a wide one
+		assertEquals( 7f, Soundscape.heard( 4f ), 1e-6f );
+		assertEquals( 10.5f, Soundscape.heard( 6f ), 1e-6f );
+		assertEquals( 4f, Soundscape.heard( 2f ), 1e-6f );
 		float last = 1f;
-		for (float d = 0f; d <= 9f; d += 0.25f){
+		for (float d = 0f; d <= 12f; d += 0.25f){
 			float r = Soundscape.reach( d, 6f );
 			assertTrue( r >= 0f && r <= 1f );
 			assertTrue( "never louder further off", r <= last );
+			//quieter a little with every step, never dropping off at once: it used to go from half
+			//to nothing within two cells and seemed to cut off
+			assertTrue( "no drop at " + d + ": " + (last - r), last - r <= 0.08f );
 			last = r;
 		}
-		assertEquals( 1f, Soundscape.reach( 5f, 6f ), 1e-6f );
-		assertEquals( 0.5f, Soundscape.reach( 6f, 6f ), 1e-6f );
-		assertEquals( 0f, Soundscape.reach( 7f, 6f ), 1e-6f );
+		assertEquals( "whole to a cell short of its reach", 1f, Soundscape.reach( 5f, 6f ), 1e-6f );
+		float atReach = Soundscape.reach( 6f, 6f ), onPast = Soundscape.reach( 8f, 6f );
+		assertTrue( "still most of it at its reach: " + atReach, atReach > 0.85f );
+		assertTrue( "dying away past it: " + onPast, onPast > 0.2f && onPast < atReach );
+		assertEquals( 0f, Soundscape.reach( 10.5f, 6f ), 1e-6f );
+		assertEquals( 0f, Soundscape.reach( 12f, 6f ), 1e-6f );
 	}
 
 	@Test
@@ -492,12 +502,13 @@ public class SoundscapeTest {
 		Voice bed = new Voice( AmbientSound.TRICKLE ).bed( 6f, 1.45f ).pitch( 0.95f, 1.08f ).from( Source.PIPE );
 		Rec rec = new Rec();
 		Soundscape s = scape( new Voice[]{ bed }, 6, rec );
-		//the hero steps to and fro over the edge of its reach, a step every 0.2 s: just in, just out
-		int in = 13 + 15 * w, out = 14 + 15 * w;
+		//the hero steps to and fro over the edge of where it is heard, a step every 0.2 s: just in,
+		//just out
+		int in = 16 + 18 * w, out = 17 + 18 * w;
 		Soundscape.Ground g = new Soundscape.Ground().set( m, w, w, in, seen( m.length, true ) );
-		assertTrue( g.away( pipe ) <= bed.radius );
+		assertTrue( g.away( pipe ) <= Soundscape.heard( bed.radius ) );
 		g.hero = out;
-		assertTrue( g.away( pipe ) > bed.radius );
+		assertTrue( g.away( pipe ) > Soundscape.heard( bed.radius ) );
 		Soundscape.Air a = new Soundscape.Air();
 		int lost = 0;
 		boolean was = false;
@@ -535,12 +546,13 @@ public class SoundscapeTest {
 		assertSame( AmbientSound.POUR, bed.alt.sound );
 		Rec rec = new Rec();
 		Soundscape s = scape( voices, 14, rec );
-		Soundscape.Ground g = new Soundscape.Ground().set( m, w, w, trickle % w + 15 * w, seen( m.length, true ) );
+		//on the bank, four cells under the pipes: in the bed's reach
+		Soundscape.Ground g = new Soundscape.Ground().set( m, w, w, trickle % w + 14 * w, seen( m.length, true ) );
 		Soundscape.Air a = new Soundscape.Air();
 		//by the first pipe, then along the bank to the other, a cell every half second, and there
 		while (s.now < 15f) s.tick( DT, g, a, rec );
 		for (int x = trickle % w; x <= pour % w; x++){
-			g.hero = x + 15 * w;
+			g.hero = x + 14 * w;
 			for (float until = s.now + 0.5f; s.now < until; ) s.tick( DT, g, a, rec );
 		}
 		for (float until = s.now + 15f; s.now < until; ) s.tick( DT, g, a, rec );

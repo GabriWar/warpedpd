@@ -29,12 +29,12 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 
 
 public class ArcaneEcho extends SubSkill3 {
@@ -79,7 +79,7 @@ public class ArcaneEcho extends SubSkill3 {
 				}
 				chained.damage( echo, this );
 			}
-			Sample.INSTANCE.play( Assets.Sounds.ZAP, 0.6f, 1.3f );
+			SpatialSound.play( Assets.Sounds.ZAP, enemy, 0.6f, 1.3f );
 		}
 		return damage;
 	}

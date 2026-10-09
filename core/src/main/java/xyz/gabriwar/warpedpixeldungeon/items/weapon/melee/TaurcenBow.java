@@ -36,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Ooze;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Slow;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vulnerable;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfSharpshooting;
@@ -45,7 +46,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
@@ -320,8 +320,8 @@ public class TaurcenBow extends Weapon {
 		}
 
 		@Override
-		public void throwSound() {
-			Sample.INSTANCE.play( Assets.Sounds.ATK_SPIRITBOW, 1, Random.Float(0.87f, 1.15f) );
+		public void throwSound(Char thrower) {
+			SpatialSound.play( Assets.Sounds.ATK_SPIRITBOW, thrower, 1, Random.Float(0.87f, 1.15f) );
 		}
 	}
 

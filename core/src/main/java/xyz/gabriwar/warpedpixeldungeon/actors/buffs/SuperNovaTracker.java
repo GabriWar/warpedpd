@@ -25,6 +25,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.items.bombs.Bomb;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.ShadowCaster;
@@ -34,7 +35,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Halo;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Point;
 import com.watabou.utils.PointF;
@@ -96,9 +96,9 @@ public class SuperNovaTracker extends Buff {
 				}
 			}
 
-			Sample.INSTANCE.play(Assets.Sounds.BLAST);
-			Sample.INSTANCE.playDelayed(Assets.Sounds.BLAST, 0.25f);
-			Sample.INSTANCE.playDelayed(Assets.Sounds.BLAST, 0.5f);
+			SpatialSound.play(Assets.Sounds.BLAST, pos);
+			SpatialSound.playDelayed(Assets.Sounds.BLAST, 0.25f, pos);
+			SpatialSound.playDelayed(Assets.Sounds.BLAST, 0.5f, pos);
 			PixelScene.shake( 5, 2f );
 			for (int i = 0; i < Dungeon.level.length(); i++){
 				if (fieldOfView[i] && !Dungeon.level.solid[i]){

@@ -35,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.TrailOfFire;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.LivingPlant;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.BlastParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
@@ -44,7 +45,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.bombs.Bomb;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.BArray;
@@ -131,7 +131,7 @@ public class Firefoxglove extends Plant {
 			//We're blowing up, so no need for a fuse anymore.
 			this.fuse = null;
 
-			Sample.INSTANCE.play( Assets.Sounds.BLAST );
+			SpatialSound.play( Assets.Sounds.BLAST, cell );
 
 			if (explodesDestructively()) {
 
@@ -199,7 +199,7 @@ public class Firefoxglove extends Plant {
 					CellEmitter.get(i).burst(FlameParticle.FACTORY, 5);
 				}
 			}
-			Sample.INSTANCE.play(Assets.Sounds.BURNING);
+			SpatialSound.play(Assets.Sounds.BURNING, cell);
 		}
 	}
 }

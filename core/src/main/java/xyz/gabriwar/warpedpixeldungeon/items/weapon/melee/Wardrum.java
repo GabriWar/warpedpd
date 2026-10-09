@@ -31,7 +31,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import com.watabou.utils.Callback;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -44,6 +43,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -104,8 +104,8 @@ public class Wardrum extends MeleeWeapon {
 			if (Dungeon.level.heroFOV[hero.pos + n]) CellEmitter.bottom( hero.pos + n ).burst( Speck.factory( Speck.DUST ), 2 );
 		}
 		Camera.main.shake( 3, 0.4f );
-		Sample.INSTANCE.play( Assets.Sounds.HIT_CRUSH, 1f, 0.6f );
-		Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 1f, 0.9f );
+		SpatialSound.play( Assets.Sounds.HIT_CRUSH, hero, 1f, 0.6f );
+		SpatialSound.play( Assets.Sounds.CHALLENGE, hero, 1f, 0.9f );
 		hero.sprite.operate( hero.pos );
 		Invisibility.dispel();
 		hero.spendAndNext( 1f );

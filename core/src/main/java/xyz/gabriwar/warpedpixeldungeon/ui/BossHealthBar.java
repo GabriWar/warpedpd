@@ -27,6 +27,7 @@ import xyz.gabriwar.warpedpixeldungeon.WPDSettings;
 import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.BloodParticle;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndInfoMob;
@@ -235,6 +236,8 @@ public class BossHealthBar extends Component {
 	}
 
 	public static void assignBoss(Mob boss, boolean forceSpriteRefresh){
+		//the fight has begun: the boss's chapter of the Descent Guide writes itself
+		if (boss != null) GuideGraph.faced(boss.getClass());
 		if (BossHealthBar.boss == boss && instance != null) {
 			//re-assign sprite if it has changed
 			if (forceSpriteRefresh && instance.large){

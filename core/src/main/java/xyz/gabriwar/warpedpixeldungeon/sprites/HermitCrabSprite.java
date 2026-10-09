@@ -24,9 +24,9 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 import com.watabou.utils.PointF;
 
@@ -67,7 +67,7 @@ public class HermitCrabSprite extends MobSprite {
 		} else {
 			parent.add(new Lightning(origin, pos, (Callback) ch));
 		}
-		Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
+		SpatialSound.play( Assets.Sounds.LIGHTNING, ch );
 
 		super.zap( ch.pos );
 		flash();

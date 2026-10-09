@@ -24,13 +24,13 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.CrystalWisp;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.TorchHalo;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.tweeners.AlphaTweener;
 import com.watabou.utils.PointF;
 
@@ -74,7 +74,7 @@ public abstract class CrystalWispSprite extends MobSprite {
 				light.alpha(0.3f);
 				((CrystalWisp)ch).onZapComplete();
 				Beam ray = new Beam.LightRay(center(), DungeonTilemap.raisedTileCenterToWorld(cell));
-				Sample.INSTANCE.play( Assets.Sounds.RAY );
+				SpatialSound.play( Assets.Sounds.RAY, ch );
 				ray.hardlight(blood() & 0x00FFFFFF);
 				parent.add( ray );
 			}

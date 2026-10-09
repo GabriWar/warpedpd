@@ -29,12 +29,12 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ManaShieldWard;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 
 import java.util.ArrayList;
 
@@ -65,7 +65,7 @@ public class ManaShield extends SubSkill2 {
 			Buff.affect( hero, ManaShieldWard.class ).raise( SkillInteractions.ofHealth( hero.HT, 0.04f + 0.04f * level ) );
 			hero.MP -= getManaCost();
 			castTextYell();
-			Sample.INSTANCE.play( Assets.Sounds.MELD, 1f, 1.2f );
+			SpatialSound.play( Assets.Sounds.MELD, hero, 1f, 1.2f );
 			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 6 );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
@@ -94,7 +94,7 @@ public class ManaShield extends SubSkill2 {
 			enemy.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 6 );
 			enemy.sprite.flash();
 		}
-		Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 1f, 1.1f );
+		SpatialSound.play( Assets.Sounds.HIT_MAGIC, enemy, 1f, 1.1f );
 		return damage + Math.round( com.watabou.utils.Random.NormalIntRange( 3, 8 ) * SkillInteractions.heroPower() );
 	}
 
@@ -121,6 +121,17 @@ public class ManaShield extends SubSkill2 {
 
 		void use(){
 			if (--hits <= 0) detach();
+		}
+
+		//only Mana Shield spends the shards: once it is gone or back at nothing (debug) they go too
+		@Override
+		public boolean act(){
+			if (CurrentSkills.skillLevel( target, ManaShield.class ) <= 0){
+				detach();
+				return true;
+			}
+			spend( TICK );
+			return true;
 		}
 
 		@Override

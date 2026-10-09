@@ -33,11 +33,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ParryRiposte;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 public class ParryStance extends PassiveSkillA3 {
@@ -73,7 +73,7 @@ public class ParryStance extends PassiveSkillA3 {
 			//the blade turns the blow: a quick arc snapped toward the attacker
 			ArcSpinFX.slash( hero.sprite, 0xFFFFFF, enemy.pos % Dungeon.level.width() >= hero.pos % Dungeon.level.width() );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 1f, 1f );
+		SpatialSound.play( Assets.Sounds.HIT_PARRY, hero, 1f, 1f );
 		ParryRiposte riposte = Buff.affect( hero, ParryRiposte.class );
 		riposte.enemy = enemy;
 		riposte.sweep = level >= MAX_LEVEL;

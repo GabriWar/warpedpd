@@ -28,7 +28,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
@@ -38,6 +37,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -85,7 +85,7 @@ public class Stealth extends PassiveSkillA2 {
 		CellEmitter.get( cell ).burst( Speck.factory( Speck.SMOKE ), 8 );
 		SkillSpectacleFX.show( SkillSpectacleFX.SHADOW, cell );
 		if (hero.sprite != null) hero.sprite.emitter().burst( ShadowParticle.UP, 6 );
-		Sample.INSTANCE.play( Assets.Sounds.MELD, 1f, 1.3f );
+		SpatialSound.play( Assets.Sounds.MELD, cell, 1f, 1.3f );
 		mob.aggro( decoy );
 	}
 

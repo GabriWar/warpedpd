@@ -25,11 +25,11 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Eye;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 
 public class EyeSprite extends MobSprite {
@@ -106,7 +106,7 @@ public class EyeSprite extends MobSprite {
 	public void charge( int pos ){
 		turnTo(ch.pos, pos);
 		play(charging);
-		if (visible) Sample.INSTANCE.play( Assets.Sounds.CHARGEUP );
+		if (visible) SpatialSound.play( Assets.Sounds.CHARGEUP, ch );
 	}
 
 	@Override
@@ -132,7 +132,7 @@ public class EyeSprite extends MobSprite {
 			} else {
 				parent.add(new Beam.DeathRay(center(), DungeonTilemap.raisedTileCenterToWorld(zapPos)));
 			}
-			Sample.INSTANCE.play( Assets.Sounds.RAY );
+			SpatialSound.play( Assets.Sounds.RAY, ch );
 			if (ch instanceof Eye) ((Eye)ch).deathGaze();
 			else ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob)ch).next();
 			ch.next();

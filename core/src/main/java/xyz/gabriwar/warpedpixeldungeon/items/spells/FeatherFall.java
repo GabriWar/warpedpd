@@ -30,13 +30,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FlavourBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfLevitation;
 import xyz.gabriwar.warpedpixeldungeon.items.quest.MetalShard;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 
 public class FeatherFall extends Spell {
 
@@ -49,7 +49,7 @@ public class FeatherFall extends Spell {
 	protected void onCast(Hero hero) {
 		Buff.append(hero, FeatherBuff.class, FeatherBuff.DURATION);
 		hero.sprite.operate(hero.pos);
-		Sample.INSTANCE.play(Assets.Sounds.READ);
+		SpatialSound.play(Assets.Sounds.READ, hero);
 		hero.sprite.emitter().burst(Speck.factory(Speck.JET), 20);
 		GLog.p(Messages.get(this, "light"));
 		Invisibility.dispel();

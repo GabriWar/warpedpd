@@ -25,9 +25,9 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SleepParalysisDemon;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.tweeners.AlphaTweener;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 
@@ -41,7 +41,7 @@ public class PotionOfSleepParalysis extends ExoticPotion {
 		if (Dungeon.level.heroFOV[cell]) {
 			identify();
 			splash(cell);
-			Sample.INSTANCE.play(Assets.Sounds.SHATTER);
+			SpatialSound.play(Assets.Sounds.SHATTER, cell);
 		}
 		SleepParalysisDemon demon = new SleepParalysisDemon();
 		demon.HP = demon.HT;
@@ -50,6 +50,6 @@ public class PotionOfSleepParalysis extends ExoticPotion {
 		Actor.addDelayed(new Pushing(demon, cell, cell), -1f);
 		demon.sprite.alpha(0);
 		demon.sprite.parent.add(new AlphaTweener(demon.sprite, 1, 0.15f));
-		Sample.INSTANCE.play(Assets.Sounds.CURSED);
+		SpatialSound.play(Assets.Sounds.CURSED, cell);
 	}
 }

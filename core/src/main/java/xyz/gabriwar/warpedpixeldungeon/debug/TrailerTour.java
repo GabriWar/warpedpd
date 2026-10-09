@@ -256,7 +256,7 @@ public class TrailerTour {
 			ScreenshotTour.clearLog();
 			arena( 5, 6 );
 			Dungeon.hero.lvl = 15;
-			Skill.availableSkill = 6;
+			Dungeon.hero.heroSkills.availableSkill = 6;
 			int n = 0;
 			for (Skill sk : Dungeon.hero.heroSkills.activeSkills) if (n++ < 3) sk.setLevel( 2 );
 			WndHero.lastIdx = 1;

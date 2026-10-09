@@ -36,6 +36,13 @@ import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 public class Invisibility extends FlavourBuff {
 
 	public static final float DURATION	= 20f;
+	//the debug window's endless invisibility: this long, and never broken
+	public static final float DEBUG_DURATION = 1_000_000_000f;
+
+	public static boolean isDebugEndless( Char ch ){
+		Invisibility inv = ch.buff( Invisibility.class );
+		return inv != null && inv.cooldown() > DEBUG_DURATION / 1000f;
+	}
 
 	{
 		type = buffType.POSITIVE;
@@ -89,7 +96,7 @@ public class Invisibility extends FlavourBuff {
 
 	public static void dispel(Char ch){
 
-		if (ch == Dungeon.hero && Dungeon.debugInvisible) return;
+		if (ch == Dungeon.hero && isDebugEndless( ch )) return;
 
 		for ( Buff invis : ch.buffs( Invisibility.class )){
 			invis.detach();

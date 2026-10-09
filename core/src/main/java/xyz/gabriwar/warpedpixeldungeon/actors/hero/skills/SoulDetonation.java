@@ -36,12 +36,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SummonedPet;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.BlastParticle;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
@@ -102,7 +102,7 @@ public class SoulDetonation extends Skill {
                     if(hero.sprite!=null&&hero.sprite.parent!=null)new xyz.gabriwar.warpedpixeldungeon.effects.Flare(6,16).color(0xBBA7EE,true)
                         .show(hero.sprite.parent,xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap.tileCenterToWorld(origin),0.5f);
                     xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX.after(0.1f*order,()->{
-                        Camera.main.shake(2,0.2f);Sample.INSTANCE.play(Assets.Sounds.BLAST,0.8f,0.9f+0.1f*order);
+                        Camera.main.shake(2,0.2f);SpatialSound.play(Assets.Sounds.BLAST,origin,0.8f,0.9f+0.1f*order);
                     });
                     xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX.after(0.1f*order+0.3f,()->{
                         if(hero.sprite!=null)hero.sprite.emitter().burst(Speck.factory(Speck.BLUE_LIGHT),3);

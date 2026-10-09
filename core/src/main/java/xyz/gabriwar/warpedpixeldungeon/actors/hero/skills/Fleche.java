@@ -33,12 +33,12 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfForce;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTeleportation;
@@ -151,7 +151,7 @@ public class Fleche extends Skill {
 			for (int c : run.subPath( 0, run.dist )){
 				if (Dungeon.level.heroFOV[c]) CellEmitter.bottom( c ).burst( Speck.factory( Speck.DUST ), 3 );
 			}
-			Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 0.8f );
+			SpatialSound.play( Assets.Sounds.MISS, hero, 1f, 0.8f );
 			//the run itself: a thin white streak ahead of her, a puff where her feet land
 			StreakFX.show( hero.pos, landing, 0xFFFFFF, 0.5f, 0.3f );
 			ScrollOfTeleportation.appear( hero, landing );
@@ -186,7 +186,8 @@ public class Fleche extends Skill {
 			hero.MP -= getManaCost();
 		}
 		castTextYell();
-		Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 1f, 1.1f );
+		//where the blow landed, wherever the run took her after
+		SpatialSound.play( Assets.Sounds.HIT_SLASH, strikeCell, 1f, 1.1f );
 		Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
 		Dungeon.hero.heroSkills.lastUsed = this;
 		hero.spend( TIME_TO_USE );

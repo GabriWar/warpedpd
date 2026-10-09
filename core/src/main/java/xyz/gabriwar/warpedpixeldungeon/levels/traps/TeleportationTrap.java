@@ -27,13 +27,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Honeypot;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTeleportation;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 public class TeleportationTrap extends Trap {
@@ -67,7 +67,7 @@ public class TeleportationTrap extends Trap {
 					if (item instanceof Honeypot.ShatteredPot){
 						((Honeypot.ShatteredPot)item).movePot(pos, cell);
 					}
-					Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
+					SpatialSound.play(Assets.Sounds.TELEPORT, pos);
 					CellEmitter.get(pos).burst(Speck.factory(Speck.LIGHT), 4);
 				}
 			}

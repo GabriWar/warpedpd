@@ -140,6 +140,8 @@ import xyz.gabriwar.warpedpixeldungeon.items.artifacts.CapeOfThorns;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.BloomBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.HuntersFocus;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ShadeCloak;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
+import xyz.gabriwar.warpedpixeldungeon.audio.WallBreak;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.CloakOfShadows;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.DriedRose;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.EtherealChains;
@@ -360,12 +362,14 @@ public class Hero extends Char {
 
 	// Skillful PD skill tree (see actors/hero/skills/)
 	public boolean debugAllSkillPaths;
+	//debug: a blow shows its number, then the health is back to full (see damage())
 	public boolean debugInfiniteHealth;
 
-	/** Old debug protection lasted 999/1000 turns; normal protection lasts at most 10. */
+	/** Old debug protection lasted 999/1000 turns. Real protection stacks (two cursed-wand
+	 *  shields, an ankh and a wand) but stays far below a hundred, so it is never mistaken for it. */
 	public void migrateDebugGodmode(){
 		Invulnerability old = buff(Invulnerability.class);
-		if (old != null && old.cooldown() > 10f){
+		if (old != null && old.cooldown() > 100f){
 			old.detach();
 			debugInfiniteHealth = true;
 			HP = HT;
@@ -373,7 +377,7 @@ public class Hero extends Char {
 	}
 
 	public xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.CurrentSkills heroSkills =
-			xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.CurrentSkills.WARRIOR;
+			new xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.CurrentSkills( HeroClass.WARRIOR );
 
 	// Sprouted stat system
 	public boolean levelup = false;
@@ -515,7 +519,7 @@ public class Hero extends Char {
 		bundle.put(MANAPOINTS, MP);
 		bundle.put(MANATOTAL, MT);
 
-		bundle.put(SKILLS_AVAILABLE, xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.availableSkill);
+		bundle.put(SKILLS_AVAILABLE, heroSkills.availableSkill);
 		bundle.put("debug_all_skill_paths", debugAllSkillPaths);
 		bundle.put("debug_infinite_health", debugInfiniteHealth);
 		heroSkills.storeInBundle(bundle);
@@ -574,15 +578,15 @@ public class Hero extends Char {
 		debugInfiniteHealth = bundle.getBoolean("debug_infinite_health");
 		migrateDebugGodmode();
 		if (debugInfiniteHealth) HP = HT;
-		if (bundle.contains(SKILLS_AVAILABLE)){
-			xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.availableSkill = bundle.getInt(SKILLS_AVAILABLE);
-		} else {
-			//save from before the skill system: grant points retroactively
-			xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.availableSkill =
-					xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.STARTING_SKILL + (lvl - 1) * 3;
-		}
 		heroSkills = xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.CurrentSkills.forHero(this);
 		heroSkills.init(this);
+		if (bundle.contains(SKILLS_AVAILABLE)){
+			heroSkills.availableSkill = bundle.getInt(SKILLS_AVAILABLE);
+		} else {
+			//save from before the skill system: grant points retroactively
+			heroSkills.availableSkill =
+					xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.STARTING_SKILL + (lvl - 1) * 3;
+		}
 		if (subClass != HeroSubClass.NONE){
 			heroSkills.initSubclassBranch(this);
 		}
@@ -638,8 +642,7 @@ public class Hero extends Char {
 			}
 		}
 		//fused economy: talents draw from the shared skill point pool
-		xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.availableSkill =
-				Math.max(0, xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.availableSkill - 1);
+		heroSkills.availableSkill = Math.max(0, heroSkills.availableSkill - 1);
 		Talent.onTalentUpgraded(this, talent);
 	}
 
@@ -651,7 +654,7 @@ public class Hero extends Char {
 		return total;
 	}
 
-	//FUSED ECONOMY: talents and skills share one wallet - Skill.availableSkill.
+	//FUSED ECONOMY: talents and skills share one wallet - heroSkills.availableSkill.
 	//A tier still unlocks by level/subclass/ability, but how much you can pour
 	//into it is only limited by the pool and the talents' own max levels.
 	public int talentPointsAvailable(int tier){
@@ -664,8 +667,7 @@ public class Hero extends Char {
 		for (Talent t : talents.get(tier-1).keySet()){
 			capacity += t.maxPoints() - talents.get(tier-1).get(t);
 		}
-		return Math.min( capacity,
-				xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.availableSkill );
+		return Math.min( capacity, heroSkills.availableSkill );
 	}
 
 	public int bonusTalentPoints(int tier){
@@ -697,21 +699,21 @@ public class Hero extends Char {
 	}
 
 	@Override
-	public void hitSound(float pitch) {
+	public void hitSound(float pitch, Char defender) {
 		if (!RingOfForce.fightingUnarmed(this)) {
-			belongings.attackingWeapon().hitSound(pitch);
+			belongings.attackingWeapon().hitSound(pitch, defender);
 		} else if (RingOfForce.getBuffedBonus(this, RingOfForce.Force.class) > 0) {
 			//pitch deepens by 2.5% (additive) per point of strength, down to 75%
-			super.hitSound( pitch * GameMath.gate( 0.75f, 1.25f - 0.025f*STR(), 1f) );
+			super.hitSound( pitch * GameMath.gate( 0.75f, 1.25f - 0.025f*STR(), 1f), defender );
 		} else {
-			super.hitSound(pitch * 1.1f);
+			super.hitSound(pitch * 1.1f, defender);
 		}
 	}
 
 	@Override
 	public boolean blockSound(float pitch) {
 		if ( belongings.weapon() != null && belongings.weapon().defenseFactor(this) >= 4 ){
-			Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 1, pitch);
+			SpatialSound.play( Assets.Sounds.HIT_PARRY, this, 1, pitch);
 			return true;
 		}
 		return super.blockSound(pitch);
@@ -970,14 +972,14 @@ public class Hero extends Char {
 		if (buff(RoundShield.GuardTracker.class) != null){
 			buff(RoundShield.GuardTracker.class).hasBlocked = true;
 			BuffIndicator.refreshHero();
-			Sample.INSTANCE.play(Assets.Sounds.HIT_PARRY, 1, Random.Float(0.96f, 1.05f));
+			SpatialSound.play(Assets.Sounds.HIT_PARRY, this, 1, Random.Float(0.96f, 1.05f));
 			return Messages.get(RoundShield.GuardTracker.class, "guarded");
 		}
 
 		if (buff(MonkEnergy.MonkAbility.Focus.FocusBuff.class) != null){
 			buff(MonkEnergy.MonkAbility.Focus.FocusBuff.class).detach();
 			if (sprite != null && sprite.visible) {
-				Sample.INSTANCE.play(Assets.Sounds.HIT_PARRY, 1, Random.Float(0.96f, 1.05f));
+				SpatialSound.play(Assets.Sounds.HIT_PARRY, this, 1, Random.Float(0.96f, 1.05f));
 			}
 			return Messages.get(Monk.class, "parried");
 		}
@@ -1039,7 +1041,7 @@ public class Hero extends Char {
 			if (emp.left <= 0) {
 				emp.detach();
 			}
-			Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG, 0.75f, 1.2f);
+			SpatialSound.play(Assets.Sounds.HIT_STRONG, this, 0.75f, 1.2f);
 		}
 
 		if (heroClass != HeroClass.DUELIST
@@ -1248,6 +1250,8 @@ public class Hero extends Char {
 	public boolean act() {
 
 		if (Dungeon.debugInfiniteMana) MP = MT;
+		//also catches a direct HP cost or a lethal write outside damage()
+		if (debugInfiniteHealth) HP = HT;
 
 		//the waypoint march does not stop for ANYTHING - whenever the hero
 		//would act with no action queued, the march seats a fresh Move RIGHT
@@ -2216,14 +2220,14 @@ public class Hero extends Char {
 
 				switch (heap.type) {
 				case TOMB:
-					Sample.INSTANCE.play( Assets.Sounds.TOMB );
+					SpatialSound.play( Assets.Sounds.TOMB, dst );
 					PixelScene.shake( 1, 0.5f );
 					break;
 				case SKELETON:
 				case REMAINS:
 					break;
 				default:
-					Sample.INSTANCE.play( Assets.Sounds.UNLOCK );
+					SpatialSound.play( Assets.Sounds.UNLOCK, dst );
 				}
 				
 				sprite.operate( dst );
@@ -2310,14 +2314,14 @@ public class Hero extends Char {
 
 				sprite.operate( doorCell );
 
-				Sample.INSTANCE.play( Assets.Sounds.UNLOCK );
+				SpatialSound.play( Assets.Sounds.UNLOCK, doorCell );
 
 			} else if ((door == Terrain.LOCKED_DOOR || door == Terrain.CRYSTAL_DOOR || door == Terrain.LOCKED_EXIT)
 					&& GoldenSkeletonKey.anyInJournal()){
 
 				if (GoldenSkeletonKey.confirmedCell == doorCell){
 					sprite.operate( doorCell );
-					Sample.INSTANCE.play( Assets.Sounds.UNLOCK );
+					SpatialSound.play( Assets.Sounds.UNLOCK, doorCell );
 				} else {
 					promptGoldenKey( new HeroAction.Unlock( doorCell ), doorCell );
 				}
@@ -2390,7 +2394,9 @@ public class Hero extends Char {
 							}
 							PixelScene.shake(0.5f, 0.5f);
 							CellEmitter.center( action.dst ).burst( Speck.factory( Speck.STAR ), 7 );
-							Sample.INSTANCE.play( Assets.Sounds.EVOKE );
+							SpatialSound.play( Assets.Sounds.EVOKE, action.dst );
+							//the vein's wall breaks too, under the gold's chime
+							WallBreak.play( action.dst, 0.6f, 1f );
 							Level.set( action.dst, Terrain.EMPTY_DECO );
 
 							//mining gold doesn't break crystals
@@ -2402,7 +2408,7 @@ public class Hero extends Char {
 							buff(Hunger.class).affectHunger(-3);
 							PixelScene.shake(0.5f, 0.5f);
 							CellEmitter.get( action.dst ).burst( Speck.factory( Speck.ROCK ), 2 );
-							Sample.INSTANCE.play( Assets.Sounds.MINE );
+							WallBreak.play( action.dst, WallBreak.PICK, 1f );
 							//a vein in the rock of a world slice gives up its ore (levels/overworld/Ores):
 							//asked before the rock is gone, and it takes no time of its own
 							xyz.gabriwar.warpedpixeldungeon.items.ore.Ore ore = Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
@@ -2416,14 +2422,15 @@ public class Hero extends Char {
 							xyz.gabriwar.warpedpixeldungeon.items.ore.Gem gem = Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
 									? ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).gemFrom( action.dst ) : null;
 							Splash.at(action.dst, 0xFFFFFF, 5);
-							Sample.INSTANCE.play( Assets.Sounds.SHATTER );
+							SpatialSound.play( Assets.Sounds.SHATTER, action.dst );
 							if (gem != null) gem.struck( Hero.this, action.dst );
 							Level.set( action.dst, Terrain.EMPTY );
 
 						//1 hunger spent total
 						} else if (Dungeon.level.map[action.dst] == Terrain.MINE_BOULDER){
 							Splash.at(action.dst, 0x555555, 5);
-							Sample.INSTANCE.play( Assets.Sounds.MINE, 0.6f );
+							//a boulder is a smaller break than a wall: quieter, a little higher
+							WallBreak.play( action.dst, 0.5f, 1.2f );
 							Level.set( action.dst, Terrain.EMPTY_DECO );
 						}
 
@@ -2452,7 +2459,7 @@ public class Hero extends Char {
 										}
 									}
 									if (broke){
-										Sample.INSTANCE.play( Assets.Sounds.SHATTER );
+										SpatialSound.play( Assets.Sounds.SHATTER, action.dst );
 										//on a cave slice every crystal may have held a gem: say what the blow cost
 										if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
 												&& ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).altitude() < 0){
@@ -2795,13 +2802,15 @@ public class Hero extends Char {
 					second.damage(damageRoll(), this);
 					if (second != enemy){
 						Wound.hit(second);
-						Sample.INSTANCE.play(Assets.Sounds.HIT_SLASH, 1f, 1.2f);
+						SpatialSound.play(Assets.Sounds.HIT_SLASH, second, 1f, 1.2f);
 					}
 				}
 			}
 		} else {
 			//Huntress: Knee Shot
 			xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill crippleSkill = heroSkills.rollCripple();
+			//the arrow in the knee, heard where it lands
+			if (crippleSkill != null) SpatialSound.play(Assets.Sounds.HIT_ARROW, enemy, 1f, 0.7f);
 			if (crippleSkill != null && enemy.isAlive()){
 				Buff.prolong(enemy, Cripple.class, 3 + crippleSkill.level);
 			}
@@ -2828,7 +2837,7 @@ public class Hero extends Char {
 				final Char struck = second;
 				struck.damage(damageRoll(), this);
 				SkillFX.streak(sprite, struck.pos, wep, () -> SkillFX.flash(struck));
-				Sample.INSTANCE.play(Assets.Sounds.HIT_ARROW, 1f, 1.2f);
+				SpatialSound.play(Assets.Sounds.HIT_ARROW, struck, 1f, 1.2f);
 			}
 			//Huntress: Bombvoyage - the projectile carries a charge. It bursts on what stands
 			//there and on nothing else: no walls or blocks broken, no heaps blown apart
@@ -2849,7 +2858,7 @@ public class Hero extends Char {
 						next.damage(preProcDamage, this);
 						final Char victim = next;
 						SkillFX.streak(from, c, wep, () -> SkillFX.flash(victim));
-						Sample.INSTANCE.play(Assets.Sounds.HIT_ARROW, 1f, 0.9f);
+						SpatialSound.play(Assets.Sounds.HIT_ARROW, victim, 1f, 0.9f);
 						from = c;
 						if (++pierced >= pierceSkill.level) break;
 					}
@@ -3045,6 +3054,9 @@ public class Hero extends Char {
 		int hpBefore = HP;
 		super.damage( dmg, src );
 		healthHold = 0;
+		//debug infinite health: the blow showed its number, and the health is back before
+		//anything below (auto-heal, the red flash, hit skills) takes the hero for nearly dead
+		if (debugInfiniteHealth) HP = HT;
 		int postHP = HP + shielding();
 		if (src instanceof Hunger) postHP -= shielding();
 		int effectiveDamage = preHP - postHP;
@@ -3072,7 +3084,7 @@ public class Hero extends Char {
 		//if the intensity is very low don't flash at all
 		if (flashIntensity >= 0.05f){
 			flashIntensity = Math.min(1/3f, flashIntensity); //cap intensity at 1/3
-			GameScene.flash( (int)(0xFF*flashIntensity) << 16 );
+			GameScene.damageFlash( (int)(0xFF*flashIntensity) << 16 );
 			if (isAlive()) {
 				if (flashIntensity >= 1/6f) {
 					Sample.INSTANCE.play(Assets.Sounds.HEALTH_CRITICAL, 1/3f + flashIntensity * 2f);
@@ -3193,7 +3205,7 @@ public class Hero extends Char {
 		if (buff(Heavy.class) != null) {
 			CellEmitter.get( pos ).start( Speck.factory( Speck.ROCK ), 0.07f, 10 );
 			PixelScene.shake( 3, 0.7f );
-			Sample.INSTANCE.play( Assets.Sounds.ROCKS );
+			SpatialSound.play( Assets.Sounds.ROCKS, this );
 			for (int i : PathFinder.NEIGHBOURS8) {
 				Char ch = Actor.findChar(pos + i);
 				if (ch instanceof Mob && ch.alignment != Alignment.ALLY) {
@@ -3516,7 +3528,7 @@ public class Hero extends Char {
 			MT += 2;
 			MP += 2;
 			//3 per level: this wallet now pays for talents AND skills
-			xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.availableSkill += 3;
+			heroSkills.availableSkill += 3;
 			GLog.p( "Gained 3 skill points!" );
 
 			// Sprouted: Warlock subclass HP overfill on level-up
@@ -3537,7 +3549,8 @@ public class Hero extends Char {
 				GLog.newLine();
 				GLog.p( Messages.get(this, "new_level") );
 				sprite.showStatus( CharSprite.POSITIVE, Messages.get(Hero.class, "level_up") );
-				Sample.INSTANCE.play( Assets.Sounds.LEVELUP );
+				//the hero's own on him, as ever; a guest's, on the host, from where the guest stands
+				SpatialSound.play( Assets.Sounds.LEVELUP, this );
 				CellEmitter.center(pos).burst(Speck.factory(Speck.STAR), 10);
 				sprite.emitter().burst(Speck.factory(Speck.LIGHT), 4);
 				//every level now grants a talent point (post-30 ones go to the
@@ -3656,7 +3669,7 @@ public class Hero extends Char {
 
 				SpellSprite.show(this, SpellSprite.ANKH);
 				GameScene.flash(0x80FFFF40);
-				Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
+				SpatialSound.play(Assets.Sounds.TELEPORT, this);
 				GLog.w(Messages.get(this, "revive"));
 				Statistics.ankhsUsed++;
 				Catalog.countUse(Ankh.class);
@@ -3779,11 +3792,8 @@ public class Hero extends Char {
 
 	@Override
 	public boolean isAlive() {
-		//Also catches direct HP costs and lethal writes outside damage().
-		if (debugInfiniteHealth) {
-			HP = HT;
-			return true;
-		}
+		//no write here: the render thread calls this every frame (refilled in act() instead)
+		if (debugInfiniteHealth) return true;
 		
 		if (HP <= 0){
 			if (berserk == null) berserk = buff(Berserk.class);
@@ -3805,7 +3815,7 @@ public class Hero extends Char {
 		
 		if (!flying && travelling) {
 			if (Dungeon.level.water[pos]) {
-				Sample.INSTANCE.play( Assets.Sounds.WATER, 1, Random.Float( 0.8f, 1.25f ) );
+				SpatialSound.play( Assets.Sounds.WATER, this, 1, Random.Float( 0.8f, 1.25f ) );
 				// 2% chance per water step to soak shoes; already soaked adds duration
 				SoakedShoes soaked = buff(SoakedShoes.class);
 				if (soaked != null) {
@@ -3816,19 +3826,19 @@ public class Hero extends Char {
 				}
 			} else if (Dungeon.level.map[pos] == Terrain.FROZEN_WATER) {
 				// Ice step: high-pitched crunchy sound
-				Sample.INSTANCE.play( Assets.Sounds.SHATTER, 0.3f, Random.Float( 1.5f, 2.0f ) );
+				SpatialSound.play( Assets.Sounds.SHATTER, this, 0.3f, Random.Float( 1.5f, 2.0f ) );
 			} else if (Dungeon.level.map[pos] == Terrain.EMPTY_SP) {
-				Sample.INSTANCE.play( Assets.Sounds.STURDY, 1, Random.Float( 0.96f, 1.05f ) );
+				SpatialSound.play( Assets.Sounds.STURDY, this, 1, Random.Float( 0.96f, 1.05f ) );
 			} else if (Dungeon.level.map[pos] == Terrain.GRASS
 					|| Dungeon.level.map[pos] == Terrain.EMBERS
 					|| Dungeon.level.map[pos] == Terrain.FURROWED_GRASS){
 				if (step == pos && wasHighGrass) {
-					Sample.INSTANCE.play(Assets.Sounds.TRAMPLE, 1, Random.Float( 0.96f, 1.05f ) );
+					SpatialSound.play(Assets.Sounds.TRAMPLE, this, 1, Random.Float( 0.96f, 1.05f ) );
 				} else {
-					Sample.INSTANCE.play( Assets.Sounds.GRASS, 1, Random.Float( 0.96f, 1.05f ) );
+					SpatialSound.play( Assets.Sounds.GRASS, this, 1, Random.Float( 0.96f, 1.05f ) );
 				}
 			} else {
-				Sample.INSTANCE.play( Assets.Sounds.STEP, 1, Random.Float( 0.96f, 1.05f ) );
+				SpatialSound.play( Assets.Sounds.STEP, this, 1, Random.Float( 0.96f, 1.05f ) );
 			}
 		}
 	}
@@ -3913,7 +3923,7 @@ public class Hero extends Char {
 					}
 					if (hasKey) {
 						Level.set(doorCell, Terrain.EMPTY);
-						Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
+						SpatialSound.play(Assets.Sounds.TELEPORT, doorCell);
 						CellEmitter.get( doorCell ).start( Speck.factory( Speck.DISCOVER ), 0.025f, 20 );
 					}
 				} else {
@@ -3948,7 +3958,7 @@ public class Hero extends Char {
 			} else if (Dungeon.level.distance(pos, heap.pos) <= 1){
 				boolean hasKey = true;
 				if (heap.type == Type.SKELETON || heap.type == Type.REMAINS) {
-					Sample.INSTANCE.play( Assets.Sounds.BONES );
+					SpatialSound.play( Assets.Sounds.BONES, heap.pos );
 				} else if (heap.type == Type.LOCKED_CHEST){
 					hasKey = Notes.remove(new GoldenKey(Dungeon.depth));
 					if (hasKey && keyUseTrack != null){
@@ -4147,7 +4157,7 @@ public class Hero extends Char {
 		
 		if (smthFound) {
 			GLog.w( Messages.get(this, "noticed_smth") );
-			Sample.INSTANCE.play( Assets.Sounds.SECRET );
+			SpatialSound.play( Assets.Sounds.SECRET, this );
 			interrupt();
 		}
 

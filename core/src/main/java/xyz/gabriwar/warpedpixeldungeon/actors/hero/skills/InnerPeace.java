@@ -30,11 +30,11 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfMagic;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
-import com.watabou.noosa.audio.Sample;
 
 public class InnerPeace extends SubSkill2 {
 
@@ -73,7 +73,7 @@ public class InnerPeace extends SubSkill2 {
 			hero.sprite.emitter().burst( Speck.factory( Speck.STEAM ), 5 );
 			hero.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( this, "breathe" ) );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.CHARMS, 0.5f, 1.4f );
+		SpatialSound.play( Assets.Sounds.CHARMS, hero, 0.5f, 1.4f );
 		//+3: each breath out restores 2 mana
 		if (level >= MAX_LEVEL){
 			int maxMana = hero.MT + RingOfMagic.manaBonus( hero );

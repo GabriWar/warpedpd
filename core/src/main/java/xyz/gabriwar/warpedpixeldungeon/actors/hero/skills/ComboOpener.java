@@ -27,7 +27,6 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -36,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Daze;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
@@ -79,7 +79,7 @@ public class ComboOpener extends SubSkill1 {
 			new Flare( 8, 20 ).color( 0xFFB060, true ).show( enemy.sprite, 0.5f );
 		}
 		SkillFX.land( enemy.pos );
-		Sample.INSTANCE.play( Assets.Sounds.BLAST, 0.8f, 1.2f );
+		SpatialSound.play( Assets.Sounds.BLAST, enemy, 0.8f, 1.2f );
 
 		if (Dungeon.level.adjacent( hero.pos, enemy.pos )){
 			shove( hero, enemy, level >= 2 ? 2 : 1 );

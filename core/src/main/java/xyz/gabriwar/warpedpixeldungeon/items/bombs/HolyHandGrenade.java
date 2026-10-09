@@ -27,10 +27,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SmokeParticle;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 public class HolyHandGrenade extends Bomb {
@@ -56,7 +56,7 @@ public class HolyHandGrenade extends Bomb {
 			this.fuse = null;
 		}
 
-		Sample.INSTANCE.play(Assets.Sounds.BLAST);
+		SpatialSound.play(Assets.Sounds.BLAST, cell);
 
 		int w = Dungeon.level.width();
 		for (int dy = -2; dy <= 2; dy++) {

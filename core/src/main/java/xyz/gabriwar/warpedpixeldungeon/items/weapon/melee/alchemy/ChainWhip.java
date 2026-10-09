@@ -97,7 +97,7 @@ public class ChainWhip extends MeleeWeapon implements AlchemyWeapon {
             return;
         }
 
-        throwSound();
+        throwSound(hero);
         Char finalClosest = closest;
         hero.sprite.attack(hero.pos, new Callback() {
             @Override

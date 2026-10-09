@@ -53,8 +53,6 @@ public class Skill implements SkillInteractions.HeroDamageSource {
 
 	public static final int STARTING_SKILL = 2;
 
-	public static int availableSkill = STARTING_SKILL;
-
 	public static final float TIME_TO_USE = 1f;
 
 	//name/castText are the English fallbacks for name()/castText(); the bundle wins
@@ -87,10 +85,12 @@ public class Skill implements SkillInteractions.HeroDamageSource {
 			GLog.w( Messages.get(Skill.class, "exclusive_choice", exclusiveWith.name()) );
 			return false;
 		}
-		if (availableSkill >= tier && level < MAX_LEVEL){
+		//paid out of the points of the hero playing here: his is the only tree the windows upgrade
+		CurrentSkills wallet = Dungeon.hero.heroSkills;
+		if (wallet.availableSkill >= tier && level < MAX_LEVEL){
 			if (upgrade()){
 				level++;
-				availableSkill -= tier;
+				wallet.availableSkill -= tier;
 				return true;
 			}
 		} else {

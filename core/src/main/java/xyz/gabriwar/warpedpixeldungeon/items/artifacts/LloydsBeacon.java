@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Regeneration;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTeleportation;
@@ -43,7 +44,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.ui.QuickSlotButton;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Game;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 import com.watabou.utils.PathFinder;
@@ -151,7 +151,7 @@ public class LloydsBeacon extends Artifact {
 			hero.busy();
 			
 			hero.sprite.operate( hero.pos );
-			Sample.INSTANCE.play( Assets.Sounds.BEACON );
+			SpatialSound.play( Assets.Sounds.BEACON, hero );
 			
 			GLog.i( Messages.get(this, "return") );
 			
@@ -209,7 +209,7 @@ public class LloydsBeacon extends Artifact {
 					ScrollOfTeleportation.teleportChar(curUser);
 					curUser.spendAndNext( 1f );
 				} else {
-					Sample.INSTANCE.play( Assets.Sounds.ZAP );
+					SpatialSound.play( Assets.Sounds.ZAP, curUser );
 					curUser.sprite.zap(bolt.collisionPos);
 					curUser.busy();
 

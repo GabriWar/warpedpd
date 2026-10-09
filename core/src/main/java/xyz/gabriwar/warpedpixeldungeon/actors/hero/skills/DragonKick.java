@@ -27,7 +27,6 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 import com.watabou.noosa.Camera;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
@@ -39,6 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Daze;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
@@ -144,7 +144,7 @@ public class DragonKick extends SubSkill3 {
 			return;
 		}
 		hero.busy();
-		Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 0.7f );
+		SpatialSound.play( Assets.Sounds.MISS, hero, 1f, 0.7f );
 		hero.sprite.jump( hero.pos, land, () -> {
 			hero.move( land );
 			Dungeon.level.occupyCell( hero );
@@ -163,7 +163,7 @@ public class DragonKick extends SubSkill3 {
 		hero.sprite.attack( victim.pos );
 		victim.damage( Random.NormalIntRange( minDamage(), maxDamage() ), this );
 		Wound.hit( victim );
-		Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 1f, 0.8f );
+		SpatialSound.play( Assets.Sounds.HIT_STRONG, victim, 1f, 0.8f );
 		Camera.main.shake( 2, 0.3f );
 		new Flare( 6, 26 ).color( 0xFFAA44, true ).show( hero.sprite, 0.5f );
 
@@ -212,7 +212,7 @@ public class DragonKick extends SubSkill3 {
 				}
 			}
 			CellEmitter.center( victim.pos ).burst( Speck.factory( Speck.ROCK ), 5 );
-			Sample.INSTANCE.play( Assets.Sounds.ROCKS, 0.8f, 1.2f );
+			SpatialSound.play( Assets.Sounds.ROCKS, victim, 0.8f, 1.2f );
 			Camera.main.shake( 3, 0.3f );
 		}
 

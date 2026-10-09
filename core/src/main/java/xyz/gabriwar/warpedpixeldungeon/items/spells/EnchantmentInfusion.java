@@ -26,6 +26,7 @@ package xyz.gabriwar.warpedpixeldungeon.items.spells;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Enchanting;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
@@ -38,7 +39,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
-import com.watabou.noosa.audio.Sample;
 
 public class EnchantmentInfusion extends InventorySpell {
 
@@ -78,7 +78,7 @@ public class EnchantmentInfusion extends InventorySpell {
 					if (index < 5) {
 						((Weapon) item).enchant(enchants[index]);
 						GLog.p(Messages.get(StoneOfEnchantment.class, "weapon"));
-						Sample.INSTANCE.play(Assets.Sounds.READ);
+						SpatialSound.play(Assets.Sounds.READ, curUser);
 						Invisibility.dispel();
 						Enchanting.show(curUser, item);
 					}
@@ -113,7 +113,7 @@ public class EnchantmentInfusion extends InventorySpell {
 					if (index < 5) {
 						((Armor) item).inscribe(glyphs[index]);
 						GLog.p(Messages.get(StoneOfEnchantment.class, "armor"));
-						Sample.INSTANCE.play(Assets.Sounds.READ);
+						SpatialSound.play(Assets.Sounds.READ, curUser);
 						Invisibility.dispel();
 						Enchanting.show(curUser, item);
 					}

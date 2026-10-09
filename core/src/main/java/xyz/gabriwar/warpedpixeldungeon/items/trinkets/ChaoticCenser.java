@@ -38,6 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FlavourBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Regeneration;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -45,7 +46,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.ui.TargetHealthIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.BArray;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
@@ -114,7 +114,7 @@ public class ChaoticCenser extends Trinket {
 							&& (!(target instanceof Mob) || ((Mob) target).state != ((Mob) target).PASSIVE)){
 
 						if (produceGas(target)){
-							Sample.INSTANCE.play(Assets.Sounds.GAS, 0.5f);
+							SpatialSound.play(Assets.Sounds.GAS, target, 0.5f);
 							Dungeon.hero.interrupt();
 							left += Random.IntRange((int) (avgTurns * 0.9f), (int) (avgTurns * 1.1f));
 						}
@@ -263,7 +263,7 @@ public class ChaoticCenser extends Trinket {
 				}
 
 				MagicMissile.boltFromChar(Dungeon.hero.sprite.parent, MISSILE_VFX.get(gasType), Dungeon.hero.sprite, targetCell, null);
-				Sample.INSTANCE.play(Assets.Sounds.GAS);
+				SpatialSound.play(Assets.Sounds.GAS, targetCell);
 			}
 
 			detach();

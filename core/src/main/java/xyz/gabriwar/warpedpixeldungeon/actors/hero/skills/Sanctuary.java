@@ -28,7 +28,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import com.watabou.noosa.Camera;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -36,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.ShieldHalo;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -87,11 +87,11 @@ public class Sanctuary extends PassiveSkillA3 {
 				halo.putOut();
 				hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
 			}
-			Sample.INSTANCE.play( Assets.Sounds.CHARMS, 1f, 1.1f );
+			SpatialSound.play( Assets.Sounds.CHARMS, hero, 1f, 1.1f );
 		} else if (action.equals(Skill.AC_DEACTIVATE)){
 			active = false;
 			xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff.detach( hero, Watch.class );
-			Sample.INSTANCE.play( Assets.Sounds.DEGRADE, 0.6f, 1.4f );
+			SpatialSound.play( Assets.Sounds.DEGRADE, hero, 0.6f, 1.4f );
 			//at mastery lowering the ward sets off every circle it has drawn
 			if (level >= MAX_LEVEL) release( hero );
 		}
@@ -118,7 +118,7 @@ public class Sanctuary extends PassiveSkillA3 {
 			new Flare( 8, 32 ).color( 0xFFEE88, true ).show( hero.sprite, 0.8f );
 			hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "circle" ) );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.CHARMS, 1f, 0.9f );
+		SpatialSound.play( Assets.Sounds.CHARMS, hero, 1f, 0.9f );
 	}
 
 	private void release( Hero hero ){
@@ -137,7 +137,7 @@ public class Sanctuary extends PassiveSkillA3 {
 			f.detach();
 		}
 		if (any){
-			Sample.INSTANCE.play( Assets.Sounds.BLAST, 0.9f, 1.2f );
+			SpatialSound.play( Assets.Sounds.BLAST, hero, 0.9f, 1.2f );
 			Camera.main.shake( 2, 0.3f );
 		}
 	}

@@ -34,12 +34,12 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ChargedSteam;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Steam;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfLightning;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfSteam;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 public class ThunderheadBrew extends Brew {
@@ -52,8 +52,8 @@ public class ThunderheadBrew extends Brew {
 	public void shatter( int cell ) {
 		splash( cell );
 		if (Dungeon.level.heroFOV[cell]) {
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER );
-			Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
+			SpatialSound.play( Assets.Sounds.SHATTER, cell );
+			SpatialSound.play( Assets.Sounds.LIGHTNING, cell );
 		}
 
 		for (int offset : PathFinder.NEIGHBOURS9){
@@ -75,7 +75,7 @@ public class ThunderheadBrew extends Brew {
 	@Override
 	public void apply( Hero hero ) {
 		Buff.prolong( hero, StormCharge.class, StormCharge.DURATION );
-		Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
+		SpatialSound.play( Assets.Sounds.LIGHTNING, hero );
 		hero.sprite.emitter().burst( SparkParticle.FACTORY, 8 );
 	}
 

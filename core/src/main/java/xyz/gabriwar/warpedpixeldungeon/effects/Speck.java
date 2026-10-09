@@ -632,9 +632,15 @@ public class Speck extends Image {
 		return factory( type, false );
 	}
 
+	//one factory a type and blend: asked for as light after it was made plain (or the other way
+	//round), a type kept handing out the one made first
+	private static int key( int type, boolean lightMode ){
+		return type * 2 + (lightMode ? 1 : 0);
+	}
+
 	public static Emitter.Factory factory( final int type, final boolean lightMode ) {
 
-		Emitter.Factory factory = factories.get( type );
+		Emitter.Factory factory = factories.get( key( type, lightMode ) );
 
 		if (factory == null) {
 			factory = new Emitter.Factory() {
@@ -648,7 +654,7 @@ public class Speck extends Image {
 					return lightMode;
 				}
 			};
-			factories.put( type, factory );
+			factories.put( key( type, lightMode ), factory );
 		}
 
 		return factory;
@@ -659,7 +665,7 @@ public class Speck extends Image {
 	public static int typeForFactory( Emitter.Factory factory ) {
 		for (int key : factories.keyArray()) {
 			if (factories.get( key ) == factory) {
-				return key;
+				return Math.floorDiv( key, 2 );
 			}
 		}
 		return -1;

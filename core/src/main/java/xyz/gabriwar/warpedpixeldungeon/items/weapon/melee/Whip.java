@@ -76,7 +76,7 @@ public class Whip extends MeleeWeapon {
 			return;
 		}
 
-		throwSound();
+		throwSound(hero);
 		Char finalClosest = closest;
 		hero.sprite.attack(hero.pos, new Callback() {
 			@Override

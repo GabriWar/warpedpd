@@ -24,6 +24,7 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.EquipableItem;
@@ -38,7 +39,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.MissileWeapon;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MimicSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 public class GoldenMimic extends Mimic {
@@ -77,7 +77,7 @@ public class GoldenMimic extends Mimic {
 			target = Dungeon.hero.pos;
 			GLog.w(Messages.get(this, "reveal") );
 			CellEmitter.get(pos).burst(Speck.factory(Speck.STAR), 10);
-			Sample.INSTANCE.play(Assets.Sounds.MIMIC, 1, 0.85f);
+			SpatialSound.play(Assets.Sounds.MIMIC, pos, 1, 0.85f);
 		}
 	}
 

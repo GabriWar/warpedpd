@@ -32,6 +32,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ShieldBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Blacksmith;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
+import xyz.gabriwar.warpedpixeldungeon.audio.WallBreak;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -54,7 +56,6 @@ import xyz.gabriwar.warpedpixeldungeon.ui.BossHealthBar;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.audio.Music;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 import com.watabou.utils.GameMath;
@@ -255,7 +256,7 @@ public class GnollGeomancer extends Mob {
 						sprite.idle();
 					}
 
-					Sample.INSTANCE.play(Assets.Sounds.MINE, 1f, Random.Float(0.85f, 1.15f));
+					SpatialSound.play(Assets.Sounds.MINE, pos, 1f, Random.Float(0.85f, 1.15f));
 					Invisibility.dispel(Dungeon.hero);
 					Dungeon.hero.spendAndNext(p.delayFactor(GnollGeomancer.this));
 				}
@@ -437,7 +438,9 @@ public class GnollGeomancer extends Mob {
 		Dungeon.observe();
 
 		PixelScene.shake(3, 0.7f);
-		Sample.INSTANCE.play(Assets.Sounds.ROCKS);
+		SpatialSound.play(Assets.Sounds.ROCKS, pos);
+		//and the rock it bursts out of, a moment later where it comes out
+		WallBreak.playDelayed(0.08f, dashPos, 0.9f, 0.85f);
 
 		int oldpos = pos;
 		pos = dashPos;
@@ -517,7 +520,7 @@ public class GnollGeomancer extends Mob {
 	public void die(Object cause) {
 		super.die(cause);
 		Blacksmith.Quest.beatBoss();
-		Sample.INSTANCE.playDelayed(Assets.Sounds.ROCKS, 0.1f);
+		SpatialSound.playDelayed(Assets.Sounds.ROCKS, 0.1f, pos);
 		PixelScene.shake( 3, 0.7f );
 
 		GameScene.bossSlain();
@@ -711,13 +714,13 @@ public class GnollGeomancer extends Mob {
 
 		Ballistica rockPath = new Ballistica(from, to, Ballistica.MAGIC_BOLT);
 
-		Sample.INSTANCE.play(Assets.Sounds.MISS);
+		SpatialSound.play(Assets.Sounds.MISS, from);
 		((MissileSprite)source.sprite.parent.recycle( MissileSprite.class )).
 				reset( from, rockPath.collisionPos, new GnollGeomancer.Boulder(), new Callback() {
 					@Override
 					public void call() {
 						Splash.at(rockPath.collisionPos, 0x555555, 15);
-						Sample.INSTANCE.play(Assets.Sounds.ROCKS);
+						SpatialSound.play(Assets.Sounds.ROCKS, rockPath.collisionPos);
 
 						Char ch = Actor.findChar(rockPath.collisionPos);
 						if (ch == Dungeon.hero){

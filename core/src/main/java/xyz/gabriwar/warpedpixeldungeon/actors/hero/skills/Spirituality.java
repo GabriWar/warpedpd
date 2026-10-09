@@ -28,11 +28,11 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfMagic;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -66,7 +66,7 @@ public class Spirituality extends PassiveSkillA1 {
 				hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 2 + gain );
 				hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "jolt", gain ) );
 			}
-			Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 0.5f, 1.4f );
+			SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 0.5f, 1.4f );
 
 		//a full spirit has nowhere to put it: the jolt lashes back at the attacker
 		} else if (level >= MAX_LEVEL && enemy != null && enemy != hero && enemy.isAlive()){
@@ -75,7 +75,7 @@ public class Spirituality extends PassiveSkillA1 {
 				enemy.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 6 );
 				enemy.sprite.flash();
 			}
-			Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 0.8f, 1.2f );
+			SpatialSound.play( Assets.Sounds.HIT_MAGIC, enemy, 0.8f, 1.2f );
 		}
 		return damage;
 	}

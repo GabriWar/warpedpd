@@ -30,12 +30,12 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.OrbOfZotMob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ElmoParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.journalpages.Town;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
@@ -74,7 +74,7 @@ public class OrbOfZot extends Item {
 		if (action.equals( AC_BREAK )) {
 			Dungeon.level.drop( new Town(), hero.pos ).sprite.drop( hero.pos );
 			detachAll( hero.belongings.backpack );
-			Sample.INSTANCE.play( Assets.Sounds.BLAST );
+			SpatialSound.play( Assets.Sounds.BLAST, hero );
 			hero.sprite.emitter().burst( ElmoParticle.FACTORY, 12 );
 			GLog.w( Messages.get(this, "break") );
 			return;

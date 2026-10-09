@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.ArmorAbility;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mimic;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.ClassArmor;
@@ -43,7 +44,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
 import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
 
@@ -98,7 +98,7 @@ public class Shockwave extends ArmorAbility {
 		}
 
 		hero.sprite.zap(target);
-		Sample.INSTANCE.play(Assets.Sounds.BLAST, 1f, 0.5f);
+		SpatialSound.play(Assets.Sounds.BLAST, hero, 1f, 0.5f);
 		PixelScene.shake(2, 0.5f);
 		//final zap at 2/3 distance, for timing of the actual effect
 		MagicMissile.boltFromChar(hero.sprite.parent,

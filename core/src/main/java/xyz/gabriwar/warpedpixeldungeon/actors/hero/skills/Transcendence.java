@@ -31,13 +31,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
@@ -79,11 +79,11 @@ public class Transcendence extends ActiveSkill {
 			}
 		}
 		if (action.equals(Skill.AC_ACTIVATE) && hero.sprite != null){
-			Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 1f, 1.4f );
+			SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 1f, 1.4f );
 			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
 			new Flare( 6, 18 ).color( 0xFFFFDD, true ).show( hero.sprite, 0.5f );
 		} else if (action.equals(Skill.AC_DEACTIVATE)){
-			Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 0.5f, 0.8f );
+			SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 0.5f, 0.8f );
 		}
 		//the half-light shows: a slow drift of light motes for as long as it is on
 		xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAura.sync( hero );
@@ -139,7 +139,7 @@ public class Transcendence extends ActiveSkill {
 		}
 		//+3: the lance splits into three as it leaves the hero's back
 		if (level >= MAX_LEVEL) splitLance( hero, land, dir, min, max );
-		Sample.INSTANCE.play( Assets.Sounds.RAY, 0.8f, 1.3f );
+		SpatialSound.play( Assets.Sounds.RAY, hero, 0.8f, 1.3f );
 		hero.spendAndNext( Actor.TICK );
 		return true;
 	}

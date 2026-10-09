@@ -52,7 +52,7 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.OtilukeNPC;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ZotSprite;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
@@ -195,7 +195,7 @@ public class Zot extends Mob {
 
 			if (Dungeon.level.heroFOV[newPos]) {
 				CellEmitter.get( newPos ).burst( Speck.factory( Speck.WOOL ), 6 );
-				Sample.INSTANCE.play( Assets.Sounds.PUFF );
+				SpatialSound.play( Assets.Sounds.PUFF, newPos );
 			}
 		}
 

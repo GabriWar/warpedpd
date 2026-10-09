@@ -9,12 +9,12 @@ import java.util.*;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.*;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.*;
 import xyz.gabriwar.warpedpixeldungeon.items.*;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfForce;
@@ -135,8 +135,8 @@ public class ShadowClone extends ActiveSkill3 {
             if(hero.rooted||land<0){pull(index+1);return;}
             final int from=hero.pos;
             //the rope whips out, a note higher each throw of the chain
-            Sample.INSTANCE.play(Assets.Sounds.MISS,1f,1.1f+0.1f*index);
-            Sample.INSTANCE.play(Assets.Sounds.CHAINS,0.7f,1.2f+0.1f*index);
+            SpatialSound.play(Assets.Sounds.MISS,hero,1f,1.1f+0.1f*index);
+            SpatialSound.play(Assets.Sounds.CHAINS,hero,0.7f,1.2f+0.1f*index);
             hero.sprite.parent.add(new Chains(hero.sprite.center(),xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap.raisedTileCenterToWorld(cell),Effects.Type.ROPE,()->{
                 if(anchor){
                     if(depth!=Dungeon.depth||branch!=Dungeon.branch||!hero.isAlive()
@@ -145,7 +145,7 @@ public class ShadowClone extends ActiveSkill3 {
                         if(depth==Dungeon.depth&&branch==Dungeon.branch&&hero.isAlive()){
                             hero.move(land,false);hero.sprite.place(land);Dungeon.observe();GameScene.updateFog();
                             CellEmitter.bottom(land).burst(Speck.factory(Speck.DUST),4);
-                            Sample.INSTANCE.play(Assets.Sounds.STURDY,0.6f,1.2f);
+                            SpatialSound.play(Assets.Sounds.STURDY,land,0.6f,1.2f);
                         }
                         pull(index+1);
                     });
@@ -161,7 +161,7 @@ public class ShadowClone extends ActiveSkill3 {
                             if(weapon!=null)damage=weapon.proc(hero,enemy,damage);
                             damage=hero.heroSkills.allOnHit(enemy,damage,false);
                             enemy.damage(damage,hero);SkillFX.flash(enemy);Wound.hit(enemy);
-                            Sample.INSTANCE.play(Assets.Sounds.HIT_STAB,1f,1f+0.1f*index);
+                            SpatialSound.play(Assets.Sounds.HIT_STAB,enemy,1f,1f+0.1f*index);
                         }
                         pull(index+1);
                     });

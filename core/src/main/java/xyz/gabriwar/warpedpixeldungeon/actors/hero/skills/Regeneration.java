@@ -26,7 +26,6 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -36,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -83,6 +83,6 @@ public class Regeneration extends PassiveSkillA2 {
 			hero.sprite.emitter().burst( Speck.factory( Speck.HEALING ), 3 + level );
 			if (heal > 0) hero.sprite.showStatusWithIcon( CharSprite.POSITIVE, Integer.toString( heal ), FloatingText.HEALING );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.DRINK, 0.8f, 1.3f );
+		SpatialSound.play( Assets.Sounds.DRINK, hero, 0.8f, 1.3f );
 	}
 }

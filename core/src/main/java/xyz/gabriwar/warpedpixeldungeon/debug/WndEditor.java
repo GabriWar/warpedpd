@@ -90,6 +90,8 @@ public class WndEditor extends Window {
 
 		content.setSize(ww - 3, y);
 		pane.setRect(0, title.bottom() + 2, ww, hh - (title.bottom() + 2));
+		//letting go after a drag over the rows edits none of them
+		pane.dragOverButtons();
 	}
 
 	//=== rows for a plain object: one per instance field ===

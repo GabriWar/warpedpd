@@ -27,9 +27,9 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.ClimateCrystalWard;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 
 //a placed Climate Crystal: an ice shard with an ember core floating over its shadow,
@@ -90,7 +90,7 @@ public class ClimateCrystalSprite extends MobSprite {
 	public void onComplete( Animation anim ) {
 		super.onComplete( anim );
 		if (anim == fall) {
-			Sample.INSTANCE.play( Assets.Sounds.ROCKS_LIGHT, 0.5f, 1.4f );
+			SpatialSound.play( Assets.Sounds.ROCKS_LIGHT, ch, 0.5f, 1.4f );
 			play( dimmed );
 		}
 	}

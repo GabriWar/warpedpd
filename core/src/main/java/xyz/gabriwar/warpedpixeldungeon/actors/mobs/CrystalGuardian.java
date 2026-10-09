@@ -30,6 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Doom;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.PinCushion;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.journal.Bestiary;
@@ -39,7 +40,6 @@ import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CrystalGuardianSprite;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -223,7 +223,7 @@ public class CrystalGuardian extends Mob{
 			GameScene.updateMap(pos);
 			if (Dungeon.level.heroFOV[pos]){
 				Splash.at(pos, 0xFFFFFF, 5);
-				Sample.INSTANCE.play( Assets.Sounds.SHATTER );
+				SpatialSound.play( Assets.Sounds.SHATTER, pos );
 			}
 			//breaking a crystal costs an extra move, not affected by enclosed spaces though
 			spend(1/super.speed());

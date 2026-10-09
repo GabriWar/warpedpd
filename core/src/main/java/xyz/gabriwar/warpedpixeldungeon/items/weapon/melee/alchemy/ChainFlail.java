@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FlavourBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.spells.Evolution;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Flail;
@@ -40,7 +41,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Image;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 import java.util.ArrayList;
@@ -70,7 +70,7 @@ public class ChainFlail extends MeleeWeapon implements AlchemyWeapon {
 	@Override
 	public int damageRoll(Char owner) {
 		int dmg = super.damageRoll(owner) + spinBoost;
-		if (spinBoost > 0) Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG);
+		if (spinBoost > 0) SpatialSound.play(Assets.Sounds.HIT_STRONG, owner);
 		spinBoost = 0;
 		return dmg;
 	}
@@ -127,7 +127,7 @@ public class ChainFlail extends MeleeWeapon implements AlchemyWeapon {
 
 		spin.spins++;
 		Buff.prolong(hero, Flail.SpinAbilityTracker.class, 3f);
-		Sample.INSTANCE.play(Assets.Sounds.CHAINS, 1, 1, 0.9f + 0.1f*spin.spins);
+		SpatialSound.play(Assets.Sounds.CHAINS, hero, 1, 0.9f + 0.1f*spin.spins);
 		hero.sprite.operate(hero.pos);
 		hero.spendAndNext(Actor.TICK);
 		BuffIndicator.refreshHero();

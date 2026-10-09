@@ -28,7 +28,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import com.watabou.noosa.Camera;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -36,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -63,14 +63,14 @@ public class IronStance extends ActiveSkill {
 		if (action.equals(Skill.AC_ACTIVATE)){
 			// only one stance or attack toggle at a time
 			hero.heroSkills.deactivateOtherToggles( this );
-			Sample.INSTANCE.play( Assets.Sounds.STURDY, 1f, 1.1f );
+			SpatialSound.play( Assets.Sounds.STURDY, hero, 1f, 1.1f );
 			//the guard comes up with a steel flash, and glints quietly for as long as it is held
 			if (hero.sprite != null){
 				hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 3 );
 				new Flare( 4, 14 ).color( 0xCCDDEE, true ).show( hero.sprite, 0.4f );
 			}
 		} else if (action.equals(Skill.AC_DEACTIVATE)){
-			Sample.INSTANCE.play( Assets.Sounds.STURDY, 0.5f, 0.8f );
+			SpatialSound.play( Assets.Sounds.STURDY, hero, 0.5f, 0.8f );
 		}
 		StanceAura.sync( hero );
 	}
@@ -112,7 +112,7 @@ public class IronStance extends ActiveSkill {
 		if (hero == null) return;
 		castTextYell();
 		hero.MP = Math.max( 0, hero.MP - getManaCost() );
-		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 1f, 1.1f );
+		SpatialSound.play( Assets.Sounds.HIT_PARRY, hero, 1f, 1.1f );
 		if (hero.sprite != null){
 			//steel meets steel: a hard white flash off the guard and a jolt of the screen
 			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );

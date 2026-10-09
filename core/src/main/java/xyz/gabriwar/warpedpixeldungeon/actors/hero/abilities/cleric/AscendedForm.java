@@ -31,13 +31,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.ArmorAbility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.DivineIntervention;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.ClassArmor;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 public class AscendedForm extends ArmorAbility {
@@ -51,7 +51,7 @@ public class AscendedForm extends ArmorAbility {
 
 		Buff.affect(hero, AscendBuff.class).reset();
 		hero.sprite.operate(hero.pos);
-		Sample.INSTANCE.play(Assets.Sounds.CHARGEUP);
+		SpatialSound.play(Assets.Sounds.CHARGEUP, hero);
 		new Flare(6, 48).color(0xFFFF00, true).show(hero.sprite, 2f);
 
 		armor.charge -= chargeUse(hero);

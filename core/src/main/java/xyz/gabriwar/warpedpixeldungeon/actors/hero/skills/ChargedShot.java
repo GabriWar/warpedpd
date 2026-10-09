@@ -31,7 +31,6 @@ import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.Dart;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ChargedShotDraw;
-import com.watabou.noosa.audio.Sample;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -41,6 +40,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vulnerable;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
@@ -130,7 +130,7 @@ public class ChargedShot extends Skill {
 			int turns = chargeTurns();
 			Buff.append( hero, ChargedShotDraw.class ).set( target, level, turns );
 			new Flare( 6, 16 ).color( 0xFFE9A0, true ).show( hero.sprite, 1f ).angularSpeed = 90;
-			Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 1f, 1.1f );
+			SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 1f, 1.1f );
 			hero.sprite.zap( target );
 			hero.spendAndNext(TIME_TO_USE);
 		}
@@ -161,7 +161,7 @@ public class ChargedShot extends Skill {
 			self.castText = Messages.get( ChargedShot.class, "cast" );
 			self.castTextYell();
 		}
-		Sample.INSTANCE.play( Assets.Sounds.ATK_SPIRITBOW, 1f, 0.8f );
+		SpatialSound.play( Assets.Sounds.ATK_SPIRITBOW, hero, 1f, 0.8f );
 		hero.sprite.zap( far );
 		//the arrow, with the beam of its passage drawn behind it along the whole line
 		PointF from = hero.sprite.center();
@@ -186,7 +186,7 @@ public class ChargedShot extends Skill {
 			if (ch != null && ch != hero && ch.alignment == Char.Alignment.ENEMY && ch.isAlive()){
 				ch.damage( dmg, self != null ? self : hero );
 				SkillFX.flash( ch );
-				Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 1f, 1.0f + 0.1f * struck++ );
+				SpatialSound.play( Assets.Sounds.HIT_STRONG, ch, 1f, 1.0f + 0.1f * struck++ );
 				if (ch.isAlive() && level >= MAX_LEVEL){
 					Buff.prolong( ch, Vulnerable.class, 3f );
 				}

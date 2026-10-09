@@ -25,11 +25,11 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Visual;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PointF;
 
 public class Swap extends Actor {
@@ -51,7 +51,7 @@ public class Swap extends Actor {
 
 		eff1 = new Effect( ch1.sprite, ch1.pos, ch2.pos );
 		eff2 = new Effect( ch2.sprite, ch2.pos, ch1.pos );
-		Sample.INSTANCE.play( Assets.Sounds.TELEPORT );
+		SpatialSound.play( Assets.Sounds.TELEPORT, ch1 );
 	}
 
 	@Override

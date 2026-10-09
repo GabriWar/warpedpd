@@ -26,6 +26,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
+
 
 public class Garrote extends SubSkill2 {
 
@@ -66,7 +68,7 @@ public class Garrote extends SubSkill2 {
 		if (enemy.sprite != null){
 			enemy.sprite.showStatus( xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite.NEGATIVE, xyz.gabriwar.warpedpixeldungeon.messages.Messages.get( this, "choke" ) );
 		}
-		com.watabou.noosa.audio.Sample.INSTANCE.play( xyz.gabriwar.warpedpixeldungeon.Assets.Sounds.HIT_STAB, 1f, 0.8f );
+		SpatialSound.play( xyz.gabriwar.warpedpixeldungeon.Assets.Sounds.HIT_STAB, enemy, 1f, 0.8f );
 		return damage;
 	}
 }

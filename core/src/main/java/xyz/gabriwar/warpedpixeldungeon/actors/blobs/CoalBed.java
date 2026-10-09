@@ -32,13 +32,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
 import xyz.gabriwar.warpedpixeldungeon.actors.TileTemperature;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.tiles.WarpedRoomTiles;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
@@ -109,7 +109,7 @@ public abstract class CoalBed extends Blob {
 						v = BURNING + burnTurns();
 						WarpedRoomTiles.flip( Dungeon.level, cell, true );
 						if (Dungeon.level.heroFOV[cell]){
-							Sample.INSTANCE.play( Assets.Sounds.BURNING );
+							SpatialSound.play( Assets.Sounds.BURNING, cell );
 							GLog.i( Messages.get( CoalBed.class, "lit" ) );
 						}
 					}

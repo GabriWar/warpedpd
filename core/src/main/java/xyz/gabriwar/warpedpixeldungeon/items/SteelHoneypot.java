@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.pets.Bee;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.SteelBee;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfStrength;
@@ -38,7 +39,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.tweeners.AlphaTweener;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
@@ -95,7 +95,7 @@ public class SteelHoneypot extends Item {
 	public Item shatter(Char owner, int pos) {
 
 		if (Dungeon.level.heroFOV[pos]) {
-			Sample.INSTANCE.play(Assets.Sounds.SHATTER);
+			SpatialSound.play(Assets.Sounds.SHATTER, pos);
 			Splash.at(pos, 0xffd500, 5);
 		}
 
@@ -124,7 +124,7 @@ public class SteelHoneypot extends Item {
 				Actor.addDelayed(new Pushing(pet, pos, newPos), -1f);
 				pet.sprite.alpha(0);
 				pet.sprite.parent.add(new AlphaTweener(pet.sprite, 1, 0.15f));
-				Sample.INSTANCE.play(Assets.Sounds.BEE);
+				SpatialSound.play(Assets.Sounds.BEE, pos);
 				Dungeon.hero.haspet = true;
 				pet.syncToHero();
 				GLog.w(Messages.get(this, "strength"));
@@ -145,7 +145,7 @@ public class SteelHoneypot extends Item {
 			bee.sprite.alpha( 0 );
 			bee.sprite.parent.add( new AlphaTweener( bee.sprite, 1, 0.15f ) );
 
-			Sample.INSTANCE.play( Assets.Sounds.BEE );
+			SpatialSound.play( Assets.Sounds.BEE, pos );
 			return new SteelShatteredPot().setBee( bee );
 		} else {
 			return this;

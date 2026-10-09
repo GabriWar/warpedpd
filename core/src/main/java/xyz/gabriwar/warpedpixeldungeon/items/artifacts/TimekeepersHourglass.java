@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Regeneration;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfEnergy;
 import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
@@ -538,7 +539,7 @@ public class TimekeepersHourglass extends Artifact {
 			if (hourglass != null && !hourglass.cursed) {
 				hourglass.upgrade();
 				Catalog.countUses(hourglass.getClass(), 2);
-				Sample.INSTANCE.play( Assets.Sounds.DEWDROP );
+				SpatialSound.play( Assets.Sounds.DEWDROP, hero );
 				if (hourglass.level() == hourglass.levelCap)
 					GLog.p( Messages.get(this, "maxlevel") );
 				else

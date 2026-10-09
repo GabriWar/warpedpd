@@ -142,6 +142,9 @@ public class DesktopLauncher {
 		Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
 		
 		config.setTitle( title );
+		//32 voices, not 16: room acoustics plays up to three more beside the effects and the
+		//ambience. OpenAL gives what it can, and the game keeps what it is given
+		config.setAudioConfig( 32, 512, 9 );
 
 		//if I were implementing this from scratch I would use the full implementation title for saves
 		// (e.g. /.shatteredpixel/shatteredpixeldungeon), but we have too much existing save

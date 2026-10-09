@@ -32,12 +32,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.PoisonDart;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MissileSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
 
@@ -126,7 +126,7 @@ public class PoisonDartTrap extends Trap {
 											}
 										}
 										Buff.affect( finalTarget, Poison.class ).set( poisonAmount() );
-										Sample.INSTANCE.play(Assets.Sounds.HIT, 1, 1, Random.Float(0.8f, 1.25f));
+										SpatialSound.play(Assets.Sounds.HIT, finalTarget, 1, Random.Float(0.8f, 1.25f));
 										finalTarget.sprite.bloodBurstA(finalTarget.sprite.center(), dmg);
 										finalTarget.sprite.flash();
 										next();

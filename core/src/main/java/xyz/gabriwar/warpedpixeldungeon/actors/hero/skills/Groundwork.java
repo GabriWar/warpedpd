@@ -27,7 +27,6 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
@@ -43,6 +42,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Frost;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MagicalSleep;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
 
@@ -85,7 +85,7 @@ public class Groundwork extends Skill {
 			CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.ROCK ), 4 );
 			Camera.main.shake( 1, 0.15f );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.ROCKS, 0.7f, 1.2f );
+		SpatialSound.play( Assets.Sounds.ROCKS, enemy, 0.7f, 1.2f );
 
 		//the ground breaks outward: the thorns come up under the neighbours one after another
 		FxTimeline t = FxTimeline.start();
@@ -99,7 +99,7 @@ public class Groundwork extends Skill {
 				t.at( 0.05f * k, () -> {
 					CellEmitter.get( at ).burst( Speck.factory( Speck.ROCK ), 3 );
 					SkillSpectacleFX.show( SkillSpectacleFX.THORN, at );
-					Sample.INSTANCE.play( Assets.Sounds.ROCKS_LIGHT, 0.5f, 1.2f + 0.1f * k );
+					SpatialSound.play( Assets.Sounds.ROCKS_LIGHT, at, 0.5f, 1.2f + 0.1f * k );
 				} );
 			}
 			ch.damage( splash, this );

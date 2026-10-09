@@ -25,10 +25,10 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Necromancer;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 
 public class NecromancerSprite extends MobSprite {
@@ -106,7 +106,8 @@ public class NecromancerSprite extends MobSprite {
 	public void finishSummoning(){
 		if (summoningBones != null) {
 			if (summoningBones.visible) {
-				Sample.INSTANCE.play(Assets.Sounds.BONES);
+				//where the bones rise, beside its target
+				SpatialSound.play(Assets.Sounds.BONES, ((Necromancer) ch).summoningPos);
 				summoningBones.burst(Speck.factory(Speck.RATTLE), 5);
 			} else {
 				summoningBones.on = false;
@@ -130,7 +131,7 @@ public class NecromancerSprite extends MobSprite {
 			summoningBones = CellEmitter.get(((Necromancer) ch).summoningPos);
 			summoningBones.pour(Speck.factory(Speck.RATTLE), 0.2f);
 			summoningBones.visible = Dungeon.level.heroFOV[((Necromancer) ch).summoningPos];
-			if (visible || summoningBones.visible ) Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 1f, 0.8f );
+			if (visible || summoningBones.visible ) SpatialSound.play( Assets.Sounds.CHARGEUP, ch, 1f, 0.8f );
 		}
 	}
 

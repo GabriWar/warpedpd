@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.spells.Evolution;
@@ -48,7 +49,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Image;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
@@ -120,7 +120,7 @@ public class Lance extends MeleeWeapon implements AlchemyWeapon {
         Buff.affect(hero, LanceBuff.class).setDamageFactor(1+Dungeon.level.distance(hero.pos, target), hero.belongings.secondWep == wep);
 
         hero.busy();
-        Sample.INSTANCE.play(Assets.Sounds.MISS);
+        SpatialSound.play(Assets.Sounds.MISS, hero);
         hero.sprite.emitter().start(Speck.factory(Speck.JET), 0.01f, Math.round(4 + 2*Dungeon.level.trueDistance(hero.pos, target)));
         hero.sprite.jump(hero.pos, target, 0, 0.1f, new Callback() {
             @Override

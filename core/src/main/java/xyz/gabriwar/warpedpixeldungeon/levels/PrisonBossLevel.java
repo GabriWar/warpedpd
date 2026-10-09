@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.StormCloud;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Doom;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Tengu;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
@@ -56,7 +57,6 @@ import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
 import com.watabou.noosa.Tilemap;
 import com.watabou.noosa.audio.Music;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.tweeners.AlphaTweener;
 import com.watabou.utils.Bundlable;
 import com.watabou.utils.Bundle;
@@ -453,7 +453,7 @@ public class PrisonBossLevel extends Level {
 				tengu.notice();
 
 				CellEmitter.get( tengu.pos ).burst( Speck.factory( Speck.WOOL ), 6 );
-				Sample.INSTANCE.play( Assets.Sounds.PUFF );
+				SpatialSound.play( Assets.Sounds.PUFF, tengu );
 				
 				state = State.FIGHT_START;
 
@@ -481,7 +481,7 @@ public class PrisonBossLevel extends Level {
 				if (d != null) tengu.add(d);
 				
 				GameScene.flash(0x80FFFFFF);
-				Sample.INSTANCE.play(Assets.Sounds.BLAST);
+				SpatialSound.play(Assets.Sounds.BLAST, tengu);
 				
 				state = State.FIGHT_PAUSE;
 				break;
@@ -503,7 +503,7 @@ public class PrisonBossLevel extends Level {
 				CellEmitter.get( tengu.pos ).burst( Speck.factory( Speck.WOOL ), 6 );
 				
 				GameScene.flash(0x80FFFFFF);
-				Sample.INSTANCE.play(Assets.Sounds.BLAST);
+				SpatialSound.play(Assets.Sounds.BLAST, tengu);
 				
 				state = State.FIGHT_ARENA;
 				break;
@@ -553,7 +553,7 @@ public class PrisonBossLevel extends Level {
 				}
 				
 				GameScene.flash(0x80FFFFFF);
-				Sample.INSTANCE.play(Assets.Sounds.BLAST);
+				SpatialSound.play(Assets.Sounds.BLAST, tengu);
 				
 				state = State.WON;
 				Game.runOnRenderThread(new Callback() {

@@ -27,6 +27,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Elemental;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ElmoParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
@@ -36,7 +37,6 @@ import xyz.gabriwar.warpedpixeldungeon.levels.RegularLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.RitualSiteRoom;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
@@ -195,7 +195,7 @@ public class CeremonialCandle extends Item {
 			for (int i : PathFinder.NEIGHBOURS9){
 				CellEmitter.get(ritualPos+i).burst(ElmoParticle.FACTORY, 10);
 			}
-			Sample.INSTANCE.play(Assets.Sounds.BURNING);
+			SpatialSound.play(Assets.Sounds.BURNING, ritualPos);
 		}
 
 	}

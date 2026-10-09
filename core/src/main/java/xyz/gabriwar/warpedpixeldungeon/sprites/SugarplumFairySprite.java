@@ -26,9 +26,9 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.pets.SugarplumFairy;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 
 public class SugarplumFairySprite extends MobSprite {
 
@@ -61,7 +61,7 @@ public class SugarplumFairySprite extends MobSprite {
 		super.zap( cell );
 
 		parent.addToFront( new Lightning( ch.pos, cell, (SugarplumFairy) ch ) );
-		Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
+		SpatialSound.play( Assets.Sounds.LIGHTNING, ch );
 	}
 
 	@Override

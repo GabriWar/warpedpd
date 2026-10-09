@@ -28,6 +28,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.features.Door;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -35,7 +36,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 import com.watabou.utils.PathFinder;
 
@@ -129,7 +129,7 @@ public class Rapier extends MeleeWeapon {
 		final int dest = lungeCell;
 
 		hero.busy();
-		Sample.INSTANCE.play(Assets.Sounds.MISS);
+		SpatialSound.play(Assets.Sounds.MISS, hero);
 		hero.sprite.jump(hero.pos, dest, 0, 0.1f, new Callback() {
 			@Override
 			public void call() {
@@ -149,7 +149,7 @@ public class Rapier extends MeleeWeapon {
 							wep.beforeAbilityUsed(hero, enemy);
 							AttackIndicator.target(enemy);
 							if (hero.attack(enemy, dmgMulti, dmgBoost, Char.INFINITE_ACCURACY)) {
-								Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG);
+								SpatialSound.play(Assets.Sounds.HIT_STRONG, enemy);
 								if (!enemy.isAlive()) {
 									wep.onAbilityKill(hero, enemy);
 								}

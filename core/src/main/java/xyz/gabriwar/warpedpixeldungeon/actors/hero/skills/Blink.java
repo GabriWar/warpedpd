@@ -32,12 +32,12 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.PointF;
 import com.watabou.utils.Random;
@@ -84,7 +84,7 @@ public class Blink extends ActiveSkill {
 	public void execute( Hero hero, String action ){
 		super.execute( hero, action );
 		if (action.equals(Skill.AC_ACTIVATE) && hero.sprite != null){
-			Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 1f, 1.6f );
+			SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 1f, 1.6f );
 			hero.sprite.emitter().burst( SparkParticle.FACTORY, 8 );
 		}
 	}
@@ -177,7 +177,7 @@ public class Blink extends ActiveSkill {
 			return;
 		}
 		final Jump j = jumps.get( i );
-		Sample.INSTANCE.play( Assets.Sounds.LIGHTNING, 1f, 1.1f + 0.08f * i );
+		SpatialSound.play( Assets.Sounds.LIGHTNING, hero, 1f, 1.1f + 0.08f * i );
 		//the arc runs body to body: out of the rogue's middle, through the enemy's, into where he lands
 		hero.sprite.place( j.from );
 		PointF start = hero.sprite.center();

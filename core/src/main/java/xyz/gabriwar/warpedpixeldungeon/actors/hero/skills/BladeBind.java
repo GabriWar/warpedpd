@@ -41,6 +41,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vulnerable;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
@@ -106,8 +107,8 @@ public class BladeBind extends Skill {
 		Buff.prolong( ch, Weakness.class, 2 + 2 * level );
 		//+3: you wrench it off balance: its next attack goes wide and leaves it open
 		if (level >= MAX_LEVEL) Buff.affect( ch, Wrenched.class );
-		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 1f, 1.0f );
-		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 0.8f, 0.7f );
+		SpatialSound.play( Assets.Sounds.HIT_PARRY, ch, 1f, 1.0f );
+		SpatialSound.play( Assets.Sounds.HIT_PARRY, ch, 0.8f, 0.7f );
 		//two chains of light snap from her blade onto it and lock
 		if (hero.sprite != null && hero.sprite.parent != null && ch.sprite != null){
 			PointF a = hero.sprite.center(), b = ch.sprite.center();
@@ -117,7 +118,7 @@ public class BladeBind extends Skill {
 					ch.sprite.flash();
 					ch.sprite.emitter().burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle.FACTORY, 5 );
 				}
-				Sample.INSTANCE.play( Assets.Sounds.CHAINS, 0.9f, 1.3f );
+				SpatialSound.play( Assets.Sounds.CHAINS, ch, 0.9f, 1.3f );
 			} ) );
 		}
 		if (ch.sprite != null){

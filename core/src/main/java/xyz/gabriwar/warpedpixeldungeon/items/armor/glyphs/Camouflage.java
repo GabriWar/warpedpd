@@ -26,9 +26,9 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
-import com.watabou.noosa.audio.Sample;
 
 public class Camouflage extends Armor.Glyph {
 
@@ -44,7 +44,7 @@ public class Camouflage extends Armor.Glyph {
 		if (level == -1) return;
 		Buff.prolong(ch, Invisibility.class, Math.round((3 + level/2f)* genericProcChanceMultiplier(ch) * ch.glyphPower(Camouflage.class))); //scales with glyph level
 		if ( Dungeon.level.heroFOV[ch.pos] ) {
-			Sample.INSTANCE.play( Assets.Sounds.MELD );
+			SpatialSound.play( Assets.Sounds.MELD, ch );
 		}
 	}
 

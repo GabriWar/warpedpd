@@ -31,9 +31,11 @@ import com.watabou.input.ScrollEvent;
 import com.watabou.noosa.Camera;
 import com.watabou.noosa.ColorBlock;
 import com.watabou.noosa.Game;
+import com.watabou.noosa.Gizmo;
+import com.watabou.noosa.Group;
+import com.watabou.noosa.PointerArea;
 import com.watabou.noosa.ScrollArea;
 import com.watabou.noosa.ui.Component;
-import com.watabou.utils.GameMath;
 import com.watabou.utils.Point;
 import com.watabou.utils.PointF;
 import com.watabou.utils.Signal;
@@ -49,6 +51,11 @@ public class ScrollPane extends Component {
 	protected ColorBlock thumb;
 
 	private float keyScroll = 0;
+	//the scroll keys this pane saw pressed and not yet let go
+	private boolean keyIn, keyOut;
+
+	//dragged over its buttons too (dragOverButtons): they let presses through to the pane
+	private boolean overButtons = false;
 
 	public ScrollPane( Component content ) {
 		super();
@@ -66,26 +73,24 @@ public class ScrollPane extends Component {
 			@Override
 			public boolean onSignal(KeyEvent keyEvent) {
 				GameAction action = KeyBindings.getActionForKey(keyEvent);
-				if (action == WPDAction.ZOOM_IN){
-					if (keyEvent.pressed){
-						keyScroll += 1;
-					} else {
-						keyScroll -= 1;
-					}
-					keyScroll = GameMath.gate(-1f, keyScroll, +1f);
-					return true;
-				} else if (action == WPDAction.ZOOM_OUT){
-					if (keyEvent.pressed){
-						keyScroll -= 1;
-					} else {
-						keyScroll += 1;
-					}
-					keyScroll = GameMath.gate(-1f, keyScroll, +1f);
-					return true;
-				}
-				return false;
+				if (action != WPDAction.ZOOM_IN && action != WPDAction.ZOOM_OUT) return false;
+				//a hidden pane (another tab's) leaves the keys to the one on screen
+				if (!isVisible() || !isActive()) return false;
+				//a key let go that was pressed before this pane came on screen changes nothing
+				//here (it used to scroll the other way until the next press), but is still taken
+				if (action == WPDAction.ZOOM_IN) keyIn = keyEvent.pressed;
+				else keyOut = keyEvent.pressed;
+				keyScroll = (keyIn ? 1 : 0) - (keyOut ? 1 : 0);
+				return true;
 			}
 		});
+	}
+
+	/** Forgets the scroll keys held down: for a pane going off screen, which will not hear
+	 *  them let go (another tab's pane takes the keys while this one is hidden). */
+	public void releaseKeys() {
+		keyIn = keyOut = false;
+		keyScroll = 0;
 	}
 
 	@Override
@@ -119,6 +124,7 @@ public class ScrollPane extends Component {
 		if (keyScroll != 0){
 			scrollTo(content.camera.scroll.x, content.camera.scroll.y + (keyScroll * 150 * Game.elapsed));
 		}
+		if (overButtons) letThrough( content );
 	}
 
 	@Override
@@ -156,6 +162,59 @@ public class ScrollPane extends Component {
 
 	public Component content() {
 		return content;
+	}
+
+	/**
+	 * Lets the pane be dragged from anywhere, its buttons included. A pane whose content is all
+	 * buttons (a debug tab, a list of rows) could otherwise only be dragged from the slivers
+	 * between them: every button took the press. Its buttons now let presses through to the pane
+	 * (they still click when tapped), and once a press turns into a drag none of them clicks or
+	 * long-clicks when it ends. A slider keeps a sideways drag (it moves the knob), but a drag
+	 * that starts on it and goes mostly up or down scrolls the pane and leaves the slider as it was.
+	 * The pane must have been made before its buttons (pointer listeners fire newest first).
+	 */
+	public void dragOverButtons() {
+		overButtons = true;
+		letThrough( content );
+	}
+
+	//every button in the content passes its presses on; checked each frame, so buttons added
+	//later (a tab rebuilt, a list filtered) pass them on too
+	private static void letThrough( Group g ) {
+		for (Gizmo m : g.membersView()) {
+			if (m instanceof Button) {
+				((Button) m).hotArea.blockLevel = PointerArea.NEVER_BLOCK;
+			}
+			if (m instanceof OptionSlider) {
+				((OptionSlider) m).letPressesThrough();
+			}
+			if (m instanceof Group && !(m instanceof OptionSlider)) {
+				letThrough( (Group) m );
+			}
+		}
+	}
+
+	//the press under the finger, if it is one of this pane's buttons, is called off: the pane is moving
+	private void dragStarted() {
+		OptionSlider s = OptionSlider.pressedSlider;
+		if (overButtons && s != null && inContent( s )) s.cancelPress();
+		Button b = Button.pressedButton;
+		if (!overButtons || b == null) return;
+		if (inContent( b )) b.cancelPress();
+	}
+
+	private boolean inContent( Gizmo g ) {
+		for (Group p = g.parent; p != null; p = p.parent) {
+			if (p == content) return true;
+		}
+		return false;
+	}
+
+	//a drag that starts on one of this pane's sliders and goes sideways is the slider's
+	private boolean sliderKeeps( PointerEvent event ) {
+		OptionSlider s = OptionSlider.pressedSlider;
+		if (!overButtons || s == null || !inContent( s )) return false;
+		return Math.abs( event.current.x - event.start.x ) >= Math.abs( event.current.y - event.start.y );
 	}
 
 	public void onClick( float x, float y ) {
@@ -204,9 +263,15 @@ public class ScrollPane extends Component {
 
 			} else if (PointF.distance( event.current, event.start ) > dragThreshold) {
 
+				if (sliderKeeps( event )) {
+					//this whole press is the slider's: the pane stays put until it ends
+					curEvent = null;
+					return;
+				}
 				dragging = true;
 				lastPos.set( event.current );
 				thumb.am = 1;
+				dragStarted();
 
 			}
 		}

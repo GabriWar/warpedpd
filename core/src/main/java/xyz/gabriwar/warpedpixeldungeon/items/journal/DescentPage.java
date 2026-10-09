@@ -26,6 +26,8 @@ package xyz.gabriwar.warpedpixeldungeon.items.journal;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
+import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph;
 import xyz.gabriwar.warpedpixeldungeon.journal.GuideProgress;
@@ -33,7 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
+import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Bundle;
 
 //A page of the Descent Guide, torn loose and left on the dungeon floor.
@@ -57,15 +59,32 @@ public class DescentPage extends Item {
 	@Override
 	public final boolean doPickUp(Hero hero, int pos) {
 		GameScene.pickUpJournal(this, pos);
-		if (GuideProgress.pageFound(page)){
-			GLog.i( Messages.get(this, "already_found") );
+		if (GuideProgress.findPage(page)){
+			announce( page );
 		} else {
-			GuideProgress.findPage(page);
-			GLog.p( Messages.get(this, "unlocked", GuideGraph.titleForKey(page)) );
+			GLog.i( Messages.get(this, "already_found") );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.ITEM );
+		SpatialSound.play( Assets.Sounds.ITEM, hero );
 		hero.spendAndNext( pickupDelay() );
 		return true;
+	}
+
+	/** Tells the player a page has settled into the guide: a line in the log, and the
+	 *  journal button flashing until they open the guide on it. */
+	public static void announce( String key ){
+		String title = GuideGraph.titleForKey( key );
+		GLog.p( Messages.get( DescentPage.class, "unlocked", title == null ? "?" : title ) );
+		GameScene.flashForGuide( key );
+	}
+
+	//a page lying loose on the floor glints, so it reads as something worth a detour
+	@Override
+	public Emitter emitter() {
+		Emitter emitter = new Emitter();
+		emitter.pos( 3, 3, 10, 10 );
+		emitter.fillTarget = false;
+		emitter.pour( Speck.factory( Speck.LIGHT ), 0.9f );
+		return emitter;
 	}
 
 	@Override

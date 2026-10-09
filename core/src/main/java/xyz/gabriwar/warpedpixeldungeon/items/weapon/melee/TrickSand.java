@@ -30,7 +30,6 @@ import com.watabou.utils.Callback;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
@@ -41,6 +40,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 
 public class TrickSand extends MeleeWeapon {
@@ -119,7 +119,7 @@ public class TrickSand extends MeleeWeapon {
 				SkillFX.flash(ch);
 			}
 		}
-		Sample.INSTANCE.play(Assets.Sounds.PUFF, 1f, 0.8f);
+		SpatialSound.play(Assets.Sounds.PUFF, target, 1f, 0.8f);
 		Invisibility.dispel();
 		hero.spendAndNext(hero.attackDelay());
 		wep.afterAbilityUsed(hero);

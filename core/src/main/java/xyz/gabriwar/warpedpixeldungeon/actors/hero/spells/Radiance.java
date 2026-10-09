@@ -31,10 +31,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.HolyTome;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
-import com.watabou.noosa.audio.Sample;
 
 public class Radiance extends ClericSpell {
 
@@ -59,7 +59,7 @@ public class Radiance extends ClericSpell {
 	public void onCast(HolyTome tome, Hero hero) {
 
 		GameScene.flash( 0x80FFFFFF );
-		Sample.INSTANCE.play(Assets.Sounds.BLAST);
+		SpatialSound.play(Assets.Sounds.BLAST, hero);
 
 		if (Dungeon.level.viewDistance < 6 ){
 			Buff.prolong(hero, Light.class, Dungeon.isChallenged(Challenges.DARKNESS) ? 20 : 100);

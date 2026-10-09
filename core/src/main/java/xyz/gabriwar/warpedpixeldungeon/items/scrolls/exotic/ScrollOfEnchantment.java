@@ -23,6 +23,7 @@ package xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Belongings;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Enchanting;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
@@ -40,7 +41,6 @@ import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndTitledMessage;
-import com.watabou.noosa.audio.Sample;
 
 public class ScrollOfEnchantment extends ExoticScroll {
 	
@@ -185,7 +185,7 @@ public class ScrollOfEnchantment extends ExoticScroll {
 				GLog.p(Messages.get(StoneOfEnchantment.class, "weapon"));
 				((ScrollOfEnchantment)curItem).readAnimation();
 
-				Sample.INSTANCE.play( Assets.Sounds.READ );
+				SpatialSound.play( Assets.Sounds.READ, curUser );
 				Enchanting.show(curUser, wep);
 			} else {
 				GameScene.show(new WndConfirmCancel());
@@ -247,7 +247,7 @@ public class ScrollOfEnchantment extends ExoticScroll {
 				GLog.p(Messages.get(StoneOfEnchantment.class, "armor"));
 				((ScrollOfEnchantment) curItem).readAnimation();
 
-				Sample.INSTANCE.play(Assets.Sounds.READ);
+				SpatialSound.play(Assets.Sounds.READ, curUser);
 				Enchanting.show(curUser, arm);
 			} else {
 				GameScene.show(new WndConfirmCancel());

@@ -24,13 +24,15 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.CurrentSkills;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SpiritArmor;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.SpiritArmorFX;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
@@ -72,7 +74,7 @@ public class SpiritArmorMotes extends Buff {
 		if (motes >= capacity( rank )) stored = 0;
 		if (formed > 0 && target != null && target.sprite != null){
 			target.sprite.showStatus( CharSprite.NEUTRAL, motes + "/" + capacity( rank ) );
-			Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 0.4f, 1.6f );
+			SpatialSound.play( Assets.Sounds.CHARGEUP, target, 0.4f, 1.6f );
 		}
 		if (motes >= capacity( rank )) volley();
 	}
@@ -105,7 +107,7 @@ public class SpiritArmorMotes extends Buff {
 			if (aim.sprite != null) aim.sprite.flash();
 		}
 		if (fired == 0) return;
-		Sample.INSTANCE.play( Assets.Sounds.ZAP, 0.9f, 1.4f );
+		SpatialSound.play( Assets.Sounds.ZAP, target, 0.9f, 1.4f );
 		//mastery: the ring's release washes on into your wands
 		if (rank >= 3) Buff.prolong( target, Recharging.class, 2f );
 		if (motes <= 0) detach();
@@ -125,6 +127,11 @@ public class SpiritArmorMotes extends Buff {
 
 	@Override
 	public boolean act(){
+		//Spirit Armor taken away (debug): only its own switch-off clears the ring, so it goes here
+		if (CurrentSkills.skillLevel( target, SpiritArmor.class ) <= 0){
+			detach();
+			return true;
+		}
 		//a full ring with nothing in sight holds until something steps into view
 		if (motes >= capacity( rank )) volley();
 		spend( TICK );

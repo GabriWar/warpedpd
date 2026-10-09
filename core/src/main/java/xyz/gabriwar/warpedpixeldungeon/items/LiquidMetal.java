@@ -25,6 +25,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
@@ -39,7 +40,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
-import com.watabou.noosa.audio.Sample;
 
 import java.util.ArrayList;
 
@@ -90,7 +90,7 @@ public class LiquidMetal extends Item {
 			Dungeon.level.pressCell( cell );
 			if (Dungeon.level.heroFOV[cell]) {
 				GLog.i( Messages.get(Potion.class, "shatter") );
-				Sample.INSTANCE.play( Assets.Sounds.SHATTER );
+				SpatialSound.play( Assets.Sounds.SHATTER, cell );
 				Splash.at( cell, 0xBFBFBF, 5 );
 			}
 
@@ -181,7 +181,7 @@ public class LiquidMetal extends Item {
 				}
 
 				curUser.sprite.operate(curUser.pos);
-				Sample.INSTANCE.play(Assets.Sounds.DRINK);
+				SpatialSound.play(Assets.Sounds.DRINK, curUser);
 				updateQuickslot();
 				curUser.sprite.emitter().start(Speck.factory(Speck.LIGHT), 0.1f, 10);
 			}

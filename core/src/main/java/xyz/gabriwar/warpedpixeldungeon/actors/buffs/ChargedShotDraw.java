@@ -24,7 +24,6 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.tweeners.Delayer;
 import com.watabou.utils.Bundle;
 
@@ -32,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.ChargedShot;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -115,7 +115,7 @@ public class ChargedShotDraw extends Buff {
 			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 1 + (level > 2 ? 2 : level) );
 			new Flare( 4, 8 + 2 * level ).color( 0xFFE9A0, true ).show( hero.sprite, 0.5f ).angularSpeed = 120;
 			hero.sprite.showStatus( CharSprite.NEUTRAL, Integer.toString( turnsLeft ) );
-			if (turnsLeft <= 3) Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 0.5f, 1.4f + 0.2f * (3 - turnsLeft) );
+			if (turnsLeft <= 3) SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 0.5f, 1.4f + 0.2f * (3 - turnsLeft) );
 		}
 		spend( TICK );
         // Hero.holdTurn advances the draw without allowing other actions.

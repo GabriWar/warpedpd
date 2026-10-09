@@ -35,12 +35,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SheepSokobanBlack;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SheepSokobanCorner;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SheepSokobanStop;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SheepSokobanSwitch;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Camera;
-import com.watabou.noosa.audio.Sample;
 
 public class FleecingTrap extends Trap {
 
@@ -84,7 +84,7 @@ public class FleecingTrap extends Trap {
 					GLog.n(Messages.get(this, "shear"));
 					hero.damage(hero.HP / 2, this);
 				}
-				Sample.INSTANCE.play(Assets.Sounds.CURSED);
+				SpatialSound.play(Assets.Sounds.CURSED, pos);
 			}
 			// Non-hero, non-sheep characters: visual effect only (no damage in Sprouted)
 		}

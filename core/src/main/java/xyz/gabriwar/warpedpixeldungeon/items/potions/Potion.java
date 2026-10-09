@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Ooze;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
@@ -126,7 +127,6 @@ import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndUseItem;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.brews.Brew;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 import com.watabou.utils.Reflection;
@@ -439,7 +439,7 @@ public class Potion extends Item {
 		hero.busy();
 		apply( hero );
 		
-		Sample.INSTANCE.play( Assets.Sounds.DRINK );
+		SpatialSound.play( Assets.Sounds.DRINK, hero );
 		
 		hero.sprite.operate( hero.pos );
 
@@ -485,7 +485,7 @@ public class Potion extends Item {
 		splash( cell );
 		if (Dungeon.level.heroFOV[cell]) {
 			GLog.i( Messages.get(Potion.class, "shatter") );
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER );
+			SpatialSound.play( Assets.Sounds.SHATTER, cell );
 		}
 	}
 

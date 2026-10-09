@@ -86,6 +86,8 @@ public class SkillTreePane extends ScrollPane {
 	private static final int COL_TALENT2  = 5;
 	private static final int COL_PASSIVEB = 6;
 	private static final int COL_FOURTH   = 8;
+	//skills from other classes, a row of them across the tree's own columns
+	private static final int FOREIGN_PER_ROW = COL_FOURTH + 1;
 
 	private static final int COL_LOCKED = 0x2c2c34;
 	private static final int COL_OPEN   = 0x6a5a30;
@@ -207,6 +209,35 @@ public class SkillTreePane extends ScrollPane {
 				for (Talent t : hero.talents.get(3).keySet()){
 					prev = add( Node.talent( t, 4, COL_TALENT2, y++, prev ) );
 				}
+			}
+		}
+
+		// ---- skills from other classes' trees (debug): under the tree, a label per class or
+		// ---- calling and its skills in rows, loose sockets with no wire and no lock ----
+		if (!hs.foreignSkills().isEmpty()){
+			java.util.LinkedHashMap<String, java.util.List<Skill>> groups = new java.util.LinkedHashMap<>();
+			for (CurrentSkills.Origin o : CurrentSkills.catalog()){
+				for (Skill s : hs.foreignSkills()){
+					if (s.getClass() != o.cls) continue;
+					java.util.List<Skill> group = groups.get( o.title() );
+					if (group == null) groups.put( o.title(), group = new ArrayList<>() );
+					group.add( s );
+				}
+			}
+			int row = 0;
+			for (Node n : nodes) row = Math.max( row, n.gy + 1 );
+			for (java.util.Map.Entry<String, java.util.List<Skill>> g : groups.entrySet()){
+				RenderedTextBlock label = PixelScene.renderTextBlock( Messages.get( SkillTreePane.class, "foreign", g.getKey() ), 6 );
+				label.hardlight( 0x9fb0d8 );
+				label.setPos( nodeX( 0 ), nodeY( row ) + ROW_H - label.height() - 4 );
+				PixelScene.align( label );
+				backdrop.add( label );
+				int i = 0;
+				for (Skill s : g.getValue()){
+					add( Node.skill( s, i % FOREIGN_PER_ROW, row + 1 + i / FOREIGN_PER_ROW, null ) );
+					i++;
+				}
+				row += 2 + (i - 1) / FOREIGN_PER_ROW;
 			}
 		}
 
@@ -346,8 +377,8 @@ public class SkillTreePane extends ScrollPane {
 
 		if (edgesDirty) stackEdges();
 
-		if (shownPoints != Skill.availableSkill){
-			shownPoints = Skill.availableSkill;
+		if (shownPoints != Dungeon.hero.heroSkills.availableSkill){
+			shownPoints = Dungeon.hero.heroSkills.availableSkill;
 			if (shownPoints > 0){
 				headText.text( Messages.get( this, "points", shownPoints ) );
 				headText.hardlight( Window.TITLE_COLOR );
@@ -501,7 +532,7 @@ public class SkillTreePane extends ScrollPane {
 		}
 
 		public boolean canSpend(){
-			return unlocked() && level() < maxLevel() && Skill.availableSkill >= cost();
+			return unlocked() && level() < maxLevel() && Dungeon.hero.heroSkills.availableSkill >= cost();
 		}
 
 		public String lockReason(){
@@ -669,7 +700,7 @@ public class SkillTreePane extends ScrollPane {
 			shownSpend = node.canSpend();
 			shownActive = active();
 			shownUnlocked = node.unlocked();
-			shownPoints = Skill.availableSkill;
+			shownPoints = Dungeon.hero.heroSkills.availableSkill;
 			int max = node.maxLevel();
 
 			int frame;
@@ -776,7 +807,7 @@ public class SkillTreePane extends ScrollPane {
 			if (shownLevel != level || shownSpend != node.canSpend()
 					|| shownUnlocked != node.unlocked()
 					|| shownActive != active()
-					|| shownPoints != Skill.availableSkill){
+					|| shownPoints != Dungeon.hero.heroSkills.availableSkill){
 				sync();
 				layout();
 			}

@@ -35,13 +35,13 @@ import xyz.gabriwar.warpedpixeldungeon.effects.WhirlHitFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAura;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import com.watabou.utils.PathFinder;
 
 public class Rampage extends ActiveSkill3 {
@@ -109,10 +109,10 @@ public class Rampage extends ActiveSkill3 {
 				if (!Dungeon.level.heroFOV[c]) return;
 				WhirlHitFX.show( c );
 				CellEmitter.get( c ).burst( Speck.factory( Speck.DUST ), 2 );
-				if (beat % 2 == 1) Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 0.5f, 0.9f + 0.06f * beat );
+				if (beat % 2 == 1) SpatialSound.play( Assets.Sounds.HIT_SLASH, c, 0.5f, 0.9f + 0.06f * beat );
 			} );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 1f, 0.8f );
+		SpatialSound.play( Assets.Sounds.HIT_SLASH, hero, 1f, 0.8f );
 		Camera.main.shake( 1, 0.15f );
 	}
 
@@ -121,11 +121,11 @@ public class Rampage extends ActiveSkill3 {
 		super.execute(hero, action);
 		if (action.equals(Skill.AC_ACTIVATE)){
 			hero.heroSkills.deactivateOtherToggles( this );
-			Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 0.8f, 1.3f );
+			SpatialSound.play( Assets.Sounds.HIT_SLASH, hero, 0.8f, 1.3f );
 			//the blade comes up glinting, and keeps glinting while the stance holds
 			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 5 );
 		} else if (action.equals(Skill.AC_DEACTIVATE)){
-			Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 0.4f, 0.7f );
+			SpatialSound.play( Assets.Sounds.HIT_SLASH, hero, 0.4f, 0.7f );
 		}
 		StanceAura.sync( hero );
 	}

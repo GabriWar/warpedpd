@@ -28,13 +28,13 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Chill;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Frost;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import com.watabou.utils.Random;
@@ -58,18 +58,18 @@ public class FrostArrows extends ActiveSkill {
 	public void execute( Hero hero, String action ){
 		super.execute(hero, action);
 		if (action.equals(Skill.AC_ACTIVATE)){
-			Sample.INSTANCE.play( Assets.Sounds.DEGRADE, 1f, 1.6f );
+			SpatialSound.play( Assets.Sounds.DEGRADE, hero, 1f, 1.6f );
 			hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 4 );
 			hero.sprite.emitter().burst( SnowParticle.FACTORY, 6 );
 			//mutually exclusive with its fork partner
-			for (Skill s : hero.heroSkills.activeSkills){
+			for (Skill s : hero.heroSkills.toggleGroup()){
 				if (s instanceof EmberArrows) s.active = false;
 			}
 			StanceAuraBuff.sync( hero, RogueHuntressAuras.Ember.class, false );
 			StanceAuraBuff.sync( hero, RogueHuntressAuras.Frost.class, true );
 		} else if (action.equals(Skill.AC_DEACTIVATE)){
 			//the rime thaws off the tips
-			Sample.INSTANCE.play( Assets.Sounds.DEGRADE, 0.6f, 1.1f );
+			SpatialSound.play( Assets.Sounds.DEGRADE, hero, 0.6f, 1.1f );
 			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 2 );
 			StanceAuraBuff.sync( hero, RogueHuntressAuras.Frost.class, false );
 		}
@@ -111,7 +111,7 @@ public class FrostArrows extends ActiveSkill {
 			enemy.sprite.centerEmitter().startDelayed( Speck.factory( Speck.BLUE_LIGHT ), 0, 3, 0.12f );
 			enemy.sprite.emitter().startDelayed( SnowParticle.FACTORY, 0, froze ? 8 : 4, 0.24f );
 			enemy.sprite.showStatus( froze ? CharSprite.NEGATIVE : CharSprite.WARNING, froze ? "Frozen" : "Chilled" );
-			Sample.INSTANCE.play( froze ? Assets.Sounds.SHATTER : Assets.Sounds.DEGRADE, 0.7f, froze ? 1.2f : 1.5f );
+			SpatialSound.play( froze ? Assets.Sounds.SHATTER : Assets.Sounds.DEGRADE, enemy, 0.7f, froze ? 1.2f : 1.5f );
 			if (froze) enemy.sprite.flash();
 		}
 

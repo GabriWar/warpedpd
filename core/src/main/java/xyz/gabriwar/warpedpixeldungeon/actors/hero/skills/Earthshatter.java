@@ -30,7 +30,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillSequence;
 
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -38,6 +37,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.WarriorImpactFX;
@@ -108,7 +108,7 @@ public class Earthshatter extends Skill {
 		WarriorImpactFX.show( center, true );
 		CellEmitter.bottom( center ).burst( Speck.factory( Speck.DUST ), 6 );
 		Camera.main.shake( 3, 0.7f );
-		Sample.INSTANCE.play( Assets.Sounds.ROCKS, 1f, 0.9f );
+		SpatialSound.play( Assets.Sounds.ROCKS, center, 1f, 0.9f );
 		StaggerFX.ring( center, 2, 0.12f, ( c, r ) -> {
 			WarriorImpactFX.show( c );
 			CellEmitter.bottom( c ).burst( EarthParticle.FACTORY, 2 );
@@ -120,8 +120,8 @@ public class Earthshatter extends Skill {
 				if (ch != null && ch.sprite != null) ch.sprite.flash();
 			}
 		} );
-		StaggerFX.after( 0.12f, () -> Sample.INSTANCE.play( Assets.Sounds.ROCKS_LIGHT, 0.9f, 0.8f ) );
-		StaggerFX.after( 0.24f, () -> Sample.INSTANCE.play( Assets.Sounds.ROCKS_LIGHT, 0.9f, 0.7f ) );
+		StaggerFX.after( 0.12f, () -> SpatialSound.play( Assets.Sounds.ROCKS_LIGHT, center, 0.9f, 0.8f ) );
+		StaggerFX.after( 0.24f, () -> SpatialSound.play( Assets.Sounds.ROCKS_LIGHT, center, 0.9f, 0.7f ) );
 	}
 
 	@Override

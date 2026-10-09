@@ -33,12 +33,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Amok;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Charm;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfHypno;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfLove;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.BArray;
 import com.watabou.utils.PathFinder;
 
@@ -52,8 +52,8 @@ public class HypnoBrew extends Brew {
 	public void shatter( int cell ) {
 		splash( cell );
 		if (Dungeon.level.heroFOV[cell]) {
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER );
-			Sample.INSTANCE.play( Assets.Sounds.CHARMS );
+			SpatialSound.play( Assets.Sounds.SHATTER, cell );
+			SpatialSound.play( Assets.Sounds.CHARMS, cell );
 		}
 
 		PathFinder.buildDistanceMap( cell, BArray.not( Dungeon.level.solid, null ), 2 );
@@ -81,7 +81,7 @@ public class HypnoBrew extends Brew {
 
 	@Override
 	public void apply( Hero hero ) {
-		Sample.INSTANCE.play( Assets.Sounds.CHARMS );
+		SpatialSound.play( Assets.Sounds.CHARMS, hero );
 		for (int offset : PathFinder.NEIGHBOURS8) {
 			Char ch = Actor.findChar( hero.pos + offset );
 			if (ch == null || ch.alignment != Char.Alignment.ENEMY) continue;

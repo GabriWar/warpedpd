@@ -24,7 +24,6 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
@@ -32,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.WindParticle;
@@ -145,7 +145,7 @@ public class SlipstreamWind extends Buff {
 		if (ch.sprite != null) ch.sprite.emitter().burst( Speck.factory( Speck.DUST ), 8 );
 		if (Dungeon.level.heroFOV[ch.pos]){
 			CellEmitter.get( ch.pos ).burst( WindParticle.FACTORY, 6 );
-			Sample.INSTANCE.play( Assets.Sounds.MISS, 1f, 0.6f );
+			SpatialSound.play( Assets.Sounds.MISS, ch, 1f, 0.6f );
 		}
 	}
 

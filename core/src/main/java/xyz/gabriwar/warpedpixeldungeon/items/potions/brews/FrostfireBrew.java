@@ -39,12 +39,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Fire;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Freezing;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfFrost;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfLiquidFlame;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 public class FrostfireBrew extends Brew {
@@ -57,8 +57,8 @@ public class FrostfireBrew extends Brew {
 	public void shatter( int cell ) {
 		splash( cell );
 		if (Dungeon.level.heroFOV[cell]) {
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER );
-			Sample.INSTANCE.play( Assets.Sounds.BURNING );
+			SpatialSound.play( Assets.Sounds.SHATTER, cell );
+			SpatialSound.play( Assets.Sounds.BURNING, cell );
 		}
 
 		for (int offset : PathFinder.NEIGHBOURS9){
@@ -87,7 +87,7 @@ public class FrostfireBrew extends Brew {
 	public void apply( Hero hero ) {
 		Buff.affect( hero, FireImbue.class ).set( FireImbue.DURATION / 2f );
 		Buff.prolong( hero, FrostImbue.class, FrostImbue.DURATION / 2f );
-		Sample.INSTANCE.play( Assets.Sounds.BURNING );
+		SpatialSound.play( Assets.Sounds.BURNING, hero );
 		hero.sprite.emitter().burst( FlameParticle.FACTORY, 5 );
 		hero.sprite.emitter().burst( SnowParticle.FACTORY, 5 );
 	}

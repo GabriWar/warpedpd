@@ -190,6 +190,12 @@ public class Blob extends Actor {
 	public void use( BlobEmitter emitter ) {
 		this.emitter = emitter;
 	}
+
+	/** Whether it is light (a fire, a glow): its emitter is drawn in the light layer, over the
+	 *  night's tint, and what it sheds as matter goes among the gases (BlobEmitter.matter). */
+	public boolean emissive(){
+		return false;
+	}
 	
 	protected void evolve() {
 		

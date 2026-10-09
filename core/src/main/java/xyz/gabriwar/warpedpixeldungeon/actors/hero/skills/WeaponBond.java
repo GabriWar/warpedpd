@@ -32,12 +32,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 import java.util.ArrayList;
@@ -74,7 +74,7 @@ public class WeaponBond extends PassiveSkillB2 {
 			new Flare( 6, 20 ).color( 0xCCEEFF, true ).show( hero.sprite, 0.5f );
 			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 4 );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.CHARGEUP, 0.6f, 1.5f );
+		SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 0.6f, 1.5f );
 	}
 
 	@Override
@@ -86,7 +86,7 @@ public class WeaponBond extends PassiveSkillB2 {
 		bond.spend1();
 		CellEmitter.center( enemy.pos ).burst( Speck.factory( Speck.LIGHT ), 6 );
 		Wound.hit( enemy );
-		Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 1f, 1.2f );
+		SpatialSound.play( Assets.Sounds.HIT_STRONG, enemy, 1f, 1.2f );
 		return Math.round( damage * (1.05f + 0.15f * level) );
 	}
 
@@ -112,6 +112,11 @@ public class WeaponBond extends PassiveSkillB2 {
 
 		@Override
 		public boolean act(){
+			//at mastery the glow holds until spent, and only the skill spends it: gone with it (debug)
+			if (CurrentSkills.skillLevel( target, WeaponBond.class ) <= 0){
+				detach();
+				return true;
+			}
 			if (left > 0){
 				left -= TICK;
 				if (left <= 0){

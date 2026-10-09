@@ -41,6 +41,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.Stasis;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Wraith;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.DirectableAlly;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Ghost;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -75,7 +76,6 @@ import xyz.gabriwar.warpedpixeldungeon.windows.WndQuest;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndUseItem;
 import xyz.gabriwar.warpedpixeldungeon.levels.VaultLevel;
 import com.watabou.noosa.Game;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 import com.watabou.utils.PathFinder;
@@ -184,7 +184,7 @@ public class DriedRose extends Artifact {
 
 					if (!firstSummon) {
 						ghost.yell( Messages.get(GhostHero.class, "hello", Messages.titleCase(Dungeon.hero.name())) );
-						Sample.INSTANCE.play( Assets.Sounds.GHOST );
+						SpatialSound.play( Assets.Sounds.GHOST, ghost );
 						firstSummon = true;
 						
 					} else {
@@ -459,7 +459,7 @@ public class DriedRose extends Artifact {
 
 				if (spawnPoints.size() > 0) {
 					Wraith.spawnAt(Random.element(spawnPoints), Wraith.class);
-					Sample.INSTANCE.play(Assets.Sounds.CURSED);
+					SpatialSound.play(Assets.Sounds.CURSED, target);
 				}
 
 			}
@@ -476,7 +476,7 @@ public class DriedRose extends Artifact {
 		public void onSelect(Integer cell) {
 			if (cell == null) return;
 			
-			Sample.INSTANCE.play( Assets.Sounds.GHOST );
+			SpatialSound.play( Assets.Sounds.GHOST, ghost );
 
 			ghost.directTocell(cell);
 
@@ -519,7 +519,7 @@ public class DriedRose extends Artifact {
 				} else
 					GLog.i( Messages.get(this, "levelup") );
 
-				Sample.INSTANCE.play( Assets.Sounds.DEWDROP );
+				SpatialSound.play( Assets.Sounds.DEWDROP, hero );
 				GameScene.pickUp(this, pos);
 				hero.spendAndNext(pickupDelay());
 				return true;
@@ -828,7 +828,7 @@ public class DriedRose extends Artifact {
 				}
 			}
 			if (WarpedPixelDungeon.scene() instanceof GameScene) {
-				Sample.INSTANCE.play( Assets.Sounds.GHOST );
+				SpatialSound.play( Assets.Sounds.GHOST, this );
 			}
 		}
 		
@@ -852,7 +852,7 @@ public class DriedRose extends Artifact {
 					yell( Messages.get( this, "seen_yog_" + Random.IntRange(1, 3) ));
 					break;
 			}
-			Sample.INSTANCE.play( Assets.Sounds.GHOST );
+			SpatialSound.play( Assets.Sounds.GHOST, this );
 		}
 		
 		public void sayDefeated(){
@@ -861,18 +861,18 @@ public class DriedRose extends Artifact {
 			} else {
 				yell( Messages.get( this, "defeated_by_enemy_" + Random.IntRange(1, 3) ));
 			}
-			Sample.INSTANCE.play( Assets.Sounds.GHOST );
+			SpatialSound.play( Assets.Sounds.GHOST, this );
 		}
 		
 		public void sayHeroKilled(){
 			yell( Messages.get( this, "player_killed_" + Random.IntRange(1, 3) ));
 			GLog.newLine();
-			Sample.INSTANCE.play( Assets.Sounds.GHOST );
+			SpatialSound.play( Assets.Sounds.GHOST, this );
 		}
 		
 		public void sayAnhk(){
 			yell( Messages.get( this, "blessed_ankh_" + Random.IntRange(1, 3) ));
-			Sample.INSTANCE.play( Assets.Sounds.GHOST );
+			SpatialSound.play( Assets.Sounds.GHOST, this );
 		}
 		
 		{

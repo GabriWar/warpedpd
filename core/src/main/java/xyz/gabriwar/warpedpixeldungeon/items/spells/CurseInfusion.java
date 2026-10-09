@@ -23,6 +23,7 @@ package xyz.gabriwar.warpedpixeldungeon.items.spells;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Badges;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.EquipableItem;
@@ -37,7 +38,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MagesStaff;
 import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 
 import java.util.ArrayList;
 
@@ -58,7 +58,7 @@ public class CurseInfusion extends InventorySpell {
 	protected void onItemSelected(Item item) {
 		
 		CellEmitter.get(curUser.pos).burst(ShadowParticle.UP, 5);
-		Sample.INSTANCE.play(Assets.Sounds.CURSED);
+		SpatialSound.play(Assets.Sounds.CURSED, curUser);
 		
 		item.cursed = true;
 		if (item instanceof Weapon) {

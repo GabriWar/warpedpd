@@ -30,12 +30,12 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barrier;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 
 import java.util.ArrayList;
 
@@ -89,7 +89,7 @@ public class Challenge extends SubSkill3 {
 			if (level >= MAX_LEVEL) Buff.prolong( hero, Answered.class, REFUND_TURNS );
 			hero.MP -= getManaCost();
 			castTextYell();
-			Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 1f, 1.0f );
+			SpatialSound.play( Assets.Sounds.CHALLENGE, hero, 1f, 1.0f );
 			Camera.main.shake( 1, 0.3f );
 			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 6 );
 			Dungeon.hero.heroSkills.lastUsed = this;

@@ -33,7 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 
 
 public class Retribution extends SubSkill3 {
@@ -94,7 +94,7 @@ public class Retribution extends SubSkill3 {
 			enemy.sprite.emitter().burst( Speck.factory( Speck.YELLOW_LIGHT ), 6 );
 			enemy.sprite.flash();
 		}
-		Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 0.9f, 0.9f );
+		SpatialSound.play( Assets.Sounds.HIT_MAGIC, enemy, 0.9f, 0.9f );
 
 		//+3: a great debt bursts on into one more enemy nearby
 		if (level >= MAX_LEVEL && owed >= BURST_DEBT){

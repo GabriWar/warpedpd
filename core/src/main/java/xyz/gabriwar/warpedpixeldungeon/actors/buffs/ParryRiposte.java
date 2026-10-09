@@ -24,7 +24,6 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 import com.watabou.utils.PathFinder;
 
@@ -34,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.ParryStance;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -91,7 +91,7 @@ public class ParryRiposte extends Buff {
 			foe.sprite.showStatus( CharSprite.WARNING, Messages.get( ParryStance.class, "riposte" ) );
 			Wound.hit( foe );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.HIT_SLASH, 1f, 1.2f );
+		SpatialSound.play( Assets.Sounds.HIT_SLASH, foe, 1f, 1.2f );
 		hero.attack( foe, DAMAGE, 0f, 1f );
 	}
 }

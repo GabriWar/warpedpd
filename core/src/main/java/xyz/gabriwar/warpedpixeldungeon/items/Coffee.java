@@ -28,11 +28,11 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Sleepiness;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.EnergyParticle;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 
 import java.util.ArrayList;
 
@@ -69,7 +69,7 @@ public class Coffee extends Item {
 			hero.spend( 1f );
 			hero.busy();
 
-			Sample.INSTANCE.play( Assets.Sounds.DRINK );
+			SpatialSound.play( Assets.Sounds.DRINK, hero );
 			hero.sprite.operate( hero.pos );
 			hero.sprite.emitter().burst( EnergyParticle.FACTORY, 8 );
 

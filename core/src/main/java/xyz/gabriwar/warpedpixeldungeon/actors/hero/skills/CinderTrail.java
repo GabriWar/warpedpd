@@ -27,7 +27,6 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 import java.util.ArrayList;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -36,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.*;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.*;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.ElementalOrbitFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
@@ -93,7 +93,7 @@ public class CinderTrail extends Skill {
         if(!hero.isAlive()||hero.MP<getManaCost())return;
         Buff.affect(hero,ElementalOrbit.class).set(level);
         hero.MP-=getManaCost();hero.heroSkills.lastUsed=this;
-        castTextYell();Sample.INSTANCE.play(Assets.Sounds.CHARGEUP);
+        castTextYell();SpatialSound.play(Assets.Sounds.CHARGEUP, hero);
         // The gathering: heat and frost pulled in from either side, a flare of each as they settle into orbit.
         if(hero.sprite!=null){
             hero.sprite.centerEmitter().burst(FlameParticle.FACTORY,3+level);
@@ -127,7 +127,7 @@ public class CinderTrail extends Skill {
     }
     public static int damage(int level,int heat){ return (4+3*level)*(3+heat)/3; }
     public static void explode(Hero hero,int cell,int element,int heat,int level){
-        Sample.INSTANCE.play(element==0?Assets.Sounds.BURNING:Assets.Sounds.SHATTER);
+        SpatialSound.play(element==0?Assets.Sounds.BURNING:Assets.Sounds.SHATTER, cell);
         // The burst: a flare at the impact, then flame or frost racing over the ring around it a beat later.
         if(hero.sprite!=null&&hero.sprite.parent!=null&&Dungeon.level.heroFOV[cell]){
             new Flare(6,14).color(element==0?0xFF8418:0xA4E9FF,true).show(hero.sprite.parent,

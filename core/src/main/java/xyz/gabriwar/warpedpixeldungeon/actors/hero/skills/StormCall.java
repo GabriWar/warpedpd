@@ -37,6 +37,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
@@ -46,7 +47,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 import com.watabou.utils.PointF;
 import com.watabou.utils.Random;
@@ -162,7 +162,7 @@ public class StormCall extends Skill {
 			return;
 		}
 		final int[] a = arcs.get( i );
-		Sample.INSTANCE.play( Assets.Sounds.LIGHTNING, 1f, 0.9f + 0.1f * i );
+		SpatialSound.play( Assets.Sounds.LIGHTNING, a[1], 1f, 0.9f + 0.1f * i );
 		CellEmitter.center( a[1] ).burst( SparkParticle.FACTORY, 8 );
 		Char ch = Actor.findChar( a[1] );
 		if (ch != null && ch.sprite != null) ch.sprite.flash();

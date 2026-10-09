@@ -30,10 +30,10 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 
 import java.util.ArrayList;
 
@@ -71,7 +71,7 @@ public class WarCry extends SubSkill2 {
 			}
 			hero.MP -= getManaCost();
 			castTextYell();
-			Sample.INSTANCE.play( Assets.Sounds.CHALLENGE, 1f, 0.9f );
+			SpatialSound.play( Assets.Sounds.CHALLENGE, hero, 1f, 0.9f );
 			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.SCREAM ), 4 );
 			Camera.main.shake( 2, 0.3f );
 			Dungeon.hero.heroSkills.lastUsed = this;

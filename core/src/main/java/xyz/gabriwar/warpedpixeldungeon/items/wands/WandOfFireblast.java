@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.mage.WildMagic;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.BlastParticle;
@@ -45,7 +46,6 @@ import xyz.gabriwar.warpedpixeldungeon.mechanics.ConeAOE;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 import com.watabou.utils.GameMath;
 import com.watabou.utils.PathFinder;
@@ -206,7 +206,7 @@ public class WandOfFireblast extends DamageWand {
 				}
 			}
 
-			Sample.INSTANCE.play( Assets.Sounds.BLAST );
+			SpatialSound.play( Assets.Sounds.BLAST, defender );
 
 		}
 	}
@@ -243,8 +243,8 @@ public class WandOfFireblast extends DamageWand {
 				curUser.sprite,
 				longestRay.path.get(longestRay.dist/2),
 				callback );
-		Sample.INSTANCE.play( Assets.Sounds.ZAP );
-		Sample.INSTANCE.play( Assets.Sounds.BURNING );
+		SpatialSound.play( Assets.Sounds.ZAP, curUser );
+		SpatialSound.play( Assets.Sounds.BURNING, curUser );
 	}
 
 	@Override

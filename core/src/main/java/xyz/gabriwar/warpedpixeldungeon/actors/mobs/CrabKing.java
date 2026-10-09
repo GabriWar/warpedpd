@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.AdamantArmor;
@@ -41,7 +42,6 @@ import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CrabKingSprite;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 public class CrabKing extends Mob {
@@ -171,7 +171,7 @@ public class CrabKing extends Mob {
 		move(newPos);
 		if (Dungeon.level.heroFOV[newPos]) {
 			CellEmitter.get(newPos).burst(Speck.factory(Speck.WOOL), 6);
-			Sample.INSTANCE.play(Assets.Sounds.PUFF);
+			SpatialSound.play(Assets.Sounds.PUFF, newPos);
 		}
 		spend(1 / speed());
 

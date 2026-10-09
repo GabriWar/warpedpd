@@ -27,6 +27,7 @@ package xyz.gabriwar.warpedpixeldungeon.items.ore;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
@@ -36,7 +37,6 @@ import xyz.gabriwar.warpedpixeldungeon.levels.overworld.Ores;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.net.NetManager;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import com.watabou.noosa.audio.Sample;
 
 /**
  * A lump of ore prised out of a vein in the world's rock (levels/overworld/Ores): one class per
@@ -90,7 +90,7 @@ public abstract class Ore extends Item {
 		Ores.Kind k = kind();
 		Splash.at( cell, k.colour, 6 );
 		if (k.stars > 0) CellEmitter.center( cell ).burst( Speck.factory( Speck.STAR ), k.stars );
-		Sample.INSTANCE.play( k.sound, 1f, k.pitch );
+		SpatialSound.play( k.sound, cell, 1f, k.pitch );
 		mined( hero, cell );
 	}
 
@@ -106,7 +106,7 @@ public abstract class Ore extends Item {
 		int before = held == null ? 0 : held.quantity();
 		if (collect( hero.belongings.backpack )){
 			GameScene.pickUp( this, cell );
-			Sample.INSTANCE.play( Assets.Sounds.ITEM );
+			SpatialSound.play( Assets.Sounds.ITEM, hero );
 			int have = before + n;
 			if (before == 0){
 				NetManager.heroLog( hero, Messages.get( Ore.class, n > 1 ? "prised_two" : "prised", name ) );

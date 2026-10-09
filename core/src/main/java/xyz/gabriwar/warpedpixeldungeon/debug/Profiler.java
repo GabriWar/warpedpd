@@ -119,6 +119,8 @@ public class Profiler {
 
 	// ---------------------------------------------------------------- control
 
+	private static boolean lagTurnedOn = false;
+
 	public static synchronized void start(){
 		if (running) return;
 		threads.clear();
@@ -128,8 +130,10 @@ public class Profiler {
 		lastFrameNanos = 0;
 		startNanos = System.nanoTime();
 		running = true;
-		//the lag detector's hand-timed sections and actor timings feed the report too
-		if (!LagMonitor.enabled) LagMonitor.setEnabled( true );
+		//the lag detector's hand-timed sections and actor timings feed the report too; one the
+		//profiler had to turn on goes back off when it stops
+		lagTurnedOn = !LagMonitor.enabled;
+		if (lagTurnedOn) LagMonitor.setEnabled( true );
 		try {
 			if (Gdx.graphics != null){
 				gl = new GLProfiler( Gdx.graphics );
@@ -146,6 +150,11 @@ public class Profiler {
 		GLog.i( "Profiler started." );
 	}
 
+	/** The lag detector was switched by hand while profiling: stopping leaves it as it is. */
+	public static synchronized void keepLagDetector(){
+		lagTurnedOn = false;
+	}
+
 	public static synchronized String stop(){
 		if (!running) return lastReport;
 		running = false;
@@ -156,6 +165,8 @@ public class Profiler {
 			gl = null;
 		}
 		lastReport = buildReport();
+		if (lagTurnedOn && LagMonitor.enabled) LagMonitor.setEnabled( false );
+		lagTurnedOn = false;
 		GLog.i( "Profiler stopped: " + String.format( Locale.ROOT, "%.1fs", (stopNanos - startNanos) / 1e9 ) );
 		return lastReport;
 	}

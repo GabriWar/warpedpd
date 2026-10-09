@@ -28,11 +28,13 @@ import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PointF;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.CurrentSkills;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Fletching;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 
 /** Fletching's ring: the feathers plucked by ranged hits, circling the hero until they burst. */
@@ -57,11 +59,22 @@ public class FletchingFeathers extends Buff {
 		if (target != null && target.sprite != null){
 			target.sprite.emitter().burst( Speck.factory( Speck.WOOL ), 2 );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.MISS, 0.5f, 1.8f );
+		SpatialSound.play( Assets.Sounds.MISS, target, 0.5f, 1.8f );
 	}
 
 	public void empty(){
 		count = 0;
+	}
+
+	//only Fletching bursts the feathers: once it is gone (taken away in the debug window) they go too
+	@Override
+	public boolean act(){
+		if (CurrentSkills.skillLevel( target, Fletching.class ) <= 0){
+			detach();
+			return true;
+		}
+		spend( TICK );
+		return true;
 	}
 
 	@Override

@@ -29,11 +29,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.ArmorAbility;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.ClassArmor;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
-import com.watabou.noosa.audio.Sample;
 
 public class NaturesPower extends ArmorAbility {
 
@@ -47,7 +47,7 @@ public class NaturesPower extends ArmorAbility {
 		Buff.prolong(hero, naturesPowerTracker.class, naturesPowerTracker.DURATION);
 		hero.buff(naturesPowerTracker.class).extensionsLeft = 2;
 		hero.sprite.operate(hero.pos);
-		Sample.INSTANCE.play(Assets.Sounds.CHARGEUP);
+		SpatialSound.play(Assets.Sounds.CHARGEUP, hero);
 		hero.sprite.emitter().burst(LeafParticle.GENERAL, 10);
 
 		armor.charge -= chargeUse(hero);

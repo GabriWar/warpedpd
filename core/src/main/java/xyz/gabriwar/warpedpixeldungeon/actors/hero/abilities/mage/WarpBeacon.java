@@ -30,6 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.ArmorAbility;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
@@ -45,7 +46,6 @@ import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.BArray;
 import com.watabou.utils.Bundle;
@@ -130,8 +130,8 @@ public class WarpBeacon extends ArmorAbility {
 									existing.sprite.bloodBurstA(existing.sprite.center(), damage);
 									existing.damage(damage, WarpBeacon.this);
 
-									Sample.INSTANCE.play(Assets.Sounds.HIT_CRUSH);
-									Sample.INSTANCE.play(Assets.Sounds.HIT_STRONG);
+									SpatialSound.play(Assets.Sounds.HIT_CRUSH, existing);
+									SpatialSound.play(Assets.Sounds.HIT_STRONG, existing);
 
 									//handle rare cases where damage causes char swapping or movement
 									if (Actor.findChar(existing.pos) != existing){
@@ -224,7 +224,7 @@ public class WarpBeacon extends ArmorAbility {
 			tracker.attachTo(hero);
 
 			hero.sprite.operate(target);
-			Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
+			SpatialSound.play(Assets.Sounds.TELEPORT, hero);
 			Invisibility.dispel();
 			hero.spendAndNext(Actor.TICK);
 		}

@@ -30,10 +30,10 @@ import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.BloodParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 
 
@@ -74,7 +74,7 @@ public class FinishingBlow extends SubSkill3 {
 		castTextYell();
 		Wound.hit( enemy );
 		if (enemy.sprite != null && enemy.sprite.visible) enemy.sprite.emitter().burst( BloodParticle.FACTORY, 8 );
-		Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 1f, 0.8f );
+		SpatialSound.play( Assets.Sounds.HIT_STRONG, enemy, 1f, 0.8f );
 		Camera.main.shake( 1, 0.2f );
 		//+3: the execution sprays blood into the eyes of every enemy beside it
 		if (level >= MAX_LEVEL){

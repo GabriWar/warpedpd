@@ -32,6 +32,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.HolyWaterPool;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
@@ -40,7 +41,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfPurity;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.BArray;
 import com.watabou.utils.PathFinder;
 
@@ -155,7 +155,7 @@ public class HolyWater extends MissileWeapon {
 
 	private void shatter(int center, Char attacker, Char target, int damage){
 
-		Sample.INSTANCE.play(Assets.Sounds.SHATTER);
+		SpatialSound.play(Assets.Sounds.SHATTER, center);
 		if (Dungeon.level.heroFOV[center]){
 			//the classic potion-break splash, in blessed pale blue
 			Splash.at(center, 0xAADDFF, 5);

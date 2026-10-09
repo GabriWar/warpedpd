@@ -33,7 +33,6 @@ import com.watabou.utils.Callback;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
@@ -43,6 +42,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 
 public class MageStaff extends MeleeWeapon {
@@ -111,8 +111,8 @@ public class MageStaff extends MeleeWeapon {
 		enemy.damage(dmg, wep);
 		hero.sprite.zap(cell);
 		MagicMissile.boltFromChar(hero.sprite.parent, MagicMissile.FORCE, hero.sprite, cell, () -> SkillFX.flash(enemy));
-		Sample.INSTANCE.play(Assets.Sounds.ZAP, 1f, 0.8f);
-		Sample.INSTANCE.play(Assets.Sounds.HIT_MAGIC, 1f, 1f);
+		SpatialSound.play(Assets.Sounds.ZAP, hero, 1f, 0.8f);
+		SpatialSound.play(Assets.Sounds.HIT_MAGIC, enemy, 1f, 1f);
 		if (enemy.isAlive() && !Pushing.pushingExistsForChar(enemy)){
 			Ballistica shove = new Ballistica(cell, cell + (cell - bolt.path.get(Math.max(0, bolt.dist - 1))), Ballistica.MAGIC_BOLT);
 			WandOfBlastWave.throwChar(enemy, shove, 1, true, false, hero);

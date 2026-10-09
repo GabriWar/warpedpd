@@ -29,8 +29,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.DrowsySpell;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 
 public class SpellOfSleep extends ManaSpell {
@@ -52,7 +52,7 @@ public class SpellOfSleep extends ManaSpell {
 
 	@Override
 	protected void fx(int cell, Callback callback) {
-		Sample.INSTANCE.play(Assets.Sounds.ZAP);
+		SpatialSound.play(Assets.Sounds.ZAP, curUser);
 		MagicMissile.boltFromChar(curUser.sprite.parent, MagicMissile.WARD, curUser.sprite, cell, callback);
 	}
 }

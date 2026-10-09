@@ -36,10 +36,10 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 
 import java.util.ArrayList;
 
@@ -103,7 +103,7 @@ public class Purify extends SubSkill3 {
 			}
 			payMana( hero, getManaCost() );
 			castTextYell();
-			Sample.INSTANCE.play( Assets.Sounds.CHARMS, 1f, 1.4f );
+			SpatialSound.play( Assets.Sounds.CHARMS, hero, 1f, 1.4f );
 			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
 			Dungeon.hero.sprite.emitter().burst( ShaftParticle.FACTORY, 5 );
 			Splash.around( Dungeon.hero.sprite, 0xFFFFFF, 6 );

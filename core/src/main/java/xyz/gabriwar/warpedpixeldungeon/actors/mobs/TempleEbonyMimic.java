@@ -27,6 +27,7 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
@@ -35,7 +36,6 @@ import xyz.gabriwar.warpedpixeldungeon.levels.features.Door;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MimicSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 
 import java.util.ArrayList;
 
@@ -76,7 +76,7 @@ public class TempleEbonyMimic extends Mimic {
             target = Dungeon.hero.pos;
             GLog.w(Messages.get(EbonyMimic.class, "reveal") );
             CellEmitter.get(pos).burst(Speck.factory(Speck.STAR), 10);
-            Sample.INSTANCE.play(Assets.Sounds.MIMIC, 1, 0.85f);
+            SpatialSound.play(Assets.Sounds.MIMIC, pos, 1, 0.85f);
         }
         if (Actor.chars().contains(this) && Dungeon.level.map[pos] == Terrain.DOOR){
             Door.enter( pos );

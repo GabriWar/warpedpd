@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barrier;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.LiquidMetal;
 import xyz.gabriwar.warpedpixeldungeon.items.spells.Evolution;
@@ -42,7 +43,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Bible;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -171,7 +171,7 @@ public class HolySword extends MeleeWeapon implements AlchemyWeapon {
         beforeAbilityUsed(hero, null);
         Buff.affect(hero, Barrier.class).setShield(Math.round(curUser.HT*0.2f));
         hero.sprite.operate(hero.pos);
-        Sample.INSTANCE.play(Assets.Sounds.CHARGEUP);
+        SpatialSound.play(Assets.Sounds.CHARGEUP, hero);
         hero.next();
         afterAbilityUsed(hero);
     }

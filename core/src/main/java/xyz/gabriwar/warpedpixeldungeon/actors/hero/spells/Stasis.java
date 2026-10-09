@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.cleric.PowerOfMany;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.DirectableAlly;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.HolyTome;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTeleportation;
@@ -40,7 +41,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -106,7 +106,7 @@ public class Stasis extends ClericSpell {
 		ally.clearTime();
 
 		Buff.prolong(hero, StasisBuff.class, 30 + 30*hero.pointsInTalent(Talent.STASIS)).stasisAlly = (Mob)ally;
-		Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
+		SpatialSound.play(Assets.Sounds.TELEPORT, ally);
 
 		if (hero.buff(LifeLink.class) != null && hero.buff(LifeLink.class).object == ally.id()){
 			hero.buff(LifeLink.class).detach();
@@ -172,7 +172,7 @@ public class Stasis extends ClericSpell {
 			}
 
 			ScrollOfTeleportation.appear(stasisAlly, stasisAlly.pos);
-			Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
+			SpatialSound.play(Assets.Sounds.TELEPORT, stasisAlly);
 
 			return super.act();
 		}

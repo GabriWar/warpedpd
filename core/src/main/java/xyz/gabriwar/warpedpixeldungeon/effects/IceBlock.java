@@ -22,10 +22,10 @@
 package xyz.gabriwar.warpedpixeldungeon.effects;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Gizmo;
-import com.watabou.noosa.audio.Sample;
 
 public class IceBlock extends Gizmo {
 	
@@ -58,7 +58,7 @@ public class IceBlock extends Gizmo {
 
 		if (visible) {
 			Splash.at( target.center(), 0xFFB2D6FF, 5 );
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER );
+			SpatialSound.play( Assets.Sounds.SHATTER, target.ch );
 		}
 	}
 	

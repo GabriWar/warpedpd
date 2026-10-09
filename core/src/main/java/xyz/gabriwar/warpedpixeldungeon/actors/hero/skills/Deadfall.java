@@ -33,13 +33,13 @@ import xyz.gabriwar.warpedpixeldungeon.items.stones.StoneOfBlast;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -120,7 +120,7 @@ public class Deadfall extends Skill {
 			xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField.place( curUser, xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField.RIGGED, level, RIG_TURNS, cells ).origin = cell;
 			curUser.MP -= getManaCost();
 			castTextYell();
-			Sample.INSTANCE.play( Assets.Sounds.TRAMPLE, 1f, 0.8f );
+			SpatialSound.play( Assets.Sounds.TRAMPLE, cell, 1f, 0.8f );
 			CellEmitter.get( cell ).burst( Speck.factory( Speck.DUST ), 6 );
 			Dungeon.hero.sprite.operate( Dungeon.hero.pos );
 			curUser.spendAndNext( TIME_TO_USE );
@@ -154,7 +154,7 @@ public class Deadfall extends Skill {
 		rigged.detach();
 		int cell = rigged.origin;
 		int rank = Math.max( 1, rigged.rank );
-		Sample.INSTANCE.play( Assets.Sounds.ROCKS, 1f, 1.0f );
+		SpatialSound.play( Assets.Sounds.ROCKS, cell, 1f, 1.0f );
 		Camera.main.shake( 2, 0.4f );
 		StoneOfBlast look = new StoneOfBlast();
 		//the rumble first: dust shaken loose in a ring round the rigging, then the weight comes
@@ -168,7 +168,7 @@ public class Deadfall extends Skill {
 		}
 		t.at( 0.5f, () -> {
 			Camera.main.shake( 1, 0.2f );
-			Sample.INSTANCE.play( Assets.Sounds.ROCKS_LIGHT, 0.7f, 0.9f );
+			SpatialSound.play( Assets.Sounds.ROCKS_LIGHT, cell, 0.7f, 0.9f );
 		} );
 		int order = 0;
 		for (int c : rigged.cells){

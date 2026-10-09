@@ -21,6 +21,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon;
 
+import xyz.gabriwar.warpedpixeldungeon.audio.RoomAcoustics;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.debug.ScreenshotTour;
 import xyz.gabriwar.warpedpixeldungeon.debug.TrailerTour;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -80,9 +82,12 @@ public class WarpedPixelDungeon extends Game {
 		Sample.INSTANCE.volume( WPDSettings.SFXVol()*WPDSettings.SFXVol()/100f );
 		Sample.INSTANCE.ambientEnable( WPDSettings.ambience() );
 		Sample.INSTANCE.ambientVolume( WPDSettings.ambienceVol()*WPDSettings.ambienceVol()/100f );
+		SpatialSound.on = WPDSettings.spatialAudio();
 
 		Sample.INSTANCE.load( Assets.Sounds.all );
 		Sample.INSTANCE.load( xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientSound.assets() );
+		//after the effects: its own files queue behind theirs
+		RoomAcoustics.enable( WPDSettings.roomAcoustics() );
 		
 	}
 

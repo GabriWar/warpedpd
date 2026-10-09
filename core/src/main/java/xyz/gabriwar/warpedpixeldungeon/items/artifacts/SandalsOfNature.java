@@ -28,6 +28,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MagicImmune;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
@@ -58,7 +59,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PointF;
 import com.watabou.utils.Random;
@@ -311,7 +311,7 @@ public class SandalsOfNature extends Artifact {
 
 				Hero hero = Dungeon.hero;
 				hero.sprite.operate( hero.pos );
-				Sample.INSTANCE.play( Assets.Sounds.PLANT );
+				SpatialSound.play( Assets.Sounds.PLANT, hero );
 				hero.busy();
 				hero.spend( Actor.TICK );
 				if (seeds.size() >= 3+(level()*3)){
@@ -350,8 +350,8 @@ public class SandalsOfNature extends Artifact {
 
 					Plant plant = ((Plant.Seed) Reflection.newInstance(curSeedEffect)).couch(cell, null);
 					plant.activate(Actor.findChar(cell));
-					Sample.INSTANCE.play(Assets.Sounds.PLANT);
-					Sample.INSTANCE.playDelayed(Assets.Sounds.TRAMPLE, 0.25f, 1, Random.Float( 0.96f, 1.05f ) );
+					SpatialSound.play(Assets.Sounds.PLANT, cell);
+					SpatialSound.playDelayed(Assets.Sounds.TRAMPLE, 0.25f, cell, 1, Random.Float( 0.96f, 1.05f ) );
 
 					if (Actor.findChar(cell) != null){
 						artifactProc(Actor.findChar(cell), visiblyUpgraded(), seedChargeReqs.getOrDefault(curSeedEffect, 20));

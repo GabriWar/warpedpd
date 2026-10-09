@@ -26,12 +26,12 @@ package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 
 /**
  * The ward over the Pedigree Hall's three plinths. It marks the cells they stand on and
@@ -67,14 +67,15 @@ public class PedigreeWard extends Blob {
 	}
 
 	private void shatter(){
-		boolean seen = false;
+		//the cell nearest the hero seen to shatter, where the sound comes from
+		int seen = -1;
 		for (int cell = 0; cell < off.length; cell++){
 			if (off[cell] <= 0) continue;
 			Heap heap = Dungeon.level.heaps.get( cell );
 			if (heap != null){
 				heap.destroy();
 				if (Dungeon.level.heroFOV[cell]){
-					seen = true;
+					seen = SpatialSound.nearer( seen, cell );
 					CellEmitter.center( cell ).burst( Speck.factory( Speck.STAR ), 8 );
 					CellEmitter.get( cell ).burst( Speck.factory( Speck.DUST ), 4 );
 				}
@@ -82,8 +83,8 @@ public class PedigreeWard extends Blob {
 			off[cell] = 0;
 		}
 		volume = 0;
-		if (seen){
-			Sample.INSTANCE.play( Assets.Sounds.SHATTER );
+		if (seen >= 0){
+			SpatialSound.play( Assets.Sounds.SHATTER, seen );
 			GLog.w( Messages.get( this, "shattered" ) );
 		}
 	}

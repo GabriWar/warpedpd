@@ -30,8 +30,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import com.watabou.noosa.audio.Sample;
 
 public class FlashingTrap extends Trap {
 
@@ -63,7 +63,7 @@ public class FlashingTrap extends Trap {
 		
 		if (Dungeon.level.heroFOV[pos]) {
 			GameScene.flash(0x80FFFFFF);
-			Sample.INSTANCE.play( Assets.Sounds.BLAST );
+			SpatialSound.play( Assets.Sounds.BLAST, pos );
 		}
 		
 	}

@@ -27,13 +27,13 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.audio.Sample;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.EarthParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
@@ -86,7 +86,7 @@ public class Thorns extends SubSkill1 {
 		boolean seen = enemy.sprite != null && Dungeon.level.heroFOV[enemy.pos];
 		if (seen){
 			enemy.sprite.emitter().burst( LeafParticle.GENERAL, 5 );
-			Sample.INSTANCE.play( Assets.Sounds.HIT_STAB, 0.6f, 1.4f );
+			SpatialSound.play( Assets.Sounds.HIT_STAB, enemy, 0.6f, 1.4f );
 		}
 		if (level >= MAX_LEVEL && enemy.isAlive() && !enemy.properties().contains( Char.Property.BOSS )){
 			Buff.prolong( enemy, Roots.class, 1f );

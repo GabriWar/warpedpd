@@ -27,7 +27,6 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
@@ -36,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AccuracyMark;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -70,7 +70,7 @@ public class Accuracy extends PassiveSkillB1 {
 			new Flare( 4, 16 ).color( 0xFF4444, true ).show( enemy.sprite, 0.5f );
 			enemy.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "bullseye" ) );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.HIT_ARROW, 1f, 1.4f );
+		SpatialSound.play( Assets.Sounds.HIT_ARROW, enemy, 1f, 1.4f );
 		return damage;
 	}
 }

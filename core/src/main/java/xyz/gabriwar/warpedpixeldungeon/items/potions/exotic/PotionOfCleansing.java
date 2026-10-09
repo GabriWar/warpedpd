@@ -33,11 +33,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FlavourBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.LostInventory;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import com.watabou.noosa.Image;
-import com.watabou.noosa.audio.Sample;
 
 public class PotionOfCleansing extends ExoticPotion {
 	
@@ -60,7 +60,7 @@ public class PotionOfCleansing extends ExoticPotion {
 		} else {
 			splash( cell );
 			if (Dungeon.level.heroFOV[cell]) {
-				Sample.INSTANCE.play(Assets.Sounds.SHATTER);
+				SpatialSound.play(Assets.Sounds.SHATTER, cell);
 				identify();
 			}
 			

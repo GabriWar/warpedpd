@@ -31,12 +31,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.NPC;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.Camera;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.BArray;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -103,7 +103,7 @@ public class PotionOfLightning extends Potion {
         }
 
         hero.sprite.parent.addToFront( new Lightning( arcs, null ) );
-        Sample.INSTANCE.play(Assets.Sounds.LIGHTNING);
+        SpatialSound.play(Assets.Sounds.LIGHTNING, hero);
         Camera.main.shake(2, 0.5f);
 
         if (!affected.isEmpty()) {

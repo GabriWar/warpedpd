@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ElmoParticle;
@@ -43,7 +44,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -263,7 +263,7 @@ public class RingOfDisintegration extends Artifact {
 				hero.sprite.operate(hero.pos);
 				hero.busy();
 				hero.spend(2f);
-				Sample.INSTANCE.play(Assets.Sounds.BURNING);
+				SpatialSound.play(Assets.Sounds.BURNING, hero);
 				hero.sprite.emitter().burst(ElmoParticle.FACTORY, 12);
 
 				item.detach(hero.belongings.backpack);

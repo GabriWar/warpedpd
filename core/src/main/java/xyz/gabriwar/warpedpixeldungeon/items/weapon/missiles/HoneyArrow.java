@@ -29,11 +29,11 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bee;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.tweeners.AlphaTweener;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -79,7 +79,7 @@ public class HoneyArrow extends MissileWeapon {
 	public void shatter(Char owner, int pos) {
 
 		if (Dungeon.level.heroFOV[pos]) {
-			Sample.INSTANCE.play(Assets.Sounds.SHATTER);
+			SpatialSound.play(Assets.Sounds.SHATTER, pos);
 			Splash.at(pos, 0xffd500, 5);
 		}
 
@@ -110,7 +110,7 @@ public class HoneyArrow extends MissileWeapon {
 			bee.sprite.alpha(0);
 			bee.sprite.parent.add(new AlphaTweener(bee.sprite, 1, 0.15f));
 
-			Sample.INSTANCE.play(Assets.Sounds.BEE);
+			SpatialSound.play(Assets.Sounds.BEE, pos);
 		}
 	}
 }

@@ -30,6 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bless;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.MountainSites;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -37,7 +38,6 @@ import xyz.gabriwar.warpedpixeldungeon.net.NetManager;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CairnSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 
 import java.util.Locale;
@@ -91,7 +91,7 @@ public class SummitCairn extends NPC {
 		topped = true;
 		if (sprite instanceof CairnSprite) ((CairnSprite) sprite).topped( true );
 		if (hero.sprite != null) hero.sprite.operate( pos );
-		Sample.INSTANCE.play( Assets.Sounds.STURDY );
+		SpatialSound.play( Assets.Sounds.STURDY, pos );
 		ow.revealAround( pos, MountainSites.SUMMIT_VIEW );
 		Buff.prolong( hero, Bless.class, Bless.DURATION * 3f );
 		NetManager.heroLog( hero, GLog.POSITIVE + Messages.get( MountainSites.class, "summit",

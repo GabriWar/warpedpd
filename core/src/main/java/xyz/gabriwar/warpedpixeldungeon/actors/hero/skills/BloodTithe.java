@@ -28,11 +28,11 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import com.watabou.utils.Random;
 
@@ -73,7 +73,7 @@ public class BloodTithe extends Skill {
 			hero.sprite.emitter().burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.BloodParticle.BURST, 6 );
 			hero.sprite.showStatus( xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite.NEGATIVE, Integer.toString( price ) );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.HIT_STAB, 0.7f, 0.6f );
+		SpatialSound.play( Assets.Sounds.HIT_STAB, hero, 0.7f, 0.6f );
 		return true;
 	}
 
@@ -90,6 +90,6 @@ public class BloodTithe extends Skill {
 			hero.sprite.emitter().burst( Speck.factory( Speck.HEALING ), 3 );
 			hero.sprite.showStatus( xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite.POSITIVE, "+" + back );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.DRINK, 0.5f, 1.2f );
+		SpatialSound.play( Assets.Sounds.DRINK, hero, 0.5f, 1.2f );
 	}
 }

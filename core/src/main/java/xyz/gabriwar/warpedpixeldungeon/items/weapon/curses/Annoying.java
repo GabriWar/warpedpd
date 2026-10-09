@@ -26,12 +26,12 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
 
 public class Annoying extends Weapon.Enchantment {
@@ -47,7 +47,7 @@ public class Annoying extends Weapon.Enchantment {
 				mob.beckon(attacker.pos);
 			}
 			attacker.sprite.centerEmitter().start(Speck.factory(Speck.SCREAM), 0.3f, 3);
-			Sample.INSTANCE.play(Assets.Sounds.MIMIC);
+			SpatialSound.play(Assets.Sounds.MIMIC, attacker);
 			Invisibility.dispel();
 			//~1/100 for each rare line, ~1/10 for each common line
 			if (Random.Int(33) != 0) {

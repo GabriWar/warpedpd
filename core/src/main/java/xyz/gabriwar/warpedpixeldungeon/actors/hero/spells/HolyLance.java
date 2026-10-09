@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FlavourBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
@@ -44,7 +45,6 @@ import xyz.gabriwar.warpedpixeldungeon.ui.HeroIcon;
 import xyz.gabriwar.warpedpixeldungeon.ui.QuickSlotButton;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Image;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
@@ -104,7 +104,7 @@ public class HolyLance extends TargetedClericSpell {
 		hero.sprite.zap( target );
 		hero.busy();
 
-		Sample.INSTANCE.play(Assets.Sounds.ZAP);
+		SpatialSound.play(Assets.Sounds.ZAP, hero);
 
 		Char enemy = Actor.findChar(aim.collisionPos);
 		if (enemy != null) {
@@ -121,8 +121,8 @@ public class HolyLance extends TargetedClericSpell {
 										min = max;
 									}
 									enemy.damage(Hero.heroDamageIntRange(min, max), HolyLance.this);
-									Sample.INSTANCE.play( Assets.Sounds.HIT_MAGIC, 1, Random.Float(0.8f, 1f) );
-									Sample.INSTANCE.play( Assets.Sounds.HIT_STAB, 1, Random.Float(0.8f, 1f) );
+									SpatialSound.play( Assets.Sounds.HIT_MAGIC, enemy, 1, Random.Float(0.8f, 1f) );
+									SpatialSound.play( Assets.Sounds.HIT_STAB, enemy, 1, Random.Float(0.8f, 1f) );
 
 									if (enemy.isActive()){
 										Buff.affect(enemy, GuidingLight.Illuminated.class);

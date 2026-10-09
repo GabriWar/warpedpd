@@ -25,11 +25,13 @@
 package xyz.gabriwar.warpedpixeldungeon.effects;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.BlastParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.Camera;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.PointF;
@@ -85,8 +87,10 @@ public class StarStreak extends PixelParticle {
 		}
 		if (parent != null) new Flare( 8, 28 ).color( 0xFFF0B0, true ).show( parent, new PointF( lx, ly ), 0.6f );
 		Camera.main.shake( 3, 0.4f );
-		Sample.INSTANCE.play( Assets.Sounds.BLAST, 0.8f );
-		Sample.INSTANCE.play( Assets.Sounds.ROCKS, 0.7f, 0.8f );
+		//from where it struck
+		int cell = Dungeon.level == null ? -1 : DungeonTilemap.worldToTile( lx, ly, Dungeon.level.width() );
+		SpatialSound.play( Assets.Sounds.BLAST, cell, 0.8f );
+		SpatialSound.play( Assets.Sounds.ROCKS, cell, 0.7f, 0.8f );
 	}
 
 	/** What the star sheds: a pale core that shrinks where it was left, and sparks that drift

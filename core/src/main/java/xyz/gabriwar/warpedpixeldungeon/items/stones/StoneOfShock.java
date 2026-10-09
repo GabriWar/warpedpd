@@ -27,13 +27,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.EnergyParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import com.watabou.utils.BArray;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 
 import java.util.ArrayList;
@@ -47,7 +47,7 @@ public class StoneOfShock extends Runestone {
 	@Override
 	protected void activate(int cell) {
 		
-		Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
+		SpatialSound.play( Assets.Sounds.LIGHTNING, cell );
 		
 		ArrayList<Lightning.Arc> arcs = new ArrayList<>();
 		int hits = 0;
@@ -69,7 +69,7 @@ public class StoneOfShock extends Runestone {
 		if (hits > 0) {
 			curUser.sprite.parent.addToFront( new Lightning( arcs, null ) );
 			curUser.sprite.centerEmitter().burst(EnergyParticle.FACTORY, 10);
-			Sample.INSTANCE.play( Assets.Sounds.LIGHTNING );
+			SpatialSound.play( Assets.Sounds.LIGHTNING, cell );
 			
 			curUser.belongings.charge(1f + hits);
 		}

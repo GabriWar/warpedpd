@@ -26,7 +26,6 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
-import com.watabou.noosa.audio.Sample;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -35,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FletchingFeathers;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 
@@ -80,7 +80,7 @@ public class Fletching extends PassiveSkillA1 {
 		ring.empty();
 		castTextYell();
 		if (enemy.sprite != null) enemy.sprite.emitter().burst( Speck.factory( Speck.WOOL ), 6 );
-		Sample.INSTANCE.play( Assets.Sounds.HIT_ARROW, 1f, 1.4f );
+		SpatialSound.play( Assets.Sounds.HIT_ARROW, enemy, 1f, 1.4f );
 
 		int splinter = Math.max( 1, Math.round( damage * SPLINTER_DAMAGE ) );
 		int order = 0;
@@ -90,7 +90,7 @@ public class Fletching extends PassiveSkillA1 {
 			final float pitch = 1.2f + 0.1f * order++;
 			SkillFX.streak( enemy.pos, victim.pos, new xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.Dart(), () -> {
 				SkillFX.flash( victim );
-				Sample.INSTANCE.play( Assets.Sounds.HIT_ARROW, 0.6f, pitch );
+				SpatialSound.play( Assets.Sounds.HIT_ARROW, victim, 0.6f, pitch );
 			} );
 			if (!victim.isAlive() && level >= MAX_LEVEL) ring.pluck();
 		}

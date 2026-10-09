@@ -54,8 +54,8 @@ import xyz.gabriwar.warpedpixeldungeon.ui.QuickSlotButton;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.quest.vault.VaultBossElemental;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Crystal;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
@@ -700,7 +700,7 @@ abstract public class MissileWeapon extends Weapon {
 	public boolean doPickUp(Hero hero, int pos) {
 		parent = null;
 		if (!UpgradedSetTracker.pickupValid(hero, this)){
-			Sample.INSTANCE.play( Assets.Sounds.ITEM );
+			SpatialSound.play( Assets.Sounds.ITEM, hero );
 			hero.spendAndNext( pickupDelay() );
 			GLog.w(Messages.get(this, "dust"));
 			quantity(0);

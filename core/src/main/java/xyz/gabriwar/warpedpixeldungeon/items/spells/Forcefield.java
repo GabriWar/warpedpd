@@ -30,10 +30,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barrier;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfShielding;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfRecharging;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
-import com.watabou.noosa.audio.Sample;
 
 public class Forcefield extends Spell {
 
@@ -45,7 +45,7 @@ public class Forcefield extends Spell {
 	@Override
 	protected void onCast(Hero hero) {
 		Buff.affect(hero, Barrier.class).incShield(15);
-		Sample.INSTANCE.play(Assets.Sounds.READ);
+		SpatialSound.play(Assets.Sounds.READ, hero);
 		Invisibility.dispel();
 		detach(curUser.belongings.backpack);
 		updateQuickslot();

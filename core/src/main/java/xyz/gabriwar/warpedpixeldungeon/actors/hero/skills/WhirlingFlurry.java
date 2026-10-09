@@ -30,13 +30,13 @@ import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.ArcSpinFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
 
 import java.util.*;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.*;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.*;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.*;
 import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfForce;
@@ -66,7 +66,7 @@ public class WhirlingFlurry extends ActiveSkill3 {
             final float pitch=1.0f+0.08f*struck;
             cuts.at(0.04f*i,()->{
                 WhirlHitFX.show(c);
-                if(hit&&enemy.sprite!=null&&enemy.isAlive()){enemy.sprite.flash();Sample.INSTANCE.play(Assets.Sounds.HIT_SLASH,0.8f,pitch);}
+                if(hit&&enemy.sprite!=null&&enemy.isAlive()){enemy.sprite.flash();SpatialSound.play(Assets.Sounds.HIT_SLASH,enemy,0.8f,pitch);}
             });
             if(!hit)continue;
             struck++;
@@ -78,8 +78,8 @@ public class WhirlingFlurry extends ActiveSkill3 {
         ArcSpinFX.around(hero.sprite,0xFFFFFF,12,0.3f,0,1000,0.4f);
         ArcSpinFX.around(hero.sprite,0xCCE4FF,9,0.22f,180,-820,0.4f);
         hero.sprite.operate(hero.pos);
-        Sample.INSTANCE.play(Assets.Sounds.MISS,1f,0.8f);
-        Sample.INSTANCE.play(Assets.Sounds.MISS,0.7f,1.1f);
+        SpatialSound.play(Assets.Sounds.MISS,hero,1f,0.8f);
+        SpatialSound.play(Assets.Sounds.MISS,hero,0.7f,1.1f);
         hero.MP-=getManaCost();castTextYell();Invisibility.dispel();hero.heroSkills.lastUsed=this;hero.spendAndNext(TIME_TO_USE);
     }
     @Override public int getManaCost(){return (int)Math.ceil(mana*(1+.4*level));}

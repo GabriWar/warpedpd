@@ -27,8 +27,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Golem;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ElmoParticle;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.quest.vault.VaultGolem;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import com.watabou.noosa.TextureFilm;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Callback;
 
@@ -119,7 +119,7 @@ public class GolemSprite extends MobSprite {
 						}
 					}
 				} );
-		Sample.INSTANCE.play( Assets.Sounds.ZAP );
+		SpatialSound.play( Assets.Sounds.ZAP, ch );
 	}
 
 	private boolean died = false;

@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MagicImmune;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Regeneration;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -52,7 +53,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 import com.watabou.utils.PathFinder;
@@ -153,7 +153,7 @@ public class SkeletonKey extends Artifact {
 							GLog.i( Messages.get(SkeletonKey.class, "iron_charges") );
 							return;
 						}
-						Sample.INSTANCE.play(Assets.Sounds.UNLOCK);
+						SpatialSound.play(Assets.Sounds.UNLOCK, target);
 						curUser.sprite.operate(target, new Callback() {
 							@Override
 							public void call() {
@@ -172,7 +172,7 @@ public class SkeletonKey extends Artifact {
 
 					} else if (Dungeon.level.map[target] == Terrain.HERO_LKD_DR) {
 
-						Sample.INSTANCE.play(Assets.Sounds.UNLOCK);
+						SpatialSound.play(Assets.Sounds.UNLOCK, target);
 						curUser.sprite.operate(target, new Callback() {
 							@Override
 							public void call() {
@@ -191,7 +191,7 @@ public class SkeletonKey extends Artifact {
 							GLog.i(Messages.get(SkeletonKey.class, "crystal_charges"));
 							return;
 						}
-						Sample.INSTANCE.play(Assets.Sounds.UNLOCK);
+						SpatialSound.play(Assets.Sounds.UNLOCK, target);
 						curUser.sprite.operate(target, new Callback() {
 							@Override
 							public void call() {
@@ -201,7 +201,7 @@ public class SkeletonKey extends Artifact {
 								charge -= 5;
 								gainExp(2 + 5);
 								Talent.onArtifactUsed(Dungeon.hero);
-								Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
+								SpatialSound.play(Assets.Sounds.TELEPORT, target);
 								CellEmitter.get( target ).start( Speck.factory( Speck.DISCOVER ), 0.025f, 20 );
 								curUser.spendAndNext(Actor.TICK);
 								curUser.sprite.idle();
@@ -254,7 +254,7 @@ public class SkeletonKey extends Artifact {
 							}
 						}
 
-						Sample.INSTANCE.play(Assets.Sounds.UNLOCK);
+						SpatialSound.play(Assets.Sounds.UNLOCK, target);
 						curUser.sprite.operate(target, new Callback() {
 							@Override
 							public void call() {
@@ -291,7 +291,7 @@ public class SkeletonKey extends Artifact {
 							GLog.i(Messages.get(SkeletonKey.class, "gold_charges"));
 							return;
 						}
-						Sample.INSTANCE.play(Assets.Sounds.UNLOCK);
+						SpatialSound.play(Assets.Sounds.UNLOCK, target);
 						curUser.sprite.operate(target, new Callback() {
 							@Override
 							public void call() {
@@ -312,7 +312,7 @@ public class SkeletonKey extends Artifact {
 							GLog.i(Messages.get(SkeletonKey.class, "crystal_charges"));
 							return;
 						}
-						Sample.INSTANCE.play(Assets.Sounds.UNLOCK);
+						SpatialSound.play(Assets.Sounds.UNLOCK, target);
 						curUser.sprite.operate(target, new Callback() {
 							@Override
 							public void call() {
@@ -355,7 +355,7 @@ public class SkeletonKey extends Artifact {
 				}
 
 				int finalClosestIdx = closestIdx;
-				Sample.INSTANCE.play(Assets.Sounds.UNLOCK);
+				SpatialSound.play(Assets.Sounds.UNLOCK, curUser);
 				curUser.sprite.operate(target, new Callback() {
 					@Override
 					public void call() {
@@ -374,7 +374,7 @@ public class SkeletonKey extends Artifact {
 
 						Dungeon.observe();
 						GameScene.updateFog();
-						Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
+						SpatialSound.play(Assets.Sounds.TELEPORT, curUser);
 
 						Talent.onArtifactUsed(Dungeon.hero);
 						curUser.spendAndNext(Actor.TICK);

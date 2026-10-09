@@ -40,8 +40,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import com.watabou.noosa.Camera;
-import com.watabou.noosa.audio.Sample;
 
 /**
  * A shield of light that catches a heavy melee blow, swallows half of it and bashes
@@ -98,8 +98,8 @@ public class Aegis extends SubSkill1 {
 			PulseRingFX.around( hero.sprite, 0xFFEE88, 12, 0.35f );
 			hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "caught" ) );
 		}
-		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 1f, 0.8f );
-		Sample.INSTANCE.play( Assets.Sounds.HIT_STRONG, 0.8f, 1.1f );
+		SpatialSound.play( Assets.Sounds.HIT_PARRY, hero, 1f, 0.8f );
+		SpatialSound.play( Assets.Sounds.HIT_STRONG, hero, 0.8f, 1.1f );
 		Camera.main.shake( 1, 0.2f );
 
 		//at mastery the swallowed half is slammed back into the attacker

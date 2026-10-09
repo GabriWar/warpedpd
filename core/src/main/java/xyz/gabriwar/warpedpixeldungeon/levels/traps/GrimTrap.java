@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
@@ -36,7 +37,6 @@ import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 
 public class GrimTrap extends Trap {
@@ -111,7 +111,7 @@ public class GrimTrap extends Trap {
 									public void call() {
 										finalTarget.damage(finalDmg, GrimTrap.this);
 										if (finalTarget == Dungeon.hero) {
-											Sample.INSTANCE.play(Assets.Sounds.CURSED);
+											SpatialSound.play(Assets.Sounds.CURSED, finalTarget);
 											if (!finalTarget.isAlive()) {
 												Badges.validateDeathFromGrimOrDisintTrap();
 												Dungeon.fail( GrimTrap.this );
@@ -119,7 +119,7 @@ public class GrimTrap extends Trap {
 												if (reclaimed) Badges.validateDeathFromFriendlyMagic();
 											}
 										} else {
-											Sample.INSTANCE.play(Assets.Sounds.BURNING);
+											SpatialSound.play(Assets.Sounds.BURNING, finalTarget);
 										}
 										finalTarget.sprite.emitter().burst(ShadowParticle.UP, 10);
 										next();
@@ -132,7 +132,7 @@ public class GrimTrap extends Trap {
 					}
 				} else {
 					CellEmitter.get(pos).burst(ShadowParticle.UP, 10);
-					Sample.INSTANCE.play(Assets.Sounds.BURNING);
+					SpatialSound.play(Assets.Sounds.BURNING, pos);
 					return true;
 				}
 			}

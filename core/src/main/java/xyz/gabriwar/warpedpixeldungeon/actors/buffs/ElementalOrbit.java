@@ -2,6 +2,8 @@ package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.CinderTrail;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.CurrentSkills;
 import xyz.gabriwar.warpedpixeldungeon.effects.ElementalOrbitFX;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
@@ -62,7 +64,8 @@ public class ElementalOrbit extends Buff {
     }
     public int[] launch(){return count()==0?null:launch(elements[0]);}
     @Override public boolean act(){
-        if (count() == 0){ detach(); return true; }
+        //only the skill launches the orbs: once it is gone (taken away in the debug window) they go too
+        if (count() == 0 || CurrentSkills.skillLevel(target, CinderTrail.class) <= 0){ detach(); return true; }
         warm(); spend(TICK); return true;
     }
     @Override public void fx(boolean on){

@@ -35,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.elixirs.ElixirOfFeatherFall;
 import xyz.gabriwar.warpedpixeldungeon.items.spells.FeatherFall;
@@ -52,7 +53,6 @@ import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
-import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Callback;
 import com.watabou.utils.PointF;
 import com.watabou.utils.Random;
@@ -108,7 +108,8 @@ public class Chasm implements Hero.Doom {
 
 		jumpConfirmed = false;
 
-		Sample.INSTANCE.play( Assets.Sounds.FALLING );
+		//the hero's own fall, wherever the pit he steps into
+		SpatialSound.play( Assets.Sounds.FALLING, Dungeon.hero );
 
 		//off a slice of the world the hero drops onto the slice below, on the
 		//same world cell (the deepest cave has nothing under it)
@@ -233,7 +234,7 @@ public class Chasm implements Hero.Doom {
 					sprite.fall( () -> {
 						if (!seen) return;
 						PointF at = sprite.center();
-						Sample.INSTANCE.play( Assets.Sounds.SHATTER );
+						SpatialSound.play( Assets.Sounds.SHATTER, mob );
 						PixelScene.shake( 2, 0.3f );
 						Splash.at( at, 0xFFB2D6FF, 14 );
 						Splash.at( at, 0xFFFFFFFF, 6 );
