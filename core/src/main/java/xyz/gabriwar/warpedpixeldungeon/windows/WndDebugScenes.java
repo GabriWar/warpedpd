@@ -25,6 +25,7 @@
 package xyz.gabriwar.warpedpixeldungeon.windows;
 
 import xyz.gabriwar.warpedpixeldungeon.debug.DebugScenes;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
 import xyz.gabriwar.warpedpixeldungeon.ui.RedButton;
 import xyz.gabriwar.warpedpixeldungeon.ui.RenderedTextBlock;
@@ -32,7 +33,8 @@ import xyz.gabriwar.warpedpixeldungeon.ui.ScrollPane;
 import xyz.gabriwar.warpedpixeldungeon.ui.Window;
 import com.watabou.noosa.ui.Component;
 
-//the debug scenes, one button each. A WndOptions grows with its options and has no
+//the debug scenes, by group: first the groups (DebugScenes.CATEGORIES, each with its count), then a
+//group's scenes, one button each, with a way back. A WndOptions grows with its options and has no
 //scrolling, so past a screenful of scenes the list ran off the bottom: this one scrolls
 public class WndDebugScenes extends Window {
 
@@ -40,23 +42,42 @@ public class WndDebugScenes extends Window {
 	private static final int BTN_HEIGHT = 16;
 
 	public WndDebugScenes(){
+		this( null );
+	}
+
+	/** A group's scenes, or (null) the groups. */
+	public WndDebugScenes( final String category ){
 		super();
 
 		//as wide as the debug window it opens from
 		int width = WndDebug.width( chrome.marginHor() );
 
-		RenderedTextBlock title = PixelScene.renderTextBlock( "Debug scenes", 9 );
+		RenderedTextBlock title = PixelScene.renderTextBlock( category == null ? "Debug scenes" : "Scenes: " + category, 9 );
 		title.hardlight( TITLE_COLOR );
 		title.setPos( (width - title.width()) / 2f, 0 );
 		add( title );
 
-		RenderedTextBlock note = PixelScene.renderTextBlock(
-				"Sets a situation up around the hero: the hero gets infinite health and the fog is lifted (both stay on; the Hero tab turns them off). "
-				+ "Also from the command line: ./gradlew :desktop:debug -Pscene=<id>", 6 );
-		note.maxWidth( width );
-		note.setPos( 0, title.bottom() + GAP );
-		add( note );
-		float top = note.bottom() + GAP * 2;
+		float top = title.bottom() + GAP;
+		if (category == null){
+			RenderedTextBlock note = PixelScene.renderTextBlock(
+					"Sets a situation up around the hero: the hero gets infinite health and the fog is lifted (both stay on; the Hero tab turns them off). "
+					+ "Also from the command line: ./gradlew :desktop:debug -Pscene=<id>", 6 );
+			note.maxWidth( width );
+			note.setPos( 0, top );
+			add( note );
+			top = note.bottom() + GAP * 2;
+		} else {
+			RedButton back = new RedButton( "< All groups", 6 ){
+				@Override
+				protected void onClick(){
+					WndDebugScenes.this.hide();
+					GameScene.show( new WndDebugScenes() );
+				}
+			};
+			back.setRect( 0, top + GAP, width, BTN_HEIGHT );
+			add( back );
+			top = back.bottom() + GAP * 2;
+		}
 
 		//the pane before its buttons: pointer listeners fire newest first, so a pane made
 		//after the buttons under it would take their presses (see WndDebug). Dragged over its
@@ -64,21 +85,38 @@ public class WndDebugScenes extends Window {
 		ScrollPane pane = new ScrollPane( new Component() );
 		Component content = pane.content();
 		float pos = 0;
-		for (final DebugScenes.Scene scene : DebugScenes.SCENES){
-			RedButton btn = new RedButton( scene.title(), 6 ){
-				@Override
-				protected void onClick(){
-					WndDebugScenes.this.hide();
-					DebugScenes.run( scene );
-				}
-			};
-			btn.multiline = true;
-			btn.setRect( 0, pos, width, BTN_HEIGHT );
-			if (btn.reqHeight() > BTN_HEIGHT) btn.setRect( 0, pos, width, btn.reqHeight() + 2 );
-			content.add( btn );
-			pos = btn.bottom() + GAP;
+		if (category == null){
+			for (final String group : DebugScenes.CATEGORIES){
+				int n = DebugScenes.inCategory( group ).size();
+				if (n == 0) continue;
+				RedButton btn = new RedButton( group + " (" + n + ")", 8 ){
+					@Override
+					protected void onClick(){
+						WndDebugScenes.this.hide();
+						GameScene.show( new WndDebugScenes( group ) );
+					}
+				};
+				btn.setRect( 0, pos, width, BTN_HEIGHT + 2 );
+				content.add( btn );
+				pos = btn.bottom() + GAP;
+			}
+		} else {
+			for (final DebugScenes.Scene scene : DebugScenes.inCategory( category )){
+				RedButton btn = new RedButton( scene.title(), 6 ){
+					@Override
+					protected void onClick(){
+						WndDebugScenes.this.hide();
+						DebugScenes.run( scene );
+					}
+				};
+				btn.multiline = true;
+				btn.setRect( 0, pos, width, BTN_HEIGHT );
+				if (btn.reqHeight() > BTN_HEIGHT) btn.setRect( 0, pos, width, btn.reqHeight() + 2 );
+				content.add( btn );
+				pos = btn.bottom() + GAP;
+			}
 		}
-		content.setSize( width, pos - GAP );
+		content.setSize( width, Math.max( 0, pos - GAP ) );
 		pane.dragOverButtons();
 
 		int maxH = (int)(PixelScene.uiCamera.height - chrome.marginVer() - 20);

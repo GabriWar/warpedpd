@@ -423,6 +423,32 @@ public final class DebugScenes {
 		return all.toArray( new Scene[0] );
 	}
 
+	/** The menu's groups, in order: each scene falls in the first whose test its id passes (by
+	 *  its prefix), the rest in "Other". */
+	public static final String[] CATEGORIES = { "Basics", "Effects", "Water", "Lightning", "Weather",
+			"Sound", "Ambience and critters", "Surface", "Caves and peaks", "Warped rooms", "Other" };
+
+	public static String category( String id ){
+		if (id.startsWith( "water-" )) return "Water";
+		if (id.startsWith( "lightning-" )) return "Lightning";
+		if (id.startsWith( "fx-" )) return "Effects";
+		if (id.startsWith( "weather-" )) return "Weather";
+		if (id.startsWith( "acoustics-" )) return "Sound";
+		if (id.startsWith( "ambience-" )) return "Ambience and critters";
+		if (id.startsWith( "overworld-" )) return "Surface";
+		if (id.startsWith( "layers-" )) return "Caves and peaks";
+		if (id.startsWith( "warped-rooms" )) return "Warped rooms";
+		if (id.startsWith( "fliers-" ) || id.equals( "blank-room" ) || id.startsWith( "pit" )) return "Basics";
+		return "Other";
+	}
+
+	/** The scenes of a group, in menu order. */
+	public static ArrayList<Scene> inCategory( String category ){
+		ArrayList<Scene> out = new ArrayList<>();
+		for (Scene s : SCENES) if (category( s.id() ).equals( category )) out.add( s );
+		return out;
+	}
+
 	public static Scene byId( String id ){
 		for (Scene s : SCENES) if (s.id().equals( id )) return s;
 		return null;
