@@ -37,7 +37,7 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MissileSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.noosa.tweeners.AlphaTweener;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
@@ -117,7 +117,7 @@ public class JupitersWraith extends MissileWeapon {
 				}
 			}
 		}
-		Camera.main.shake(3, 0.7f);
+		Fx.shake(3, 0.7f);
 		updateQuickslot();
 	}
 

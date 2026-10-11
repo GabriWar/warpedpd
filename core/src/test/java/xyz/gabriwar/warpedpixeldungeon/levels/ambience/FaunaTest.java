@@ -146,8 +146,11 @@ public class FaunaTest {
 		EnumSet<Kind> flocks = EnumSet.noneOf( Kind.class );
 		for (Kind k : Kind.values()) if (k.flocks()) flocks.add( k );
 		assertEquals( EnumSet.of( Kind.BUNTING, Kind.FINCH, Kind.GULL ), flocks );
-		//nothing sends a leaping fish off; a stuck fly only struggles
+		//a fish keeps its nearness in FishBrain, so it turns up near the party as ever; a fight
+		//still shakes its water; a stuck fly only struggles
 		assertEquals( 0f, Kind.FISH.scare, 0f );
+		assertEquals( 0f, Kind.FISH.pass, 0f );
+		assertEquals( 96f, Kind.FISH.noise, 0f );
 		assertTrue( Kind.FLY.scare > 0f );
 		for (Air a : Air.values()){
 			assertTrue( a + " every", a.every > 0f && a.every <= a.most );

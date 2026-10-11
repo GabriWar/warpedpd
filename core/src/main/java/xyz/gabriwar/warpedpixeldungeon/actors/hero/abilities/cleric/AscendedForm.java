@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.cleric;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HolyFx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -32,7 +33,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.ArmorAbility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.DivineIntervention;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.ClassArmor;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -52,7 +52,7 @@ public class AscendedForm extends ArmorAbility {
 		Buff.affect(hero, AscendBuff.class).reset();
 		hero.sprite.operate(hero.pos);
 		SpatialSound.play(Assets.Sounds.CHARGEUP, hero);
-		new Flare(6, 48).color(0xFFFF00, true).show(hero.sprite, 2f);
+		HolyFx.star(hero.sprite, HolyFx.BLESS, true, 10);
 
 		armor.charge -= chargeUse(hero);
 		armor.updateQuickslot();

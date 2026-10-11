@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.spells;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HolyFx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -161,6 +162,8 @@ public class GuidingLight extends TargetedClericSpell {
 		public void fx(boolean on) {
 			if (on) target.sprite.add(CharSprite.State.ILLUMINATED);
 			else target.sprite.remove(CharSprite.State.ILLUMINATED);
+			//its mark: a pale gold star circling over its head while it lasts
+			HolyFx.mark(target.sprite, on);
 		}
 
 		@Override

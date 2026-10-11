@@ -27,7 +27,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -90,7 +90,7 @@ public class Challenge extends SubSkill3 {
 			hero.MP -= getManaCost();
 			castTextYell();
 			SpatialSound.play( Assets.Sounds.CHALLENGE, hero, 1f, 1.0f );
-			Camera.main.shake( 1, 0.3f );
+			Fx.shake( 1, 0.3f );
 			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 6 );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );

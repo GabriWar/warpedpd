@@ -32,7 +32,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.utils.Callback;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -61,7 +61,7 @@ public class SpellOfLightningbolt extends ManaSpell {
 		}
 
 		if (ch == Dungeon.hero) {
-			Camera.main.shake(2, 0.3f);
+			Fx.shake(2, 0.3f);
 		}
 
 		affected.add(ch);
@@ -129,7 +129,7 @@ public class SpellOfLightningbolt extends ManaSpell {
 			CellEmitter.center(cell).burst(SparkParticle.FACTORY, 3);
 		}
 
-		curUser.sprite.parent.add(new Lightning(arcs, callback));
+		curUser.sprite.parent.add(new Lightning(arcs, callback).major());
 	}
 
 	@Override

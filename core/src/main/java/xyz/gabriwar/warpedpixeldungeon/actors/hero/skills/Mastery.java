@@ -27,7 +27,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.utils.Random;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -80,7 +80,7 @@ public class Mastery extends PassiveSkillB3 {
 			enemy.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
 		}
 		SpatialSound.play( Assets.Sounds.HIT_PARRY, enemy, 1f, 1.1f );
-		Camera.main.shake( 1, 0.15f );
+		Fx.shake( 1, 0.15f );
 		enemy.damage( Math.max( 0, wep.damageRoll( hero ) - enemy.drRoll() ), this );
 
 		//+3: the blow throws it back the way it came

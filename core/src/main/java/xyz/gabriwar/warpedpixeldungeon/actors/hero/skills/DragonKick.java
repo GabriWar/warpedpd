@@ -26,7 +26,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
@@ -164,7 +164,7 @@ public class DragonKick extends SubSkill3 {
 		victim.damage( Random.NormalIntRange( minDamage(), maxDamage() ), this );
 		Wound.hit( victim );
 		SpatialSound.play( Assets.Sounds.HIT_STRONG, victim, 1f, 0.8f );
-		Camera.main.shake( 2, 0.3f );
+		Fx.shake( 2, 0.3f );
 		new Flare( 6, 26 ).color( 0xFFAA44, true ).show( hero.sprite, 0.5f );
 
 		int w = Dungeon.level.width();
@@ -213,7 +213,7 @@ public class DragonKick extends SubSkill3 {
 			}
 			CellEmitter.center( victim.pos ).burst( Speck.factory( Speck.ROCK ), 5 );
 			SpatialSound.play( Assets.Sounds.ROCKS, victim, 0.8f, 1.2f );
-			Camera.main.shake( 3, 0.3f );
+			Fx.shake( 3, 0.3f );
 		}
 
 		//+3: where it comes down, the enemies around it are left dazed

@@ -27,7 +27,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
@@ -76,7 +76,7 @@ public class UndyingWill extends SubSkill3 {
 			SpatialSound.play( Assets.Sounds.CHALLENGE, hero, 1f, 0.7f );
 			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.RED_LIGHT ), 5 );
 			new Flare( 6, 22 ).color( 0xFF5544, true ).show( hero.sprite, 0.8f );
-			Camera.main.shake( 1, 0.2f );
+			Fx.shake( 1, 0.2f );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
 			hero.busy();
@@ -102,7 +102,7 @@ public class UndyingWill extends SubSkill3 {
 			hero.sprite.showStatus( CharSprite.NEGATIVE, Messages.get( this, "hold" ) );
 		}
 		SpatialSound.play( Assets.Sounds.CHALLENGE, hero, 1f, 0.5f );
-		Camera.main.shake( 2, 0.3f );
+		Fx.shake( 2, 0.3f );
 		return damage - (endurance - 1);
 	}
 

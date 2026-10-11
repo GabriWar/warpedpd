@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.Reflection;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -59,7 +60,9 @@ public class CaveGlow extends Image {
 	//the face is the facet mask laid from the cell above (a blue crystal), or the cap mask on the
 	//cell, or nothing (a crystal of another colour, a vein: the halo and the sparks only)
 	private final boolean face, tall;
-	private final int sparkColour;
+	private final int sparkColour, colour;
+	//its light thrown down any water below it (effects/fx/fire/Reflection)
+	private final Reflection reflection = new Reflection();
 	private final float a;
 	private float t, level, target, vis, sparkIn, sparkT = -1f;
 	private int sparkX, sparkY;
@@ -92,6 +95,7 @@ public class CaveGlow extends Image {
 		halo.x = cx - 4;
 		halo.y = cy + (kind == MUSHROOM ? -6 : kind == CRYSTAL ? -14 : -8);
 		sparkColour = kind == CRYSTAL && !facets ? 0xFFFFFF : mix( colour, 0xFFFFFF, 0.6f );
+		this.colour = colour;
 		a = Random.Float( 6.283f );
 		sparkIn = Random.Float( 1f, 5f );
 	}
@@ -155,6 +159,7 @@ public class CaveGlow extends Image {
 		float on = level * vis * f;
 		alpha( Math.min( 1f, on * (kind == MUSHROOM ? 0.85f : 0.55f) ) );
 		halo.alpha( Math.min( 1f, on * (kind == MUSHROOM ? 0.45f : 0.28f) ) );
+		reflection.update( cellX() + 8, cellY() + 12, colour, on * 0.5f );
 		if (kind != MUSHROOM) glint( dt );
 	}
 
@@ -204,6 +209,7 @@ public class CaveGlow extends Image {
 
 	//off the scene for good, its vertex buffers freed with it (the world is one long scene)
 	private void takeOff(){
+		reflection.out();
 		halo.killAndErase();
 		halo.destroy();
 		if (spark != null){

@@ -39,6 +39,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.DungeonCritterSprite.Scuttler;
 import xyz.gabriwar.warpedpixeldungeon.effects.DungeonCritterSprite.Snail;
 import xyz.gabriwar.warpedpixeldungeon.effects.DungeonCritterSprite.Spider;
 import xyz.gabriwar.warpedpixeldungeon.effects.DungeonCritterSprite.Strider;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.WaterFX;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientPlayer;
@@ -706,6 +707,27 @@ public class DungeonCritterSpriteTest {
 		assertFalse( s.calm() );
 		assertTrue( runOut( s, 2f ) <= 0.7f + 2 * DT );
 		assertFalse( s.exists );
+	}
+
+	@Test
+	public void aStriderDartsFromAStirOfTheWaterWithin32PxButNotFurther(){
+		Level l = floor( 20, 20, Terrain.WATER );
+		Dungeon.level = l;
+		Strider near = new Strider( 240f, 240f ), far = new Strider( 60f, 60f );
+		run( near, 1f );
+		run( far, 1f );
+		assertTrue( near.calm() );
+		assertTrue( far.calm() );
+		//a stone into the water 30 px off the one, far off the other: read next frame
+		WaterFX.sceneCreated();
+		WaterFX.disturb( near.gx() + 30f, near.gy(), 24f, false );
+		WaterFX.frame();
+		Game.timeTotal += DT;
+		frame( near, DT );
+		frame( far, DT );
+		assertFalse( "stirred 30 px off, it darts", near.calm() );
+		assertTrue( "far off, it glides on", far.calm() );
+		WaterFX.sceneCreated();
 	}
 
 	// ------------------------------------------------------------ the statues

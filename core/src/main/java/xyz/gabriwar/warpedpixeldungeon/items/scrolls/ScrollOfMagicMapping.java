@@ -27,6 +27,7 @@ import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.SpellSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.arcane.ItemFx;
 import xyz.gabriwar.warpedpixeldungeon.items.misc.Spectacles;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -53,6 +54,7 @@ public class ScrollOfMagicMapping extends Scroll {
 
 		detach(curUser.belongings.backpack);
 		boolean noticed = mapCurrentLevel();
+		ItemFx.mapping( curUser );
 		
 		GLog.i( Messages.get(this, "layout") );
 		if (noticed) {
@@ -108,5 +110,6 @@ public class ScrollOfMagicMapping extends Scroll {
 	
 	public static void discover( int cell ) {
 		CellEmitter.get( cell ).start( Speck.factory( Speck.DISCOVER ), 0.1f, 4 );
+		ItemFx.secret( cell );
 	}
 }

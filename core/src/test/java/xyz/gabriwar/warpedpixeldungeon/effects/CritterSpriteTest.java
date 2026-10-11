@@ -24,14 +24,27 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects;
 
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.WaterFX;
+import xyz.gabriwar.warpedpixeldungeon.levels.Level;
+import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.WarpedRoomsTest;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import com.watabou.noosa.Game;
+import com.watabou.noosa.Gizmo;
+import com.watabou.noosa.Group;
 import com.watabou.noosa.particles.Emitter;
+import com.watabou.utils.SparseArray;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -41,7 +54,8 @@ import static org.junit.Assert.assertTrue;
  * The critters' own motion, headless (no GL is touched until a sprite is drawn): a scared
  * bird is up and gone inside two seconds, a hare runs its dash and is gone, a butterfly keeps
  * to its patch, and - the rebase contract - a picture slid with the effects group stays
- * exactly where the slide put it, however many times follow() is called before its update.
+ * exactly where the slide put it, however many times follow() is called before its update. A
+ * leaping fish gives itself away under the water first, then arcs, and falls back ringing it.
  */
 public class CritterSpriteTest {
 
@@ -269,5 +283,71 @@ public class CritterSpriteTest {
 			float d1 = (float)Math.hypot( b.gx() - sx, b.gy() - sy );
 			assertTrue( "only " + (d1 - d0) + "px further off", d1 - d0 > 15f );
 		}
+	}
+
+	@Test
+	public void aLeapingFishGivesItselfAwayThenArcsAndFallsBackRinging(){
+		Level was = Dungeon.level;
+		Group[] layers = new Group[GameScene.Layer.values().length];
+		for (int i = 0; i < layers.length; i++) layers[i] = new Group();
+		GameScene.useLayersForTests( layers );
+		try {
+			Level l = new Level(){
+				@Override protected boolean build(){ return true; }
+				@Override protected void createMobs(){ }
+				@Override protected void createItems(){ }
+			};
+			l.setSize( 20, 20 );
+			l.mobs = new HashSet<>();
+			l.heaps = new SparseArray<>();
+			l.blobs = new HashMap<>();
+			l.plants = new SparseArray<>();
+			l.traps = new SparseArray<>();
+			Arrays.fill( l.map, Terrain.WATER );
+			l.buildFlagMaps();
+			Dungeon.level = l;
+			WaterFX.sceneCreated();
+			Fx.sceneCreated();
+			Group surface = layers[GameScene.Layer.SURFACE.ordinal()], under = layers[GameScene.Layer.SUBSURFACE.ordinal()];
+			CritterSprite.Fish f = new CritterSprite.Fish( false, 160f, 160f, 1 );
+			assertEquals( "the bulge where it will break the water", 1, alive( surface ) );
+			assertEquals( "its shadow under the surface", 1, alive( under ) );
+			//for a quarter second only the water gives it away: no fish in the air yet
+			float x0 = f.gx();
+			for (int i = 0; i < 12; i++){
+				frame( f, DT );
+				surface.update();
+				WaterFX.frame();
+				assertEquals( 0f, f.alpha(), 0f );
+				assertEquals( x0, f.gx(), 0f );
+			}
+			//then the leap: up out of the water, the shadow gone
+			for (int i = 0; i < 6; i++) frame( f, DT );
+			assertTrue( f.alpha() > 0f );
+			assertEquals( 0, alive( under ) );
+			assertTrue( f.gx() > x0 );
+			//and back in: a ring, then a large one, then it is gone
+			int most = 0;
+			float t = 0f;
+			while (f.exists && t < 3f){
+				frame( f, DT );
+				surface.update();
+				WaterFX.frame();
+				most = Math.max( most, alive( surface ) );
+				t += DT;
+			}
+			assertFalse( f.exists );
+			assertTrue( "the rings it fell back with: " + most, most >= 2 );
+		} finally {
+			GameScene.useLayersForTests( null );
+			Dungeon.level = was;
+			WaterFX.sceneCreated();
+		}
+	}
+
+	private static int alive( Group g ){
+		int n = 0;
+		for (Gizmo m : g.membersView()) if (m != null && m.alive && m.visible) n++;
+		return n;
 	}
 }

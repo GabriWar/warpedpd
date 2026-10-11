@@ -21,14 +21,21 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.particles.Emitter.Factory;
 import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.PointF;
-import com.watabou.utils.Random;
 
-public class BloodParticle extends PixelParticle.Shrinking {
-	
+//a drop of blood: a square of whole pixels shrinking a pixel at a time (4, 3, 2, 1 at each quarter of
+//its life, never between) and darkening as it goes, falling a little; or (BURST) flung out from a
+//wound. Matter: drawn as it is, never added. Its randomness the effects' own (it is made on the
+//render thread). Used in the world and on the boss's health bar alike
+public class BloodParticle extends PixelParticle {
+
+	/** Its colours: fresh, then darker for the second half of its life. */
+	public static final int FRESH = 0xCC0000, DARK = 0x8A0A14;
+
 	public static final Emitter.Factory FACTORY = new Factory() {
 		@Override
 		public void emit( Emitter emitter, int index, float x, float y ) {
@@ -41,30 +48,31 @@ public class BloodParticle extends PixelParticle.Shrinking {
 		public void emit( Emitter emitter, int index, float x, float y ) {
 			((BloodParticle)emitter.recycle( BloodParticle.class )).resetBurst( x, y );
 		}
-		@Override
-		public boolean lightMode() {
-			return true;
-		}
 	};
-	
+
+	private boolean burst;
+
 	public BloodParticle() {
 		super();
-		
-		color( 0xCC0000 );
+
+		color( FRESH );
 		lifespan = 0.8f;
-		
+
 		acc.set( 0, +40 );
 	}
-	
+
 	public void reset( float x, float y ) {
 		revive();
-		
+
 		this.x = x;
 		this.y = y;
-		
+
+		lifespan = 0.8f;
 		left = lifespan;
-		
-		size = 4;
+		burst = false;
+
+		size( size = 4 );
+		color( FRESH );
 		speed.set( 0 );
 	}
 
@@ -74,16 +82,26 @@ public class BloodParticle extends PixelParticle.Shrinking {
 		this.x = x;
 		this.y = y;
 
-		speed.polar( Random.Float(PointF.PI2), Random.Float( 16, 32 ) );
-		size = 5;
-
-		left = 0.5f;
+		speed.polar( FxRandom.Float( PointF.PI2 ), FxRandom.Float( 16, 32 ) );
+		lifespan = 0.5f;
+		left = lifespan;
+		burst = true;
+		size( size = 4 );
+		color( FRESH );
 	}
-	
+
+	/** Its side with `p` of its life left: 4, 3, 2, 1 px. */
+	public static int side( float p ){
+		return p > 0.75f ? 4 : p > 0.5f ? 3 : p > 0.25f ? 2 : 1;
+	}
+
 	@Override
 	public void update() {
 		super.update();
 		float p = left / lifespan;
-		am = p > 0.6f ? (1 - p) * 2.5f : 1;
+		int s = side( p );
+		if (s != size) size( size = s );
+		color( p > 0.5f ? FRESH : DARK );
+		am = burst ? Math.min( 1f, p * 2.5f ) : (p > 0.6f ? (1 - p) * 2.5f : 1);
 	}
 }

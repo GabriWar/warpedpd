@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Charm;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.arcane.ItemFx;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -82,6 +83,7 @@ public class ScrollOfSirensSong extends ExoticScroll {
 			} else {
 
 				curUser.sprite.centerEmitter().start( Speck.factory( Speck.HEART ), 0.2f, 5 );
+				ItemFx.flyToNear( curUser, 8, Speck.HEART );
 				SpatialSound.play( Assets.Sounds.CHARMS, curUser );
 				SpatialSound.playDelayed( Assets.Sounds.LULLABY, 0.1f, curUser );
 

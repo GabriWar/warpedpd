@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.arcane.ItemFx;
 import xyz.gabriwar.warpedpixeldungeon.levels.RegularLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.Room;
@@ -80,7 +81,7 @@ public class ScrollOfTeleportation extends Scroll {
 			return false;
 		}
 		
-		appear( ch, pos );
+		teleportAppear( ch, pos );
 		Dungeon.level.occupyCell( ch );
 		Buff.detach(ch, Roots.class);
 		if (ch == Dungeon.hero) {
@@ -123,7 +124,7 @@ public class ScrollOfTeleportation extends Scroll {
 			
 		} else {
 			
-			appear( ch, pos );
+			teleportAppear( ch, pos );
 			Dungeon.level.occupyCell( ch );
 			Buff.detach(ch, Roots.class);
 			
@@ -199,7 +200,7 @@ public class ScrollOfTeleportation extends Scroll {
 				}
 			}
 			GLog.i( Messages.get(ScrollOfTeleportation.class, "tele") );
-			appear( hero, pos );
+			teleportAppear( hero, pos );
 			Dungeon.level.occupyCell( hero );
 			Buff.detach(hero, Roots.class);
 			if (secretDoor && level.map[doorPos] == Terrain.SECRET_DOOR){
@@ -264,7 +265,7 @@ public class ScrollOfTeleportation extends Scroll {
 			return false;
 		}
 
-		appear( ch, pos );
+		teleportAppear( ch, pos );
 		Dungeon.level.occupyCell( ch );
 
 		Buff.detach(ch, Roots.class);
@@ -279,6 +280,15 @@ public class ScrollOfTeleportation extends Scroll {
 
 		return true;
 
+	}
+
+	//a teleport's own: appear() with its shafts of light where it leaves and lands; appear() alone
+	//is every other blink, swap and summon's step, which keep their own looks
+	private static void teleportAppear( Char ch, int pos ){
+		int from = ch.pos;
+		boolean seenFrom = Dungeon.level.heroFOV[from] && ch != Dungeon.hero;
+		appear( ch, pos );
+		ItemFx.teleport( from, pos, seenFrom, Dungeon.level.heroFOV[pos] || ch == Dungeon.hero );
 	}
 
 	public static void appear( Char ch, int pos ) {
@@ -323,6 +333,7 @@ public class ScrollOfTeleportation extends Scroll {
 		}
 
 		Dungeon.level.occupyCell(ch);
+		ItemFx.teleport( -1, ch.pos, false, Dungeon.level.heroFOV[ch.pos] );
 
 		if (ch.invisible == 0) {
 			ch.sprite.alpha( 0 );

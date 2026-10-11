@@ -27,6 +27,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.arcane.ChargeGlow;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.special.SentryRoom;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.Game;
@@ -38,6 +39,8 @@ public abstract class SentrySprite extends MobSprite {
 
 	private final Animation charging;
 	private Emitter chargeParticles;
+	//the charge's glow where its motes gather (its anticipation)
+	private final ChargeGlow chargeGlow = new ChargeGlow();
 
 	protected abstract int texOffset();
 
@@ -63,9 +66,9 @@ public abstract class SentrySprite extends MobSprite {
 		flash();
 		emitter().burst(MagicMissile.WardParticle.UP, 2);
 		if (Actor.findChar(pos) != null){
-			parent.add(new Beam.DeathRay(center(), Actor.findChar(pos).sprite.center()));
+			parent.add(new Beam.DeathRay(center(), Actor.findChar(pos).sprite.center()).lite());
 		} else {
-			parent.add(new Beam.DeathRay(center(), DungeonTilemap.raisedTileCenterToWorld(pos)));
+			parent.add(new Beam.DeathRay(center(), DungeonTilemap.raisedTileCenterToWorld(pos)).lite());
 		}
 		SpatialSound.play( Assets.Sounds.RAY, ch );
 		((SentryRoom.Sentry)ch).onZapComplete();
@@ -93,6 +96,7 @@ public abstract class SentrySprite extends MobSprite {
 	@Override
 	public void kill() {
 		super.kill();
+		chargeGlow.release();
 		if (chargeParticles != null){
 			chargeParticles.killAndErase();
 		}
@@ -129,6 +133,7 @@ public abstract class SentrySprite extends MobSprite {
 			chargeParticles.pos( center() );
 			chargeParticles.visible = visible;
 		}
+		chargeGlow.update( this, chargeParticles != null && chargeParticles.on && visible, 0x88CCFF );
 
 		if (!paused){
 			if (Float.isNaN(baseY)) baseY = y;

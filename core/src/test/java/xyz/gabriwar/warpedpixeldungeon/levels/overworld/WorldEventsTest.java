@@ -1166,15 +1166,16 @@ public class WorldEventsTest {
 		float elapsed = Game.elapsed;
 		try {
 			Game.elapsed = 0.016f;
-			StarStreak.Trail core = new StarStreak.Trail();
-			core.core( 10, 10 );
-			core.update();
-			assertTrue( core.scale.x > 0 );
-			StarStreak.Trail ember = new StarStreak.Trail();
-			ember.ember( 10, 10 );
-			ember.update();
-			assertTrue( ember.scale.x > 0 );
-			assertTrue( ember.alive );
+			//its head and the trail it sheds by time (effects/fx/fire's kit particles), shown
+			StarStreak star = new StarStreak().setup( new com.watabou.utils.PointF( 10, 10 ),
+					new com.watabou.utils.PointF( 70, 150 ), 0.7f, false );
+			new com.watabou.noosa.Group().add( star );
+			for (int i = 0; i < 5; i++) star.update();
+			int shown = 0;
+			for (com.watabou.noosa.Gizmo g : star.membersView()){
+				if (g instanceof com.watabou.noosa.Visual && g.alive && g.visible && ((com.watabou.noosa.Visual) g).scale.x > 0) shown++;
+			}
+			assertTrue( shown > 2 );
 		} finally {
 			Game.elapsed = elapsed;
 		}

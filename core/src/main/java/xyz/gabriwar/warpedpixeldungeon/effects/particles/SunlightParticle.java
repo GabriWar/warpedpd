@@ -24,17 +24,33 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.Nature;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.particles.Emitter.Factory;
-import com.watabou.noosa.particles.PixelParticle;
-import com.watabou.utils.Random;
 
-public class SunlightParticle extends PixelParticle {
+/**
+ * Raw sunlight: the tallest shaft (SHAFT_40) in the sun's white-gold (FFFDE8, one colour: it was a
+ * random one of every colour under FEFF79), brighter than a holy shaft (0.55), in the light layer.
+ * NetVisuals' "sunlight".
+ */
+public class SunlightParticle extends ShaftParticle {
+
+	public static final int COLOR = Nature.SUN;
+	public static final float SUN_PEAK = 0.55f;
 
 	public static final Factory FACTORY = new Factory() {
 		@Override
 		public void emit(Emitter emitter, int index, float x, float y ) {
-			((SunlightParticle)emitter.recycle( SunlightParticle.class )).reset( x, y );
+			if (!allowed( FxBudget.P2, x, y )) return;
+			Emitter carrier = Fx.lightCarrier( SunlightParticle.class );
+			Emitter into = carrier != null ? carrier : emitter;
+			((SunlightParticle) into.recycle( SunlightParticle.class ))
+					.shaft( x, y, FxFrames.Light.SHAFT_40, COLOR, SUN_PEAK, LIFE )
+					.delay( FxRandom.Float( MAX_DELAY ) );
 		}
 		@Override
 		public boolean lightMode() {
@@ -42,32 +58,10 @@ public class SunlightParticle extends PixelParticle {
 		}
 	};
 
-	public SunlightParticle() {
-		super();
-		color( Random.Int( 0xFEFF79 ) );
-		lifespan = 1.2f;
-		speed.set( 0, -6 );
-	}
-
-	private float offs;
-
-	public void reset( float x, float y ) {
-		revive();
-
-		this.x = x;
-		this.y = y;
-
-		offs = -Random.Float( lifespan );
-		left = lifespan - offs;
-	}
-
+	/** A sun shaft standing at (x, y), at once. */
 	@Override
-	public void update() {
-		super.update();
-
-		float p = left / lifespan;
-		am = p < 0.5f ? p : 1 - p;
-		scale.x = (1 - p) * 4;
-		scale.y = 16 + (1 - p) * 16;
+	public SunlightParticle reset( float x, float y ) {
+		shaft( x, y, FxFrames.Light.SHAFT_40, COLOR, SUN_PEAK, LIFE );
+		return this;
 	}
 }

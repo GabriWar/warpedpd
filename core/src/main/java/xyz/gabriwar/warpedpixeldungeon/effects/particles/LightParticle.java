@@ -24,16 +24,31 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.particles.Emitter.Factory;
-import com.watabou.noosa.particles.PixelParticle;
 
-public class LightParticle extends PixelParticle.Shrinking {
+/**
+ * A twinkle of light lifting off: a dot opening to a plus and closing again (MOTE_1, PLUS_3,
+ * MOTE_1 over its 0.35 s), pale gold (FEFFBE), rising and speeding up, on whole pixels, in the
+ * light layer.
+ */
+public class LightParticle extends FxParticle {
+
+	public static final int COLOR = 0xFEFFBE;
+	public static final float LIFE = 0.35f, RISE = -40f;
+	private static final int[][] TWINKLE = { FxFrames.MOTE_1, FxFrames.PLUS_3, FxFrames.MOTE_1 };
 
 	public static final Factory FACTORY = new Factory() {
 		@Override
 		public void emit( Emitter emitter, int index, float x, float y ) {
-			((LightParticle)emitter.recycle( LightParticle.class )).reset( x, y );
+			if (!FxBudget.keep( FxBudget.P3, x, y )) return;
+			Emitter carrier = Fx.lightCarrier( LightParticle.class );
+			((LightParticle)(carrier != null ? carrier : emitter).recycle( LightParticle.class )).reset( x, y );
 		}
 		@Override
 		public boolean lightMode() {
@@ -41,31 +56,11 @@ public class LightParticle extends PixelParticle.Shrinking {
 		}
 	};
 
-	public LightParticle() {
-		super();
-
-		color( 0xFEFFBE );
-		lifespan = 0.2f;
-
-		acc.set( 0, -40 );
-	}
-
-	public void reset( float x, float y ) {
-		revive();
-
-		this.x = x;
-		this.y = y;
-
-		left = lifespan;
-
-		size = 1;
-		speed.set( 0 );
-	}
-
 	@Override
-	public void update() {
-		super.update();
-		float p = left / lifespan;
-		am = p > 0.4f ? (1 - p) * 2 : 1;
+	public LightParticle reset( float x, float y ) {
+		super.reset( x, y );
+		look( TWINKLE, 0 ).paint( COLOR ).light( true ).life( LIFE * FxRandom.Float( 0.85f, 1.15f ) )
+				.alpha( 1f, 0, 0.12f ).vel( 0, -FxRandom.Float( 2f, 6f ) ).gravity( RISE ).snap().priority( FxBudget.P3 );
+		return this;
 	}
 }

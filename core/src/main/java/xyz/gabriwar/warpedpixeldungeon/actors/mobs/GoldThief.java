@@ -138,7 +138,8 @@ public class GoldThief extends Mob {
 
 	@Override
 	protected void dropExtraLoot() {
-		if (!Dungeon.LimitedDrops.CITY_KEY.dropped() && Dungeon.depth < Dungeon.POSTGAME_DEPTH) {
+		//the first one killed, before the postgame or after
+		if (!Dungeon.LimitedDrops.CITY_KEY.dropped()) {
 			Dungeon.LimitedDrops.CITY_KEY.drop();
 			trackedDrop(new CityKey(), 0);
 		}

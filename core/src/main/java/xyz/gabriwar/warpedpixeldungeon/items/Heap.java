@@ -21,6 +21,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.Ash;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.SteamParticle;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -423,11 +425,13 @@ public class Heap implements Bundlable {
 
 	public static void burnFX( int pos ) {
 		CellEmitter.get( pos ).burst( ElmoParticle.FACTORY, 6 );
+		//what burnt curls up as ash after the green flash
+		Ash.flakes( pos, 3 );
 		SpatialSound.play( Assets.Sounds.BURNING, pos );
 	}
 	
 	public static void evaporateFX( int pos ) {
-		CellEmitter.get( pos ).burst( Speck.factory( Speck.STEAM ), 5 );
+		CellEmitter.get( pos ).burst( SteamParticle.FACTORY, 5 );
 	}
 	
 	public boolean isEmpty() {

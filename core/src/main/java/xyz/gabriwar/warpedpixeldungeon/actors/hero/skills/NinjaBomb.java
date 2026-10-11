@@ -25,6 +25,7 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillSequence;
 
@@ -48,7 +49,6 @@ import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import com.watabou.utils.PathFinder;
-import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SmokeParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -112,7 +112,7 @@ public class NinjaBomb extends ActiveSkill2 {
                 }
 				//the plume: a thick column that keeps pouring for a second and drifts, and the smoke
 				//rolling outward one ring of tiles after another, the sleepers nodding off as it reaches them
-				Camera.main.shake( 1, 0.2f );
+				Fx.shake( 1, 0.2f );
 				CellEmitter.get( cell ).burst( SmokeParticle.FACTORY, 8 );
 				CellEmitter.get( cell ).start( SmokeParticle.FACTORY, 0.06f, 20 );
 				FxTimeline t = FxTimeline.start();

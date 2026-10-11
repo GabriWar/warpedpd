@@ -38,10 +38,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 
 public class Spade extends Shovel {
     {
@@ -117,7 +117,7 @@ public class Spade extends Shovel {
             SpatialSound.play(Assets.Sounds.ROCKS, enemy, 1f, 1.1f);
         });
         CellEmitter.get(target).burst(EarthParticle.FACTORY, 6);
-        Camera.main.shake(2, 0.3f);
+        Fx.shake(2, 0.3f);
         if (enemy.isAlive()){
             Ballistica push = new Ballistica(enemy.pos, enemy.pos + (enemy.pos - hero.pos), Ballistica.MAGIC_BOLT);
             WandOfBlastWave.throwChar(enemy, push, 1, false, true, this);

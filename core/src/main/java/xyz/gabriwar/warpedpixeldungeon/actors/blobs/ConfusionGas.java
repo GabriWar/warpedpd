@@ -21,14 +21,13 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
-import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.gas.GasStyle;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 
 public class ConfusionGas extends Blob {
@@ -56,7 +55,7 @@ public class ConfusionGas extends Blob {
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
 
-		emitter.pour( WeatherBlobFX.layered( Speck.factory( Speck.CONFUSION, true ), WeatherBlobFX.SWIRL, 2 ), 0.3f );
+		emitter.pour( GasStyle.CONFUSION.factory(), GasStyle.CONFUSION.pour );
 	}
 
 	@Override

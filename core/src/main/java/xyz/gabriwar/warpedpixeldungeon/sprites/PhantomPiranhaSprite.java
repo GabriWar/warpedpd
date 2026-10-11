@@ -24,7 +24,7 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.water.WaterDrops;
 import com.watabou.noosa.MovieClip;
 import com.watabou.noosa.TextureFilm;
 import com.watabou.noosa.particles.Emitter;
@@ -98,12 +98,22 @@ public class PhantomPiranhaSprite extends MobSprite {
 		}
 	}
 
+	//the cell it last lunged at: its droplets fly that way
+	private int bitten = -1;
+
+	@Override
+	public void attack( int cell ) {
+		bitten = cell;
+		super.attack( cell );
+	}
+
 	@Override
 	public void onComplete( MovieClip.Animation anim ) {
 		super.onComplete( anim );
 
 		if (anim == attack) {
-			GameScene.ripple( ch.pos );
+			//out of the water and back: a crown, droplets flung at what it bit, a ring
+			WaterDrops.lunge( ch.pos, bitten );
 		}
 	}
 }

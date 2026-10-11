@@ -22,12 +22,13 @@
 package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.water.WaterFalls;
+import com.watabou.noosa.Game;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.particles.Emitter.Factory;
 import com.watabou.noosa.particles.PixelParticle;
-import com.watabou.utils.PointF;
-import com.watabou.utils.Random;
 
 public class FlowParticle extends PixelParticle {
 
@@ -43,7 +44,7 @@ public class FlowParticle extends PixelParticle {
 		
 		lifespan = 0.6f;
 		acc.set( 0, 32 );
-		angularSpeed = Random.Float( -360, +360 );
+		angularSpeed = FxRandom.Float( -360, +360 );
 	}
 	
 	public void reset( float x, float y ) {
@@ -68,29 +69,32 @@ public class FlowParticle extends PixelParticle {
 		size( (1 - p) * 4 );
 	}
 
-	public static class Flow extends Emitter {
+	/**
+	 * The water spilling over a pit's lip from the water cell above it (Level.addVisuals): its
+	 * foam along the lip, streaks falling into the pit, a droplet thrown off now and then, a mist
+	 * sinking below (effects/fx/water/WaterFalls). Shown while the hero sees its water.
+	 */
+	public static class Flow extends FxEmitter {
 		
-		private int pos;
+		private final int pos;
+		private final WaterFalls.Fall fall;
 		
 		public Flow( int pos ) {
 			super();
 			
 			this.pos = pos;
-
-			PointF p = DungeonTilemap.tileToWorld( pos );
-			pos( p.x, p.y + DungeonTilemap.SIZE - 1, DungeonTilemap.SIZE, 0);
-
-			pour(FACTORY, 0.05f);
+			fall = WaterFalls.fall( Dungeon.level, pos );
+			add( fall.lip() );
+			autoKill = false;
 		}
 		
 		@Override
 		public void update() {
-			
-			if (visible = (pos < Dungeon.level.heroFOV.length && Dungeon.level.heroFOV[pos])) {
-				
+			boolean seen = pos < Dungeon.level.heroFOV.length && Dungeon.level.heroFOV[pos];
+			if (visible = seen) {
 				super.update();
-
 			}
+			WaterFalls.fall( fall, this, seen, isFrozen() ? 0f : Game.elapsed );
 		}
 	}
 }

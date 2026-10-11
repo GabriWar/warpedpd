@@ -49,31 +49,31 @@ public final class RogueHuntressAuras {
 
 	public static class ShadowLink extends StanceAuraBuff {
 		@Override protected Class<? extends Skill> stance(){ return DoubleStab.class; }
-		@Override protected StanceAuraFX build(){ return new StanceAuraFX( target, 0xB89CE4, 1, ShadowParticle.UP, 0.7f ); }
+		@Override protected StanceAuraFX build(){ return new StanceAuraFX( target, 0xB89CE4, ShadowParticle.UP, 0.7f ); }
 	}
 
 	public static class Aimed extends StanceAuraBuff {
 		@Override protected Class<? extends Skill> stance(){ return AimedShot.class; }
-		@Override protected StanceAuraFX build(){ return new StanceAuraFX( target, 0xB3D699, 3, Speck.factory( Speck.LIGHT ), 0.8f ); }
+		@Override protected StanceAuraFX build(){ return new StanceAuraFX( target, 0xB3D699, Speck.factory( Speck.LIGHT ), 0.8f ); }
 	}
 
 	public static class Double extends StanceAuraBuff {
 		@Override protected Class<? extends Skill> stance(){ return DoubleShot.class; }
-		@Override protected StanceAuraFX build(){ return new StanceAuraFX( target, 0xB3D699, 3, Speck.factory( Speck.STAR ), 0.9f ); }
+		@Override protected StanceAuraFX build(){ return new StanceAuraFX( target, 0xB3D699, Speck.factory( Speck.STAR ), 0.9f ); }
 	}
 
 	public static class Fuse extends StanceAuraBuff {
 		@Override protected Class<? extends Skill> stance(){ return Bombvoyage.class; }
-		@Override protected StanceAuraFX build(){ return new StanceAuraFX( target, 0xDF9979, 2, SmokeParticle.FACTORY, 0.4f ); }
+		@Override protected StanceAuraFX build(){ return new StanceAuraFX( target, 0xDF9979, SmokeParticle.FACTORY, 0.4f ); }
 	}
 
 	public static class Frost extends StanceAuraBuff {
 		@Override protected Class<? extends Skill> stance(){ return FrostArrows.class; }
-		@Override protected StanceAuraFX build(){ return new StanceAuraFX( target, 0xA4E9FF, 0, SnowParticle.FACTORY, 0.5f ); }
+		@Override protected StanceAuraFX build(){ return new StanceAuraFX( target, 0xA4E9FF, SnowParticle.FACTORY, 0.5f ); }
 	}
 
 	public static class Ember extends StanceAuraBuff {
 		@Override protected Class<? extends Skill> stance(){ return EmberArrows.class; }
-		@Override protected StanceAuraFX build(){ return new StanceAuraFX( target, 0xFF9A4A, 2, FlameParticle.FACTORY, 0.7f ); }
+		@Override protected StanceAuraFX build(){ return new StanceAuraFX( target, 0xFF9A4A, FlameParticle.FACTORY, 0.7f ); }
 	}
 }

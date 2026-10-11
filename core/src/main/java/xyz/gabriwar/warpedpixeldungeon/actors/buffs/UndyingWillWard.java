@@ -24,7 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.utils.Bundle;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -96,6 +96,6 @@ public class UndyingWillWard extends Barrier {
 			bearer.sprite.showStatus( CharSprite.WARNING, Messages.get( UndyingWill.class, "shatter" ) );
 		}
 		SpatialSound.play( Assets.Sounds.CHALLENGE, bearer, 1f, 0.6f );
-		Camera.main.shake( 2, 0.25f );
+		Fx.shake( 2, 0.25f );
 	}
 }

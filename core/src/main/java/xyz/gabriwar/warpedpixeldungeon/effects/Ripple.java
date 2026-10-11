@@ -30,13 +30,28 @@ import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 /**
  * A ring on the water (WaterFX): the painted ring frames spreading on the water's surface,
  * mirrored so their far crest catches the sky, in the level's liquid's foam (added, on lava),
- * masked by the shore's tiles. Its y is still a caller's to nudge after it is made (the sewers'
- * pipes ring a cell up). Pooled by the game's scene; WaterFX.ring is the way to make one.
+ * masked by the shore's tiles; it lingers 1.3 times as long on the city's oil (WaterFX.lifeOf).
+ * Its y is still a caller's to nudge after it is made (the sewers' pipes ring a cell up).
+ * Pooled by the game's scene; WaterFX.ring is the way to make one.
  */
 public class Ripple extends FxRing {
 
+	//the size it was made at, and whether it is a first ring's second
+	private int size;
+	private boolean second;
+
 	public Ripple(){
 		super();
+	}
+
+	/** The size it was made at: WaterFX.S, M or L. */
+	public int sizeMade(){
+		return size;
+	}
+
+	/** Whether it is the second ring following a middling or large one. */
+	public boolean isSecond(){
+		return second;
 	}
 
 	/** A middling ring (WaterFX.M) on the middle of a cell. */
@@ -54,14 +69,18 @@ public class Ripple extends FxRing {
 	/** A ring of a size on a point in a colour and alpha of its own, as light or as matter. */
 	public void reset( float x, float y, int size, int color, float alpha, boolean light ){
 		int s = WaterFX.sizeOf( size );
-		setup( x, y, WaterFX.FROM[s], WaterFX.TO[s], WaterFX.LIFE[s], color, alpha, light );
+		this.size = s;
+		second = false;
+		setup( x, y, WaterFX.FROM[s], WaterFX.TO[s], WaterFX.lifeOf( s ), color, alpha, light );
 		mirrorY();
 	}
 
 	/** The second ring after a middling or large one: a size of ring smaller, a little later. */
 	public void second( Ripple first, int size, int color, float alpha, boolean light ){
 		int s = WaterFX.sizeOf( size );
-		setup( first.centerX(), first.centerY(), WaterFX.SECOND_FROM[s], WaterFX.SECOND_TO[s], WaterFX.LIFE[s], color, alpha, light );
+		this.size = s;
+		second = true;
+		setup( first.centerX(), first.centerY(), WaterFX.SECOND_FROM[s], WaterFX.SECOND_TO[s], WaterFX.lifeOf( s ), color, alpha, light );
 		mirrorY();
 		delay( WaterFX.SECOND_AFTER );
 		follow( first );

@@ -29,7 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.noosa.TextureFilm;
 
 public class DwarfLichSprite extends MobSprite {
@@ -66,7 +66,7 @@ public class DwarfLichSprite extends MobSprite {
 		if (!Dungeon.level.adjacent( cell, ch.pos )) {
 			turnTo( ch.pos, cell );
 
-			Camera.main.shake( 3, 0.7f );
+			Fx.shake( 3, 0.7f );
 			if (Dungeon.level.heroFOV[cell]) {
 				CellEmitter.center( cell ).start( Speck.factory( Speck.RATTLE ), 0.1f, 3 );
 				CellEmitter.center( cell ).start( Speck.factory( Speck.ROCK ), 0.07f, 10 );

@@ -27,9 +27,9 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.PointF;
-import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
@@ -110,11 +110,11 @@ public class LastRites extends Skill {
 		if (hero.sprite != null){
 			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 12 );
 			hero.sprite.emitter().burst( ShaftParticle.FACTORY, 6 );
-			new Flare( 8, 36 ).color( 0xFFEE88, true ).show( hero.sprite, 1.5f ).angularSpeed = 120;
+			new Flare( 8, 36 ).color( 0xFFEE88, true ).show( hero.sprite, 1.2f ).angularSpeed = 120;
 			hero.sprite.parent.add( new Beam.LightRay(
 					new PointF( hero.sprite.center().x, hero.sprite.center().y - DungeonTilemap.SIZE * 6 ),
 					hero.sprite.center() ) );
-			Camera.main.shake( 2, 0.4f );
+			Fx.shake( 2, 0.4f );
 		}
 		castText = Messages.get( this, "cast" );
 		castTextYell();

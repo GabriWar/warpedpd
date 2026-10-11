@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HolyFx;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
@@ -162,20 +163,28 @@ public class HolyWater extends MissileWeapon {
 		}
 
 		PathFinder.buildDistanceMap(center, BArray.not(Dungeon.level.solid, null), splashRadius());
+		//what the splash looks like: the cells it sparkles on, the undead it steams off
+		int[] wet = new int[HolyFx.WATER_CELLS], undead = new int[HolyFx.WATER_STEAM];
+		int nWet = 0, nUndead = 0;
 		for (int i = 0; i < PathFinder.distance.length; i++){
 			if (PathFinder.distance[i] == Integer.MAX_VALUE) continue;
 
 			GameScene.add(Blob.seed(i, poolTurns(), HolyWaterPool.class));
 			if (Dungeon.level.heroFOV[i]){
 				CellEmitter.get(i).burst(FlowParticle.FACTORY, 4);
+				if (nWet < wet.length) wet[nWet++] = i;
 			}
 
 			//the splash carries half of the impact to everything else caught in it
 			Char ch = Actor.findChar(i);
+			if (ch != null && nUndead < undead.length && Dungeon.level.heroFOV[i] && Char.hasProp(ch, Char.Property.UNDEAD)){
+				undead[nUndead++] = i;
+			}
 			if (ch != null && ch != attacker && ch != target && damage > 0){
 				ch.damage(damage / 2, this);
 			}
 		}
+		HolyFx.holyWater(center, wet, nWet, undead, nUndead);
 	}
 
 	//no wear at +6, to match reconstitutes(): the stack never thins

@@ -27,7 +27,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.utils.Bundle;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -115,7 +115,7 @@ public class Endurance extends PassiveSkillA1 {
 		}
 		SkillFX.land( hero.pos );
 		SpatialSound.play( Assets.Sounds.ROCKS, hero, 1f, 0.8f );
-		Camera.main.shake( 3, 0.3f );
+		Fx.shake( 3, 0.3f );
 		//the cracks run out from under his boots one ring at a time
 		StaggerFX.ring( hero.pos, level, 0.1f, ( c, r ) -> {
 			CellEmitter.get( c ).burst( Speck.factory( Speck.ROCK ), 2 );

@@ -26,7 +26,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -84,7 +84,7 @@ public class BrutalGrip extends Skill {
 		if (enemy.sprite != null){
 			enemy.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "crush" ) );
 		}
-		Camera.main.shake( 1, 0.2f );
+		Fx.shake( 1, 0.2f );
 		SpatialSound.play( Assets.Sounds.HIT_CRUSH, enemy, 1f, 0.8f );
 		int heroPos = Dungeon.hero.pos;
 		if (level >= MAX_LEVEL && enemy.pos != heroPos){

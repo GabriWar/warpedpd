@@ -27,6 +27,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.lightning.Crackle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
@@ -64,6 +65,10 @@ public class Shocking extends Weapon.Enchantment {
 
 			attacker.sprite.parent.addToFront( new Lightning( arcs, null ) );
 			SpatialSound.play( Assets.Sounds.LIGHTNING, defender );
+			//the charge crackling on everyone it struck, and a faint static on the weapon after
+			Crackle.on( defender.sprite );
+			for (Char ch : affected) Crackle.on( ch.sprite );
+			Crackle.weapon( attacker.sprite );
 			
 		}
 

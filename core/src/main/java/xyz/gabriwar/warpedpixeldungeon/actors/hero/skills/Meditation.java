@@ -96,7 +96,7 @@ public class Meditation extends PassiveSkillA2 {
 			new Flare( 5, 18 ).color( 0x66CCFF, true ).show( hero.sprite, 1f );
 			hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 4 + level );
 			hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "pulse", gain ) );
-			xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX.after( 0.35f, () -> {
+			xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX.after( 0.1f, () -> {
 				if (hero.sprite != null) new Flare( 8, 30 ).color( 0x99DDFF, true ).show( hero.sprite, 0.8f );
 			} );
 		}

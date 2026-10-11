@@ -116,7 +116,7 @@ public class VaultLaser extends NPC {
 				}
 			}
 			if (visible){
-				sprite.parent.add(new Beam.DeathRay(sprite.center(), DungeonTilemap.raisedTileCenterToWorld(beam.collisionPos)));
+				sprite.parent.add(new Beam.DeathRay(sprite.center(), DungeonTilemap.raisedTileCenterToWorld(beam.collisionPos)).lite());
 				if (SFXLastPlayed+80 < WarpedPixelDungeon.realTime) {
 					SpatialSound.play(Assets.Sounds.RAY, pos, 0.5f);
 					SFXLastPlayed = WarpedPixelDungeon.realTime;

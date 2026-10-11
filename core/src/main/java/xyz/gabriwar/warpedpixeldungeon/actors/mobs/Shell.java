@@ -42,7 +42,7 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ShellSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.utils.Callback;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -141,7 +141,7 @@ public class Shell extends Mob implements Callback {
 					enemy.sprite.flash();
 
 					if (enemy == Dungeon.hero) {
-						Camera.main.shake(2, 0.3f);
+						Fx.shake(2, 0.3f);
 
 						if (!enemy.isAlive()) {
 							Dungeon.fail(this);
@@ -197,7 +197,7 @@ public class Shell extends Mob implements Callback {
 				ch.sprite.flash();
 			}
 		}
-		Camera.main.shake(2, 0.3f);
+		Fx.shake(2, 0.3f);
 	}
 
 	private void zapAllMobs() {
@@ -215,7 +215,7 @@ public class Shell extends Mob implements Callback {
 				mob.damage(dmg, new DM100.LightningBolt());
 				mob.sprite.centerEmitter().burst(SparkParticle.FACTORY, 3);
 				mob.sprite.flash();
-				Camera.main.shake(2, 0.3f);
+				Fx.shake(2, 0.3f);
 			}
 		}
 		// Also zap hero if far enough
@@ -237,7 +237,7 @@ public class Shell extends Mob implements Callback {
 				hero.damage(heroDmg, new DM100.LightningBolt());
 				hero.sprite.centerEmitter().burst(SparkParticle.FACTORY, 3);
 				hero.sprite.flash();
-				Camera.main.shake(2, 0.3f);
+				Fx.shake(2, 0.3f);
 			}
 		}
 	}

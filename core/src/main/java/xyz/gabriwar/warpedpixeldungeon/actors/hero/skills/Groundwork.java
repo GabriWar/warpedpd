@@ -27,6 +27,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.utils.PathFinder;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
@@ -43,7 +44,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MagicalSleep;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
 
 public class Groundwork extends Skill {
@@ -83,7 +83,7 @@ public class Groundwork extends Skill {
 		int splash = Math.max( 1, Math.round( damage * (0.05f + 0.15f * level) ) );
 		if (Dungeon.level.heroFOV[enemy.pos]){
 			CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.ROCK ), 4 );
-			Camera.main.shake( 1, 0.15f );
+			Fx.shake( 1, 0.15f );
 		}
 		SpatialSound.play( Assets.Sounds.ROCKS, enemy, 0.7f, 1.2f );
 

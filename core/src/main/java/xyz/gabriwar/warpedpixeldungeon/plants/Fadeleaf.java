@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.plants;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.PlantFx;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -58,6 +59,8 @@ public class Fadeleaf extends Plant {
 			//OV no-arg activate: spawnLasher(pos), which is a no-op
 			return;
 		}
+
+		final int from = ch.pos;
 
 		if (ch instanceof Hero) {
 
@@ -112,6 +115,7 @@ public class Fadeleaf extends Plant {
 		if (Dungeon.level.heroFOV[ch.pos]) {
 			CellEmitter.get( ch.pos ).start( Speck.factory( Speck.LIGHT ), 0.2f, 3 );
 		}
+		if (ch.pos != from) PlantFx.fade( from, ch.pos );
 	}
 
 	@Override
@@ -123,6 +127,7 @@ public class Fadeleaf extends Plant {
 
 	@Override
 	public void attackProc( Char enemy, int damage ) {
+		final int from = enemy.pos;
 		if (enemy instanceof Hero) {
 
 			((Hero)enemy).curAction = null;
@@ -176,6 +181,7 @@ public class Fadeleaf extends Plant {
 		if (Dungeon.level.heroFOV[enemy.pos]) {
 			CellEmitter.get( enemy.pos ).start( Speck.factory( Speck.LIGHT ), 0.2f, 3 );
 		}
+		if (enemy.pos != from) PlantFx.fade( from, enemy.pos );
 	}
 
 	public static class Seed extends Plant.Seed {

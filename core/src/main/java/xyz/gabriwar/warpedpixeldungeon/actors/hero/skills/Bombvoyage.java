@@ -25,6 +25,7 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -106,7 +107,7 @@ public class Bombvoyage extends ActiveSkill3 {
 		SpatialSound.play( Assets.Sounds.BLAST, c0, mult < 1f ? 0.7f : 1f, mult < 1f ? 1.3f : 1f );
 		if (Dungeon.level.heroFOV[c0]){
 			xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.center( c0 ).burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.BlastParticle.FACTORY, 30 );
-			com.watabou.noosa.Camera.main.shake( 2, 0.3f );
+			Fx.shake( 2, 0.3f );
 			if (hero.sprite != null && hero.sprite.parent != null){
 				new Flare( 6, 20 * mult ).color( 0xFFAA44, true ).show( hero.sprite.parent,
 						xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap.tileCenterToWorld( c0 ), 0.4f );

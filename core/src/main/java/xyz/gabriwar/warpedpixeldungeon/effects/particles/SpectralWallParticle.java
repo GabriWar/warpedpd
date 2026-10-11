@@ -22,13 +22,23 @@
 package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Ramp;
+import com.watabou.noosa.Game;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.particles.PixelParticle;
-import com.watabou.utils.ColorMath;
 import com.watabou.utils.GameMath;
-import com.watabou.utils.Random;
 
+/**
+ * The skeleton key's spectral wall: bricks of the region's stone fading in and shrinking away,
+ * each a whole number of pixels on a side as it shrinks (never a fraction), shimmering faintly
+ * (+-12% at about 1 Hz). The key's wall pours them every 0.15 s, about 20 a cell. Its randomness is
+ * the effects' own.
+ */
 public class SpectralWallParticle extends PixelParticle {
+
+	/** The shimmer: its depth and speed (rad/s). */
+	public static final float SHIMMER = 0.12f, SHIMMER_RATE = 6f;
 
 	public static final Emitter.Factory FACTORY = new Emitter.Factory() {
 		@Override
@@ -41,11 +51,11 @@ public class SpectralWallParticle extends PixelParticle {
 			switch (type){
 				case 2:
 					//3/5 chance for a particle in prison
-					if (Random.Int(5) >= 3) return;
+					if (FxRandom.Int(5) >= 3) return;
 					break;
 				case 5:
 					//2/5 chance for a particle in halls
-					if (Random.Int(5) >= 2) return;
+					if (FxRandom.Int(5) >= 2) return;
 					break;
 			}
 
@@ -59,6 +69,7 @@ public class SpectralWallParticle extends PixelParticle {
 
 	private int type = 0; //1-5 for sewers - demon halls
 	private float xScale = 0, yScale = 0;
+	private float phase;
 
 	public SpectralWallParticle() {
 		super();
@@ -78,13 +89,14 @@ public class SpectralWallParticle extends PixelParticle {
 		this.y = y;
 
 		left = lifespan;
+		phase = FxRandom.angle();
 
 		switch (type){
 			case 1:
 				this.x = Math.round(x/7)*7;
 				this.y = Math.round(y/4)*4 - 6;
 				this.x += Math.round(this.y % 8)/4f - 1;
-				color(ColorMath.random(0xD4D4D4, 0xABABAB));
+				color(Ramp.lerp(0xD4D4D4, 0xABABAB, FxRandom.Float()));
 				xScale = 6;
 				yScale = 3;
 				break;
@@ -92,7 +104,7 @@ public class SpectralWallParticle extends PixelParticle {
 				this.x = Math.round(x/7)*7;
 				this.y = Math.round(y/6)*6 - 6;
 				this.x += Math.round(this.y % 8)/4f - 1;
-				color(ColorMath.random(0xc4be9c, 0x9c927d));
+				color(Ramp.lerp(0xc4be9c, 0x9c927d, FxRandom.Float()));
 				xScale = 6;
 				yScale = 5;
 				break;
@@ -100,7 +112,7 @@ public class SpectralWallParticle extends PixelParticle {
 				this.y -= 6;
 				float colorScale = (this.x%16)/16 + (this.y%16)/16;
 				if (colorScale > 1f) colorScale = 2f - colorScale;
-				color(ColorMath.interpolate(0xb7b0a5, 0x6a6662, colorScale));
+				color(Ramp.lerp(0xb7b0a5, 0x6a6662, colorScale));
 				xScale = 5;
 				yScale = 5;
 				break;
@@ -108,14 +120,14 @@ public class SpectralWallParticle extends PixelParticle {
 				this.x = Math.round(x/5)*5;
 				this.y = Math.round(y/5)*5 - 6;
 				this.x += Math.round(this.y % 16)/5f - 2;
-				color(ColorMath.interpolate(0xd0bca3, 0xa38d81));
+				color(Ramp.lerp(0xd0bca3, 0xa38d81, FxRandom.Float()));
 				xScale = 4;
 				yScale = 4;
 				break;
 			case 5:
 				this.x = Math.round(x/4)*4;
 				this.y = Math.round((y+8)/16)*16 - 14;
-				color(ColorMath.interpolate(0xa2947d, 0x594847));
+				color(Ramp.lerp(0xa2947d, 0x594847, FxRandom.Float()));
 				xScale = 4;
 				yScale = 20;
 				break;
@@ -124,7 +136,13 @@ public class SpectralWallParticle extends PixelParticle {
 
 	public void update() {
 		super.update();
-		scale.set((left / lifespan) * xScale, (left / lifespan) * yScale);
+		float k = left / lifespan;
+		//whole pixels as it shrinks
+		int w = Math.round( k * xScale ), h = Math.round( k * yScale );
+		visible = w > 0 && h > 0;
+		scale.set( w, h );
+		phase += Game.elapsed * SHIMMER_RATE;
+		am = 0.6f * (1f - SHIMMER + SHIMMER * (float)Math.sin( phase ));
 	}
 
 }

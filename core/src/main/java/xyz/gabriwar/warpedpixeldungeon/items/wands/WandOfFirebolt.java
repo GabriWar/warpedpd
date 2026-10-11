@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.wands;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.FireHits;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -72,6 +73,8 @@ public class WandOfFirebolt extends DamageWand {
 		}
 
 		GameScene.add(Blob.seed(bolt.collisionPos, 1, Fire.class));
+		//where it struck: its impact, embers and a scorch (visual only)
+		FireHits.firebolt(bolt.collisionPos);
 
 		Char ch = Actor.findChar(bolt.collisionPos);
 		if (ch != null) {

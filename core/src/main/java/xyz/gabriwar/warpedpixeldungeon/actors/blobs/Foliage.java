@@ -21,13 +21,12 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
-import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.BlobFx;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Shadows;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle;
 import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
@@ -96,7 +95,7 @@ public class Foliage extends Blob {
 	@Override
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
-		emitter.start( WeatherBlobFX.layered( ShaftParticle.FACTORY, WeatherBlobFX.motes( 0xB8F090 ), 2 ), 0.6f, 0 );
+		emitter.start( BlobFx.FOLIAGE, BlobFx.FOLIAGE_EVERY, 0 );
 	}
 	
 	@Override

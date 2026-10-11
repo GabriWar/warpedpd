@@ -24,9 +24,9 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.BlobFx;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 
 public class Portal extends Blob {
@@ -48,7 +48,7 @@ public class Portal extends Blob {
 	@Override
 	public void use(BlobEmitter emitter) {
 		super.use(emitter);
-		emitter.start(ShaftParticle.FACTORY, 0.9f, 0);
+		emitter.start(BlobFx.PORTAL, BlobFx.PORTAL_EVERY, 0);
 	}
 
 	@Override

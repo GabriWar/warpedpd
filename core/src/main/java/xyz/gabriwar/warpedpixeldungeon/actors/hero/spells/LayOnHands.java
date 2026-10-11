@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.spells;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HolyFx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -85,9 +86,11 @@ public class LayOnHands extends TargetedClericSpell {
 
 		if (ch == hero){
 			hero.sprite.operate(ch.pos);
+			HolyFx.handGlint(hero.sprite, ch.pos);
 			hero.next();
 		} else {
 			hero.sprite.zap(ch.pos);
+			HolyFx.handGlint(hero.sprite, ch.pos);
 			hero.next();
 		}
 

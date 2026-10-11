@@ -83,6 +83,15 @@ public final class WaterFX {
 		return ALPHA[sizeOf( size )];
 	}
 
+	/** The city's oil holds its rings this much longer. */
+	public static final float OIL_LIFE = 1.3f;
+
+	/** A ring's life on the level's liquid: LIFE, the city's oil's x1.3. */
+	public static float lifeOf( int size ){
+		float life = LIFE[sizeOf( size )];
+		return liquid() == Element.Liquid.CITY ? life * OIL_LIFE : life;
+	}
+
 	// ------------------------------------------------------------------ the liquid
 
 	private static Level liquidOf;
@@ -133,6 +142,29 @@ public final class WaterFX {
 	 * Any thread.
 	 */
 	public static Ripple ring( float x, float y, int size, int color, float alpha, int priority ){
+		return ring( x, y, size, color, alpha, priority, true );
+	}
+
+	/**
+	 * A ring the water's own life makes (a fish rising, a strider's push, a gnat's dip, a fountain's
+	 * fall): as ring(), but it stirs nothing - what lives in the water does not take fright at its
+	 * own. Any thread.
+	 */
+	public static Ripple quietRing( float x, float y, int size, int color, float alpha, int priority ){
+		return ring( x, y, size, color, alpha, priority, false );
+	}
+
+	/** A ring of matter on the lava (its crust's, a bubble's bulge): laid on rather than added,
+	 *  stirring nothing; otherwise as ring(). Any thread. */
+	public static Ripple crustRing( float x, float y, int size, int color, float alpha, int priority ){
+		return ring( x, y, size, color, alpha, priority, false, false );
+	}
+
+	private static Ripple ring( float x, float y, int size, int color, float alpha, int priority, boolean stirs ){
+		return ring( x, y, size, color, alpha, priority, stirs, liquid().ringAdditive );
+	}
+
+	private static Ripple ring( float x, float y, int size, int color, float alpha, int priority, boolean stirs, boolean light ){
 		int s = sizeOf( size );
 		synchronized (WaterFX.class){
 			boolean full = ringsThisFrame >= RINGS_A_FRAME || FxRing.live() >= FxBudget.ringCap();
@@ -145,13 +177,12 @@ public final class WaterFX {
 		}
 		Ripple r = GameScene.recycle( GameScene.Layer.SURFACE, Ripple.class );
 		if (r == null) return null;
-		boolean light = liquid().ringAdditive;
 		r.reset( x, y, s, color, alpha, light );
 		if (s > S){
 			Ripple second = GameScene.recycle( GameScene.Layer.SURFACE, Ripple.class );
 			if (second != null) second.second( r, s, color, alpha, light );
 		}
-		disturb( x, y, DISTURB[s], false );
+		if (stirs) disturb( x, y, DISTURB[s], false );
 		return r;
 	}
 
@@ -222,13 +253,20 @@ public final class WaterFX {
 	 * Render thread.
 	 */
 	public static void droplets( float x, float y, int n, float vMin, float vMax, float spreadDeg, int color ){
+		droplets( x, y, n, vMin, vMax, spreadDeg, color, -90f );
+	}
+
+	/** The same, thrown within spreadDeg of `headingDeg` (degrees, 0 east, -90 straight up): a
+	 *  lunge's droplets flung toward what it struck. */
+	public static void droplets( float x, float y, int n, float vMin, float vMax, float spreadDeg, int color, float headingDeg ){
 		FxEmitter e = Fx.air();
 		if (e == null) return;
 		int k = FxBudget.allow( n, FxBudget.P3 );
 		float spread = (float)Math.toRadians( spreadDeg ) / 2f;
+		float heading = (float)Math.toRadians( headingDeg );
 		for (int i = 0; i < k; i++){
 			if (Droplet.count >= FxBudget.dropletCap()) return;
-			float a = (float)(-Math.PI / 2) + FxRandom.Float( -spread, spread );
+			float a = heading + FxRandom.Float( -spread, spread );
 			Droplet d = (Droplet) e.recycle( Droplet.class );
 			d.reset( x, y );
 			d.look( FxRandom.chance( 0.5f ) ? FxFrames.DROP_2 : FxFrames.DROP_3 ).paint( color ).orient()

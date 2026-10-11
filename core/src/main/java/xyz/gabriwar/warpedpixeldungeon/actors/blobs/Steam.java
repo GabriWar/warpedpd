@@ -24,7 +24,11 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
-import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.SteamParticle;
+import com.watabou.noosa.particles.Emitter;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.TileTemperature;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -32,7 +36,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Steaming;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 
 public class Steam extends Blob {
@@ -60,8 +63,26 @@ public class Steam extends Blob {
 	@Override
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
-		emitter.pour( WeatherBlobFX.layered( Speck.factory( Speck.STEAM, true ), WeatherBlobFX.MIST, 3 ), 0.3f );
+		emitter.pour( CLOUD, 0.3f );
 	}
+
+	/** A steam cloud's look: wisps of steam (SteamParticle) rising off every cell, and one visit in
+	 *  four a soft body of it hanging there (a middling puff at 0.3, 2-3 s). */
+	public static final Emitter.Factory CLOUD = new Emitter.Factory(){
+		@Override
+		public void emit( Emitter e, int index, float x, float y ){
+			if ((index & 3) != 0){
+				SteamParticle.FACTORY.emit( e, index, x, y );
+				return;
+			}
+			if (!FxBudget.keep( FxBudget.P1, x, y )) return;
+			float life = FxRandom.Float( 2f, 3f );
+			((SteamParticle) e.recycle( SteamParticle.class )).reset( x, y ).look( FxFrames.PUFF_M[FxRandom.Int( 2 )] )
+					.paint( SteamParticle.COLOR ).smooth().life( life ).alpha( 0.3f, life * 0.3f, life * 0.4f )
+					.vel( FxRandom.Float( -2f, 2f ), -FxRandom.Float( 1f, 3f ) ).turbulence( 1.5f, 1.5f ).wind( 0.15f )
+					.priority( FxBudget.P1 );
+		}
+	};
 
 	@Override
 	public String tileDesc() {

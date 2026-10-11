@@ -24,6 +24,7 @@ package xyz.gabriwar.warpedpixeldungeon.items.potions;
 import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.arcane.ItemFx;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
@@ -45,6 +46,7 @@ public class PotionOfStrength extends Potion {
 
 		hero.STR++;
 		hero.sprite.showStatusWithIcon(CharSprite.POSITIVE, "1", FloatingText.STRENGTH);
+		ItemFx.strength( hero );
 
 		GLog.p( Messages.get(this, "msg", hero.STR()) );
 		

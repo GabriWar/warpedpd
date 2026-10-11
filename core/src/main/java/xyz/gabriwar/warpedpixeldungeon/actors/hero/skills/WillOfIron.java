@@ -27,8 +27,8 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.Camera;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -100,7 +100,7 @@ public class WillOfIron extends Skill {
 			target.sprite.flash();
 		}
 		SpatialSound.play( Assets.Sounds.HIT_MAGIC, target, 1f, 0.8f );
-		Camera.main.shake( 1, 0.15f );
+		Fx.shake( 1, 0.15f );
 	}
 
 	@Override

@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.huntress;
 
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -87,6 +88,14 @@ public class NaturesPower extends ArmorAbility {
 		@Override
 		public int icon() {
 			return BuffIndicator.NATURE_POWER;
+		}
+
+		//the power of nature worn as a look while it lasts (the characters' area draws it)
+		@Override
+		public void fx( boolean on ) {
+			if (target.sprite == null) return;
+			if (on) target.sprite.add( CharSprite.State.VERDANT );
+			else target.sprite.remove( CharSprite.State.VERDANT );
 		}
 
 		@Override

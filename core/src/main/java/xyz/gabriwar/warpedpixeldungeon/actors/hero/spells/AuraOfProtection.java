@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.spells;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HolyFx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -28,7 +29,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FlavourBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.HolyTome;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
@@ -95,9 +95,10 @@ public class AuraOfProtection extends ClericSpell {
 		public void fx(boolean on) {
 			if (on && (particles == null || particles.parent == null)){
 				particles = target.sprite.emitter(); //emitter is much bigger than char so it needs to manage itself
-				particles.pos(target.sprite, -32, -32, 80, 80);
+				//its twinkles on a ring 1.5-2 cells out, placed round the bearer by their factory
+				particles.pos(target.sprite, 0, 0, 0, 0);
 				particles.fillTarget = false;
-				particles.pour(Speck.factory(Speck.LIGHT), 0.02f);
+				particles.pour(HolyFx.AURA, 0.08f);
 			} else if (!on && particles != null){
 				particles.on = false;
 			}

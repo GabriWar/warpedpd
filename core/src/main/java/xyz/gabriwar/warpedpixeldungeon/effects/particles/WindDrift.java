@@ -30,8 +30,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import com.watabou.noosa.Gizmo;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.utils.Random;
 
 /**
  * The wind made visible on the surface: once it blows hard enough to notice
@@ -41,10 +42,13 @@ import com.watabou.utils.Random;
  * added by OverworldLevel.addVisuals(): each tick it throws a few darts at
  * the view and only the ones that land on a canopy or on snow become a
  * particle - no per-cell emitters, nothing to rebuild when the window moves.
+ * At most LEAVES of its leaves are alive at once (a gale over a forest stays a phone's load).
  */
 public class WindDrift extends Emitter {
 
 	private static final float NOTICEABLE_WIND = 3f;
+	/** The most of its leaves alive at once. */
+	public static final int LEAVES = 60;
 
 	public WindDrift() {
 		super();
@@ -76,14 +80,15 @@ public class WindDrift extends Emitter {
 		OverworldLevel level = (OverworldLevel) Dungeon.level;
 		int w = level.width();
 		for (int tries = 0; tries < 4; tries++) {
-			float px = x + Random.Float(width), py = y + Random.Float(height);
+			float px = x + FxRandom.Float(width), py = y + FxRandom.Float(height);
 			int cx = (int) (px / DungeonTilemap.SIZE), cy = (int) (py / DungeonTilemap.SIZE);
 			if (px < 0 || py < 0 || cx >= w || cy >= level.height()) continue;
 			int cell = cx + cy * w;
 			if (level.canopyAt(cell)) {
+				if (leavesAlive() >= LEAVES) return;
 				FallingLeafParticle p = (FallingLeafParticle) recycle(FallingLeafParticle.class);
 				int[] colors = FallingLeafParticle.seasonColors(GameCalendar.season());
-				p.color(colors[Random.Int(colors.length)]);
+				p.leafColor(colors[FxRandom.Int(colors.length)]);
 				p.resetWind(px, py);
 				return;
 			}
@@ -92,5 +97,15 @@ public class WindDrift extends Emitter {
 				return;
 			}
 		}
+	}
+
+	//its leaves alive now (counted as it emits, a few times a second)
+	private int leavesAlive() {
+		int n = 0;
+		for (int i = 0; i < length; i++) {
+			Gizmo g = members.get(i);
+			if (g instanceof FallingLeafParticle && g.alive) n++;
+		}
+		return n;
 	}
 }

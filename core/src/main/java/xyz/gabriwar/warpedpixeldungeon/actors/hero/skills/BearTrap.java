@@ -25,11 +25,11 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillSequence;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
 
 
-import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
@@ -166,7 +166,7 @@ public class BearTrap extends Skill {
 		//the jaws snap shut, sparks flying off the teeth, and bite down once more as they settle
 		SkillSpectacleFX.show(SkillSpectacleFX.JAW,pos);
 		SpatialSound.play( Assets.Sounds.TRAP, pos, 1f, 0.8f );
-		Camera.main.shake( 1, 0.2f );
+		Fx.shake( 1, 0.2f );
 		CellEmitter.center( pos ).burst( Speck.factory( Speck.STAR ), 4 );
 		CellEmitter.center( pos ).burst( SparkParticle.FACTORY, 8 );
 		FxTimeline.start().at( 0.14f, () -> {

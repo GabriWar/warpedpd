@@ -62,6 +62,10 @@ public final class Fx {
 		renderThread = Thread.currentThread();
 		carriers.clear();
 		air = glowAir = null;
+		//a new scene's camera holds no shake: the last scene's never holds back its first
+		synchronized (Fx.class){
+			shookPx = 0f;
+		}
 		frame();
 	}
 
@@ -95,15 +99,45 @@ public final class Fx {
 	/** The most a shake may move the camera: a blizzard's vignette overhangs the screen by 2 px. */
 	public static final float SHAKE_MAX = 4f, SHAKE_BLIZZARD = 2f;
 
+	//the last shake asked through here or PixelScene.shake: how far, how long, when it began (Game.timeTotal)
+	private static float shookPx, shookFor, shookAt;
+
 	/**
 	 * Shakes the camera as the player set it (PixelScene.shake(m / 2, d): the default setting looks
 	 * as a raw shake of m always did, 0 shakes nothing), never more than SHAKE_MAX px, or
-	 * SHAKE_BLIZZARD while a blizzard falls. Returns how far it shook, px.
+	 * SHAKE_BLIZZARD while a blizzard falls. A shake weaker than what is left of the last one asked
+	 * here or through PixelScene.shake is dropped, so a small one never cuts a bigger one short (the
+	 * camera keeps one shake at a time). Returns how far it shook, px (0: none).
 	 */
 	public static float shake( float magnitude, float duration ){
 		float px = shakePx( magnitude, WPDSettings.screenShake(), blizzardFalling() );
-		if (px > 0 && Camera.main != null) Camera.main.shake( px, duration );
+		if (px <= 0 || Camera.main == null) return 0f;
+		if (!claimShake( px, duration )) return 0f;
+		Camera.main.shake( px, duration );
 		return px;
+	}
+
+	/**
+	 * Whether a shake of `px` over `duration` s may run now: not when it is weaker than what is left
+	 * of the last one claimed, which it then replaces. Fx.shake and PixelScene.shake (the game's own
+	 * shakes, bosses' and traps' among them) both ask here, so neither cuts the other's bigger shake
+	 * short. Any thread.
+	 */
+	public static boolean claimShake( float px, float duration ){
+		synchronized (Fx.class){
+			float now = Game.timeTotal;
+			if (px < shakeLeft( shookPx, shookFor, now - shookAt )) return false;
+			shookPx = px;
+			shookFor = duration;
+			shookAt = now;
+			return true;
+		}
+	}
+
+	/** What is left of a shake of `px` over `duration` s, `age` s in: it fades as the camera's does. */
+	public static float shakeLeft( float px, float duration, float age ){
+		if (duration <= 0 || age < 0 || age >= duration) return 0f;
+		return px * (1f - age / duration);
 	}
 
 	/** How far a shake of `magnitude` moves the camera at a setting, px. */

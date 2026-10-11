@@ -24,6 +24,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.FireStyle;
+
 /**
  * The Tempering Forge's coal bed: a short, fierce burn. One lighting is just long enough
  * to bring a blade to white heat and quench it, with little to spare for dithering.
@@ -38,4 +40,7 @@ public class ForgeCoals extends CoalBed {
 
 	@Override
 	protected float radiate(){ return 40f; }
+
+	@Override
+	protected FireStyle fireStyle(){ return FireStyle.FORGE; }
 }

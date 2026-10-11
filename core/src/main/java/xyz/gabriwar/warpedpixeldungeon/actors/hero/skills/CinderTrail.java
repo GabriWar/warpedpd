@@ -26,6 +26,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import java.util.ArrayList;
 import com.watabou.utils.Random;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
@@ -134,7 +135,7 @@ public class CinderTrail extends Skill {
                     xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap.tileCenterToWorld(cell),0.5f);
             CellEmitter.center(cell).burst(element==0?FlameParticle.FACTORY:SnowParticle.FACTORY,4+heat);
         }
-        com.watabou.noosa.Camera.main.shake(1,0.2f);
+        Fx.shake(1,0.2f);
         StaggerFX.ring(cell,1,0.08f,(c,r)->CellEmitter.get(c).burst(element==0?FlameParticle.FACTORY:SnowParticle.FACTORY,2));
         for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){
             int nx=cell%Dungeon.level.width()+x, ny=cell/Dungeon.level.width()+y;

@@ -27,7 +27,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
@@ -131,7 +131,7 @@ public class Shieldbearer extends Skill {
 					//the bash rings out around him as he lands
 					StaggerFX.after( 0.3f, () -> {
 						SpatialSound.play( Assets.Sounds.HIT_CRUSH, hero, 1f, 0.9f );
-						Camera.main.shake( 2, 0.2f );
+						Fx.shake( 2, 0.2f );
 					} );
 					StaggerFX.ring( stand, 1, 0.38f, ( c, r ) -> {
 						WarriorImpactFX.show( c );

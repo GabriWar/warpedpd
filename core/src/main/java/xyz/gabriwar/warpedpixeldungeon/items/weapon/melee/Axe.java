@@ -24,7 +24,6 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.weapon.melee;
 
-import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
@@ -41,6 +40,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 
 public class Axe extends MeleeWeapon {
 
@@ -82,7 +82,7 @@ public class Axe extends MeleeWeapon {
 				AttackIndicator.target( enemy );
 				if (hero.attack( enemy, 1f, boost, Char.INFINITE_ACCURACY )){
 					Wound.hit( enemy );
-					Camera.main.shake( 2, 0.25f );
+					Fx.shake( 2, 0.25f );
 					SpatialSound.play( Assets.Sounds.HIT_SLASH, enemy, 1f, 0.7f );
 					if (!enemy.isAlive()) onAbilityKill( hero, enemy );
 				}

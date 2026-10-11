@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.spells;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HolyFx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -101,6 +102,7 @@ public class Sunray extends TargetedClericSpell {
 		Char ch = Actor.findChar( aim.collisionPos );
 		if (ch != null) {
 			ch.sprite.burst(0xFFFFFF44, 5);
+			HolyFx.sunMotes(ch.sprite);
 
 			if (Char.hasProp(ch, Char.Property.UNDEAD) || Char.hasProp(ch, Char.Property.DEMONIC)){
 				ch.damage(2*minDamage(hero), Sunray.this);

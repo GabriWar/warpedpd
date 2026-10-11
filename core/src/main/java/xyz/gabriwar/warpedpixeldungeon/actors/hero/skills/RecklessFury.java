@@ -27,8 +27,8 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.utils.Bundle;
-import com.watabou.noosa.Camera;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -140,7 +140,7 @@ public class RecklessFury extends ActiveSkill {
 		}
 		if (hero.sprite != null) new xyz.gabriwar.warpedpixeldungeon.effects.Flare( 6, 20 ).color( 0xFF3322, true ).show( hero.sprite, 0.5f );
 		SpatialSound.play( Assets.Sounds.HIT_CRUSH, enemy, 1f, 0.8f );
-		Camera.main.shake( 1, 0.2f );
+		Fx.shake( 1, 0.2f );
 		return damage + bonus;
 	}
 

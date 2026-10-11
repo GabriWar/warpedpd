@@ -30,6 +30,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.effects.CaveGlow;
 import xyz.gabriwar.warpedpixeldungeon.effects.CritterSprite;
 import xyz.gabriwar.warpedpixeldungeon.effects.SliceCritterSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.WaterFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.water.FishBrain;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.CaveMoteParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.DripParticle;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
@@ -706,16 +708,18 @@ public final class CaveLife extends SliceLife {
 			if (!forced && (!seen( c ) || !field.onScreen( c ))) continue;
 			CritterSprite f;
 			if (OverworldCritters.RNG.nextFloat() < 0.7f){
+				//gliding under the surface, in the scene's layer under it
 				f = new SliceCritterSprite.Swimmer( (c % w) * DungeonTilemap.SIZE + 8, (c / w) * DungeonTilemap.SIZE + 9,
 						OverworldCritters.rf( 0f, 6.2832f ) );
+				field.addUnder( f );
 			} else {
 				//across the water, never toward the bank
 				boolean left = OverworldCritters.liquid( map[c - 1] ), right = OverworldCritters.liquid( map[c + 1] );
 				int dir = left && right ? (OverworldCritters.RNG.nextBoolean() ? 1 : -1) : right ? 1 : -1;
 				f = CritterSprite.Fish.blind( (c % w) * DungeonTilemap.SIZE + 8 + OverworldCritters.rf( -3f, 3f ),
 						(c / w) * DungeonTilemap.SIZE + 10, dir );
+				field.add( f );
 			}
-			field.add( f );
 			fish.add( f );
 			if (forcedFish > 0) forcedFish--;
 			return;
@@ -805,6 +809,12 @@ public final class CaveLife extends SliceLife {
 			if (d <= (hero ? SCARE_BAT_PX : PASS_BAT_PX)) c.scare( px, py );
 			else if (hero) c.wary( d <= WARY_BAT_PX );
 		}
+		//a fish under the water bursts away as fish do: the hero within 32 px, anyone 24
+		for (CritterSprite f : fish){
+			if (!(f instanceof SliceCritterSprite.Swimmer) || !f.exists) continue;
+			SliceCritterSprite.Swimmer s = (SliceCritterSprite.Swimmer) f;
+			if (s.calm() && FishBrain.tooNear( s.gx(), s.gy(), px, py, hero )) s.startle( px, py );
+		}
 	}
 
 	@Override
@@ -812,7 +822,12 @@ public final class CaveLife extends SliceLife {
 		for (Colony c : colonies){
 			if (!c.scared && c.nearest( px, py ) <= NOISE_BAT_PX) c.scare( px, py );
 		}
+		//the fight shakes the water near it too
+		WaterFX.disturb( px, py, NOISE_FISH_PX, false );
 	}
+
+	//a fight this near the water sends its fish away, scene px
+	static final float NOISE_FISH_PX = 96f;
 
 	@Override
 	void slide( float dx, float dy ){

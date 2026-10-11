@@ -25,6 +25,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.levels.overworld;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.FiredampFront;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -62,7 +64,6 @@ import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.net.NetManager;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.GameMath;
@@ -437,6 +438,12 @@ public final class HazardWatch {
 		return blast;
 	}
 
+	private static int[] cellsOf( ArrayList<Integer> list ){
+		int[] out = new int[list.size()];
+		for (int i = 0; i < out.length; i++) out[i] = list.get( i );
+		return out;
+	}
+
 	//who hears a pocket about to go up: every hero within earshot of the flame, and every one
 	//the blast would reach, however far the pocket runs
 	private ArrayList<Hero> warned( int gasCell ){
@@ -482,7 +489,11 @@ public final class HazardWatch {
 		long key = pocketKeyOf( c );
 		Strike pending = armed.get( key );
 		if (pending != null && Actor.findById( pending.id() ) != null) return;
-		if (live()) CellEmitter.get( c ).burst( FlameParticle.FACTORY, 6 );
+		if (live()){
+			CellEmitter.get( c ).burst( FlameParticle.FACTORY, 6 );
+			//the warm glow creeping out along the gas from the flame (effects/fx/fire/FiredampFront)
+			FiredampFront.arming( cellsOf( pocket( c ) ) );
+		}
 		for (Hero h : warned( c )) say( h, GLog.WARNING, "firedamp_hiss" );
 		final int wx = level.worldX + c % level.width(), wy = level.worldY + c / level.width();
 		armed.put( key, soon( 1f, () -> heatStrike( wx, wy ) ) );
@@ -529,7 +540,8 @@ public final class HazardWatch {
 				CellEmitter.get( cells.get( i ) ).burst( SmokeParticle.FACTORY, 2 );
 			}
 			SpatialSound.play( Assets.Sounds.BLAST, origin );
-			if (OverworldLevel.heroDistance( level, origin ) <= 12) PixelScene.shake( 3, 0.7f );
+			//the front running out through the pocket, shaking the camera as it goes up
+			FiredampFront.ignition( cellsOf( cells ) );
 		}
 		OverworldCritters.noise( origin );
 		for (Hero h : heroesNear( origin, 12 )) say( h, GLog.NEGATIVE, "firedamp_ignite" );
@@ -623,7 +635,7 @@ public final class HazardWatch {
 				CellEmitter.get( c ).burst( EarthParticle.FALLING, 4 );
 			}
 			SpatialSound.play( Assets.Sounds.ROCKS, dst, 0.5f, 0.7f );
-			PixelScene.shake( 1f, 0.6f );
+			Fx.shake( 2f, 0.6f );
 		}
 		OverworldCritters.noise( dst );
 	}

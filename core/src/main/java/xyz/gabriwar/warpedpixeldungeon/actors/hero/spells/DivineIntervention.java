@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.spells;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HolyFx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -31,7 +32,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.cleric.AscendedForm;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.HolyTome;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -68,7 +68,8 @@ public class DivineIntervention extends ClericSpell {
 		for (Char ch : Actor.chars()){
 			if (ch.alignment == Char.Alignment.ALLY && ch != hero){
 				Buff.affect(ch, DivineShield.class).setShield(Math.max(100 + 50*hero.pointsInTalent(Talent.DIVINE_INTERVENTION), Math.round(hero.HT * (0.8f + 0.4f*hero.pointsInTalent(Talent.DIVINE_INTERVENTION)))));
-				new Flare(6, 32).color(0xFFFF00, true).show(ch.sprite, 2f);
+				HolyFx.star(ch.sprite, HolyFx.BLESS, false, 0);
+				HolyFx.bubble(ch.sprite, 0xFFF0C0, 0.35f, 0.8f, 0);
 			}
 		}
 
@@ -77,7 +78,8 @@ public class DivineIntervention extends ClericSpell {
 
 		//we apply buffs here so that the 5 charge cost and shield boost do not stack
 		hero.buff(AscendedForm.AscendBuff.class).setShield(Math.max(100 + 50*hero.pointsInTalent(Talent.DIVINE_INTERVENTION), Math.round(hero.HT * (0.8f + 0.4f*hero.pointsInTalent(Talent.DIVINE_INTERVENTION)))));
-		new Flare(6, 32).color(0xFFFF00, true).show(hero.sprite, 2f);
+		HolyFx.star(hero.sprite, HolyFx.BLESS, false, 4);
+		HolyFx.bubble(hero.sprite, 0xFFF0C0, 0.35f, 0.8f, 0);
 
 		hero.buff(AscendedForm.AscendBuff.class).divineInverventionCast = true;
 		hero.buff(AscendedForm.AscendBuff.class).extend(2+hero.pointsInTalent(Talent.DIVINE_INTERVENTION));

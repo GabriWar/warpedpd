@@ -27,6 +27,7 @@ package xyz.gabriwar.warpedpixeldungeon.effects.skillfx;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Gizmo;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
 
 import java.util.ArrayList;
 
@@ -46,6 +47,8 @@ public class FxTimeline extends Gizmo {
 
 	private final ArrayList<Step> steps = new ArrayList<>();
 	private final int depth = Dungeon.depth, branch = Dungeon.branch;
+	//the overworld window as it lay when the steps were scheduled: a slide moves every cell they name
+	private final long serial = SkillVfx.serial();
 	private float time = 0;
 	private int next = 0;
 	private final boolean live;
@@ -64,8 +67,18 @@ public class FxTimeline extends Gizmo {
 
 	/** schedules run at seconds from the start; steps must be added in non-decreasing order */
 	public FxTimeline at( float seconds, Runnable run ){
-		if (live) steps.add( new Step( seconds, run ) );
+		if (live){
+			synchronized (steps){
+				steps.add( new Step( seconds, run ) );
+			}
+		}
 		return this;
+	}
+
+	/** Whether a step scheduled at `scheduled` may still run now: the window has not slid since
+	 *  (a slide moves every cell index a step was given; such steps are dropped). */
+	public static boolean fresh( long scheduled ){
+		return scheduled == SkillVfx.serial();
 	}
 
 	@Override
@@ -75,10 +88,24 @@ public class FxTimeline extends Gizmo {
 			killAndErase();
 			return;
 		}
-		time += Game.elapsed;
-		while (next < steps.size() && steps.get( next ).at <= time){
-			steps.get( next++ ).run.run();
+		if (!fresh( serial )){
+			//the window slid: what is left would land on the wrong cells
+			killAndErase();
+			return;
 		}
-		if (next >= steps.size()) killAndErase();
+		time += Game.elapsed;
+		while (true){
+			Step s;
+			synchronized (steps){
+				if (next >= steps.size()) break;
+				s = steps.get( next );
+				if (s.at > time) break;
+				next++;
+			}
+			s.run.run();
+		}
+		synchronized (steps){
+			if (next >= steps.size()) killAndErase();
+		}
 	}
 }

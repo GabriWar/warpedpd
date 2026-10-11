@@ -21,45 +21,70 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.gas.CellOverlay;
+import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.noosa.particles.Emitter.Factory;
-import com.watabou.noosa.particles.PixelParticle;
-import com.watabou.utils.Random;
 
-public class WebParticle extends PixelParticle {
-	
-	public static final Emitter.Factory FACTORY = new Factory() {
+/**
+ * A web as it is drawn: one painted web strung across each cell of it (CellOverlay.WEB, on the
+ * floor, its look and mirror by the cell's parity, at 0.55), held while the web is there and seen,
+ * fading half a second after; it shakes when someone moves through it and catches a dew glint
+ * every 6-10 s. One picture a cell where the web used to keep some 24 strands alive. The factory
+ * keeps its name (NetVisuals' "web") and its object; it is the gameplay's own obstacle, so it is
+ * never thinned (P0): a blob's emitter holds it on every cell it sees (BlobEmitter.Held) without
+ * taking any of the frame's spawns.
+ */
+public final class WebParticle {
+
+	private WebParticle(){}
+
+	/** A web's alpha, how long it comes in, holds past its last tick and fades. */
+	public static final float ALPHA = 0.55f, IN = 0.4f, HOLD = 1f, FADE = 0.5f;
+
+	public static final Emitter.Factory FACTORY = new Strung();
+
+	private static final class Strung extends Emitter.Factory implements FxBudget.Prioritized, BlobEmitter.Aftermath, BlobEmitter.Held {
+
+		@Override
+		public int priority(){
+			return FxBudget.P0;
+		}
+
+		//a blob's web is kept through held(): its emitter makes nothing else, so takes no spawns
+		@Override
+		public float density( int cur ){
+			return 0f;
+		}
+
+		@Override
+		public void held( int cell, int cur ){
+			strung( cell );
+		}
+
 		@Override
 		public void emit( Emitter emitter, int index, float x, float y ) {
-			for (int i=0; i < 3; i++) {
-				((WebParticle)emitter.recycle( WebParticle.class )).reset( x, y );
-			}
+			strung( Fx.cellAt( x, y ) );
 		}
-	};
-	
-	public WebParticle() {
-		super();
-		
-		color( 0xCCCCCC );
-		lifespan = 2f;
+
+		@Override
+		public void dying( int cell ){
+			CellOverlay.release( CellOverlay.WEB, cell );
+		}
 	}
-	
-	public void reset( float x, float y ) {
-		revive();
-		
-		this.x = x;
-		this.y = y;
-		
-		left = lifespan;
-		angle = Random.Float( 360 );
-	}
-	
-	@Override
-	public void update() {
-		super.update();
-		
-		float p = left / lifespan;
-		am = p < 0.5f ? p : 1 - p;
-		scale.y = 12 + p * 6;
+
+	/** A web kept on a cell (made the first time, held after). Render thread. */
+	public static void strung( int cell ){
+		if (Dungeon.level == null || cell < 0 || cell >= Dungeon.level.length()) return;
+		int w = Dungeon.level.width();
+		int k = ((cell % w) + (cell / w)) & 1;
+		float cx = (cell % w + 0.5f) * DungeonTilemap.SIZE, cy = (cell / w + 0.5f) * DungeonTilemap.SIZE;
+		CellOverlay o = CellOverlay.keep( CellOverlay.WEB, cell, cx, cy, FxFrames.WEB[k], false, CellOverlay.SILK,
+				ALPHA, IN, HOLD, FADE, ((cell / w) & 1) == 1 );
+		if (o != null && o.isNew()) o.alt( FxFrames.WEB_B[k] );
 	}
 }

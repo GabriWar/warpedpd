@@ -33,15 +33,10 @@ import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.IceBlock;
 import xyz.gabriwar.warpedpixeldungeon.effects.GlowBlock;
 import xyz.gabriwar.warpedpixeldungeon.effects.ShieldHalo;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
-import xyz.gabriwar.warpedpixeldungeon.effects.TorchHalo;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxModules;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.HalomethaneFlameParticle;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.SnowParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.HitFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.StateLooks;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
@@ -107,26 +102,25 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 	protected Callback animCallback;
 	
 	protected PosTweener motion;
-	
-	protected Emitter burning;
-	protected Emitter electric;
-	protected Emitter halomethaneBurning;
-	protected Emitter heatstroke;
-	protected Emitter hypothermia;
-	protected Emitter chilled;
-	protected Emitter marked;
-	protected Emitter levitation;
-	protected Emitter healing;
-	protected Emitter hearts;
-	
+
+	//what the states wear (burning, frost, shadow, a torch, vines, bubbles...: effects/fx/combat),
+	//made with the first of them
+	protected StateLooks looks;
+
 	protected IceBlock iceBlock;
 	protected DarkBlock darkBlock;
 	protected GlowBlock glowBlock;
-	protected TorchHalo light;
 	protected ShieldHalo shield;
 	protected AlphaTweener invisible;
 	protected Flare aura;
 	protected ButterEffect butter;
+
+	//an offset of the sprite on the screen only (never its x and y): a recoil from a blow, a
+	//squash against a wall (nudge), a shiver (shiver), whole pixels
+	private volatile int nudgeX, nudgeY;
+	private volatile float nudgeLeft;
+	private volatile int shiverX;
+	private int shownOffX, shownOffY;
 
 	protected EmoIcon emo;
 	protected CharHealthIndicator health;
@@ -187,6 +181,7 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 	@Override
 	public void destroy() {
 		super.destroy();
+		if (looks != null) looks.release();
 		if (ch != null && ch.sprite == this){
 			ch.sprite = null;
 		}
@@ -472,6 +467,11 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 		} );
 	}
 
+	/** Whether it is in the air, mid-jump. */
+	public boolean jumping(){
+		return jumpTweener != null;
+	}
+
 	private synchronized void finishJump(boolean snapToActor){
 		if (jumpTweener == null) return;
 		jumpTweener.killAndErase();
@@ -537,11 +537,92 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 	public int blood() {
 		return 0xFFBB0000;
 	}
-	
+
+	/**
+	 * A blow landing on this sprite from a point (the attacker's middle) for some damage (0: it
+	 * was blocked), in a style (HitFx: by the weapon's sound): the hit star, what the weapon
+	 * leaves, a recoil on the screen. Any thread; drawn on the render thread, from the effects'
+	 * own random numbers.
+	 */
+	public void hitFx( float fromX, float fromY, int damage, int style, boolean heroInvolved ) {
+		HitFx.hit( this, fromX, fromY, damage, style, heroInvolved );
+	}
+
+	/** A blow from a point that missed this sprite: a whoosh past it, a puff at its feet. */
+	public void dodgeFx( float fromX, float fromY ) {
+		HitFx.dodged( this, fromX, fromY );
+	}
+
 	public void flash() {
 		ra = ba = ga = 1f;
 		flashTime = FLASH_INTERVAL;
 		xyz.gabriwar.warpedpixeldungeon.net.NetVisuals.recordFlash(ch);
+	}
+
+	/** Whether a blow's white flash holds the sprite's colour now. */
+	public boolean isFlashing() {
+		return flashTime > 0;
+	}
+
+	/**
+	 * Whether the sprite's colour is free for `block` to tint: not while it flashes, and not while
+	 * a look that comes before it holds it (ice, then dark, then glow, then butter, then the
+	 * chill's tint, which passes null). A block that is none of this sprite's own (made apart
+	 * from its states) gives way to the flash only.
+	 */
+	public boolean tintFree( com.watabou.noosa.Gizmo block ) {
+		if (flashTime > 0) return false;
+		if (block != null && block != iceBlock && block != darkBlock && block != glowBlock && block != butter) return true;
+		//the first of them alive holds it
+		if (iceBlock != null && iceBlock.alive) return block == iceBlock;
+		if (darkBlock != null && darkBlock.alive) return block == darkBlock;
+		if (glowBlock != null && glowBlock.alive) return block == glowBlock;
+		if (butter != null && butter.alive) return block == butter;
+		return true;
+	}
+
+	/** The frame on show now, in its texture's uv (the sprite's own: read it, never change it). */
+	public RectF frameNow() {
+		return frame;
+	}
+
+	/** An aura's colour (aura()). */
+	public int auraColor() {
+		return auraColor;
+	}
+
+	/** The dark a darkened sprite is tinted (DarkBlock): doom's, corruption's, or a shadow's. */
+	public int darkTint() {
+		return looks != null ? looks.dark() : StateLooks.DARK;
+	}
+
+	/**
+	 * The sprite shifted (dx, dy) whole pixels on the screen for `seconds` (a recoil, a squash
+	 * against a wall); its x and y never change. Any thread.
+	 */
+	public void nudge( int dx, int dy, float seconds ) {
+		nudgeX = dx;
+		nudgeY = dy;
+		nudgeLeft = seconds;
+	}
+
+	/** The sprite shifted dx whole pixels sideways on the screen until told otherwise (a shiver
+	 *  sets it every frame; 0 ends it). */
+	public void shiver( int dx ) {
+		shiverX = dx;
+	}
+
+	/** How many of its states' looks are on or ending (0 before the first). */
+	public int looksCount() {
+		StateLooks l = looks;
+		return l == null ? 0 : l.count();
+	}
+
+	/** Its offset on the screen now, px (x then y), into out. */
+	public void screenOffset( int[] out ) {
+		boolean n = nudgeLeft > 0;
+		out[0] = (n ? nudgeX : 0) + shiverX;
+		out[1] = n ? nudgeY : 0;
 	}
 
 	private final HashSet<State> stateAdditions = new HashSet<>();
@@ -569,20 +650,39 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 		auraRays = nRays;
 	}
 
+	//the sprite's looks, made with its first state
+	private StateLooks looks(){
+		if (looks == null) looks = new StateLooks( this );
+		return looks;
+	}
+
 	protected synchronized void processStateAddition( State state ) {
 		switch (state) {
 			case BURNING:
-				if (burning != null) burning.on = false;
-				burning = emitter();
-				burning.pour(FlameParticle.FACTORY, 0.06f);
+			case HALOMETHANEBURNING:
+				looks().add( state );
 				if (visible) {
 					SpatialSound.play(Assets.Sounds.BURNING, ch);
 				}
 				break;
 			case LEVITATING:
-				if (levitation != null) levitation.on = false;
-				levitation = emitter();
-				levitation.pour(Speck.factory(Speck.JET), 0.02f);
+			case ILLUMINATED:
+			case CHILLED:
+			case MARKED:
+			case HEALING:
+			case HEARTS:
+			case ELECTRIC:
+			case HEATSTROKE:
+			case HYPOTHERMIA:
+			case TORCHLIT:
+			case ROOTED:
+			case BARKED:
+			case VERDANT:
+			case HERB:
+			case POISONED:
+			case CORRODED:
+			case OOZED:
+				looks().add( state );
 				break;
 			case INVISIBLE:
 				if (invisible != null) invisible.killAndErase();
@@ -598,42 +698,22 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 			case FROZEN:
 				if (iceBlock != null) iceBlock.killAndErase();
 				iceBlock = IceBlock.freeze(this);
-				break;
-			case ILLUMINATED:
-				if (light != null) light.putOut();
-				GameScene.effect(light = new TorchHalo(this));
-				break;
-			case CHILLED:
-				if (chilled != null) chilled.on = false;
-				chilled = emitter();
-				chilled.pour(SnowParticle.FACTORY, 0.1f);
+				looks().add( state );
 				break;
 			case DARKENED:
 				if (darkBlock != null) darkBlock.killAndErase();
 				darkBlock = DarkBlock.darken(this);
-				break;
-			case MARKED:
-				if (marked != null) marked.on = false;
-				marked = emitter();
-				marked.pour(ShadowParticle.UP, 0.1f);
-				break;
-			case HEALING:
-				if (healing != null) healing.on = false;
-				healing = emitter();
-				healing.pour(Speck.factory(Speck.HEALING), 0.5f);
+				looks().add( state );
 				break;
 			case SHIELDED:
 				if (shield != null) shield.killAndErase();
-				GameScene.effect(shield = new ShieldHalo(this));
-				break;
-			case HEARTS:
-				if (hearts != null) hearts.on = false;
-				hearts = emitter();
-				hearts.pour(Speck.factory(Speck.HEART), 0.5f);
+				//light: over the night's tint
+				GameScene.light(shield = new ShieldHalo(this));
 				break;
 			case GLOWING:
 				if (glowBlock != null) glowBlock.killAndErase();
 				glowBlock = GlowBlock.lighten(this);
+				looks().add( state );
 				break;
 			case AURA:
 				if (aura != null)   aura.killAndErase();
@@ -647,32 +727,12 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 				if (parent != null) {
 					aura.show(this, 0);
 				}
-				break;
-			case ELECTRIC:
-				electric = emitter();
-				electric.pour( SparkParticle.STATIC, 0.06f );
+				looks().add( state );
 				break;
 			case BUTTER:
 				if (butter != null) butter.dissapear();
 				butter = ButterEffect.butter(this);
-				break;
-			case HALOMETHANEBURNING:
-				if (halomethaneBurning != null) halomethaneBurning.on = false;
-				halomethaneBurning = emitter();
-				halomethaneBurning.pour(HalomethaneFlameParticle.FACTORY, 0.06f);
-				if (visible) {
-					SpatialSound.play(Assets.Sounds.BURNING, ch);
-				}
-				break;
-			case HEATSTROKE:
-				if (heatstroke != null) heatstroke.on = false;
-				heatstroke = emitter();
-				heatstroke.pour(Speck.factory(Speck.STEAM), 0.4f);
-				break;
-			case HYPOTHERMIA:
-				if (hypothermia != null) hypothermia.on = false;
-				hypothermia = emitter();
-				hypothermia.pour(SnowParticle.RISING_FACTORY, 0.1f);
+				looks().add( state );
 				break;
 		}
 	}
@@ -698,18 +758,6 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 
 	protected synchronized void processStateRemoval( State state ) {
 		switch (state) {
-			case BURNING:
-				if (burning != null) {
-					burning.on = false;
-					burning = null;
-				}
-				break;
-			case LEVITATING:
-				if (levitation != null) {
-					levitation.on = false;
-					levitation = null;
-				}
-				break;
 			case INVISIBLE:
 				if (invisible != null) {
 					invisible.killAndErase();
@@ -725,46 +773,18 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 					iceBlock.melt();
 					iceBlock = null;
 				}
-				break;
-			case ILLUMINATED:
-				if (light != null) {
-					light.putOut();
-					light = null;
-				}
-				break;
-			case CHILLED:
-				if (chilled != null) {
-					chilled.on = false;
-					chilled = null;
-				}
+				if (looks != null) looks.remove( state );
 				break;
 			case DARKENED:
 				if (darkBlock != null) {
 					darkBlock.lighten();
 					darkBlock = null;
 				}
-				break;
-			case MARKED:
-				if (marked != null) {
-					marked.on = false;
-					marked = null;
-				}
-				break;
-			case HEALING:
-				if (healing != null) {
-					healing.on = false;
-					healing = null;
-				}
+				if (looks != null) looks.remove( state );
 				break;
 			case SHIELDED:
 				if (shield != null) {
 					shield.putOut();
-				}
-				break;
-			case HEARTS:
-				if (hearts != null) {
-					hearts.on = false;
-					hearts = null;
 				}
 				break;
 			case GLOWING:
@@ -772,46 +792,31 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 					glowBlock.darken();
 					glowBlock = null;
 				}
+				if (looks != null) looks.remove( state );
 				break;
 			case AURA:
 				if (aura != null){
 					aura.killAndErase();
 					aura = null;
 				}
-				break;
-			case ELECTRIC:
-				if (electric != null){
-					electric.on = false;
-					electric = null;
-				}
+				if (looks != null) looks.remove( state );
 				break;
 			case BUTTER:
 				if (butter != null) {
 					butter.dissapear();
 					butter = null;
 				}
+				if (looks != null) looks.remove( state );
 				break;
-			case HALOMETHANEBURNING:
-				if (halomethaneBurning != null) {
-					halomethaneBurning.on = false;
-					halomethaneBurning = null;
-				}
-				break;
-			case HEATSTROKE:
-				if (heatstroke != null) {
-					heatstroke.on = false;
-					heatstroke = null;
-				}
-				break;
-			case HYPOTHERMIA:
-				if (hypothermia != null) {
-					hypothermia.on = false;
-					hypothermia = null;
-				}
+			default:
+				if (looks != null) looks.remove( state );
 				break;
 		}
 	}
-	
+
+	//where the aura's flare is put each frame (no allocation)
+	private final PointF auraAt = new PointF();
+
     private boolean pendingBuffVisuals;
 	@Override
 	public void update() {
@@ -822,13 +827,16 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 			listener.onComplete(curAnim);
 			finished = true;
 		}
-		
+
 		super.update();
 
 		if (ch != null) followGrounding();
-		
+
 		if (flashTime > 0 && (flashTime -= Game.elapsed) <= 0) {
 			resetColor();
+		}
+		if (nudgeLeft > 0) {
+			nudgeLeft -= Game.elapsed;
 		}
 		synchronized (State.class) {
 			for (State s : stateAdditions) {
@@ -841,35 +849,15 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 			stateRemovals.clear();
 		}
 
-		if (burning != null) {
-			burning.visible = visible;
+		if (looks != null) {
+			looks.update();
 		}
-		if (halomethaneBurning != null) {
-			halomethaneBurning.visible = visible;
-		}
-		if (levitation != null) {
-			levitation.visible = visible;
-		}
+
 		if (iceBlock != null) {
 			iceBlock.visible = visible;
 		}
-		if (light != null) {
-			light.visible = visible;
-		}
-		if (chilled != null) {
-			chilled.visible = visible;
-		}
 		if (darkBlock != null) {
 			darkBlock.visible = visible;
-		}
-		if (marked != null) {
-			marked.visible = visible;
-		}
-		if (healing != null) {
-			healing.visible = visible;
-		}
-		if (hearts != null) {
-			hearts.visible = visible;
 		}
 		//shield fx updates its own visibility
 		if (aura != null) {
@@ -877,19 +865,10 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 				aura.show(this, 0);
 			}
 			aura.visible = visible;
-			aura.point(center());
+			aura.point(auraAt.set(x + width() / 2f, y + height() / 2f));
 		}
 		if (glowBlock != null){
 			glowBlock.visible =visible;
-		}
-		if (heatstroke != null){
-			heatstroke.visible = visible;
-		}
-		if (hypothermia != null){
-			hypothermia.visible = visible;
-		}
-		if (electric != null){
-			electric.visible = visible;
 		}
 
 		if (sleeping) {
@@ -1025,7 +1004,9 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 		for( State s : State.values()){
 			processStateRemoval(s);
 		}
-		
+		//every look let go of now: a killed sprite is never stepped again
+		if (looks != null) looks.release();
+
 		if (health != null){
 			health.killAndErase();
 		}
@@ -1044,6 +1025,13 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 				(width * (1f - shadowWidth)) / 2f,
 				(height * (1f - shadowHeight)) + shadowOffset);
 		Matrix.scale(shadowMatrix, shadowWidth, shadowHeight);
+		//a recoil, a squash, a shiver: the sprite (not its shadow) shifted on the screen only,
+		//straight across whatever its scale or angle (the matrix's own translation)
+		int ox = (nudgeLeft > 0 ? nudgeX : 0) + shiverX, oy = nudgeLeft > 0 ? nudgeY : 0;
+		if (ox != 0 || oy != 0){
+			matrix[12] += ox;
+			matrix[13] += oy;
+		}
 	}
 
 	@Override
@@ -1078,10 +1066,21 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 			script.drawQuad(buffer);
 		}
 
+		//a sprite with no shadow has its matrix remade only when it moves: an offset coming or going
+		//on the screen (a recoil, a shiver) remakes it too
+		int ox = (nudgeLeft > 0 ? nudgeX : 0) + shiverX, oy = nudgeLeft > 0 ? nudgeY : 0;
+		if (!renderShadow && (ox != shownOffX || oy != shownOffY)) updateMatrix();
+		shownOffX = ox;
+		shownOffY = oy;
+
+		//what its states wear behind it (a glow, a ring at its feet)
+		if (looks != null) looks.drawBehind();
 		//what circles it: its far side behind it, its near side and the areas' own over it
 		FxModules.beforeDraw( this );
 		super.draw();
 		FxModules.afterDraw( this );
+		//what its states wear on it (frost, vines, a rune, a glint)
+		if (looks != null) looks.drawOver();
 
 	}
 

@@ -27,7 +27,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -73,7 +73,7 @@ public class WarCry extends SubSkill2 {
 			castTextYell();
 			SpatialSound.play( Assets.Sounds.CHALLENGE, hero, 1f, 0.9f );
 			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.SCREAM ), 4 );
-			Camera.main.shake( 2, 0.3f );
+			Fx.shake( 2, 0.3f );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
 			hero.busy();

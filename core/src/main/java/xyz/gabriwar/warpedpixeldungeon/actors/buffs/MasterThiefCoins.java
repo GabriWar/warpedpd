@@ -66,7 +66,7 @@ public class MasterThiefCoins extends CounterBuff {
 
 	@Override
 	public void fx( boolean on ){
-		if (visual != null){ visual.killAndErase(); visual = null; }
+		if (visual != null){ xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx.dispose( visual ); visual = null; }
 		if (on && target.sprite != null && target.sprite.parent != null){
 			visual = new MasterThiefCoinsFX( target, this );
 			target.sprite.parent.add( visual );

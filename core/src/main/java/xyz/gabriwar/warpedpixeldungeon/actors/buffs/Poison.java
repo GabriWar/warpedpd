@@ -28,6 +28,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.PoisonParticle;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Image;
@@ -74,6 +75,12 @@ public class Poison extends Buff implements Hero.Doom, Buff.DOTbuff {
 	@Override
 	public int icon() {
 		return BuffIndicator.POISON;
+	}
+
+	@Override
+	public void fx(boolean on) {
+		if (on) target.sprite.add( CharSprite.State.POISONED );
+		else    target.sprite.remove( CharSprite.State.POISONED );
 	}
 	
 	@Override

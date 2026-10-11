@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.SteamParticle;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.Challenges;
@@ -820,7 +821,7 @@ public class Tengu extends Mob {
 				thrower.sprite.zap(target.pos);
 				Buff.append(thrower, Tengu.FireAbility.class).direction = i;
 				
-				thrower.sprite.emitter().start(Speck.factory(Speck.STEAM), .03f, 10);
+				thrower.sprite.emitter().start(SteamParticle.FACTORY, .03f, 10);
 				return true;
 			}
 		}
@@ -980,7 +981,7 @@ public class Tengu extends Mob {
 			public void use(BlobEmitter emitter) {
 				super.use(emitter);
 				
-				emitter.pour( Speck.factory( Speck.STEAM ), 0.2f );
+				emitter.pour( SteamParticle.FACTORY, 0.2f );
 			}
 			
 			@Override

@@ -38,7 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.RedDewdrop;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.LitTowerSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
 
@@ -153,7 +153,7 @@ public class LitTower extends Mob implements Callback {
 		hero.sprite.centerEmitter().burst(SparkParticle.FACTORY, 3);
 		hero.sprite.flash();
 
-		Camera.main.shake(2, 0.3f);
+		Fx.shake(2, 0.3f);
 
 		if (!hero.isAlive()) {
 			Dungeon.fail(this);

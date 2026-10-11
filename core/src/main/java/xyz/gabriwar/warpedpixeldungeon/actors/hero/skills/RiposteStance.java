@@ -27,23 +27,24 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vulnerable;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
-import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.ArcSpinFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraBuff;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StreakFX;
 import com.watabou.noosa.Game;
-import com.watabou.noosa.Group;
-import com.watabou.utils.PointF;
 import com.watabou.utils.Random;
 
 public class RiposteStance extends ActiveSkill2 {
@@ -85,7 +86,7 @@ public class RiposteStance extends ActiveSkill2 {
 		protected Class<? extends Skill> stance(){ return RiposteStance.class; }
 		@Override
 		protected StanceAuraFX build(){
-			return new StanceAuraFX( target, 0xDDEEFF, 3, null, 0 ){
+			return new StanceAuraFX( target, 0xDDEEFF, null, 0 ){
 				private float glint = Random.Float( 0.6f, 1.2f );
 				@Override
 				public void update(){
@@ -93,11 +94,10 @@ public class RiposteStance extends ActiveSkill2 {
 					if (!visible || target.sprite == null || parent == null) return;
 					glint -= Game.elapsed;
 					if (glint > 0) return;
-					glint = Random.Float( 0.9f, 1.5f );
+					glint = FxRandom.Float( 0.9f, 1.5f );
 					//a glint at the point of the held blade, in front of the duelist
-					PointF c = target.sprite.center();
 					float side = target.sprite.flipHorizontal ? -6 : 6;
-					new Flare( 4, 5 ).color( 0xFFFFFF, true ).show( (Group) parent, new PointF( c.x + side, c.y - 1 ), 0.25f );
+					PixelFlare.show( SkillVfx.midX( target.sprite ) + side, SkillVfx.midY( target.sprite ) - 1, 0xFFFFFF, PixelFlare.S, 0.25f );
 				}
 			};
 		}
@@ -123,7 +123,7 @@ public class RiposteStance extends ActiveSkill2 {
 		if (attacker.sprite != null) attacker.sprite.flash();
 		if (hero.sprite != null) hero.sprite.emitter().burst( xyz.gabriwar.warpedpixeldungeon.effects.Speck.factory( xyz.gabriwar.warpedpixeldungeon.effects.Speck.STAR ), 4 );
 		SpatialSound.play( Assets.Sounds.HIT_PARRY, hero, 1f, 1.2f );
-		Camera.main.shake( 1, 0.15f );
+		Fx.shake( 1, 0.15f );
 		//+3: the answered enemy is left open
 		if (level >= MAX_LEVEL && attacker.isAlive()){
 			Buff.prolong( attacker, Vulnerable.class, 2f );

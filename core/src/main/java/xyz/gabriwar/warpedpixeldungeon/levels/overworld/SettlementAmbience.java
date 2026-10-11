@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.levels.overworld;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.BurningRoof;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
 import xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle;
@@ -154,6 +155,8 @@ public final class SettlementAmbience {
 	private static final HashMap<Long, Float> liveInterval = new HashMap<>();
 	//the flames under each burning house's smoke, by the smoke's key
 	private static final HashMap<Long, Emitter> liveFlames = new HashMap<>();
+	//...and a burning house's embers and the light on its roof (effects/fx/fire/BurningRoof)
+	private static final HashMap<Long, BurningRoof> liveRoofs = new HashMap<>();
 	//...and what was put out but has not yet faded: wanted back before it is gone, it is lit
 	//again rather than doubled by a new one on the same cell
 	private static final HashMap<Long, HearthLight> fadingLights = new HashMap<>();
@@ -491,6 +494,12 @@ public final class SettlementAmbience {
 					else f.pos( s.flame[0], s.flame[1], s.flame[2], s.flame[3] );
 					f.pour( FlameParticle.FACTORY, FLAME_INTERVAL );
 					liveFlames.put( s.key, f );
+					BurningRoof was = liveRoofs.remove( s.key );
+					if (was != null) was.out();
+					if (s.soot){
+						BurningRoof roof = BurningRoof.light( s.x, s.y + 4, s.w, DungeonTilemap.SIZE );
+						if (roof != null) liveRoofs.put( s.key, roof );
+					}
 				}
 			}
 		}
@@ -499,6 +508,8 @@ public final class SettlementAmbience {
 			Map.Entry<Long, Emitter> e = it.next();
 			if (want.contains( e.getKey() )) continue;
 			if (e.getValue().parent != null) e.getValue().on = false;
+			BurningRoof roof = liveRoofs.remove( e.getKey() );
+			if (roof != null) roof.out();
 			it.remove();
 		}
 		for (Iterator<Map.Entry<Long, ChimneySmokeParticle.Column>> it = liveSmoke.entrySet().iterator(); it.hasNext(); ){
@@ -546,6 +557,7 @@ public final class SettlementAmbience {
 		for (HearthLight l : fadingLights.values()) l.slide( dx, dy );
 		for (ChimneySmokeParticle.Column e : liveSmoke.values()) e.slide( dx, dy );
 		for (ChimneySmokeParticle.Column e : fadingSmoke.values()) e.slide( dx, dy );
+		for (BurningRoof r : liveRoofs.values()) r.slide( dx, dy );
 		//a fire's flames: a waystation's hearth burns on for good, so they must follow its smoke
 		for (Emitter f : liveFlames.values()){
 			if (f.parent == null) continue;
@@ -569,6 +581,7 @@ public final class SettlementAmbience {
 		for (Emitter f : liveFlames.values()){
 			if (f.parent != null) f.on = false;
 		}
+		for (BurningRoof r : liveRoofs.values()) r.out();
 		forgetAll();
 		liveSceneId = 0;
 	}
@@ -591,6 +604,7 @@ public final class SettlementAmbience {
 		liveSmoke.clear();
 		liveInterval.clear();
 		liveFlames.clear();
+		liveRoofs.clear();
 		fadingLights.clear();
 		fadingSmoke.clear();
 	}

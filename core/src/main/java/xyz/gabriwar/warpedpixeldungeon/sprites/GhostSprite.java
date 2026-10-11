@@ -21,9 +21,9 @@
 
 package xyz.gabriwar.warpedpixeldungeon.sprites;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HolyFx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle;
 import com.watabou.glwrap.Blending;
 import com.watabou.noosa.TextureFilm;
 
@@ -61,7 +61,8 @@ public class GhostSprite extends MobSprite {
 	@Override
 	public void die() {
 		super.die();
-		emitter().start( ShaftParticle.FACTORY, 0.3f, 4 );
+		//its light rising as wisps (they were white bars)
+		emitter().start( HolyFx.SPIRIT_WISP, 0.3f, 3 );
 		emitter().start( Speck.factory( Speck.LIGHT ), 0.2f, 3 );
 	}
 	

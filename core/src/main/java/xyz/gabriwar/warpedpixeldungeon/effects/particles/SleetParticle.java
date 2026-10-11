@@ -24,12 +24,16 @@ package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.utils.Random;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
 import xyz.gabriwar.warpedpixeldungeon.effects.WeatherSprites;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.WaterFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.water.WaterRain;
 
-/** Half-frozen rain: a slushy drop, slower than rain, that splats where it lands. */
+/** Half-frozen rain: a slushy drop, slower than rain, that splats where it lands - on the water
+ *  a fainter ring than the rain's, in the water's own surface (WaterRain). Its randomness is the
+ *  effects' own (FxRandom). */
 public class SleetParticle extends WeatherParticle {
 
 	public static final Emitter.Factory FACTORY = new Emitter.Factory() {
@@ -44,24 +48,24 @@ public class SleetParticle extends WeatherParticle {
 
 	public SleetParticle() {
 		super();
-		lifespan = Random.Float(0.7f, 1.1f);
+		lifespan = FxRandom.Float(0.7f, 1.1f);
 	}
 
 	public void reset(float x, float y) {
 		revive();
 		this.x = x;
 		this.y = y;
-		left = lifespan = Random.Float(0.7f, 1.1f);
+		left = lifespan = FxRandom.Float(0.7f, 1.1f);
 
-		tint = Random.Float() < 0.5f ? 0xA8C4E0 : 0xC8D8F0;
+		tint = FxRandom.Float() < 0.5f ? 0xA8C4E0 : 0xC8D8F0;
 		color(tint);
-		frame(Random.Float() < 0.5f ? WeatherSprites.RAIN_V : WeatherSprites.FLAKE_2);
+		frame(FxRandom.Float() < 0.5f ? WeatherSprites.RAIN_V : WeatherSprites.FLAKE_2);
 
 		float windRad = (float) Math.toRadians(ClimateManager.surfaceWindDir());
 		float windX = (float) Math.sin(windRad) * ClimateManager.localWindSpeed() * 0.7f;
-		speed.set(Random.Float(-2, 2) + windX, Random.Float(40, 65));
+		speed.set(FxRandom.Float(-2, 2) + windX, FxRandom.Float(40, 65));
 		acc.set(0, 25);
-		wobblePhase = Random.Float((float)(Math.PI * 2));
+		wobblePhase = FxRandom.Float((float)(Math.PI * 2));
 	}
 
 	@Override
@@ -69,8 +73,10 @@ public class SleetParticle extends WeatherParticle {
 		boolean falling = left > 0;
 		super.update();
 		if (falling && left <= 0) {
-			if (Random.Float() < 0.3f && WeatherSprites.visible(x, y) && parent instanceof Group) {
-				SplashParticle.splash((Group) parent, x, y, tint, 0.5f);
+			//a splat in three; on the water a ring in its surface, fainter than the rain's
+			if (FxRandom.Float() < 0.3f && WeatherSprites.visible(x, y)) {
+				if (WaterFX.onWater(x, y)) WaterRain.drop(x, y, true);
+				else if (parent instanceof Group) SplashParticle.splash((Group) parent, x, y, tint, 0.5f);
 			}
 			return;
 		}

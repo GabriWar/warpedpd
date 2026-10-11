@@ -21,14 +21,13 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
-import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.BlobFx;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -77,6 +76,6 @@ public class Regrowth extends Blob {
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
 		
-		emitter.start( WeatherBlobFX.layered( LeafParticle.LEVEL_SPECIFIC, WeatherBlobFX.LEAF_BITS, 3 ), 0.2f, 0 );
+		emitter.start( BlobFx.growth( false ), BlobFx.GROWTH_EVERY, 0 );
 	}
 }

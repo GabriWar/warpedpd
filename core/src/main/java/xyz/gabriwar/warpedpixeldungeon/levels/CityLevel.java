@@ -21,6 +21,15 @@
 
 package xyz.gabriwar.warpedpixeldungeon.levels;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxLight;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Ramp;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.Flames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.PlaceLight;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Statistics;
@@ -292,15 +301,23 @@ public class CityLevel extends RegularLevel {
 		}
 	}
 
+	/**
+	 * A green flame on the city's walls: Saint Elmo's tongues (70 small to 30 middling) every
+	 * 0.1 s and a pale green glow breathing round them (effects/fx/fire/PlaceLight).
+	 */
 	public static class GreenFlame extends Emitter {
 
+		private static final int LIGHT = 0x70FF98;
+
 		private int pos;
+		private final PlaceLight light;
 
 		public static final Emitter.Factory factory = new Factory() {
 			@Override
 			public void emit( Emitter emitter, int index, float x, float y ) {
-				GreenFlameParticle p = (GreenFlameParticle)emitter.recycle( GreenFlameParticle.class );
-				p.reset( x, y );
+				if (!emitter.visible || !FxBudget.keep( FxBudget.P1, x, y )) return;
+				Flames.tongue( Flames.make( Flames.host( emitter, GreenFlameParticle.class ), GreenFlameParticle.class, x, y ),
+						Element.ELMO, FxRandom.chance( 0.7f ) ? Flames.S : Flames.M ).source( x, y );
 			}
 			@Override
 			public boolean lightMode() {
@@ -317,6 +334,8 @@ public class CityLevel extends RegularLevel {
 			pos( p.x - 2, p.y - 5, 4, 4 );
 
 			pour( factory, 0.1f );
+
+			light = new PlaceLight( pos, p.x, p.y - 4, 15, 0, 0, 0, LIGHT, 0.35f / FxLight.GLOW_CAP, FxLight.BREATH );
 		}
 
 		@Override
@@ -331,45 +350,58 @@ public class CityLevel extends RegularLevel {
 
 			if (visible = (pos < Dungeon.level.heroFOV.length && Dungeon.level.heroFOV[pos])) {
 				super.update();
+				light.update();
 			}
 		}
 
 	}
 
+	/** The green flames' tongues (the kit's flame in Saint Elmo's ramp). */
 	public static class GreenFlameParticle extends ElmoParticle {
-
-		public GreenFlameParticle(){
-			super();
-			acc.set( 0, -40 );
-		}
-
 	}
 
-	
+	/**
+	 * A vent in the city's walls breathing out warm grey fumes: a puff every 0.5 s, pale as it
+	 * leaves (9A9690) and darkening as it thins (6A6662), never more than 0.35 opaque, rising
+	 * straight up for 3 s (a city has no wind), and a dull red glow breathing at its mouth.
+	 */
 	public static class Smoke extends Emitter {
-		
+
+		private static final int LIGHT = 0xFF7040;
+		private static final Ramp FUMES = new Ramp( 0x9A9690, 0x827E78, 0x6A6662 );
+		//a puff's sizes, one frame each
+		private static final int[][][] PUFF_M = { { FxFrames.PUFF_M[0] }, { FxFrames.PUFF_M[1] } };
+
 		private int pos;
+		private final PlaceLight light;
 
 		public static final Emitter.Factory factory = new Factory() {
-			
+
 			@Override
 			public void emit( Emitter emitter, int index, float x, float y ) {
+				if (!emitter.visible || !FxBudget.keep( FxBudget.P2, x, y )) return;
+				int v = FxRandom.Int( 2 );
 				SmokeParticle p = (SmokeParticle)emitter.recycle( SmokeParticle.class );
 				p.reset( x, y );
+				p.look( FxFrames.PUFF_S[v] ).then( 0.45f, PUFF_M[v] ).ramp( FUMES, false ).smooth().life( 3f )
+						.alpha( 0.35f, 0.6f, 1.4f ).vel( FxRandom.Float( -1f, 1f ), -FxRandom.Float( 4f, 7f ) ).drag( 0.1f )
+						.turbulence( FxRandom.Float( 1f, 2f ), FxRandom.Float( 1.5f, 3f ) ).priority( FxBudget.P2 );
 			}
 		};
-		
+
 		public Smoke( int pos ) {
 			super();
-			
+
 			this.pos = pos;
-			
+
 			PointF p = DungeonTilemap.tileCenterToWorld( pos );
 			pos( p.x - 6, p.y - 4, 12, 12 );
-			
-			pour( factory, 0.2f );
+
+			pour( factory, 0.5f );
+
+			light = new PlaceLight( pos, p.x, p.y + 2, 7, p.x, p.y + 6, 15, LIGHT, 0.2f / FxLight.POOL_CAP, FxLight.BREATH );
 		}
-		
+
 		@Override
 		public void update() {
 			//its wall broken (a pick, a bomb), its smoke goes with it
@@ -382,34 +414,12 @@ public class CityLevel extends RegularLevel {
 
 			if (visible = (pos < Dungeon.level.heroFOV.length && Dungeon.level.heroFOV[pos])) {
 				super.update();
+				light.update();
 			}
 		}
 	}
-	
-	public static final class SmokeParticle extends PixelParticle {
-		
-		public SmokeParticle() {
-			super();
-			
-			color( 0x000000 );
-			speed.set( Random.Float( -2, 4 ), -Random.Float( 3, 6 ) );
-		}
-		
-		public void reset( float x, float y ) {
-			revive();
-			
-			this.x = x;
-			this.y = y;
-			
-			left = lifespan = 2f;
-		}
-		
-		@Override
-		public void update() {
-			super.update();
-			float p = left / lifespan;
-			am = p > 0.8f ? 1 - p : p * 0.25f;
-			size( 6 - p * 3 );
-		}
+
+	/** A vent's puff of fumes (the kit's painted puffs). */
+	public static final class SmokeParticle extends FxParticle {
 	}
 }

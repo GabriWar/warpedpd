@@ -24,44 +24,35 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects.skillfx;
 
+import com.watabou.noosa.Gizmo;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.noosa.particles.PixelParticle;
-import com.watabou.utils.Random;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFactories;
 
-/** White fire: a pale gold lick that lifts, whitens and goes out. Scouring, not burning. */
-public class HolyFlameParticle extends PixelParticle.Shrinking {
+/**
+ * White fire: Scouring Flame's tongues, the kit's flame model in the holy palette (white at its
+ * root, pale gold, honey at its tips), drawn as light over the night's tint whichever emitter
+ * bursts it (its particles are made in a carrier of the light layer, Fx.lightCarrier). Registered
+ * with NetVisuals as "holy_flame", so a guest sees the same bursts.
+ */
+public final class HolyFlameParticle {
+
+	private HolyFlameParticle(){}
+
+	//the light layer's carrier for these flames: a key of their own
+	private static final class Carried extends Gizmo {}
 
 	public static final Emitter.Factory FACTORY = new Emitter.Factory() {
 		@Override
 		public void emit( Emitter emitter, int index, float x, float y ){
-			((HolyFlameParticle) emitter.recycle( HolyFlameParticle.class )).reset( x, y );
+			Emitter host = Fx.lightCarrier( Carried.class );
+			FxFactories.tongue( Element.HOLY ).emit( host != null ? host : emitter, index, x, y );
 		}
+
 		@Override
 		public boolean lightMode(){
 			return true;
 		}
 	};
-
-	public HolyFlameParticle(){
-		super();
-		color( 0xFFF0B8 );
-		lifespan = 0.5f;
-		acc.set( 0, -60 );
-	}
-
-	public void reset( float x, float y ){
-		revive();
-		this.x = x;
-		this.y = y;
-		left = lifespan;
-		size = 4;
-		speed.set( Random.Float( -6, 6 ), Random.Float( -12, -4 ) );
-	}
-
-	@Override
-	public void update(){
-		super.update();
-		float p = left / lifespan;
-		am = p > 0.75f ? (1 - p) * 4 : p / 0.75f;
-	}
 }

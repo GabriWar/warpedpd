@@ -24,6 +24,7 @@ package xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MagicImmune;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.arcane.ItemFx;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 
 public class ScrollOfAntiMagic extends ExoticScroll {
@@ -38,6 +39,7 @@ public class ScrollOfAntiMagic extends ExoticScroll {
 		detach(curUser.belongings.backpack);
 		Buff.affect( curUser, MagicImmune.class, MagicImmune.DURATION );
 		new Flare( 5, 32 ).color( 0x00FF00, true ).show( curUser.sprite, 2f );
+		ItemFx.shock( curUser, 0x60E060, false );
 
 		identify();
 		

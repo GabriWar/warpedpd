@@ -44,6 +44,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.arcane.ChargeGlow;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.keys.CrystalKey;
@@ -72,6 +73,8 @@ public class TempleSentrySprite extends MobSprite {
 
 		private Animation charging;
 		private Emitter chargeParticles;
+		//the charge's glow where its motes gather (its anticipation)
+		private final ChargeGlow chargeGlow = new ChargeGlow();
 
 		public TempleSentrySprite(){
 			texture( Assets.Sprites.NEW_SENTRY );
@@ -94,9 +97,9 @@ public class TempleSentrySprite extends MobSprite {
 			flash();
 			emitter().burst(MagicMissile.WardParticle.UP, 2);
 			if (Actor.findChar(pos) != null){
-				parent.add(new Beam.DeathRay(center(), Actor.findChar(pos).sprite.center()));
+				parent.add(new Beam.DeathRay(center(), Actor.findChar(pos).sprite.center()).lite());
 			} else {
-				parent.add(new Beam.DeathRay(center(), DungeonTilemap.raisedTileCenterToWorld(pos)));
+				parent.add(new Beam.DeathRay(center(), DungeonTilemap.raisedTileCenterToWorld(pos)).lite());
 			}
 			((TempleSentry) ch).onZapComplete();
 		}
@@ -126,6 +129,7 @@ public class TempleSentrySprite extends MobSprite {
 		@Override
 		public void kill() {
 			super.kill();
+			chargeGlow.release();
 			if (chargeParticles != null){
 				chargeParticles.killAndErase();
 			}
@@ -162,6 +166,7 @@ public class TempleSentrySprite extends MobSprite {
 				chargeParticles.pos( center() );
 				chargeParticles.visible = visible;
 			}
+			chargeGlow.update( this, chargeParticles != null && chargeParticles.on && visible, 0x88CCFF );
 
 			if (!paused){
 				if (Float.isNaN(baseY)) baseY = y;

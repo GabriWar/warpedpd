@@ -26,6 +26,7 @@ package xyz.gabriwar.warpedpixeldungeon.items.wands;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.arcane.ItemFx;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -83,6 +84,7 @@ public class WandOfBlink extends Wand {
 
 		curUser.sprite.visible = true;
 
+		int from = curUser.pos;
 		curUser.sprite.interruptMotion();
 		curUser.move(cell);
 		curUser.sprite.place(cell);
@@ -96,6 +98,7 @@ public class WandOfBlink extends Wand {
 		SpatialSound.play(Assets.Sounds.TELEPORT, curUser);
 
 		Dungeon.level.occupyCell(curUser);
+		ItemFx.teleport( from, cell, true, true );
 		Dungeon.observe();
 
 		wandProc(curUser, chargesPerCast());

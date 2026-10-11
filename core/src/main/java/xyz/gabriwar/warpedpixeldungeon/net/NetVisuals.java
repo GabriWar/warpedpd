@@ -156,6 +156,10 @@ public class NetVisuals {
 		reg("firedamp",         xyz.gabriwar.warpedpixeldungeon.effects.particles.FiredampParticle.FACTORY);
 		for (int i = 0; i < 4; i++) reg("gust" + i, xyz.gabriwar.warpedpixeldungeon.effects.particles.DraftParticle.GUSTS[i]);
 		reg("earth_falling",    EarthParticle.FALLING);
+		reg("spirit_wisp",      xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HolyFx.SPIRIT_WISP); // fx:nature-life-holy
+		reg("shaft_heal",       ShaftParticle.HEAL); // fx:nature-life-holy
+		reg("sungrass_shaft",   xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.PlantFx.SUNGRASS_SHAFT); // fx:nature-life-holy
+		reg("holy_flame",       xyz.gabriwar.warpedpixeldungeon.effects.skillfx.HolyFlameParticle.FACTORY); // fx:skills
 	}
 
 	private static void reg(String id, Emitter.Factory factory) {
@@ -384,6 +388,25 @@ public class NetVisuals {
 		} catch (JSONException ignored) {}
 	}
 
+	/**
+	 * Record one of fire and heat's looks that answers to the game rather than to a burst
+	 * (effects/fx/fire/FireNet): its kind, its cell, two numbers ("n", "m") and a list of cells
+	 * ("a"), each sent only when there is one. The guest's FireNet plays it.
+	 */
+	public static void recordFire(int kind, int cell, int n, int m, int[] list) {
+		if (!NetManager.isHost()) return;
+		try {
+			JSONObject evt = new JSONObject();
+			evt.put("t", "fh");
+			evt.put("k", kind);
+			evt.put("c", cell);
+			if (n != 0) evt.put("n", n);
+			if (m != 0) evt.put("m", m);
+			if (list != null && list.length > 0) evt.put("a", cells(list));
+			pendingEvents.add(evt);
+		} catch (JSONException ignored) {}
+	}
+
 	private static JSONArray cells(int[] cells) {
 		JSONArray a = new JSONArray();
 		for (int c : cells) a.put(c);
@@ -531,7 +554,28 @@ public class NetVisuals {
 			case "ms": replayMissile(evt); break;
 			case "cc": replayCheckedCell(evt); break;
 			case "sk": replayStrike(evt); break;
+			case "fh": replayFire(evt); break;
 		}
+	}
+
+	//a fire look: its cells those on the level, none where the host sent none
+	private static void replayFire(JSONObject evt) throws JSONException {
+		if (Dungeon.level == null) return;
+		int len = Dungeon.level.length();
+		int cell = evt.getInt("c");
+		if (cell >= len) return;
+		int[] list = null;
+		JSONArray a = evt.optJSONArray("a");
+		if (a != null) {
+			list = new int[a.length()];
+			int k = 0;
+			for (int i = 0; i < a.length(); i++) {
+				int c = a.optInt(i, -1);
+				if (c >= 0 && c < len) list[k++] = c;
+			}
+			list = java.util.Arrays.copyOf(list, k);
+		}
+		xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.FireNet.play(evt.getInt("k"), cell, evt.optInt("n", 0), evt.optInt("m", 0), list);
 	}
 
 	private static void replayStrike(JSONObject evt) throws JSONException {
@@ -695,6 +739,8 @@ public class NetVisuals {
 			PointF c = sprite.center();
 			int n = Math.min(9, Math.max(1, (int)(9 * Math.sqrt((double)damage / 20))));
 			Splash.at(c, 0xFFBB0000, n);
+			// the blow's star, flash and recoil, as the host saw them (no shake: the guest's hero is not in it)
+			sprite.hitFx( c.x + (sprite.flipHorizontal ? 8 : -8), c.y, damage, xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.HitFx.HIT, false );
 		}
 	}
 

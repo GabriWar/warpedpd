@@ -767,6 +767,14 @@ public final class OverworldCritters {
 			live.add( c );
 		}
 
+		//what swims under the water: in the scene's layer under its surface (and its sheens),
+		//which every rebase slides as it does the effects
+		void addUnder( CritterSprite c ){
+			GameScene.subsurface( c );
+			if (c.parent != null) c.parent.bringToFront( c );
+			live.add( c );
+		}
+
 		private void prune(){
 			for (int i = live.size() - 1; i >= 0; i--) if (!live.get( i ).exists) live.remove( i );
 			for (int i = flocks.size() - 1; i >= 0; i--) if (flocks.get( i ).gone()) flocks.remove( i );

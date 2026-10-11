@@ -25,11 +25,11 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PillarRiseFX;
 
 
-import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
@@ -133,7 +133,7 @@ public class Reckoning extends Skill {
 			if (hero.sprite != null){
 				hero.sprite.emitter().start( Speck.factory( Speck.STAR ), 0.3f, 10 );
 				new Flare( 10, 32 ).color( 0xFFEE88, true ).show( hero.sprite, 1.2f ).angularSpeed = 90;
-				Camera.main.shake( 1, 0.3f );
+				Fx.shake( 1, 0.3f );
 			}
 
 			castTextYell();

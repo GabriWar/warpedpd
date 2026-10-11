@@ -76,7 +76,7 @@ public class Lunge extends ActiveSkill1 {
                 final int land=landing;
                 //the run: a whoosh and a thin white streak shooting ahead of the duelist
                 SpatialSound.play(Assets.Sounds.MISS,hero,1f,1.3f+0.1f*(chain-1));
-                StreakFX.show(from,land,0xFFFFFF,0.5f,0.35f);
+                StreakFX.dash(from,land,0xFFFFFF,0.5f,0.35f,true);
                 hero.sprite.jump(from,land,()->{
                     hero.move(land,false);hero.sprite.place(land);Dungeon.observe();
                     KindOfWeapon weapon=hero.belongings.weapon();

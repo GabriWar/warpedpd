@@ -21,6 +21,9 @@
 
 package xyz.gabriwar.warpedpixeldungeon.sprites;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.BodyGlow;
+import com.watabou.noosa.Game;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.YogFist;
@@ -33,7 +36,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
-import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.TextureFilm;
 import com.watabou.noosa.particles.Emitter;
@@ -49,6 +51,14 @@ public abstract class FistSprite extends MobSprite {
 
 	private Emitter particles;
 	protected abstract Emitter createEmitter();
+
+	//what a burning fist's body gives off besides its flames (effects/fx/fire/BodyGlow)
+	private BodyGlow glow;
+
+	/** Its body's glow (BodyGlow's kinds), -1 for none. */
+	protected int glowKind(){
+		return -1;
+	}
 
 	public FistSprite() {
 		super();
@@ -84,6 +94,9 @@ public abstract class FistSprite extends MobSprite {
 		if (particles == null) {
 			particles = createEmitter();
 		}
+		if (glow == null && glowKind() != -1) {
+			glow = new BodyGlow( glowKind() );
+		}
 	}
 
 	@Override
@@ -93,6 +106,9 @@ public abstract class FistSprite extends MobSprite {
 		if (particles != null){
 			particles.visible = visible;
 		}
+		if (glow != null){
+			glow.update( this, visible && particles != null && particles.on, Game.elapsed );
+		}
 	}
 
 	@Override
@@ -100,6 +116,9 @@ public abstract class FistSprite extends MobSprite {
 		super.die();
 		if (particles != null){
 			particles.on = false;
+		}
+		if (glow != null){
+			glow.out();
 		}
 	}
 
@@ -140,7 +159,8 @@ public abstract class FistSprite extends MobSprite {
 	public void onComplete( Animation anim ) {
 		super.onComplete( anim );
 		if (anim == attack) {
-			PixelScene.shake( 4, 0.2f );
+			//as the camera was shaken before (PixelScene.shake 4), within the kit's cap
+			Fx.shake( 8f, 0.2f );
 		} else if (anim == zap) {
 			idle();
 		}
@@ -155,6 +175,11 @@ public abstract class FistSprite extends MobSprite {
 		@Override
 		protected int texOffset() {
 			return 0;
+		}
+
+		@Override
+		protected int glowKind() {
+			return BodyGlow.FIRE;
 		}
 
 		@Override

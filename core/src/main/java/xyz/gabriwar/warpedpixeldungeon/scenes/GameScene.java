@@ -71,6 +71,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRing;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Lit;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Steps;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.TerrainWatch;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.gas.CellOverlay;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.WaterFX;
 import xyz.gabriwar.warpedpixeldungeon.items.Ankh;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
@@ -2165,6 +2166,8 @@ public class GameScene extends PixelScene {
 		scene.walls.applyShift( s.walls );
 		scene.wallBlocking.applyShift( s.blocking );
 		scene.fog.shiftContent( s.dcx, s.dcy );
+		//the cell pictures (webs, rime, a gas's tint) keyed by cell follow theirs
+		CellOverlay.shiftAll( s.dcx, s.dcy, Dungeon.level.width(), Dungeon.level.height() );
 		//the window slid: its terrain taken in afresh, nothing announced
 		TerrainWatch.resync();
 		updateDayNightTint();

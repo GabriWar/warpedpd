@@ -53,7 +53,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * The fixes the effects kit made to what everyone shares: a speck's factory as light or plain
  * whichever was asked for first; a weather particle out of the hero's sight not drawn at all, and
- * drawn again once he sees it; one gradient texture for every flare.
+ * drawn again once he sees it; no texture of a flare's own.
  */
 public class SharedFixesTest {
 
@@ -150,15 +150,12 @@ public class SharedFixesTest {
 	}
 
 	@Test
-	public void everyFlareSharesOneGradient() throws Exception {
-		java.lang.reflect.Field tex = Flare.class.getDeclaredField( "texture" );
-		tex.setAccessible( true );
-		Object first = tex.get( new Flare( 6, 16 ) );
-		for (int i = 0; i < 100; i++) assertSame( first, tex.get( new Flare( 4 + i % 8, 8 + i ) ) );
-		//its edge fades out in white, not cyan
-		java.lang.reflect.Field g = Flare.class.getDeclaredField( "GRADIENT" );
-		g.setAccessible( true );
-		int[] gradient = (int[]) g.get( null );
-		for (int c : gradient) assertEquals( 0xFFFFFF, c & 0xFFFFFF );
+	public void noFlareMakesATextureOfItsOwn() throws Exception {
+		//a flare is painted from the kit's light sheet (bolts-beams-arcane): none makes a texture
+		java.lang.reflect.Field all = com.watabou.gltextures.TextureCache.class.getDeclaredField( "all" );
+		all.setAccessible( true );
+		int before = ((java.util.Map<?, ?>) all.get( null )).size();
+		for (int i = 0; i < 100; i++) new Flare( 4 + i % 8, 8 + i );
+		assertEquals( before, ((java.util.Map<?, ?>) all.get( null )).size() );
 	}
 }

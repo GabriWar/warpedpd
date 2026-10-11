@@ -28,6 +28,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.NPC;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.arcane.ItemFx;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
@@ -44,6 +45,7 @@ public class PotionOfBeacon extends ExoticPotion {
 		identify();
 
 		GameScene.flash(0x80FFFFFF);
+		ItemFx.bloom( hero );
 
 		int count = 0;
 		for (Mob mob : Dungeon.level.mobs.toArray(new Mob[0])) {

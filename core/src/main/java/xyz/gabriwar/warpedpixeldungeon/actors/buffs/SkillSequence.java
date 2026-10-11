@@ -15,7 +15,7 @@ public class SkillSequence extends Buff {
     public int kind,rank,center,age,remaining,damage;
     private int depth,branch;
     private int[] cells=new int[0];
-    private com.watabou.noosa.Group aura;
+    private com.watabou.noosa.Gizmo aura;
     public static SkillSequence start(Hero hero,int kind,int rank,int center,int damage,int turns,Collection<Integer> cells){
         // Refresh mobile auras instead of multiplying them on every cast.
         ArrayList<SkillSequence> old=new ArrayList<>();
@@ -135,30 +135,16 @@ public class SkillSequence extends Buff {
         com.watabou.noosa.Game.runOnRenderThread(()->{if(revision==fxRevision)updateAura(on);});
     }
     private void updateAura(boolean on){
-        if(aura!=null){aura.killAndErase();aura.destroy();aura=null;}
+        if(aura!=null){xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx.dispose(aura);aura=null;}
         if(!on||target==null||target.sprite==null||target.sprite.parent==null||kind!=DAWN&&kind!=BLADESTORM)return;
-        aura=new com.watabou.noosa.Group(){
-            float time;
-            final com.watabou.noosa.Image[] orbit=new com.watabou.noosa.Image[kind==DAWN?2:2+rank/2];
-            {
-                for(int i=0;i<orbit.length;i++){
-                    com.watabou.noosa.Image image=new com.watabou.noosa.Image("effects/skill_motes.png");
-                    image.frame(new com.watabou.noosa.TextureFilm(image.texture,4,4).get(kind==DAWN?0:2));
-                    image.origin.set(2,2);image.hardlight(kind==DAWN?0xF1D99C:0xB9DEEE);orbit[i]=image;add(image);
-                }
-            }
-            @Override public void update(){
-                super.update();time+=com.watabou.noosa.Game.elapsed;
-                visible=sameFloor()&&target.isAlive()&&target.sprite.visible;
-                for(int i=0;i<orbit.length;i++){
-                    float angle=time*3+i*6.2831853f/orbit.length;
-                    float xoff=(float)Math.cos(angle)*7;
-                    float yoff=(float)Math.sin(angle)*3;
-                    orbit[i].x=Math.round(target.sprite.center().x+xoff)-2;
-                    orbit[i].y=Math.round(target.sprite.center().y+yoff)-3;
-                    orbit[i].alpha(kind==DAWN?.45f+.1f*(float)Math.sin(time*3):.6f);
-                    if(kind==BLADESTORM)orbit[i].angle=angle*57.2958f;
-                }
+        final boolean dawn=kind==DAWN;
+        final int motes=dawn?2:2+rank/2;
+        // The kit's SEQUENCE orbit: dawn's two warm motes breathing, a bladestorm's steel glints
+        aura=new xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillOrbit(target,xyz.gabriwar.warpedpixeldungeon.effects.fx.FxOrbit.Slot.SEQUENCE){
+            @Override protected int count(){return sameFloor()&&target.isAlive()?motes:0;}
+            @Override protected void look(xyz.gabriwar.warpedpixeldungeon.effects.fx.FxOrbit.Ring ring,int n){
+                if(dawn)ring.motes(n,xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames.MOTE_2,0xF1D99C,true).trail(2).breath(.35f,.55f,.5f).speed(3f);
+                else ring.motes(n,xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames.PLUS_3,0xB9DEEE,true).trail(n<=2?2:1).breath(.8f,1f,1.5f).speed(4f);
             }
         };
         target.sprite.parent.add(aura);

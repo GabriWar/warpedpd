@@ -66,8 +66,8 @@ import static org.junit.Assert.assertTrue;
 /**
  * The effects' areas and the kit's hooks into the game: eight areas with keys of their own, each
  * with a gallery page of at least six exhibits, the gallery's scenes among the debug scenes with
- * no id twice; a sprite stepping out of water still leaves today's ring (moved into the water's
- * area, unchanged), a jumper landing in it too, a flier none; the terrain watch tells each change
+ * no id twice; a sprite stepping into, through and out of water rings it (the water's area), a
+ * jumper landing in it too, a flier none; the terrain watch tells each change
  * once and a whole new map none; and a sprite's orbits come and go.
  */
 public class FxModulesTest {
@@ -217,13 +217,14 @@ public class FxModulesTest {
 		Group stage = new Group();
 		Rat rat = new Rat();
 		CharSprite s = sprite( new RatSprite(), rat, at( 6, 5 ), stage );
-		//into the water: no ring, as ever
+		//into the water (the water's area, docs/fx/water-life.md): a middling ring and its second
+		//where it will stand
 		s.move( at( 4, 5 ), at( 5, 5 ) );
-		assertEquals( 0, ripples() );
-		//through it and out of it: a ring on the cell left
+		assertEquals( "a middling ring and its second", 2, ripples() );
+		//through it and out of it: a small ring on the cell left
 		WaterFX.frame();
 		s.move( at( 5, 5 ), at( 6, 5 ) );
-		assertEquals( "a middling ring and its second", 2, ripples() );
+		assertEquals( 3, ripples() );
 		WaterFX.frame();
 		s.move( at( 8, 5 ), at( 9, 5 ) );
 		assertEquals( 4, ripples() );

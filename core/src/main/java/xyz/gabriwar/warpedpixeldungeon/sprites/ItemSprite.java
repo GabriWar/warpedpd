@@ -26,6 +26,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.water.WaterDrops;
 import xyz.gabriwar.warpedpixeldungeon.items.Gold;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
@@ -341,8 +342,10 @@ public class ItemSprite extends MovieClip {
 
 				if (visible) {
 
+					//into the water: a drop with its droplets, and the fish come to look
 					if (Dungeon.level.water[heap.pos]) {
-						GameScene.ripple(heap.pos);
+						PointF c = DungeonTilemap.tileCenterToWorld(heap.pos);
+						WaterDrops.item(c.x, c.y + 2);
 					}
 
 					if (Dungeon.level.water[heap.pos]) {

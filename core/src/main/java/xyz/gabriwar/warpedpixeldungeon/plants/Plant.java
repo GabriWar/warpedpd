@@ -37,6 +37,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.LivingPlant;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.PlantFx;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfRegrowth;
@@ -57,8 +58,45 @@ import com.watabou.utils.Random;
 import com.watabou.utils.Reflection;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public abstract class Plant implements Bundlable {
+
+	//each seed's colour (its coating's), read once per kind from its particle: a plant's petals,
+	//a coated blow's burst (a particle made per blow before)
+	private static final HashMap<Class<?>, Integer> COLORS = new HashMap<>();
+	//the colour of a plant whose seed has none
+	private static final int PLAIN_COLOR = 0xC8F070;
+
+	/** A seed kind's colour (0xRRGGBB): its coating particle's. */
+	public static int colorOf( Seed seed ){
+		int c = coating( seed );
+		return c == -1 ? PLAIN_COLOR : c;
+	}
+
+	//a seed kind's coating colour, -1 for a seed with none
+	static int coating( Seed seed ){
+		if (seed == null) return -1;
+		synchronized (COLORS){
+			Integer c = COLORS.get( seed.getClass() );
+			if (c == null){
+				PixelParticle p = seed.poisonEmitterClass();
+				c = p != null ? p.getColor() & 0xFFFFFF : -1;
+				COLORS.put( seed.getClass(), c );
+			}
+			return c;
+		}
+	}
+
+	/** A plant's colour: its seed's (made once per kind to ask). */
+	public static int colorOf( Plant plant ){
+		if (plant == null || plant.seedClass == null) return PLAIN_COLOR;
+		synchronized (COLORS){
+			Integer c = COLORS.get( plant.seedClass );
+			if (c != null) return c == -1 ? PLAIN_COLOR : c;
+		}
+		return colorOf( Reflection.newInstance( plant.seedClass ) );
+	}
 	
 	public int image;
 	public int livingPlantImage = -1; // sprite sheet row in livingplants.png; -1 = use image field
@@ -177,6 +215,7 @@ public abstract class Plant implements Bundlable {
 
 		if (Dungeon.level.heroFOV[pos]) {
 			CellEmitter.get( pos ).burst( LeafParticle.GENERAL, 6 );
+			PlantFx.wither( this, pos );
 		}
 
 		float seedChance = 0f;
@@ -263,8 +302,10 @@ public abstract class Plant implements Bundlable {
 		// Called when a weapon coated with this seed hits a target
 		public void onProc(Char attacker, Char defender, int damage){
 			if (attacker == null || defender == null || plantClass == null || defender.isImmune(plantClass)) return;
-			if (Dungeon.level.heroFOV[defender.pos] && defender.sprite != null && poisonEmitterClass() != null) {
-				defender.sprite.burst(poisonEmitterClass().getColor(), Math.max(1, damage));
+			int coating = coating( this );
+			if (Dungeon.level.heroFOV[defender.pos] && defender.sprite != null && coating != -1) {
+				//a burst of the coating's colour by the blow, a dozen at most
+				defender.sprite.burst(0xFF000000 | coating, Math.min(12, 2 + damage / 3));
 			}
 			procEffect(attacker, defender, damage);
 		}

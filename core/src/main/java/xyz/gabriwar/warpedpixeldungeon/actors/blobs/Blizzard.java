@@ -77,7 +77,8 @@ public class Blizzard extends Blob {
 	@Override
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
-		emitter.pour( WeatherBlobFX.BLIZZARD, 0.07f );
+		//about 20 pictures a cell (its mix lives some 3 s on average); 0.07 made over 40
+		emitter.pour( WeatherBlobFX.BLIZZARD, 0.15f );
 	}
 	
 	@Override

@@ -42,6 +42,10 @@ public class Assets {
 		//tools/fx_sheet_gen.py and tools/fx_light_gen.py
 		public static final String FX_SHEET = "effects/fx_sheet.png"; // fx:kit
 		public static final String FX_LIGHT = "effects/fx_light.png"; // fx:kit
+		public static final String WATER_SHEEN_A = "effects/water_sheen_a.png"; // fx:water-life
+		public static final String WATER_SHEEN_B = "effects/water_sheen_b.png"; // fx:water-life
+		public static final String WATER_POCKS = "effects/water_pocks.png"; // fx:water-life
+		public static final String LAVA_GLOW = "effects/lava_glow.png"; // fx:water-life
 	}
 
 	public static class Environment {
@@ -121,6 +125,12 @@ public class Assets {
 		public static final String HALLS_SP         = "environment/custom_tiles/halls_special.png";
 
 		public static final String PORTAL_GATE      = "environment/portal_gate.png";
+		public static final String WATER_SEWERS_CYCLE = "environment/water0_cycle.png"; // fx:water-life
+		public static final String WATER_PRISON_CYCLE = "environment/water1_cycle.png"; // fx:water-life
+		public static final String WATER_CAVES_CYCLE = "environment/water2_cycle.png"; // fx:water-life
+		public static final String WATER_CITY_CYCLE = "environment/water3_cycle.png"; // fx:water-life
+		public static final String WATER_HALLS_CYCLE = "environment/water4_cycle.png"; // fx:water-life
+		public static final String WATER_TEMPLE_CYCLE = "environment/water_temple_cycle.png"; // fx:water-life
 	}
 	
 	//TODO include other font assets here? Some are platform specific though...

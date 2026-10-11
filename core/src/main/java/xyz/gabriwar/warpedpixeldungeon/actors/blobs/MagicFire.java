@@ -21,10 +21,10 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
-import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.FireBlobFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.FireStyle;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
@@ -64,7 +64,13 @@ public class MagicFire extends Blob {
 	@Override
 	public void use(BlobEmitter emitter) {
 		super.use(emitter);
-		emitter.pour(WeatherBlobFX.layered(FlameParticle.FACTORY, WeatherBlobFX.embers( 0xFFC060 ), 6), 0.03f);
+		FireBlobFx.pour( this, emitter, FireStyle.MAGIC );
+	}
+
+	//light: drawn over the night's tint, its smoke among the gases
+	@Override
+	public boolean emissive() {
+		return true;
 	}
 
 	@Override

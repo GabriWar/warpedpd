@@ -25,6 +25,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import com.watabou.utils.Bundle;
 
@@ -74,6 +75,12 @@ public class Barkskin extends Buff {
 	@Override
 	public int icon() {
 		return BuffIndicator.BARKSKIN;
+	}
+
+	@Override
+	public void fx(boolean on) {
+		if (on) target.sprite.add( CharSprite.State.BARKED );
+		else    target.sprite.remove( CharSprite.State.BARKED );
 	}
 
 	@Override

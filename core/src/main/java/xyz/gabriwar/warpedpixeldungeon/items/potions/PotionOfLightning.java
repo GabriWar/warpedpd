@@ -36,7 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.utils.BArray;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -102,9 +102,9 @@ public class PotionOfLightning extends Potion {
             CellEmitter.center( p ).burst( SparkParticle.FACTORY, 3 );
         }
 
-        hero.sprite.parent.addToFront( new Lightning( arcs, null ) );
+        hero.sprite.parent.addToFront( new Lightning( arcs, null ).major() );
         SpatialSound.play(Assets.Sounds.LIGHTNING, hero);
-        Camera.main.shake(2, 0.5f);
+        Fx.shake(2, 0.5f);
 
         if (!affected.isEmpty()) {
             float multiplier = 0.4f + (0.6f / affected.size());

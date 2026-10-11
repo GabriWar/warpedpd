@@ -27,6 +27,7 @@ package xyz.gabriwar.warpedpixeldungeon.effects.skillfx;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 
 /**
@@ -70,7 +71,7 @@ public abstract class StanceAuraBuff extends Buff {
 	@Override
 	public void fx( boolean on ){
 		if (aura != null){
-			aura.stop();
+			Fx.post( aura::stop );
 			aura = null;
 		}
 		if (on && target.sprite != null && target.sprite.parent != null){

@@ -24,6 +24,12 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFactories;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Draught;
@@ -166,9 +172,35 @@ public class BellowsDraft extends Blob {
 			@Override
 			public void emit( Emitter e, int index, float x, float y ){
 				((DraftParticle) e.recycle( DraftParticle.class )).reset( x, y, DX[heading], DY[heading] );
+				//blowing over burning coals, the draught now and then fans a gust of sparks off them
+				if (FxRandom.Float() < 0.16f / FAN_EVERY && coalsBurning( Fx.cellAt( x, y ) )){
+					FxEmitter sparks = GameScene.lightEmitter();
+					if (sparks != null){
+						sparks.pos( x - 4, y - 2, 8, 4 );
+						sparks.start( FxFactories.spark( Element.FIRE ), FAN_FOR / FAN_SPARKS, FAN_SPARKS );
+					}
+				}
 			}
 		}, 0.16f );
 	}
+
+	//a gust of sparks fanned off burning coals under the draught: about one a coal cell every
+	//FAN_EVERY s, FAN_SPARKS of them over FAN_FOR s (visual only)
+	private static final float FAN_EVERY = 3f, FAN_FOR = 0.3f;
+	private static final int FAN_SPARKS = 6;
+
+	//whether a bed of coals burns on the cell
+	private static boolean coalsBurning( int cell ){
+		if (cell < 0 || Dungeon.level == null) return false;
+		for (Class<? extends CoalBed> kind : COALS){
+			CoalBed bed = (CoalBed) Dungeon.level.blobs.get( kind );
+			if (bed != null && bed.burning( cell )) return true;
+		}
+		return false;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static final Class<? extends CoalBed>[] COALS = new Class[]{ ForgeCoals.class, CampFire.class, NestCoals.class };
 
 	@Override
 	public String tileDesc(){

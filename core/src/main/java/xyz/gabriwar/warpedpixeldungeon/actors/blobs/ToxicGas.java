@@ -21,14 +21,13 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
-import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.gas.GasStyle;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 
@@ -60,7 +59,7 @@ public class ToxicGas extends Blob implements Hero.Doom {
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
 
-		emitter.pour( WeatherBlobFX.layered( Speck.factory( Speck.TOXIC ), WeatherBlobFX.bubbles( 0x90FF60 ), 3 ), 0.3f );
+		emitter.pour( GasStyle.TOXIC.factory(), GasStyle.TOXIC.pour );
 	}
 	
 	@Override

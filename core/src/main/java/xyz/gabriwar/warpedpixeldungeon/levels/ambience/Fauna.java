@@ -47,7 +47,10 @@ final class Fauna {
 	 * (sixteen to a cell) how near the hero (scare) or anyone else (pass) may come before it is
 	 * off, and how far off a fight still sends it away (noise). Zero: nothing sends it off (a fish
 	 * already in the air; a butterfly minds no one passing but the hero). A fly stuck in the web
-	 * cannot be off: what comes near only sets it struggling.
+	 * cannot be off: what comes near only sets it struggling. A fish gliding under the water keeps
+	 * its own nearness (effects/fx/water/FishBrain: the hero within 32 px, anyone 24), so its scare
+	 * stays 0 and it may turn up near the party as ever; a fight still shakes the water out to its
+	 * noise.
 	 */
 	enum Kind {
 		//            cap  chance  near far   scare  pass  noise
@@ -73,7 +76,7 @@ final class Fauna {
 		FINCH       ( 2, 0.35f,  5, 9,   52f,  36f, 128f ),
 		GULL        ( 2, 0.35f,  5, 9,   52f,  36f, 128f ),
 		HARE        ( 2, 0.25f,  5, 9,   68f,  36f,  96f ),
-		FISH        ( 2, 0.50f,  2, 7,    0f,   0f,   0f ),
+		FISH        ( 2, 0.50f,  2, 7,    0f,   0f,  96f ),
 		BUTTERFLY   ( 4, 0.50f,  2, 6,   20f,   0f,  64f );
 
 		final int cap, near, far;

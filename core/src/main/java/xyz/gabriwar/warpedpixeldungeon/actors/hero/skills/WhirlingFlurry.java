@@ -75,7 +75,7 @@ public class WhirlingFlurry extends ActiveSkill3 {
         }
         if(level>=MAX_LEVEL)SkillSequence.start(hero,SkillSequence.BLADESTORM,1,hero.pos,Math.max(1,damage/3),3,java.util.Collections.emptyList());
         //two blade arcs whipping round the duelist in opposite directions
-        ArcSpinFX.around(hero.sprite,0xFFFFFF,12,0.3f,0,1000,0.4f);
+        ArcSpinFX.around(hero.sprite,0xFFFFFF,12,0.3f,0,1000,0.4f,true);
         ArcSpinFX.around(hero.sprite,0xCCE4FF,9,0.22f,180,-820,0.4f);
         hero.sprite.operate(hero.pos);
         SpatialSound.play(Assets.Sounds.MISS,hero,1f,0.8f);

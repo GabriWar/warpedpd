@@ -27,6 +27,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -78,7 +79,7 @@ public class RimeAffinity extends Skill {
 			xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.get( target.pos ).burst( SnowParticle.FACTORY, 10 );
 			xyz.gabriwar.warpedpixeldungeon.effects.Splash.at( target.pos, 0xCCEEFF, 10 );
 			if (target.sprite != null) target.sprite.flash();
-			com.watabou.noosa.Camera.main.shake( 1, 0.15f );
+			Fx.shake( 1, 0.15f );
 			SpatialSound.play( Assets.Sounds.SHATTER, target, 1f, 1.1f );
 			return;
 		}

@@ -28,6 +28,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Drowsy;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.arcane.ItemFx;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
@@ -43,6 +44,7 @@ public class ScrollOfLullaby extends Scroll {
 
 		detach(curUser.belongings.backpack);
 		curUser.sprite.centerEmitter().start( Speck.factory( Speck.NOTE ), 0.3f, 5 );
+		ItemFx.flyToNear( curUser, 4, Speck.NOTE );
 		SpatialSound.play( Assets.Sounds.LULLABY, curUser );
 
 		for (Mob mob : Dungeon.level.mobs.toArray( new Mob[0] )) {

@@ -34,9 +34,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Daze;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.CircleArc;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.ClosingRing;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 
 /**
@@ -80,8 +81,8 @@ public class SixthSense extends Skill {
 		castTextYell();
 		if (hero.sprite != null){
 			//the warning: a green ring closing on her as the flare opens
-			new Flare( 6, 20 ).color( 0x88CC66, true ).show( hero.sprite, 0.6f );
-			if (hero.sprite.parent != null) new CircleArc( 16, 12 ).color( 0x88CC66, true ).show( hero.sprite, 0.45f );
+			PixelFlare.show( SkillVfx.midX( hero.sprite ), SkillVfx.midY( hero.sprite ), 0x88CC66, PixelFlare.M, 0.6f );
+			ClosingRing.on( hero.sprite, 31, 9, 0.45f, 0x88CC66 );
 			hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 6 );
 		}
 		SpatialSound.play( Assets.Sounds.MISS, hero, 1f, 1.5f );

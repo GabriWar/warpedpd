@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -38,7 +39,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
-import com.watabou.noosa.Camera;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
@@ -106,7 +106,7 @@ public class ManaShieldWard extends Barrier {
 			owner.sprite.showStatus( CharSprite.POSITIVE, Messages.get( ManaShield.class, "charged", 1 + level ) );
 		}
 		SpatialSound.play( Assets.Sounds.SHATTER, owner, 1f, 1.2f );
-		Camera.main.shake( 1, 0.2f );
+		Fx.shake( 1, 0.2f );
 		Buff.affect( owner, ManaShield.Charged.class ).set( 1 + level );
 	}
 

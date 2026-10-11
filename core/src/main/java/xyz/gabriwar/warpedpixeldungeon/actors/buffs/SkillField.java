@@ -65,9 +65,9 @@ public class SkillField extends Buff {
         return true;
     }
     @Override public void fx(boolean on){
-        if(visual!=null){visual.killAndErase();visual=null;}
+        if(visual!=null){xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx.dispose(visual);visual=null;}
         if(on && kind<RIGGED && target!=null && target.sprite!=null && target.sprite.parent!=null && cells.length>0){
-            visual=new SkillFieldFX(this);target.sprite.parent.add(visual);
+            visual=new SkillFieldFX(this);SkillFieldFX.show(visual);
         }
     }
     @Override public void storeInBundle(Bundle b){

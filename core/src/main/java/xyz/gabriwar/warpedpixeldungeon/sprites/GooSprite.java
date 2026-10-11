@@ -26,14 +26,18 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxDecal;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.WaterFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.gas.Shade;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ElmoParticle;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import com.watabou.noosa.TextureFilm;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.particles.Emitter.Factory;
-import com.watabou.noosa.particles.PixelParticle;
-import com.watabou.utils.PointF;
-import com.watabou.utils.Random;
 
 import java.util.ArrayList;
 
@@ -78,7 +82,7 @@ public class GooSprite extends MobSprite {
 		spray = centerEmitter();
 		if (spray != null) {
 			spray.autoKill = false;
-			spray.pour(GooParticle.FACTORY, 0.04f);
+			spray.pour(GooParticle.FACTORY, 0.08f);
 			spray.on = false;
 		}
 	}
@@ -113,7 +117,7 @@ public class GooSprite extends MobSprite {
 						&& new Ballistica(ch.pos, i, Ballistica.STOP_TARGET | Ballistica.STOP_SOLID | Ballistica.IGNORE_SOFT_SOLID).collisionPos == i
 						&& new Ballistica(i, ch.pos, Ballistica.STOP_TARGET | Ballistica.STOP_SOLID | Ballistica.IGNORE_SOFT_SOLID).collisionPos == ch.pos) {
 					Emitter e = CellEmitter.get(i);
-					e.pour(GooParticle.FACTORY, 0.04f);
+					e.pour(GooParticle.WARN, 0.08f);
 					pumpUpEmitters.add(e);
 				}
 			}
@@ -168,41 +172,59 @@ public class GooSprite extends MobSprite {
 		}
 	}
 
-	public static class GooParticle extends PixelParticle.Shrinking {
+	/**
+	 * A drop of goo: a 2x2 or 3x2 blob of black ooze with a pale glint on its crown, flung up 32-48
+	 * px/s and falling at 160 px/s^2 to land a few pixels below - a dark splat on the floor a time in
+	 * four (at 0.3, gone in a second and a half), a dark ring on the water. Its randomness is the
+	 * effects' own. FACTORY's (an ooze cloud, Goo's spray, an arcane bomb) are P2; WARN's (Goo
+	 * pumping up, its GooWarn cells) are a telegraph the player reads, P0: never thinned.
+	 */
+	public static class GooParticle extends FxParticle {
+
+		/** The goo, and the glint on its crown. */
+		public static final int GOO = 0x1A1A22, GLINT = 0x8A8AA0;
+		private static final int[][] DROPS = { FxFrames.PEBBLE_2, FxFrames.PEBBLE_3 };
 
 		public static final Emitter.Factory FACTORY = new Factory() {
 			@Override
 			public void emit( Emitter emitter, int index, float x, float y ) {
-				((GooParticle)emitter.recycle( GooParticle.class )).reset( x, y );
+				if (!FxBudget.keep( FxBudget.P2, x, y )) return;
+				((GooParticle)emitter.recycle( GooParticle.class )).drop( x, y );
 			}
 		};
 
-		public GooParticle() {
-			super();
+		public static final Emitter.Factory WARN = new WarnFactory();
 
-			color( 0x000000 );
-			lifespan = 0.3f;
+		private static class WarnFactory extends Factory implements FxBudget.Prioritized {
+			@Override
+			public void emit( Emitter emitter, int index, float x, float y ) {
+				FxBudget.keep( FxBudget.P0 );
+				((GooParticle)emitter.recycle( GooParticle.class )).drop( x, y ).priority( FxBudget.P0 );
+			}
 
-			acc.set( 0, +50 );
+			@Override
+			public int priority() {
+				return FxBudget.P0;
+			}
 		}
 
-		public void reset( float x, float y ) {
-			revive();
+		//a drop's landing: a ring on water, a splat on the floor a time in four
+		private static final Fate LANDING = ( p, landed ) -> {
+			if (!landed) return;
+			if (WaterFX.onWater( p.px, p.py )){
+				WaterFX.ring( p.px, p.py, WaterFX.M, GOO, 0.6f, FxBudget.P2 );
+			} else if (FxRandom.chance( 0.25f ) && FxDecal.live() < FxBudget.decalCap() - 8){
+				FxDecal.at( p.px, p.py, FxFrames.SPLAT[FxRandom.Int( 2 )], GOO, 0.3f, 1f, 0.5f, FxRandom.chance( 0.5f ) );
+			}
+		};
 
-			this.x = x;
-			this.y = y;
-
-			left = lifespan;
-
-			size = 4;
-			speed.polar( -Random.Float( PointF.PI ), Random.Float( 32, 48 ) );
-		}
-
-		@Override
-		public void update() {
-			super.update();
-			float p = left / lifespan;
-			am = p > 0.5f ? (1 - p) * 2f : 1;
+		public GooParticle drop( float x, float y ) {
+			reset( x, y );
+			look( FxRandom.element( DROPS ) ).life( 1f ).alpha( 1f, 0, 0.1f )
+					.polar( -FxRandom.Float( 0.15f, 0.85f ) * (float)Math.PI, FxRandom.Float( 32f, 48f ) ).gravity( 160f )
+					.ground( y + FxRandom.Float( 2f, 6f ), DIE, 0 ).fate( LANDING ).priority( FxBudget.P2 );
+			Shade.map( this, GLINT, Shade.CROWN, GOO, Shade.BODY );
+			return this;
 		}
 	}
 

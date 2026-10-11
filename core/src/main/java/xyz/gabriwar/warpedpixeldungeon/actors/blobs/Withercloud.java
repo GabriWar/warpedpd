@@ -24,10 +24,9 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
-import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.gas.GasStyle;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -60,7 +59,7 @@ public class Withercloud extends Blob {
 	@Override
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
-		emitter.pour( WeatherBlobFX.layered( Speck.factory( Speck.TOXIC ), WeatherBlobFX.LEAF_BITS, 3 ), 0.3f );
+		emitter.pour( GasStyle.WITHER.factory(), GasStyle.WITHER.pour );
 	}
 
 	@Override

@@ -27,7 +27,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -157,7 +157,7 @@ public class BloodRush extends SubSkill2 {
 				WarriorImpactFX.show( land );
 				hero.sprite.emitter().burst( Speck.factory( Speck.RED_LIGHT ), 6 );
 				SpatialSound.play( Assets.Sounds.TRAMPLE, hero, 1f, 0.9f );
-				Camera.main.shake( 2, 0.2f );
+				Fx.shake( 2, 0.2f );
 				hero.spendAndNext( TIME_TO_USE );
 			} );
 		}

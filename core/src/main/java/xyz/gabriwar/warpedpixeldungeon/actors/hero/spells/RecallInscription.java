@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.spells;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HolyFx;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FlavourBuff;
@@ -71,6 +72,7 @@ public class RecallInscription extends ClericSpell {
 		item.setCurrent(hero);
 
 		hero.sprite.operate(hero.pos);
+		HolyFx.glintSweep(hero.sprite);
 		Enchanting.show(hero, item);
 
 		if (item instanceof Scroll){

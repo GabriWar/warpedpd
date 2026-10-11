@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.cleric;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HolyFx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Statistics;
@@ -145,6 +146,7 @@ public class Trinity extends ArmorAbility {
 								w.enchant((Weapon.Enchantment) bodyForm);
 								Enchanting.show(Dungeon.hero, w);
 								Dungeon.hero.sprite.operate(Dungeon.hero.pos);
+								HolyFx.glintSweep(Dungeon.hero.sprite);
 								Dungeon.hero.spendAndNext(1f);
 								armor.charge -= trinityChargeUsePerEffect(bodyForm.getClass());
 								armor.updateQuickslot();
@@ -179,6 +181,7 @@ public class Trinity extends ArmorAbility {
 								a.inscribe((Armor.Glyph) bodyForm);
 								Enchanting.show(Dungeon.hero, a);
 								Dungeon.hero.sprite.operate(Dungeon.hero.pos);
+								HolyFx.glintSweep(Dungeon.hero.sprite);
 								Dungeon.hero.spendAndNext(1f);
 								armor.charge -= trinityChargeUsePerEffect(bodyForm.getClass());
 								armor.updateQuickslot();
@@ -215,6 +218,7 @@ public class Trinity extends ArmorAbility {
 						Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
 						Enchanting.show(Dungeon.hero, (Item)mindForm);
 						Dungeon.hero.sprite.operate(Dungeon.hero.pos);
+						HolyFx.glintSweep(Dungeon.hero.sprite);
 
 						if (((Item) mindForm).usesTargeting && Dungeon.quickslot.contains(armor)){
 							QuickSlotButton.useTargeting(Dungeon.quickslot.getSlot(armor));
@@ -259,6 +263,7 @@ public class Trinity extends ArmorAbility {
 						Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
 						Enchanting.show(Dungeon.hero, (Item) spiritForm);
 						Dungeon.hero.sprite.operate(Dungeon.hero.pos);
+						HolyFx.glintSweep(Dungeon.hero.sprite);
 						armor.charge -= trinityChargeUsePerEffect(spiritForm.getClass());
 						armor.updateQuickslot();
 						hide();
@@ -464,6 +469,7 @@ public class Trinity extends ArmorAbility {
 					spell.onSpellCast(tome, Dungeon.hero);
 
 					Dungeon.hero.sprite.operate(Dungeon.hero.pos);
+					HolyFx.glintSweep(Dungeon.hero.sprite);
 					Enchanting.show(Dungeon.hero, item);
 					Sample.INSTANCE.play(Assets.Sounds.TELEPORT);
 				}

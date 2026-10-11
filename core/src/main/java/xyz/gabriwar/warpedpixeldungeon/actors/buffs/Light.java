@@ -57,6 +57,8 @@ public class Light extends FlavourBuff {
 	public static Light burn( xyz.gabriwar.warpedpixeldungeon.actors.Char ch, float duration ) {
 		Light light = Buff.affect( ch, Light.class, duration );
 		light.flame = true;
+		//a flame burns as a torch (its look comes after the buff took hold, before it knew)
+		if (ch.sprite != null) ch.sprite.add( CharSprite.State.TORCHLIT );
 		return light;
 	}
 	
@@ -110,7 +112,12 @@ public class Light extends FlavourBuff {
 
 	@Override
 	public void fx(boolean on) {
-		if (on) target.sprite.add(CharSprite.State.ILLUMINATED);
-		else target.sprite.remove(CharSprite.State.ILLUMINATED);
+		if (on) {
+			target.sprite.add(CharSprite.State.ILLUMINATED);
+			if (flame) target.sprite.add(CharSprite.State.TORCHLIT);
+		} else {
+			target.sprite.remove(CharSprite.State.ILLUMINATED);
+			target.sprite.remove(CharSprite.State.TORCHLIT);
+		}
 	}
 }

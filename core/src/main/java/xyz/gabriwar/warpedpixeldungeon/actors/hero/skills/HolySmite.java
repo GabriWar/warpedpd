@@ -85,7 +85,7 @@ public class HolySmite extends ActiveSkill1 {
 		protected Class<? extends Skill> stance(){ return HolySmite.class; }
 		@Override
 		protected StanceAuraFX build(){
-			return new StanceAuraFX( target, 0xFFE9A0, 1, Speck.factory( Speck.LIGHT ), 0.9f );
+			return new StanceAuraFX( target, 0xFFE9A0, Speck.factory( Speck.LIGHT ), 0.9f );
 		}
 	}
 

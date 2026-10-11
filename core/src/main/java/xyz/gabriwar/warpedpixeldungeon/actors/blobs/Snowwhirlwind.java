@@ -59,7 +59,8 @@ public class Snowwhirlwind extends Blob {
 	@Override
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
-		emitter.start( SnowStormParticle.WHIRL, 0.3f, 20 );
+		//whirling for as long as the wind lasts, about 6 flakes a cell (they live 1.2-2 s)
+		emitter.pour( SnowStormParticle.WHIRL, 0.27f );
 	}
 
 	@Override

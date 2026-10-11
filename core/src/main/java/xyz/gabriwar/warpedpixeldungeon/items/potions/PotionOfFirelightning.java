@@ -107,7 +107,7 @@ public class PotionOfFirelightning extends Potion {
             CellEmitter.center( p ).burst( SparkParticle.FACTORY, 3 );
         }
 
-        hero.sprite.parent.addToFront( new Lightning( arcs, null ) );
+        hero.sprite.parent.addToFront( new Lightning( arcs, null ).major() );
         SpatialSound.play(Assets.Sounds.LIGHTNING, hero);
 
         if (!affected.isEmpty()) {

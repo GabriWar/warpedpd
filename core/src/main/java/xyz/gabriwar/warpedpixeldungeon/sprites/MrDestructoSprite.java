@@ -72,9 +72,9 @@ public class MrDestructoSprite extends MobSprite {
 		if (anim == zap) {
 			idle();
 			if (Actor.findChar(zapPos) != null) {
-				parent.add(new Beam.DeathRay(center(), Actor.findChar(zapPos).sprite.center()));
+				parent.add(new Beam.DeathRay(center(), Actor.findChar(zapPos).sprite.center()).lite());
 			} else {
-				parent.add(new Beam.DeathRay(center(), DungeonTilemap.raisedTileCenterToWorld(zapPos)));
+				parent.add(new Beam.DeathRay(center(), DungeonTilemap.raisedTileCenterToWorld(zapPos)).lite());
 			}
 			SpatialSound.play( Assets.Sounds.RAY, ch );
 			((xyz.gabriwar.warpedpixeldungeon.actors.mobs.MrDestructo) ch).deathRay();

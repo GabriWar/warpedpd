@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HolyFx;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barkskin;
@@ -33,7 +34,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Fury;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Speed;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.food.MysteryMeat;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.sprites.SpiderMindSprite;
@@ -127,7 +127,7 @@ public class SpiderMind extends Mob {
 						Buff.prolong( mob, Speed.class, 3f );
 						break;
 				}
-				CellEmitter.get( mob.pos ).start( ShaftParticle.FACTORY, 0.2f, 3 );
+				CellEmitter.get( mob.pos ).start( HolyFx.SPIRIT_WISP, 0.2f, 3 );
 				break;
 			}
 		}

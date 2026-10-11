@@ -62,7 +62,7 @@ public class ChargedSteam extends Blob {
 					if (ch != null && !ch.isImmune( getClass() ) && !ch.isImmune( Electricity.class )) {
 						if (Dungeon.level.heroFOV[cell] && ch.sprite != null && ch.sprite.parent != null) {
 							PointF to = ch.sprite.center();
-							ch.sprite.parent.addToFront( new Lightning( new PointF( to.x, to.y - 24 ), to, null ) );
+							ch.sprite.parent.addToFront( new Lightning( new PointF( to.x, to.y - 24 ), to, null ).major().aloft() );
 							zapped = SpatialSound.nearer( zapped, cell );
 						}
 						ch.damage( Math.round( Random.Float( 2 + Dungeon.scalingDepth() / 5f ) ), this );
@@ -88,7 +88,14 @@ public class ChargedSteam extends Blob {
 	@Override
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
-		emitter.start( SparkParticle.FACTORY, 0.1f, 0 );
+		//the charge crackling in place through the steam
+		emitter.start( SparkParticle.STATIC, 0.1f, 0 );
+	}
+
+	//its crackle is light, over the night's tint
+	@Override
+	public boolean emissive() {
+		return true;
 	}
 
 	@Override

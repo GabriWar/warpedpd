@@ -36,7 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
  * The rules read a cell's eight neighbours: the scheduler only tries cells inside the map's
  * outer ring.
  */
-enum Source {
+public enum Source {
 
 	/** no cell: the floor's own air, heard centred */
 	AIR,
@@ -203,8 +203,9 @@ enum Source {
 	}
 
 	/** Does the pipe at this cell pour, a sheet of water into its pool, rather than trickle?
-	 *  One in three does - always the same ones, so a pipe never changes its voice. */
-	static boolean pours( int cell ){
+	 *  One in three does - always the same ones, so a pipe never changes its voice. (Public: the
+	 *  pipe's falling water, effects/fx/water/WaterFalls, pours or trickles as it sounds.) */
+	public static boolean pours( int cell ){
 		int h = cell * 0x9E3779B1;
 		h ^= h >>> 15;
 		h *= 0x85EBCA6B;
@@ -225,8 +226,10 @@ enum Source {
 	}
 
 	/** Where a body of water laps at its edge: liquid with dry ground beside it, three of its
-	 *  neighbours liquid or more - a river's or a lake's bank, never a puddle. */
-	static boolean lapping( int[] map, int w, int cell ){
+	 *  neighbours liquid or more - a river's or a lake's bank, never a puddle. The cell must lie
+	 *  inside the map's outer ring. (Public: the water's lap foam, effects/fx/water, finds its
+	 *  edges by it.) */
+	public static boolean lapping( int[] map, int w, int cell ){
 		return liquid( map[cell] ) && dryAround( map, w, cell ) && liquidAround( map, w, cell ) >= 3;
 	}
 

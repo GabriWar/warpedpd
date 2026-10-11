@@ -24,9 +24,9 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.BlobFx;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.LightParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.plants.Plant;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -61,6 +61,7 @@ public class Sunlight extends Blob {
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
 
-		emitter.start( LightParticle.FACTORY, 0.2f, 20 );
+		//pours while it lasts (one draw of the game's Random, as the twenty it started did)
+		emitter.pour( BlobFx.SUN, BlobFx.SUN_EVERY );
 	}
 }

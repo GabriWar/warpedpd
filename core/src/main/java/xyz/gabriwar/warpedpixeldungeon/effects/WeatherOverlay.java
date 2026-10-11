@@ -39,6 +39,8 @@ import xyz.gabriwar.warpedpixeldungeon.effects.particles.RainParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SleetParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SteamParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientPlayer;
 import xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientSound;
@@ -119,6 +121,12 @@ public class WeatherOverlay extends Group {
 	private float clock = 0f;          // its own frames' clock, real seconds, for the gates below
 	private Group sparks;              // the sparks where the bolts' arcs land, made with the first
 	private int stepsLeft;             // the steps over the water a frame's bolts may still draw
+	private Lightning drawn;           // the bolt strike() just drew where the hero sees it
+	private Lightning pending;         // the nearest seen bolt, whose flash waits for its strike
+	private int pendingCell;
+	private float pendingSince;
+	// how long a flash waits for its bolt's strike at most (its leader is 0.03 s)
+	private static final float PENDING_MOST = 0.1f;
 
 	// The turns run many a second (resting, a long walk), and a storm's bolts with them: the
 	// sky flashes and shakes no more often than this, in real seconds, whatever flashes it (a
@@ -381,17 +389,31 @@ public class WeatherOverlay extends Group {
 		clock += Game.elapsed;
 		stepsLeft = STEPS_A_FRAME;
 		int nearest = -1;
+		Lightning nearestDrawn = null;
 		StormStrikes.Bolt bolt;
 		while ((bolt = StormStrikes.next()) != null) {
 			if (bolt.level != Dungeon.level || Dungeon.hero == null) continue;
 			if (!strike(bolt) && bolt.cloud) continue;
 			if (nearest == -1 || Dungeon.level.distance(Dungeon.hero.pos, bolt.cell)
-					< Dungeon.level.distance(Dungeon.hero.pos, nearest)) nearest = bolt.cell;
+					< Dungeon.level.distance(Dungeon.hero.pos, nearest)) {
+				nearest = bolt.cell;
+				nearestDrawn = drawn;
+			}
 		}
-		if (nearest != -1 && flashes.pass(clock)) {
-			add(LightningFlash.flash());
-			thunder(nearest, Dungeon.level.distance(Dungeon.hero.pos, nearest));
+		//one seen comes down its leader first: the flash and the thunder wait for its strike
+		//(stormStruck); one unseen flashes now
+		if (nearest != -1) {
+			if (pending != null) flashPending();
+			if (nearestDrawn != null) {
+				pending = nearestDrawn;
+				pendingCell = nearest;
+				pendingSince = clock;
+			} else if (flashes.pass(clock)) {
+				add(LightningFlash.flash());
+				thunder(nearest, Dungeon.level.distance(Dungeon.hero.pos, nearest));
+			}
 		}
+		if (pending != null && (clock - pendingSince > PENDING_MOST || !pending.alive)) flashPending();
 		// Between them the sky flashes on its own, sheet lightning behind the clouds with only
 		// a far roll after it: it touches nothing, so it keeps the frames' clock
 		boolean storming = netStormingOverride != null ? netStormingOverride : ClimateManager.isStorming();
@@ -632,6 +654,7 @@ public class WeatherOverlay extends Group {
 	 * the overlay's own: its Lightning makes none of the three (stormsOwn).
 	 */
 	private boolean strike(StormStrikes.Bolt bolt) {
+		drawn = null;
 		Camera cam = Camera.main;
 		boolean[] fov = Dungeon.level.heroFOV;
 		if (cam == null || fov == null) return false;
@@ -641,13 +664,12 @@ public class WeatherOverlay extends Group {
 		if (seen) {
 			boolean low = bolt.cloud && !StormStrikes.underOpenSky(Dungeon.level);
 			float k = low ? CLOUD_BOLT : 1f;
-			float lean = low ? Random.Float(-10f, 10f)
-					: (float)Math.sin(Math.toRadians(ClimateManager.surfaceWindDir())) * ClimateManager.localWindSpeed() * 1.5f;
-			PointF from = new PointF(to.x - lean, low ? to.y - Random.Float(34f, 52f) : cam.scroll.y - 12f);
+			float lean = low ? FxRandom.Float(-10f, 10f) : skyLean();
+			PointF from = new PointF(to.x - lean, low ? to.y - FxRandom.Float(34f, 52f) : cam.scroll.y - 12f);
 			//the channel: a zigzag of five or six legs, and a fork off one of the upper joints
 			//that dies out short of the ground (Lightning.Arc: every lightning's look); its glow
-			//the strike's own
-			arcs.add(new Lightning.Arc(from, to, 5 + Random.Int(2), k, 0.7f, false));
+			//the strike's own (StrikeGlow, as it strikes: stormStruck)
+			arcs.add(Lightning.Arc.visual(from, to, 5 + FxRandom.Int(2), k, 0.7f, false).storm());
 		}
 		//its arcs from one it hit to the next, with three sparks on each, and its crawl over the
 		//water, a spark on each cell, as many steps of it as the frame has left (nearest first)
@@ -655,16 +677,24 @@ public class WeatherOverlay extends Group {
 		for (int i = 0; i + 1 < bolt.water.length && stepsLeft > 0; i += 2) {
 			if (arc(bolt.water[i], bolt.water[i + 1], 1, true, fov, arcs)) stepsLeft--;
 		}
-		if (!arcs.isEmpty()) add(new Lightning(arcs, null).stormsOwn());
-		if (seen) add(new StrikeGlow(to.x, to.y));
+		if (!arcs.isEmpty()) {
+			Lightning l = Lightning.visual(arcs, null).stormsOwn(this);
+			add(l);
+			if (seen) drawn = l;
+		}
 		return seen;
+	}
+
+	/** How far a bolt from the top of the view leans with the wind, px (its foot from its top). */
+	static float skyLean() {
+		return (float)Math.sin(Math.toRadians(ClimateManager.surfaceWindDir())) * ClimateManager.localWindSpeed() * 1.5f;
 	}
 
 	//one of a bolt's arcs, where the hero sees either end (a step of its crawl over the water a
 	//faint crackle, lit with the strike), and n sparks where he sees it land; whether it was drawn
 	private boolean arc(int from, int to, int n, boolean water, boolean[] fov, ArrayList<Lightning.Arc> into) {
 		if (!fov[from] && !fov[to]) return false;
-		Lightning.Arc arc = new Lightning.Arc(from, to);
+		Lightning.Arc arc = Lightning.Arc.visual(DungeonTilemap.tileCenterToWorld(from), DungeonTilemap.tileCenterToWorld(to));
 		into.add(water ? arc.crawl(0) : arc);
 		if (!fov[to]) return true;
 		PointF p = DungeonTilemap.tileCenterToWorld(to);
@@ -685,17 +715,24 @@ public class WeatherOverlay extends Group {
 		Emitter e = (Emitter) sparks.recycle(Emitter.class);
 		e.revive();
 		e.pos(x, y);
-		e.burst(SparkParticle.FACTORY, n);
+		e.burst(SparkParticle.ELECTRIC, n);
 	}
 
 	/**
-	 * A lightning of the game (Lightning: a wand's, a spell's, a monster's) struck the cell in the
-	 * hero's sight, on its first frame: the storm's flash over the view, unless the sky flashed in
-	 * the last FLASH_GAP (a storm's bolts and these alike), and from the cell the storm's crack for a
-	 * bolt in sight, unless one of these cracked in the last THUNDER_GAP. Render thread.
+	 * A major lightning of the game (Lightning.major: a wand's, a potion's, a spell's) struck the
+	 * cell in the hero's sight, as it strikes: its soft flash over the view (LightningFlash.game,
+	 * FlashGate's game gap), unless the sky flashed in the last FLASH_GAP (a storm's bolts and these
+	 * alike), and from the cell the storm's crack for a bolt in sight, unless one of these cracked in
+	 * the last THUNDER_GAP. Render thread.
 	 */
 	void struck(int cell) {
-		if (flashes.pass(clock)) add(LightningFlash.flash());
+		if (flashes.open(clock)) {
+			LightningFlash f = LightningFlash.game();
+			if (f != null) {
+				add(f);
+				flashes.close(clock);
+			}
+		}
 		if (cracks.pass(clock)) crack(cell, CRACK);
 	}
 
@@ -704,13 +741,48 @@ public class WeatherOverlay extends Group {
 	 * every time, seen or not and whatever cracked before, closing the gate on the others' for
 	 * THUNDER_GAP; the flash where the hero sees it, under the flashes' gate as ever. Render thread.
 	 */
-	void thunder(int cell) {
+	void wandThunder(int cell) {
 		boolean[] fov = Dungeon.level == null ? null : Dungeon.level.heroFOV;
-		if (fov != null && cell >= 0 && cell < fov.length && fov[cell] && flashes.pass(clock)) {
-			add(LightningFlash.flash());
+		if (fov != null && cell >= 0 && cell < fov.length && fov[cell] && flashes.open(clock)) {
+			LightningFlash f = LightningFlash.game();
+			if (f != null) {
+				add(f);
+				flashes.close(clock);
+			}
 		}
 		cracks.close(clock);
 		crack(cell, WAND_CRACK);
+	}
+
+	/**
+	 * A minor lightning of the game (a creature's zap) struck the cell in the hero's sight: the
+	 * storm's crack for it under the same THUNDER_GAP, and nothing more (no flash, no shake).
+	 * Render thread.
+	 */
+	void crackOnly(int cell) {
+		if (cracks.pass(clock)) crack(cell, CRACK);
+	}
+
+	/**
+	 * A storm's bolt struck (Lightning.strike, after its leader): its glow on the ground where the
+	 * hero sees it, and the flash and thunder the frame's nearest bolt left waiting for it.
+	 */
+	void stormStruck(Lightning l) {
+		for (Lightning.Arc arc : l.arcs()) {
+			if (arc.storm) add(new StrikeGlow(arc.to.x, arc.to.y));
+		}
+		if (l == pending) flashPending();
+	}
+
+	//the flash and the thunder of the nearest bolt that came down
+	private void flashPending() {
+		Lightning l = pending;
+		pending = null;
+		if (l == null || Dungeon.level == null || Dungeon.hero == null) return;
+		if (flashes.pass(clock)) {
+			add(LightningFlash.flash());
+			thunder(pendingCell, Dungeon.level.distance(Dungeon.hero.pos, pendingCell));
+		}
 	}
 
 	/**
@@ -981,8 +1053,8 @@ public class WeatherOverlay extends Group {
 		return maxInterval + (minInterval - maxInterval) * rate;
 	}
 
-	/** the light a strike throws on the ground where it lands: a broad soft glow,
-	 *  additive, gone in a third of a second */
+	/** the light a strike throws on the ground where it lands: a broad soft glow (the light
+	 *  sheet's 47 px one, painted, at its own size), additive, gone in a third of a second */
 	private static class StrikeGlow extends Group {
 		private static final float LIFE = 0.35f;
 		private float left = LIFE;
@@ -990,14 +1062,13 @@ public class WeatherOverlay extends Group {
 
 		StrikeGlow(float x, float y) {
 			super();
-			glow = new com.watabou.noosa.Image(WeatherSprites.get());
-			int[] f = WeatherSprites.GLOW_5;
-			glow.frame(f[0], f[1], f[2], f[3]);
+			glow = new com.watabou.noosa.Image(Assets.Effects.FX_LIGHT);
+			int[] f = FxFrames.Light.GLOW_47;
+			glow.frame(glow.texture.uvRect(f[0], f[1], f[0] + f[2], f[1] + f[3]));
 			glow.origin.set(f[2] / 2f, f[3] / 2f);
-			glow.scale.set(6);
 			glow.hardlight(0xD8E4FF);
-			glow.x = x - f[2] / 2f;
-			glow.y = y - f[3] / 2f;
+			glow.x = Math.round(x - f[2] / 2f);
+			glow.y = Math.round(y - f[3] / 2f);
 			add(glow);
 		}
 

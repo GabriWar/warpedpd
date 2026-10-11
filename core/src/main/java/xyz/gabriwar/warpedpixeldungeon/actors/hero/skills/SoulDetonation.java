@@ -27,7 +27,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -102,7 +102,7 @@ public class SoulDetonation extends Skill {
                     if(hero.sprite!=null&&hero.sprite.parent!=null)new xyz.gabriwar.warpedpixeldungeon.effects.Flare(6,16).color(0xBBA7EE,true)
                         .show(hero.sprite.parent,xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap.tileCenterToWorld(origin),0.5f);
                     xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX.after(0.1f*order,()->{
-                        Camera.main.shake(2,0.2f);SpatialSound.play(Assets.Sounds.BLAST,origin,0.8f,0.9f+0.1f*order);
+                        Fx.shake(2,0.2f);SpatialSound.play(Assets.Sounds.BLAST,origin,0.8f,0.9f+0.1f*order);
                     });
                     xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX.after(0.1f*order+0.3f,()->{
                         if(hero.sprite!=null)hero.sprite.emitter().burst(Speck.factory(Speck.BLUE_LIGHT),3);

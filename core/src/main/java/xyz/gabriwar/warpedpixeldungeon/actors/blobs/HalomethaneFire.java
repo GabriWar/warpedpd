@@ -24,6 +24,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.FireBlobFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.FireStyle;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.TileTemperature;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -31,7 +33,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.HalomethaneBurning;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.HalomethaneFlameParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -115,7 +116,13 @@ public class HalomethaneFire extends Blob {
 	@Override
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
-		emitter.pour( HalomethaneFlameParticle.FACTORY, 0.03f );
+		FireBlobFx.pour( this, emitter, FireStyle.HALOMETHANE );
+	}
+
+	//light: drawn over the night's tint, its smoke among the gases
+	@Override
+	public boolean emissive() {
+		return true;
 	}
 
 	@Override

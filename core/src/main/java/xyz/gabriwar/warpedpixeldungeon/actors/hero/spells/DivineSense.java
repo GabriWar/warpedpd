@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.spells;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HolyFx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -64,6 +65,7 @@ public class DivineSense extends ClericSpell {
 		SpatialSound.play(Assets.Sounds.READ, hero);
 
 		SpellSprite.show(hero, SpellSprite.VISION);
+		HolyFx.pop(hero.sprite);
 		hero.sprite.operate(hero.pos);
 		hero.next();
 

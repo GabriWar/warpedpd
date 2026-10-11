@@ -47,6 +47,10 @@ import xyz.gabriwar.warpedpixeldungeon.effects.DungeonCritterSprite;
 import xyz.gabriwar.warpedpixeldungeon.effects.SliceCritterSprite;
 import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.WeatherSprites;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.WaterFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.water.FishBrain;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.water.WaterAmbience;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.CaveMoteParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.DriftParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.DripParticle;
@@ -247,6 +251,8 @@ public final class DungeonLife extends Gizmo {
 		final Fauna.Air air;
 		final int cell;
 		float left, next;
+		//gnats over the water: the next dip to its surface (effects/fx/water/WaterAmbience.dip)
+		float dip = FxRandom.Float( WaterAmbience.DIP_MIN, WaterAmbience.DIP_MAX );
 
 		Cloud( Fauna.Air air, int cell, float left ){
 			this.air = air;
@@ -486,6 +492,7 @@ public final class DungeonLife extends Gizmo {
 		if (c.flock != null) return !c.flock.scared && ((CritterSprite.Bird) s).grounded();
 		if (s instanceof DungeonCritterSprite) return ((DungeonCritterSprite) s).calm();
 		if (s instanceof CritterSprite.Hare) return ((CritterSprite.Hare) s).sitting();
+		if (s instanceof SliceCritterSprite.Swimmer) return ((SliceCritterSprite.Swimmer) s).calm();
 		return true;
 	}
 
@@ -644,6 +651,15 @@ public final class DungeonLife extends Gizmo {
 			}
 		}
 		GameScene.floorEffect( s );
+		front( s );
+		Critter c = new Critter( k, s, null );
+		live.add( c );
+		return c;
+	}
+
+	//what swims under the water, in the scene's layer under its surface (and its sheens)
+	private Critter underWater( Fauna.Kind k, CritterSprite s ){
+		GameScene.subsurface( s );
 		front( s );
 		Critter c = new Critter( k, s, null );
 		live.add( c );
@@ -923,7 +939,7 @@ public final class DungeonLife extends Gizmo {
 		float x = (cell % w) * SIZE + 8, y = (cell / w) * SIZE;
 		boolean glides = place == Place.CAVES && RNG.nextFloat() < 0.7f;
 		if (glides){
-			onFloor( Fauna.Kind.FISH, new SliceCritterSprite.Swimmer( x, y + 9, rf( 0f, 6.2832f ) ) );
+			underWater( Fauna.Kind.FISH, new SliceCritterSprite.Swimmer( x, y + 9, rf( 0f, 6.2832f ) ) );
 			return true;
 		}
 		//across the water, never toward the bank
@@ -1025,6 +1041,10 @@ public final class DungeonLife extends Gizmo {
 				else if (hero) h.alert( seems( hd, c.kind.scare ) <= ALERT_PX );
 			} else if (s instanceof CritterSprite.Butterfly && r > 0f && d <= r){
 				((CritterSprite.Butterfly) s).startle( px, py );
+			} else if (s instanceof SliceCritterSprite.Swimmer){
+				//a fish under the water bursts away as fish do: the hero within 32 px, anyone 24
+				SliceCritterSprite.Swimmer f = (SliceCritterSprite.Swimmer) s;
+				if (f.calm() && FishBrain.tooNear( s.gx(), s.gy(), px, py, hero )) f.startle( px, py );
 			}
 		}
 	}
@@ -1041,6 +1061,8 @@ public final class DungeonLife extends Gizmo {
 		int w = level.width();
 		for (int cell : heard){
 			float px = (cell % w + 0.5f) * SIZE, py = (cell / w + 0.5f) * SIZE;
+			//the fight shakes the water near it too: what lives in it takes fright (FishBrain)
+			WaterFX.disturb( px, py, Fauna.Kind.FISH.noise, false );
 			for (Flock f : flocks){
 				if (!f.scared && f.nearest( px, py ) <= f.kind.noise) f.scare( px, py );
 			}
@@ -1166,6 +1188,13 @@ public final class DungeonLife extends Gizmo {
 					|| Math.max( Math.abs( c.cell % w - hcell % w ), Math.abs( c.cell / w - hcell / w ) ) > REACH + 2){
 				clouds.remove( i );
 				continue;
+			}
+			//a gnat dips to the water now and then (a ring; one dip in eight a fish rises to it)
+			if (c.air == Fauna.Air.GNATS && level.water[c.cell] && (c.dip -= dt) <= 0f){
+				c.dip = FxRandom.Float( WaterAmbience.DIP_MIN, WaterAmbience.DIP_MAX );
+				if (level.heroFOV[c.cell]){
+					WaterAmbience.dip( (c.cell % w) * SIZE + FxRandom.Float( 4f, 12f ), (c.cell / w) * SIZE + FxRandom.Float( 6f, 13f ) );
+				}
 			}
 			if ((c.next -= dt) > 0f || !level.heroFOV[c.cell]) continue;
 			c.next = c.air == Fauna.Air.GNATS ? 0.3f : 0.4f;

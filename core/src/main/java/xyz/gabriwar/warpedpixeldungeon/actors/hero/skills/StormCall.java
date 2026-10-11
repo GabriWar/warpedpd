@@ -27,7 +27,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -168,11 +168,11 @@ public class StormCall extends Skill {
 		if (ch != null && ch.sprite != null) ch.sprite.flash();
 		Callback then = () -> playArc( hero, arcs, i + 1 );
 		if (a[0] < 0){
-			Camera.main.shake( 2, 0.3f );
+			Fx.shake( 2, 0.3f );
 			PointF foot = DungeonTilemap.raisedTileCenterToWorld( a[1] );
-			hero.sprite.parent.add( new Lightning( new PointF( foot.x, foot.y - DungeonTilemap.SIZE * 7 ), a[1], then ) );
+			hero.sprite.parent.add( new Lightning( new PointF( foot.x, foot.y - DungeonTilemap.SIZE * 7 ), a[1], then ).major().aloft() );
 		} else {
-			hero.sprite.parent.add( new Lightning( a[0], a[1], then ) );
+			hero.sprite.parent.add( new Lightning( a[0], a[1], then ).major() );
 		}
 	}
 

@@ -109,6 +109,18 @@ public class FxLight extends Image {
 		return persistentCount;
 	}
 
+	/**
+	 * Whether `lights` more lights, `persistent` of them persistent, fit under the caps now
+	 * (FxBudget.lightCap, persistentLightCap) without taking another's place. A holder of a lasting
+	 * light (a fire's, a torch's, a lava bank's, an aura's) asks this first and, finding none, asks
+	 * again later: lasting lights never put one another out, so a crowded scene keeps the lights
+	 * it has instead of passing them round (blinking). Passing lights (strikes, impacts) still take
+	 * the dimmest's place.
+	 */
+	public static synchronized boolean room( int lights, int persistent ){
+		return count + lights <= FxBudget.lightCap() && persistentCount + persistent <= FxBudget.persistentLightCap();
+	}
+
 	/** Reflections shown now. */
 	public static synchronized int reflecting(){
 		return reflections;

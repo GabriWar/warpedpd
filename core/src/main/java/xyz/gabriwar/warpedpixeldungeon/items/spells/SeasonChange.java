@@ -24,6 +24,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.spells;
 
+import xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.SeasonSweep;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -51,6 +53,10 @@ public class SeasonChange extends Spell {
 	protected void onCast(Hero hero) {
 		ArrayList<Plant> plantList = new ArrayList<>();
 		for (Plant p : Dungeon.level.plants.values()) plantList.add(p);
+		//the season's light sweeping out over the plants in view (visual only)
+		int[] swept = new int[plantList.size()];
+		for (int i = 0; i < swept.length; i++) swept[i] = plantList.get(i).pos;
+		SeasonSweep.sweep(hero.pos, swept, SeasonSweep.color(GameCalendar.season()));
 		for (Plant plant : plantList) {
 			Dungeon.level.uproot(plant.pos);
 			if (Dungeon.level.heroFOV[plant.pos]) {

@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle;
 import xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar;
 import xyz.gabriwar.warpedpixeldungeon.actors.PrecipType;
 import xyz.gabriwar.warpedpixeldungeon.effects.DungeonCritterSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.water.WaterVoices;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.RegularLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.Room;
@@ -219,8 +220,10 @@ public final class AmbientSounds extends Gizmo {
 	}
 
 	//the ambience channel, the take and the pitch as the scheduler picked them: from a cell,
-	//falling off and panned; from the air, centred; an echo, from the other side
-	private static final class Channel implements Soundscape.Out {
+	//falling off and panned; from the air, centred; an echo, from the other side. A water voice
+	//from a cell in sight is seen there too (effects/fx/water/WaterVoices: a drip's drop, a lap's
+	//foam, a gurgle's bubbles...), after the sound and drawing none of the game's random numbers
+	private final class Channel implements Soundscape.Out {
 		@Override
 		public void play( Voice v, int take, int cell, float level, float pitch, boolean echo ){
 			float pan = 0f;
@@ -231,6 +234,7 @@ public final class AmbientSounds extends Gizmo {
 				pan = echo ? -AmbientPlayer.panAt( cell ) * ECHO_PAN : AmbientPlayer.panAt( cell );
 			}
 			AmbientPlayer.playTake( v.takes[take], v.gain, level, pitch, pan );
+			if (cell >= 0 && !echo) WaterVoices.played( v.sound, cell, place );
 		}
 	}
 

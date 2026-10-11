@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.BlobFx;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Bundle;
 
@@ -37,7 +38,6 @@ import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -145,7 +145,7 @@ public class DivineWrathGround extends Buff {
 		if (!on || target.sprite == null || target.sprite.parent == null || !sameFloor()) return;
 		for (int c : cells){
 			Emitter e = CellEmitter.get( c );
-			e.pour( ShaftParticle.FACTORY, 0.5f );
+			e.pour( BlobFx.WRATH, 0.3f );
 			shafts.add( e );
 		}
 	}

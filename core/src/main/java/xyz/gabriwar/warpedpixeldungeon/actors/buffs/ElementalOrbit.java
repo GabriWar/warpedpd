@@ -13,6 +13,9 @@ public class ElementalOrbit extends Buff {
     public static final int MAX_HEAT = 3, MAX_ORBS = 5;
     private static final int[] STAGES={0,5,15,30};
     private int[] elements = new int[0], heat = new int[0], ages = new int[0];
+    //the orbs as the scene draws them: {elements, heat}, one pair swapped whole (never in halves)
+    //whenever the arrays are replaced, so the render thread never indexes past a shrunk one
+    private volatile int[][] view = {elements, heat};
     public int skillLevel;
     public int flareSerial;
     private ElementalOrbitFX visual;
@@ -25,10 +28,13 @@ public class ElementalOrbit extends Buff {
         heat = new int[elements.length];
         ages = new int[elements.length];
         for (int i = 0; i < elements.length; i++) elements[i] = Random.Int(2);
+        view = new int[][]{elements, heat};
         if(fresh)spend(TICK);
         return this;
     }
     public int count(){ return elements.length; }
+    /** The orbs for drawing: {elements, heat} of one moment, safe to read from the render thread. */
+    public int[][] view(){ return view; }
     public int element(int i){ return elements[i]; }
     public int heat(int i){ return heat[i]; }
     public void warm(){
@@ -58,6 +64,7 @@ public class ElementalOrbit extends Buff {
             remaining[j]=elements[i];elapsed[j]=ages[i];warmth[j++]=heat[i];
         }
         elements=remaining;heat=warmth;ages=elapsed;
+        view=new int[][]{elements,heat};
         if(skillLevel>=3&&shot[1]==MAX_HEAT)flare();
         if(count()==0&&target!=null)detach();
         return shot;
@@ -69,10 +76,10 @@ public class ElementalOrbit extends Buff {
         warm(); spend(TICK); return true;
     }
     @Override public void fx(boolean on){
-        if (visual != null){ visual.killAndErase(); visual = null; }
+        if (visual != null){ xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx.dispose(visual); visual = null; }
         if (on && target.sprite != null && target.sprite.parent != null){
             visual = new ElementalOrbitFX(target, this);
-            target.sprite.parent.add(visual);
+            ElementalOrbitFX.show(visual);
         }
     }
     @Override public int icon(){ return BuffIndicator.IMBUE; }
@@ -90,5 +97,6 @@ public class ElementalOrbit extends Buff {
             ages=new int[heat.length];
             for(int i=0;i<heat.length;i++)ages[i]=STAGES[Math.max(0,Math.min(MAX_HEAT,heat[i]))];
         }
+        view=new int[][]{elements,heat};
     }
 }

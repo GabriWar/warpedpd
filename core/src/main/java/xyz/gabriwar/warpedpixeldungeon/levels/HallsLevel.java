@@ -57,11 +57,12 @@ import xyz.gabriwar.warpedpixeldungeon.levels.traps.WarpingTrap;
 import xyz.gabriwar.warpedpixeldungeon.levels.traps.WeakeningTrap;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
-import com.watabou.glwrap.Blending;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.water.WaterLava;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
 import com.watabou.noosa.audio.Music;
-import com.watabou.noosa.particles.PixelParticle;
+import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.PointF;
 import com.watabou.utils.Random;
 
@@ -226,6 +227,8 @@ public class HallsLevel extends RegularLevel {
 		}
 	}
 	
+	//a cell of the lava that spits now and then (effects/fx/water/WaterLava.spit: a tongue of its
+	//flame and three sparks on an arc, every 1-3 s, at most ten in the air)
 	private static class Stream extends Group {
 		
 		private int pos;
@@ -237,7 +240,7 @@ public class HallsLevel extends RegularLevel {
 			
 			this.pos = pos;
 			
-			delay = Random.Float( 2 );
+			delay = FxRandom.Float( SPIT_MIN, SPIT_MAX );
 		}
 		
 		@Override
@@ -252,56 +255,20 @@ public class HallsLevel extends RegularLevel {
 				
 				super.update();
 				
-				if ((delay -= Game.elapsed) <= 0) {
+				if (!Emitter.freezeEmitters && (delay -= Game.elapsed) <= 0) {
 					
-					delay = Random.Float( 2 );
+					delay = FxRandom.Float( SPIT_MIN, SPIT_MAX );
 					
 					PointF p = DungeonTilemap.tileToWorld( pos );
-					((FireParticle)recycle( FireParticle.class )).reset(
-						p.x + Random.Float( DungeonTilemap.SIZE ),
-						p.y + Random.Float( DungeonTilemap.SIZE ) );
+					WaterLava.spit(
+						p.x + FxRandom.Float( 3, DungeonTilemap.SIZE - 3 ),
+						p.y + FxRandom.Float( 4, DungeonTilemap.SIZE - 2 ) );
 				}
 			}
 		}
-		
-		@Override
-		public void draw() {
-			Blending.setLightMode();
-			super.draw();
-			Blending.setNormalMode();
-		}
 	}
-	
-	public static class FireParticle extends PixelParticle.Shrinking {
-		
-		public FireParticle() {
-			super();
-			
-			color( 0xEE7722 );
-			lifespan = 1f;
-			
-			acc.set( 0, +80 );
-		}
-		
-		public void reset( float x, float y ) {
-			revive();
-			
-			this.x = x;
-			this.y = y;
-			
-			left = lifespan;
-			
-			speed.set( 0, -40 );
-			size = 4;
-		}
-		
-		@Override
-		public void update() {
-			super.update();
-			float p = left / lifespan;
-			am = p > 0.8f ? (1 - p) * 5 : 1;
-		}
-	}
+
+	private static final float SPIT_MIN = 1f, SPIT_MAX = 3f;
 
 	//Optional danger branch: confirm before entering so nobody falls in by accident.
 	@Override

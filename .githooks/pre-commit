@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Warped PD: a reminder, not a block. When a commit changes the game (code or assets) but not
+# the Descent Guide, say so: the guide must stay true to the game. Enabled for every worktree
+# by `git config core.hooksPath .githooks`.
+guide='^core/src/main/(assets/messages/guide/|java/xyz/gabriwar/warpedpixeldungeon/journal/Guide)'
+staged=$(git diff --cached --name-only --diff-filter=ACMRD)
+game=$(printf '%s\n' "$staged" | grep -E '^core/src/main/' | grep -vE "$guide")
+[ -z "$game" ] && exit 0
+printf '%s\n' "$staged" | grep -qE "$guide" && exit 0
+{
+	echo "=============================================================================="
+	echo "  WARNING: this commit changes the game but not the Descent Guide."
+	echo "  Always update the guide when you change anything a player can see or rely on"
+	echo "  (core/src/main/assets/messages/guide/guide.properties, journal/GuideGraph.java)."
+	echo "  Game files in this commit:"
+	printf '%s\n' "$game" | head -6 | sed 's/^/    /'
+	n=$(printf '%s\n' "$game" | wc -l)
+	[ "$n" -gt 6 ] && echo "    ... and $((n - 6)) more"
+	echo "  If nothing in it touches what the guide says, carry on."
+	echo "=============================================================================="
+} >&2
+exit 0

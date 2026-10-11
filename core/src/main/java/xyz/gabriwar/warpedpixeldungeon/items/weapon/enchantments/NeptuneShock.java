@@ -32,11 +32,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.lightning.Crackle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.relic.RelicMeleeWeapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.utils.Random;
 
 import java.util.ArrayList;
@@ -75,6 +76,7 @@ public class NeptuneShock extends Weapon.Enchantment {
 
 				mob.sprite.centerEmitter().burst(SparkParticle.FACTORY, 3);
 				mob.sprite.flash();
+				Crackle.on(mob.sprite);
 
 				int mobDmg = Math.round(damage * power()); //scales with enchantment level
 				if (Dungeon.level.water[mob.pos] && !mob.flying) {
@@ -98,7 +100,8 @@ public class NeptuneShock extends Weapon.Enchantment {
 		if (procced) {
 			attacker.sprite.parent.addToFront(new Lightning(arcs, null));
 			SpatialSound.play(Assets.Sounds.LIGHTNING, defender);
-			Camera.main.shake(2, 0.3f);
+			Crackle.weapon(attacker.sprite);
+			Fx.shake(2, 0.3f);
 		}
 
 		return damage;

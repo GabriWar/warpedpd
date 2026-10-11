@@ -24,8 +24,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.utils.PointF;
-import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
@@ -173,7 +173,7 @@ public class ChargedShot extends Skill {
 		int base = bow != null ? bow.knockArrow().damageRoll( hero ) : hero.damageRoll();
 		int dmg = Math.round( base * (1.25f + 0.25f * level) );
 		//the lance's passage: dust thrown up tile after tile down the line, the ground shaking with it
-		Camera.main.shake( 1, 0.25f );
+		Fx.shake( 1, 0.25f );
 		FxTimeline t = FxTimeline.start();
 		int struck = 0;
 		for (int i = 0; i < lane.size(); i++){

@@ -24,7 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.Explosion;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
@@ -106,11 +106,12 @@ public class MeteorFall extends Buff {
     private void impactFX(){
         if(Dungeon.level==null||floorDepth!=Dungeon.depth||floorBranch!=Dungeon.branch
                 ||cell<0||cell>=Dungeon.level.length()||!Dungeon.level.heroFOV[cell])return;
+        //a bomb's blast a fifth bigger, shaking as the stone does (effects/fx/fire/Explosion)
+        Explosion.meteor(cell);
         CellEmitter.center(cell).burst(BlastParticle.FACTORY,30);
         for(int c:xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.area(cell,1)){
             if(Dungeon.level.heroFOV[c])CellEmitter.get(c).burst(FlameParticle.FACTORY,4);
         }
-        if(Camera.main!=null)Camera.main.shake(4,.6f);
         SpatialSound.play(Assets.Sounds.BLAST, cell);
         SpatialSound.play(Assets.Sounds.ROCKS,cell,1f,.8f);
     }

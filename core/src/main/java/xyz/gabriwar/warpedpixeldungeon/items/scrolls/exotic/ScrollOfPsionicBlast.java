@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.arcane.ItemFx;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfRetribution;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -48,6 +49,7 @@ public class ScrollOfPsionicBlast extends ExoticScroll {
 
 		detach(curUser.belongings.backpack);
 		GameScene.flash( 0x80FFFFFF );
+		ItemFx.bloom( curUser );
 		
 		SpatialSound.play( Assets.Sounds.BLAST, curUser );
 		GLog.i(Messages.get(ScrollOfRetribution.class, "blast"));

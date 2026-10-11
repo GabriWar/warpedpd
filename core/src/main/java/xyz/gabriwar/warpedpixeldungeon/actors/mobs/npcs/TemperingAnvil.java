@@ -24,6 +24,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.SmokeParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.SteamParticle;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -35,7 +37,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Belongings;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
@@ -178,7 +179,7 @@ public class TemperingAnvil extends NPC {
 		soak = 0;
 		show();
 		if (seen()){
-			CellEmitter.get( pos ).burst( Speck.factory( Speck.SMOKE ), 6 );
+			CellEmitter.get( pos ).burst( SmokeParticle.FACTORY, 6 );
 			SpatialSound.play( Assets.Sounds.DEGRADE, pos );
 			GLog.n( Messages.get( this, lost ? "scorched" : "blackened", held.name() ) );
 		}
@@ -195,7 +196,8 @@ public class TemperingAnvil extends NPC {
 		show();
 
 		if (seen()){
-			CellEmitter.get( pos ).burst( Speck.factory( Speck.STEAM ), 12 );
+			//a quench: SteamParticle reads a burst this big as a jet and its lingering clouds
+			CellEmitter.get( pos ).burst( SteamParticle.FACTORY, SteamParticle.QUENCH );
 			SpatialSound.play( Assets.Sounds.GAS, pos );
 			SpatialSound.play( Assets.Sounds.EVOKE, pos );
 		}
@@ -342,7 +344,7 @@ public class TemperingAnvil extends NPC {
 			state = COLD;
 			soak = 0;
 			show();
-			if (seen()) CellEmitter.get( pos ).burst( Speck.factory( Speck.STEAM ), 4 );
+			if (seen()) CellEmitter.get( pos ).burst( SteamParticle.FACTORY, 4 );
 			GLog.w( Messages.get( this, "trough_warm", held.name() ) );
 			return;
 		}

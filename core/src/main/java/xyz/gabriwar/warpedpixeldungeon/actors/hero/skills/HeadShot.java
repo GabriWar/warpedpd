@@ -26,7 +26,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
@@ -85,7 +85,7 @@ public class HeadShot extends SubSkill2 {
 			Wound.hit( enemy );
 			enemy.sprite.emitter().burst( Speck.factory( Speck.STAR ), 6 );
 			if (!boss) enemy.sprite.showStatus( CharSprite.NEGATIVE, Messages.get( HeadShot.class, "down" ) );
-			Camera.main.shake( 1.5f, 0.2f );
+			Fx.shake( 1.5f, 0.2f );
 		}
 		SpatialSound.play( Assets.Sounds.HIT_STRONG, enemy, 1f, 0.8f );
 

@@ -251,7 +251,7 @@ public class WandOfLightning extends DamageWand {
 		runOverWater( cell );
 
 		//don't want to wait for the effect before processing damage.
-		curUser.sprite.parent.addToFront( new Lightning( arcs, null ).thunderous( cell ) );
+		curUser.sprite.parent.addToFront( new Lightning( arcs, null ).major().thunderous( cell ) );
 		SpatialSound.play( Assets.Sounds.LIGHTNING, curUser );
 		//and where it strikes it goes off like a storm's bolt: the thunder cracks there with its first
 		//frame (Lightning.thunderous, at full), and a blast, at 0.6 level with the crack (its file is

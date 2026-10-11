@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.plants;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.PlantFx;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -33,7 +34,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.poisonparticles.SungrassPoisonParticle;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -65,7 +65,8 @@ public class Sungrass extends Plant {
 		}
 
 		if (ch != null && Dungeon.level.heroFOV[ch.pos]) {
-			CellEmitter.get( ch.pos ).start( ShaftParticle.FACTORY, 0.2f, 3 );
+			CellEmitter.get( ch.pos ).start( PlantFx.SUNGRASS_SHAFT, 0.2f, 3 );
+			PlantFx.sungrass( ch.pos );
 		}
 	}
 
@@ -157,6 +158,14 @@ public class Sungrass extends Plant {
 				level += amount;
 				pos = target.pos;
 			}
+		}
+
+		//the herb's healing worn as a look (the characters' area draws it)
+		@Override
+		public void fx( boolean on ) {
+			if (target.sprite == null) return;
+			if (on) target.sprite.add( CharSprite.State.HERB );
+			else target.sprite.remove( CharSprite.State.HERB );
 		}
 
 		@Override

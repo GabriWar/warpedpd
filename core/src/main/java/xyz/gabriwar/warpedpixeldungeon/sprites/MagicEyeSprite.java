@@ -74,7 +74,7 @@ public class MagicEyeSprite extends MobSprite {
 		super.onComplete( anim );
 		if (anim == attack) {
 			if (Dungeon.level.heroFOV[ch.pos] || Dungeon.level.heroFOV[attackPos]) {
-				parent.add(new Beam.DeathRay(center(), DungeonTilemap.raisedTileCenterToWorld(attackPos)));
+				parent.add(new Beam.DeathRay(center(), DungeonTilemap.raisedTileCenterToWorld(attackPos)).lite());
 			}
 		}
 	}

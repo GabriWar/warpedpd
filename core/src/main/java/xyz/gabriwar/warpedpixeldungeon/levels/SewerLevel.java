@@ -29,8 +29,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AscensionChallenge;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Ghost;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Tinkerer1;
-import xyz.gabriwar.warpedpixeldungeon.effects.Ripple;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.water.WaterFalls;
 import xyz.gabriwar.warpedpixeldungeon.items.Amulet;
 import xyz.gabriwar.warpedpixeldungeon.items.Mushroom;
 import xyz.gabriwar.warpedpixeldungeon.levels.features.LevelTransition;
@@ -48,18 +49,12 @@ import xyz.gabriwar.warpedpixeldungeon.levels.traps.TeleportationTrap;
 import xyz.gabriwar.warpedpixeldungeon.levels.traps.ToxicTrap;
 import xyz.gabriwar.warpedpixeldungeon.levels.traps.WornDartTrap;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndMessage;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
 import com.watabou.noosa.audio.Music;
-import com.watabou.noosa.particles.Emitter;
-import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.Callback;
-import com.watabou.utils.ColorMath;
-import com.watabou.utils.PointF;
 import com.watabou.utils.Random;
 
 public class SewerLevel extends RegularLevel {
@@ -228,7 +223,7 @@ public class SewerLevel extends RegularLevel {
 	public static void addSewerVisuals(Level level, Group group ) {
 		for (int i=0; i < level.length(); i++) {
 			if (level.map[i] == Terrain.WALL_DECO) {
-				group.add( new Sink( i ) );
+				group.add( new Sink( level, i ) );
 			}
 		}
 	}
@@ -261,33 +256,22 @@ public class SewerLevel extends RegularLevel {
 		}
 	}
 	
-	private static class Sink extends Emitter {
+	//a drain pipe over its pool: a trickle of drops landing on the water at its foot, or (one in
+	//three, as it sounds) a pouring sheet churning foam (effects/fx/water/WaterFalls)
+	private static class Sink extends FxEmitter {
 		
-		private int pos;
-		private float rippleDelay = 0;
+		private final WaterFalls.Pipe pipe;
 		
-		private static final Emitter.Factory factory = new Factory() {
-			
-			@Override
-			public void emit( Emitter emitter, int index, float x, float y ) {
-				WaterParticle p = (WaterParticle)emitter.recycle( WaterParticle.class );
-				p.reset( x, y );
-			}
-		};
-		
-		public Sink( int pos ) {
+		public Sink( Level level, int pos ) {
 			super();
 			
-			this.pos = pos;
-			
-			PointF p = DungeonTilemap.tileCenterToWorld( pos );
-			pos( p.x - 2, p.y + 3, 4, 0 );
-			
-			pour( factory, 0.1f );
+			pipe = WaterFalls.pipe( level, pos );
+			autoKill = false;
 		}
 		
 		@Override
 		public void update() {
+			int pos = pipe.pos;
 			//its wall broken (a pick, a bomb), its water stops running
 			if (Dungeon.level.map[pos] != Terrain.WALL_DECO){
 				killAndErase();
@@ -300,38 +284,8 @@ public class SewerLevel extends RegularLevel {
 				
 				super.update();
 				
-				if (!isFrozen() && (rippleDelay -= Game.elapsed) <= 0) {
-					Ripple ripple = GameScene.ripple( pos + Dungeon.level.width() );
-					if (ripple != null) {
-						ripple.y -= DungeonTilemap.SIZE / 2;
-						rippleDelay = Random.Float(0.4f, 0.6f);
-					}
-				}
+				if (!isFrozen()) WaterFalls.pipe( pipe, this, Game.elapsed );
 			}
-		}
-	}
-	
-	public static final class WaterParticle extends PixelParticle {
-		
-		public WaterParticle() {
-			super();
-			
-			acc.y = 50;
-			am = 0.5f;
-			
-			color( ColorMath.random( 0xb6ccc2, 0x3b6653 ) );
-			size( 2 );
-		}
-		
-		public void reset( float x, float y ) {
-			revive();
-			
-			this.x = x;
-			this.y = y;
-			
-			speed.set( Random.Float( -2, +2 ), 0 );
-			
-			left = lifespan = 0.4f;
 		}
 	}
 }

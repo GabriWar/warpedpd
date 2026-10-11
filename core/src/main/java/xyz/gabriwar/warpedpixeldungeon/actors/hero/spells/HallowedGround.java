@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.spells;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.BlobFx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -256,7 +257,7 @@ public class HallowedGround extends TargetedClericSpell {
 		@Override
 		public void use(BlobEmitter emitter) {
 			super.use( emitter );
-			emitter.pour( ShaftParticle.FACTORY, 1f );
+			emitter.pour( BlobFx.HALLOWED, BlobFx.HALLOWED_EVERY );
 		}
 
 		@Override

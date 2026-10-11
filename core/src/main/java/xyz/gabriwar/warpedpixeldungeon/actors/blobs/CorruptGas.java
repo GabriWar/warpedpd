@@ -24,7 +24,6 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
-import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -35,7 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.gas.GasStyle;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Random;
@@ -81,7 +80,7 @@ public class CorruptGas extends Blob implements Hero.Doom {
 	public void use(BlobEmitter emitter) {
 		super.use(emitter);
 
-		emitter.pour(WeatherBlobFX.layered(Speck.factory(Speck.CORROSION), WeatherBlobFX.drips( 0xC04848 ), 3), 0.45f);
+		emitter.pour( GasStyle.CORRUPT.factory(), GasStyle.CORRUPT.pour );
 	}
 
 	@Override

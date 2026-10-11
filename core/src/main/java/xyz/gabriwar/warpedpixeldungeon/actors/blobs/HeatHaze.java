@@ -21,9 +21,14 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.HeatRay;
+import com.watabou.noosa.particles.Emitter;
 import xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle;
 import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
-import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.TileTemperature;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -85,9 +90,37 @@ public class HeatHaze extends Blob {
 	@Override
 	public void use(BlobEmitter emitter) {
 		super.use(emitter);
-		//when it is merely warm this shimmers; when it is baking, it stands up in rays
-		emitter.pour(WeatherBlobFX.layered(WeatherBlobFX.HEAT_HAZE, WeatherBlobFX.HEAT_RAYS, 2), 0.12f);
+		emitter.pour(SHIMMER, 0.12f);
 	}
+
+	//light: the shimmer is drawn over the night's tint (the haze is gone by night in any case)
+	@Override
+	public boolean emissive() {
+		return true;
+	}
+
+	/**
+	 * The haze's shimmer: one visit in two a ray of the air wavering over the ground
+	 * (effects/fx/fire/HeatRay: painted, mirrored every 0.3-0.5 s, never stretched), the other a
+	 * speck of glare rising off it - about nine on a cell. Light, P3.
+	 */
+	public static final Emitter.Factory SHIMMER = new Emitter.Factory() {
+		@Override
+		public void emit(Emitter e, int index, float x, float y) {
+			if ((index & 1) == 0) {
+				HeatRay.rise(e, x + FxRandom.Float(-4f, 4f), y + FxRandom.Float(2f, 6f), FxRandom.chance(0.4f) ? 0xFFE6B4 : 0xFFF4DC, 0.3f);
+			} else if (FxBudget.keep(FxBudget.P3, x, y)) {
+				((FxParticle) e.recycle(FxParticle.class)).reset(x, y + 4).look(FxFrames.MOTE_1).paint(0xFFDCA0).light(true)
+						.life(FxRandom.Float(0.6f, 1f)).alpha(0.5f, 0.15f, 0.3f).vel(FxRandom.Float(-2f, 2f), -FxRandom.Float(4f, 7f))
+						.snap().priority(FxBudget.P3);
+			}
+		}
+
+		@Override
+		public boolean lightMode() {
+			return true;
+		}
+	};
 
 	@Override
 	public String tileDesc() {

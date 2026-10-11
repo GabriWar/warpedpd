@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.spells;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HolyFx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Challenges;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -58,7 +59,9 @@ public class Radiance extends ClericSpell {
 	@Override
 	public void onCast(HolyTome tome, Hero hero) {
 
-		GameScene.flash( 0x80FFFFFF );
+		//a wide bloom round the priest; the soft flash (gated) in its colour
+		GameScene.flash( 0x80FFF4D0 );
+		HolyFx.radiance( hero.sprite );
 		SpatialSound.play(Assets.Sounds.BLAST, hero);
 
 		if (Dungeon.level.viewDistance < 6 ){

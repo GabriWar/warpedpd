@@ -27,7 +27,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.lightning.ElectricityFx;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.Wand;
@@ -118,7 +118,15 @@ public class Electricity extends Blob {
 	@Override
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
-		emitter.start( SparkParticle.FACTORY, 0.05f, 0 );
+		//its sparks, the light it lays on the water and the crawls over it (ElectricityFx); one start,
+		//as ever
+		emitter.start( new ElectricityFx( this ), ElectricityFx.INTERVAL, 0 );
+	}
+
+	//its sparks and its light on the water are light, over the night's tint
+	@Override
+	public boolean emissive() {
+		return true;
 	}
 	
 	@Override

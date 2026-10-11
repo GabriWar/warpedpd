@@ -27,86 +27,172 @@ package xyz.gabriwar.warpedpixeldungeon.effects;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxLight;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Ramp;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.Explosion;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.Flames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.LightFrame;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.BlastParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
-import com.watabou.noosa.Camera;
+import com.watabou.noosa.Game;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.PointF;
-import com.watabou.utils.Random;
 
 /**
- * A falling star across the sky (levels/overworld/WorldEvents): a white-hot head trailing a
- * pale core and sparks that drift down as they cool. It lives above the fog and the night's
- * tint, among the effects a window slide moves, and everything it sheds is placed off its own
- * position, so a slide in mid-flight never shows. One that strikes the ground close by ends in
- * a blast, flames, a flash, a shudder of the camera and the crash of rock.
+ * A falling star across the sky (levels/overworld/WorldEvents): a white-hot head - a round glow
+ * and a little four-pointed star twinkling between its two painted turns - trailing a core that
+ * cools from white through gold to orange (TRAIL_RATE a second by time, never by frame) and
+ * embers that drift down as they cool. It lives above the fog and the night's tint, among the
+ * effects a window slide moves (an emitter there: the slide moves it and all it holds), and its
+ * path moves with it. One that strikes the ground ends in a blast half again as big as a bomb's
+ * (effects/fx/fire/Explosion: 30 asked, scaled 1.5), flames, a crater's glow cooling over 2 s, a
+ * large scorch, a shudder of the camera (Fx.shake 3) and the crash of rock. Done, it is let go
+ * with its pictures' buffers on the render thread.
  */
-public class StarStreak extends PixelParticle {
+public class StarStreak extends FxEmitter {
 
-	private boolean impact, landed;
+	/** The trail's motes a second, and one ember in EMBER_EVERY of them. */
+	public static final float TRAIL_RATE = 60f;
+	public static final int EMBER_EVERY = 3;
+	/** The trail's colours, as it cools. */
+	public static final Ramp TRAIL = new Ramp( 0xFFFFF4, 0xFFE080, 0xFF9030 );
+	/** The head's star swaps its turn this often, s. */
+	public static final float TWINKLE = 0.06f;
+	/** The landing: its blast's scale and its shake. */
+	public static final float LAND_SCALE = 1.5f, LAND_SHAKE = 3f, LAND_SHAKE_FOR = 0.4f;
+
+	private float fromX, fromY, toX, toY, duration;
+	private boolean impact;
+	private float age, trailDue, twinkle;
+	private int shed;
+	private boolean done, gone;
+
+	private LightFrame glow, star;
+	private boolean starA = true;
 
 	/** A star across the sky from `from` to `to` in `duration` seconds, striking the ground at
 	 *  `to` when `impact`. Render thread only; nothing without a game scene. */
 	public static void fall( PointF from, PointF to, float duration, boolean impact ){
-		StarStreak s = new StarStreak();
-		s.reset( from.x, from.y, 0xFFFFF4, 3, duration );
-		s.speed.set( (to.x - from.x) / duration, (to.y - from.y) / duration );
-		s.impact = impact;
-		GameScene.effectOverFog( s );
+		StarStreak s = GameScene.overFogEmitter( StarStreak.class );
+		if (s != null) s.setup( from, to, duration, impact );
+	}
+
+	/** Its path set (a star made by fall(), or a test's). */
+	public StarStreak setup( PointF from, PointF to, float duration, boolean impact ){
+		fromX = from.x;
+		fromY = from.y;
+		toX = to.x;
+		toY = to.y;
+		this.duration = Math.max( 0.05f, duration );
+		this.impact = impact;
+		age = trailDue = twinkle = 0;
+		done = gone = false;
+		//a window's slide moves an emitter's x and y: its path goes with them
+		x = y = 0;
+		on = false;
+		autoKill = false;
+		holdLight();
+		return this;
+	}
+
+	//where its head is now, slid as its layer was
+	private float headX(){
+		return fromX + (toX - fromX) * Math.min( 1f, age / duration ) + x;
+	}
+
+	private float headY(){
+		return fromY + (toY - fromY) * Math.min( 1f, age / duration ) + y;
 	}
 
 	@Override
 	public void update(){
-		if (parent != null && !landed){
-			((Trail) parent.recycle( Trail.class )).core( x + Random.Float( -1, 1 ), y + Random.Float( -1, 1 ) );
-			if (Random.Int( 2 ) == 0) ((Trail) parent.recycle( Trail.class )).ember( x, y );
-		}
 		super.update();
-		if (!alive && !landed){
-			landed = true;
-			//the last frame carried it past the end by the time it overran: back to where it struck
-			//(a pixel particle is drawn about its own pixel's middle)
-			if (impact) land( x + 0.5f + speed.x * left, y + 0.5f + speed.y * left );
-			killAndErase();
+		if (gone || parent == null || isFrozen()) return;
+		if (done){
+			//its trail burnt out: let go, its pictures' buffers freed on the render thread
+			if (countLiving() == 0){
+				gone = true;
+				Fx.dispose( this );
+			}
+			return;
+		}
+		if (glow == null){
+			//its head, made on the render thread at its first frame
+			glow = new LightFrame();
+			glow.setup( FxFrames.Light.GLOW_15, headX(), headY(), 0xFFFFFF, 0.8f );
+			add( glow );
+			star = new LightFrame();
+			star.setup( FxFrames.Light.STAR4_9_A, headX(), headY(), 0xFFFFF4, 1f );
+			add( star );
+		}
+		float dt = Game.elapsed;
+		age += dt;
+		float hx = headX(), hy = headY();
+		glow.moveTo( hx, hy );
+		star.moveTo( hx, hy );
+		if ((twinkle -= dt) <= 0){
+			twinkle = TWINKLE;
+			starA = !starA;
+			star.show( starA ? FxFrames.Light.STAR4_9_A : FxFrames.Light.STAR4_9_B );
+		}
+
+		//its trail, by time
+		trailDue += dt * TRAIL_RATE;
+		while (trailDue >= 1f){
+			trailDue -= 1f;
+			shed( hx, hy );
+		}
+
+		if (age >= duration){
+			done = true;
+			glow.killAndErase();
+			glow.destroy();
+			star.killAndErase();
+			star.destroy();
+			if (impact) land( toX + x, toY + y );
 		}
 	}
 
-	private void land( float lx, float ly ){
-		Emitter blast = GameScene.emitter();
-		if (blast != null){
-			blast.pos( lx - 8, ly - 8, 16, 16 );
-			blast.burst( BlastParticle.FACTORY, 24 );
+	private void shed( float hx, float hy ){
+		if (!FxBudget.keep( FxBudget.P1, hx, hy )) return;
+		FxParticle p = (FxParticle) recycle( FxParticle.class );
+		p.reset( hx + FxRandom.Float( -1f, 1f ), hy + FxRandom.Float( -1f, 1f ) );
+		if (shed++ % EMBER_EVERY == 0){
+			Flames.ember( p, Element.FIRE.ember ).vel( FxRandom.Float( -10f, 10f ), FxRandom.Float( -6f, 6f ) )
+					.gravity( 20f ).life( FxRandom.Float( 0.5f, 0.9f ) ).wind( 0 );
+		} else {
+			p.look( FxRandom.chance( 0.6f ) ? FxFrames.MOTE_2 : FxFrames.MOTE_1 ).ramp( TRAIL, true )
+					.life( FxRandom.Float( 0.3f, 0.45f ) ).alpha( 1f, 0, 0.2f ).priority( FxBudget.P1 );
 		}
-		Emitter fire = GameScene.emitter();
+	}
+
+	//its blast, its flames, the crater's glow, the camera's shudder and the crash, where it struck
+	private static void land( float lx, float ly ){
+		Emitter blast = GameScene.fxEmitter();
+		if (blast != null){
+			blast.pos( lx, ly );
+			Explosion.hint( lx, ly, LAND_SCALE, LAND_SHAKE, LAND_SHAKE_FOR );
+			blast.burst( BlastParticle.FACTORY, Explosion.BOMB_N );
+		}
+		Emitter fire = GameScene.fxEmitter();
 		if (fire != null){
 			fire.pos( lx - 8, ly - 6, 16, 12 );
 			fire.burst( FlameParticle.FACTORY, 10 );
 		}
-		if (parent != null) new Flare( 8, 28 ).color( 0xFFF0B0, true ).show( parent, new PointF( lx, ly ), 0.6f );
-		Camera.main.shake( 3, 0.4f );
+		//the crater, glowing as it cools
+		FxLight.pool( lx, ly + 4, 47, 0xFF7A30, 1f ).life( 0, 0.2f, 1.8f );
 		//from where it struck
 		int cell = Dungeon.level == null ? -1 : DungeonTilemap.worldToTile( lx, ly, Dungeon.level.width() );
 		SpatialSound.play( Assets.Sounds.BLAST, cell, 0.8f );
 		SpatialSound.play( Assets.Sounds.ROCKS, cell, 0.7f, 0.8f );
-	}
-
-	/** What the star sheds: a pale core that shrinks where it was left, and sparks that drift
-	 *  down and cool. Recycled by its group, so it keeps a public no-argument constructor. */
-	public static class Trail extends PixelParticle.Shrinking {
-
-		public void core( float x, float y ){
-			reset( x, y, 0xFFF4C8, 2, Random.Float( 0.3f, 0.45f ) );
-			speed.set( 0 );
-			acc.set( 0 );
-		}
-
-		public void ember( float x, float y ){
-			reset( x, y, 0xFF9A30, 1, Random.Float( 0.5f, 0.8f ) );
-			speed.set( Random.Float( -10, 10 ), Random.Float( -10, 10 ) );
-			acc.set( 0, 20 );
-		}
 	}
 }

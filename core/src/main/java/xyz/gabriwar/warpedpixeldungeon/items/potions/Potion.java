@@ -36,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.arcane.ItemFx;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.ItemStatusHandler;
@@ -442,6 +443,7 @@ public class Potion extends Item {
 		SpatialSound.play( Assets.Sounds.DRINK, hero );
 		
 		hero.sprite.operate( hero.pos );
+		ItemFx.drink( hero, splashColor() );
 
 		if (!anonymous) {
 			Catalog.countUse(getClass());
@@ -579,8 +581,10 @@ public class Potion extends Item {
 		if (Dungeon.level.heroFOV[cell]) {
 			if (ch != null) {
 				Splash.at(ch.sprite.center(), splashColor(), 5);
+				ItemFx.shatter( ch.sprite.center().x, ch.sprite.center().y, splashColor() );
 			} else {
 				Splash.at(cell, splashColor(), 5);
+				ItemFx.shatter( cell, splashColor() );
 			}
 		}
 	}

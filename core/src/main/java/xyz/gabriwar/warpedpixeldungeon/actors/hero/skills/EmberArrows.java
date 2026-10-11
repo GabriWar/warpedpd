@@ -27,6 +27,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -43,7 +44,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.RogueHuntressAuras;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraBuff;
-import com.watabou.noosa.Camera;
 
 public class EmberArrows extends ActiveSkill {
 
@@ -143,7 +143,7 @@ public class EmberArrows extends ActiveSkill {
 		//the body goes up: a flash at the centre, then fire rolling outward tile by tile
 		if (Dungeon.level.heroFOV[mob.pos]){
 			CellEmitter.center( mob.pos ).burst( FlameParticle.FACTORY, 10 );
-			Camera.main.shake( 1, 0.2f );
+			Fx.shake( 1, 0.2f );
 		}
 		int ring = 0;
 		for (int n : PathFinder.NEIGHBOURS8){

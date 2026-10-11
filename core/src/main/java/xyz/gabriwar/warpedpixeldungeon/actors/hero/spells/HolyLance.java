@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.spells;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HolyFx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -31,7 +32,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.HolyTome;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.Wand;
@@ -108,8 +108,9 @@ public class HolyLance extends TargetedClericSpell {
 
 		Char enemy = Actor.findChar(aim.collisionPos);
 		if (enemy != null) {
-			((MissileSprite) hero.sprite.parent.recycle(MissileSprite.class)).
-					reset(hero.sprite,
+			MissileSprite lance = (MissileSprite) hero.sprite.parent.recycle(MissileSprite.class);
+			HolyFx.lanceGlow(lance);
+			lance.reset(hero.sprite,
 							enemy.sprite,
 							new HolyLanceVFX(),
 							new Callback() {
@@ -129,20 +130,23 @@ public class HolyLance extends TargetedClericSpell {
 									}
 
 									enemy.sprite.burst(0xFFFFFFFF, 10);
+									HolyFx.impact(enemy.sprite);
 									hero.spendAndNext(1f);
 									onSpellCast(tome, hero);
 									FlavourBuff.affect(hero, LanceCooldown.class, 30f);
 								}
 							});
 		} else {
-			((MissileSprite) hero.sprite.parent.recycle(MissileSprite.class)).
-					reset(hero.sprite,
+			MissileSprite lance = (MissileSprite) hero.sprite.parent.recycle(MissileSprite.class);
+			HolyFx.lanceGlow(lance);
+			lance.reset(hero.sprite,
 							target,
 							new HolyLanceVFX(),
 							new Callback() {
 								@Override
 								public void call() {
 									Splash.at(target, 0xFFFFFFFF, 10);
+									HolyFx.impactAt(aim.collisionPos);
 									Dungeon.level.pressCell(aim.collisionPos);
 									hero.spendAndNext(1f);
 									onSpellCast(tome, hero);
@@ -169,7 +173,8 @@ public class HolyLance extends TargetedClericSpell {
 			Emitter emitter = new Emitter();
 			emitter.pos( 5, 5, 0, 0);
 			emitter.fillTarget = false;
-			emitter.pour(SparkParticle.FACTORY, 0.025f);
+			//a trail of holy motes (it poured sparks)
+			emitter.pour(HolyFx.LANCE_TRAIL, 0.025f);
 			return emitter;
 		}
 	}

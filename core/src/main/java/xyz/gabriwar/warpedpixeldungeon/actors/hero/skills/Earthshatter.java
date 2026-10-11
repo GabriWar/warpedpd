@@ -25,6 +25,7 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillSequence;
 
 
@@ -43,7 +44,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.WarriorImpactFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.EarthParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX;
-import com.watabou.noosa.Camera;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -107,7 +107,7 @@ public class Earthshatter extends Skill {
 	private static void quake( final int center, final HashSet<Integer> struck ){
 		WarriorImpactFX.show( center, true );
 		CellEmitter.bottom( center ).burst( Speck.factory( Speck.DUST ), 6 );
-		Camera.main.shake( 3, 0.7f );
+		Fx.shake( 3, 0.7f );
 		SpatialSound.play( Assets.Sounds.ROCKS, center, 1f, 0.9f );
 		StaggerFX.ring( center, 2, 0.12f, ( c, r ) -> {
 			WarriorImpactFX.show( c );

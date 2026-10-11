@@ -190,7 +190,9 @@ public class HighGrass {
 		if (WarpedPixelDungeon.scene() instanceof GameScene) {
 			GameScene.updateMap(pos);
 			
-			CellEmitter.get(pos).burst(LeafParticle.LEVEL_SPECIFIC, 4);
+			//two leaves; the blades flung and the grass parting are the render side's, as it sees
+			//the high grass go (NatureHolyFx: effects/fx/nature/Trample)
+			CellEmitter.get(pos).burst(LeafParticle.LEVEL_SPECIFIC, 2);
 			if (Dungeon.level.heroFOV[pos]) Dungeon.observe();
 		}
 	}

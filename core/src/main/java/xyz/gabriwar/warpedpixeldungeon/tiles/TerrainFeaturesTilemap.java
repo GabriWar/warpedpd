@@ -27,8 +27,9 @@ import xyz.gabriwar.warpedpixeldungeon.levels.LastShopLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.traps.Trap;
 import xyz.gabriwar.warpedpixeldungeon.plants.Plant;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.PlantFx;
 import com.watabou.noosa.Image;
-import com.watabou.noosa.tweeners.ScaleTweener;
 import com.watabou.utils.PointF;
 import com.watabou.utils.RectF;
 import com.watabou.utils.SparseArray;
@@ -75,7 +76,13 @@ public class TerrainFeaturesTilemap extends DungeonTilemap {
 		instance = this;
 	}
 
+	@Override
 	protected int getTileVisual(int pos, int tile, boolean flat){
+		return featureVisual( pos, tile, flat );
+	}
+
+	//what the map shows at a cell, nothing held
+	private int featureVisual(int pos, int tile, boolean flat){
 		if (traps.get(pos) != null){
 			Trap trap = traps.get(pos);
 			if (!trap.visible)
@@ -228,7 +235,9 @@ public class TerrainFeaturesTilemap extends DungeonTilemap {
 	}
 
 	public static Image tile(int pos, int tile ) {
-		RectF uv = instance.tileset.get( instance.getTileVisual( pos, tile, true ) );
+		//no features drawn yet (off the game's scene): no picture of one
+		if (instance == null) return null;
+		RectF uv = instance.tileset.get( instance.featureVisual( pos, tile, true ) );
 		if (uv == null) return null;
 		
 		Image img = new Image( instance.texture );
@@ -236,22 +245,18 @@ public class TerrainFeaturesTilemap extends DungeonTilemap {
 		return img;
 	}
 
+	/** A seed coming up at `pos`: its plant grown from its foot in four steps over 0.2 s, never
+	 *  scaled, a pixel's bounce, then the real tile and the soil and leaves it throws. */
 	public void growPlant( final int pos ){
-		final Image plant = tile( pos, map[pos] );
-		if (plant == null) return;
-		
-		plant.origin.set( 8, 12 );
-		plant.scale.set( 0 );
-		plant.point( DungeonTilemap.tileToWorld( pos ) );
-
-		parent.add( plant );
-
-		parent.add( new ScaleTweener( plant, new PointF(1, 1), 0.2f ) {
-			protected void onComplete() {
-				plant.killAndErase();
-				killAndErase();
-				updateMapCell(pos);
-			}
+		Fx.post( () -> {
+			if (parent == null || Dungeon.level == null || pos >= map.length) return;
+			final Image plant = tile( pos, map[pos] );
+			if (plant == null) return;
+			PointF p = DungeonTilemap.tileToWorld( pos );
+			PlantFx.grow( parent, plant, p.x, p.y, () -> {
+				updateMapCell( pos );
+				PlantFx.sprung( pos );
+			} );
 		} );
 	}
 

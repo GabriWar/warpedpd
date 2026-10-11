@@ -22,6 +22,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 
 public class Roots extends FlavourBuff {
@@ -52,6 +53,12 @@ public class Roots extends FlavourBuff {
 	@Override
 	public int icon() {
 		return BuffIndicator.ROOTS;
+	}
+
+	@Override
+	public void fx(boolean on) {
+		if (on) target.sprite.add( CharSprite.State.ROOTED );
+		else    target.sprite.remove( CharSprite.State.ROOTED );
 	}
 
 	@Override

@@ -27,7 +27,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.utils.Random;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -120,7 +120,7 @@ public class IronStance extends ActiveSkill {
 			hero.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( this, "blocked" ) );
 			if (attacker != null) hero.sprite.turnTo( hero.pos, attacker.pos );
 		}
-		Camera.main.shake( 1, 0.1f );
+		Fx.shake( 1, 0.1f );
 		//+3: the attacker reels back from the steel it hit, dizzy
 		if (level >= MAX_LEVEL && attacker != null && !attacker.properties().contains( Char.Property.BOSS )){
 			SkillInteractions.affectAfterHit( attacker, Vertigo.class, DIZZY );

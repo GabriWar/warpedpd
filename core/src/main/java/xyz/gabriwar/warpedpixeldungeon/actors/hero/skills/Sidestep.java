@@ -78,7 +78,7 @@ public class Sidestep extends Skill {
 		}
 		if (any){
 			CellEmitter.bottom( from ).burst( Speck.factory( Speck.DUST ), 4 );
-			StreakFX.show( from, hero.pos, 0xDDEEFF, 0.3f, 0.22f );
+			StreakFX.dash( from, hero.pos, 0xDDEEFF, 0.3f, 0.22f, false );
 			if (hero.sprite != null) hero.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( this, "cast" ) );
 			SpatialSound.play( Assets.Sounds.MISS, hero, 1f, 1.5f );
 		}

@@ -25,6 +25,9 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Gizmo;
 
+//a creature glowing (an ascended form, the power of many): its sprite warmed, wavering between 0.4
+//and 0.6 once a second - only while its colour is free (no blow's flash, no ice, no dark on it).
+//The glow behind it and the motes rising off it are its state's look (GLOWING)
 public class GlowBlock extends Gizmo {
 
 	private CharSprite target;
@@ -40,7 +43,9 @@ public class GlowBlock extends Gizmo {
 		super.update();
 
 		//wavers between 0.4f and 0.6f once per second
-		target.tint(1.33f, 1.33f, 0.83f, 0.5f + 0.1f*(float)Math.cos(Math.PI*2*Game.timeTotal));
+		if (target.tintFree( this )) {
+			target.tint(1.33f, 1.33f, 0.83f, 0.5f + 0.1f*(float)Math.cos(Math.PI*2*Game.timeTotal));
+		}
 
 	}
 

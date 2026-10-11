@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.spells;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HolyFx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -33,7 +34,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.cleric.PowerOfMany;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.HolyTome;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfCleansing;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -106,7 +106,8 @@ public class Cleanse extends ClericSpell {
 				Buff.prolong(ch, PotionOfCleansing.Cleanse.class, 2 * (Dungeon.hero.pointsInTalent(Talent.CLEANSE)-1));
 			}
 			Buff.affect(ch, Barrier.class).setShield(shield(hero));
-			new Flare( 6, 32 ).color(0xFF4CD2, true).show( ch.sprite, 2f );
+			HolyFx.star( ch.sprite, HolyFx.CLEANSE, false, 0 );
+			HolyFx.wisps( ch.sprite, 6 );
 		}
 
 		hero.spend( 1f );

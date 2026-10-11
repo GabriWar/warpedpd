@@ -81,7 +81,7 @@ public class MassHeal extends SubSkill2 {
 			//the wings settle: one wide green pulse out to the reach of the mend, a warm second beat, motes after
 			PulseRingFX.around( hero.sprite, 0xAAFFAA, 40, 0.7f );
 			FxTimeline.start()
-					.at( 0.2f, () -> PulseRingFX.around( hero.sprite, 0xFFF1A1, 24, 0.55f ) )
+					.at( 0.1f, () -> PulseRingFX.around( hero.sprite, 0xFFF1A1, 24, 0.55f ) )
 					.at( 0.45f, () -> hero.sprite.emitter().burst( Speck.factory( Speck.HEALING ), 5 ) );
 			castTextYell();
 			SpatialSound.play( Assets.Sounds.CHARMS, hero, 1f, 1.0f );

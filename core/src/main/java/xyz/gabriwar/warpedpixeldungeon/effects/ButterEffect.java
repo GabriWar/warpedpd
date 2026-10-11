@@ -28,6 +28,9 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Gizmo;
 
+//a creature buttered: its sprite tinted butter (only while its colour is free: no blow's flash, no
+//ice, dark or glow on it); the shine sliding across it and the drips are its state's look (BUTTER,
+//effects/fx/combat). Gone, it splashes off (Splash: its one draw of the game's Random as ever)
 public class ButterEffect extends Gizmo {
 
     private static final int BUTTER_COLOR = 0xF0E691;
@@ -44,7 +47,9 @@ public class ButterEffect extends Gizmo {
     @Override
     public void update() {
         super.update();
-        if ((phase += Game.elapsed * 2) < 1) {
+        phase += Game.elapsed * 2;
+        if (!target.tintFree(this)) return;
+        if (phase < 1) {
             target.tint(BUTTER_COLOR, phase * 0.6f);
         } else {
             target.tint(BUTTER_COLOR, 0.6f);

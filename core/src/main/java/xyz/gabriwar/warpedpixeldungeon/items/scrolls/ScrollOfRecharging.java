@@ -27,6 +27,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Recharging;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.SpellSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.arcane.ItemFx;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.EnergyParticle;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
@@ -60,6 +61,7 @@ public class ScrollOfRecharging extends Scroll {
 		if (user.sprite != null) {
 			Emitter e = user.sprite.centerEmitter();
 			if (e != null) e.burst(EnergyParticle.FACTORY, 15);
+			ItemFx.recharge( user );
 		}
 	}
 	

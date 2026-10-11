@@ -26,22 +26,27 @@ package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
 import com.watabou.noosa.Group;
 
-import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.effects.WeatherSprites;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.WaterFX;
 
-/** Where a drop lands: a crown of water that opens and is gone in a blink, or on
- *  water a ring that spreads. */
+/** Where a drop lands: a crown of water that opens and is gone in a blink. On the water a small
+ *  ring spreads in the water's own surface instead (WaterFX: under the night's tint and the
+ *  shore's lip), never one of the weather's drawn over everything. */
 public class SplashParticle extends WeatherParticle {
 
 	private static final float LIFE = 0.28f;
 
 	private int shown = -1;
 	private float peak;
-	private int[][] frames;
 
-	/** a splash at a landing point, in the drop's colour, if the group has room */
+	/** a splash at a landing point, in the drop's colour, if the group has room; on the water a
+	 *  small ring in the water's foam */
 	public static void splash( Group in, float x, float y, int color, float alpha ) {
+		if (WaterFX.onWater( x, y )) {
+			WaterFX.ring( x, y, WaterFX.S, WaterFX.liquid().foam, Math.min( alpha, WaterFX.alphaOf( WaterFX.S ) ), FxBudget.P2 );
+			return;
+		}
 		if (in == null) return;
 		SplashParticle s = (SplashParticle) in.recycle( SplashParticle.class );
 		s.revive();
@@ -51,26 +56,17 @@ public class SplashParticle extends WeatherParticle {
 		s.peak = alpha;
 		s.speed.set( 0, 0 );
 		s.acc.set( 0, 0 );
-		s.frames = onWater( x, y ) ? WeatherSprites.RIPPLE : WeatherSprites.SPLASH;
-		s.left = s.lifespan = s.frames == WeatherSprites.RIPPLE ? LIFE * 1.6f : LIFE;
+		s.left = s.lifespan = LIFE;
 		s.shown = -1;
 		s.show( 0 );
-	}
-
-	private static boolean onWater( float x, float y ) {
-		if (Dungeon.level == null || Dungeon.level.water == null || x < 0 || y < 0) return false;
-		int cx = (int)(x / DungeonTilemap.SIZE), cy = (int)(y / DungeonTilemap.SIZE);
-		if (cx >= Dungeon.level.width() || cy >= Dungeon.level.height()) return false;
-		return Dungeon.level.water[cx + cy * Dungeon.level.width()];
 	}
 
 	private void show( int f ) {
 		if (f != shown) {
 			shown = f;
-			frame( frames[f] );
-			//the crown stands on the landing point; the ring lies round it
-			if (frames == WeatherSprites.RIPPLE) origin.set( frame[2] / 2f, frame[3] / 2f );
-			else origin.set( frame[2] / 2f, frame[3] );
+			frame( WeatherSprites.SPLASH[f] );
+			//the crown stands on the landing point
+			origin.set( frame[2] / 2f, frame[3] );
 		}
 	}
 

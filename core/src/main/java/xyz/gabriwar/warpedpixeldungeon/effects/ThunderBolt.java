@@ -28,22 +28,54 @@ import static xyz.gabriwar.warpedpixeldungeon.Dungeon.hero;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import com.watabou.noosa.Camera;
 import com.watabou.utils.PointF;
+
+import java.util.ArrayList;
 
 public class ThunderBolt {
 
-	//strikes a single bolt down onto the given sprite, with flash and sound: the in-game
-	//lightning's (Lightning), out of 35 px above it
+	//its foot: the last FOOT px down onto the sprite, an arc as it always was (its numbers drawn
+	//from the game's Random as they always were); above it the bolt from TOP px over the view's
+	//top, leaning with the wind, in UPPER_MIN to UPPER_MAX more legs with a fork (FORK times in
+	//ten), drawn from the effects' own random numbers. Its leader runs down the upper part over
+	//UPPER_LEAD of its time, then down the foot
+	static final float FOOT = 35f, TOP = 12f, FORK = 0.7f, UPPER_LEAD = 0.6f;
+	static final int UPPER_MIN = 3, UPPER_MAX = 4;
+
+	//strikes a single bolt down onto the given sprite out of the sky above the view, a major
+	//lightning (its flash and crack, its leader and the ground's answer), with sound
 	public static void thunderEffect(CharSprite sprite) {
 		if (sprite != null) {
 			sprite.centerEmitter().burst(SparkParticle.FACTORY, 3);
 			sprite.flash();
-			hero.sprite.parent.addToFront( new Lightning( new PointF( sprite.center().x, sprite.center().y-35 ), sprite.center(), null ) );
+			if (hero != null && hero.sprite != null && hero.sprite.parent != null) {
+				PointF to = sprite.center();
+				PointF foot = new PointF( to.x, to.y - FOOT );
+				ArrayList<Lightning.Arc> arcs = new ArrayList<>();
+				Lightning.Arc upper = upper( foot );
+				if (upper != null) arcs.add( upper );
+				arcs.add( new Lightning.Arc( foot, to ).joined( upper != null ? UPPER_LEAD : 0f, 1f ) );
+				hero.sprite.parent.addToFront( new Lightning( arcs, null ).major() );
+			}
 			SpatialSound.play(Assets.Sounds.ROCKS, sprite.ch, 0.7f, 0.5f);
 			SpatialSound.play( Assets.Sounds.LIGHTNING, sprite.ch );
 			SpatialSound.play( Assets.Sounds.BLAST, sprite.ch );
 		}
+	}
+
+	//the bolt above its foot, from over the view's top leaning with the wind; none where the foot
+	//is already above the view
+	private static Lightning.Arc upper( PointF foot ){
+		Camera cam = Camera.main;
+		if (cam == null) return null;
+		float top = cam.scroll.y - TOP;
+		if (foot.y - top < 16f) return null;
+		PointF from = new PointF( foot.x - WeatherOverlay.skyLean(), top );
+		return Lightning.Arc.visual( from, foot, FxRandom.IntRange( UPPER_MIN, UPPER_MAX ), 1f, FORK, false )
+				.lead( 0f, UPPER_LEAD );
 	}
 }

@@ -24,6 +24,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.FireStyle;
+
 /**
  * The Incubator Nest's banked coals: a long, gentle burn, laid to keep a shell warm for
  * most of a watch rather than to work metal.
@@ -38,4 +40,7 @@ public class NestCoals extends CoalBed {
 
 	@Override
 	protected float radiate(){ return 6f; }
+
+	@Override
+	protected FireStyle fireStyle(){ return FireStyle.NEST; }
 }

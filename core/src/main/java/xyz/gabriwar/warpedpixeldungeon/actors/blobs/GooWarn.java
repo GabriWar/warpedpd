@@ -74,7 +74,8 @@ public class GooWarn extends Blob {
 	@Override
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
-		emitter.pour(GooSprite.GooParticle.FACTORY, 0.03f );
+		//about 6 drops a cell in the air at once (each arcs for half a second)
+		emitter.pour(GooSprite.GooParticle.WARN, 0.08f );
 	}
 
 	@Override

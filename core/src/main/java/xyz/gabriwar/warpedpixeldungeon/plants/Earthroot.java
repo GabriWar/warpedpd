@@ -24,6 +24,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.plants;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.PlantFx;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barkskin;
@@ -65,6 +67,7 @@ public class Earthroot extends Plant {
 
 		if (Dungeon.level.heroFOV[ch.pos]) {
 			CellEmitter.bottom( ch.pos ).start( EarthParticle.FACTORY, 0.05f, 8 );
+			PlantFx.bark( ch.pos );
 			PixelScene.shake( 1, 0.4f );
 		}
 	}
@@ -75,6 +78,7 @@ public class Earthroot extends Plant {
 		Buff.affect(ch, Barkskin.class).set(2, 4);
 		if (Dungeon.level.heroFOV[ch.pos]) {
 			CellEmitter.bottom( ch.pos ).start( EarthParticle.FACTORY, 0.05f, 8 );
+			PlantFx.bark( ch.pos );
 			PixelScene.shake( 1, 0.4f );
 		}
 	}
@@ -91,6 +95,7 @@ public class Earthroot extends Plant {
 
 		if (Dungeon.level.heroFOV[enemy.pos]) {
 			CellEmitter.bottom( enemy.pos ).start( EarthParticle.FACTORY, 0.05f, 8 );
+			PlantFx.bark( enemy.pos );
 			PixelScene.shake( 1, 0.4f );
 		}
 	}
@@ -163,6 +168,14 @@ public class Earthroot extends Plant {
 				}
 				pos = target.pos;
 			}
+		}
+
+		//the bark worn as a look while it holds (the characters' area draws it)
+		@Override
+		public void fx( boolean on ) {
+			if (target.sprite == null) return;
+			if (on) target.sprite.add( CharSprite.State.BARKED );
+			else target.sprite.remove( CharSprite.State.BARKED );
 		}
 
 		@Override

@@ -25,10 +25,14 @@
 package xyz.gabriwar.warpedpixeldungeon.effects;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.WaterFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.water.FishBrain;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.water.WaterAmbience;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.water.WaterGeom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.water.WaterLive;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.TextureFilm;
 
@@ -461,68 +465,192 @@ public final class SliceCritterSprite {
 	}
 
 	/**
-	 * A blind cave fish gliding just under a pool's surface, pale against the dark water: it
-	 * turns back from the bank, rings the water now and then, and sinks out of sight.
+	 * A fish gliding just under a pool's surface - the caves' blind fish, the dungeon's - seen
+	 * through its surface, under its sheens (DungeonLife and CaveLife put it in the scene's
+	 * subsurface layer): on dark water (the caves', the city's) a pale ghost in the water's glint at
+	 * 0.45, 0.4 at night; on lighter water a shadow of its deep (Element.Liquid.deep) at 0.55, 0.45
+	 * at night (FishBrain.shade). Level or tilted 20 degrees, never between. It turns back from the bank (it looks 8 px ahead
+	 * ten times a second), rings the water small at its own point now and then (once in 4 s in a
+	 * light rain, rising to it), and sinks out of sight.
+	 *
+	 * It lives as fish do (effects/fx/water/FishBrain): startled - by a stir of the water within
+	 * its reach, the hero within 32 px, anyone else within 24 - it turns away and bursts off at
+	 * 50-60 px/s, its tail beating at 14 a second, slowing as exp(-2.5 t), a swirl of a ring where
+	 * it turned; then dives out of sight over 0.6 s (one time in two) or glides to its pace again.
+	 * Food on the water within 40 px draws it at half again its pace; at the food, three times in
+	 * ten it kisses the surface (a small ring, a bubble rising and popping), at most once in 3 s.
+	 * Its water frozen under it, it is gone in 0.4 s. Its rings stir nothing (WaterFX.quietRing).
 	 */
 	public static class Swimmer extends CritterSprite {
 
-		private static final int MAX_TILT = 35;
-		private float heading, pace, span, checkIn, ringIn;
+		private static final int SWIM = 0, FLEE = 1, CURIOUS = 2, DIVE = 3;
+		static final float ALPHA = 0.55f, ALPHA_NIGHT = 0.45f, PALE = 0.45f, PALE_NIGHT = 0.4f, DIVE_TIME = 0.6f, KISS_GAP = 3f, KISS_SHARE = 0.3f;
+		static final float RISE_EVERY = 4f, CURIOUS_PACE = 1.5f, TAIL_FPS = 6f, BURST_TAIL_FPS = 14f;
+
+		private float heading, pace, span, lookIn, ringIn, riseIn, speed, burstT, kissedAt = -KISS_GAP, diveT;
+		private float foodX, foodY, v0;
+		private int state = SWIM;
+		private boolean glides;
+		private final boolean pale;
 
 		public Swimmer( float ax, float ay, float heading ){
 			super( ax, ay );
 			this.heading = heading;
 			origin.set( 8, 10 );
-			pace = rf( 9f, 13f );
+			pace = speed = rf( 9f, 13f );
 			span = rf( 3.5f, 5.5f );
 			ringIn = rf( 1.2f, 2f );
+			riseIn = rf( 0f, RISE_EVERY );
 			shown = 0f;
-			keepLevel();
+			//the liquid as shown (the gallery's carousel's, else the level's)
+			Element.Liquid l = WaterLive.liquid();
+			pale = FishBrain.darkWater( l );
+			hardlight( FishBrain.shade( l ) );
+			level();
 			pose( ROW_FISH, 4 );
-			ring();
+			ring( WaterFX.S );
 		}
 
-		//within MAX_TILT degrees of the level: a fish seen from the side
-		private void keepLevel(){
-			float deg = (float)Math.toDegrees( Math.atan2( Math.sin( heading ), Math.cos( heading ) ) );
-			boolean left = Math.abs( deg ) > 90f;
-			float off = left ? (deg > 0 ? 180f - deg : -180f - deg) : deg;
-			off = Math.max( -MAX_TILT, Math.min( MAX_TILT, off ) );
-			heading = (float)Math.toRadians( left ? 180f - off : off );
-			face( left );
+		/** Whether something may yet startle it. */
+		public boolean calm(){
+			return state == SWIM || state == CURIOUS;
 		}
 
-		private void ring(){
-			int w = Dungeon.level.width();
-			int cell = (int)(gx() / DungeonTilemap.SIZE) + (int)(gy() / DungeonTilemap.SIZE) * w;
-			if (cell >= 0 && cell < Dungeon.level.length() && Dungeon.level.water[cell]) GameScene.ripple( cell );
+		/** Something at (sx, sy) startled it: away it bursts. */
+		public void startle( float sx, float sy ){
+			if (state == FLEE || state == DIVE || leaving()) return;
+			//not yet made out: it was never there
+			if (shown <= 0f){
+				vanish();
+				return;
+			}
+			state = FLEE;
+			heading = FishBrain.away( gx(), gy(), sx, sy, rf( 0f, 6.2832f ) ) + rf( -FishBrain.AWAY_JITTER, FishBrain.AWAY_JITTER );
+			level();
+			v0 = speed = rf( FishBrain.BURST_MIN, FishBrain.BURST_MAX );
+			burstT = 0f;
+			glides = RNG.nextBoolean();
+			//the swirl where it turned
+			ring( WaterFX.S );
+		}
+
+		/** Food at (fx, fy): it swims to look. */
+		public void curious( float fx, float fy ){
+			if (state != SWIM) return;
+			state = CURIOUS;
+			foodX = fx;
+			foodY = fy;
+			heading = (float)Math.atan2( fy - gy(), fx - gx() );
+			level();
+		}
+
+		//on whole steps, a fish seen from the side: level or tilted 20 degrees, facing its way
+		private void level(){
+			face( Math.cos( heading ) < 0 );
+			angle = FishBrain.tilt( heading );
+		}
+
+		//a small ring at its own point, stirring nothing
+		private void ring( int size ){
+			if (!visible && life > 0f) return;
+			Element.Liquid l = WaterFX.liquid();
+			WaterFX.quietRing( gx(), gy() - 1f, size, l.foam, WaterFX.alphaOf( size ) * 0.8f, FxBudget.P3 );
 		}
 
 		@Override
 		protected void act( float dt ){
-			//back from the bank: the water ten pixels ahead
-			if ((checkIn -= dt) <= 0f){
-				checkIn = 0.3f;
-				float px = gx() + (float)Math.cos( heading ) * 10f, py = gy() + (float)Math.sin( heading ) * 10f;
-				int w = Dungeon.level.width();
-				int cell = (int)(px / DungeonTilemap.SIZE) + (int)(py / DungeonTilemap.SIZE) * w;
-				if (px < 0 || py < 0 || cell >= Dungeon.level.length()
-						|| (Terrain.flags[Dungeon.level.map[cell]] & Terrain.LIQUID) == 0){
-					heading += rf( 1.6f, 2.6f );
-					keepLevel();
+			//its water froze (or drained) under it
+			if (!FishBrain.wet( gx(), gy() - 1f )){
+				leave( 0.4f );
+				return;
+			}
+			hear();
+			//back from the bank: the water 8 px ahead, ten times a second
+			if ((lookIn -= dt) <= 0f){
+				lookIn = FishBrain.LOOK_EVERY;
+				float px = gx() + (float)Math.cos( heading ) * FishBrain.AHEAD, py = gy() - 1f + (float)Math.sin( heading ) * FishBrain.AHEAD;
+				if (!FishBrain.wet( px, py )){
+					heading += (float)Math.PI + rf( -0.6f, 0.6f );
+					if (state == CURIOUS) state = SWIM;
+					level();
 				}
 			}
-			ox += (float)Math.cos( heading ) * pace * dt;
-			oy += (float)Math.sin( heading ) * pace * dt;
-			float tilt = (float)Math.sin( heading ) * 25f;
-			angle = flipHorizontal ? -tilt : tilt;
-			pose( ROW_FISH, 4 + (((int)(life * 6f)) & 1) );
-			shown = 0.5f * Math.min( Math.min( 1f, life / 0.6f ), Math.max( 0f, (span - life) / 0.8f ) );
+			float tailFps = TAIL_FPS;
+			switch (state){
+				case FLEE:
+					burstT += dt;
+					speed = FishBrain.burst( v0, burstT, pace );
+					tailFps = BURST_TAIL_FPS;
+					if (speed <= pace * 1.2f){
+						if (glides){
+							state = SWIM;
+						} else {
+							state = DIVE;
+							diveT = 0f;
+						}
+					}
+					break;
+				case CURIOUS:
+					speed = pace * CURIOUS_PACE;
+					if (FishBrain.dist( gx(), gy(), foodX, foodY ) <= FishBrain.ARRIVED){
+						state = SWIM;
+						speed = pace;
+						if (life - kissedAt >= KISS_GAP && RNG.nextFloat() < KISS_SHARE){
+							kissedAt = life;
+							ring( WaterFX.S );
+							WaterAmbience.bubble( gx(), gy() - 2f, WaterFX.liquid().foam );
+						}
+					}
+					break;
+				case DIVE:
+					diveT += dt;
+					speed = pace;
+					break;
+				default:
+					speed = pace;
+			}
+			ox += (float)Math.cos( heading ) * speed * dt;
+			oy += (float)Math.sin( heading ) * speed * dt;
+			pose( ROW_FISH, 4 + (((int)(life * tailFps)) & 1) );
+
+			boolean night = WaterGeom.night( GameScene.nightTintAlpha() ) > 0.5f;
+			float full = pale ? (night ? PALE_NIGHT : PALE) : (night ? ALPHA_NIGHT : ALPHA);
+			float fade = Math.min( Math.min( 1f, life / 0.6f ), Math.max( 0f, (span - life) / 0.8f ) );
+			if (state == DIVE) fade = Math.min( fade, Math.max( 0f, 1f - diveT / DIVE_TIME ) );
+			shown = full * fade;
+			if (state == DIVE && diveT >= DIVE_TIME){
+				vanish();
+				return;
+			}
+
 			if ((ringIn -= dt) <= 0f){
 				ringIn = rf( 1.2f, 2f );
-				ring();
+				ring( WaterFX.S );
+			}
+			//a light rain: up it comes to the drops now and then
+			float rain = WaterAmbience.rain();
+			if (rain > 0.05f && rain < WaterGeom.POCKS_FROM && (riseIn -= dt) <= 0f){
+				riseIn = RISE_EVERY;
+				ring( WaterFX.S );
 			}
 			if (life >= span) vanish();
+		}
+
+		//the water's stirrings this frame: away from a startle, toward food
+		private void hear(){
+			if (state == FLEE || state == DIVE) return;
+			float[] bus = FishBrain.disturbances();
+			int n = FishBrain.disturbed();
+			float x = gx(), y = gy() - 1f;
+			for (int i = 0; i < n; i++){
+				float sx = bus[i * 4], sy = bus[i * 4 + 1], r = bus[i * 4 + 2];
+				boolean food = bus[i * 4 + 3] > 0f;
+				if (FishBrain.startles( x, y, sx, sy, r, food )){
+					startle( sx, sy );
+					return;
+				}
+				if (FishBrain.draws( x, y, sx, sy, food )) curious( sx, sy );
+			}
 		}
 	}
 }

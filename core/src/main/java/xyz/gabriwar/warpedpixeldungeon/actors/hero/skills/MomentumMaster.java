@@ -27,7 +27,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -139,7 +139,7 @@ public class MomentumMaster extends SubSkill3 {
 		if (ranged || level < MAX_LEVEL) return damage;
 		Surprise.hit( enemy );
 		SpatialSound.play( Assets.Sounds.HIT_STRONG, enemy, 1f, 1.2f );
-		Camera.main.shake( 2, 0.2f );
+		Fx.shake( 2, 0.2f );
 		return Math.round( damage * PLUNGE );
 	}
 }

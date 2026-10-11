@@ -155,7 +155,7 @@ public class WandOfPrismaticLight extends DamageWand {
 	@Override
 	public void fx(Ballistica beam, Callback callback) {
 		curUser.sprite.parent.add(
-				new Beam.LightRay(curUser.sprite.center(), DungeonTilemap.raisedTileCenterToWorld(beam.collisionPos)));
+				new Beam.PrismRay(curUser.sprite.center(), DungeonTilemap.raisedTileCenterToWorld(beam.collisionPos)));
 		SpatialSound.play( Assets.Sounds.RAY, curUser );
 		callback.call();
 	}

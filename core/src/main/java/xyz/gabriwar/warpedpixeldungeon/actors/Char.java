@@ -698,6 +698,13 @@ public abstract class Char extends Actor {
 			if (enemy.sprite != null) {
 				enemy.sprite.bloodBurstA(sprite.center(), effectiveDamage);
 				enemy.sprite.flash();
+				//the blow as the eye takes it: its star, what the weapon leaves, a recoil (pictures
+				//only, made on the render thread, drawing nothing of the game's Random)
+				if (visibleFight && sprite != null) {
+					enemy.sprite.hitFx( sprite.x + sprite.width() / 2f, sprite.y + sprite.height() / 2f, effectiveDamage,
+							xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.HitFx.styleOf( this ),
+							this == Dungeon.hero || enemy == Dungeon.hero );
+				}
 			}
 
 			if (!enemy.isAlive() && visibleFight) {
@@ -744,6 +751,10 @@ public abstract class Char extends Actor {
 					hitMissIcon = -1;
 				} else {
 					enemy.sprite.showStatus(CharSprite.NEUTRAL, enemy.defenseVerb());
+				}
+				//the swing whooshing past (pictures only, as a blow's)
+				if (visibleFight && sprite != null) {
+					enemy.sprite.dodgeFx( sprite.x + sprite.width() / 2f, sprite.y + sprite.height() / 2f );
 				}
 			}
 			if (visibleFight) {

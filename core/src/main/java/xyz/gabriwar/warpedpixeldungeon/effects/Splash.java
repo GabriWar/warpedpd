@@ -21,116 +21,60 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Spray;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.Visual;
-import com.watabou.noosa.particles.Emitter;
-import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.PointF;
 import com.watabou.utils.Random;
 
-import java.util.HashMap;
-
+//a splash of something struck or spilled: blood, a potion, a crystal's shards, bone dust. Each call
+//is its own (effects/fx/combat/Spray: its direction, its cone, what it leaves), made on the render
+//thread from the effects' own random numbers; the call itself draws the game's Random exactly once,
+//as its emitter's start always did, on whichever thread called it
 public class Splash {
-	
+
 	public static void at( int cell, final int color, int n ) {
 		at( DungeonTilemap.tileCenterToWorld( cell ), color, n );
 	}
-	
+
 	public static void at( PointF p, final int color, int n ) {
-		
-		if (n <= 0) {
-			return;
-		}
-		
-		Emitter emitter = GameScene.emitter();
-		if (emitter == null) return;
-		emitter.pos( p );
-
-		if (!FACTORIES.containsKey(color)){
-			FACTORIES.put(color, new SplashFactory());
-		}
-		SplashFactory fact = FACTORIES.get(color);
-		fact.color = color;
-		fact.dir = -3.1415926f / 2;
-		fact.cone = 3.1415926f;
-		emitter.burst( fact, n );
+		spray( p, null, -3.1415926f / 2, 3.1415926f, color, n, 0 );
 	}
-	
-	public static void at( PointF p, final float dir, final float cone, final int color, int n ) {
-		
-		if (n <= 0) {
-			return;
-		}
-		
-		Emitter emitter = GameScene.emitter();
-		if (emitter == null) return;
-		emitter.pos( p );
 
-		if (!FACTORIES.containsKey(color)){
-			FACTORIES.put(color, new SplashFactory());
-		}
-		SplashFactory fact = FACTORIES.get(color);fact.color = color;
-		fact.dir = dir;
-		fact.cone = cone;
-		emitter.burst( fact, n );
+	public static void at( PointF p, final float dir, final float cone, final int color, int n ) {
+		spray( p, null, dir, cone, color, n, 0 );
 	}
 
 	public static void around(Visual v, final int color, int n ) {
-		if (n <= 0) {
-			return;
-		}
-
-		Emitter emitter = GameScene.emitter();
-		if (emitter == null) return;
-		emitter.pos( v );
-
-		if (!FACTORIES.containsKey(color)){
-			FACTORIES.put(color, new SplashFactory());
-		}
-		SplashFactory fact = FACTORIES.get(color);
-		fact.color = color;
-		fact.dir = -3.1415926f / 2;
-		fact.cone = 3.1415926f;
-		emitter.burst( fact, n );
+		spray( null, v, -3.1415926f / 2, 3.1415926f, color, n, 0 );
 	}
 
 	public static void at( PointF p, final float dir, final float cone, final int color, int n, float interval ) {
-
-		if (n <= 0) {
-			return;
-		}
-
-		Emitter emitter = GameScene.emitter();
-		if (emitter == null) return;
-		emitter.pos( p );
-
-		if (!FACTORIES.containsKey(color)){
-			FACTORIES.put(color, new SplashFactory());
-		}
-		SplashFactory fact = FACTORIES.get(color);
-		fact.color = color;
-		fact.dir = dir;
-		fact.cone = cone;
-		emitter.start( fact, interval, n );
+		spray( p, null, dir, cone, color, n, interval );
 	}
 
-	//each color has its own factory, let's multiple splash effects occur at once
-	private static final HashMap<Integer, SplashFactory> FACTORIES = new HashMap<>();
+	private static void spray( PointF p, Visual around, float dir, float cone, int color, int n, float interval ){
+		if (n <= 0 || GameScene.layer( GameScene.Layer.EFFECTS ) == null) {
+			return;
+		}
+		//the one draw of the game's Random a splash has always made (its emitter's start)
+		Random.Float();
 
-	private static class SplashFactory extends Emitter.Factory {
-
-		public int color;
-		public float dir;
-		public float cone;
-		
-		@Override
-		public void emit( Emitter emitter, int index, float x, float y ) {
-			PixelParticle p = (PixelParticle)emitter.recycle( PixelParticle.Shrinking.class );
-			
-			p.reset( x, y, color, 4, Random.Float( 0.5f, 1.0f ) );
-			p.speed.polar( Random.Float( dir - cone / 2, dir + cone / 2 ), Random.Float( 40, 80 ) );
-			p.acc.set( 0, +100 );
+		Spray spray = new Spray( color, dir, cone );
+		FxEmitter emitter = spray.emitter();
+		if (emitter == null) return;
+		if (around != null) {
+			emitter.pos( around );
+		} else {
+			emitter.pos( p );
+		}
+		n = Math.min( n, Spray.MOST );
+		if (interval > 0) {
+			emitter.start( spray, interval, n );
+		} else {
+			emitter.burst( spray, n );
 		}
 	}
 }

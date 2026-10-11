@@ -24,11 +24,9 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
-import com.watabou.glwrap.Blending;
-import com.watabou.noosa.Game;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HolyFx;
 import com.watabou.noosa.Halo;
 import com.watabou.utils.Bundle;
-import com.watabou.utils.PointF;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -39,8 +37,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 
 import java.util.HashSet;
 
@@ -63,7 +59,7 @@ public class AvatarOfLightHalo extends Buff {
 	private int rank = 1;
 	private final HashSet<Integer> seared = new HashSet<>();
 
-	private Halo glow;
+	private HolyFx.Halo glow;
 
 	/** how far the halo reaches: 1 / 2 / 2 tiles */
 	public static int radius( int rank ){
@@ -100,42 +96,27 @@ public class AvatarOfLightHalo extends Buff {
 				if (m.HP < m.HT) m.HP = Math.min( m.HT, m.HP + xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.ofHealth( m.HT, 0.01f ) );
 			}
 		}
-		//the edge of the halo pulses on the floor each turn
+		//the edge of the halo sparkles on the floor each turn
+		int[] edge = new int[16];
+		int n = 0;
 		for (int c : SkillInteractions.area( target.pos, r ))
-			if (Dungeon.level.distance( target.pos, c ) == r) SkillInteractions.flare( c, 0xFFE9A0 );
+			if (Dungeon.level.distance( target.pos, c ) == r && n < edge.length) edge[n++] = c;
+		HolyFx.sparkles( edge, n );
 
 		if (--left <= 0) detach();
 		else spend( TICK );
 		return true;
 	}
 
+	//its light: a pool and a glow round the bearer, breathing (effects/fx/nature/HolyFx)
 	@Override
 	public void fx( boolean on ){
 		if (glow != null){
-			glow.killAndErase();
+			glow.out();
 			glow = null;
 		}
 		if (on && target.sprite != null && target.sprite.parent != null){
-			final CharSprite owner = target.sprite;
-			glow = new Halo( (radius( rank ) + 0.5f) * DungeonTilemap.SIZE, 0xFFE9A0, 0.3f ){
-				private float time;
-				@Override
-				public void update(){
-					super.update();
-					time += Game.elapsed;
-					visible = owner.visible;
-					PointF p = owner.center();
-					point( p.x, p.y );
-					alpha( 0.22f + 0.08f * (float) Math.sin( time * 3 ) );
-				}
-				@Override
-				public void draw(){
-					Blending.setLightMode();
-					super.draw();
-					Blending.setNormalMode();
-				}
-			};
-			owner.parent.add( glow );
+			glow = HolyFx.halo( target.sprite, radius( rank ) );
 		}
 	}
 

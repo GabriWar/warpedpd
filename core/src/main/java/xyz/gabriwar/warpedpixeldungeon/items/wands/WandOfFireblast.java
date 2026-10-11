@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.wands;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.FireHits;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -135,6 +136,8 @@ public class WandOfFireblast extends DamageWand {
 		}
 
 		for ( Char ch : affectedChars ){
+			//the heat over whoever it caught (visual only)
+			FireHits.heat(ch.pos, FireHits.CONE_EMBERS, 0);
 			wandProc(ch, chargesPerCast());
 			ch.damage(damageRoll(), this);
 			if (ch.isActive()) {
@@ -184,6 +187,8 @@ public class WandOfFireblast extends DamageWand {
 
 			//explode, dealing damage to enemies in 3x3, and clearing all fire
 			CellEmitter.center(defender.pos).burst(BlastParticle.FACTORY, 30);
+			//its heat: embers and shimmer over the blast (visual only)
+			FireHits.heat(defender.pos, FireHits.BLAST_EMBERS, FireHits.BLAST_RAYS);
 			if (fire != null) {
 				for (int i : PathFinder.NEIGHBOURS9) {
 					CellEmitter.get(defender.pos + i).burst(SmokeParticle.FACTORY, 4);

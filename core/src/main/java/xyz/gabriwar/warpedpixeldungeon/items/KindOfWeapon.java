@@ -299,5 +299,10 @@ abstract public class KindOfWeapon extends EquipableItem {
 	public void hitSound( float pitch, Char defender ){
 		SpatialSound.play(hitSound, defender, 1, pitch * hitSoundPitch);
 	}
+
+	//the sound its blows make: what a blow of it looks like (effects/fx/combat/HitFx)
+	public String hitSoundAsset(){
+		return hitSound;
+	}
 	
 }

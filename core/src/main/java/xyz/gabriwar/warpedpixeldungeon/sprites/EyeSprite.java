@@ -28,6 +28,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Eye;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.arcane.ChargeGlow;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.TextureFilm;
 import com.watabou.noosa.particles.Emitter;
@@ -38,6 +39,8 @@ public class EyeSprite extends MobSprite {
 
 	private Animation charging;
 	private Emitter chargeParticles;
+	//the charge's glow where its motes gather (its anticipation)
+	private final ChargeGlow chargeGlow = new ChargeGlow();
 	
 	public EyeSprite() {
 		super();
@@ -85,6 +88,7 @@ public class EyeSprite extends MobSprite {
 			chargeParticles.pos( center() );
 			chargeParticles.visible = visible;
 		}
+		chargeGlow.update( this, chargeParticles != null && chargeParticles.on && visible, 0x88CCFF );
 	}
 
 	@Override
@@ -98,6 +102,7 @@ public class EyeSprite extends MobSprite {
 	@Override
 	public void kill() {
 		super.kill();
+		chargeGlow.release();
 		if (chargeParticles != null){
 			chargeParticles.killAndErase();
 		}

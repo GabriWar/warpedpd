@@ -27,7 +27,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -86,7 +86,7 @@ public class FrostNova extends Skill {
 			CellEmitter.center( hero.pos ).burst( SnowParticle.FACTORY, 12 );
 			new Flare( 6, 32 ).color( 0x88DDFF, true ).show( hero.sprite, 0.8f );
 			SpatialSound.play( Assets.Sounds.SHATTER, hero, 1f, 0.9f );
-			Camera.main.shake( 1, 0.3f );
+			Fx.shake( 1, 0.3f );
 
 			//the cold lands on everyone at once; only the crystals take their time crawling out
 			final java.util.HashSet<Integer> caughtCells = new java.util.HashSet<>();

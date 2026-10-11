@@ -24,15 +24,22 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFactories;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxLight;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.HeatRay;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.LightFrame;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.LightRef;
+import com.watabou.noosa.Group;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ChimneySmokeParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
-import com.watabou.glwrap.Blending;
 import com.watabou.noosa.Game;
-import com.watabou.noosa.Halo;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.particles.Emitter;
 
@@ -46,8 +53,10 @@ import java.util.Map;
 
 /**
  * What the world's timed events put on the land around the hero (levels/overworld/WorldEvents):
- * a fallen star's crater while it is hot - a smoke column above the fog, flames licking in it
- * and a warm glow that shows best at night - and a travelling market's maypole on the well with
+ * a fallen star's crater while it is hot - a smoke column above the fog, flames licking in it,
+ * its rim's cracks glowing and breathing, embers rising, heat shimmer over it while it bakes and
+ * a warm pool of light that shows best at night (effects/fx/fire) - and a travelling market's
+ * maypole on the well with
  * bunting strung from it to every stall. The level works out on the actor thread what should be
  * shown and posts it here, positions taken there and then; this brings the scene in line on the
  * render thread. Everything lives in the groups a window slide moves (the smoke and the glow
@@ -105,12 +114,14 @@ public final class WorldEventDecor {
 		return true;
 	}
 
-	//one crater's smoke, flames and glow
+	//one crater's smoke, flames, glowing rim, embers, shimmer and light
 	private static final class CraterFx {
 		int heat;
 		CraterSmoke smoke;
 		Emitter flames;
-		Glow glow;
+		LightFrame rim;
+		FxEmitter embers, rays;
+		final LightRef light = new LightRef();
 	}
 
 	//one market's pole and pennants, and the stalls they were strung to
@@ -128,8 +139,12 @@ public final class WorldEventDecor {
 	private static final float[] PUFF = { 0, 0.4f, 0.24f, 0.13f };
 	//flames: one every this many seconds, by heat (none once it is nearly cold)
 	private static final float[] LICK = { 0, 0, 0.7f, 0.35f };
-	//the glow's strength, by heat
-	private static final float[] GLOW = { 0, 0.22f, 0.36f, 0.5f };
+	//the light's level and the rim's alpha, by heat
+	private static final float[] GLOW = { 0, 0.45f, 0.72f, 1f };
+	private static final float[] RIM = { 0, 0.2f, 0.3f, 0.4f };
+	//embers rise one every this many s; the shimmer (only while it bakes, heat 3) one ray every
+	private static final float EMBER_EVERY = 1.5f, RAY_EVERY = 0.3f;
+	private static final int COLOR = 0xFF7A30;
 
 	/** Render thread: what is on the scene (of identity sceneId) is brought in line with a post. */
 	public void show( int sceneId, List<Crater> craterList, List<Fair> fairList ){
@@ -150,8 +165,19 @@ public final class WorldEventDecor {
 				craters.put( c.id, fx );
 				//the column rises off the crater's heart, shown as that ground is seen
 				fx.smoke = ChimneySmokeParticle.column( CraterSmoke.class, c.x + 4, c.y + 4, 8, 8, PUFF[c.heat], 0, 0, true );
-				fx.glow = new Glow( c.x + DungeonTilemap.SIZE / 2f, c.y + DungeonTilemap.SIZE / 2f );
-				GameScene.effectOverFog( fx.glow );
+				float cx = c.x + DungeonTilemap.SIZE / 2f, cy = c.y + DungeonTilemap.SIZE / 2f;
+				fx.light.setLasting( FxLight.pool( cx, cy + 3, 47, COLOR, 0 ).flicker( FxLight.BREATH ).persistent() );
+				Group lights = GameScene.layer( GameScene.Layer.LIGHTS );
+				if (lights != null){
+					fx.rim = new LightFrame( Assets.Effects.FX_SHEET );
+					fx.rim.setup( FxFrames.CRACK_17[(int)(c.id & 1)], cx, cy + 3, COLOR, 0 ).breathe( 0.45f, 0.1f );
+					lights.add( fx.rim );
+				}
+				fx.embers = GameScene.lightEmitter();
+				if (fx.embers != null){
+					fx.embers.pos( c.x + 3, c.y + 6, 10, 6 );
+					fx.embers.start( FxFactories.ember( Element.FIRE ), EMBER_EVERY, 0 );
+				}
 				fx.heat = -1;
 			}
 			if (fx.heat != c.heat){
@@ -167,7 +193,20 @@ public final class WorldEventDecor {
 					fx.flames.on = false;
 					fx.flames = null;
 				}
-				fx.glow.target( GLOW[c.heat] );
+				FxLight l = fx.light.get();
+				if (l != null) l.level( GLOW[c.heat] );
+				if (fx.rim != null) fx.rim.peak( RIM[c.heat] );
+				//shimmer while it bakes
+				if (c.heat >= 3 && fx.rays == null){
+					fx.rays = GameScene.lightEmitter();
+					if (fx.rays != null){
+						fx.rays.pos( c.x + 2, c.y + 4, 12, 8 );
+						fx.rays.start( HeatRay.FACTORY, RAY_EVERY, 0 );
+					}
+				} else if (c.heat < 3 && fx.rays != null){
+					fx.rays.on = false;
+					fx.rays = null;
+				}
 				fx.heat = c.heat;
 			}
 		}
@@ -177,7 +216,10 @@ public final class WorldEventDecor {
 			CraterFx fx = e.getValue();
 			if (fx.smoke != null) fx.smoke.on = false;
 			if (fx.flames != null) fx.flames.on = false;
-			fx.glow.putOut();
+			if (fx.embers != null) fx.embers.on = false;
+			if (fx.rays != null) fx.rays.on = false;
+			if (fx.rim != null) fx.rim.putOut( 1f );
+			fx.light.release( 1f );
 			it.remove();
 		}
 
@@ -210,8 +252,20 @@ public final class WorldEventDecor {
 				fx.flames.x += dx;
 				fx.flames.y += dy;
 			}
-			fx.glow.x += dx;
-			fx.glow.y += dy;
+			for (Emitter e : new Emitter[]{ fx.embers, fx.rays }){
+				if (e == null) continue;
+				e.x += dx;
+				e.y += dy;
+			}
+			if (fx.rim != null){
+				fx.rim.x += dx;
+				fx.rim.y += dy;
+			}
+			FxLight l = fx.light.get();
+			if (l != null){
+				l.x += dx;
+				l.y += dy;
+			}
 		}
 		for (FairFx fx : fairs.values()){
 			for (Image i : fx.parts){
@@ -262,60 +316,5 @@ public final class WorldEventDecor {
 		pole.y = f.wellY - 22;
 		GameScene.effect( pole );
 		parts.add( pole );
-	}
-
-	//the crater's warm light, added to what lies under it: strongest after dark, breathing
-	//slowly, shown as plainly as the hero sees the ground under its middle (read off its own
-	//position, so a window slide never leaves it stale); fades out before it goes
-	private static final class Glow extends Halo {
-
-		private float level, target, t;
-		private boolean out;
-
-		Glow( float cx, float cy ){
-			super( 34, 0xFF7A30, 1f );
-			point( cx, cy );
-			am = 0;
-		}
-
-		void target( float v ){
-			target = v;
-			out = false;
-		}
-
-		void putOut(){
-			target = 0;
-			out = true;
-		}
-
-		@Override
-		public void update(){
-			super.update();
-			float dt = Game.elapsed;
-			t += dt;
-			level += (target - level) * Math.min( 1f, dt * 0.8f );
-			if (out && level < 0.01f){
-				killAndErase();
-				destroy();
-				return;
-			}
-			float breath = 0.85f + 0.1f * (float) Math.sin( 1.3f * t ) + 0.05f * (float) Math.sin( 3.7f * t );
-			float night = Math.min( 1f, 0.3f + GameScene.nightTintAlpha() * 1.4f );
-			am = level * breath * night * seen();
-		}
-
-		private float seen(){
-			int w = Dungeon.level != null ? Dungeon.level.width() : 0;
-			float cx = x + width() / 2f, cy = y + height() / 2f;
-			if (w == 0 || cx < 0 || cy < 0) return 0f;
-			return HearthLight.groundSeen( (int) (cx / DungeonTilemap.SIZE) + (int) (cy / DungeonTilemap.SIZE) * w );
-		}
-
-		@Override
-		public void draw(){
-			Blending.setLightMode();
-			super.draw();
-			Blending.setNormalMode();
-		}
 	}
 }

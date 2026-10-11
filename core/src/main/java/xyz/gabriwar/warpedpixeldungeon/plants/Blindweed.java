@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.plants;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.PlantFx;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
@@ -69,6 +70,7 @@ public class Blindweed extends Plant {
 
 		if (Dungeon.level.heroFOV[ch.pos]) {
 			CellEmitter.get( ch.pos ).burst( Speck.factory( Speck.LIGHT ), 4 );
+			PlantFx.blind( ch.pos );
 		}
 	}
 
@@ -95,6 +97,7 @@ public class Blindweed extends Plant {
 
 			if (Dungeon.level.heroFOV[enemy.pos]) {
 				CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.LIGHT ), 4 );
+				PlantFx.blind( enemy.pos );
 			}
 		}
 	}

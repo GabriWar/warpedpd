@@ -25,7 +25,7 @@
 package xyz.gabriwar.warpedpixeldungeon.sprites;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.water.WaterDrops;
 import com.watabou.noosa.TextureFilm;
 
 public class AlbinoPiranhaSprite extends MobSprite {
@@ -52,12 +52,22 @@ public class AlbinoPiranhaSprite extends MobSprite {
 		play( idle );
 	}
 
+	//the cell it last lunged at: its droplets fly that way
+	private int bitten = -1;
+
+	@Override
+	public void attack( int cell ) {
+		bitten = cell;
+		super.attack( cell );
+	}
+
 	@Override
 	public void onComplete( Animation anim ) {
 		super.onComplete( anim );
 
 		if (anim == attack) {
-			GameScene.ripple( ch.pos );
+			//out of the water and back: a crown, droplets flung at what it bit, a ring
+			WaterDrops.lunge( ch.pos, bitten );
 		}
 	}
 }

@@ -24,6 +24,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.FireStyle;
+
 /**
  * The fire pit of a Wayfarer's Camp: a slow, low burn that one lighting keeps going for
  * most of a night. Warm enough to sit by and to dry out beside, never hot enough to work
@@ -39,4 +41,7 @@ public class CampFire extends CoalBed {
 
 	@Override
 	protected float radiate(){ return 5f; }
+
+	@Override
+	protected FireStyle fireStyle(){ return FireStyle.CAMP; }
 }

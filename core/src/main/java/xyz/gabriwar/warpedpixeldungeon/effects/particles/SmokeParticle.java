@@ -23,62 +23,60 @@ package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.particles.Emitter.Factory;
-import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.PointF;
-import com.watabou.utils.Random;
 
-public class SmokeParticle extends PixelParticle {
-	
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Ramp;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.Flames;
+
+/**
+ * Smoke: a puff of warm grey (the kit's painted puffs, small to middling to large as it spreads),
+ * fresh soot-dark and paling as it thins, rising and slowing, leaning with a third of an open
+ * sky's wind, never more than 0.55 opaque. FACTORY (net id "smoke") puffs where it is asked; SPEW
+ * (Tengu's) throws them up and away to the right.
+ */
+public class SmokeParticle extends FxParticle {
+
+	/** Its colours: fresh, then paling as it thins. Its alpha at most. */
+	public static final Ramp RAMP = new Ramp( 0x5A5048, 0x6E665C, 0x8A847C );
+	public static final float ALPHA = 0.55f;
+
+	//a puff's sizes, one frame each, as the stages it grows through
+	private static final int[][][] M = { { FxFrames.PUFF_M[0] }, { FxFrames.PUFF_M[1] } };
+	private static final int[][][] L = { { FxFrames.PUFF_L[0] }, { FxFrames.PUFF_L[1] } };
+
 	public static final Factory FACTORY = new Factory() {
 		@Override
 		public void emit( Emitter emitter, int index, float x, float y ) {
-			((SmokeParticle)emitter.recycle( SmokeParticle.class )).reset( x, y );
+			if (!emitter.visible || !FxBudget.keep( FxBudget.P2, x, y )) return;
+			puff( Flames.make( emitter, SmokeParticle.class, x, y ), FxRandom.Float( -6f, 6f ), -FxRandom.Float( 8f, 14f ) );
 		}
 	};
-	
+
 	public static final Factory SPEW = new Factory() {
 		@Override
 		public void emit( Emitter emitter, int index, float x, float y ) {
-			((SmokeParticle)emitter.recycle( SmokeParticle.class )).resetSpew( x, y );
+			if (!emitter.visible || !FxBudget.keep( FxBudget.P2, x, y )) return;
+			float a = FxRandom.Float( PointF.PI * 1.7f, PointF.PI * 1.8f ), v = FxRandom.Float( 30f, 60f );
+			puff( Flames.make( emitter, SmokeParticle.class, x, y ), (float)Math.cos( a ) * v, (float)Math.sin( a ) * v,
+					FxRandom.Float( 0.8f, 1.2f ) ).drag( 2f ).gravity( -8f );
 		}
 	};
-	
-	public SmokeParticle() {
-		super();
-		
-		color( 0x222222 );
-		
-		acc.set( 0, -40 );
+
+	/** Sets `p` up as a puff off at (vx, vy): growing, paling, slowing and rising, 1.4-2.4 s.
+	 *  Matter, P2. */
+	public static FxParticle puff( FxParticle p, float vx, float vy ){
+		return puff( p, vx, vy, FxRandom.Float( 1.4f, 2.4f ) );
 	}
-	
-	public void reset( float x, float y ) {
-		revive();
-		
-		this.x = x;
-		this.y = y;
-		
-		left = lifespan = Random.Float( 0.6f, 1f );
-		speed.set( Random.Float( -4, +4 ), Random.Float( -8, +8 ) );
-	}
-	
-	public void resetSpew( float x, float y ) {
-		revive();
-		
-		this.x = x;
-		this.y = y;
-		
-		acc.set( -40, 40 );
-		
-		left = lifespan = Random.Float( 0.6f, 1f );
-		speed.polar( Random.Float(PointF.PI*1.7f, PointF.PI*1.8f), Random.Float( 30, 60 ));
-	}
-	
-	@Override
-	public void update() {
-		super.update();
-		
-		float p = left / lifespan;
-		am = p > 0.8f ? 2 - 2*p : p * 0.5f;
-		size( 16 - p * 8 );
+
+	/** The same, living `life` s. */
+	public static FxParticle puff( FxParticle p, float vx, float vy, float life ){
+		int v = FxRandom.Int( 2 );
+		return p.look( FxFrames.PUFF_S[v] ).then( 0.35f, M[v] ).then( 0.7f, L[v] ).ramp( RAMP, false ).smooth()
+				.life( life ).alpha( ALPHA, life * 0.2f, life * 0.45f ).vel( vx, vy ).drag( 0.8f ).gravity( -6f )
+				.turbulence( FxRandom.Float( 1f, 3f ), FxRandom.Float( 2f, 5f ) ).wind( 0.35f ).priority( FxBudget.P2 );
 	}
 }

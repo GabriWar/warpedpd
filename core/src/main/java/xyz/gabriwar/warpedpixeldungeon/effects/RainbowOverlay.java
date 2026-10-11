@@ -40,18 +40,34 @@ import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
  * view, seven bands with dithered seams, the brighter sky inside it, faint
  * supernumerary fringes, and the wider, fainter, reversed second bow above. It
  * stands opposite the sun, so it leans east in the afternoon and west in the
- * morning, and it fades in and out over a few seconds. Drawn additively, in
- * slices so each can hide where the hero cannot see.
+ * morning; it grows from one foot to the other as it comes (3 s) and fades out
+ * over a few seconds. It hangs far off: it moves with the view at 0.3 of its pace
+ * (the parallax of a thing on the horizon). A glint runs along its bands, a slice
+ * every half second. Drawn additively, in slices, each easing out of sight and back
+ * (0.4 s) where the hero cannot see.
  */
 public class RainbowOverlay extends Group {
 
 	private static final int SLICES = 12;
 	private static final float FADE_IN_TIME  = 3f;
 	private static final float FADE_OUT_TIME = 4f;
+	/** A slice going out of sight or coming back eases over this long, s. */
+	public static final float SEEN_EASE = 0.4f;
+	/** The glint: a slice every GLINT_STEP s, a pause of GLINT_REST slices between runs, its
+	 *  share of brightness. */
+	public static final float GLINT_STEP = 0.5f, GLINT_SHARE = 0.35f;
+	public static final int GLINT_REST = 6;
+	/** How far the bow keeps up with the view: it falls back by this share of every move. */
+	public static final float PARALLAX = 0.3f;
 
 	private SmartTexture tex;
 	private int texW = 0, texH = 0, side = 0;
 	private final Image[] slices = new Image[SLICES];
+	private final float[] seen = new float[SLICES];
+	//how far it has grown from its first foot (0..1), and where it hung when the view was there
+	private float reveal = 1f;
+	private float anchorX, anchorY;
+	private boolean anchored;
 
 	private float masterAlpha = 0f;
 	private float globalTime  = 0f;
@@ -70,6 +86,10 @@ public class RainbowOverlay extends Group {
 
 	public void show() {
 		if (active && !fadingOut) return;
+		if (!active) {
+			reveal = 0f;
+			anchored = false;
+		}
 		active = true; fadingIn = true; fadingOut = false; visible = true;
 	}
 
@@ -115,6 +135,7 @@ public class RainbowOverlay extends Group {
 
 		if (fadingIn) {
 			masterAlpha = Math.min(1f, masterAlpha + dt / FADE_IN_TIME);
+			reveal = Math.max(reveal, masterAlpha);
 			if (masterAlpha >= 1f) fadingIn = false;
 		} else if (fadingOut) {
 			masterAlpha = Math.max(0f, masterAlpha - dt / FADE_OUT_TIME);
@@ -132,11 +153,21 @@ public class RainbowOverlay extends Group {
 		float levelW = Dungeon.level.width()  * DungeonTilemap.SIZE;
 		float levelH = Dungeon.level.height() * DungeonTilemap.SIZE;
 
-		//the bow hangs in the view, but never past the edge of the world
-		float x0 = Math.max(0, Math.min(levelW - texW, cam.scroll.x));
-		float y0 = Math.max(0, Math.min(levelH - texH, cam.scroll.y));
+		//the bow hangs far off in the view (falling back by PARALLAX of each move it makes),
+		//but never past the edge of the world
+		if (!anchored) {
+			anchored = true;
+			anchorX = cam.scroll.x;
+			anchorY = cam.scroll.y;
+		}
+		float x0 = cam.scroll.x - PARALLAX * (cam.scroll.x - anchorX);
+		float y0 = cam.scroll.y - PARALLAX * (cam.scroll.y - anchorY);
+		x0 = Math.max(0, Math.min(levelW - texW, x0));
+		y0 = Math.max(0, Math.min(levelH - texH, y0));
 		x0 = (float)Math.floor(x0);
 		y0 = (float)Math.floor(y0);
+		//the glint's slice now (past the last, resting)
+		float glint = (globalTime / GLINT_STEP) % (SLICES + GLINT_REST);
 
 		float shimmer = ((float) Math.sin(globalTime * 0.35f) + 1f) * 0.5f;
 		float alpha = masterAlpha * (0.7f + shimmer * 0.3f);
@@ -150,20 +181,29 @@ public class RainbowOverlay extends Group {
 			s.y = y0;
 			//a slow ripple of brightness along the bow
 			float segShimmer = ((float) Math.sin(globalTime * 0.5f + i * 0.5f) + 1f) * 0.5f;
+			//the glint running along the bands
+			float g = Math.max(0f, 1f - Math.abs(i - glint));
 			//translucent: the bands are painted strong so the colours read, and let through here
-			s.am = alpha * (0.8f + segShimmer * 0.2f) * 0.6f;
+			s.am = alpha * (0.8f + segShimmer * 0.2f + GLINT_SHARE * g) * 0.6f;
 
-			//hidden where the hero cannot see the ground under it
+			//growing from its first foot (opposite its lean) to the other as it comes
+			int order = side > 0 ? i : SLICES - 1 - i;
+			float grown = Math.max(0f, Math.min(1f, (reveal * (SLICES + 2) - order) / 3f));
+			s.am *= grown;
+
+			//hidden where the hero cannot see the ground under it, easing out and back
+			boolean inSight = true;
 			if (Dungeon.level.heroFOV != null) {
 				int col = (int) ((s.x + sliceW * 0.5f) / DungeonTilemap.SIZE);
 				int row = (int) ((y0 + texH * 0.6f) / DungeonTilemap.SIZE);
 				col = Math.max(0, Math.min(lvlW - 1, col));
 				row = Math.max(0, Math.min(lvlH - 1, row));
 				int cell = col + row * lvlW;
-				if (cell < 0 || cell >= Dungeon.level.heroFOV.length || !Dungeon.level.heroFOV[cell]) {
-					s.am = 0;
-				}
+				inSight = cell >= 0 && cell < Dungeon.level.heroFOV.length && Dungeon.level.heroFOV[cell];
 			}
+			seen[i] = inSight ? Math.min(1f, seen[i] + dt / SEEN_EASE) : Math.max(0f, seen[i] - dt / SEEN_EASE);
+			s.am *= seen[i];
+			s.visible = s.am > 0.004f;
 		}
 	}
 

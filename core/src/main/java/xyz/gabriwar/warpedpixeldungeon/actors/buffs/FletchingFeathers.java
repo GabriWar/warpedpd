@@ -24,18 +24,17 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
-import com.watabou.noosa.Game;
-import com.watabou.noosa.Group;
-import com.watabou.noosa.Image;
-import com.watabou.noosa.TextureFilm;
 import com.watabou.utils.Bundle;
-import com.watabou.utils.PointF;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.CurrentSkills;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Fletching;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxOrbit;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillOrbit;
 
 /** Fletching's ring: the feathers plucked by ranged hits, circling the hero until they burst. */
 public class FletchingFeathers extends Buff {
@@ -80,7 +79,7 @@ public class FletchingFeathers extends Buff {
 	@Override
 	public void fx( boolean on ){
 		if (visual != null){
-			visual.killAndErase();
+			Fx.dispose( visual );
 			visual = null;
 		}
 		if (on && target != null && target.sprite != null && target.sprite.parent != null){
@@ -89,41 +88,21 @@ public class FletchingFeathers extends Buff {
 		}
 	}
 
-	/** up to three pale feathers orbiting the hero; hidden while the ring is empty */
-	private class Ring extends Group {
-
-		private final Image[] feathers = new Image[MAX];
-		private float time;
+	/** up to three pale feathers circling the hero in the kit's FEATHERS orbit; none while the ring is empty */
+	private class Ring extends SkillOrbit {
 
 		Ring(){
-			for (int i = 0; i < MAX; i++){
-				Image feather = new Image( "effects/skill_motes.png" );
-				feather.frame( new TextureFilm( feather.texture, 4, 4 ).get( i ) );
-				feather.hardlight( 0xF3EBD7 );
-				feathers[i] = feather;
-				add( feather );
-			}
+			super( target, FxOrbit.Slot.FEATHERS );
 		}
 
 		@Override
-		public void update(){
-			super.update();
-			time += Game.elapsed;
-			if (target == null || target.sprite == null || !target.sprite.exists){
-				killAndErase();
-				return;
-			}
-			visible = target.sprite.visible;
-			PointF center = target.sprite.center();
-			for (int i = 0; i < MAX; i++){
-				Image feather = feathers[i];
-				feather.visible = i < count;
-				if (!feather.visible) continue;
-				float angle = time * 2.2f + i * (float) Math.PI * 2 / MAX;
-				feather.x = center.x + (float) Math.cos( angle ) * 7 - feather.width() / 2;
-				feather.y = center.y + (float) Math.sin( angle ) * 4 - feather.height() / 2;
-				feather.alpha( 0.7f + 0.2f * (float) Math.sin( time * 5 + i ) );
-			}
+		protected int count(){
+			return FletchingFeathers.this.count;
+		}
+
+		@Override
+		protected void look( FxOrbit.Ring ring, int n ){
+			ring.motes( n, FxFrames.FEATHER, 0xF3EBD7, false ).trail( n <= 2 ? 1 : 0 ).breath( 0.75f, 0.95f, 0.8f ).speed( 2.2f );
 		}
 	}
 

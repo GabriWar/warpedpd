@@ -24,12 +24,16 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects.particles.poisonparticles;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import com.watabou.noosa.Game;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.particles.Emitter.Factory;
 import com.watabou.noosa.particles.PixelParticle;
-import com.watabou.utils.Random;
 
 public class ChandaliertailPoisonParticle extends PixelParticle {
+
+	/** Its plant's colour (what its plant bursts on a sprite, without making one of these). */
+	public static final int COLOR = 0xDDAC14;
 
 	public static final Factory FACTORY = new Factory() {
 		@Override
@@ -42,9 +46,12 @@ public class ChandaliertailPoisonParticle extends PixelParticle {
 		}
 	};
 
+	//its flicker: a phase of its own, run at a rate of its own
+	private float phase, rate;
+
 	public ChandaliertailPoisonParticle() {
 		size( 2.0f );
-		color( 0xDDAC14 );
+		color( COLOR );
 		this.acc.set( 0.0f, 50.0f );
 	}
 
@@ -52,14 +59,21 @@ public class ChandaliertailPoisonParticle extends PixelParticle {
 		revive();
 		this.x = f;
 		this.y = f2;
-		f = Random.Float( 0.5f, 1.0f );
+		f = FxRandom.Float( 0.5f, 1.0f );
 		this.lifespan = f;
 		this.left = f;
-		this.speed.polar( -Random.Float( 3.1415925f ), Random.Float( 20.0f, 40.0f ) );
+		this.speed.polar( -FxRandom.Float( 3.1415925f ), FxRandom.Float( 20.0f, 40.0f ) );
+		phase = FxRandom.angle();
+		rate = FxRandom.Float( 18f, 30f );
 	}
 
+	@Override
 	public void update() {
 		super.update();
-		size( Random.Float( (5.0f * this.left) / this.lifespan ) );
+		//flickering between nothing and its shrinking most, in whole pixels
+		phase += Game.elapsed * rate;
+		int s = Math.round( (5.0f * this.left / this.lifespan) * (0.5f + 0.5f * (float)Math.sin( phase )) );
+		visible = s > 0;
+		size( s );
 	}
 }

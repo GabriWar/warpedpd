@@ -25,7 +25,6 @@
 package xyz.gabriwar.warpedpixeldungeon.items.weapon.melee;
 
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
-import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bless;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
@@ -45,6 +44,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
@@ -105,7 +105,7 @@ public class Trumpet extends MeleeWeapon {
 			new Flare( 8, 12 + 4 * reach ).color( 0xFFD700, true ).show( hero.sprite, 0.9f ).angularSpeed = 45;
 			hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 6 );
 		}
-		Camera.main.shake( any ? 2 : 1, 0.3f );
+		Fx.shake( any ? 2 : 1, 0.3f );
 		SpatialSound.play( Assets.Sounds.CHALLENGE, hero, 1f, 1.3f );
 		SpatialSound.play( Assets.Sounds.BEACON, hero, 0.8f, 1.5f );
 		hero.sprite.operate( hero.pos );

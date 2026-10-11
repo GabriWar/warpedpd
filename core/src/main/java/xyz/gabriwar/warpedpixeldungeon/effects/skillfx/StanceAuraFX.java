@@ -24,34 +24,26 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects.skillfx;
 
-import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
-import com.watabou.noosa.Image;
-import com.watabou.noosa.TextureFilm;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.utils.PointF;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.StanceOrbit;
 
 /**
- * The quiet presence of a held stance: two motes drifting slowly around the hero, and now and
- * then one accent particle. A handful of sprites, no allocation per frame; killed when the stance
- * is lowered or the sprite goes.
+ * The quiet presence of a held stance: the stance's orbit (StanceOrbit: two trailing motes of its
+ * colour circling the hero, breathing, flaring with each blow, a glint at his feet) and now and
+ * then one accent particle, poured at the stance's own rate. Nothing allocated per frame; let go
+ * of when the stance is lowered or the sprite goes.
  */
 public class StanceAuraFX extends Group {
 
 	private final Char owner;
-	private final Image[] motes = new Image[2];
+	private final StanceOrbit orbit;
 	private final Emitter accent;
-	private float time;
 
-	public StanceAuraFX( Char owner, int color, int frame, Emitter.Factory accentFactory, float accentInterval ){
+	public StanceAuraFX( Char owner, int color, Emitter.Factory accentFactory, float accentInterval ){
 		this.owner = owner;
-		for (int i = 0; i < motes.length; i++){
-			Image mote = new Image( "effects/skill_motes.png" );
-			mote.frame( new TextureFilm( mote.texture, 4, 4 ).get( frame ) );
-			mote.hardlight( color );
-			add( motes[i] = mote );
-		}
+		add( orbit = new StanceOrbit( owner, color ) );
 		if (accentFactory != null && owner.sprite != null){
 			accent = new Emitter();
 			accent.pos( owner.sprite );
@@ -69,18 +61,11 @@ public class StanceAuraFX extends Group {
 		if (owner.sprite == null || !owner.sprite.exists){ killAndErase(); return; }
 		visible = owner.sprite.visible;
 		if (accent != null) accent.on = visible;
-		time += Game.elapsed;
-		PointF c = owner.sprite.center();
-		for (int i = 0; i < motes.length; i++){
-			double a = time * 1.3 + i * Math.PI;
-			motes[i].x = c.x + (float) Math.cos( a ) * 8 - 2;
-			motes[i].y = c.y - 3 + (float) Math.sin( a ) * 3.5f - 2;
-			motes[i].alpha( 0.45f + 0.35f * (float) Math.sin( time * 2.2 + i * 1.7 ) );
-		}
 	}
 
 	public void stop(){
 		if (accent != null) accent.on = false;
+		orbit.killAndErase();
 		killAndErase();
 	}
 }

@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.spells;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HolyFx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -105,6 +106,7 @@ public class Smite extends TargetedClericSpell {
 				if (hero.attack(enemy, 1, 0, accMult)){
 					SpatialSound.play(Assets.Sounds.HIT_STRONG, enemy);
 					enemy.sprite.burst(0xFFFFFFFF, 10);
+					HolyFx.impact(enemy.sprite);
 				}
 				tracker.detach();
 

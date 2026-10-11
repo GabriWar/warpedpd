@@ -21,11 +21,14 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Ramp;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.particles.PixelParticle;
-import com.watabou.utils.PointF;
-import com.watabou.utils.Random;
 
+//a mote of the prism: one of its seven saturated hues (never a random RGB), turning to the next
+//once a HUE_TURN, washing toward white over its last 30%, drifting up, 1, 2, then 1 px
 public class RainbowParticle extends PixelParticle {
 
 	public static final Emitter.Factory BURST = new Emitter.Factory() {
@@ -39,13 +42,25 @@ public class RainbowParticle extends PixelParticle {
 		}
 	};
 
+	/** Seconds a hue holds before it turns to the next (its half-second life sees one turn). */
+	public static final float HUE_TURN = 0.25f;
+	/** Where it starts washing toward white, a share of its life. */
+	public static final float WHITE_FROM = 0.7f;
+	/** How fast it drifts up, px/s. */
+	public static final float DRIFT = 6f;
+
+	private int hue;
 
 	public RainbowParticle() {
 		super();
-		color( Random.Int( 0x1000000 ) );
 		lifespan = 0.5f;
 	}
 
+	/** The prism's hue i (0..6), wrapping. */
+	public static int hue( int i ){
+		Ramp r = Element.PRISM.ramp;
+		return r.stop( ((i % r.size()) + r.size()) % r.size() );
+	}
 
 	public void reset( float x, float y ) {
 		revive();
@@ -53,9 +68,10 @@ public class RainbowParticle extends PixelParticle {
 		this.x = x;
 		this.y = y;
 
-		speed.set( Random.Float(-5, +5), Random.Float( -5, +5 ) );
+		speed.set( FxRandom.Float(-5, +5), FxRandom.Float( -5, +5 ) - DRIFT );
 
 		left = lifespan;
+		pick();
 	}
 
 	public void resetBurst( float x, float y ) {
@@ -64,15 +80,28 @@ public class RainbowParticle extends PixelParticle {
 		this.x = x;
 		this.y = y;
 
-		speed.polar( Random.Float( PointF.PI2 ), Random.Float( 16, 32 ) );
+		float a = FxRandom.angle(), s = FxRandom.Float( 16, 32 );
+		speed.set( (float)Math.cos( a ) * s, (float)Math.sin( a ) * s - DRIFT );
 
 		left = lifespan;
+		pick();
+	}
+
+	private void pick(){
+		hue = FxRandom.Int( Element.PRISM.ramp.size() );
+		am = 1;
+		size( 1 );
+		color( hue( hue ) );
 	}
 
 	@Override
 	public void update() {
 		super.update();
-		// alpha: 1 -> 0; size: 1 -> 5
-		size( 5 - (am = left / lifespan) * 4 );
+		float age = lifespan - left, p = age / lifespan;
+		int c = hue( hue + (int)(age / HUE_TURN) );
+		if (p > WHITE_FROM) c = Ramp.lerp( c, 0xFFFFFF, (p - WHITE_FROM) / (1f - WHITE_FROM) );
+		color( c );
+		am = 1f - p * p;
+		size( p < 0.25f || p > 0.75f ? 1 : 2 );
 	}
 }

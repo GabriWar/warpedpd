@@ -27,8 +27,8 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -103,13 +103,13 @@ public class KnockBack extends ActiveSkill2 {
 					shoved.sprite.flash();
 				}
 			} );
-			Camera.main.shake( 1, 0.1f );
+			Fx.shake( 1, 0.1f );
 			return damage;
 		}
 		//+3: nowhere to fly, so the target is crushed against what stands behind it
 		if (enemy.sprite != null && enemy.sprite.visible){
 			CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.ROCK ), 4 );
-			Camera.main.shake( 2, 0.2f );
+			Fx.shake( 2, 0.2f );
 		}
 		SpatialSound.play( Assets.Sounds.HIT_CRUSH, enemy, 1f, 0.8f );
 		return Math.round( damage * 1.25f );

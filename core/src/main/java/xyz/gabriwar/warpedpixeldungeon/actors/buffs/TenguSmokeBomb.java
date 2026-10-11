@@ -24,12 +24,12 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Tengu;
 import com.watabou.noosa.particles.Emitter;
 import java.util.ArrayList;
-import com.watabou.noosa.Camera;
 import com.watabou.utils.BArray;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
@@ -144,7 +144,7 @@ public class TenguSmokeBomb extends Buff {
 		SpatialSound.play( Assets.Sounds.BLAST, cell );
 		if (Dungeon.level.heroFOV[cell]){
 			CellEmitter.center( cell ).burst( BlastParticle.FACTORY, 30 );
-			Camera.main.shake( 3, 0.5f );
+			Fx.shake( 3, 0.5f );
 		}
 		int lvl = target instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero
 				? ((xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero) target).lvl : Dungeon.scalingDepth();

@@ -40,7 +40,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 
 public class FleecingTrap extends Trap {
 
@@ -61,7 +61,7 @@ public class FleecingTrap extends Trap {
 				|| ch instanceof SheepSokobanBlack
 				|| ch instanceof SheepSokobanStop) {
 			// Sheep are instantly destroyed by the fleecing trap
-			Camera.main.shake(2, 0.3f);
+			Fx.shake(2, 0.3f);
 			ch.destroy();
 			ch.sprite.killAndErase();
 			CellEmitter.get(pos).burst(ShadowParticle.UP, 5);
@@ -69,7 +69,7 @@ public class FleecingTrap extends Trap {
 		}
 
 		if (ch != null) {
-			Camera.main.shake(2, 0.3f);
+			Fx.shake(2, 0.3f);
 			CellEmitter.get(pos).burst(ShadowParticle.UP, 5);
 
 			if (ch == Dungeon.hero) {

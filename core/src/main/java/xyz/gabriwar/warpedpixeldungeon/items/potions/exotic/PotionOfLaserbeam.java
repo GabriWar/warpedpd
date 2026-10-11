@@ -60,8 +60,11 @@ public class PotionOfLaserbeam extends ExoticPotion {
 			Ballistica shot = new Ballistica(hero.pos, mob.pos, Ballistica.WONT_STOP);
 			int maxDist = Math.min(hero.lvl * 5, shot.dist);
 			int cell = shot.path.get(Math.min(shot.dist, maxDist));
-			hero.sprite.parent.add(new Beam.DeathRay(hero.sprite.center(),
-					DungeonTilemap.raisedTileCenterToWorld(cell)));
+			Beam ray = new Beam.DeathRay(hero.sprite.center(),
+					DungeonTilemap.raisedTileCenterToWorld(cell));
+			//the first three rays in full, the rest their core and halo only
+			if (count >= 3) ray.lite();
+			hero.sprite.parent.add(ray);
 
 			ArrayList<Char> chars = new ArrayList<>();
 			boolean terrainAffected = false;

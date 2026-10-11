@@ -57,7 +57,8 @@ public class Snowstorm extends Blob {
 	@Override
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
-		emitter.start( SnowStormParticle.FACTORY, 0.5f, 10 );
+		//snowing for as long as the storm lasts, about 6 flakes a cell (they live 2 s)
+		emitter.pour( SnowStormParticle.FACTORY, 0.33f );
 	}
 
 	@Override

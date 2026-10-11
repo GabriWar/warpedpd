@@ -27,7 +27,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.utils.Bundle;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -138,7 +138,7 @@ public class Sanctuary extends PassiveSkillA3 {
 		}
 		if (any){
 			SpatialSound.play( Assets.Sounds.BLAST, hero, 0.9f, 1.2f );
-			Camera.main.shake( 2, 0.3f );
+			Fx.shake( 2, 0.3f );
 		}
 	}
 
@@ -185,7 +185,7 @@ public class Sanctuary extends PassiveSkillA3 {
 				aura = null;
 			}
 			if (on && target.sprite != null && target.sprite.parent != null){
-				aura = new xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraFX( target, 0xFFF1A1, 0,
+				aura = new xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraFX( target, 0xFFF1A1,
 						xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle.FACTORY, 1.6f );
 				target.sprite.parent.add( aura );
 			}

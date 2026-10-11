@@ -24,6 +24,10 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.Flames;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Random;
@@ -37,7 +41,8 @@ import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
 /**
  * The air of the world's caves (levels/overworld/CaveLife): a mote of dust drifting in a
  * chamber's still air, greyish-brown up near the surface and bluer down deep; a spore
- * glowing the colour of the fungus it came off; an ember rising off hot ground.
+ * glowing the colour of the fungus it came off; an ember rising off hot ground (the kit's ember:
+ * effects/fx/fire/Flames, drawn in the light layer, cooling down the fire's ember ramp).
  */
 public class CaveMoteParticle extends WeatherParticle {
 
@@ -58,6 +63,12 @@ public class CaveMoteParticle extends WeatherParticle {
 
 		@Override
 		public void emit( Emitter emitter, int index, float x, float y ){
+			if (kind == EMBER){
+				if (!emitter.visible || !FxBudget.keep( FxBudget.P2, x, y )) return;
+				Flames.ember( Flames.make( Flames.host( emitter, FxParticle.class ), FxParticle.class, x, y ), Element.FIRE.ember )
+						.source( x, y );
+				return;
+			}
 			((CaveMoteParticle) emitter.recycle( CaveMoteParticle.class )).reset( kind, x, y );
 		}
 
@@ -98,37 +109,16 @@ public class CaveMoteParticle extends WeatherParticle {
 				left = lifespan = Random.Float( 4f, 7f );
 				peak = 0.4f;
 				break;
-			default:
-				frame( WeatherSprites.EMBER );
-				color( 0xFFA040 );
-				speed.set( Random.Float( -3f, 3f ), Random.Float( -14f, -8f ) );
-				acc.set( 0, -2f );
-				left = lifespan = Random.Float( 1.2f, 2.2f );
-				peak = 0.85f;
 		}
 	}
 
 	@Override
 	public void update(){
 		super.update();
-		if (kind == EMBER){
-			//cooling as it climbs: orange to a deep red
-			float p = 1f - left / lifespan;
-			color( lerp( 0xFFA040, 0xFF5020, p ) );
-			am = envelope( 0.1f, 0.4f, peak );
-		} else {
-			//the still air's slow wobble
-			phase += Game.elapsed * 1.3f;
-			speed.x += (float)Math.sin( phase ) * 1.5f * Game.elapsed;
-			am = envelope( 0.25f, 0.3f, peak );
-		}
+		//the still air's slow wobble
+		phase += Game.elapsed * 1.3f;
+		speed.x += (float)Math.sin( phase ) * 1.5f * Game.elapsed;
+		am = envelope( 0.25f, 0.3f, peak );
 		fov();
-	}
-
-	private static int lerp( int a, int b, float p ){
-		int r = (int)(((a >> 16) & 0xFF) + (((b >> 16) & 0xFF) - ((a >> 16) & 0xFF)) * p);
-		int g = (int)(((a >> 8) & 0xFF) + (((b >> 8) & 0xFF) - ((a >> 8) & 0xFF)) * p);
-		int bl = (int)((a & 0xFF) + ((b & 0xFF) - (a & 0xFF)) * p);
-		return (r << 16) | (g << 8) | bl;
 	}
 }

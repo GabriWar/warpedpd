@@ -45,7 +45,11 @@ import com.watabou.utils.RectF;
  * tick; and the index it is handed is the tick's plus the cell, so a detail every few particles
  * no longer pulses through the whole cloud at once). It may answer to the cloud's life: a cell
  * dying away (Aftermath), the cloud welling up (Bloomable, at its thickest cell) and someone
- * walking through it (Kickable, the steps the sprites took, at most KICKS a check).
+ * walking through it (Kickable, the steps the sprites took, at most KICKS a check), and may keep
+ * a picture on every cell it sees (Held: a web, rime, the floor's tint) outside all thinning.
+ *
+ * The scan starts at a cell of its own each tick and strides through the area (stride()), so a
+ * cloud of more cells than a frame's spawns is thinned all over, not cut off where they run out.
  *
  * A blob that is light (Blob.emissive) is drawn in the light layer; what it sheds as matter (its
  * smoke) goes to its companion among the gases (matter()).
@@ -67,6 +71,12 @@ public class BlobEmitter extends Emitter {
 	 *  his step, px. */
 	public interface Kickable {
 		void kick( int cell, float dx, float dy );
+	}
+
+	/** A factory that keeps a picture on each cell of the blob the hero sees (a web, rime, the
+	 *  floor's tint): told of every one every tick, before any thinning and outside the budget. */
+	public interface Held {
+		void held( int cell, int cur );
 	}
 
 	/** The cell a particle is being made for, as its factory may read it (cell()) during emit. */
@@ -114,6 +124,28 @@ public class BlobEmitter extends Emitter {
 		blob.use( this );
 	}
 
+	/** A step through n cells that visits each once (coprime with n) and spreads them out: the
+	 *  whole number nearest 0.618 n that is. */
+	static int stride( int n ){
+		if (n <= 2) return 1;
+		int st = Math.max( 1, Math.round( n * 0.618034f ) );
+		for (int d = 0; d < n; d++){
+			int a = st + d, b = st - d;
+			if (a < n && gcd( a, n ) == 1) return a;
+			if (b >= 1 && gcd( b, n ) == 1) return b;
+		}
+		return 1;
+	}
+
+	private static int gcd( int a, int b ){
+		while (b != 0){
+			int t = a % b;
+			a = b;
+			b = t;
+		}
+		return a;
+	}
+
 	/** The cell being emitted for, read by a factory during its emit. Render thread. */
 	public static Cell cell(){
 		return CELL;
@@ -154,6 +186,7 @@ public class BlobEmitter extends Emitter {
 		FxBudget.Prioritized prioritized = factory instanceof FxBudget.Prioritized ? (FxBudget.Prioritized) factory : null;
 		int priority = prioritized != null ? prioritized.priority() : FxBudget.P1;
 		Aftermath aftermath = factory instanceof Aftermath ? (Aftermath) factory : null;
+		Held held = factory instanceof Held ? (Held) factory : null;
 
 		//welling up: from nothing, or by half again since the last tick
 		if (factory instanceof Bloomable && (lastVolume == 0 || blob.volume >= lastVolume * 1.5f)) {
@@ -162,39 +195,44 @@ public class BlobEmitter extends Emitter {
 		}
 		lastVolume = blob.volume;
 
+		//every cell of the area once, from a start of the tick's own and striding about 0.618 of
+		//the area each step (coprime with it), so the first cells the spawns reach lie all over
+		int ah = blob.area.height(), n = blob.area.width() * ah;
+		int s = n > 0 ? FxRandom.Int( n ) : 0;
+		int stride = stride( n );
 		int cell;
-		for (int i = blob.area.left; i < blob.area.right; i++) {
-			for (int j = blob.area.top; j < blob.area.bottom; j++) {
-				cell = i + j*w;
-				if (cell < 0 || cell >= map.length) continue;
-				boolean visible = cell < level.heroFOV.length && level.heroFOV[cell];
-				if (blob.alwaysVisible && cell < level.length()) {
-					visible = visible || level.mapped[cell] || level.visited[cell];
-				}
-				int cur = map[cell];
-				boolean wasActive = was[cell] != 0;
-				was[cell] = (byte)(cur > 0 ? 1 : 0);
-				if (cur <= 0) {
-					if (wasActive && visible && aftermath != null) aftermath.dying( cell );
-					continue;
-				}
-				if (!visible) continue;
-				//a cell running out of blob emits less and less, so fire, frost
-				//and the rest thin away instead of stopping between two frames
-				if (cur < FADE_VOLUME && FxRandom.Float() * FADE_VOLUME > cur) {
-					continue;
-				}
-				//and a thin one less than a thick one
-				float density = prioritized != null ? prioritized.density( cur ) : FxBudget.blobDensity( cur );
-				if (density < 1f && FxRandom.Float() >= density) {
-					continue;
-				}
-				float x = (i + FxRandom.Float(bound.left, bound.right)) * size;
-				float y = (j + FxRandom.Float(bound.top, bound.bottom)) * size;
-				if (!FxBudget.keep( priority, x, y )) continue;
-				describe( level, map, cell, cur, wasActive );
-				factory.emit(this, index + cell, x, y);
+		for (int k = 0; k < n; k++, s = (s + stride) % n) {
+			int i = blob.area.left + s / ah, j = blob.area.top + s % ah;
+			cell = i + j*w;
+			if (cell < 0 || cell >= map.length) continue;
+			boolean visible = cell < level.heroFOV.length && level.heroFOV[cell];
+			if (blob.alwaysVisible && cell < level.length()) {
+				visible = visible || level.mapped[cell] || level.visited[cell];
 			}
+			int cur = map[cell];
+			boolean wasActive = was[cell] != 0;
+			was[cell] = (byte)(cur > 0 ? 1 : 0);
+			if (cur <= 0) {
+				if (wasActive && visible && aftermath != null) aftermath.dying( cell );
+				continue;
+			}
+			if (!visible) continue;
+			if (held != null) held.held( cell, cur );
+			//a cell running out of blob emits less and less, so fire, frost
+			//and the rest thin away instead of stopping between two frames
+			if (cur < FADE_VOLUME && FxRandom.Float() * FADE_VOLUME > cur) {
+				continue;
+			}
+			//and a thin one less than a thick one
+			float density = prioritized != null ? prioritized.density( cur ) : FxBudget.blobDensity( cur );
+			if (density < 1f && FxRandom.Float() >= density) {
+				continue;
+			}
+			float x = (i + FxRandom.Float(bound.left, bound.right)) * size;
+			float y = (j + FxRandom.Float(bound.top, bound.bottom)) * size;
+			if (!FxBudget.keep( priority, x, y )) continue;
+			describe( level, map, cell, cur, wasActive );
+			factory.emit(this, index + cell, x, y);
 		}
 		wasLeft = blob.area.left;
 		wasTop = blob.area.top;

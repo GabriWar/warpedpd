@@ -34,7 +34,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import com.watabou.utils.Callback;
-import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Gullin;
@@ -48,6 +47,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.BuzzSaw;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
@@ -186,7 +186,7 @@ public class Chainsaw extends MeleeWeapon {
 				}
 				if (any){
 					Wound.hit(enemy);
-					Camera.main.shake(2, 0.3f);
+					Fx.shake(2, 0.3f);
 				}
 				Invisibility.dispel();
 				if (!enemy.isAlive()){

@@ -21,12 +21,12 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HolyFx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
@@ -81,7 +81,8 @@ public class TormentedSpirit extends Wraith {
 		destroy();
 		sprite.die();
 		sprite.tint(1, 1, 1, 1);
-		sprite.emitter().start( ShaftParticle.FACTORY, 0.3f, 4 );
+		//its light rising as wisps (they were white bars)
+		sprite.emitter().start( HolyFx.SPIRIT_WISP, 0.3f, 3 );
 		sprite.emitter().start( Speck.factory( Speck.LIGHT ), 0.2f, 3 );
 
 	}

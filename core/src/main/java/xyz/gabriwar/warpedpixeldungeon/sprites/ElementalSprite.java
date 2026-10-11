@@ -21,6 +21,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.sprites;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.BodyGlow;
+import com.watabou.noosa.Game;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Elemental;
@@ -44,6 +46,10 @@ public abstract class ElementalSprite extends MobSprite {
 	
 	private Emitter particles;
 	protected abstract Emitter createEmitter();
+
+	//what its body gives off besides its particles (effects/fx/fire/BodyGlow), by its kind
+	private BodyGlow glow;
+	protected abstract int glowKind();
 	
 	public ElementalSprite() {
 		super();
@@ -78,6 +84,9 @@ public abstract class ElementalSprite extends MobSprite {
 		if (particles == null) {
 			particles = createEmitter();
 		}
+		if (glow == null) {
+			glow = new BodyGlow( glowKind() );
+		}
 	}
 	
 	@Override
@@ -87,6 +96,9 @@ public abstract class ElementalSprite extends MobSprite {
 		if (particles != null){
 			particles.visible = visible;
 		}
+		if (glow != null){
+			glow.update( this, visible && particles != null && particles.on, Game.elapsed );
+		}
 	}
 	
 	@Override
@@ -94,6 +106,9 @@ public abstract class ElementalSprite extends MobSprite {
 		super.die();
 		if (particles != null){
 			particles.on = false;
+		}
+		if (glow != null){
+			glow.out();
 		}
 	}
 	
@@ -141,6 +156,11 @@ public abstract class ElementalSprite extends MobSprite {
 		}
 		
 		@Override
+		protected int glowKind() {
+			return BodyGlow.FIRE;
+		}
+
+		@Override
 		protected Emitter createEmitter() {
 			Emitter emitter = emitter();
 			emitter.pour( FlameParticle.FACTORY, 0.06f );
@@ -165,6 +185,11 @@ public abstract class ElementalSprite extends MobSprite {
 		}
 		
 		@Override
+		protected int glowKind() {
+			return BodyGlow.ELMO;
+		}
+
+		@Override
 		protected Emitter createEmitter() {
 			Emitter emitter = emitter();
 			emitter.pour( ElmoParticle.FACTORY, 0.06f );
@@ -188,6 +213,11 @@ public abstract class ElementalSprite extends MobSprite {
 			return 28;
 		}
 		
+		@Override
+		protected int glowKind() {
+			return BodyGlow.FROST;
+		}
+
 		@Override
 		protected Emitter createEmitter() {
 			Emitter emitter = emitter();
@@ -219,6 +249,11 @@ public abstract class ElementalSprite extends MobSprite {
 		}
 		
 		@Override
+		protected int glowKind() {
+			return BodyGlow.SHOCK;
+		}
+
+		@Override
 		protected Emitter createEmitter() {
 			Emitter emitter = emitter();
 			emitter.pour( SparkParticle.STATIC, 0.06f );
@@ -245,6 +280,11 @@ public abstract class ElementalSprite extends MobSprite {
 			return 56;
 		}
 		
+		@Override
+		protected int glowKind() {
+			return BodyGlow.CHAOS;
+		}
+
 		@Override
 		protected Emitter createEmitter() {
 			Emitter emitter = emitter();

@@ -30,6 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.arcane.ItemFx;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 
 public class ScrollOfDread extends ExoticScroll {
@@ -43,6 +44,7 @@ public class ScrollOfDread extends ExoticScroll {
 
 		detach(curUser.belongings.backpack);
 		new Flare( 5, 32 ).color( 0xFF0000, true ).show( curUser.sprite, 2f );
+		ItemFx.shock( curUser, 0xA01030, true );
 		SpatialSound.play( Assets.Sounds.READ, curUser );
 
 		for (Mob mob : Dungeon.level.mobs.toArray( new Mob[0] )) {

@@ -21,6 +21,9 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.FireBlobFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.FireStyle;
+import com.watabou.noosa.particles.Emitter;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -53,6 +56,8 @@ import com.watabou.utils.Random;
 public class SacrificialFire extends Blob {
 
 	BlobEmitter curEmitter;
+	//what it pours: its blue flames, with a fire's glow and light (effects/fx/fire)
+	private Emitter.Factory curFactory;
 
 	{
 		//acts after mobs, so they can get marked as they move
@@ -108,17 +113,18 @@ public class SacrificialFire extends Blob {
 
 		//a bit brittle, assumes only one tile of sacrificial fire can exist per floor
 		int max = 6 + Dungeon.depth * 4;
-		curEmitter.pour( SacrificialParticle.FACTORY, 0.01f + ((volume / (float)max) * 0.09f) );
+		curEmitter.pour( curFactory != null ? curFactory : SacrificialParticle.FACTORY, 0.01f + ((volume / (float)max) * 0.09f) );
 	}
 
 	@Override
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
 		curEmitter = emitter;
+		curFactory = FireBlobFx.withField( this, emitter, FireStyle.SACRIFICIAL, SacrificialParticle.FACTORY );
 
 		//a bit brittle, assumes only one tile of sacrificial fire can exist per floor
 		int max = 6 + Dungeon.depth * 4;
-		curEmitter.pour( SacrificialParticle.FACTORY, 0.01f + ((volume / (float)max) * 0.09f) );
+		curEmitter.pour( curFactory != null ? curFactory : SacrificialParticle.FACTORY, 0.01f + ((volume / (float)max) * 0.09f) );
 	}
 
 	@Override

@@ -23,6 +23,7 @@ package xyz.gabriwar.warpedpixeldungeon.items.potions.exotic;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.arcane.ItemFx;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfRemoveCurse;
@@ -44,6 +45,7 @@ public class PotionOfHoly extends ExoticPotion {
 		identify();
 
 		GameScene.flash(0x80FFFFFF);
+		ItemFx.bloom( hero );
 
 		//clearing the `cursed` flag by hand is not the same as lifting a curse: curse enchants
 		//and glyphs survived it, cursed wands kept their sabotaged level, cursedKnown stayed

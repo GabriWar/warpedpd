@@ -22,11 +22,20 @@
 package xyz.gabriwar.warpedpixeldungeon.effects;
 
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import com.watabou.noosa.Game;
 import com.watabou.noosa.Gizmo;
 
+//a creature darkened (doom, corruption, a challenge's spectator): its sprite dimmed, breathing
+//between LOW and HIGH brightness at HZ, and tinted TINT of its dark (CharSprite.darkTint: doom's
+//wine, corruption's violet, else a shadow's) - multiplied in, so its own shading stays. Not while a
+//blow's flash or the ice holds its colour. The wisps rising off it are its state's look (DARKENED)
 public class DarkBlock extends Gizmo{
 
+	/** The brightness it breathes between, how fast, and how much of its dark tints it. */
+	public static final float LOW = 0.40f, HIGH = 0.55f, HZ = 0.5f, TINT = 0.4f;
+
 	private CharSprite target;
+	private float time;
 
 	public DarkBlock( CharSprite target ) {
 		super();
@@ -34,11 +43,23 @@ public class DarkBlock extends Gizmo{
 		this.target = target;
 	}
 
+	/** Its brightness `t` s in. */
+	public static float brightness( float t ){
+		return (LOW + HIGH) / 2f - (HIGH - LOW) / 2f * (float)Math.cos( 2 * Math.PI * HZ * t );
+	}
+
 	@Override
 	public void update() {
 		super.update();
 
-		target.brightness(0.4f);
+		time += Game.elapsed;
+		if (!target.tintFree( this )) return;
+		float b = brightness( time );
+		int c = target.darkTint();
+		target.rm = b * (1f - TINT + TINT * ((c >> 16) & 0xFF) / 255f);
+		target.gm = b * (1f - TINT + TINT * ((c >> 8) & 0xFF) / 255f);
+		target.bm = b * (1f - TINT + TINT * (c & 0xFF) / 255f);
+		target.ra = target.ga = target.ba = 0;
 
 	}
 

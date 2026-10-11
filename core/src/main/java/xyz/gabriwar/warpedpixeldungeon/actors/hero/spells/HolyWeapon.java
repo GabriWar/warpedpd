@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.spells;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HolyFx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -58,6 +59,7 @@ public class HolyWeapon extends ClericSpell {
 		SpatialSound.play(Assets.Sounds.READ, hero);
 
 		hero.sprite.operate(hero.pos);
+		HolyFx.glintSweep(hero.sprite);
 		if (hero.belongings.weapon() != null) Enchanting.show(hero, hero.belongings.weapon());
 
 		onSpellCast(tome, hero);

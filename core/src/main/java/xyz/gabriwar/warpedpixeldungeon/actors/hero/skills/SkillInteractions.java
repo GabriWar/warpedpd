@@ -10,10 +10,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.*;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.effects.*;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTeleportation;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 
 /** Explicit, bounded interactions shared by active skills. Secondary damage cannot recurse. */
@@ -173,7 +175,7 @@ public final class SkillInteractions {
             && new Ballistica(from,to,Ballistica.STOP_TARGET|Ballistica.STOP_SOLID).collisionPos==to;}
     public static void flare(int cell,int color){
         if(!valid(cell)||Dungeon.hero==null||Dungeon.hero.sprite==null||Dungeon.hero.sprite.parent==null||!Dungeon.level.heroFOV[cell])return;
-        new Flare(3,4).color(color,true).show(Dungeon.hero.sprite.parent,DungeonTilemap.tileCenterToWorld(cell),.2f);
+        PixelFlare.show(SkillVfx.cx(cell),SkillVfx.cy(cell),color,PixelFlare.S,.2f);
     }
     private static void hurt(Char victim,int damage){
         if(victim==null||!victim.isAlive()||damage<=0)return;
@@ -367,7 +369,7 @@ public final class SkillInteractions {
             if(carrier!=null&&hero!=null&&hero.heroSkills!=null)hero.heroSkills.onSkillMarkEnded(carrier,this);
         }
         @Override public void fx(boolean on){
-            if(visual!=null){visual.killAndErase();visual=null;}
+            if(visual!=null){Fx.dispose(visual);visual=null;}
             if(on&&target!=null&&target.sprite!=null&&target.sprite.parent!=null){
                 visual=new SkillMarkFX(this);target.sprite.parent.add(visual);
             }

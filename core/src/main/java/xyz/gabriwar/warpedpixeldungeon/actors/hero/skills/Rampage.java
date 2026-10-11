@@ -27,7 +27,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -113,7 +113,7 @@ public class Rampage extends ActiveSkill3 {
 			} );
 		}
 		SpatialSound.play( Assets.Sounds.HIT_SLASH, hero, 1f, 0.8f );
-		Camera.main.shake( 1, 0.15f );
+		Fx.shake( 1, 0.15f );
 	}
 
 	@Override

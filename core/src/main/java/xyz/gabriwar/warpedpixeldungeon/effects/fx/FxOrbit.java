@@ -39,7 +39,7 @@ import com.watabou.utils.RectF;
  * between the sprites behind and in front of its own), trailing a little behind it as it moves
  * (its offset -velocity x 0.05 s, easing back at 12 a second), all computed from the sprite each
  * frame - so a window's slide carries it too - and nothing allocated once made. An orbit is one
- * picture drawn once for every mote and trail.
+ * picture drawn once for every mote and trail, in one colour or each mote in one of its own (tints).
  *
  *     FxOrbit.attach( sprite, FxOrbit.Slot.STANCE ).motes( 4, FxFrames.MOTE_2, 0xFFD060, true )
  *         .trail( 1 ).breath( 0.8f, 1f, 0.5f );
@@ -155,6 +155,10 @@ public final class FxOrbit {
 		private float boost, flareFor, flareLeft;
 		private int extra;
 		private float speed = 2.4f, phase, age;
+		//each mote's own colour, round these in turn (rgb, 0..1); none: motes()'s for all
+		private final float[] tints = new float[MOST * 3];
+		private float baseR = 1, baseG = 1, baseB = 1;
+		private int tintCount;
 		volatile boolean detached;
 		//its share of speed and brightness, by how many orbits lie inside it
 		private float pace = 1, dim = 1;
@@ -176,7 +180,24 @@ public final class FxOrbit {
 			image.frame( uv );
 			image.origin.set( frame[2] / 2f, frame[3] / 2f );
 			image.resetColor();
-			image.hardlight( ((color >> 16) & 0xFF) / 255f, ((color >> 8) & 0xFF) / 255f, (color & 0xFF) / 255f );
+			baseR = ((color >> 16) & 0xFF) / 255f;
+			baseG = ((color >> 8) & 0xFF) / 255f;
+			baseB = (color & 0xFF) / 255f;
+			image.hardlight( baseR, baseG, baseB );
+			tintCount = 0;
+			return this;
+		}
+
+		/** Each mote a colour of its own, the first n of `colors` in turn (mote i the colour i % n,
+		 *  at most MOST of them): the orbits of several holders sharing one slot. None, or the next
+		 *  motes(): every mote in motes()'s colour. */
+		public synchronized Ring tints( int[] colors, int n ){
+			tintCount = Math.max( 0, Math.min( MOST, Math.min( n, colors.length ) ) );
+			for (int i = 0; i < tintCount; i++){
+				tints[3 * i] = ((colors[i] >> 16) & 0xFF) / 255f;
+				tints[3 * i + 1] = ((colors[i] >> 8) & 0xFF) / 255f;
+				tints[3 * i + 2] = (colors[i] & 0xFF) / 255f;
+			}
 			return this;
 		}
 
@@ -265,6 +286,12 @@ public final class FxOrbit {
 			image.camera = sprite.camera();
 			if (light) Blending.setLightMode();
 			for (int i = 0; i < shown; i++){
+				if (tintCount > 0){
+					int c = 3 * (i % tintCount);
+					image.hardlight( tints[c], tints[c + 1], tints[c + 2] );
+				} else {
+					image.hardlight( baseR, baseG, baseB );
+				}
 				for (int k = trail; k >= 0; k--){
 					float t = phase + (float)(2 * Math.PI * i / shown) - k * 0.35f;
 					float s = (float)Math.sin( t );

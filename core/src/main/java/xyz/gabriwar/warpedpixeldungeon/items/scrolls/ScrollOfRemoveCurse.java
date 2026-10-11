@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.TormentedSpirit;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.arcane.ItemFx;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.EquipableItem;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
@@ -64,6 +65,7 @@ public class ScrollOfRemoveCurse extends InventoryScroll {
 			readAnimation();
 
 			new Flare( 6, 32 ).show( curUser.sprite, 2f );
+			ItemFx.uncurse( curUser );
 
 			if (curUser.buff(Degrade.class) != null) {
 				Degrade.detach(curUser, Degrade.class);
@@ -99,6 +101,7 @@ public class ScrollOfRemoveCurse extends InventoryScroll {
 	@Override
 	protected void onItemSelected(Item item) {
 		new Flare( 6, 32 ).show( curUser.sprite, 2f );
+		ItemFx.uncurse( curUser );
 
 		boolean procced = uncurse( curUser, item );
 

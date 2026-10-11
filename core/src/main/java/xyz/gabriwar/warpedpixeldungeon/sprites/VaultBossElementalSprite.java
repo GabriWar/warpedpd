@@ -21,6 +21,12 @@
 
 package xyz.gabriwar.warpedpixeldungeon.sprites;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFactories;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.BodyGlow;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import com.watabou.noosa.Game;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -43,6 +49,11 @@ import com.watabou.utils.Random;
 public class VaultBossElementalSprite extends MobSprite {
 
 	private Emitter particles;
+	//its core's glow (effects/fx/fire/BodyGlow), and whether it was zapping last frame
+	private BodyGlow glow;
+	private boolean zapping;
+	/** A zap's start pours its core three times as thick for this long, s. */
+	private static final float SURGE = 0.2f;
 
 	private Emitter[] doorLockVfx;
 
@@ -113,6 +124,10 @@ public class VaultBossElementalSprite extends MobSprite {
 		if (particles != null){
 			particles.killAndErase();
 			particles = createEmitter();
+		}
+		if (glow != null){
+			glow.out();
+			glow = new BodyGlow( glowKind() );
 		}
 		if (doorLockVfx != null){
 			doorLockVfx[0].killAndErase();
@@ -222,6 +237,9 @@ public class VaultBossElementalSprite extends MobSprite {
 		if (particles == null) {
 			particles = createEmitter();
 		}
+		if (glow == null) {
+			glow = new BodyGlow( glowKind() );
+		}
 		if (doorLockVfx == null){
 			doorLockVfx = createDoorEmitters();
 		}
@@ -234,6 +252,41 @@ public class VaultBossElementalSprite extends MobSprite {
 		if (particles != null){
 			particles.visible = visible;
 		}
+		if (glow != null){
+			glow.update( this, visible && particles != null && particles.on, Game.elapsed );
+		}
+		//its zap starting (as its sprite plays it, a co-op guest's too): its core surges
+		boolean z = curAnim == zap && zap != null;
+		if (z && !zapping && visible) surge();
+		zapping = z;
+	}
+
+	//its core's glow by its form
+	private int glowKind(){
+		switch (form){
+			case FROST: return BodyGlow.FROST;
+			case SHOCK: return BodyGlow.SHOCK;
+			default:    return BodyGlow.FIRE;
+		}
+	}
+
+	//its core poured twice again as thick for SURGE s, from the effects' own emitter (no draw of
+	//the game's random numbers): its flames, or for the other forms the kit's frost glints or sparks
+	private void surge(){
+		FxEmitter e = GameScene.lightEmitter();
+		if (e == null) return;
+		e.pos( this, 8, 8, 16, 16 );
+		e.fillTarget = false;
+		switch (form){
+			case FROST:
+				e.start( FxFactories.glint( Element.FROST.glint ), 0.015f, Math.round( SURGE / 0.015f ) );
+				break;
+			case SHOCK:
+				e.start( FxFactories.spark( Element.ELECTRIC ), 0.015f, Math.round( SURGE / 0.015f ) );
+				break;
+			default:
+				e.start( FlameParticle.FACTORY, 0.015f, Math.round( SURGE / 0.015f ) );
+		}
 	}
 
 	@Override
@@ -241,6 +294,9 @@ public class VaultBossElementalSprite extends MobSprite {
 		super.die();
 		if (particles != null){
 			particles.on = false;
+		}
+		if (glow != null){
+			glow.out();
 		}
 		if (doorLockVfx != null){
 			doorLockVfx[0].on = false;

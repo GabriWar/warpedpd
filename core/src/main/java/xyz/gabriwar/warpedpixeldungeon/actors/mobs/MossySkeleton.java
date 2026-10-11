@@ -133,7 +133,8 @@ public class MossySkeleton extends Mob {
 
 	@Override
 	protected void dropExtraLoot() {
-		if (!Dungeon.LimitedDrops.PRISON_KEY.dropped() && Dungeon.depth < Dungeon.POSTGAME_DEPTH) {
+		//the first one killed, before the postgame or after
+		if (!Dungeon.LimitedDrops.PRISON_KEY.dropped()) {
 			Dungeon.LimitedDrops.PRISON_KEY.drop();
 			trackedDrop(new PrisonKey(), 0);
 		}

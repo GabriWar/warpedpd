@@ -153,7 +153,7 @@ public class Fleche extends Skill {
 			}
 			SpatialSound.play( Assets.Sounds.MISS, hero, 1f, 0.8f );
 			//the run itself: a thin white streak ahead of her, a puff where her feet land
-			StreakFX.show( hero.pos, landing, 0xFFFFFF, 0.5f, 0.3f );
+			StreakFX.dash( hero.pos, landing, 0xFFFFFF, 0.5f, 0.3f, true );
 			ScrollOfTeleportation.appear( hero, landing );
 			CellEmitter.bottom( landing ).burst( Speck.factory( Speck.DUST ), 5 );
 			Dungeon.observe();
@@ -171,7 +171,7 @@ public class Fleche extends Skill {
 
 		//hit and run: back to the tile the run began from, if it is still free
 		if (hero.pos != start && Actor.findChar( start ) == null){
-			StreakFX.show( hero.pos, start, 0xFFFFFF, 0.4f, 0.3f );
+			StreakFX.dash( hero.pos, start, 0xFFFFFF, 0.4f, 0.3f, true );
 			ScrollOfTeleportation.appear( hero, start );
 			CellEmitter.bottom( start ).burst( Speck.factory( Speck.DUST ), 4 );
 			Dungeon.observe();

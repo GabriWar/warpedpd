@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.StormStrikes;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.LightningFlash;
 import xyz.gabriwar.warpedpixeldungeon.effects.WeatherOverlay;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.TownChurchLevel;
@@ -861,6 +862,8 @@ public class WeatherSoundsTest {
 			//cloud deck it draws two cells up, not from the top of the view through the walls
 			StormStrikes.show( l, seen, true );
 			o.update();
+			//its flash and glow as it strikes, its leader come down (Lightning: the next frame)
+			o.update();
 			assertEquals( 1, count( o, Lightning.class ) );
 			float ground = DungeonTilemap.tileCenterToWorld( seen ).y;
 			float top = top( o );
@@ -951,15 +954,17 @@ public class WeatherSoundsTest {
 			//the sky's bolt in sight, on to one beside it and from him to one out of sight (drawn,
 			//but no sparks where it lands unseen), from there to another (unseen at both ends); over
 			//the water a step seen and one not
+			FxBudget.reset();
 			StormStrikes.show( l, cell, false,
 					new int[]{ cell, cell + 1, cell + 1, hidden, hidden, hidden + 1 },
 					new int[]{ cell, cell - 1, hidden, hidden + 1 } );
 			o.update();
 			assertEquals( "one bolt, its arcs in it", 1, count( o, Lightning.class ) );
 			assertEquals( "the channel and the three arcs seen", 4, arcs( o ) );
+			//its glow and flash as it strikes, its leader come down (Lightning: the next frame)
+			o.update();
 			assertEquals( 1, glows( o ) );
 			assertEquals( "the arcs flash nothing of their own", 1, count( o, LightningFlash.class ) );
-			o.update();
 			assertEquals( "three where it ran on to him, one on the water", 4, sparks( o ) );
 
 			//a storm cloud's out of sight: unseen and unheard but for its arc in sight
@@ -1008,6 +1013,8 @@ public class WeatherSoundsTest {
 			StormStrikes.show( l, cell, false, new int[0], lake );
 			o.update();
 			assertEquals( 3 + 2 * 48, arcs( o ) );
+			//the last one strikes (its glow) the next frame
+			o.update();
 
 			//once done, the bolts and their glows are destroyed: their images let go of their
 			//vertex buffers, which killing and erasing them kept till the scene changed

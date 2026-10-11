@@ -360,16 +360,19 @@ public class LightningTest {
 			assertEquals( 3 * legs + 2 * twigs + (strikes ? 2 : 0), arc.membersView().size() );
 			for (Gizmo g : arc.membersView()) assertTrue( g instanceof Image );
 			if (strikes){
-				//on where it strikes, as wide as the storm's (30 px) from 60 px, 15 px at least
+				//on where it strikes (on whole pixels, its middle within half a pixel): the light
+				//sheet's painted 31 px glow at its own size, its 47 px one from 60 px
 				Image glow = arc.glow;
 				PointF to = down( lengths[i] );
-				assertEquals( to.x, glow.x + glow.origin.x, 1e-3f );
-				assertEquals( to.y, glow.y + glow.origin.y, 1e-3f );
-				float wide = glow.width * glow.scale.x;
-				assertEquals( lengths[i] >= 60f ? 30f : Math.max( 15f, 30f * lengths[i] / 60f ), wide, 1e-3f );
-				//and a small one where it sets off
-				assertEquals( TOP.x, arc.source.x + arc.source.origin.x, 1e-3f );
-				assertEquals( TOP.y, arc.source.y + arc.source.origin.y, 1e-3f );
+				assertEquals( to.x, glow.x + glow.origin.x, 0.5f );
+				assertEquals( to.y, glow.y + glow.origin.y, 0.5f );
+				assertEquals( Math.round( glow.x ), glow.x, 0f );
+				assertEquals( Math.round( glow.y ), glow.y, 0f );
+				assertEquals( 1f, glow.scale.x, 0f );
+				assertEquals( lengths[i] >= 60f ? 47f : 31f, glow.width, 1e-3f );
+				//and a small one, 11 px, where it sets off
+				assertEquals( TOP.x, arc.source.x + arc.source.origin.x, 0.5f );
+				assertEquals( TOP.y, arc.source.y + arc.source.origin.y, 0.5f );
 				assertEquals( 11f, arc.source.width * arc.source.scale.x, 1e-3f );
 				assertTrue( arc.source.am < arc.glow.am );
 			}
@@ -578,6 +581,109 @@ public class LightningTest {
 		assertEquals( 0, arc.length );
 		assertNull( arc.parent );
 		for (Gizmo g : images) assertNull( "every line, halo and glow destroyed", g.parent );
+	}
+
+	// ------------------------------------------------------------ pass 2: its colour, its re-strike, its twigs, its numbers
+
+	@Test
+	public void itsCoresGoWhiteCoolerInTheDipWhiteAgainAndCoolAsItFades(){
+		assertEquals( 0xFFFFFF, Lightning.coreColor( 0f ) );
+		assertEquals( 0xE8F0FF, Lightning.coreColor( Lightning.REFORM ) );
+		assertEquals( 0xFFFFFF, Lightning.coreColor( 0.14f ) );
+		assertEquals( 0xFFFFFF, Lightning.coreColor( 0.2f ) );
+		assertEquals( 0x9CC0FF, Lightning.coreColor( 0.3f ) );
+		//halfway through its cooling, halfway between
+		int mid = Lightning.coreColor( 0.255f );
+		assertTrue( (mid & 0xFF) == 0xFF && ((mid >> 16) & 0xFF) < 0xF0 && ((mid >> 16) & 0xFF) > 0xA0 );
+		assertEquals( 0x7FA6FF, Lightning.haloColor( 0f ) );
+		assertEquals( 0x7FA6FF, Lightning.haloColor( 0.2f ) );
+		assertEquals( 0x6A80FF, Lightning.haloColor( 0.3f ) );
+	}
+
+	@Test
+	public void aReStrikeHoldsItsTrunkAndThrowsTheRestAnew(){
+		stubGl();
+		for (int t = 0; t < 50; t++){
+			Lightning.Arc arc = new Lightning.Arc( TOP, down( 160f ) );
+			PointF[] was = arc.path.clone();
+			arc.restrike();
+			int n = arc.path.length - 1;
+			boolean moved = false;
+			for (int i = 1; i < n; i++){
+				if (i / (float)n <= 0.6f) assertSame( "the trunk holds", was[i], arc.path[i] );
+				else moved |= arc.path[i] != was[i];
+			}
+			assertTrue( "the rest thrown anew", moved );
+			assertSame( TOP, arc.path[0] );
+			assertSame( was[n], arc.path[n] );
+		}
+	}
+
+	@Test
+	public void itsTwigsGoOutBeforeItFades(){
+		stubGl();
+		for (int t = 0; t < 20; t++){
+			Lightning l = new Lightning( TOP, new PointF( 140f, 70f ), null );
+			Lightning.Arc arc = (Lightning.Arc) l.membersView().get( 0 );
+			Group stage = new Group();
+			stage.add( l );
+			Game.elapsed = 0.01f;
+			java.util.List<Image> twigs = new ArrayList<>();
+			int legs = arc.legs;
+			for (int i = 3 * legs; i < 3 * legs + 2 * arc.twigs.length; i++) twigs.add( (Image) arc.membersView().get( i ) );
+			for (int f = 0; f < 17; f++) stage.update();
+			boolean shown = false;
+			for (Image i : twigs) shown |= i.visible;
+			assertTrue( "shown with the strike", shown );
+			//0.185 s: out (back only for a moment after a second re-form at 0.2)
+			stage.update();
+			stage.update();
+			for (Image i : twigs) assertFalse( i.visible );
+		}
+	}
+
+	@Test
+	public void onceItRunsItsRandomnessIsTheEffectsOwn(){
+		stubGl();
+		//put together it draws the game's Random as it always did; from its first frame on, none
+		Lightning l = new Lightning( TOP, down( 160f ), null ).major();
+		Group stage = new Group();
+		stage.add( l );
+		Random.pushGenerator( 31337 );
+		Game.elapsed = 1 / 60f;
+		for (int f = 0; f < 25; f++) stage.update();
+		float next = Random.Float();
+		Random.popGenerator();
+		Random.pushGenerator( 31337 );
+		assertEquals( Random.Float(), next, 0f );
+		Random.popGenerator();
+		//and one made render-side draws none even to be put together
+		Random.pushGenerator( 4 );
+		Lightning v = Lightning.visual( Arrays.asList( Lightning.Arc.visual( TOP, down( 160f ) ) ), null );
+		assertNotNull( v );
+		next = Random.Float();
+		Random.popGenerator();
+		Random.pushGenerator( 4 );
+		assertEquals( Random.Float(), next, 0f );
+		Random.popGenerator();
+	}
+
+	@Test
+	public void itsDrawsStayWithinTheBudget(){
+		//a long arc (160 px, eight legs, forked, three twigs): its cores, halos, twigs and glows,
+		//about the 38 draws an arc always cost
+		stubGl();
+		int most = 0;
+		for (int t = 0; t < 100; t++){
+			Lightning l = new Lightning( TOP, down( 160f ), null );
+			Group stage = new Group();
+			stage.add( l );
+			Game.elapsed = 0.05f;
+			stage.update();
+			Lightning.Arc arc = (Lightning.Arc) l.membersView().get( 0 );
+			most = Math.max( most, arc.membersView().size() );
+		}
+		assertTrue( "draws " + most, most <= 38 );
 	}
 
 	// ------------------------------------------------------------ where it strikes in sight

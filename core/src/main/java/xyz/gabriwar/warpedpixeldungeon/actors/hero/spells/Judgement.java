@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.spells;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HolyFx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -65,7 +66,9 @@ public class Judgement extends ClericSpell {
 		hero.sprite.attack(hero.pos, new Callback() {
 			@Override
 			public void call() {
-				GameScene.flash( 0x80FFFFFF );
+				//a wide bloom round the priest; the soft flash (gated) in its colour
+				GameScene.flash( 0x80FFF4D0 );
+				HolyFx.radiance( hero.sprite );
 				SpatialSound.play(Assets.Sounds.BLAST, hero);
 
 				int damageBase = Math.round((5 + 5*hero.pointsInTalent(Talent.JUDGEMENT)) * Math.max(1f, hero.lvl/20f));

@@ -38,7 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ZotPhaseSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
 
@@ -124,7 +124,7 @@ public class ZotPhase extends Mob implements Callback {
 				enemy.sprite.flash();
 
 				if (enemy == Dungeon.hero) {
-					Camera.main.shake( 2, 0.3f );
+					Fx.shake( 2, 0.3f );
 				}
 
 				if (enemy == Dungeon.hero && !enemy.isAlive()) {

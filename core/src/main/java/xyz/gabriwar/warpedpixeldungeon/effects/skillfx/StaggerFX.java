@@ -29,6 +29,7 @@ import com.watabou.noosa.tweeners.Delayer;
 import com.watabou.utils.Callback;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
 
 /**
  * Visuals that unfold instead of popping: a beat of real time between two puffs, a shockwave
@@ -55,11 +56,14 @@ public final class StaggerFX {
 			return;
 		}
 		final int depth = Dungeon.depth, branch = Dungeon.branch;
+		final long serial = SkillVfx.serial();
 		layer.add( new Delayer( delay ){
 			@Override
 			protected void onComplete(){
-				//a floor change while the beat was waiting: the show is over
-				if (Dungeon.level != null && depth == Dungeon.depth && branch == Dungeon.branch) fx.call();
+				//a floor change, or the overworld window sliding, while the beat was waiting: the
+				//cells it names are not where they were, and the show is over
+				if (Dungeon.level != null && depth == Dungeon.depth && branch == Dungeon.branch
+						&& FxTimeline.fresh( serial )) fx.call();
 			}
 		} );
 	}

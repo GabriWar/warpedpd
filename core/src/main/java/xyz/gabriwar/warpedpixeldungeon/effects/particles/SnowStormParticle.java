@@ -26,11 +26,17 @@ package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
 import com.watabou.noosa.Game;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.utils.Random;
 
 import xyz.gabriwar.warpedpixeldungeon.effects.WeatherSprites;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.WaterFX;
 
-/** The snow of a snowstorm blob: real flakes, wobbling down through the cloud. */
+/**
+ * The snow of a snowstorm blob: real flakes, wobbling down through the cloud, on whole pixels;
+ * a falling one that ends over water leaves the faintest ring (S, 0.3, dressing). The whirlwind's
+ * circle where they rose, spiralling out and lifting. Its randomness is the effects' own.
+ */
 public class SnowStormParticle extends WeatherParticle {
 
 	public static final Emitter.Factory FACTORY = new Emitter.Factory() {
@@ -51,10 +57,10 @@ public class SnowStormParticle extends WeatherParticle {
 	private float wobblePhase;
 	private boolean whirl;
 	private float cx, cy, radius, theta, spin;
+	private float px, py, vy;
 
 	public SnowStormParticle() {
 		super();
-		speed.set( 0, Random.Float( 5, 8 ) );
 		lifespan = 2f;
 		color( 0xFFFFFF );
 	}
@@ -63,41 +69,58 @@ public class SnowStormParticle extends WeatherParticle {
 		reset( x, y );
 		whirl = true;
 		cx = x; cy = y;
-		this.x = x; this.y = y;
-		radius = Random.Float( 1f, 3f );
-		theta = Random.Float( (float)(Math.PI * 2) );
-		spin = Random.Float( 4f, 7f ) * (Random.Int( 2 ) == 0 ? -1 : 1);
-		speed.set( 0, 0 );
-		left = lifespan = Random.Float( 1.2f, 2f );
+		px = x; py = y;
+		radius = FxRandom.Float( 1f, 3f );
+		theta = FxRandom.angle();
+		spin = FxRandom.Float( 4f, 7f ) * FxRandom.sign();
+		left = lifespan = FxRandom.Float( 1.2f, 2f );
+		place();
 	}
 
 	public void reset( float x, float y ) {
 		revive();
 		whirl = false;
-		speed.set( 0, Random.Float( 5, 8 ) );
-		this.x = x;
-		this.y = y - speed.y * lifespan;
-		float r = Random.Float();
+		lifespan = 2f;
+		speed.set( 0, 0 );
+		vy = FxRandom.Float( 5, 8 );
+		px = x;
+		py = y - vy * lifespan;
+		float r = FxRandom.Float();
 		frame( r < 0.45f ? WeatherSprites.FLAKE_1 : (r < 0.8f ? WeatherSprites.FLAKE_2 : WeatherSprites.FLAKE_3) );
-		wobblePhase = Random.Float( (float)(Math.PI * 2) );
+		wobblePhase = FxRandom.angle();
 		left = lifespan;
+		place();
+	}
+
+	private void place() {
+		x = Math.round( px - origin.x );
+		y = Math.round( py - origin.y );
 	}
 
 	@Override
 	public void update() {
 		super.update();
+		if (!alive) {
+			if (!whirl && WaterFX.onWater( px, py )) {
+				WaterFX.ring( px, py, WaterFX.S, WaterFX.liquid().foam, SnowParticle.RING_ALPHA, FxBudget.P3 );
+			}
+			return;
+		}
 		float p = left / lifespan;
+		float dt = Game.elapsed;
 		if (whirl) {
 			//round and round, wider each turn, lifting a little
-			theta += spin * Game.elapsed;
-			radius += 5f * Game.elapsed;
-			cy -= 6f * Game.elapsed;
-			x = cx + (float)Math.cos( theta ) * radius;
-			y = cy + (float)Math.sin( theta ) * radius * 0.6f;
+			theta += spin * dt;
+			radius += 5f * dt;
+			cy -= 6f * dt;
+			px = cx + (float)Math.cos( theta ) * radius;
+			py = cy + (float)Math.sin( theta ) * radius * 0.6f;
 		} else {
-			wobblePhase += Game.elapsed * 2.5f;
-			speed.x = (float)Math.sin( wobblePhase ) * 3f;
+			wobblePhase += dt * 2.5f;
+			px += (float)Math.sin( wobblePhase ) * 3f * dt;
+			py += vy * dt;
 		}
+		place();
 		am = (p < 0.5f ? p : 1 - p) * 1.5f;
 	}
 }

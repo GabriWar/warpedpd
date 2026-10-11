@@ -21,6 +21,16 @@
 
 package xyz.gabriwar.warpedpixeldungeon.levels;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFactories;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxLight;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.PlaceLight;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.spider.SpiderNestEntranceRoom;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -51,7 +61,6 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
-import com.watabou.noosa.Halo;
 import com.watabou.noosa.audio.Music;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Callback;
@@ -258,30 +267,49 @@ public class PrisonLevel extends RegularLevel {
 		}
 	}
 	
+	/**
+	 * A torch on a wall: its flames (FlameParticle), a warm glow round them and a pool of light on
+	 * the floor under the wall's face, flickering as a torch does and thrown down any water below
+	 * (effects/fx/fire/PlaceLight: the nearest few torches hold lights), and now and then an ember
+	 * dropping off it.
+	 */
 	public static class Torch extends Emitter {
-		
+
+		//the torch's light and its embers' colours
+		private static final int LIGHT = 0xFFB060;
+		private static final float EMBER_MIN = 3f, EMBER_MAX = 6f;
+		//its light's level: the glow near its cap (0.5), the pool 0.32, at night
+		private static final float LEVEL = 0.9f;
+
 		private int pos;
 		//the wall it burns on: a decorated one, or (the sewers' boss) a plain one by the exit
 		private final int wall;
-		
+		private final float fx, fy;
+		private final PlaceLight light;
+		private float emberIn;
+
 		public Torch( int pos ) {
 			super();
-			
+
 			this.pos = pos;
 			wall = Dungeon.level != null && pos < Dungeon.level.length() ? Dungeon.level.map[pos] : -1;
-			
+
 			PointF p = DungeonTilemap.tileCenterToWorld( pos );
 			pos( p.x - 1, p.y + 2, 2, 0 );
-			
+			fx = p.x;
+			fy = p.y + 2;
+
 			pour( FlameParticle.FACTORY, 0.15f );
-			
-			add( new Halo( 12, 0xFFFFCC, 0.4f ).point( p.x, p.y + 1 ) );
+
+			light = new PlaceLight( pos, p.x, p.y, 31, p.x, p.y + DungeonTilemap.SIZE / 2f + 3, 15, LIGHT, LEVEL, FxLight.TORCH );
+			emberIn = FxRandom.Float( EMBER_MIN, EMBER_MAX );
 		}
-		
+
 		@Override
 		public void update() {
 			//its wall broken (a pick, a bomb), its fire goes with it
 			if (wall != -1 && Dungeon.level.map[pos] != wall){
+				light.out();
 				killAndErase();
 				//its images let go of their vertex buffers now, not when the scene changes
 				destroy();
@@ -290,7 +318,23 @@ public class PrisonLevel extends RegularLevel {
 
 			if (visible = (pos < Dungeon.level.heroFOV.length && Dungeon.level.heroFOV[pos])) {
 				super.update();
+				light.update();
+				if (!isFrozen() && (emberIn -= Game.elapsed) <= 0){
+					emberIn = FxRandom.Float( EMBER_MIN, EMBER_MAX );
+					ember();
+				}
 			}
+		}
+
+		//an ember dropping 8-12 px off the torch and going out
+		private void ember(){
+			FxEmitter glow = Fx.glowAir();
+			if (glow == null || !FxBudget.keep( FxBudget.P3, fx, fy )) return;
+			((FxParticle) glow.recycle( FxParticle.class )).reset( fx + FxRandom.Float( -1f, 1f ), fy )
+					.look( FxFrames.EMBER_1 ).ramp( Element.FIRE.ember, true ).life( 0.8f ).alpha( 1f, 0, 0.3f )
+					.vel( FxRandom.Float( -3f, 3f ), 6f ).gravity( 40f )
+					.ground( fy + FxRandom.Float( 8f, 12f ), FxParticle.DIE, 0 ).fate( FxFactories.EMBER_END )
+					.snap().priority( FxBudget.P3 );
 		}
 	}
 }

@@ -26,8 +26,12 @@ package xyz.gabriwar.warpedpixeldungeon.effects;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRecipes;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.WaterFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.water.FishBrain;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.CaveMoteParticle;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.SplashParticle;
 import xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientPlayer;
 import xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientSounds;
 import xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientSound;
@@ -38,7 +42,6 @@ import com.watabou.noosa.Game;
 import com.watabou.noosa.TextureFilm;
 import com.watabou.noosa.Visual;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.utils.PointF;
 
 /**
  * The dungeon's small life (levels/ambience/DungeonLife): a frog on the sewers' bank, a roach
@@ -386,11 +389,10 @@ public abstract class DungeonCritterSprite extends CritterSprite {
 			if (t >= 1.1f) vanish();
 		}
 
-		/** Into the water at (x, y): a splash, a ring, the sound of it. */
+		/** Into the water at (x, y): a splash (its crown, droplets and ring, pale on the murky
+		 *  water), the sound of it. */
 		protected void plunge( float x, float y ){
-			int cell = cellAt( x, y - 1f );
-			if (cell >= 0) GameScene.ripple( cell );
-			Splash.at( new PointF( x, y - 2f ), SPLASH_COLOUR, 5 );
+			WaterFX.splash( x, y - 1f, WaterFX.M, SPLASH_COLOUR );
 			voice( AmbientSound.SPLASH, 0.5f, rf( 1.15f, 1.35f ) );
 		}
 	}
@@ -807,23 +809,24 @@ public abstract class DungeonCritterSprite extends CritterSprite {
 			if (diving) slipIn( ax, ay );
 		}
 
-		/** Under the surface at (x, y): a ring on the water, or the lava taking it in a burst of sparks. */
+		/** Under the surface at (x, y): a small ring and three droplets on the water, or the lava
+		 *  taking it in a ring of sparks and six embers. */
 		protected void slipIn( float x, float y ){
 			if (look == Look.SALAMANDER){
-				Splash.at( new PointF( x, y - 2f ), 0xFF7A30, 3 );
-				Emitter e = emitter();
-				if (e != null){
-					e.pos( x - 3f, y - 5f, 6f, 4f );
-					e.burst( CaveMoteParticle.EMBERS, 6 );
-				}
+				//the lava's rings are its own light
+				WaterFX.ring( x, y - 1f, WaterFX.S );
+				FxRecipes.sparks( x, y - 2f, Element.LAVA, 3 );
+				FxRecipes.embers( x, y - 3f, Element.LAVA, 6 );
 				voice( AmbientSound.LAVA, 0.45f, rf( 1.2f, 1.45f ) );
 			} else {
-				int cell = cellAt( x, y - 1f );
-				if (cell >= 0) GameScene.ripple( cell );
-				Splash.at( new PointF( x, y - 2f ), 0xBFD4D8, 3 );
+				WaterFX.ring( x, y - 1f, WaterFX.S );
+				WaterFX.droplets( x, y - 2f, 3, 25f, 45f, 90f, SLIP_COLOUR );
 				voice( AmbientSound.SPLASH, 0.35f, rf( 1.35f, 1.55f ) );
 			}
 		}
+
+		//a newt's droplets, pale on the cold water
+		private static final int SLIP_COLOUR = 0xBFD4D8;
 
 		@Override
 		protected void still( float dt ){
@@ -1380,6 +1383,8 @@ public abstract class DungeonCritterSprite extends CritterSprite {
 	public static class Strider extends DungeonCritterSprite {
 
 		private static final int REST = 0, GLIDE = 1, SHIFT = 2;
+		//its dimple's alpha, and how near a stir of the water sends it off, px
+		static final float DIMPLE_ALPHA = 0.35f, STIR_PX = 32f;
 
 		private float heading, speed, strokeIn, strokeT, span, fleeT;
 		private boolean shifted, fleeing;
@@ -1416,6 +1421,7 @@ public abstract class DungeonCritterSprite extends CritterSprite {
 		@Override
 		protected void act( float dt ){
 			if (!fleeing) shown = Math.min( 1f, shown + dt / 0.6f );
+			if (shown > 0f) feel();
 			if (!onWater( gx(), gy() )){
 				//its water froze or drained under it
 				leave( 0.4f );
@@ -1449,9 +1455,22 @@ public abstract class DungeonCritterSprite extends CritterSprite {
 			}
 		}
 
-		//the little ring its push leaves on the water
+		//the little ring its push leaves on the water, in the water's own surface (it stirs nothing)
 		private void dimple(){
-			if (visible && parent != null) SplashParticle.splash( parent, gx(), gy(), 0xD6E6EE, 0.35f );
+			if (visible) WaterFX.quietRing( gx(), gy(), WaterFX.S, WaterFX.liquid().foam, DIMPLE_ALPHA, FxBudget.P3 );
+		}
+
+		//the water stirred within 32 px of it (a stone, a step, a drop): off it darts, as from anyone
+		private void feel(){
+			if (fleeing) return;
+			float[] bus = FishBrain.disturbances();
+			int n = FishBrain.disturbed();
+			for (int i = 0; i < n; i++){
+				if (FishBrain.dist( gx(), gy(), bus[i * 4], bus[i * 4 + 1] ) <= STIR_PX){
+					scare( bus[i * 4], bus[i * 4 + 1] );
+					return;
+				}
+			}
 		}
 	}
 

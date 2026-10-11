@@ -25,13 +25,13 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
 
 
 import xyz.gabriwar.warpedpixeldungeon.items.stones.StoneOfBlast;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
-import com.watabou.noosa.Camera;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -155,7 +155,7 @@ public class Deadfall extends Skill {
 		int cell = rigged.origin;
 		int rank = Math.max( 1, rigged.rank );
 		SpatialSound.play( Assets.Sounds.ROCKS, cell, 1f, 1.0f );
-		Camera.main.shake( 2, 0.4f );
+		Fx.shake( 2, 0.4f );
 		StoneOfBlast look = new StoneOfBlast();
 		//the rumble first: dust shaken loose in a ring round the rigging, then the weight comes
 		//down cell after cell, and a last lighter shudder as the dust settles
@@ -167,7 +167,7 @@ public class Deadfall extends Skill {
 			}
 		}
 		t.at( 0.5f, () -> {
-			Camera.main.shake( 1, 0.2f );
+			Fx.shake( 1, 0.2f );
 			SpatialSound.play( Assets.Sounds.ROCKS_LIGHT, cell, 0.7f, 0.9f );
 		} );
 		int order = 0;
@@ -186,7 +186,7 @@ public class Deadfall extends Skill {
 				//+3: prey already pinned by roots or a cripple is crushed for double
 				if (rank >= 3 && (ch.buff( Roots.class ) != null || ch.buff( Cripple.class ) != null)){
 					dmg *= 2;
-					Camera.main.shake( 3, 0.3f );
+					Fx.shake( 3, 0.3f );
 				}
 				ch.damage( dmg, this );
 				if (ch.sprite != null) ch.sprite.flash();

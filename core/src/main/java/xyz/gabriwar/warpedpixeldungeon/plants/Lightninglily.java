@@ -35,7 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.particles.poisonparticles.Lightni
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.BArray;
@@ -109,7 +109,7 @@ public class Lightninglily extends Plant {
 		for (Char ch : affected){
 			ch.damage(Math.round(2 * multipler), this);
 
-			if (ch == Dungeon.hero) Camera.main.shake( 2, 0.3f );
+			if (ch == Dungeon.hero) Fx.shake( 2, 0.3f );
 			ch.sprite.centerEmitter().burst( SparkParticle.FACTORY, 3 );
 			ch.sprite.flash();
 		}
@@ -155,6 +155,16 @@ public class Lightninglily extends Plant {
 			arcs.add( new Lightning.Arc(DungeonTilemap.raisedTileCenterToWorld(pos), DungeonTilemap.raisedTileCenterToWorld(bolt.collisionPos)));
 			CellEmitter.center( cell ).burst( SparkParticle.FACTORY, 3 );
 		}
+
+		//its arcs drawn, a major lightning (made of the arcs above: it draws none of the game's
+		//randomness more), on the render thread, where the hero sees an end of one (with no one on
+		//it, it fires at every mob of the level)
+		final Lightning bolt2 = Lightning.visual( arcs, null ).major();
+		Fx.post( () -> {
+			if (bolt2.seen() && Dungeon.hero != null && Dungeon.hero.sprite != null && Dungeon.hero.sprite.parent != null) {
+				Dungeon.hero.sprite.parent.addToFront( bolt2 );
+			}
+		} );
 
 		callback.call();
 	}

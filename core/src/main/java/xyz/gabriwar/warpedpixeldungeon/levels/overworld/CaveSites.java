@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.levels.overworld;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.RiftFx;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -1771,6 +1772,12 @@ public final class CaveSites {
 				cells.add( c );
 				TileTemperature.depositHeat( c, RIFT_HEAT );
 			}
+			//the crack glowing where the hero is near it (effects/fx/fire/RiftFx; visual only)
+			if (!cells.isEmpty()){
+				int[] glowing = new int[cells.size()];
+				for (int i = 0; i < glowing.length; i++) glowing[i] = cells.get( i );
+				RiftFx.glow( glowing );
+			}
 			flare( level, s, cells, heroes, now );
 		}
 	}
@@ -1781,6 +1788,7 @@ public final class CaveSites {
 			level.riftFlareKey = Long.MIN_VALUE;
 			if (c != -1){
 				CellEmitter.get( c ).burst( FlameParticle.FACTORY, 8 );
+				RiftFx.flare( c );
 				Char ch = Actor.findChar( c );
 				if (ch != null && !Char.hasProp( ch, Char.Property.FIERY )){
 					int dmg = Math.max( 0, Random.NormalIntRange( 3, 8 ) - ch.drRoll() );
@@ -1804,6 +1812,7 @@ public final class CaveSites {
 		level.riftFlareKey = OverworldLevel.worldKey( level.worldX() + target % level.width(), level.worldY() + target / level.width() );
 		level.riftFlareAt = now + 1f;
 		CellEmitter.get( target ).burst( FlameParticle.FACTORY, 4 );
+		RiftFx.telegraph( target );
 		for (Hero h : heroes){
 			if (h.pos == target) NetManager.heroLog( h, GLog.WARNING + Messages.get( CaveSites.class, "rift_flare" ) );
 		}

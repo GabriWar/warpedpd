@@ -27,7 +27,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -67,7 +67,7 @@ public class FirmHand extends PassiveSkillB1 {
 		if (enemy.sprite != null && enemy.sprite.visible){
 			enemy.sprite.emitter().burst( Speck.factory( Speck.FORGE ), 3 + level );
 			enemy.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "stagger" ) );
-			Camera.main.shake( 1, 0.15f );
+			Fx.shake( 1, 0.15f );
 		}
 		SpatialSound.play( Assets.Sounds.HIT_CRUSH, enemy, 0.8f, 0.9f );
 		return damage;
@@ -88,7 +88,7 @@ public class FirmHand extends PassiveSkillB1 {
 		}
 		if (spread){
 			SpatialSound.play( Assets.Sounds.HIT_CRUSH, mob, 0.9f, 0.7f );
-			Camera.main.shake( 1, 0.2f );
+			Fx.shake( 1, 0.2f );
 		}
 	}
 }

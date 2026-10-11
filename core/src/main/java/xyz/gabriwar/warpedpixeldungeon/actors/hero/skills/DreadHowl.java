@@ -27,7 +27,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -126,7 +126,7 @@ public class DreadHowl extends Skill {
 					mad.sprite.showStatus( CharSprite.NEGATIVE, "Mad" );
 				} );
 			}
-			Camera.main.shake( 1, 0.3f );
+			Fx.shake( 1, 0.3f );
 			hero.sprite.emitter().burst( ShadowParticle.UP, 8 );
 
 			hero.MP -= getManaCost();

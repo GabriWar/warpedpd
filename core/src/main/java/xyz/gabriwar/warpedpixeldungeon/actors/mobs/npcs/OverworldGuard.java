@@ -57,7 +57,7 @@ public class OverworldGuard extends NPC {
 	//none of this is bundled: worked out again after a load
 	private VillageRoutine.Settlement place;
 	private boolean noWatch = false;   //his sector is no settlement (a guard spawned by hand)
-	private boolean lit = false;       //his torch is burning (CharSprite.State.ILLUMINATED)
+	private boolean lit = false;       //his torch is burning (CharSprite.State.TORCHLIT)
 	//the cell of this watch, the window and the hour it was found for, and turns until it is
 	//looked for again when none could be had
 	private int watchCell = -1, watchVersion = -1, watchRetry = 0;
@@ -153,8 +153,8 @@ public class OverworldGuard extends NPC {
 		boolean torch = night && pos == watchCell;
 		if (torch != lit){
 			lit = torch;
-			if (lit) sprite.add( CharSprite.State.ILLUMINATED );
-			else sprite.remove( CharSprite.State.ILLUMINATED );
+			if (lit) sprite.add( CharSprite.State.TORCHLIT );
+			else sprite.remove( CharSprite.State.TORCHLIT );
 		}
 	}
 
@@ -185,7 +185,7 @@ public class OverworldGuard extends NPC {
 	public void updateSpriteState() {
 		super.updateSpriteState();
 		//a sprite made afresh (an unpark, a rebuilt scene) takes his torch back up
-		if (lit && sprite != null) sprite.add( CharSprite.State.ILLUMINATED );
+		if (lit && sprite != null) sprite.add( CharSprite.State.TORCHLIT );
 	}
 
 	@Override

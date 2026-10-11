@@ -28,6 +28,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.arcane.ItemFx;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ChallengeParticle;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.ShadowCaster;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -61,6 +62,7 @@ public class ScrollOfChallenge extends ExoticScroll {
 		identify();
 		
 		curUser.sprite.centerEmitter().start( Speck.factory( Speck.SCREAM ), 0.3f, 3 );
+		ItemFx.shock( curUser, 0xFF4040, false );
 		SpatialSound.play( Assets.Sounds.CHALLENGE, curUser );
 		
 		readAnimation();

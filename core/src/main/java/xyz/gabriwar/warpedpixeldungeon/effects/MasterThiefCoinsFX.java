@@ -24,47 +24,71 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects;
 
-import com.watabou.noosa.Game;
-import com.watabou.noosa.Group;
-import com.watabou.utils.PointF;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MasterThiefCoins;
-import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
-import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxOrbit;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRecipes;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillOrbit;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
 
-/** Small gold coins spinning around the hero, one per coin held. */
-public class MasterThiefCoinsFX extends Group {
+/**
+ * Small gold coins spinning around the hero in the kit's COINS orbit, one per coin held: the
+ * painted coin turning (face, edge and back, SPIN_FPS a second), now and then one catching the
+ * light (a glint every 2-4 s on the near side), and a clink of sparks each time a coin comes or
+ * goes. 6 orbit quads and a glint.
+ */
+public class MasterThiefCoinsFX extends SkillOrbit {
 
-	private final Char owner;
+	public static final int GOLD = 0xF0C040;
+	public static final float SPIN_FPS = 8f;
+	public static final int CLINKS = 3;
+
 	private final MasterThiefCoins state;
-	private final ItemSprite[] coins = new ItemSprite[MasterThiefCoins.MAX_COINS];
-	private float time;
+	private float spin, glint = FxRandom.Float( 2f, 4f );
+	private int frame, last = -1;
 
 	public MasterThiefCoinsFX( Char owner, MasterThiefCoins state ){
-		this.owner = owner;
+		super( owner, FxOrbit.Slot.COINS );
 		this.state = state;
-		for (int i = 0; i < coins.length; i++){
-			coins[i] = new ItemSprite( ItemSpriteSheet.GOLD );
-			coins[i].scale.set( 0.55f );
-			coins[i].origin.set( coins[i].width / 2, coins[i].height / 2 );
-			add( coins[i] );
-		}
 	}
 
 	@Override
-	public void update(){
-		super.update();
-		if (owner.sprite == null || !owner.sprite.exists){ killAndErase(); return; }
-		time += Game.elapsed;
-		int count = state.coins();
-		PointF center = owner.sprite.center();
-		for (int i = 0; i < coins.length; i++){
-			ItemSprite coin = coins[i];
-			coin.visible = owner.sprite.visible && i < count;
-			if (!coin.visible) continue;
-			double a = time * 2.4 + i * Math.PI * 2 / count;
-			coin.x = center.x + (float) Math.cos( a ) * 11 - coin.width / 2;
-			coin.y = center.y - 2 + (float) Math.sin( a ) * 5 - coin.height / 2;
+	protected int count(){
+		return state.coins();
+	}
+
+	@Override
+	protected void look( FxOrbit.Ring ring, int n ){
+		ring.motes( n, FxFrames.COIN_6[frame], GOLD, false ).trail( 0 ).speed( 2.4f );
+	}
+
+	@Override
+	protected void tick( float dt ){
+		int n = count();
+		if (last >= 0 && n != last && sprite.visible){
+			FxRecipes.sparks( SkillVfx.midX( sprite ), SkillVfx.midY( sprite ) + slot.h, Element.METAL, CLINKS );
+		}
+		last = n;
+		if (n <= 0 || ring == null) return;
+		//the coins turn: the orbit's one picture stepped to the next painted face
+		spin += dt;
+		if (spin >= 1f / SPIN_FPS){
+			spin -= 1f / SPIN_FPS;
+			frame = (frame + 1) % FxFrames.COIN_6.length;
+			ring.motes( n, FxFrames.COIN_6[frame], GOLD, false );
+		}
+		glint -= dt;
+		if (glint <= 0 && sprite.visible){
+			glint = FxRandom.Float( 2f, 4f );
+			//on the near half, where a coin passes in front
+			float t = FxRandom.Float( 0.3f, 2.8f );
+			FxParticle p = SkillVfx.glow( ellipseX( t ), ellipseY( t ), FxBudget.P3 );
+			if (p != null) p.look( FxFrames.PLUS_3 ).paint( 0xFFF6D0 ).life( 0.2f ).alpha( 1f, 0.04f, 0.12f ).snap();
 		}
 	}
 }

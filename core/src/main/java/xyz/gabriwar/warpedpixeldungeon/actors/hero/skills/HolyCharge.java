@@ -27,7 +27,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -182,7 +182,7 @@ public class HolyCharge extends SubSkill2 {
 				victim.sprite.emitter().burst( Speck.factory( Speck.STAR ), 8 );
 			}
 			SpatialSound.play( Assets.Sounds.HIT_STRONG, victim, 1f, 0.9f );
-			Camera.main.shake( 3, 0.3f );
+			Fx.shake( 3, 0.3f );
 		} else {
 			CellEmitter.bottom( hero.pos ).burst( Speck.factory( Speck.DUST ), 6 );
 			SpatialSound.play( Assets.Sounds.TRAMPLE, hero, 1f, 1f );

@@ -24,14 +24,14 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
-import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.FireBlobFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.FireStyle;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 
 public class Firewind extends Blob {
@@ -58,7 +58,13 @@ public class Firewind extends Blob {
 	@Override
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
-		emitter.pour( WeatherBlobFX.FIREWIND, 0.25f );
+		FireBlobFx.pour( this, emitter, FireStyle.FIREWIND );
+	}
+
+	//light: drawn over the night's tint, its smoke among the gases
+	@Override
+	public boolean emissive() {
+		return true;
 	}
 
 	@Override

@@ -27,7 +27,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import com.watabou.noosa.Camera;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
@@ -63,7 +63,7 @@ public class Warbreaker extends Skill {
 			Wound.hit( enemy );
 			if (enemy.sprite != null && enemy.sprite.visible) enemy.sprite.emitter().burst( Speck.factory( Speck.STAR ), 5 );
 			SpatialSound.play( Assets.Sounds.HIT_CRUSH, enemy, 1f, 0.8f );
-			Camera.main.shake( 1, 0.15f );
+			Fx.shake( 1, 0.15f );
 
 			//fully trained, the shattered guard leaves everyone standing beside it open too
 			if (level >= MAX_LEVEL){

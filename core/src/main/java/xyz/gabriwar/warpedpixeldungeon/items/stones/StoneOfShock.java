@@ -67,7 +67,7 @@ public class StoneOfShock extends Runestone {
 		CellEmitter.center( cell ).burst( SparkParticle.FACTORY, 3 );
 		
 		if (hits > 0) {
-			curUser.sprite.parent.addToFront( new Lightning( arcs, null ) );
+			curUser.sprite.parent.addToFront( new Lightning( arcs, null ).major() );
 			curUser.sprite.centerEmitter().burst(EnergyParticle.FACTORY, 10);
 			SpatialSound.play( Assets.Sounds.LIGHTNING, cell );
 			

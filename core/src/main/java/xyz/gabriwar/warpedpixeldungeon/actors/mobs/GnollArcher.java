@@ -147,19 +147,16 @@ public class GnollArcher extends Mob {
 
 	@Override
 	protected void dropExtraLoot() {
-		if (!Dungeon.LimitedDrops.SEWER_KEY.dropped() && Dungeon.depth < Dungeon.POSTGAME_DEPTH) {
+		//every ancient key is sure: the first of its monster killed drops it, before the postgame or after
+		if (!Dungeon.LimitedDrops.SEWER_KEY.dropped()) {
 			Dungeon.LimitedDrops.SEWER_KEY.drop();
 			trackedDrop(new SewersKey(), 0);
 		}
 
+		//the first archer killed once Tengu is dead
 		if (!Dungeon.LimitedDrops.TENGU_KEY.dropped() && Dungeon.tengukilled) {
-			if (Statistics.archersKilled > 100) {
-				Dungeon.LimitedDrops.TENGU_KEY.drop();
-				trackedDrop(new TenguKey(), 1);
-			} else if (Statistics.archersKilled > 50 && Random.Int(10) == 0) {
-				Dungeon.LimitedDrops.TENGU_KEY.drop();
-				trackedDrop(new TenguKey(), 1);
-			}
+			Dungeon.LimitedDrops.TENGU_KEY.drop();
+			trackedDrop(new TenguKey(), 1);
 		}
 
 		if (!Dungeon.LimitedDrops.SAFE_SPOT_PAGE.dropped()

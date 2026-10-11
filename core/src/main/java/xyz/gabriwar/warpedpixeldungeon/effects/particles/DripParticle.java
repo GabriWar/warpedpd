@@ -23,15 +23,18 @@ package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
 import com.watabou.noosa.Group;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.utils.Random;
 
-import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
 import xyz.gabriwar.warpedpixeldungeon.effects.WeatherSprites;
-import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.WaterFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.water.WaterDrops;
 
-/** Water dripping from a cave roof: a drop, then the small splash of it landing. */
+/**
+ * Water dripping from a cave roof, the trees after rain: a drop, then the small splash of it
+ * landing - on the water a small ring in its surface (and a plink now and then). Its randomness
+ * is the effects' own (FxRandom).
+ */
 public class DripParticle extends WeatherParticle {
 
 	public static final Emitter.Factory FACTORY = new Emitter.Factory() {
@@ -42,49 +45,35 @@ public class DripParticle extends WeatherParticle {
 	};
 
 	/** A drop let go from the roof over the emitter's point, timed to land on it exactly: the
-	 *  world's caves drip into their pools and by their walls (levels/overworld/CaveLife), and on
-	 *  water the drop leaves a ring. */
+	 *  world's caves drip into their pools and by their walls (levels/overworld/CaveLife), and the
+	 *  dungeon's (levels/ambience/DungeonLife). It gathers on the roof as a bead first, then falls,
+	 *  and crowns and rings the water where it lands (WaterDrops.fall). */
 	public static final Emitter.Factory FALL = new Emitter.Factory() {
 		@Override
 		public void emit(Emitter emitter, int index, float x, float y) {
-			((DripParticle) emitter.recycle(DripParticle.class)).resetFall(x, y);
+			WaterDrops.fall(emitter, x, y, FxRandom.chance(0.5f) ? 0x7A9CCC : 0x6688BB);
 		}
 	};
 
 	private int tint;
-	//a FALL drop: it rings the water it lands in
-	private boolean aimed;
 
 	public DripParticle() {
 		super();
-		lifespan = Random.Float(0.4f, 0.8f);
+		lifespan = FxRandom.Float(0.4f, 0.8f);
 	}
 
 	public void reset(float x, float y) {
 		revive();
 		this.x = x;
 		this.y = y;
-		left = lifespan = Random.Float(0.4f, 0.8f);
-		tint = Random.Float() < 0.5f ? 0x7A9CCC : 0x6688BB;
+		left = lifespan = FxRandom.Float(0.4f, 0.8f);
+		tint = FxRandom.Float() < 0.5f ? 0x7A9CCC : 0x6688BB;
 		color(tint);
 		frame(WeatherSprites.DROP);
 
 		float wind = ClimateManager.localWindSpeed();
-		speed.set(Random.Float(-1f, 1f) + wind * 0.1f, Random.Float(25, 45));
+		speed.set(FxRandom.Float(-1f, 1f) + wind * 0.1f, FxRandom.Float(25, 45));
 		acc.set(0, 40);
-		aimed = false;
-	}
-
-	//straight down from as high as it falls in its time, so it lands where it was aimed: on
-	//landing it splashes where it is drawn, which a rebase has moved along with it
-	public void resetFall(float x, float y) {
-		reset(x, y);
-		float t = Random.Float(0.45f, 0.6f);
-		left = lifespan = t;
-		speed.set(0, 18);
-		acc.set(0, 140);
-		this.y = y - (18f * t + 70f * t * t);
-		aimed = true;
 	}
 
 	@Override
@@ -92,21 +81,14 @@ public class DripParticle extends WeatherParticle {
 		boolean falling = left > 0;
 		super.update();
 		if (falling && left <= 0) {
-			if (WeatherSprites.visible(x, y) && parent instanceof Group) {
-				SplashParticle.splash((Group) parent, x, y, tint, 0.55f);
-				if (aimed) ring();
+			if (WeatherSprites.visible(x, y)) {
+				//on the water a small ring in its own surface, else the splash of it
+				if (WaterFX.onWater(x, y)) WaterDrops.drip(x, y);
+				else if (parent instanceof Group) SplashParticle.splash((Group) parent, x, y, tint, 0.55f);
 			}
 			return;
 		}
 		am = envelope(0.2f, 0.05f, 0.6f);
 		fov();
-	}
-
-	private void ring() {
-		if (Dungeon.level == null || x < 0 || y < 0) return;
-		int cx = (int)(x / DungeonTilemap.SIZE), cy = (int)(y / DungeonTilemap.SIZE);
-		if (cx >= Dungeon.level.width()) return;
-		int cell = cx + cy * Dungeon.level.width();
-		if (cell < Dungeon.level.length() && Dungeon.level.water[cell]) GameScene.ripple(cell);
 	}
 }

@@ -24,6 +24,13 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFactories;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.Reflection;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
@@ -34,7 +41,6 @@ import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.glwrap.Blending;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
-import com.watabou.utils.Random;
 
 /**
  * A lit window or a burning fire ring after dark: the glass (or the logs) in warm light,
@@ -66,6 +72,12 @@ public class HearthLight extends Image {
 	//how far lit (eases to the target, the way a lamp is lit), how plainly seen
 	private float level, target, vis;
 	private boolean out;
+	//a fire's spark now and then, and its light thrown down any water below (effects/fx/fire)
+	private float sparkIn;
+	private final Reflection reflection = new Reflection();
+	private final int colour;
+	/** A fire's sparks: one every SPARK_MIN-SPARK_MAX s. */
+	public static final float SPARK_MIN = 4f, SPARK_MAX = 8f;
 
 	public HearthLight( int kind, float x, float y ){
 		//kinds 0-7 on the sheet's first row, 8 and on on its third
@@ -83,14 +95,17 @@ public class HearthLight extends Image {
 		hardlight( hearth ? 0xFF7A30 : violet ? 0xE0C0FF : spores ? 0x8FFFE8 : shards ? CaveLife.shardColour( alt ) : 0xFFD47A );
 		alpha( 0 );
 		halo = new Glow( hearth ? 16 : 0, 16, hearth ? 32 : 16, 16 );
-		halo.hardlight( hearth ? 0xFF8A3C : violet ? 0x9C6CFF : spores ? 0x40D8C8 : shards ? CaveLife.shardHaloColour( alt ) : 0xFFB050 );
+		colour = hearth ? 0xFF8A3C : violet ? 0x9C6CFF : spores ? 0x40D8C8 : shards ? CaveLife.shardHaloColour( alt ) : 0xFFB050;
+		halo.hardlight( colour );
 		halo.alpha( 0 );
 		halo.x = x + HALO_OFFSET[kind][0];
 		halo.y = y + HALO_OFFSET[kind][1];
-		a = Random.Float( 6.283f );
-		b = Random.Float( 6.283f );
-		c = Random.Float( 6.283f );
-		gutterIn = Random.Float( 2f, 9f );
+		//made on the render thread (SettlementAmbience.apply): the effects' own random numbers
+		a = FxRandom.Float( 6.283f );
+		b = FxRandom.Float( 6.283f );
+		c = FxRandom.Float( 6.283f );
+		gutterIn = FxRandom.Float( 2f, 9f );
+		sparkIn = FxRandom.Float( SPARK_MIN, SPARK_MAX );
 	}
 
 	//the sheet frame a kind draws: its own, but a violet giant's spots are the teal one's mask
@@ -128,6 +143,7 @@ public class HearthLight extends Image {
 		//about a second and a bit to come on, like a lamp being lit
 		level += (target - level) * Math.min( 1f, dt * 0.8f );
 		if (out && level < 0.01f){
+			reflection.out();
 			//gone for good, its vertex buffers freed with it: an erased image keeps them till
 			//the next scene change, and the surface is one long scene
 			halo.killAndErase();
@@ -146,13 +162,22 @@ public class HearthLight extends Image {
 			f -= amp * 0.10f * (float)Math.sin( Math.PI * (1f - Math.max( 0f, gutterLeft ) / 0.45f) );
 		} else if ((gutterIn -= dt) <= 0){
 			gutterLeft = 0.45f;
-			gutterIn = Random.Float( 3f, 9f );
+			gutterIn = FxRandom.Float( 3f, 9f );
 		}
 		f = Math.max( 0f, Math.min( 1f, f ) );
 		vis += (visibility() - vis) * Math.min( 1f, dt * 4f );
 		float on = level * f * vis;
 		alpha( Math.min( 1f, on * (hearth ? 0.9f : spores || shards ? 0.7f : 0.85f) ) );
 		halo.alpha( Math.min( 1f, on * (hearth ? 0.55f : spores || shards ? 0.45f : 0.5f) ) );
+		reflection.update( x + 8, y + 14, colour, on * 0.6f );
+		//a fire spits a spark now and then, where it is plainly seen
+		if (hearth && vis > 0.9f && level > 0.3f && (sparkIn -= dt) <= 0){
+			sparkIn = FxRandom.Float( SPARK_MIN, SPARK_MAX );
+			FxEmitter glow = Fx.glowAir();
+			if (glow != null && FxBudget.keep( FxBudget.P3, x + 8, y + 8 )){
+				FxFactories.spark( Element.FIRE ).emit( glow, 0, x + 8 + FxRandom.Float( -3f, 3f ), y + 9 );
+			}
+		}
 	}
 
 	//read off the cell under the light's own position, so a window slide never leaves it stale

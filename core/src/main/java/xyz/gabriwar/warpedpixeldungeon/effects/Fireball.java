@@ -21,13 +21,37 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.Flames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.LightFrame;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
+import com.watabou.noosa.Game;
 import com.watabou.noosa.MovieClip;
 import com.watabou.noosa.TextureFilm;
 
+/**
+ * The title's and the welcome's torches: the painted fireball, a warm glow breathing behind it
+ * (GLOW_31 at x2 behind the tall one, GLOW_47 behind the short one, at GLOW of its alpha) and
+ * embers rising off it, EMBERS a second (EMBERS_MAX at once). Its glow and embers are its own,
+ * drawn with it (no game scene here), and fade with it.
+ */
 public class Fireball extends MovieClip {
 
+	/** The glow's colour and its alpha (of the fireball's own), its embers a second and at most. */
+	public static final int LIGHT = 0xFF9A48;
+	public static final float GLOW = 0.25f, EMBERS = 3f;
+	public static final int EMBERS_MAX = 8;
+
 	private static boolean second = false;
+
+	private final boolean tall;
+	private LightFrame glow;
+	private FxEmitter embers;
+	private float emberDue;
 
 	public Fireball() {
 		this(second);
@@ -36,7 +60,8 @@ public class Fireball extends MovieClip {
 
 	public Fireball(boolean second) {
 
-		if (PixelScene.landscape()){
+		tall = PixelScene.landscape();
+		if (tall){
 			texture( "effects/fireball-tall.png" );
 			TextureFilm frames = new TextureFilm( texture, 61, 61 );
 			MovieClip.Animation anim = new MovieClip.Animation( 24, true );
@@ -57,5 +82,55 @@ public class Fireball extends MovieClip {
 			frame( curAnim.frames[curFrame] );
 		}
 
+	}
+
+	@Override
+	public void update() {
+		super.update();
+		if (glow == null){
+			//made at its first frame, on the render thread
+			glow = new LightFrame();
+			glow.setup( tall ? FxFrames.Light.GLOW_31 : FxFrames.Light.GLOW_47, 0, 0, LIGHT, GLOW ).breathe( 0.5f, 0.08f );
+			if (tall) glow.scale.set( 2 );
+			embers = new FxEmitter();
+			embers.holdLight();
+			embers.on = false;
+			embers.autoKill = false;
+		}
+		glow.camera = embers.camera = camera();
+		float cx = x + width / 2f, cy = y + height * 0.55f;
+		glow.peak( GLOW * am );
+		glow.moveTo( cx, cy );
+		if (tall){
+			//its middle, at twice its size
+			glow.x = Math.round( cx - glow.width );
+			glow.y = Math.round( cy - glow.height );
+		}
+		glow.update();
+
+		emberDue += Game.elapsed * EMBERS;
+		while (emberDue >= 1f){
+			emberDue -= 1f;
+			if (am > 0.5f && embers.countLiving() < EMBERS_MAX){
+				FxParticle p = Flames.make( embers, FxParticle.class, cx + FxRandom.Float( -width / 6f, width / 6f ), y + height * 0.35f );
+				//no wind and no ending over a level's water: there is no game here
+				Flames.ember( p, Element.FIRE.ember ).wind( 0 ).fate( null );
+			}
+		}
+		embers.update();
+	}
+
+	@Override
+	public void draw() {
+		if (glow != null) glow.draw();
+		super.draw();
+		if (embers != null) embers.draw();
+	}
+
+	@Override
+	public void destroy() {
+		super.destroy();
+		if (glow != null) glow.destroy();
+		if (embers != null) embers.destroy();
 	}
 }

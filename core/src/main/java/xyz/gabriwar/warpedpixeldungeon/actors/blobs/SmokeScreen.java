@@ -21,9 +21,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
-import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.gas.GasStyle;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 
 public class SmokeScreen extends Blob {
@@ -31,7 +30,7 @@ public class SmokeScreen extends Blob {
 	@Override
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
-		emitter.pour( WeatherBlobFX.layered( Speck.factory( Speck.SMOKE ), WeatherBlobFX.SOOT, 4 ), 0.1f );
+		emitter.pour( GasStyle.SMOKE.factory(), GasStyle.SMOKE.pour );
 	}
 
 	@Override

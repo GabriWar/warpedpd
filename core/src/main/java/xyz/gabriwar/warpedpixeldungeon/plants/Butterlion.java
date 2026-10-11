@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.plants;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -40,7 +41,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.particles.poisonparticles.Butterl
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
-import com.watabou.noosa.Camera;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.particles.PixelParticle;
 import com.watabou.utils.PathFinder;
@@ -58,7 +58,7 @@ public class Butterlion extends Plant {
 		ch.sprite.burst(new ButterlionPoisonParticle().getColor(), 10);
 		if (Dungeon.level.heroFOV[ch.pos]) {
 			CellEmitter.get( ch.pos ).start( Speck.factory( Speck.ROCK ), 0.07f, 10 );
-			Camera.main.shake( 1, 0.7f );
+			Fx.shake( 1, 0.7f );
 			SpatialSound.play( Assets.Sounds.ROCKS, ch );
 		}
 		ch.damage(1, this);
@@ -72,7 +72,7 @@ public class Butterlion extends Plant {
 	public void attackProc( Char enemy, int damage ) {
 		if (Dungeon.level.heroFOV[enemy.pos]) {
 			CellEmitter.get( enemy.pos ).start( Speck.factory( Speck.ROCK ), 0.07f, 10 );
-			Camera.main.shake( 3, 0.7f );
+			Fx.shake( 3, 0.7f );
 			SpatialSound.play( Assets.Sounds.ROCKS, enemy );
 		}
 		enemy.damage(damage, this);
@@ -94,7 +94,7 @@ public class Butterlion extends Plant {
 			//OPD no-arg activate(): rock burst at the plant's position, damaging adjacent mobs
 			if (Dungeon.level.heroFOV[pos]) {
 				CellEmitter.get( pos ).start( Speck.factory( Speck.ROCK ), 0.07f, 10 );
-				Camera.main.shake( 3, 0.7f );
+				Fx.shake( 3, 0.7f );
 				SpatialSound.play( Assets.Sounds.ROCKS, pos );
 			}
 			for (int i = 0; i < PathFinder.NEIGHBOURS8.length; i++) {
@@ -111,7 +111,7 @@ public class Butterlion extends Plant {
 		}
 		if (Dungeon.level.heroFOV[ch.pos]) {
 			CellEmitter.get( ch.pos ).start( Speck.factory( Speck.ROCK ), 0.07f, 10 );
-			Camera.main.shake( 3, 0.7f );
+			Fx.shake( 3, 0.7f );
 			SpatialSound.play( Assets.Sounds.ROCKS, ch );
 		}
 		ch.damage(Math.round(ch.HP/8), this);

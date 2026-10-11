@@ -85,7 +85,7 @@ public class DivineWrath extends ActiveSkill {
 		protected Class<? extends Skill> stance(){ return DivineWrath.class; }
 		@Override
 		protected xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraFX build(){
-			return new xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraFX( target, 0xFFB050, 2,
+			return new xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraFX( target, 0xFFB050,
 					xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle.FACTORY, 1.1f );
 		}
 	}

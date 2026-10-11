@@ -27,25 +27,29 @@ import com.watabou.gltextures.TextureCache;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
 
+//a cell searched: a blue square in the cell shrinking in whole steps (16, 12, 8, 4 px) as it fades
+//from START to nothing, the farther cells a little later
 public class CheckedCell extends Image {
-	
+
+	public static final float START = 0.5f, FOR = 0.8f;
+
 	private float alpha;
 	private float delay;
-	
+	private float cx, cy;
+
 	public CheckedCell() {
 		super( TextureCache.createSolid( 0xFF55AAFF ) );
 	}
 
 	public void reset( int pos, int visSource ){
 		revive();
-		origin.set( 0.5f );
+		origin.set( 0 );
 
-		point( DungeonTilemap.tileToWorld( pos ).offset(
-				DungeonTilemap.SIZE / 2,
-				DungeonTilemap.SIZE / 2 ) );
+		cx = DungeonTilemap.tileToWorld( pos ).x + DungeonTilemap.SIZE / 2f;
+		cy = DungeonTilemap.tileToWorld( pos ).y + DungeonTilemap.SIZE / 2f;
 
-		alpha = 0.8f;
-		scale.set( DungeonTilemap.SIZE * alpha );
+		alpha = START;
+		size( START );
 
 		delay = (Dungeon.level.trueDistance(pos, visSource)-1f);
 		//delay steadily accelerates as distance increases
@@ -55,14 +59,28 @@ public class CheckedCell extends Image {
 		}
 		xyz.gabriwar.warpedpixeldungeon.net.NetVisuals.recordCheckedCell(pos, visSource);
 	}
-	
+
+	/** Its side in px with `a` of its alpha left: 16, 12, 8, then 4. */
+	public static int side( float a ){
+		float k = a / START;
+		return k > 0.75f ? 16 : k > 0.5f ? 12 : k > 0.25f ? 8 : 4;
+	}
+
+	//its square, whole pixels, about the cell's middle
+	private void size( float a ){
+		int s = side( a );
+		scale.set( s );
+		x = Math.round( cx - s / 2f );
+		y = Math.round( cy - s / 2f );
+	}
+
 	@Override
 	public void update() {
 		if ((delay -= Game.elapsed) > 0){
 			alpha( 0 );
-		} else if ((alpha -= Game.elapsed) > 0) {
+		} else if ((alpha -= Game.elapsed * START / FOR) > 0) {
 			alpha( alpha );
-			scale.set( DungeonTilemap.SIZE * alpha );
+			size( alpha );
 		} else {
 			kill();
 		}

@@ -26,7 +26,7 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 
 import com.watabou.noosa.TextureFilm;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.water.WaterDrops;
 
 public class SquidSprite extends MobSprite {
 
@@ -52,6 +52,15 @@ public class SquidSprite extends MobSprite {
         die.frames( frames, 7, 8, 9 );
 
         play( idle );
+    }
+
+    //the cell it last struck at: its droplets fly that way
+    private int bitten = -1;
+
+    @Override
+    public void attack( int cell ) {
+        bitten = cell;
+        super.attack( cell );
     }
 
     /*
@@ -89,7 +98,8 @@ public class SquidSprite extends MobSprite {
         } else
          */
         if (anim == attack) {
-            GameScene.ripple( ch.pos );
+            //out of the water and back: a crown, droplets flung at what it struck, a ring
+            WaterDrops.lunge( ch.pos, bitten );
         }
     }
 }

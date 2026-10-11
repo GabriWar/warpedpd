@@ -21,6 +21,9 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.wands;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.GrowthPulse;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Statistics;
@@ -50,7 +53,6 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.sprites.LotusSprite;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
-import com.watabou.utils.ColorMath;
 import com.watabou.utils.GameMath;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -265,12 +267,17 @@ public class WandOfRegrowth extends Wand {
 			);
 		}
 
-		//final zap at half distance of the longest ray, for timing of the actual wand effect
+		//final zap at half distance of the longest ray, for timing of the actual wand effect; on
+		//its frame the grass's growth starts racing out from the caster (visual only)
+		final int caster = curUser.pos;
 		MagicMissile.boltFromChar( curUser.sprite.parent,
 				MagicMissile.FOLIAGE_CONE,
 				curUser.sprite,
 				longestRay.path.get(longestRay.dist/2),
-				callback );
+				() -> {
+					GrowthPulse.waveFrom( caster );
+					callback.call();
+				} );
 		SpatialSound.play( Assets.Sounds.ZAP, curUser );
 	}
 
@@ -310,12 +317,14 @@ public class WandOfRegrowth extends Wand {
 
 	@Override
 	public void staffFx(MagesStaff.StaffParticle particle) {
-		particle.color( ColorMath.random(0x004400, 0x88CC44) );
+		//the staff's motes in the nature ramp, light green to deep (drawn on the render thread: the
+		//effects' own random numbers)
+		particle.color( Element.NATURE.ramp.step( FxRandom.Float( 0.15f, 1f ) ) );
 		particle.am = 1f;
 		particle.setLifespan(1f);
 		particle.setSize( 1f, 1.5f);
 		particle.shuffleXY(0.5f);
-		float dst = Random.Float(11f);
+		float dst = FxRandom.Float(11f);
 		particle.x -= dst;
 		particle.y += dst;
 	}
@@ -435,6 +444,11 @@ public class WandOfRegrowth extends Wand {
 
 		public boolean inRange(int pos){
 			return Dungeon.level.trueDistance(this.pos, pos) <= wandLvl;
+		}
+
+		/** How far it reaches, cells (its sprite looks only within it). */
+		public int range(){
+			return wandLvl;
 		}
 
 		public float seedPreservation(){

@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HealFx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -263,6 +264,8 @@ public class FloatingText extends RenderedTextBlock {
 					txt.reset(x, y, text, color, iconIdx, left);
 					if (key != -1) push(txt, key);
 				}
+				//healing and shielding answered where they land (a guest's replayed text too)
+				HealFx.floatingText(x, y, key, iconIdx, text);
 			}
 		});
 	}

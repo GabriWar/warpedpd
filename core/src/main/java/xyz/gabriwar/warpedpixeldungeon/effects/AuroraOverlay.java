@@ -29,6 +29,7 @@ import com.watabou.glwrap.Texture;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
 import com.watabou.noosa.Image;
+import com.watabou.utils.RectF;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
@@ -38,7 +39,10 @@ import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
  * pixel painting of rays, green along the body and rose at the top rim, cycled
  * through a ring of frames and cross-faded from one to the next so they fold and
  * flow without a jump. They drift a little, breathe in brightness, and show only
- * where the hero can see. Drawn additively.
+ * where the hero can see, easing in and out over half a second as he comes to see
+ * them or not. A wave of light runs along each now and then (a strip of a later
+ * frame crossing it), and over minutes the whole sky's colour drifts from green to
+ * teal to violet and back. Drawn additively.
  */
 public class AuroraOverlay extends Group {
 
@@ -50,6 +54,16 @@ public class AuroraOverlay extends Group {
 
 	private static final float FADE_IN_TIME  = 4f;
 	private static final float FADE_OUT_TIME = 3f;
+	/** A curtain coming into sight or going out of it eases over this long, s. */
+	public static final float SEEN_EASE = 0.5f;
+	/** A wave of light along a curtain: its strip's width (px of the painting), how long it takes
+	 *  to cross, how long between two, its share of the curtain's brightness. */
+	public static final int WAVE_W = 24;
+	public static final float WAVE_CROSS = 3f, WAVE_EVERY = 5f, WAVE_SHARE = 0.85f;
+	/** The sky's colour drifting green, teal, violet and back over this many seconds. */
+	public static final float PALETTE_CYCLE = 360f;
+	//the three skies as lighting of the painting: green as painted, teal, violet
+	private static final float[][] PALETTE = { { 1f, 1f, 1f }, { 0.55f, 1f, 1.25f }, { 1.15f, 0.6f, 1.3f } };
 
 	private final SmartTexture[] sheets = new SmartTexture[VARIANTS];
 	private final AuroraCurtain[] curtains = new AuroraCurtain[NUM_CURTAINS];
@@ -66,6 +80,7 @@ public class AuroraOverlay extends Group {
 			curtains[i] = new AuroraCurtain(i, sheets[i % VARIANTS]);
 			add(curtains[i]);
 			add(curtains[i].next);
+			add(curtains[i].wave);
 		}
 		visible = false;
 	}
@@ -122,8 +137,18 @@ public class AuroraOverlay extends Group {
 		float levelW = Dungeon.level.width()  * DungeonTilemap.SIZE;
 		float levelH = Dungeon.level.height() * DungeonTilemap.SIZE;
 
+		//the sky's colour, drifting round green, teal and violet
+		float cyc = (globalTime / PALETTE_CYCLE) % 1f * PALETTE.length;
+		int a = (int) cyc, b = (a + 1) % PALETTE.length;
+		float k = cyc - a;
+		k = k * k * (3 - 2 * k);
+		float r = PALETTE[a][0] + (PALETTE[b][0] - PALETTE[a][0]) * k;
+		float g = PALETTE[a][1] + (PALETTE[b][1] - PALETTE[a][1]) * k;
+		float bl = PALETTE[a][2] + (PALETTE[b][2] - PALETTE[a][2]) * k;
+
 		for (AuroraCurtain curtain : curtains) {
-			curtain.updateCurtain(levelW, levelH, masterAlpha, globalTime);
+			curtain.updateCurtain(levelW, levelH, masterAlpha, globalTime, dt);
+			curtain.light(r, g, bl);
 		}
 	}
 
@@ -152,11 +177,21 @@ public class AuroraOverlay extends Group {
 		private int shown = -1, shownNext = -1;
 		//the frame after this one, faded in as this one fades out
 		final Image next;
+		//a strip of a later frame crossing it: a wave of light along its rays
+		final Image wave;
+		private final float waveOffset;
+		private final RectF waveUv = new RectF();
+		private int waveShown = -1;
+		//how plainly it is seen, eased toward the hero's sight of it
+		private float seen;
 
 		AuroraCurtain(int seed, SmartTexture sheet) {
 			super();
 			texture(sheet);
 			next = new Image(sheet);
+			wave = new Image(sheet);
+			wave.visible = false;
+			waveOffset = seed * 2.3f;
 
 			// Distribute curtains evenly across the full level in both axes
 			xFrac       = seed / (float) NUM_CURTAINS;
@@ -187,7 +222,13 @@ public class AuroraOverlay extends Group {
 			}
 		}
 
-		void updateCurtain(float levelW, float levelH, float masterAlpha, float time) {
+		void light(float r, float g, float b) {
+			hardlight(r, g, b);
+			next.hardlight(r, g, b);
+			wave.hardlight(r, g, b);
+		}
+
+		void updateCurtain(float levelW, float levelH, float masterAlpha, float time, float dt) {
 			float t = time + phaseOffset;
 
 			//the frames cycle, and each curtain is at its own point in the cycle; the
@@ -222,7 +263,9 @@ public class AuroraOverlay extends Group {
 
 			float bright = baseAlpha * (0.4f + shimmer * 0.6f) * masterAlpha;
 
-			// FOV check: only show if hero can see this curtain's centre tile
+			// FOV check: only shown where the hero can see this curtain's centre tile,
+			// easing in and out of sight rather than popping
+			boolean inSight = true;
 			if (Dungeon.level != null && Dungeon.level.heroFOV != null) {
 				int col = (int) ((x + bandW * 0.5f) / DungeonTilemap.SIZE);
 				int row = (int) ((y + bandH * 0.5f) / DungeonTilemap.SIZE);
@@ -230,17 +273,40 @@ public class AuroraOverlay extends Group {
 				col = Math.max(0, Math.min(w - 1, col));
 				row = Math.max(0, Math.min(Dungeon.level.height() - 1, row));
 				int cell = col + row * w;
-				if (cell < 0 || cell >= Dungeon.level.heroFOV.length
-						|| !Dungeon.level.heroFOV[cell]) {
-					bright = 0;
-				}
+				inSight = cell >= 0 && cell < Dungeon.level.heroFOV.length && Dungeon.level.heroFOV[cell];
 			}
+			seen = inSight ? Math.min(1f, seen + dt / SEEN_EASE) : Math.max(0f, seen - dt / SEEN_EASE);
+			bright *= seen * seen * (3 - 2 * seen);
 			//additive, so the two halves add up to one curtain
 			am = bright * (1f - blend);
 			next.am = bright * blend;
 			next.x = x;
 			next.y = y;
-			next.visible = visible;
+			next.visible = visible && bright > 0.004f;
+
+			//now and then a wave of light runs along it: a strip of the frame a third of the cycle
+			//on, crossing from one end to the other, softest at its ends
+			float wt = (t + waveOffset) % WAVE_EVERY;
+			if (wt < WAVE_CROSS && bright > 0.004f) {
+				float p = wt / WAVE_CROSS;
+				int u = Math.round(p * (CW - WAVE_W));
+				int wf = (f + FRAMES / 3) % FRAMES;
+				int left = wf * CW + u;
+				if (left != waveShown) {
+					//no new frame rectangle each frame: the one kept, set anew
+					waveShown = left;
+					float tw = wave.texture.width, th = wave.texture.height;
+					waveUv.set(left / tw, 0, (left + WAVE_W) / tw, CH / th);
+					wave.frame(waveUv);
+				}
+				wave.scale.set(k);
+				wave.x = x + u * k;
+				wave.y = y;
+				wave.am = bright * WAVE_SHARE * (float) Math.sin(p * Math.PI);
+				wave.visible = visible;
+			} else {
+				wave.visible = false;
+			}
 		}
 	}
 }

@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.SteamParticle;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -32,7 +33,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SpringSoak;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 
 /**
@@ -88,7 +88,7 @@ public class ThermalVent extends Blob {
 	@Override
 	public void use( BlobEmitter emitter ){
 		super.use( emitter );
-		emitter.pour( Speck.factory( Speck.STEAM ), 0.45f );
+		emitter.pour( SteamParticle.FACTORY, 0.45f );
 	}
 
 	@Override

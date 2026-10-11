@@ -21,7 +21,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
-import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HealFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.BlobFx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -68,7 +69,8 @@ public class WaterOfHealth extends WellWater {
 			hero.sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(hero.HT), FloatingText.HEALING);
 		}
 		
-		CellEmitter.get( hero.pos ).start( ShaftParticle.FACTORY, 0.2f, 3 );
+		CellEmitter.get( hero.pos ).start( ShaftParticle.HEAL, 0.2f, 3 );
+		HealFx.drink( hero, hero.pos );
 
 		Dungeon.hero.interrupt();
 	
@@ -107,7 +109,7 @@ public class WaterOfHealth extends WellWater {
 	@Override
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
-		emitter.start( WeatherBlobFX.layered( Speck.factory( Speck.HEALING ), WeatherBlobFX.sparkles( 0x90FF90 ), 3 ), 0.4f, 0 );
+		emitter.start( BlobFx.WELL, BlobFx.WELL_EVERY, 0 );
 	}
 	
 	@Override

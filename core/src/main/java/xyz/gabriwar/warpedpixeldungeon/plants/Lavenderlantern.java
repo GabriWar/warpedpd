@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.plants;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.PlantFx;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
@@ -54,6 +55,7 @@ public class Lavenderlantern extends Plant {
 	public void activate( Char ch ) {
 		//identical for stepped-on and no-char triggers in OV
 		GameScene.flash( FLASH_COLOR );
+		PlantFx.lantern( ch != null ? ch.pos : pos );
 		for (Mob mob : Dungeon.level.mobs.toArray(new Mob[0])){
 			if (mob != null) Buff.prolong( mob, Blindness.class, Random.Int( 2, 5 ) );
 		}
@@ -63,6 +65,7 @@ public class Lavenderlantern extends Plant {
 	@Override
 	public void attackProc( Char enemy, int damage ) {
 		GameScene.flash( FLASH_COLOR );
+		if (enemy != null) PlantFx.lantern( enemy.pos );
 		for (Mob mob : Dungeon.level.mobs.toArray(new Mob[0])){
 			if (mob != null) Buff.prolong( mob, Blindness.class, Random.Int( 2, 5 ) );
 		}

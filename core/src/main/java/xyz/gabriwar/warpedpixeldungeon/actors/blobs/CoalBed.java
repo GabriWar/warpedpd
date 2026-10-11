@@ -24,6 +24,9 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.FireBlobFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.FireStyle;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -158,6 +161,22 @@ public abstract class CoalBed extends Blob {
 		if (Dungeon.level.heroFOV[cell]){
 			CellEmitter.get( cell ).burst( FlameParticle.FACTORY, 3 );
 		}
+	}
+
+	/** How its coals look (effects/fx/fire/FireStyle): a forge's fierce, a camp's or a nest's low. */
+	protected abstract FireStyle fireStyle();
+
+	//its coals: drawn as light over the night's tint
+	@Override
+	public boolean emissive(){
+		return true;
+	}
+
+	@Override
+	public void use( BlobEmitter emitter ){
+		super.use( emitter );
+		//started without a random delay: making the bed draws none of the game's random numbers
+		FireBlobFx.coals( this, emitter, fireStyle() );
 	}
 
 	@Override

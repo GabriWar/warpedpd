@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.spells;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HolyFx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
@@ -76,6 +77,7 @@ public class HolyIntuition extends InventoryClericSpell {
 		hero.spend( 1f );
 		hero.busy();
 		hero.sprite.operate(hero.pos);
+		HolyFx.glintSweep(hero.sprite);
 		hero.sprite.parent.add( new Identification( hero.sprite.center().offset( 0, -16 ) ) );
 
 		SpatialSound.play( Assets.Sounds.READ, hero );

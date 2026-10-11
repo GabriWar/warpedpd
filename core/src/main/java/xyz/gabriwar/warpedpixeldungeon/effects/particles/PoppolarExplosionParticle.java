@@ -24,46 +24,52 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Ramp;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.noosa.particles.Emitter.Factory;
-import com.watabou.noosa.particles.PixelParticle;
-import com.watabou.utils.Random;
 
-public class PoppolarExplosionParticle extends PixelParticle.Shrinking {
+/**
+ * A poppolar pod bursting (PopGas's pop, NetVisuals' "poppolar"; the burst keeps its 60): its first
+ * emit a white-hot core for 0.05 s, every other a spark of the pod's red thrown out at 32-72 px/s,
+ * a 1x3 streak turned to its way and a dot once slow, flowing from white through the pod's reds as
+ * it falls (120 px/s^2, drag 1). Light, added; the first 12 are the burst's body (P1), the rest its
+ * spray (P2). The effects' own randomness.
+ */
+public class PoppolarExplosionParticle extends FxParticle {
 
-	public static final Factory FACTORY = new Factory() {
+	/** The pod's sparks, hottest first. */
+	public static final Ramp POP = new Ramp( 0xFFFFFF, 0xF0F0FF, 0xE04040, 0xAC2121, 0x6A1010 );
+	/** The burst's body: this many sparks of it are never thinned below P1. */
+	public static final int BODY = 12;
+
+	public static final Emitter.Factory FACTORY = new Emitter.Factory() {
 		@Override
-		public void emit(Emitter emitter, int index, float x, float y ) {
-			((PoppolarExplosionParticle)emitter.recycle( PoppolarExplosionParticle.class )).reset( x, y );
+		public void emit( Emitter emitter, int index, float x, float y ) {
+			int p = index == 0 ? FxBudget.P0 : (index < BODY ? FxBudget.P1 : FxBudget.P2);
+			if (!FxBudget.keep( p, x, y )) return;
+			PoppolarExplosionParticle s = (PoppolarExplosionParticle)emitter.recycle( PoppolarExplosionParticle.class );
+			if (index == 0) s.resetCore( x, y );
+			else s.resetSpark( x, y, p );
 		}
 		@Override
 		public boolean lightMode() {
 			return true;
-		};
+		}
 	};
 
-	public PoppolarExplosionParticle() {
-		super();
-
-		color( 0xAC2121 );
-		acc.set( 0, +50 );
+	public void resetCore( float x, float y ) {
+		reset( Math.round( x ), Math.round( y ) );
+		look( FxFrames.CORE_FLASH ).paint( 0xFFF0F0 ).light( true ).life( 0.05f ).alpha( 1f, 0, 0.05f ).snap()
+				.priority( FxBudget.P0 );
 	}
 
-	public void reset( float x, float y ) {
-		revive();
-
-		this.x = x;
-		this.y = y;
-
-		left = lifespan = Random.Float();
-
-		size = 8;
-		speed.polar( -Random.Float( 3.1415926f ), Random.Float( 32, 64 ) );
-	}
-
-	@Override
-	public void update() {
-		super.update();
-		am = left > 0.8f ? (1 - left) * 5 : 1;
+	public void resetSpark( float x, float y, int priority ) {
+		reset( x, y );
+		look( FxFrames.SPARK_3 ).orient().slow( FxFrames.MOTE_1, 15f ).ramp( POP, true ).life( FxRandom.Float( 0.3f, 0.9f ) )
+				.alpha( 1f, 0, 0.15f ).polar( FxRandom.angle(), FxRandom.Float( 32f, 72f ) ).gravity( 120f ).drag( 1f )
+				.priority( priority );
 	}
 }

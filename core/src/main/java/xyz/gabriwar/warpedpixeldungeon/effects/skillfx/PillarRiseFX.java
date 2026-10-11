@@ -24,56 +24,69 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects.skillfx;
 
-import com.watabou.glwrap.Blending;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
-import com.watabou.noosa.Image;
-import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Callback;
-import com.watabou.utils.PointF;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.effects.Effects;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxCurves;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxLight;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRing;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Ramp;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.FxPic;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 
 /**
- * A pillar of light that rises from a cell, stands for a breath, then rains sparks as it fades.
- * onPeak fires the moment it reaches full height, for the flash and the sound.
+ * A column of light rising out of a cell, its brightest moment first: the ground flares (a white
+ * pool, a glow at the foot and a ring spreading 13 to 41 px) the frame it is called, then the
+ * painted pillar (a soft column and its 3 px core, 104 px tall) is revealed from the ground up
+ * over RISE s, easing out. At the peak (RISE s, as ever: onPeak fires then, the moment a skill
+ * waits for) embers of holy fire fall from its top; it holds HOLD s, the soft column fading over
+ * SOFT_FADE s and the core lingering CORE_FADE s. Its edge shimmers (the outermost columns of
+ * pixels off and on, 10 times a second) and motes spiral up it. In the light layer;
+ * 2 pictures + a glow, a pool and a ring, at most 22 particles.
  */
 public class PillarRiseFX extends Group {
 
-	private static final float RISE = 0.2f, HOLD = 0.12f, FADE = 0.45f;
-	private static final float HEIGHT = DungeonTilemap.SIZE * 6.5f;
+	public static final float RISE = 0.2f, HOLD = 0.12f, SOFT_FADE = 0.25f, CORE_FADE = 0.45f;
+	public static final int HEIGHT = 104;
+	public static final float SHIMMER = 0.1f;
+	public static final int MOTES_MIN = 6, MOTES_MAX = 10, EMBERS = 12;
 
-	private final Image ray;
-	private final PointF foot;
+	private final FxPic soft, core;
 	private final int color;
 	private final Callback onPeak;
-	private final float length;
+	private final Ramp motes;
+	private float x, foot;
 	private float time = 0;
-	private boolean peaked = false;
+	private boolean peaked = false, laid;
+	private int moteCount, motesLeft;
 
 	private PillarRiseFX( int cell, int color, Callback onPeak ){
 		this.color = color;
 		this.onPeak = onPeak;
-		foot = DungeonTilemap.raisedTileCenterToWorld( cell );
-		ray = new Image( Effects.get( Effects.Type.LIGHT_RAY ) ){
-			@Override
-			public void draw(){
-				Blending.setLightMode();
-				super.draw();
-				Blending.setNormalMode();
-			}
-		};
-		ray.hardlight( color );
-		ray.origin.set( 0, ray.height / 2 );
-		ray.x = foot.x - ray.origin.x;
-		ray.y = foot.y - ray.origin.y;
-		ray.angle = -90;
-		length = HEIGHT / ray.width;
-		ray.scale.set( 0, 1.6f );
-		add( ray );
+		x = SkillVfx.cx( cell );
+		foot = SkillVfx.cy( cell ) + 5;
+		motes = new Ramp( 0xFFFFFF, Ramp.lerp( color, 0xFFFFFF, 0.5f ), color );
+		soft = pic( FxFrames.Light.PILLAR, color );
+		core = pic( FxFrames.Light.PILLAR_CORE, Ramp.lerp( color, 0xFFFFFF, 0.75f ) );
+		moteCount = motesLeft = FxRandom.IntRange( MOTES_MIN, MOTES_MAX );
+	}
+
+	private FxPic pic( int[] frame, int c ){
+		FxPic p = new FxPic( SkillVfx.LIGHT_SHEET );
+		p.additive = true;
+		p.lit( c );
+		p.crop( frame, 0, frame[3], frame[2], 0 );
+		p.visible = false;
+		add( p );
+		return p;
 	}
 
 	public static void show( int cell, int color, Callback onPeak ){
@@ -82,32 +95,109 @@ public class PillarRiseFX extends Group {
 			if (onPeak != null) onPeak.call();
 			return;
 		}
-		Dungeon.hero.sprite.parent.add( new PillarRiseFX( cell, color, onPeak ) );
+		final PillarRiseFX fx = new PillarRiseFX( cell, color, onPeak );
+		Fx.post( () -> {
+			if (GameScene.layer( GameScene.Layer.LIGHTS ) == null){
+				//nothing to draw on: the moment it waits for comes all the same
+				if (onPeak != null) onPeak.call();
+				return;
+			}
+			fx.ground();
+			GameScene.light( fx );
+		} );
+	}
+
+	//the brightest moment, the frame it is called: the ground flares
+	private void ground(){
+		//full for its first moment (a core, 0.05 s), then within the pools' and glows' caps
+		FxLight.pool( x, foot, 31, 0xFFFFFF, 0.8f ).core().life( 0, 0.05f, 0.05f );
+		FxLight.pool( x, foot, 31, color, 1f ).life( 0, 0.1f, 0.3f );
+		FxLight.glow( x, foot - 4, 23, color, 1f ).core().life( 0, 0.04f, 0.04f );
+		FxLight.glow( x, foot - 4, 23, color, 1f ).life( 0, 0.1f, 0.25f );
+		FxRing.ground( GameScene.layer( GameScene.Layer.FLOOR ), x, foot, 13, 41, 0.45f, color, 0.8f, true );
+	}
+
+	/** How much of the column shows (0..1) `t` s in: revealed easing out over RISE, whole after. */
+	public static float reveal( float t ){
+		return t >= RISE ? 1f : FxCurves.easeOut( Math.max( 0f, t ) / RISE );
 	}
 
 	@Override
 	public void update(){
 		super.update();
 		time += Game.elapsed;
+		//the ground under it slid with the window: so does it
+		if (laid){
+			soft.takeSlide();
+			x = soft.midX();
+			foot = soft.midY() + soft.height / 2f;
+		}
+
 		if (time < RISE){
-			float p = time / RISE;
-			ray.scale.set( length * (1 - (1 - p) * (1 - p)), 1.6f );
+			lay( reveal( time ), 1f, 1f );
 		} else if (!peaked){
 			peaked = true;
-			ray.scale.set( length, 1.6f );
-			if (parent != null){
-				new Flare( 6, 14 ).color( color, true ).show( parent, foot, 0.35f );
-				Emitter rain = new Emitter();
-				rain.pos( foot.x - 5, foot.y - HEIGHT * 0.55f, 10, 4 );
-				parent.add( rain );
-				rain.burst( SparkParticle.FACTORY, 12 );
-			}
+			lay( 1f, 1f, 1f );
+			embers();
 			if (onPeak != null) onPeak.call();
-		} else if (time > RISE + HOLD){
-			float p = (time - RISE - HOLD) / FADE;
-			if (p >= 1){ killAndErase(); return; }
-			ray.scale.set( length, 1.6f * (1 - p) );
-			ray.alpha( 1 - p );
+		} else {
+			float after = time - RISE - HOLD;
+			float softA = after <= 0 ? 1f : 1f - after / SOFT_FADE;
+			float coreA = after <= 0 ? 1f : 1f - after / CORE_FADE;
+			if (coreA <= 0f){
+				Fx.dispose( this );
+				return;
+			}
+			lay( 1f, Math.max( 0f, softA ), coreA );
+		}
+		spiral();
+	}
+
+	//the column shown to `shown` of its height, its layers at their alphas
+	private void lay( float shown, float softA, float coreA ){
+		int h = Math.round( HEIGHT * shown );
+		boolean seen = Fx.seen( x, foot - 4 );
+		//the edge's shimmer: the outermost columns of the soft layer off and on
+		boolean b = ((int) (time / SHIMMER)) % 2 == 1;
+		int[] f = FxFrames.Light.PILLAR;
+		int inset = b ? 1 : 0;
+		soft.crop( f, inset, HEIGHT - h, f[2] - 2 * inset, h );
+		soft.place( x, foot - h / 2f );
+		laid = true;
+		soft.am = softA;
+		soft.visible = seen && h > 0 && softA > 0;
+		f = FxFrames.Light.PILLAR_CORE;
+		core.crop( f, 0, HEIGHT - h, f[2], h );
+		core.place( x, foot - h / 2f );
+		core.am = coreA;
+		core.visible = seen && h > 0 && coreA > 0;
+	}
+
+	//motes spiral up the column through its first 0.4 s
+	private void spiral(){
+		if (motesLeft <= 0) return;
+		float due = moteCount * Math.min( 1f, time / 0.4f );
+		while (moteCount - motesLeft < due && motesLeft > 0){
+			motesLeft--;
+			FxParticle p = SkillVfx.glow( x + FxRandom.Float( -2f, 2f ), foot - FxRandom.Float( 0f, 6f ), FxBudget.P2 );
+			if (p == null) continue;
+			p.look( FxRandom.chance( 0.6f ) ? FxFrames.MOTE_1 : FxFrames.MOTE_2 ).ramp( motes, true )
+					.vel( 0, -60f ).sway( 4f, FxRandom.Float( 8f, 11f ) ).life( 0.6f ).alpha( 1f, 0.05f, 0.3f )
+					.source( x, foot - 4 );
+		}
+	}
+
+	//at the peak: holy embers fall from the column's top
+	private void embers(){
+		Ramp r = Element.HOLY.ember;
+		float top = foot - HEIGHT;
+		for (int i = 0; i < EMBERS; i++){
+			float ey = top + FxRandom.Float( 4f, HEIGHT * 0.45f );
+			FxParticle p = SkillVfx.glow( x + FxRandom.Float( -5f, 5f ), ey, FxBudget.P2 );
+			if (p == null) continue;
+			p.look( FxRandom.chance( 0.7f ) ? FxFrames.EMBER_1 : FxFrames.EMBER_2 ).ramp( r, true )
+					.vel( FxRandom.Float( -14f, 14f ), FxRandom.Float( -10f, 4f ) ).gravity( 60f ).drag( 0.8f )
+					.life( FxRandom.Float( 0.5f, 0.8f ) ).alpha( 1f, 0, 0.3f ).source( x, foot - 4 );
 		}
 	}
 }

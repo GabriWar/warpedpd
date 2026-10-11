@@ -419,6 +419,8 @@ public class PixelScene extends Scene {
 	
 	public static void shake( float magnitude, float duration){
 		magnitude *= WPDSettings.screenShake();
+		//never cutting a bigger shake (the effects' or the game's) short
+		if (magnitude > 0 && !xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx.claimShake( magnitude, duration )) return;
 		Camera.main.shake(magnitude, duration);
 	}
 

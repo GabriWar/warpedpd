@@ -25,15 +25,21 @@
 package xyz.gabriwar.warpedpixeldungeon.effects;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.WaterFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.water.FishBrain;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.water.WaterLive;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.TextureFilm;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.utils.PointF;
 
 /**
  * One of the surface's small lives (levels/overworld/OverworldCritters): a bird, a hare,
@@ -579,12 +585,27 @@ public abstract class CritterSprite extends Image {
 		}
 	}
 
-	/** A fish leaping out of open water and back in: a ripple and a splash at either end. */
+	/**
+	 * A fish leaping out of open water and back in (docs/fx/water-life.md, "Leaps"): for a quarter
+	 * of a second first the water gives it away - a bulge of a ring, its shadow rising under the
+	 * surface (in the scene's subsurface layer) to 0.5, pale on dark water (FishBrain.shade) - then the arc as ever (10-18 px long, 9-15
+	 * high, over 0.55-0.75 s), droplets shed from it a third and two thirds of the way, a glint off
+	 * it at the top by day, and where it comes down a small crown, five to seven droplets, a
+	 * middling ring and a large one 0.15 s later. No sound of its own. Its rings stir nothing.
+	 */
 	public static class Fish extends CritterSprite {
+
+		/** The water giving it away before it leaps, s; its shadow's alpha at the leap. */
+		public static final float RISE = 0.25f, SHADOW = 0.5f;
+		static final float BIG_RING_AFTER = 0.15f;
 
 		private final int col0;
 		private final int dir;
 		private final float len, apex, dur;
+		//the shadow rising under the surface, and what has been shed and shown
+		private Image shadow;
+		private boolean leapt, shedOne, shedTwo, glinted, landed;
+		private float bigRingIn = -1f;
 
 		public Fish( boolean river, float ax, float ay, int dir ){
 			this( river ? 2 : 0, ax, ay, dir );
@@ -605,29 +626,113 @@ public abstract class CritterSprite extends Image {
 			origin.set( 8, 10 );
 			pose( ROW_FISH, col0 );
 			face( dir < 0 );
-			splash( 3 );
+			shown = 0f;
+			//the bulge where it will break the water
+			Element.Liquid l = WaterFX.liquid();
+			WaterFX.quietRing( gx(), gy() - 1f, WaterFX.S, l.foam, WaterFX.alphaOf( WaterFX.S ) * 0.7f, FxBudget.P2 );
+			shadow = new Image( this );
+			shadow.hardlight( FishBrain.shade( WaterLive.liquid() ) );
+			shadow.alpha( 0f );
+			GameScene.subsurface( shadow );
 		}
 
-		private void splash( int drops ){
-			int w = Dungeon.level.width();
-			int cell = (int)(gx() / DungeonTilemap.SIZE) + (int)(gy() / DungeonTilemap.SIZE) * w;
-			if (cell >= 0 && cell < Dungeon.level.length()) GameScene.ripple( cell );
-			Splash.at( new PointF( gx(), gy() - 2f ), 0xD8EAF4, drops );
+		//where it breaks the water and falls back: droplets, rings, a crown
+		private void broke( boolean in ){
+			Element.Liquid l = WaterFX.liquid();
+			float x = gx(), y = gy() - 1f;
+			if (in){
+				WaterFX.crown( x, y, WaterFX.S, l.foam );
+				WaterFX.droplets( x, y - 1f, RNG.nextInt( 3 ) + 5, 35f, 65f, 100f, l.foam );
+				WaterFX.quietRing( x, y, WaterFX.M, l.foam, WaterFX.alphaOf( WaterFX.M ), FxBudget.P2 );
+				bigRingIn = BIG_RING_AFTER;
+			} else {
+				WaterFX.quietRing( x, y, WaterFX.S, l.foam, WaterFX.alphaOf( WaterFX.S ), FxBudget.P2 );
+				WaterFX.droplets( x, y - 1f, 2, 25f, 45f, 80f, l.foam );
+			}
+		}
+
+		//droplets falling off it in the air, as it goes
+		private void shed(){
+			Element.Liquid l = WaterFX.liquid();
+			WaterFX.droplets( gx(), gy() - z - 2f, RNG.nextInt( 2 ) + 2, 10f, 25f, 140f, l.foam );
+		}
+
+		@Override
+		public void vanish(){
+			if (shadow != null){
+				shadow.killAndErase();
+				shadow.destroy();
+				shadow = null;
+			}
+			super.vanish();
 		}
 
 		@Override
 		protected void act( float dt ){
-			float p = Math.min( 1f, life / dur );
+			if (bigRingIn >= 0f && (bigRingIn -= dt) < 0f){
+				Element.Liquid l = WaterFX.liquid();
+				WaterFX.quietRing( gx(), gy() - 1f, WaterFX.L, l.foam, WaterFX.alphaOf( WaterFX.L ), FxBudget.P2 );
+				vanish();
+				return;
+			}
+			if (landed) return;
+			if (life < RISE){
+				//the water gives it away: its shadow rising under the surface
+				shown = 0f;
+				if (shadow != null){
+					shadow.frame( frame );
+					shadow.flipHorizontal = flipHorizontal;
+					shadow.x = gx() - 8;
+					shadow.y = gy() - 10;
+					shadow.alpha( SHADOW * life / RISE );
+					shadow.visible = visible;
+				}
+				return;
+			}
+			if (!leapt){
+				leapt = true;
+				shown = 1f;
+				if (shadow != null){
+					shadow.killAndErase();
+					shadow.destroy();
+					shadow = null;
+				}
+				broke( false );
+			}
+			float p = Math.min( 1f, (life - RISE) / dur );
 			ox = dir * len * p;
 			z = 4f * apex * p * (1f - p);
 			//nose along the arc: up out of the water, down into it
 			float vx = len / dur, vy = -4f * apex * (1f - 2f * p) / dur;
 			angle = (float)Math.toDegrees( Math.atan2( vy, vx ) ) * dir;
 			pose( ROW_FISH, col0 + (((int)(life * 12f)) & 1) );
-			if (p >= 1f){
-				splash( 4 );
-				vanish();
+			if (!shedOne && p >= 0.3f){
+				shedOne = true;
+				shed();
 			}
+			if (!shedTwo && p >= 0.6f){
+				shedTwo = true;
+				shed();
+			}
+			if (!glinted && p >= 0.5f){
+				glinted = true;
+				glint();
+			}
+			if (p >= 1f){
+				landed = true;
+				shown = 0f;
+				broke( true );
+			}
+		}
+
+		//the sun off its side at the top of its leap, for a frame (by day, where the hero sees it)
+		private void glint(){
+			if (GameScene.nightTintAlpha() > 0.27f || !visible) return;
+			FxEmitter glow = Fx.glowAir();
+			if (glow == null || !FxBudget.keep( FxBudget.P3, gx(), gy() )) return;
+			((FxParticle) glow.recycle( FxParticle.class )).reset( gx(), gy() - z - 2f ).look( FxFrames.STAR4_5 )
+					.paint( WaterFX.liquid().glint ).light( true ).life( 1 / 30f ).alpha( 0.9f, 0, 0f ).snap()
+					.priority( FxBudget.P3 );
 		}
 	}
 

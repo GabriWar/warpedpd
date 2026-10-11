@@ -36,6 +36,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SpiritArmor;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Transcendence;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.StanceOrbit;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.EquipmentSparkle;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
@@ -63,6 +65,7 @@ public class StanceAura extends Buff {
 
 	private int kind = KNOCKBACK;
 	private AuraEmitter emitter;
+	private StanceOrbit orbit;
 
 	/** brings the hero's auras in line with his stances: one for each that is on, none for the rest */
 	public static void sync( Hero hero ){
@@ -106,6 +109,18 @@ public class StanceAura extends Buff {
 		}
 	}
 
+	//the colour of its orbit: the stance's own light
+	private static int color( int kind ){
+		switch (kind){
+			case RAMPAGE: return 0xFFE070;
+			case IRON:    return 0xCCDDEE;
+			case FURY:    return 0xFF5A4A;
+			case SPIRIT:  return 0x66AAFF;
+			case LIGHT:   return 0xFFF6C8;
+			default:      return 0xFFB060;
+		}
+	}
+
 	//seconds between two particles: an aura, not a fountain
 	private static float interval( int kind ){
 		switch (kind){
@@ -135,10 +150,16 @@ public class StanceAura extends Buff {
 			emitter.on = false;
 			emitter = null;
 		}
+		if (orbit != null){
+			Fx.dispose( orbit );
+			orbit = null;
+		}
 		if (!on || target.sprite == null || target.sprite.parent == null) return;
 		emitter = new AuraEmitter( target.sprite );
 		target.sprite.parent.add( emitter );
 		emitter.pour( factory( kind ), interval( kind ) );
+		orbit = new StanceOrbit( target, color( kind ) );
+		target.sprite.parent.add( orbit );
 	}
 
 	/** follows the sprite, hides with it, and takes itself off the scene once its last particle is gone */

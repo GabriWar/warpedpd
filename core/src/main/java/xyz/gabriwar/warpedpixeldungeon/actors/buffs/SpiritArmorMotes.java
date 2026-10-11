@@ -35,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SpiritArmor;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.effects.SpiritArmorFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
@@ -61,6 +62,9 @@ public class SpiritArmorMotes extends Buff {
 	}
 
 	public static int capacity( int rank ){ return 1 + rank; }
+
+	/** Whether the ring holds all the motes its rank allows. */
+	public boolean full(){ return motes >= capacity( rank ); }
 
 	public void absorb( int mana, int level ){
 		rank = level;
@@ -102,6 +106,7 @@ public class SpiritArmorMotes extends Buff {
 			if (target.sprite != null && target.sprite.parent != null && aim.sprite != null){
 				((MagicMissile) target.sprite.parent.recycle( MagicMissile.class )).reset(
 						MagicMissile.WARD, target.sprite.center(), aim.sprite.destinationCenter(), null );
+				SpiritArmorFX.spend( target, aim );
 			}
 			aim.damage( Random.NormalIntRange( 2 + rank, 4 + 2 * rank ), this );
 			if (aim.sprite != null) aim.sprite.flash();
@@ -140,7 +145,7 @@ public class SpiritArmorMotes extends Buff {
 
 	@Override
 	public void fx( boolean on ){
-		if (visual != null){ visual.killAndErase(); visual = null; }
+		if (visual != null){ Fx.dispose( visual ); visual = null; }
 		if (on && target.sprite != null && target.sprite.parent != null){
 			visual = new SpiritArmorFX( target, this );
 			target.sprite.parent.add( visual );

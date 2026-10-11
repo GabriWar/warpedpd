@@ -24,14 +24,13 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 
-import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.BlobFx;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Glowing;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 
 public class GlowingGas extends Blob {
@@ -58,7 +57,13 @@ public class GlowingGas extends Blob {
 	@Override
 	public void use( BlobEmitter emitter ) {
 		super.use( emitter );
-		emitter.pour( WeatherBlobFX.layered( Speck.factory( Speck.LIGHT ), WeatherBlobFX.motes( 0xFFF0A0 ), 2 ), 0.3f );
+		emitter.pour( BlobFx.GLOW, BlobFx.GLOW_EVERY );
+	}
+
+	//it is light: its emitter is drawn over the night's tint
+	@Override
+	public boolean emissive() {
+		return true;
 	}
 
 	@Override

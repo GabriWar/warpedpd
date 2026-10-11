@@ -27,7 +27,7 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.Wave;
-import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.water.WaterDrops;
 import com.watabou.noosa.TextureFilm;
 import com.watabou.utils.Callback;
 
@@ -67,7 +67,8 @@ public class CrabKingSprite extends MobSprite {
 		isMoving = true;
 
 		if (Dungeon.level.water[to]) {
-			GameScene.ripple( to );
+			//a blink into the water: a ring and droplets where it arrives
+			WaterDrops.arrive( to );
 		}
 
 		ch.onMotionComplete();

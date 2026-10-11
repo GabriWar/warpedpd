@@ -109,7 +109,7 @@ public class Pirouette extends Skill {
 		CellEmitter.bottom( from ).burst( Speck.factory( Speck.DUST ), 10 );
 		new Flare( 5, 18 ).color( 0xCCE0FF, true ).show( hero.sprite, 0.5f ).angularSpeed = 240;
 		//the ribbon: two arcs wound round her, spinning with her through the whole leap
-		ArcSpinFX.around( hero.sprite, 0xCCE0FF, 10, 0.5f, 0, 1080, 0.5f );
+		ArcSpinFX.around( hero.sprite, 0xCCE0FF, 10, 0.5f, 0, 1080, 0.5f, true );
 		ArcSpinFX.around( hero.sprite, 0xFFFFFF, 7, 0.35f, 180, 1080, 0.5f );
 		SpatialSound.play( Assets.Sounds.MISS, hero, 1f, 1.2f );
 		Dungeon.hero.heroSkills.lastUsed = this;

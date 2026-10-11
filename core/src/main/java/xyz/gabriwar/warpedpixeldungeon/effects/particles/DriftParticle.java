@@ -25,16 +25,17 @@
 package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
 import com.watabou.noosa.Game;
-import com.watabou.utils.Random;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
 import xyz.gabriwar.warpedpixeldungeon.effects.WeatherSprites;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
 
 /**
  * The one particle the weather blobs are built from: a sprite from the sheet
  * given a colour, a life, a motion, a wobble, a share of the wind and a pulse.
  * A factory configures it in a line or two, so a cloud of them can mix wisps,
- * flakes, leaves, seeds and embers.
+ * flakes, leaves, seeds and embers. Its randomness is the effects' own (FxRandom),
+ * never the game's.
  */
 public class DriftParticle extends WeatherParticle {
 
@@ -42,7 +43,7 @@ public class DriftParticle extends WeatherParticle {
 	private float wobble, wobblePhase, wobbleRate;
 	private float windFactor, pulse;
 	private boolean tumble;
-	private float tumbleLeft;
+	private float tumbleLeft, tumbleMin, tumbleMax;
 	private boolean sourced;
 	private float srcX, srcY;
 
@@ -82,7 +83,7 @@ public class DriftParticle extends WeatherParticle {
 
 	/** a start speed with a random spread, and the pull on it */
 	public DriftParticle motion( float vx, float vy, float spreadX, float spreadY, float ax, float ay ) {
-		speed.set( vx + Random.Float( -spreadX, spreadX ), vy + Random.Float( -spreadY, spreadY ) );
+		speed.set( vx + FxRandom.Float( -spreadX, spreadX ), vy + FxRandom.Float( -spreadY, spreadY ) );
 		acc.set( ax, ay );
 		return this;
 	}
@@ -91,7 +92,7 @@ public class DriftParticle extends WeatherParticle {
 	public DriftParticle sway( float amplitude, float rate, float windFactor ) {
 		wobble = amplitude;
 		wobbleRate = rate;
-		wobblePhase = Random.Float( (float)(Math.PI * 2) );
+		wobblePhase = FxRandom.angle();
 		this.windFactor = windFactor;
 		return this;
 	}
@@ -104,8 +105,15 @@ public class DriftParticle extends WeatherParticle {
 
 	/** it turns over as it goes: the sprite mirrors now and then */
 	public DriftParticle tumbling() {
+		return tumbling( 0.15f, 0.4f );
+	}
+
+	/** it turns over every min-max seconds: the sprite mirrors */
+	public DriftParticle tumbling( float min, float max ) {
 		tumble = true;
-		tumbleLeft = Random.Float( 0.15f, 0.4f );
+		tumbleMin = min;
+		tumbleMax = max;
+		tumbleLeft = FxRandom.Float( min, max );
 		return this;
 	}
 
@@ -131,7 +139,7 @@ public class DriftParticle extends WeatherParticle {
 		if (tumble) {
 			tumbleLeft -= dt;
 			if (tumbleLeft <= 0) {
-				tumbleLeft = Random.Float( 0.15f, 0.4f );
+				tumbleLeft = FxRandom.Float( tumbleMin, tumbleMax );
 				scale.x = -scale.x;
 			}
 		}

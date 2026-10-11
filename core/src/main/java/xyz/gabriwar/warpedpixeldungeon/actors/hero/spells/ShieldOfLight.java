@@ -21,6 +21,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.spells;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.HolyFx;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -89,6 +91,8 @@ public class ShieldOfLight extends TargetedClericSpell {
 		hero.busy();
 		hero.sprite.operate(hero.pos);
 		hero.sprite.emitter().start(Speck.factory(Speck.LIGHT), 0.15f, 6);
+		//a plate of light raised toward the one it shields against
+		HolyFx.bubble(hero.sprite, Element.HOLY.light, 0.3f, 0.6f, ch.sprite != null && ch.sprite.x < hero.sprite.x ? -4 : 4);
 
 		Char ally = PowerOfMany.getPoweredAlly();
 		if (ally != null && ally.buff(LifeLinkSpell.LifeLinkSpellBuff.class) != null){
