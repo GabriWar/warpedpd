@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar;
 import xyz.gabriwar.warpedpixeldungeon.actors.TileTemperature;
+import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.plants.Plant;
 import xyz.gabriwar.warpedpixeldungeon.plants.PlantGrowthManager;
@@ -66,6 +67,11 @@ public class HothouseGlass extends Blob {
 	private static final int MAX_CATCHUP = 8;
 
 	private int lastGrowth = -1;
+
+	@Override
+	public Notes.Landmark landmark(){
+		return Notes.Landmark.HOTHOUSE;
+	}
 
 	@Override
 	protected void evolve(){

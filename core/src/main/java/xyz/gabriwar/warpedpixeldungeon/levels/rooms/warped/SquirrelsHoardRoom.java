@@ -25,6 +25,8 @@
 package xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar;
+import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
+import xyz.gabriwar.warpedpixeldungeon.actors.blobs.HoardBedding;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.HoardSquirrel;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.LivingPlant;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
@@ -70,6 +72,8 @@ public class SquirrelsHoardRoom extends SecretRoom {
 		int nest = level.pointToCell( c );
 		Painter.set( level, nest, Terrain.CUSTOM_DECO_EMPTY );
 		WarpedRoomTiles.place( level, nest, WarpedRoomTiles.BEDDING, "bedding" );
+		//what puts the hoard in the journal: it has no keeper outside winter
+		Blob.seed( nest, 1, HoardBedding.class, level );
 
 		ArrayList<Integer> floor = new ArrayList<>();
 		for (int x = left + 1; x < right; x++){

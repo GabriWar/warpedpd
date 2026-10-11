@@ -44,6 +44,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.WarpedRooms;
+import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.IceBlockSprite;
@@ -102,6 +103,22 @@ public class IceBlock extends Mob {
 
 	public void encase( Item item ){
 		prize = item;
+	}
+
+	//the cache's journal entry: any of its blocks seen puts it there, and it comes off
+	//again once the last block has melted or broken
+	@Override
+	public Notes.Landmark landmark(){
+		return Notes.Landmark.FROZEN_CACHE;
+	}
+
+	@Override
+	public void destroy(){
+		super.destroy();
+		for (Mob mob : Dungeon.level.mobs){
+			if (mob instanceof IceBlock) return;
+		}
+		Notes.remove( Notes.Landmark.FROZEN_CACHE );
 	}
 
 	/** a block found already going: the share of the thaw that is done, 0..1 */

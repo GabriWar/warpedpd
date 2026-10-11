@@ -74,6 +74,7 @@ import xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.SquirrelsHoardRoom;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.TemperingForgeRoom;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.WarpedRooms;
 import xyz.gabriwar.warpedpixeldungeon.messages.Languages;
+import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.tiles.CustomTilemap;
 import xyz.gabriwar.warpedpixeldungeon.tiles.WarpedRoomTiles;
@@ -163,6 +164,8 @@ public class WarpedRoomsTest {
 		//a game with no scene: Level.drop asks the live scene whether to press the cell
 		if (Game.instance == null) new Game( null, null );
 		Messages.setup( Languages.ENGLISH );
+		//the journal a game starts with: a room used up takes its entry off it
+		Notes.reset();
 	}
 
 	private Level level;

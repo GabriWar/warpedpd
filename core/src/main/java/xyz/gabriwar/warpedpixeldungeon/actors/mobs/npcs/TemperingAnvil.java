@@ -42,6 +42,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
 import xyz.gabriwar.warpedpixeldungeon.items.rarity.MasterworkCore;
 import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
+import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.net.NetDialogs;
@@ -173,6 +174,12 @@ public class TemperingAnvil extends NPC {
 		return spent;
 	}
 
+	//the forge's journal entry, until the anvil has done its one piece of work
+	@Override
+	public Notes.Landmark landmark(){
+		return spent ? null : Notes.Landmark.TEMPERING_FORGE;
+	}
+
 	private void overcook(){
 		boolean lost = MasterworkCore.quality( held ).scorch( held );
 		state = COLD;
@@ -193,6 +200,7 @@ public class TemperingAnvil extends NPC {
 		held = null;
 		state = EMPTY;
 		spent = true;
+		Notes.remove( Notes.Landmark.TEMPERING_FORGE );
 		show();
 
 		if (seen()){

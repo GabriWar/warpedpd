@@ -35,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SnowParticle;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
+import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.tiles.WarpedRoomTiles;
@@ -73,6 +74,12 @@ public class ElementalLock extends Blob {
 
 	/** the cell of the vault's gate, set by the room */
 	public int gate = -1;
+
+	//the vault's journal entry; it comes off again when the gate opens
+	@Override
+	public Notes.Landmark landmark(){
+		return Notes.Landmark.ELEMENTAL_LOCK;
+	}
 
 	@Override
 	protected void evolve(){
@@ -145,6 +152,7 @@ public class ElementalLock extends Blob {
 		//the lock is done either way: clear the marks so this never runs again
 		for (int i = 0; i < off.length; i++) off[i] = 0;
 		volume = 0;
+		Notes.remove( Notes.Landmark.ELEMENTAL_LOCK );
 		if (gate < 0 || Dungeon.level.map[gate] != Terrain.CUSTOM_DECO) return;
 
 		Level.set( gate, Terrain.EMPTY_SP );

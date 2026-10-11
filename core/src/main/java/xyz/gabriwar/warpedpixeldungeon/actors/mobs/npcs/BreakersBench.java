@@ -44,6 +44,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.rarity.Rarity;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.MissileWeapon;
+import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.net.NetDialogs;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -82,6 +83,11 @@ public class BreakersBench extends NPC {
 
 	public int scrap(){
 		return scrap;
+	}
+
+	@Override
+	public Notes.Landmark landmark(){
+		return Notes.Landmark.BREAKERS_BENCH;
 	}
 
 	private static boolean forgeday(){

@@ -36,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
+import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.tiles.WarpedRoomTiles;
@@ -65,6 +66,11 @@ public class CounterweightPlates extends Blob {
 	/** the gateway cell and the cells inside the vault, set by the room */
 	public int gate = -1;
 	public int[] vault = new int[0];
+
+	@Override
+	public Notes.Landmark landmark(){
+		return Notes.Landmark.COUNTERWEIGHT_VAULT;
+	}
 
 	@Override
 	protected void evolve(){

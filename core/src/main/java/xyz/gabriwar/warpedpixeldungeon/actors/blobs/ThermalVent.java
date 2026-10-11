@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SpringSoak;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
+import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 
 /**
@@ -51,6 +52,11 @@ public class ThermalVent extends Blob {
 
 	private static final float WARM = 5f;
 	private static final float CORE = 10f;
+
+	@Override
+	public Notes.Landmark landmark(){
+		return Notes.Landmark.THERMAL_SPRING;
+	}
 
 	@Override
 	protected void evolve(){

@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Egg;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
+import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Bundle;
@@ -63,6 +64,11 @@ public class NestBrood extends Blob {
 	};
 
 	private int turns = 0;
+
+	@Override
+	public Notes.Landmark landmark(){
+		return Notes.Landmark.INCUBATOR_NEST;
+	}
 
 	@Override
 	protected void evolve(){

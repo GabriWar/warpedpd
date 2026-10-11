@@ -37,6 +37,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.DraftParticle;
+import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Bundle;
@@ -81,6 +82,11 @@ public class BellowsDraft extends Blob {
 	public void mark( xyz.gabriwar.warpedpixeldungeon.levels.Level level, int cell, int heading ){
 		this.heading = heading;
 		if (cur == null || cur[cell] == 0) seed( level, cell, MARK + heading );
+	}
+
+	@Override
+	public Notes.Landmark landmark(){
+		return Notes.Landmark.BELLOWS;
 	}
 
 	@Override

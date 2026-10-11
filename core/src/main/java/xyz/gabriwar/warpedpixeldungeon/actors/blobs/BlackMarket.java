@@ -48,6 +48,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.rarity.Rarity;
 import xyz.gabriwar.warpedpixeldungeon.items.rarity.TypeShifter;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.WarpedRooms;
+import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
@@ -132,6 +133,11 @@ public class BlackMarket extends Blob {
 	}
 
 	// ---------------------------------------------------------------- the clock
+
+	@Override
+	public Notes.Landmark landmark(){
+		return Notes.Landmark.BLACK_MARKET;
+	}
 
 	@Override
 	protected void evolve(){

@@ -301,9 +301,10 @@ public class RivalStatue extends Statue {
 
 	// ---------------------------------------------------------------- everything else
 
+	//the gallery's entry; Statue.destroy() takes it off again once the rival is beaten
 	@Override
 	public Notes.Landmark landmark(){
-		return null;
+		return Notes.Landmark.RIVAL_GALLERY;
 	}
 
 	@Override

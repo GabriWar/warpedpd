@@ -25,18 +25,26 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Foliage;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.AltarShrine;
+import xyz.gabriwar.warpedpixeldungeon.actors.blobs.BellowsDraft;
+import xyz.gabriwar.warpedpixeldungeon.actors.blobs.HothouseGlass;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.SacrificialFire;
+import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ThermalVent;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.WaterOfAwareness;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.WaterOfTransmutation;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.WaterOfHealth;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.DemonSpawner;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.IceBlock;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.RivalStatue;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Statue;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Bedroll;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.BlackMarketDealer;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Blacksmith;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Ghost;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Imp;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.ImpShopkeeper;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.RatKing;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Shopkeeper;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TemperingAnvil;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Wandmaker;
 import xyz.gabriwar.warpedpixeldungeon.items.EquipableItem;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
@@ -58,6 +66,7 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.ShopkeeperSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.SpawnerSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.StatueSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.WandmakerSprite;
+import xyz.gabriwar.warpedpixeldungeon.tiles.WarpedRoomTiles;
 import xyz.gabriwar.warpedpixeldungeon.ui.Icons;
 import com.watabou.noosa.BitmapText;
 import com.watabou.noosa.Image;
@@ -133,6 +142,21 @@ public class Notes {
 		SACRIFICIAL_FIRE,
 		ALTAR_SHRINE,
 		STATUE,
+		//the special rooms Warped adds
+		RIVAL_GALLERY,
+		TEMPERING_FORGE,
+		BREAKERS_BENCH,
+		PEDIGREE_HALL,
+		FROZEN_CACHE,
+		BELLOWS,
+		ELEMENTAL_LOCK,
+		HOTHOUSE,
+		INCUBATOR_NEST,
+		COUNTERWEIGHT_VAULT,
+		BLACK_MARKET,
+		SQUIRRELS_HOARD,
+		THERMAL_SPRING,
+		WAYFARERS_CAMP,
 
 		LOST_PACK,
 		BEACON_LOCATION,
@@ -204,6 +228,34 @@ public class Notes {
 					return Icons.get(Icons.ALTAR_SHRINE);
 				case STATUE:
 					return new Image(new StatueSprite());
+				case RIVAL_GALLERY:
+					return Icons.get(Icons.RIVAL_GALLERY);
+				case TEMPERING_FORGE:
+					return Icons.get(Icons.TEMPERING_FORGE);
+				case BREAKERS_BENCH:
+					return Icons.get(Icons.BREAKERS_BENCH);
+				case PEDIGREE_HALL:
+					return Icons.get(Icons.PEDIGREE_HALL);
+				case FROZEN_CACHE:
+					return Icons.get(Icons.FROZEN_CACHE);
+				case BELLOWS:
+					return Icons.get(Icons.BELLOWS);
+				case ELEMENTAL_LOCK:
+					return Icons.get(Icons.ELEMENTAL_LOCK);
+				case HOTHOUSE:
+					return Icons.get(Icons.HOTHOUSE);
+				case INCUBATOR_NEST:
+					return Icons.get(Icons.INCUBATOR_NEST);
+				case COUNTERWEIGHT_VAULT:
+					return Icons.get(Icons.COUNTERWEIGHT_VAULT);
+				case BLACK_MARKET:
+					return Icons.get(Icons.BLACK_MARKET);
+				case SQUIRRELS_HOARD:
+					return Icons.get(Icons.SQUIRRELS_HOARD);
+				case THERMAL_SPRING:
+					return Icons.get(Icons.THERMAL_SPRING);
+				case WAYFARERS_CAMP:
+					return Icons.get(Icons.WAYFARERS_CAMP);
 
 				case LOST_PACK:
 					return Icons.get(Icons.BACKPACK_LRG);
@@ -292,6 +344,20 @@ public class Notes {
 				case SACRIFICIAL_FIRE:  return Messages.get(SacrificialFire.class, "desc");
 				case ALTAR_SHRINE:      return Messages.get(AltarShrine.class, "desc");
 				case STATUE:            return Messages.get(Statue.class, "desc");
+				case RIVAL_GALLERY:     return Messages.get(RivalStatue.class, "desc");
+				case TEMPERING_FORGE:   return Messages.get(TemperingAnvil.class, "desc");
+				case BREAKERS_BENCH:    return Messages.get(Landmark.class, "breakers_bench_desc");
+				case PEDIGREE_HALL:     return Messages.get(WarpedRoomTiles.class, "pedigree_plaque_desc");
+				case FROZEN_CACHE:      return Messages.get(IceBlock.class, "desc");
+				case BELLOWS:           return Messages.get(BellowsDraft.class, "desc");
+				case ELEMENTAL_LOCK:    return Messages.get(WarpedRoomTiles.class, "rune_gate_desc");
+				case HOTHOUSE:          return Messages.get(HothouseGlass.class, "desc");
+				case INCUBATOR_NEST:    return Messages.get(WarpedRoomTiles.class, "nest_desc");
+				case COUNTERWEIGHT_VAULT: return Messages.get(WarpedRoomTiles.class, "portcullis_desc");
+				case BLACK_MARKET:      return Messages.get(BlackMarketDealer.class, "desc");
+				case SQUIRRELS_HOARD:   return Messages.get(WarpedRoomTiles.class, "bedding_desc");
+				case THERMAL_SPRING:    return Messages.get(ThermalVent.class, "desc");
+				case WAYFARERS_CAMP:    return Messages.get(Bedroll.class, "desc");
 
 				case LOST_PACK:         return Messages.get(LostBackpack.class, "desc");
 				case BEACON_LOCATION:   return Messages.get(BeaconOfReturning.class, "desc");

@@ -102,6 +102,21 @@ public enum Icons {
 	SACRIFICE_ALTAR,
 	DISTANT_WELL,
 	ALTAR_SHRINE,
+	//journal icons for the special rooms Warped adds
+	RIVAL_GALLERY,
+	TEMPERING_FORGE,
+	BREAKERS_BENCH,
+	PEDIGREE_HALL,
+	FROZEN_CACHE,
+	BELLOWS,
+	ELEMENTAL_LOCK,
+	HOTHOUSE,
+	INCUBATOR_NEST,
+	COUNTERWEIGHT_VAULT,
+	BLACK_MARKET,
+	SQUIRRELS_HOARD,
+	THERMAL_SPRING,
+	WAYFARERS_CAMP,
 
 	//smaller icons, variable spacing
 	SKULL,
@@ -344,6 +359,48 @@ public enum Icons {
 				break;
 			case ALTAR_SHRINE:
 				icon.frame( icon.texture.uvRectBySize( 192, 64, 16, 16 ) );
+				break;
+			case RIVAL_GALLERY:
+				icon.frame( icon.texture.uvRectBySize( 128, 48, 16, 16 ) );
+				break;
+			case TEMPERING_FORGE:
+				icon.frame( icon.texture.uvRectBySize( 144, 48, 16, 16 ) );
+				break;
+			case BREAKERS_BENCH:
+				icon.frame( icon.texture.uvRectBySize( 160, 48, 16, 16 ) );
+				break;
+			case PEDIGREE_HALL:
+				icon.frame( icon.texture.uvRectBySize( 176, 48, 16, 16 ) );
+				break;
+			case FROZEN_CACHE:
+				icon.frame( icon.texture.uvRectBySize( 192, 48, 16, 16 ) );
+				break;
+			case BELLOWS:
+				icon.frame( icon.texture.uvRectBySize( 208, 48, 16, 16 ) );
+				break;
+			case ELEMENTAL_LOCK:
+				icon.frame( icon.texture.uvRectBySize( 224, 48, 16, 16 ) );
+				break;
+			case HOTHOUSE:
+				icon.frame( icon.texture.uvRectBySize( 240, 48, 16, 16 ) );
+				break;
+			case INCUBATOR_NEST:
+				icon.frame( icon.texture.uvRectBySize( 208, 64, 16, 16 ) );
+				break;
+			case COUNTERWEIGHT_VAULT:
+				icon.frame( icon.texture.uvRectBySize( 224, 64, 16, 16 ) );
+				break;
+			case BLACK_MARKET:
+				icon.frame( icon.texture.uvRectBySize( 240, 64, 16, 16 ) );
+				break;
+			case SQUIRRELS_HOARD:
+				icon.frame( icon.texture.uvRectBySize( 208, 32, 16, 16 ) );
+				break;
+			case THERMAL_SPRING:
+				icon.frame( icon.texture.uvRectBySize( 224, 32, 16, 16 ) );
+				break;
+			case WAYFARERS_CAMP:
+				icon.frame( icon.texture.uvRectBySize( 240, 96, 16, 16 ) );
 				break;
 
 			case SKULL:

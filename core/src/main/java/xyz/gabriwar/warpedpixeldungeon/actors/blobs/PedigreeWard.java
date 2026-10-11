@@ -30,6 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
+import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 
@@ -44,6 +45,12 @@ public class PedigreeWard extends Blob {
 	{
 		//after the hero and the mobs: a piece lifted this turn is missed this turn
 		actPriority = MOB_PRIO - 1;
+	}
+
+	//the hall's journal entry; it comes off again when a piece is taken
+	@Override
+	public Notes.Landmark landmark(){
+		return Notes.Landmark.PEDIGREE_HALL;
 	}
 
 	@Override
@@ -83,6 +90,7 @@ public class PedigreeWard extends Blob {
 			off[cell] = 0;
 		}
 		volume = 0;
+		Notes.remove( Notes.Landmark.PEDIGREE_HALL );
 		if (seen >= 0){
 			SpatialSound.play( Assets.Sounds.SHATTER, seen );
 			GLog.w( Messages.get( this, "shattered" ) );
