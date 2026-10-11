@@ -63,7 +63,7 @@ public class GnollArcher extends Mob {
 		lootChanceOther = 0.01f;
 
 		declareExtraLoot(SewersKey.class, 1f);
-		declareExtraLoot(TenguKey.class, 0.1f);
+		declareExtraLoot(TenguKey.class, 1f);
 		declareExtraLoot(SafeSpotPage.class, 0.1f);
 		declareExtraLoot(ForestDart.class, 1f);
 	}

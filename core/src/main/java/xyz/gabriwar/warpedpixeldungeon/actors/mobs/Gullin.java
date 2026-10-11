@@ -33,7 +33,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
 import xyz.gabriwar.warpedpixeldungeon.items.StoneOre;
 import xyz.gabriwar.warpedpixeldungeon.items.nornstone.*;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.relic.RelicMeleeWeapon;
-import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.JupitersWraith;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.GullinSprite;
@@ -74,7 +73,7 @@ public class Gullin extends Mob {
 
 	@Override
 	public void damage(int dmg, Object src) {
-		if (!(src instanceof RelicMeleeWeapon) && !(src instanceof JupitersWraith)) {
+		if (!RelicMeleeWeapon.isRelicHit(src)) {
 			int max = Math.max(1, Math.round(dmg * 0.25f));
 			dmg = Random.Int(1, max);
 		}

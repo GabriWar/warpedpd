@@ -45,7 +45,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.misc.AutoPotion;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.relic.RelicMeleeWeapon;
-import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.JupitersWraith;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -160,7 +159,7 @@ public class Zot extends Mob {
 	@Override
 	public void damage( int dmg, Object src ) {
 		if (!BossHealthBar.isAssigned()) BossHealthBar.assignBoss( this );
-		if (!(src instanceof RelicMeleeWeapon) && !(src instanceof JupitersWraith)) {
+		if (!RelicMeleeWeapon.isRelicHit(src)) {
 			dmg = Random.Int( 1, Math.max( 1, Math.round( dmg * 0.25f ) ) );
 		}
 

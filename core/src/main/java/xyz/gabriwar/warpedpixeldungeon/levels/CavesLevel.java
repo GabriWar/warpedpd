@@ -111,10 +111,21 @@ public class CavesLevel extends RegularLevel {
 	protected void createMobs() {
 		//spawn a piranha alongside the blacksmith quest (guarantees CavesKey access)
 		if (Dungeon.depth == 14 && !Delves.inDelve() && !Dungeon.LimitedDrops.CAVES_KEY.dropped()) {
+			//in the water: a piranha laid on dry land suffocates at once and leaves the key lying
+			//there. A floor with no free water gets a pool of one cell under it
 			Piranha piranha = new Piranha();
-			do {
-				piranha.pos = randomRespawnCell( null );
-			} while (piranha.pos == -1);
+			ArrayList<Integer> pools = new ArrayList<>();
+			for (int c = 0; c < length(); c++){
+				if (water[c] && passable[c] && findMob( c ) == null) pools.add( c );
+			}
+			if (!pools.isEmpty()){
+				piranha.pos = Random.element( pools );
+			} else {
+				do {
+					piranha.pos = randomRespawnCell( null );
+				} while (piranha.pos == -1);
+				set( piranha.pos, Terrain.WATER, this );
+			}
 			mobs.add( piranha );
 		}
 

@@ -245,7 +245,9 @@ public class DayNightCycle {
 			case DUSK:  base = 0.75f; break;
 			default:    base = 1f;    break;
 		}
-		float mult = base * GameCalendar.moonSpawnMultiplier();
+		//this scales the spawn COOLDOWN, the moon's multiplier how many spawn: divide by it,
+		//so a full moon (0.5) spaces spawns out and a new moon (1.5) brings them sooner
+		float mult = base / GameCalendar.moonSpawnMultiplier();
 
 		// Eclipses dramatically increase spawn rates
 		if (ClimateManager.isSolarEclipse()) {

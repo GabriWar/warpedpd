@@ -52,6 +52,8 @@ public class CavesKey extends Item {
 	private int specialLevel = 29;
 	private int returnDepth = -1;
 	private int returnPos;
+	//the reward for clearing the region's hundred is paid once, not on every return
+	private boolean rewarded = false;
 
 	{
 		image = ItemSpriteSheet.ANCIENT_KEY;
@@ -61,11 +63,13 @@ public class CavesKey extends Item {
 
 	private static final String DEPTH = "depth";
 	private static final String POS = "pos";
+	private static final String REWARDED = "rewarded";
 
 	@Override
 	public void storeInBundle(Bundle bundle) {
 		super.storeInBundle(bundle);
 		bundle.put(DEPTH, returnDepth);
+		bundle.put(REWARDED, rewarded);
 		if (returnDepth != -1) {
 			bundle.put(POS, returnPos);
 		}
@@ -75,6 +79,7 @@ public class CavesKey extends Item {
 	public void restoreFromBundle(Bundle bundle) {
 		super.restoreFromBundle(bundle);
 		returnDepth = bundle.getInt(DEPTH);
+		rewarded = bundle.getBoolean(REWARDED);
 		returnPos = bundle.getInt(POS);
 	}
 
@@ -120,7 +125,8 @@ public class CavesKey extends Item {
 				returnPos = hero.pos;
 				InterlevelScene.mode = InterlevelScene.Mode.PORTCAVES;
 			} else {
-				if (Statistics.albinoPiranhasKilled > 99) {
+				if (!rewarded && Statistics.albinoPiranhasKilled > 99) {
+					rewarded = true;
 					Moonberry berry1 = new Moonberry();
 					berry1.quantity = 10;
 					berry1.doPickUp(Dungeon.hero, Dungeon.hero.pos);

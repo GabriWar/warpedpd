@@ -578,6 +578,12 @@ public abstract class Char extends Actor {
 			dmg *= GameCalendar.seasonDamageMultiplier();
 			dmg *= GameCalendar.weekdayDamageMultiplier();
 
+			//the blood moon's fury: a hero under it hits demons harder
+			if (this instanceof Hero && buff(xyz.gabriwar.warpedpixeldungeon.actors.buffs.BloodMoonBuff.class) != null
+					&& enemy.properties().contains(Property.DEMONIC)){
+				dmg *= xyz.gabriwar.warpedpixeldungeon.actors.buffs.BloodMoonBuff.DEMONIC_DMG_MULT;
+			}
+
 			//friendly endure
 			Endure.EndureTracker endure = buff(Endure.EndureTracker.class);
 			if (endure != null) dmg = endure.damageFactor(dmg);
@@ -793,6 +799,12 @@ public abstract class Char extends Actor {
 
 		float acuStat = attacker.attackSkill( defender );
 		float defStat = defender.defenseSkill( attacker );
+
+		//under the blood moon enemies aim truer at the hero
+		if (defender instanceof Hero && attacker.alignment == Alignment.ENEMY
+				&& defender.buff(xyz.gabriwar.warpedpixeldungeon.actors.buffs.BloodMoonBuff.class) != null){
+			acuStat *= xyz.gabriwar.warpedpixeldungeon.actors.buffs.BloodMoonBuff.ENEMY_ACC_MULT;
+		}
 
 		//the cold stiffens whoever is caught in it: they dodge a third less
 		if (defender.buff(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hypothermia.class) != null){
@@ -1072,6 +1084,16 @@ public abstract class Char extends Actor {
 						}
 					}
 				}
+			}
+		}
+
+		//soaked through: cold bites deeper and shocks run through you
+		xyz.gabriwar.warpedpixeldungeon.actors.buffs.Drenched wet = buff(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Drenched.class);
+		if (wet != null){
+			if (Property.ICY.resistances().contains(src.getClass())){
+				dmg = Math.round(dmg * wet.coldVulnerability());
+			} else if (Property.ELECTRIC.resistances().contains(src.getClass())){
+				dmg = Math.round(dmg * wet.electricVulnerability());
 			}
 		}
 

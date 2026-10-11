@@ -45,7 +45,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPsionicBlast
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTeleportation;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.relic.RelicMeleeWeapon;
-import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.JupitersWraith;
 import xyz.gabriwar.warpedpixeldungeon.sprites.SentinelSprite;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
@@ -143,7 +142,7 @@ public class MineSentinel extends Mob {
 			state = HUNTING;
 		}
 
-		if (!(src instanceof RelicMeleeWeapon) && !(src instanceof JupitersWraith)) {
+		if (!RelicMeleeWeapon.isRelicHit(src)) {
 			dmg = Random.Int( 1, Math.max( 1, Math.round( dmg * 0.25f ) ) );
 		}
 		super.damage( dmg, src );

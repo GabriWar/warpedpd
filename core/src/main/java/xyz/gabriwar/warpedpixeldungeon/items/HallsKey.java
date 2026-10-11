@@ -95,6 +95,14 @@ public class HallsKey extends Item {
 				return;
 			}
 
+			//no porting out of a boss arena but Yog's own (see TenguKey): the RETURN branch
+			//below would fire on depths 5/10/15/20 with no floor to return to
+			if (Dungeon.bossLevel() && Dungeon.depth != specialLevel) {
+				hero.spend(TIME_TO_USE);
+				GLog.w(Messages.get(this, "preventing"));
+				return;
+			}
+
 			if (Dungeon.depth > 25) {
 				hero.spend(TIME_TO_USE);
 				GLog.w(Messages.get(this, "preventing"));

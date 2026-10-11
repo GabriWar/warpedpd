@@ -49,6 +49,8 @@ public class SewersKey extends Item {
 	private int specialLevel = 27;
 	private int returnDepth = -1;
 	private int returnPos;
+	//the reward for clearing the region's hundred is paid once, not on every return
+	private boolean rewarded = false;
 
 	{
 		image = ItemSpriteSheet.ANCIENT_KEY;
@@ -58,11 +60,13 @@ public class SewersKey extends Item {
 
 	private static final String DEPTH = "depth";
 	private static final String POS = "pos";
+	private static final String REWARDED = "rewarded";
 
 	@Override
 	public void storeInBundle(Bundle bundle) {
 		super.storeInBundle(bundle);
 		bundle.put(DEPTH, returnDepth);
+		bundle.put(REWARDED, rewarded);
 		if (returnDepth != -1) {
 			bundle.put(POS, returnPos);
 		}
@@ -72,6 +76,7 @@ public class SewersKey extends Item {
 	public void restoreFromBundle(Bundle bundle) {
 		super.restoreFromBundle(bundle);
 		returnDepth = bundle.getInt(DEPTH);
+		rewarded = bundle.getBoolean(REWARDED);
 		returnPos = bundle.getInt(POS);
 	}
 
@@ -118,7 +123,8 @@ public class SewersKey extends Item {
 				InterlevelScene.mode = InterlevelScene.Mode.PORTSEWERS;
 			} else {
 				// Return from special level — grant rewards
-				if (Statistics.archersKilled > 99) {
+				if (!rewarded && Statistics.archersKilled > 99) {
+					rewarded = true;
 					ForestDart dart = new ForestDart();
 					dart.quantity = 30;
 					dart.doPickUp(Dungeon.hero, Dungeon.hero.pos);

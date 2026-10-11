@@ -31,7 +31,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.items.StoneOre;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.relic.RelicMeleeWeapon;
-import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.JupitersWraith;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.KupuaSprite;
 import com.watabou.utils.Random;
@@ -72,7 +71,7 @@ public class Kupua extends Mob {
 
 	@Override
 	public void damage(int dmg, Object src) {
-		if (!(src instanceof RelicMeleeWeapon) && !(src instanceof JupitersWraith)) {
+		if (!RelicMeleeWeapon.isRelicHit(src)) {
 			int max = Math.max(1, Math.round(dmg * 0.5f));
 			dmg = Random.Int(1, max);
 		}

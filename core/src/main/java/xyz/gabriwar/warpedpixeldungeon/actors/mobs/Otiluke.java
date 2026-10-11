@@ -44,7 +44,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPsionicBlast
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Grim;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Vampiric;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.relic.RelicMeleeWeapon;
-import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.JupitersWraith;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -169,7 +168,7 @@ public class Otiluke extends Mob implements Callback {
 		}
 
 		// Reduce non-relic damage to 25%
-		if (!(src instanceof RelicMeleeWeapon) && !(src instanceof JupitersWraith)) {
+		if (!RelicMeleeWeapon.isRelicHit(src)) {
 			dmg = Random.Int(1, Math.max(1, Math.round(dmg * 0.25f)));
 		}
 

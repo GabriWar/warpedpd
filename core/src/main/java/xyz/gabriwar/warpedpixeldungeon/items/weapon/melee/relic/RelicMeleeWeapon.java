@@ -30,12 +30,24 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.JupitersWraith;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
 public class RelicMeleeWeapon extends MeleeWeapon {
+
+	/** Whether a hit counts as a relic's, for the foes whose damage cut only relics get past: a
+	 *  relic's own extra hit, or a blow struck or thrown with a relic (whose source is the hero). */
+	public static boolean isRelicHit( Object src ){
+		if (src instanceof RelicMeleeWeapon || src instanceof JupitersWraith) return true;
+		if (src instanceof Hero){
+			Object w = ((Hero) src).belongings.attackingWeapon();
+			return w instanceof RelicMeleeWeapon || w instanceof JupitersWraith;
+		}
+		return false;
+	}
 
 	{
 		tier = 6;
