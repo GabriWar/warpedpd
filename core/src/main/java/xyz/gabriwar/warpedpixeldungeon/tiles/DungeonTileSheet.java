@@ -237,7 +237,7 @@ public class DungeonTileSheet {
 			Terrain.BUILT_DOOR, Terrain.BUILT_DOOR_OPEN, Terrain.BUILT_DOOR_BARRED, Terrain.BUILT_DOOR_BARRED_OPEN,
 			Terrain.FLOOR_PLANK, Terrain.FLOOR_STONE, Terrain.FARMLAND, Terrain.FARMLAND_WET,
 			Terrain.PATH_STONE, Terrain.PALISADE, Terrain.FENCE, Terrain.FENCE_GATE, Terrain.FENCE_GATE_OPEN,
-			Terrain.STUMP_OAK, Terrain.STUMP_PINE, Terrain.SAPLING_OAK, Terrain.SAPLING_PINE,
+			Terrain.STUMP_OAK, Terrain.STUMP_PINE, Terrain.SAPLING_OAK, Terrain.SAPLING_PINE, Terrain.SAPLING_SHRUB,
 			Terrain.RUBBLE_WOOD, Terrain.RUBBLE_STONE
 	));
 

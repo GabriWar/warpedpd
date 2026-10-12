@@ -72,6 +72,8 @@ public class HomesteadSprites {
 	public static final int WAYSTONE_ATTUNED    = 33;   //2 frames
 	public static final int TIE_POST            = 35;
 	public static final int TRAP_SPIKES         = 36;
+	//a torch set in the ground on its pole: three frames of its flame flickering
+	public static final int STANDING_TORCH      = 37;
 
 	public static final int LIT_FRAMES = 3, STEAM_FRAMES = 2, RING_FRAMES = 2, GLOW_FRAMES = 2;
 

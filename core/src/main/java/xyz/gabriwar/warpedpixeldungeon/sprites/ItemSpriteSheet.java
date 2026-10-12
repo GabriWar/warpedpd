@@ -1430,6 +1430,9 @@ public class ItemSpriteSheet {
 	public static final int FLOUR                                   = HOMESTEAD2+4;
 	public static final int BREAD                                   = HOMESTEAD2+5;
 	public static final int FUSED_TOMATO                            = HOMESTEAD2+6;
+	public static final int ACORN                                   = HOMESTEAD2+7;
+	public static final int PINE_CONE                               = HOMESTEAD2+8;
+	public static final int BUSH_SEED                               = HOMESTEAD2+9;
 	static {
 		assignItemRect(IRON_FITTINGS   , 12, 14);
 		assignItemRect(BUILDERS_SATCHEL, 16, 16);
@@ -1438,6 +1441,9 @@ public class ItemSpriteSheet {
 		assignItemRect(FLOUR           , 12, 14);
 		assignItemRect(BREAD           , 14,  9);
 		assignItemRect(FUSED_TOMATO    , 10, 13);
+		assignItemRect(ACORN           , 10, 10);
+		assignItemRect(PINE_CONE       , 10, 10);
+		assignItemRect(BUSH_SEED       , 10,  9);
 	}
 
 	/* Sprite sheet nuances (learned the hard way porting SPS-PD weapons):

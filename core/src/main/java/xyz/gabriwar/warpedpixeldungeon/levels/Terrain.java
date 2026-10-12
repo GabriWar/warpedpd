@@ -149,8 +149,10 @@ public class Terrain {
 	public static final int RUBBLE_STONE           = 117;
 	public static final int FLOOR_PLANK            = 118;
 	public static final int FLOOR_STONE            = 119;
+	//a bush grown from its seed, still low: grows into a SHRUB (homestead/gathering)
+	public static final int SAPLING_SHRUB          = 120;
 	public static final int HOMESTEAD_FIRST        = BUILT_WALL_LOG;
-	public static final int HOMESTEAD_LAST         = FLOOR_STONE;
+	public static final int HOMESTEAD_LAST         = SAPLING_SHRUB;
 
 	public static final int PASSABLE		= 0x01;
 	public static final int LOS_BLOCKING	= 0x02;
@@ -274,6 +276,7 @@ public class Terrain {
 		flags[STUMP_PINE]             = PASSABLE;
 		flags[SAPLING_OAK]            = PASSABLE;
 		flags[SAPLING_PINE]           = PASSABLE;
+		flags[SAPLING_SHRUB]          = PASSABLE;
 		flags[RUBBLE_WOOD]            = PASSABLE;
 		flags[RUBBLE_STONE]           = PASSABLE;
 		flags[FLOOR_PLANK]            = PASSABLE;

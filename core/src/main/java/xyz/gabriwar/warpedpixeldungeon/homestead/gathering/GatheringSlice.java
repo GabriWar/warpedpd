@@ -50,11 +50,15 @@ import java.util.HashMap;
  *
  * The stump and the sapling are terrain (Terrain.STUMP_*, SAPLING_*), kept with the player's other
  * edits by the diff store; the tree grown back is the generator's own again, so its edit is let go.
+ * Seeds the hero plants (an acorn, a pine cone, a bush seed: items/treeseeds) are followed the same
+ * way from the day they went in: a sapling grows into its tree, a young bush into a bush.
  */
 public class GatheringSlice extends StoreSection {
 
 	/** Growing days (spring or summer) after the felling when the stump is a sapling, and the tree. */
 	public static final int SAPLING_DAYS = 4, TREE_DAYS = 14;
+	/** Growing days after a bush seed is planted when the young bush has filled out. */
+	public static final int BUSH_DAYS = 6;
 
 	//felled trees still growing back: world cell -> the day each was felled
 	private final SectorMap<Integer> stumps = new SectorMap<>();
@@ -70,6 +74,12 @@ public class GatheringSlice extends StoreSection {
 	/** A tree was felled on a window cell today (or on the day given): its stump starts growing back. */
 	public synchronized void felled( OverworldLevel ow, int cell, int day ){
 		stumps.put( key( ow, cell ), day );
+	}
+
+	/** A seed was planted on a window cell on the day given (the cell already its sapling or young
+	 *  bush): it grows from then as a felled tree's sapling does, or into a bush. */
+	public void planted( OverworldLevel ow, int cell, int day ){
+		felled( ow, cell, day );
 	}
 
 	/** A stump or sapling dug out: it grows no more. */
@@ -139,6 +149,15 @@ public class GatheringSlice extends StoreSection {
 				synchronized (this){
 					stumps.remove( OverworldLevel.worldKey( f[0], f[1] ) );
 				}
+				continue;
+			}
+			if (t == Terrain.SAPLING_SHRUB){
+				//a young bush fills out once it has had its growing days; a bush is solid, so it
+				//waits while someone stands on it or something lies on it
+				if (growingDays( f[2], today, BUSH_DAYS, season ) < BUSH_DAYS
+						|| Actor.findChar( c ) != null || ow.heaps.get( c ) != null) continue;
+				Level.set( c, Terrain.SHRUB, ow );
+				grew[n++] = c;
 				continue;
 			}
 			boolean oak = t == Terrain.STUMP_OAK || t == Terrain.SAPLING_OAK;

@@ -1694,7 +1694,12 @@ public class OverworldLevel extends Level {
 			if (web != null) web.clear( pos );
 			return;
 		}
+		int was = map[pos];
 		super.destroy( pos );
+		//a tree burnt down leaves charcoal in its ashes
+		if (!network && map[pos] == Terrain.EMBERS && xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Gathering.tree( was )){
+			xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Gathering.charred( this, pos );
+		}
 	}
 
 	//how many cells of rock a look carries into the land on top of it before it gives out

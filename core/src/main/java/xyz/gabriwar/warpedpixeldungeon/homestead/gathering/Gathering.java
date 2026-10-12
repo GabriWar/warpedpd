@@ -37,6 +37,7 @@ import xyz.gabriwar.warpedpixeldungeon.homestead.StoreSection;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
+import xyz.gabriwar.warpedpixeldungeon.items.materials.Charcoal;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.Clay;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.Log;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.PineLog;
@@ -51,6 +52,9 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Greataxe;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.HandAxe;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MasonsHammer;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Shovel;
+import xyz.gabriwar.warpedpixeldungeon.items.treeseeds.Acorn;
+import xyz.gabriwar.warpedpixeldungeon.items.treeseeds.BushSeed;
+import xyz.gabriwar.warpedpixeldungeon.items.treeseeds.PineCone;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Sickle;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.WoodcuttersAxe;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
@@ -121,6 +125,8 @@ public final class Gathering {
 	public static final int NOISE_RANGE = 8;
 	/** A pine's resin, a seed turned up in tilled grass. */
 	public static final float RESIN_CHANCE = 0.3f, SEED_CHANCE = 0.1f;
+	/** A felled tree's acorn or pine cone, a cleared bush's seed (items/treeseeds). */
+	public static final float TREE_SEED_CHANCE = 0.5f, BUSH_SEED_CHANCE = 0.5f;
 
 	// ----------------------------------------------------------------- the tools
 
@@ -164,6 +170,16 @@ public final class Gathering {
 		return t == Terrain.TREE_OAK || t == Terrain.TREE_PINE;
 	}
 
+	/** What an axe works: a tree to fell, a bush to clear, a stump to chop out. */
+	public static boolean choppable( int t ){
+		return tree( t ) || t == Terrain.SHRUB || BuiltTerrain.stump( t );
+	}
+
+	/** The turns a bush or a stump takes with an axe: half a tree's, rounded up. */
+	public static int lightChop( int axeTurns ){
+		return (axeTurns + 1) / 2;
+	}
+
 	// ----------------------------------------------------------------- starting work
 
 	/**
@@ -175,7 +191,7 @@ public final class Gathering {
 		Level level = Dungeon.level;
 		if (!(level instanceof OverworldLevel) || cell < 0 || cell >= level.length() || !level.adjacent( hero.pos, cell )) return null;
 		int t = level.map[cell];
-		if (tree( t ) && axe( hero ) != null) return Job.CHOP;
+		if (choppable( t ) && axe( hero ) != null) return Job.CHOP;
 		if (t == Terrain.BOULDER && quarryTool( hero ) != null) return Job.QUARRY;
 		return null;
 	}
@@ -257,7 +273,7 @@ public final class Gathering {
 	/** The turns a job takes the hero on a cell, with the tools he carries now. */
 	public static int turns( Hero hero, int cell, Job job ){
 		switch (job){
-			case CHOP:   return axeTurns( axe( hero ) );
+			case CHOP:   return tree( Dungeon.level.map[cell] ) ? axeTurns( axe( hero ) ) : lightChop( axeTurns( axe( hero ) ) );
 			case QUARRY: return quarryTurns( quarryTool( hero ) );
 			case DIG:    return dig( (OverworldLevel) Dungeon.level, cell ) == Dig.STUMP ? STUMP_TURNS : DIG_TURNS;
 			case REAP: default:
@@ -313,7 +329,7 @@ public final class Gathering {
 		int t = ow.map[cell];
 		switch (job){
 			case CHOP:
-				if (!tree( t )) return "";
+				if (!choppable( t )) return "";
 				if (ow.protectedForBuilding( cell )) return Messages.get( Gathering.class, "protected_chop" );
 				if (ow.altitude() == 0 && OverworldFauna.nearSettlement( ow.worldSeed(),
 						ow.worldX + cell % ow.width(), ow.worldY + cell / ow.width() )){
@@ -364,8 +380,8 @@ public final class Gathering {
 		return bank( ow, cell ) ? Dig.CLAY : Dig.TILL;
 	}
 
-	//natural ground a spade goes into: grass, tall grass, bare earth
-	private static boolean earth( int t ){
+	/** Natural ground a spade goes into, and a seed is planted in: grass, tall grass, bare earth. */
+	public static boolean earth( int t ){
 		return t == Terrain.GRASS || t == Terrain.HIGH_GRASS || t == Terrain.FURROWED_GRASS || t == Terrain.EMPTY;
 	}
 
@@ -419,7 +435,13 @@ public final class Gathering {
 
 	private static void finish( Hero hero, OverworldLevel ow, int cell, Job job ){
 		switch (job){
-			case CHOP:   fell( hero, ow, cell ); break;
+			case CHOP: {
+				int t = ow.map[cell];
+				if (tree( t ))              fell( hero, ow, cell );
+				else if (t == Terrain.SHRUB) clearBush( hero, ow, cell );
+				else                        uproot( ow, cell );
+				break;
+			}
 			case QUARRY: quarry( hero, ow, cell ); break;
 			case DIG:    dug( ow, cell ); break;
 			case REAP:   reap( ow, cell ); break;
@@ -440,11 +462,34 @@ public final class Gathering {
 		TreeFall.fall( ow, cell, cell + (cell - hero.pos) );
 		if (tree == Terrain.TREE_OAK){
 			give( ow, cell, new Log().quantity( Random.IntRange( 3, 4 ) ) );
+			if (Random.Float() < TREE_SEED_CHANCE) give( ow, cell, new Acorn() );
 		} else {
 			give( ow, cell, new PineLog().quantity( Random.IntRange( 2, 3 ) ) );
 			if (Random.Float() < RESIN_CHANCE) give( ow, cell, new Resin() );
+			if (Random.Float() < TREE_SEED_CHANCE) give( ow, cell, new PineCone() );
 		}
 		hunger( hero, CHOP_HUNGER );
+	}
+
+	/** A bush cut down to the ground: grass where it stood, and its seed one time in two. */
+	static void clearBush( Hero hero, OverworldLevel ow, int cell ){
+		Level.set( cell, Terrain.GRASS, ow );
+		changed( ow, cell );
+		GatheringFx.show( ow, GatheringFx.CHOP, cell, 0, 0 );
+		if (Random.Float() < BUSH_SEED_CHANCE) give( ow, cell, new BushSeed() );
+	}
+
+	/** A stump (or a young tree or bush) taken out by its roots: grass in its place, and growing
+	 *  back no more; a stump's roots are one last log. The axe's work and the shovel's alike. */
+	static void uproot( OverworldLevel ow, int cell ){
+		int t = ow.map[cell];
+		//grass, whatever the season: frozen ground shows it as snow (WindowGenerator.visualGround),
+		//where snow itself, kept as the player's edit, would lie on it all summer
+		Level.set( cell, Terrain.GRASS, ow );
+		GatheringSlice slice = ow.homestead().section( GatheringSlice.class );
+		if (slice != null) slice.forget( ow, cell );
+		changed( ow, cell );
+		if (BuiltTerrain.stump( t )) give( ow, cell, t == Terrain.STUMP_OAK ? new Log() : new PineLog() );
 	}
 
 	/** The boulder breaks into 2-3 rough stone, the ground broken where it stood; in a cave the
@@ -465,17 +510,10 @@ public final class Gathering {
 		int t = ow.map[cell];
 		switch (what){
 			case STUMP:
-			case SAPLING: {
-				//grass, whatever the season: frozen ground shows it as snow (WindowGenerator.visualGround),
-				//where snow itself, kept as the player's edit, would lie on it all summer
-				Level.set( cell, Terrain.GRASS, ow );
-				GatheringSlice slice = ow.homestead().section( GatheringSlice.class );
-				if (slice != null) slice.forget( ow, cell );
-				changed( ow, cell );
+			case SAPLING:
 				//the roots of a stump are a last log; a sapling is too young to give one
-				if (what == Dig.STUMP) give( ow, cell, t == Terrain.STUMP_OAK ? new Log() : new PineLog() );
+				uproot( ow, cell );
 				break;
-			}
 			case CLAY:
 				give( ow, cell, new Clay() );
 				break;
@@ -493,6 +531,11 @@ public final class Gathering {
 				}
 				break;
 		}
+	}
+
+	/** A tree burnt down to embers leaves 1-2 charcoal in its ashes (OverworldLevel.destroy). */
+	public static void charred( OverworldLevel ow, int cell ){
+		give( ow, cell, new Charcoal().quantity( Random.IntRange( 1, 2 ) ) );
 	}
 
 	/** The tall grass is cut: 1-2 thatch, and whatever the grass gives up when it is trampled. */

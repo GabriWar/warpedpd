@@ -433,7 +433,9 @@ public class GatheringTest {
 		GatheringSlice slice = ow.homestead().section( GatheringSlice.class );
 		assertEquals( (Integer) WorldClock.day(), slice.felledOn( ow.worldX + oak % W, ow.worldY + oak / W ) );
 		assertEquals( 0, Gathering.strokesAt( hero, oak, Gathering.Job.CHOP ) );
-		assertFalse( "nothing left to fell", Gathering.stroke( hero, oak, Gathering.Job.CHOP, d -> {} ) );
+		//the stump left is the axe's work too now: chopped out, not felled
+		assertEquals( Gathering.Job.CHOP, Gathering.tapJob( hero, oak ) );
+		assertEquals( Gathering.lightChop( Gathering.WOODCUTTERS_AXE_TURNS ), Gathering.turns( hero, oak, Gathering.Job.CHOP ) );
 	}
 
 	@Test
@@ -568,6 +570,148 @@ public class GatheringTest {
 	}
 
 	// ------------------------------------------------------------------ digging and reaping
+
+	@Test
+	public void anAxeClearsABushAndChopsOutAStump(){
+		OverworldLevel ow = windowIn( WorldModel.Biome.FOREST );
+		int oak = tree( ow, Terrain.TREE_OAK );
+		int at = standBeside( ow, oak );
+		stand( ow, at );
+		give( new WoodcuttersAxe() );
+
+		//a bush beside him: a tap puts him to clearing it, half a tree's strokes, grass left
+		//any cell beside him but the oak's, made a bush (whatever stood there)
+		int bush = -1;
+		for (int d : com.watabou.utils.PathFinder.NEIGHBOURS8){
+			int c = at + d;
+			if (bush == -1 && c != oak && Actor.findChar( c ) == null && !ow.protectedForBuilding( c )) bush = c;
+		}
+		assertNotEquals( "a cell beside him for a bush", -1, bush );
+		clear( ow, bush );
+		Level.set( bush, Terrain.SHRUB, ow );
+		assertEquals( Gathering.Job.CHOP, Gathering.tapJob( hero, bush ) );
+		assertEquals( Gathering.lightChop( Gathering.WOODCUTTERS_AXE_TURNS ), work( bush, Gathering.Job.CHOP ) );
+		assertEquals( Terrain.GRASS, ow.map[bush] );
+
+		//the oak felled, its stump chopped out by the axe too: grass, one more log, no regrowth
+		work( oak, Gathering.Job.CHOP );
+		assertEquals( Terrain.STUMP_OAK, ow.map[oak] );
+		int logs = count( ow.heaps.get( oak ), Log.class );
+		assertEquals( Gathering.Job.CHOP, Gathering.tapJob( hero, oak ) );
+		assertEquals( Gathering.lightChop( Gathering.WOODCUTTERS_AXE_TURNS ), work( oak, Gathering.Job.CHOP ) );
+		assertEquals( Terrain.GRASS, ow.map[oak] );
+		assertEquals( logs + 1, count( ow.heaps.get( oak ), Log.class ) );
+		GatheringSlice slice = ow.homestead().section( GatheringSlice.class );
+		assertNull( slice.felledOn( ow.worldX + oak % W, ow.worldY + oak / W ) );
+
+		//a hand axe takes half its tree strokes, rounded up
+		assertEquals( 4, Gathering.lightChop( Gathering.HAND_AXE_TURNS ) );
+	}
+
+	@Test
+	public void seedsArePlantedAndGrowIntoTreesAndBushes(){
+		OverworldLevel ow = windowIn( WorldModel.Biome.FOREST );
+		int at = find( ow, c -> ground( ow, c ) && ow.map[c] == Terrain.GRASS );
+		stand( ow, at );
+		int[] spots = new int[3];
+		int n = 0;
+		for (int d : com.watabou.utils.PathFinder.NEIGHBOURS8){
+			int c = at + d;
+			if (n < 3 && ground( ow, c ) && ow.map[c] == Terrain.GRASS && Actor.findChar( c ) == null) spots[n++] = c;
+		}
+		assertEquals( "three grass cells beside him", 3, n );
+		xyz.gabriwar.warpedpixeldungeon.items.treeseeds.TreeSeed[] seeds = {
+				new xyz.gabriwar.warpedpixeldungeon.items.treeseeds.Acorn(),
+				new xyz.gabriwar.warpedpixeldungeon.items.treeseeds.PineCone(),
+				new xyz.gabriwar.warpedpixeldungeon.items.treeseeds.BushSeed() };
+		int[] sapling = { Terrain.SAPLING_OAK, Terrain.SAPLING_PINE, Terrain.SAPLING_SHRUB };
+		int[] grown = { Terrain.TREE_OAK, Terrain.TREE_PINE, Terrain.SHRUB };
+		GatheringSlice slice = ow.homestead().section( GatheringSlice.class );
+		int summer = seasonRun( GameCalendar.Season.SUMMER, 20 );
+		for (int i = 0; i < 3; i++){
+			give( seeds[i] );
+			assertNull( xyz.gabriwar.warpedpixeldungeon.items.treeseeds.TreeSeed.refusal( hero, spots[i] ) );
+			seeds[i].plant( hero, spots[i] );
+			assertEquals( sapling[i], ow.map[spots[i]] );
+			assertNotNull( "followed from the day it went in", slice.felledOn( ow.worldX + spots[i] % W, ow.worldY + spots[i] / W ) );
+			slice.planted( ow, spots[i], summer );
+		}
+		//the bush fills out after its 6 growing days; the trees still wait
+		slice.regrow( ow, summer + GatheringSlice.BUSH_DAYS );
+		assertEquals( Terrain.SAPLING_OAK, ow.map[spots[0]] );
+		assertEquals( Terrain.SAPLING_PINE, ow.map[spots[1]] );
+		assertEquals( Terrain.SHRUB, ow.map[spots[2]] );
+		//the trees after 14
+		slice.regrow( ow, summer + GatheringSlice.TREE_DAYS );
+		for (int i = 0; i < 3; i++) assertEquals( grown[i], ow.map[spots[i]] );
+
+		//no seed on water, on a tree, or out of reach
+		int water = find( ow, c -> ow.map[c] == Terrain.WATER );
+		if (water != -1 && !ow.adjacent( at, water )) assertNotNull( xyz.gabriwar.warpedpixeldungeon.items.treeseeds.TreeSeed.refusal( hero, water ) );
+		assertEquals( "wrong_ground", xyz.gabriwar.warpedpixeldungeon.items.treeseeds.TreeSeed.refusal( hero, spots[0] ) );
+	}
+
+	@Test
+	public void fellingAndClearingDropTheirSeedsHalfTheTime(){
+		OverworldLevel ow = windowIn( WorldModel.Biome.FOREST );
+		int oak = tree( ow, Terrain.TREE_OAK );
+		stand( ow, standBeside( ow, oak ) );
+		int acorns = 0, bushSeeds = 0, trials = 400;
+		for (int i = 0; i < trials; i++){
+			Level.set( oak, Terrain.TREE_OAK, ow );
+			clear( ow, oak );
+			Gathering.fell( hero, ow, oak );
+			if (count( ow.heaps.get( oak ), xyz.gabriwar.warpedpixeldungeon.items.treeseeds.Acorn.class ) > 0) acorns++;
+			Level.set( oak, Terrain.SHRUB, ow );
+			clear( ow, oak );
+			Gathering.clearBush( hero, ow, oak );
+			if (count( ow.heaps.get( oak ), xyz.gabriwar.warpedpixeldungeon.items.treeseeds.BushSeed.class ) > 0) bushSeeds++;
+		}
+		assertEquals( "an acorn about half the time: " + acorns, Gathering.TREE_SEED_CHANCE, acorns / (float) trials, 0.08f );
+		assertEquals( "a bush seed about half the time: " + bushSeeds, Gathering.BUSH_SEED_CHANCE, bushSeeds / (float) trials, 0.08f );
+	}
+
+	@Test
+	public void aTorchIsSetInTheGroundAnchorsTheWildAndComesBack(){
+		OverworldLevel ow = windowIn( WorldModel.Biome.FOREST );
+		int at = find( ow, c -> ground( ow, c ) && ow.map[c] == Terrain.GRASS );
+		stand( ow, at );
+		int spot = -1;
+		for (int d : com.watabou.utils.PathFinder.NEIGHBOURS8){
+			int c = at + d;
+			if (spot == -1 && ground( ow, c ) && ow.passable[c] && Actor.findChar( c ) == null) spot = c;
+		}
+		assertNotEquals( -1, spot );
+		assertNull( xyz.gabriwar.warpedpixeldungeon.items.Torch.placeRefusal( hero, spot ) );
+		assertEquals( "place_too_far", xyz.gabriwar.warpedpixeldungeon.items.Torch.placeRefusal( hero, spot + 3 * W ) );
+
+		xyz.gabriwar.warpedpixeldungeon.homestead.torches.StandingTorch torch = new xyz.gabriwar.warpedpixeldungeon.homestead.torches.StandingTorch();
+		torch.pos = spot;
+		ow.mobs.add( torch );
+		Actor.add( torch );
+		assertTrue( "it keeps for good", torch instanceof xyz.gabriwar.warpedpixeldungeon.homestead.HomesteadActor );
+		final boolean[] anchored = { false };
+		new xyz.gabriwar.warpedpixeldungeon.homestead.torches.TorchAnchors().anchors( ow, c -> anchored[0] |= c == torch.pos );
+		assertTrue( "a standing torch anchors the wild", anchored[0] );
+		assertEquals( "place_occupied", xyz.gabriwar.warpedpixeldungeon.items.Torch.placeRefusal( hero, spot ) );
+	}
+
+	@Test
+	public void aTreeBurntDownLeavesCharcoal(){
+		OverworldLevel ow = windowIn( WorldModel.Biome.FOREST );
+		int oak = tree( ow, Terrain.TREE_OAK );
+		clear( ow, oak );
+		ow.destroy( oak );
+		assertEquals( Terrain.EMBERS, ow.map[oak] );
+		int coal = count( ow.heaps.get( oak ), xyz.gabriwar.warpedpixeldungeon.items.materials.Charcoal.class );
+		assertTrue( "1-2 charcoal in the ashes: " + coal, coal >= 1 && coal <= 2 );
+		//the workbench makes torches from it
+		boolean found = false;
+		for (xyz.gabriwar.warpedpixeldungeon.homestead.stations.StationRecipe r : xyz.gabriwar.warpedpixeldungeon.homestead.stations.StationRecipes.all()){
+			if (r.id.equals( "torches_charcoal" )) found = true;
+		}
+		assertTrue( "a charcoal torch recipe", found );
+	}
 
 	@Test
 	public void theShovelTillsAndDigsOutStumps(){

@@ -150,6 +150,7 @@ public class DebugMenuTest {
 			"Hero|TOGGLE|Invisibility (infinite)",
 			"Hero|TOGGLE|One hit kill",
 			"Hero|TOGGLE|Infinite mana",
+			"Hero|TOGGLE|Infinite building materials",
 			"Hero|HEADER|Map",
 			"Hero|TOGGLE|No fog of war",
 			"Hero|ACTION|Reveal level",

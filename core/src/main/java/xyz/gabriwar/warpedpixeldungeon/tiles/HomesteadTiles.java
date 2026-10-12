@@ -196,6 +196,7 @@ public class HomesteadTiles {
 	public static final int RUBBLE_WOOD_ALT = MISC + 12;
 	public static final int RUBBLE_STONE    = MISC + 13;
 	public static final int RUBBLE_STONE_ALT = MISC + 14;
+	public static final int SAPLING_SHRUB   = MISC + 15;
 
 	public static final int PATH_STONE = PALISADE + 3 * WIDTH;
 

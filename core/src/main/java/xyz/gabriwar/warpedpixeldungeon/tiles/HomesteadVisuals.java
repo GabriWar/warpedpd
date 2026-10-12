@@ -232,6 +232,7 @@ public final class HomesteadVisuals {
 			case Terrain.STUMP_PINE:   return HomesteadTiles.STUMP_PINE;
 			case Terrain.SAPLING_OAK:  return HomesteadTiles.SAPLING_OAK;
 			case Terrain.SAPLING_PINE: return HomesteadTiles.SAPLING_PINE;
+			case Terrain.SAPLING_SHRUB: return HomesteadTiles.SAPLING_SHRUB;
 			case Terrain.RUBBLE_WOOD:  return variance( pos ) < 50 ? HomesteadTiles.RUBBLE_WOOD_ALT : HomesteadTiles.RUBBLE_WOOD;
 			case Terrain.RUBBLE_STONE: return variance( pos ) < 50 ? HomesteadTiles.RUBBLE_STONE_ALT : HomesteadTiles.RUBBLE_STONE;
 			default:                   return -1;
@@ -307,6 +308,7 @@ public final class HomesteadVisuals {
 			case Terrain.STUMP_PINE:             return HomesteadTiles.STUMP_PINE;
 			case Terrain.SAPLING_OAK:            return HomesteadTiles.SAPLING_OAK;
 			case Terrain.SAPLING_PINE:           return HomesteadTiles.SAPLING_PINE;
+			case Terrain.SAPLING_SHRUB:          return HomesteadTiles.SAPLING_SHRUB;
 			case Terrain.RUBBLE_WOOD:            return HomesteadTiles.RUBBLE_WOOD;
 			case Terrain.RUBBLE_STONE:           return HomesteadTiles.RUBBLE_STONE;
 			//the one land terrain a piece lays (homestead/pieces/StationPieces): the alchemy pot

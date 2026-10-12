@@ -69,7 +69,8 @@ public final class HomeAnchors {
 
 	/** The providers, by class name. */
 	public static final String[] PROVIDERS = {
-			PKG + "stations.StationAnchors"    //stations: a lit hearth
+			PKG + "stations.StationAnchors",   //stations: a lit hearth
+			PKG + "torches.TorchAnchors"       //a standing torch
 	};
 
 	private static final Providers<Provider> providers = new Providers<>( Provider.class, PROVIDERS );

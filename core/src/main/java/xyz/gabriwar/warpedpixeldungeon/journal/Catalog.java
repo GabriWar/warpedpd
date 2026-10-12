@@ -491,6 +491,9 @@ public enum Catalog {
 				SealShard.class, BrokenStaff.class, CloakScrap.class, BowFragment.class, BrokenHilt.class, TornPage.class,
 				SkeletonKey.class, GoldenSkeletonKey.class,
 				Rice.class, Mushroom.class, PuddingCup.class, StoneOre.class,
+				//the seeds the land's trees and bushes are planted back with (items/treeseeds)
+				xyz.gabriwar.warpedpixeldungeon.items.treeseeds.Acorn.class, xyz.gabriwar.warpedpixeldungeon.items.treeseeds.PineCone.class,
+				xyz.gabriwar.warpedpixeldungeon.items.treeseeds.BushSeed.class,
 				//the homesteads' building materials (items/materials)
 				xyz.gabriwar.warpedpixeldungeon.items.materials.Log.class, xyz.gabriwar.warpedpixeldungeon.items.materials.PineLog.class,
 				xyz.gabriwar.warpedpixeldungeon.items.materials.Plank.class, xyz.gabriwar.warpedpixeldungeon.items.materials.Resin.class,

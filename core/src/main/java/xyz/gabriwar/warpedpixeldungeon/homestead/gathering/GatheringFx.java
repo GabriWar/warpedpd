@@ -62,7 +62,7 @@ public final class GatheringFx {
 
 	/** The host's: a piece of the work done on a cell of a slice, shown here when the slice is on
 	 *  screen and sent on to the guests (nothing sent off a host). */
-	static void show( OverworldLevel ow, int kind, int cell, int n, int m ){
+	public static void show( OverworldLevel ow, int kind, int cell, int n, int m ){
 		if (ow != Dungeon.level) return;
 		NetVisuals.recordGather( kind, cell, n, m );
 		if (Gathering.live( ow )) play( kind, cell, n, m );

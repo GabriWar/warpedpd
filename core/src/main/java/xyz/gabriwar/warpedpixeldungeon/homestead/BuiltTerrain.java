@@ -123,7 +123,7 @@ public final class BuiltTerrain {
 	}
 
 	public static boolean sapling( int t ){
-		return t == Terrain.SAPLING_OAK || t == Terrain.SAPLING_PINE;
+		return t == Terrain.SAPLING_OAK || t == Terrain.SAPLING_PINE || t == Terrain.SAPLING_SHRUB;
 	}
 
 	public static boolean rubble( int t ){
@@ -193,6 +193,7 @@ public final class BuiltTerrain {
 			case Terrain.STUMP_PINE:             return "stump_pine";
 			case Terrain.SAPLING_OAK:            return "sapling_oak";
 			case Terrain.SAPLING_PINE:           return "sapling_pine";
+			case Terrain.SAPLING_SHRUB:          return "sapling_shrub";
 			case Terrain.RUBBLE_WOOD:            return "rubble_wood";
 			case Terrain.RUBBLE_STONE:           return "rubble_stone";
 			case Terrain.FLOOR_PLANK:            return "floor_plank";

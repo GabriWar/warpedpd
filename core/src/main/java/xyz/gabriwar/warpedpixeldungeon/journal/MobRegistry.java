@@ -323,6 +323,7 @@ final class MobRegistry {
         xyz.gabriwar.warpedpixeldungeon.homestead.threats.SiegeBrownWolf.class,
         xyz.gabriwar.warpedpixeldungeon.homestead.threats.SiegeGrayWolf.class,
         xyz.gabriwar.warpedpixeldungeon.homestead.threats.Watchtower.class,
+        xyz.gabriwar.warpedpixeldungeon.homestead.torches.StandingTorch.class,
         xyz.gabriwar.warpedpixeldungeon.homestead.travel.Hearthstone.class,
         xyz.gabriwar.warpedpixeldungeon.homestead.travel.Waystone.class,
         xyz.gabriwar.warpedpixeldungeon.items.artifacts.DriedRose.GhostHero.class,

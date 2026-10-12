@@ -165,6 +165,7 @@ public final class StationRecipes {
 		add( StationRecipe.at( "planks_pine", Workbench.class ).in( PineLog.class, 1 ).out( Plank.class, 3 ).turns( 10 ).done() );
 		add( StationRecipe.at( "rope", Workbench.class ).in( Thatch.class, 3 ).out( Rope.class, 1 ).turns( 5 ).done() );
 		add( StationRecipe.at( "torches", Workbench.class ).in( Resin.class, 1 ).in( Log.class, 1 ).out( Torch.class, 2 ).turns( 5 ).done() );
+		add( StationRecipe.at( "torches_charcoal", Workbench.class ).in( Charcoal.class, 1 ).in( Plank.class, 1 ).out( Torch.class, 2 ).turns( 5 ).done() );
 
 		//the mason's bench
 		add( StationRecipe.at( "cut_stone", MasonsBench.class ).in( RoughStone.class, 2 ).out( CutStone.class, 1 ).turns( 10 ).done() );
