@@ -124,7 +124,7 @@ public class GreaterStylus extends Item {
 
 		@Override
 		public boolean itemSelectable(Item item) {
-			return item instanceof Armor;
+			return item instanceof Armor && item.isIdentified();
 		}
 
 		@Override

@@ -152,8 +152,8 @@ public class OverworldLevel extends Level {
 	//waypoint march, the arrival handoff) checks this first
 	private boolean network = false;
 
-	/** A network mirror, which simulates nothing (HazardWatch asks before any change). */
-	boolean isMirror(){
+	/** A network mirror, which simulates nothing (HazardWatch and the homesteads ask before any change). */
+	public boolean isMirror(){
 		return network;
 	}
 
@@ -176,8 +176,9 @@ public class OverworldLevel extends Level {
 	/** Changes whenever worldX/worldY/the seasonal shift do. */
 	public int windowVersion(){ return windowVersion; }
 
-	//player terrain changes, keyed by world position
-	private HashMap<Long, Integer> diffs = new HashMap<>();
+	//player terrain changes, keyed by world position and indexed by sector, so a window finds the
+	//edits under it without walking every edit in the world (SectorMap)
+	private SectorMap<Integer> diffs = new SectorMap<>();
 
 	//heaps that fell outside the active window, parked at their world position
 	//until the window slides back over them
@@ -186,6 +187,39 @@ public class OverworldLevel extends Level {
 	//the untouched generator output for the current window - lets diff capture
 	//compare against memory instead of re-running the whole generator
 	private int[] pristine;
+
+	//the generated window the current one was adopted from: what the dressing is worked out
+	//again from when a cell of it changes (redressAround)
+	private WindowGenerator.Window base;
+	//the map as the dressing was last worked out for, cell by cell
+	private int[] dressedMap;
+
+	//the homesteads on this slice (homestead/HomesteadStore): what was built where, the roofs,
+	//and the homesteads' parts' own sections. world-keyed, saved with the slice
+	private final xyz.gabriwar.warpedpixeldungeon.homestead.HomesteadStore homestead
+			= new xyz.gabriwar.warpedpixeldungeon.homestead.HomesteadStore();
+	//the roofs on screen (tiles/RoofLayers), made with the first window that has a scene's layers
+	private xyz.gabriwar.warpedpixeldungeon.tiles.RoofLayers roofs;
+
+	/** This slice's homestead data. */
+	public xyz.gabriwar.warpedpixeldungeon.homestead.HomesteadStore homestead(){
+		return homestead;
+	}
+
+	//every terrain edit (Level.set) may make or break a room round the cell: a wall going up or
+	//coming down, a door opening or shutting, the pick in the rock (homestead/Rooms)
+	@Override
+	public void updateCellFlags( int cell ){
+		super.updateCellFlags( cell );
+		xyz.gabriwar.warpedpixeldungeon.homestead.Rooms.changed( this, cell );
+	}
+
+	/** The generator's own terrain on a window cell, before any edit: what a demolished piece
+	 *  gives the ground back as (Homestead.remove). */
+	public int pristineAt( int cell ){
+		int[] p = pristine;
+		return p == null || cell < 0 || cell >= p.length ? map[cell] : p[cell];
+	}
 
 	//...and what the settlements' fire rings are placed by (SettlementLights.hearthCell)
 	int[] pristine(){ return pristine; }
@@ -313,9 +347,10 @@ public class OverworldLevel extends Level {
 	}
 
 	/** Under a roof on the peaks: inside the hermit's hut or a waystation's shelter, or beside the
-	 *  waystation's hearth. */
+	 *  waystation's hearth; and on any slice, inside a room the hero built (homestead/Rooms). */
 	public boolean shelterAt( int cell ){
 		if (cell < 0 || cell >= length()) return false;
+		if (xyz.gabriwar.warpedpixeldungeon.homestead.Rooms.at( this, cell ) != null) return true;
 		int wx = worldX + cell % width(), wy = worldY + cell / width();
 		for (MountainSites.Site s : peakSites){
 			if (s.kind != MountainSites.Kind.HERMIT && s.kind != MountainSites.Kind.PASS) continue;
@@ -398,6 +433,7 @@ public class OverworldLevel extends Level {
 		//good. captured first, the store holds only real edits; the rebuilt
 		//map is new pristine + those edits, and an edit that now equals the
 		//new pristine is dropped by the next capture
+		homesteadLeaving();
 		captureDiffs();
 		refreshSeasonShift();
 		//the pre-generated next window was derived for the old season - and
@@ -444,6 +480,7 @@ public class OverworldLevel extends Level {
 						Messages.get( this, "thaw" ) );
 			}
 		}
+		homesteadArrived();
 
 		if (Dungeon.level == this
 				&& com.watabou.noosa.Game.scene() instanceof xyz.gabriwar.warpedpixeldungeon.scenes.GameScene){
@@ -501,7 +538,8 @@ public class OverworldLevel extends Level {
 			prepsStarted++;
 		}
 		final GameCalendar.Season season = GameCalendar.season();
-		final HashMap<Long, Integer> edits = diffs.isEmpty() ? null : new HashMap<>( diffs );
+		//only the edits under that window: the worker's own copy, nothing in it shared
+		final HashMap<Long, Integer> edits = diffs.isEmpty() ? null : diffs.snapshotIn( ox, oy, ox + WIDTH, oy + HEIGHT );
 		final int version = diffsVersion;
 		//the fallen stars' scorch on that window as it stands now; a star coming down or cooling
 		//before the rebase changes the signature, and the window is derived again then
@@ -720,6 +758,44 @@ public class OverworldLevel extends Level {
 			if (door != -1 && map[door] == Terrain.LOCKED_DOOR) return true;
 		}
 		return false;
+	}
+
+	/**
+	 * May nothing be built on this cell (Homestead.canPlace, PROTECTED)? The town; the ways
+	 * between the slices, the stairs and any doorway the level keeps as a transition; a sealed
+	 * tomb and its walls; a village's fields; and every cell a settlement or a place of the world
+	 * laid as part of itself - a house's walls and doors, a well, a signpost, a road's bridge, an
+	 * altar or a statue, a barrow's mouth, a hut or tower of the peaks, a cave place's props.
+	 * Read from the generator's own terrain, so a wall mined away is still the village's.
+	 */
+	public boolean protectedForBuilding( int cell ){
+		if (cell < 0 || cell >= length() || !insideMap( cell ) || inTown( cell )) return true;
+		int t = map[cell];
+		if (t == Terrain.ENTRANCE || t == Terrain.EXIT || t == Terrain.ENTRANCE_SP) return true;
+		if (link != null && cell < link.length && link[cell] != WindowGenerator.LINK_NONE) return true;
+		if (getTransition( cell ) != null) return true;
+		if (unbreakable( cell ) || inSealedTomb( cell )) return true;
+		if (field != null && cell < field.length && field[cell]) return true;
+		if (pristine == null) return false;
+		int p = pristine[cell];
+		switch (p){
+			case Terrain.DOOR: case Terrain.OPEN_DOOR: case Terrain.LOCKED_DOOR: case Terrain.CRYSTAL_DOOR:
+			case Terrain.WELL: case Terrain.EMPTY_WELL: case Terrain.SIGN: case Terrain.BRIDGE:
+			case Terrain.PEDESTAL: case Terrain.ALCHEMY: case Terrain.STATUE: case Terrain.STATUE_SP:
+			case Terrain.BARRICADE: case Terrain.TOWN_SOLID:
+			case Terrain.ENTRANCE: case Terrain.EXIT: case Terrain.ENTRANCE_SP:
+			case Terrain.LOCKED_EXIT: case Terrain.UNLOCKED_EXIT:
+			case Terrain.CUSTOM_DECO: case Terrain.CUSTOM_DECO_EMPTY: case Terrain.CUSTOM_DECO_WTR:
+				return true;
+		}
+		int wx = worldX + cell % width(), wy = worldY + cell / width();
+		if (altitude == 0){
+			return (p == Terrain.WALL || p == Terrain.WALL_DECO) && WorldStructures.wallSite( worldSeed, wx, wy ) != null;
+		} else if (altitude > 0){
+			return MountainSites.wallKey( worldSeed, peakSites, wx, wy ) != null
+					|| MountainSites.cellKey( worldSeed, peakSites, wx, wy, p ) != null;
+		}
+		return CaveSites.cellKind( layerSites, wx, wy, p ) != null;
 	}
 
 	//a tomb's walls stand over whatever an older save's edits made of their cells (a mine boulder
@@ -1004,7 +1080,52 @@ public class OverworldLevel extends Level {
 			set( cell, Terrain.EMPTY_DECO, this );
 			return cell;
 		}
+		//nobody lands on what cannot step aside (a waystone, a hearthstone, a station: a stone
+		//travelled to is the arrival's own cell): the nearest free cell he could walk to from it
+		//instead - never over a wall into a neighbour's room or pen, nor across a river - and with
+		//none within reach the nearest free cell at all, never the stone's own
+		if (passable[cell] && immovableAt( cell )){
+			int free = walkableFreeNear( cell, LANDING_WALK );
+			if (free == -1) free = freeSpotWithin( cell, Math.max( width(), height() ) );
+			if (free != -1) return free;
+		}
 		return passable[cell] ? cell : clearSpotNear( cell );
+	}
+
+	//how many steps from a stone an arrival walks round it for a free cell (landingCell)
+	private static final int LANDING_WALK = 12;
+
+	//the free cell nearest a cell by walking: steps over open ground (anyone standing on it is no
+	//wall), never into a pit, within `steps` of it; -1 when every cell it reaches is taken
+	private int walkableFreeNear( int cell, int steps ){
+		int w = width();
+		java.util.HashSet<Integer> seen = new java.util.HashSet<>();
+		java.util.ArrayList<Integer> ring = new java.util.ArrayList<>();
+		ring.add( cell );
+		seen.add( cell );
+		for (int s = 1; s <= steps && !ring.isEmpty(); s++){
+			java.util.ArrayList<Integer> next = new java.util.ArrayList<>();
+			for (int c : ring){
+				for (int n : com.watabou.utils.PathFinder.NEIGHBOURS8){
+					int m = c + n, x = m % w, y = m / w;
+					if (m < 0 || m >= length() || Math.abs( x - c % w ) > 1) continue;
+					if (x <= 0 || y <= 0 || x >= w - 1 || y >= height() - 1) continue;
+					if (!passable[m] || pit[m] || !seen.add( m )) continue;
+					if (!occupied( m )) return m;
+					next.add( m );
+				}
+			}
+			ring = next;
+		}
+		return -1;
+	}
+
+	//does a mob that never moves (Char.Property.IMMOVABLE) stand on the cell?
+	private boolean immovableAt( int cell ){
+		for (Mob m : mobs){
+			if (m.pos == cell && Char.hasProp( m, Char.Property.IMMOVABLE )) return true;
+		}
+		return false;
 	}
 
 	//a fall from the slice above lands on the same world cell (fallingFrom set
@@ -1017,6 +1138,7 @@ public class OverworldLevel extends Level {
 	//everything on the ground and every mob are parked by world position,
 	//blobs/plants/traps in the old window are dropped
 	private void jumpWindowTo( int wx, int wy ){
+		homesteadLeaving();
 		if (pristine != null) captureDiffs();
 		for (Heap h : heaps.valueList()){
 			long key = worldKey( worldX + h.pos % width(), worldY + h.pos / width() );
@@ -1051,6 +1173,7 @@ public class OverworldLevel extends Level {
 		if (altitude != 0) populateLayerSites();
 		//the first step settles the new window's events
 		liveEvents = null;
+		homesteadArrived();
 	}
 
 	//a mob leaving the window is parked at its world position. it is taken
@@ -1134,6 +1257,9 @@ public class OverworldLevel extends Level {
 	//vendors, guards, town folk), site guardians (dragons, ruin skeletons) and
 	//anything that has a home sector. the rest is wildlife and free game
 	private static boolean keepsForever( Mob m ){
+		//a homestead's own: its stations, chests, crops and penned animals
+		if (m instanceof xyz.gabriwar.warpedpixeldungeon.homestead.HomesteadActor
+				&& ((xyz.gabriwar.warpedpixeldungeon.homestead.HomesteadActor) m).homesteadKept()) return true;
 		return m instanceof NPC
 				|| m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldDragon
 				|| m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.RuinSkeleton
@@ -1417,6 +1543,12 @@ public class OverworldLevel extends Level {
 				xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.add( all[i], i >= 2 );
 			}
 		}
+		//the roofs, refilled for the new window (built for it as it was adopted)
+		if (roofs != null){
+			for (xyz.gabriwar.warpedpixeldungeon.tiles.RoofLayers.Tiles t : roofs.layers()){
+				xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.add( t, true );
+			}
+		}
 		if (below != null){
 			for (xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer b : below){
 				if (dcx != 0 || dcy != 0) b.shiftVisual( dcx, dcy );
@@ -1541,6 +1673,28 @@ public class OverworldLevel extends Level {
 		super.cleanWalls();
 		if (top == null) return;
 		for (int c = 0; c < length(); c++) if (rockTopAt( c )) discoverable[c] = true;
+	}
+
+	@Override
+	public void cleanWalls( int cell ){
+		super.cleanWalls( cell );
+		if (top == null) return;
+		for (int i : com.watabou.utils.PathFinder.NEIGHBOURS9){
+			int c = cell + i;
+			if (c >= 0 && c < length() && rockTopAt( c )) discoverable[c] = true;
+		}
+	}
+
+	/** The wooden pieces of the homesteads burn a turn at a time (Homestead.destroyed), never
+	 *  straight to embers. */
+	@Override
+	public void destroy( int pos ){
+		if (!network && xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.destroyed( this, pos )){
+			Blob web = blobs.get( xyz.gabriwar.warpedpixeldungeon.actors.blobs.Web.class );
+			if (web != null) web.clear( pos );
+			return;
+		}
+		super.destroy( pos );
 	}
 
 	//how many cells of rock a look carries into the land on top of it before it gives out
@@ -1671,6 +1825,100 @@ public class OverworldLevel extends Level {
 			all[i].setRect( 0, 0, WIDTH, HEIGHT );
 			all[i].setData( dress[i] );
 		}
+		dressedMap = map.clone();
+	}
+
+	/**
+	 * GameScene.updateMap: a cell changed. When it changed to or from something the dressing
+	 * draws or leaves bare - a tree, a rock, anything the homesteads built - the dressing is worked
+	 * out again (the whole window, a pure pass) and the cells within two of it take the new
+	 * pieces: a felled tree loses its body and its crown, a wall gets none, the ground blends lap
+	 * up to what is left. Other changes (grass trodden, burnt) keep the dressing as it was.
+	 * Visual only: a mirror does it too.
+	 */
+	public void redressAround( int cell ){
+		int[] dm = dressedMap;
+		if (dressGround == null || dm == null || base == null || cell < 0 || cell >= dm.length) return;
+		int was = dm[cell], now = map[cell];
+		if (was == now) return;
+		dm[cell] = now;
+		//...and ground dug into water or filled back in (a farm's irrigation channel): the grass's
+		//dressing must not lie on the water. Water freezing or thawing keeps it
+		if (!dressDrawn( was ) && !dressDrawn( now ) && waterish( was ) == waterish( now )) return;
+		//one built thing for another - a door or a gate swung open or shut, farmland watered or
+		//dried out, a floor under a wall - keeps the dressing it had: the dressing draws nothing
+		//on any of them, and the ground round them blends to them all alike
+		if (Terrain.homestead( was ) && Terrain.homestead( now )) return;
+		long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
+		int[][] dress = WindowGenerator.dress( worldSeed, worldX, worldY, map, base, dressSeason );
+		xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.Layer[] all = { dressGround, dressEdges, dressCanopy };
+		int w = width(), x0 = cell % w, y0 = cell / w;
+		for (int y = Math.max( 0, y0 - 2 ); y <= Math.min( height() - 1, y0 + 2 ); y++){
+			for (int x = Math.max( 0, x0 - 2 ); x <= Math.min( w - 1, x0 + 2 ); x++){
+				int c = x + y * w;
+				for (int i = 0; i < all.length; i++) all[i].setCell( c, dress[i][c] );
+				dm[c] = map[c];
+			}
+		}
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW redress", t );
+	}
+
+	/** As redressAround, for many cells changed at once (a window's stumps growing back): one pass of
+	 *  the dressing for them all, not one each. GameScene.updateMap then finds them dressed. */
+	public void redressCells( int[] cells ){
+		int[] dm = dressedMap;
+		if (dressGround == null || dm == null || base == null) return;
+		java.util.ArrayList<Integer> moved = new java.util.ArrayList<>();
+		for (int cell : cells){
+			if (cell < 0 || cell >= dm.length || dm[cell] == map[cell]) continue;
+			if ((dressDrawn( dm[cell] ) || dressDrawn( map[cell] ))
+					&& !(Terrain.homestead( dm[cell] ) && Terrain.homestead( map[cell] ))) moved.add( cell );
+			dm[cell] = map[cell];
+		}
+		if (moved.isEmpty()) return;
+		long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
+		int[][] dress = WindowGenerator.dress( worldSeed, worldX, worldY, map, base, dressSeason );
+		xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress.Layer[] all = { dressGround, dressEdges, dressCanopy };
+		int w = width();
+		for (int cell : moved){
+			int x0 = cell % w, y0 = cell / w;
+			for (int y = Math.max( 0, y0 - 2 ); y <= Math.min( height() - 1, y0 + 2 ); y++){
+				for (int x = Math.max( 0, x0 - 2 ); x <= Math.min( w - 1, x0 + 2 ); x++){
+					int c = x + y * w;
+					for (int i = 0; i < all.length; i++) all[i].setCell( c, dress[i][c] );
+					dm[c] = map[c];
+				}
+			}
+		}
+		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW redress batch", t );
+	}
+
+	//water of any kind, open or frozen
+	private static boolean waterish( int t ){
+		return t == Terrain.WATER || t == Terrain.DEEP_WATER || t == Terrain.FROZEN_WATER;
+	}
+
+	//a terrain the dressing draws something for, or keeps bare, that the world can change in play
+	private static boolean dressDrawn( int t ){
+		return Terrain.homestead( t ) || t == Terrain.TREE_OAK || t == Terrain.TREE_PINE || t == Terrain.BOULDER;
+	}
+
+	/** Lays the roofs of the window's cells into the roof layers (made, and handed to the level's
+	 *  wall layers, the first time). live: on screen at once, for a roof put up or taken down in
+	 *  play; a new window's wait for presentWindowArt, as the rest of its art does. */
+	public void refreshRoofs( boolean live ){
+		if (roofs == null){
+			roofs = new xyz.gabriwar.warpedpixeldungeon.tiles.RoofLayers();
+			for (xyz.gabriwar.warpedpixeldungeon.tiles.RoofLayers.Tiles t : roofs.layers()) customWalls.add( t );
+		}
+		int hero = Dungeon.hero != null && Dungeon.level == this ? Dungeon.hero.pos : -1;
+		roofs.build( this, homestead, worldX, worldY, WIDTH, HEIGHT, hero, live );
+	}
+
+	/** RoofLayers.Watcher, every frame: the roof over the local hero fades (his room's, else the
+	 *  roofs joined to his), the one he left comes back. Waits while the window is moving. */
+	public void followRoofs( int heroCell ){
+		if (roofs != null && !shifting) roofs.follow( this, homestead, worldX, worldY, WIDTH, HEIGHT, heroCell );
 	}
 
 	/** GameScene.updateMap: a cell changed, so the ore glinting on it and on the rock face above it
@@ -2308,7 +2556,8 @@ public class OverworldLevel extends Level {
 		Dungeon.hero.next();
 	}
 
-	static long worldKey( int wx, int wy ){
+	/** The key of a world cell in every world-keyed store: y in the high half, x in the low. */
+	public static long worldKey( int wx, int wy ){
 		return ((long)wy << 32) | (wx & 0xFFFFFFFFL);
 	}
 
@@ -2333,6 +2582,8 @@ public class OverworldLevel extends Level {
 		if (altitude == 0) v.add( new EventDecorMirror( this ) );
 		//the cracks of thin ice stepped on (HazardWatch): the slices' only, the surface's ice never cracks
 		v.add( new IceCracks( this ) );
+		//the roof over the hero's head fades (tiles/RoofLayers)
+		v.add( new xyz.gabriwar.warpedpixeldungeon.tiles.RoofLayers.Watcher( this ) );
 		return v;
 	}
 
@@ -2383,6 +2634,18 @@ public class OverworldLevel extends Level {
 	public String waterTex() {
 		return openSky() ? Assets.Environment.WATER_SEWERS : Assets.Environment.WATER_CAVES;
 	}
+
+	//the world's own ice comes and goes with its seasons (reseason), never with the air;
+	//frost freezes any water it is laid on, and that ice thaws back in warm air
+	@Override
+	public boolean frostFreezesWater() {
+		return true;
+	}
+
+	@Override
+	public boolean iceThawsInAir( int cell ){
+		return pristine != null && cell < pristine.length && pristine[cell] != Terrain.FROZEN_WATER;
+	}
 	@Override
 	public void playLevelMusic() {
 		//peaceful for now; biome-aware music comes later
@@ -2427,6 +2690,7 @@ public class OverworldLevel extends Level {
 		populateTown();
 
 		populate();
+		homesteadArrived();
 
 		return true;
 	}
@@ -2451,6 +2715,7 @@ public class OverworldLevel extends Level {
 	 * bounds. Nothing is put on screen here - see presentWindowArt.
 	 */
 	private void adoptPrepared( WindowGenerator.Prepared p ){
+		base = p.base;
 		pristine = p.base.terrain;
 		veins = p.base.veins;
 		adoptSites( p.base );
@@ -2487,11 +2752,14 @@ public class OverworldLevel extends Level {
 		pendingVariance = p.variance;
 		windowVersion++;
 		hazards.windowChanged( p.base.firedamp );
+		//the roofs over the new window, put on screen with the rest of its art (presentWindowArt)
+		refreshRoofs( false );
 	}
 
 	//installs a generated window with the HOST's authoritative map (a network mirror), or
 	//the pristine plus the player's recorded edits; presented at once, where it is drawn
 	private void adoptWindow( WindowGenerator.Window w, int[] override, GameCalendar.Season season ){
+		base = w;
 		pristine = w.terrain;
 		veins = w.veins;
 		adoptSites( w );
@@ -2512,6 +2780,7 @@ public class OverworldLevel extends Level {
 		setBelowData( WindowGenerator.belowLayers( worldSeed, worldX, worldY, w ) );
 		setTopData( w.top, w.topBlend, w.topCorner, w.earth );
 		layoutTownArt();
+		refreshRoofs( false );
 		presentWindowArt();
 		buildFlagMaps();
 		cleanWalls();
@@ -2704,6 +2973,7 @@ public class OverworldLevel extends Level {
 	//one full generator pass to rebuild the pristine cache (load path only)
 	private void rebuildPristine(){
 		WindowGenerator.Window w = WindowGenerator.generate( worldSeed, altitude, worldX, worldY );
+		base = w;
 		pristine = w.terrain;
 		veins = w.veins;
 		adoptSites( w );
@@ -2798,7 +3068,9 @@ public class OverworldLevel extends Level {
 		do {
 			cell = Random.Int( length() );
 		} while ((!passable[cell] || inTown( cell )
-				|| xyz.gabriwar.warpedpixeldungeon.actors.Actor.findChar( cell ) != null)
+				|| xyz.gabriwar.warpedpixeldungeon.actors.Actor.findChar( cell ) != null
+				//nothing comes back to life in a home: a room, under a roof, by a hearth
+				|| xyz.gabriwar.warpedpixeldungeon.homestead.Shelter.wildlifeBarred( this, cell ))
 				&& --tries > 0);
 		return tries > 0 ? cell : -1;
 	}
@@ -2994,6 +3266,20 @@ public class OverworldLevel extends Level {
 		stepTicked = false;
 		//fires on firedamp, healing cracks, refilling pockets (HazardWatch)
 		hazards.worldTurn();
+		//doors and gates swinging shut, roofs alight, the homesteads' parts' own turns
+		xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.worldTurn( this );
+	}
+
+	//the homesteads' sections lay their things on a window just put in place (StoreSection),
+	//and take them back before it moves. the host's only: a mirror keeps none
+	private void homesteadArrived(){
+		if (network) return;
+		for (xyz.gabriwar.warpedpixeldungeon.homestead.StoreSection s : homestead.sections()) s.materialize( this );
+	}
+
+	private void homesteadLeaving(){
+		if (network || pristine == null) return;
+		for (xyz.gabriwar.warpedpixeldungeon.homestead.StoreSection s : homestead.sections()) s.dematerialize( this );
 	}
 
 	/**
@@ -3034,6 +3320,7 @@ public class OverworldLevel extends Level {
 
 	private void shiftWindow( int dx, int dy, long tRebase, long tAll ){
 		long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
+		homesteadLeaving();
 		captureDiffs();
 		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW captureDiffs", t );
 
@@ -3189,6 +3476,9 @@ public class OverworldLevel extends Level {
 
 		t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
 		populate();
+		homesteadArrived();
+		//an old save's safe room things, once the window walks onto the town's plaza
+		xyz.gabriwar.warpedpixeldungeon.homestead.legacy.SafeRoomMigration.deliver( this );
 		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW populate", t );
 
 		//the map layers' visuals as they will be after the shift: the overlap moves by
@@ -3438,7 +3728,7 @@ public class OverworldLevel extends Level {
 		return Long.MIN_VALUE;
 	}
 
-	boolean addMob( Mob m, int cell ){
+	public boolean addMob( Mob m, int cell ){
 		//settlement layouts can reach past the window edge (a metropolis near
 		//the border) - anything outside simply doesn't spawn this window
 		int x = cell % width(), y = cell / width();
@@ -3797,7 +4087,10 @@ public class OverworldLevel extends Level {
 		//wisps, a tomb's dead, a tower's yeti) in their berths: those are no wildlife
 		int fauna = 0;
 		for (Mob m : mobs){
-			if (OverworldFauna.isFauna( m ) && !inSiteBerth( m.pos )) fauna++;
+			//a homestead's roped, tied or penned animals are its own, no wildlife (homestead/animals)
+			if (OverworldFauna.isFauna( m ) && !inSiteBerth( m.pos )
+					&& !(m instanceof xyz.gabriwar.warpedpixeldungeon.homestead.HomesteadActor
+							&& ((xyz.gabriwar.warpedpixeldungeon.homestead.HomesteadActor) m).homesteadKept())) fauna++;
 		}
 		xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle.Phase phase
 				= xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle.phase();
@@ -3826,12 +4119,16 @@ public class OverworldLevel extends Level {
 					worldX + cell % width(), worldY + cell / width() )) continue;
 			//the slices' places keep their own: no wildlife in a camp, a grotto, a hut or an eyrie
 			if (inSiteBerth( cell )) continue;
+			//...nor in a home: no beast in a room or under a roof, none near a hearthstone or a lit
+			//hearth (homestead/Shelter, HomeAnchors)
+			if (xyz.gabriwar.warpedpixeldungeon.homestead.Shelter.wildlifeBarred( this, cell )) continue;
 			ArrayList<Mob> beasts = OverworldFauna.roll( altitude, biomeAtCell( cell ), phase, hab );
 			int placed = 0;
 			for (int i = 0; i < beasts.size(); i++){
 				int at = cell + (i == 0 ? 0 : com.watabou.utils.PathFinder.NEIGHBOURS8[i % 8]);
 				//a slice's pack member only where its kind lives: a fish never beside the water, a wisp by its seam
 				if (i > 0 && altitude != 0 && (!OverworldFauna.livesAt( this, beasts.get( i ), at ) || inSiteBerth( at ))) continue;
+				if (i > 0 && at >= 0 && at < length() && xyz.gabriwar.warpedpixeldungeon.homestead.Shelter.wildlifeBarred( this, at )) continue;
 				if (addMob( beasts.get( i ), at )) placed++;
 			}
 			fauna += placed;
@@ -3866,7 +4163,11 @@ public class OverworldLevel extends Level {
 	}
 
 	private void populateSettlement( int sx, int sy, long key, int center ){
-		if (taggedHere( key )) return;
+		if (taggedHere( key )){
+			//a village peopled before the homesteads still gets its carpenter (homestead/gathering/Carpentry)
+			xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Carpentry.settle( this, key );
+			return;
+		}
 
 		WorldStructures.Faction fac = WorldStructures.faction( worldSeed, sx, sy );
 
@@ -3957,6 +4258,9 @@ public class OverworldLevel extends Level {
 				addMob( guard, at != -1 ? at : center + com.watabou.utils.PathFinder.NEIGHBOURS8[(g * 2) % 8] * 2 );
 			}
 		}
+
+		//and its carpenter keeps a stall by the well, set up once (homestead/gathering/Carpentry)
+		xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Carpentry.settle( this, key );
 	}
 
 	// ------------------------------------------------- the road's own trade
@@ -4977,6 +5281,32 @@ public class OverworldLevel extends Level {
 		}
 	}
 
+	/** Co-op host (StateSerializer): a fingerprint of the homesteads his guests' mirrors show (the
+	 *  pieces' health and the roofs of the window), shipped again only when it changed. */
+	public long sharedHomesteadSig(){
+		return ((long) windowVersion << 32) ^ homestead.version();
+	}
+
+	/** Co-op host: the pieces and roofs of the window as his guests see them, as a bundle's text. */
+	public String sharedHomestead(){
+		return homestead.shared( worldX, worldY, worldX + WIDTH, worldY + HEIGHT );
+	}
+
+	/** A co-op guest's mirror takes over its host's pieces and roofs (sharedHomestead): drawn and
+	 *  examined as the host's. Called before the mirror is the level, or on the render thread. */
+	public void adoptSharedHomestead( String text ){
+		if (!network || text == null || text.isEmpty()) return;
+		try {
+			homestead.adoptShared( Bundle.read( new java.io.ByteArrayInputStream( text.getBytes() ) ) );
+		} catch (java.io.IOException e){
+			//Bundle.read has reported it. the roofs stay as they were; the next change ships them again
+			return;
+		}
+		//the rooms stand on the host's roofs: worked out again from these
+		xyz.gabriwar.warpedpixeldungeon.homestead.Rooms.forget( this );
+		refreshRoofs( Dungeon.level == this );
+	}
+
 	//every event on now laid down in the window: a star's fragment in its crater, a market's
 	//stalls round its well. idempotent (lootAt, marketOpen); `fx` false inside a rebase
 	private void placeEvents( boolean fx ){
@@ -5578,6 +5908,7 @@ public class OverworldLevel extends Level {
 		bundle.put( ORE_DROPS, oreDrops );
 		eventLog.storeInBundle( bundle );
 		hazards.storeInBundle( bundle );
+		homestead.storeInBundle( bundle );
 	}
 
 	@Override
@@ -5664,6 +5995,9 @@ public class OverworldLevel extends Level {
 		else { customTiles.removeAll( found ); customWalls.removeAll( found ); }
 		customTiles.removeAll( bundledDress( customTiles ) );
 		customWalls.removeAll( bundledDress( customWalls ) );
+		//the roofs are laid again from the homestead store as the window is (refreshRoofs)
+		java.util.Iterator<xyz.gabriwar.warpedpixeldungeon.tiles.CustomTilemap> walls = customWalls.iterator();
+		while (walls.hasNext()) if (walls.next() instanceof xyz.gabriwar.warpedpixeldungeon.tiles.RoofLayers.Tiles) walls.remove();
 		waypointActive = bundle.getBoolean( WP_ACTIVE );
 		waypointMarching = bundle.getBoolean( WP_MARCH );
 		waypointX = bundle.getInt( WP_X );
@@ -5705,6 +6039,8 @@ public class OverworldLevel extends Level {
 		eventLog.restoreFromBundle( bundle );
 		//spent firedamp and cracked ice, by world position (absent from older saves: none)
 		hazards.restoreFromBundle( bundle );
+		//what was built, before the window is laid (its roofs are laid with it)
+		homestead.restoreFromBundle( bundle );
 
 		//the stamp is kept as SAVED (not re-read): the window is re-derived
 		//below for the calendar as it stands, and if the year moved on while
@@ -5762,6 +6098,7 @@ public class OverworldLevel extends Level {
 		populateTown();
 		//what ended while the save lay waiting goes before any scene shows it
 		if (altitude == 0) expireEvents( eventTurn(), false );
+		homesteadArrived();
 	}
 
 	//a saved window's settlements, as it comes back: whoever's part of the day turned while it

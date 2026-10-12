@@ -782,6 +782,12 @@ public class Notes {
 		return filtered;
 	}
 
+	/** Forgets the landmarks and keys noted for a depth that no longer exists (the old safe
+	 *  room: homestead.legacy.SafeRoomMigration). The player's own notes stay. */
+	public static void forgetDepth( int depth ){
+		records.removeIf( rec -> !(rec instanceof CustomRecord) && rec.depth() == depth );
+	}
+
 	public static CustomRecord findCustomRecord( int ID ){
 		for (Record rec : records){
 			if (rec instanceof CustomRecord && ((CustomRecord) rec).ID == ID) {

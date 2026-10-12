@@ -380,10 +380,10 @@ public class MeleeWeapon extends Weapon {
 
 		if (isEquipped(Dungeon.hero) && !hasCurseEnchant() && Dungeon.hero.buff(HolyWeapon.HolyWepBuff.class) != null
 				&& (Dungeon.hero.subClass != HeroSubClass.PALADIN || enchantment == null)){
-			info += "\n\n" + Messages.capitalize(Messages.get(Weapon.class, "enchanted", Messages.get(HolyWeapon.class, "ench_name", Messages.get(Enchantment.class, "enchant"))));
+			info += "\n\n" + Messages.capitalize(Messages.get(Weapon.class, "enchanted", Messages.tint(HOLY.textColor(), Messages.get(HolyWeapon.class, "ench_name", Messages.get(Enchantment.class, "enchant")))));
 			info += " " + Messages.get(HolyWeapon.class, "ench_desc");
 		} else if (enchantment != null && (cursedKnown || !enchantment.curse())){
-			info += "\n\n" + Messages.capitalize(Messages.get(Weapon.class, "enchanted", enchantment.name()));
+			info += "\n\n" + Messages.capitalize(Messages.get(Weapon.class, "enchanted", enchantment.coloredName()));
 			if (enchantHardened) info += " " + Messages.get(Weapon.class, "enchant_hardened");
 			info += " " + enchantment.desc();
 		} else if (enchantHardened){
@@ -391,7 +391,7 @@ public class MeleeWeapon extends Weapon {
 		}
 
 		if (enchantment2 != null && (cursedKnown || !enchantment2.curse())){
-			info += "\n\n" + Messages.capitalize(Messages.get(Weapon.class, "enchanted", enchantment2.name()));
+			info += "\n\n" + Messages.capitalize(Messages.get(Weapon.class, "enchanted", enchantment2.coloredName()));
 			info += " " + enchantment2.desc();
 		}
 

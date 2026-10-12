@@ -21,11 +21,11 @@
 
 package xyz.gabriwar.warpedpixeldungeon.effects;
 
-import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Ramp;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.Flames;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.LightFrame;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
@@ -41,8 +41,11 @@ import com.watabou.noosa.TextureFilm;
  */
 public class Fireball extends MovieClip {
 
-	/** The glow's colour and its alpha (of the fireball's own), its embers a second and at most. */
-	public static final int LIGHT = 0xFF9A48;
+	/** The glow's colour and its alpha (of the fireball's own), its embers a second and at most.
+	 *  The painted fireballs burn blue, so their glow and embers take the art's own blues, hot
+	 *  to cool, not the orange of an ordinary fire. */
+	public static final int LIGHT = 0x7FA6F8;
+	private static final Ramp EMBER = new Ramp( 0xC0D0F8, 0x6090F8, 0x0030A0 );
 	public static final float GLOW = 0.25f, EMBERS = 3f;
 	public static final int EMBERS_MAX = 8;
 
@@ -114,7 +117,7 @@ public class Fireball extends MovieClip {
 			if (am > 0.5f && embers.countLiving() < EMBERS_MAX){
 				FxParticle p = Flames.make( embers, FxParticle.class, cx + FxRandom.Float( -width / 6f, width / 6f ), y + height * 0.35f );
 				//no wind and no ending over a level's water: there is no game here
-				Flames.ember( p, Element.FIRE.ember ).wind( 0 ).fate( null );
+				Flames.ember( p, EMBER ).wind( 0 ).fate( null );
 			}
 		}
 		embers.update();

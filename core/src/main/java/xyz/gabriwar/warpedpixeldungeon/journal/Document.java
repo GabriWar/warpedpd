@@ -198,8 +198,6 @@ public enum Document {
 					return new ItemSprite( ItemSpriteSheet.STYLUS );
 				case "Farming":
 					return new ItemSprite( ItemSpriteSheet.SEED_SUNGRASS );
-				case "SafeZone":
-					return new ItemSprite( ItemSpriteSheet.DWARF_HAMMER );
 				case "Dieing":
 					return new ItemSprite( ItemSpriteSheet.TOMB );
 				case Document.GUIDE_SEARCHING:
@@ -258,7 +256,6 @@ public enum Document {
 	public static final String GUIDE_ENCHANTING     = "Enchanting";
 	public static final String GUIDE_FARMING        = "Farming";
 	public static final String GUIDE_SKILLS         = "Skills";
-	public static final String GUIDE_SAFE_ZONE      = "SafeZone";
 	public static final String GUIDE_DIEING         = "Dieing";
 
 	public static final String GUIDE_SEARCHING      = "Searching";
@@ -278,7 +275,6 @@ public enum Document {
 		ADVENTURERS_GUIDE.pagesStates.put(GUIDE_ENCHANTING,     debug ? READ : NOT_FOUND);
 		ADVENTURERS_GUIDE.pagesStates.put(GUIDE_FARMING,        debug ? READ : NOT_FOUND);
 		ADVENTURERS_GUIDE.pagesStates.put(GUIDE_SKILLS,         debug ? READ : NOT_FOUND);
-		ADVENTURERS_GUIDE.pagesStates.put(GUIDE_SAFE_ZONE,      debug ? READ : NOT_FOUND);
 		ADVENTURERS_GUIDE.pagesStates.put(GUIDE_DIEING,         debug ? READ : NOT_FOUND);
 		//given in sewers
 		ADVENTURERS_GUIDE.pagesStates.put(GUIDE_SEARCHING,      debug ? READ : NOT_FOUND);

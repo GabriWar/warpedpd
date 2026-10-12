@@ -34,8 +34,15 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 
 public class Door {
 
+	/** Is this terrain a door standing open that closes when its doorway empties: the dungeon's,
+	 *  or a homestead's plain door. */
+	public static boolean closesBehind( int terrain ) {
+		return terrain == Terrain.OPEN_DOOR || terrain == Terrain.BUILT_DOOR_OPEN;
+	}
+
 	public static void enter( int pos ) {
-		Level.set( pos, Terrain.OPEN_DOOR );
+		//a homestead's plain door opens the same way, into its own open state
+		Level.set( pos, Dungeon.level.map[pos] == Terrain.BUILT_DOOR ? Terrain.BUILT_DOOR_OPEN : Terrain.OPEN_DOOR );
 		GameScene.updateMap( pos );
 
 		if (Dungeon.level.heroFOV[pos]) {
@@ -57,7 +64,7 @@ public class Door {
 
 		//door does not shut if anything else is also on it
 		if (Dungeon.level.heaps.get( pos ) == null && chars <= 1) {
-			Level.set( pos, Terrain.DOOR );
+			Level.set( pos, Dungeon.level.map[pos] == Terrain.BUILT_DOOR_OPEN ? Terrain.BUILT_DOOR : Terrain.DOOR );
 			GameScene.updateMap( pos );
 			if (Dungeon.level.heroFOV[pos]) {
 				Dungeon.observe();

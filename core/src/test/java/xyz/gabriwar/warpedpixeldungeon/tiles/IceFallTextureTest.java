@@ -12,6 +12,30 @@ import static org.junit.Assert.assertEquals;
 
 public class IceFallTextureTest {
 	@Test
+	public void theFringeFraysInTheColourOfEachTilesetsIce() {
+		GdxNativesLoader.load();
+		File assets = new File("src/main/assets/environment");
+		Pixmap fringe = new Pixmap(new FileHandle(new File(assets, "ice_fringe.png")));
+		try {
+			for (String region : new String[]{"sewers", "prison", "caves", "overworld"}) {
+				Pixmap terrain = new Pixmap(new FileHandle(new File(assets, "tiles_" + region + ".png")));
+				Pixmap atlas = IceFallTexture.build(terrain, fringe);
+				try {
+					float[] ice = IceFallTexture.averageHsl(terrain, DungeonTileSheet.FROZEN_WATER / 16 * 16, 16, true);
+					float[] frayed = IceFallTexture.averageHsl(atlas, 0, IceFallTexture.FIRST_TILE / 16 * 16, false);
+					float apart = Math.abs(ice[0] - frayed[0]);
+					assertEquals(region + ": fringe hue against ice hue", 0f, Math.min(apart, 1 - apart), 0.02f);
+				} finally {
+					atlas.dispose();
+					terrain.dispose();
+				}
+			}
+		} finally {
+			fringe.dispose();
+		}
+	}
+
+	@Test
 	public void fallsContinueEveryShorelinePixelAndFadeToBlack() {
 		GdxNativesLoader.load();
 		File assets = new File("src/main/assets/environment");

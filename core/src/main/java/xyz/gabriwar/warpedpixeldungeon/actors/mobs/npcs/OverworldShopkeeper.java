@@ -47,6 +47,9 @@ public class OverworldShopkeeper extends Shopkeeper {
 			ARMOR = 4, MISSILES = 5, SEEDS = 6, WANDS = 7,
 			RINGS = 8, STONES = 9, ARTIFACTS = 10;
 	public static final int SPECIALITIES = 11;
+	//the village carpenter, past the rotation above: every village or larger has one besides its
+	//usual traders (homestead/gathering/Carpentry)
+	public static final int CARPENTER = 11;
 
 	{
 		spriteClass = ShopkeeperVariantSprite.class;
@@ -90,6 +93,20 @@ public class OverworldShopkeeper extends Shopkeeper {
 	@Override
 	public void processHarm(){
 		if (!RaidEvent.ongoing( homeSector )) super.processHarm();
+	}
+
+	//the carpenter's shelf is what a builder cannot gather, all of it every time and no world map
+	//(homestead/gathering/Carpentry): not the few picked at random from a trader's stock
+	@Override
+	public void restock(){
+		if (speciality != CARPENTER){
+			super.restock();
+			return;
+		}
+		if (xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Carpentry.lay( this ) > 0
+				&& xyz.gabriwar.warpedpixeldungeon.net.NetManager.anyHeroSees( pos )){
+			yell( xyz.gabriwar.warpedpixeldungeon.messages.Messages.get( Shopkeeper.class, "restock" ) );
+		}
 	}
 
 	@Override

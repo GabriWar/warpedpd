@@ -414,7 +414,24 @@ public final class DebugScenes {
 					+ " every level, where a real rain stops at the door)" ),
 			new WeatherScene( "weather-clear", "Weather: release every weather override",
 					null, WeatherScene.Ground.HERE, false, null ),
-	} );
+	},
+			//the homesteads' scenes (debug/HomesteadScenes), and the gathering's (debug/GatheringScenes)
+			HomesteadScenes.SCENES,
+			GatheringScenes.SCENES,
+			//the rooms' (debug/RoomScenes)
+			RoomScenes.SCENES,
+			//the build menu's (debug/BuildScenes)
+			BuildScenes.SCENES,
+			//the stations' (debug/StationScenes)
+			StationScenes.SCENES,
+			//the fields' and the animals' (debug/FarmScenes)
+			FarmScenes.SCENES,
+			//the threats' (debug/ThreatScenes)
+			ThreatScenes.SCENES,
+			//the travel part's (debug/TravelScenes)
+			TravelScenes.SCENES,
+			//the old safe room's removal (debug/SafeRoomScenes)
+			SafeRoomScenes.SCENES );
 
 	//lists of scenes one after another
 	private static Scene[] concat( Scene[]... parts ){
@@ -426,7 +443,7 @@ public final class DebugScenes {
 	/** The menu's groups, in order: each scene falls in the first whose test its id passes (by
 	 *  its prefix), the rest in "Other". */
 	public static final String[] CATEGORIES = { "Basics", "Effects", "Water", "Lightning", "Weather",
-			"Sound", "Ambience and critters", "Surface", "Caves and peaks", "Warped rooms", "Other" };
+			"Sound", "Ambience and critters", "Surface", "Caves and peaks", "Homestead", "Warped rooms", "Other" };
 
 	public static String category( String id ){
 		if (id.startsWith( "water-" )) return "Water";
@@ -437,6 +454,7 @@ public final class DebugScenes {
 		if (id.startsWith( "ambience-" )) return "Ambience and critters";
 		if (id.startsWith( "overworld-" )) return "Surface";
 		if (id.startsWith( "layers-" )) return "Caves and peaks";
+		if (id.startsWith( "homestead-" )) return "Homestead";
 		if (id.startsWith( "warped-rooms" )) return "Warped rooms";
 		if (id.startsWith( "fliers-" ) || id.equals( "blank-room" ) || id.startsWith( "pit" )) return "Basics";
 		return "Other";
@@ -594,6 +612,14 @@ public final class DebugScenes {
 	public static void toSlice( int altitude, int wx, int wy ){
 		OverworldLevel.arriveAt( wx, wy );
 		OverworldLevel.travelToAltitude( altitude );
+	}
+
+	//sends the hero to a world cell of a slice, the scene run again once he stands there (its
+	//apply tells the arrival from the first call by a flag of its own)
+	static void travelThen( Scene scene, int altitude, int wx, int wy ){
+		pending = scene;
+		starting = true;
+		toSlice( altitude, wx, wy );
 	}
 
 	//a search of the world can run for many seconds (a hermit's hut, a thawed meadow): it runs off

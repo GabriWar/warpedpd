@@ -822,9 +822,16 @@ public final class WindowGenerator {
 		return p;
 	}
 
-	/** The player's recorded edits laid over a window map: only the interior, the ring is always the window's own wall. */
+	/** The player's recorded edits laid over a window map: only the interior, the ring is always the
+	 *  window's own wall. A sector-indexed store (SectorMap) is read only in the sectors the window
+	 *  touches; a plain map (a worker's snapshot) entry by entry. */
 	public static void overlayDiffs( int[] map, HashMap<Long, Integer> edits, int ox, int oy ){
 		if (edits == null || edits.isEmpty()) return;
+		if (edits instanceof SectorMap){
+			((SectorMap<Integer>) edits).forEachIn( ox + 1, oy + 1, ox + WIDTH - 1, oy + HEIGHT - 1,
+					(wx, wy, t) -> map[wx - ox + (wy - oy) * WIDTH] = t );
+			return;
+		}
 		for (HashMap.Entry<Long, Integer> e : edits.entrySet()){
 			int wx = (int) (e.getKey() & 0xFFFFFFFFL);
 			int wy = (int) (e.getKey() >> 32);

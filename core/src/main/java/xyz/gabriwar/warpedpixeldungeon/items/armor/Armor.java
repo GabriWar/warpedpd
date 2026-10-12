@@ -709,14 +709,14 @@ public class Armor extends EquipableItem {
 
 		if (isEquipped(Dungeon.hero) && !hasCurseGlyph() && Dungeon.hero.buff(HolyWard.HolyArmBuff.class) != null
 				&& (Dungeon.hero.subClass != HeroSubClass.PALADIN || glyph == null)){
-			info += "\n\n" + Messages.capitalize(Messages.get(Armor.class, "inscribed", Messages.get(HolyWard.class, "glyph_name", Messages.get(Glyph.class, "glyph"))));
+			info += "\n\n" + Messages.capitalize(Messages.get(Armor.class, "inscribed", Messages.tint(HOLY.textColor(), Messages.get(HolyWard.class, "glyph_name", Messages.get(Glyph.class, "glyph")))));
 			info += " " + Messages.get(HolyWard.class, "glyph_desc");
 		} else if (glyph != null  && (cursedKnown || !glyph.curse())) {
-			info += "\n\n" +  Messages.capitalize(Messages.get(Armor.class, "inscribed", glyph.name()));
+			info += "\n\n" +  Messages.capitalize(Messages.get(Armor.class, "inscribed", glyph.coloredName()));
 			if (glyphHardened) info += " " + Messages.get(Armor.class, "glyph_hardened");
 			info += " " + glyph.desc();
 			if (glyph2 != null && (cursedKnown || !glyph2.curse())){
-				info += "\n\n" + Messages.capitalize(Messages.get(Armor.class, "inscribed", glyph2.name()));
+				info += "\n\n" + Messages.capitalize(Messages.get(Armor.class, "inscribed", glyph2.coloredName()));
 				info += " " + glyph2.desc();
 			}
 		} else if (glyphHardened){
@@ -1060,6 +1060,12 @@ public class Armor extends EquipableItem {
 			return multi;
 		}
 		
+		/** the name in its own glow colour, for an item's description */
+		public String coloredName() {
+			ItemSprite.Glowing g = glowing();
+			return g == null ? name() : Messages.tint( g.textColor(), name() );
+		}
+
 		public String name() {
 			if (!curse())
 				return name( Messages.get(this, "glyph") );

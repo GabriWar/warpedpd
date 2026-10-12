@@ -708,7 +708,7 @@ public abstract class Level implements Bundlable {
 	}
 
 	// Returns frozen water texture for this level, or null if water here is
-	// lava/unfrozen (City and Halls have lava, not water — they never freeze)
+	// lava/unfrozen (the Halls have lava, not water — it never freezes)
 	public String frozenWaterTex() {
 		return null;
 	}
@@ -716,6 +716,18 @@ public abstract class Level implements Bundlable {
 	// Whether water on this level can freeze (false for lava levels)
 	public boolean waterCanFreeze() {
 		return frozenWaterTex() != null;
+	}
+
+	// Whether cold laid on a cell (frost) can freeze its water, even where the
+	// weather does not freeze it (TileTemperature)
+	public boolean frostFreezesWater() {
+		return waterCanFreeze();
+	}
+
+	// Whether the ice on a cell thaws back to water in warm air, as well as to heat
+	// brought to it (TileTemperature)
+	public boolean iceThawsInAir( int cell ) {
+		return waterCanFreeze();
 	}
 
 	// The depth the climate treats this level as: how much of the surface's weather
@@ -822,8 +834,11 @@ public abstract class Level implements Bundlable {
 	}
 
 	public LevelTransition getTransition(int cell){
+		//this level's own geometry: LevelTransition.inside(int) reads Dungeon.level, which is
+		//null (or another level) while a slice is read back from its save
+		Point p = cellToPoint(cell);
 		for (LevelTransition transition : transitions){
-			if (transition.inside(cell)){
+			if (transition.inside(p)){
 				return transition;
 			}
 		}
@@ -947,7 +962,13 @@ public abstract class Level implements Bundlable {
 			if (pit[i]) {
 				visuals.add( new WindParticle.Wind( i ) );
 				if (i >= width() && water[i-width()]) {
-					visuals.add( new FlowParticle.Flow( i - width() ) );
+					visuals.add( new FlowParticle.Flow( i - width(), 0 ) );
+				}
+				if (i % width() > 0 && water[i-1]) {
+					visuals.add( new FlowParticle.Flow( i - 1, 1 ) );
+				}
+				if (i % width() < width() - 1 && water[i+1]) {
+					visuals.add( new FlowParticle.Flow( i + 1, -1 ) );
 				}
 			}
 		}
@@ -1307,6 +1328,29 @@ public abstract class Level implements Bundlable {
 		}
 	}
 	
+	/** cleanWalls for one changed cell: only it and its eight neighbours can change their
+	 *  discoverability (each reads its own eight). What a single edit needs, never the whole map. */
+	public void cleanWalls( int cell ) {
+		if (discoverable == null || discoverable.length != length) {
+			cleanWalls();
+			return;
+		}
+		if (noFogOfWar()) return;
+		for (int i : PathFinder.NEIGHBOURS9) {
+			int c = cell + i;
+			if (c < 0 || c >= length()) continue;
+			boolean d = false;
+			for (int j : PathFinder.NEIGHBOURS9) {
+				int n = c + j;
+				if (n >= 0 && n < length() && map[n] != Terrain.WALL && map[n] != Terrain.WALL_DECO) {
+					d = true;
+					break;
+				}
+			}
+			discoverable[c] = d;
+		}
+	}
+
 	public static void set( int cell, int terrain ){
 		set( cell, terrain, Dungeon.level );
 	}
@@ -1409,43 +1453,8 @@ public abstract class Level implements Bundlable {
 	
 	public Plant plant( Plant.Seed seed, int pos ) {
 
-		//in the safe zone, tilled soil grows a persistent farm crop instead of a
-		//normal one-shot plant: it ripens over game time and clones its own seed
-		if (this instanceof SafeLevel
-				&& map[pos] == Terrain.FURROWED_GRASS
-				&& !Dungeon.isChallenged( Challenges.NO_HERBALISM )){
-
-			//the crop is an immovable actor so it can't share a cell. when the target
-			//is free, sow it there; when the hero is standing on the plot (the Plant
-			//verb targets the hero's own cell) redirect to an adjacent tilled cell
-			int sowAt = -1;
-			if (Actor.findChar( pos ) == null){
-				sowAt = pos;
-			} else if (Actor.findChar( pos ) == Dungeon.hero){
-				for (int d : PathFinder.NEIGHBOURS8){
-					int c = pos + d;
-					if (c >= 0 && c < length()
-							&& map[c] == Terrain.FURROWED_GRASS
-							&& Actor.findChar( c ) == null){
-						sowAt = c;
-						break;
-					}
-				}
-			}
-
-			if (sowAt != -1){
-				xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.FarmCrop crop
-						= new xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.FarmCrop();
-				crop.pos = sowAt;
-				crop.sow( (Plant.Seed) com.watabou.utils.Reflection.newInstance( seed.getClass() ) );
-				GameScene.add( crop );
-				return null;
-			}
-
-			//no free tilled cell to sow (hero boxed in): give the seed back rather
-			//than consuming it silently, and hint to make room
-			GLog.w( Messages.get( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.FarmCrop.class, "no_room" ) );
-			drop( com.watabou.utils.Reflection.newInstance( seed.getClass() ), pos );
+		//on the world's slices, farmland grows the seed as a crop of the fields (homestead/farming)
+		if (xyz.gabriwar.warpedpixeldungeon.homestead.farming.Farming.sow( this, seed, pos )){
 			return null;
 		}
 
@@ -1641,8 +1650,13 @@ public abstract class Level implements Bundlable {
 			//characters which are not the hero or a sheep 'soft' press cells
 			pressCell( ch.pos, ch instanceof Hero || ch instanceof Sheep);
 		} else {
-			if (map[ch.pos] == Terrain.DOOR){
+			if (map[ch.pos] == Terrain.DOOR || map[ch.pos] == Terrain.BUILT_DOOR){
 				Door.enter( ch.pos );
+			}
+			//an ally flies in through a homestead's barred door or gate as it walks in: opening it
+			if (xyz.gabriwar.warpedpixeldungeon.homestead.BuiltTerrain.handOpened( map[ch.pos] )
+					&& xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.opensByHand( ch )){
+				xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.openByHand( ch, ch.pos );
 			}
 		}
 
@@ -1699,8 +1713,27 @@ public abstract class Level implements Bundlable {
 			break;
 			
 		case Terrain.DOOR:
+		case Terrain.BUILT_DOOR:
 			Door.enter( cell );
 			break;
+
+		//a homestead's barred door or gate: the hero's ally opens it stepping in (no monster's
+		//path ever leads into one)
+		case Terrain.BUILT_DOOR_BARRED:
+		case Terrain.FENCE_GATE: {
+			Char ch = Actor.findChar( cell );
+			if (ch != null && xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.opensByHand( ch )){
+				xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.openByHand( ch, cell );
+			}
+			break;
+		}
+		}
+
+		//a homestead's spike trap lies on walkable ground, whose terrain springs no trap: a monster
+		//stepping on it springs it, never the hero or his allies (homestead/threats/SpikeTrap)
+		if (trap == null && traps.get( cell ) instanceof xyz.gabriwar.warpedpixeldungeon.homestead.threats.SpikeTrap
+				&& xyz.gabriwar.warpedpixeldungeon.homestead.threats.SpikeTrap.springsFor( Actor.findChar( cell ) )){
+			trap = traps.get( cell );
 		}
 
 		//Phase pitchers leave well water on ordinary terrain, including after
@@ -2076,6 +2109,9 @@ public abstract class Level implements Bundlable {
 	}
 	
 	public String tileName( int tile ) {
+
+		//the homesteads' walls, doors, grounds and what is left when they break
+		if (Terrain.homestead( tile )) return xyz.gabriwar.warpedpixeldungeon.homestead.BuiltTerrain.name( tile );
 		
 		switch (tile) {
 			case Terrain.CHASM:
@@ -2162,6 +2198,8 @@ public abstract class Level implements Bundlable {
 	}
 
 	public String tileDesc( int tile ) {
+
+		if (Terrain.homestead( tile )) return xyz.gabriwar.warpedpixeldungeon.homestead.BuiltTerrain.desc( tile );
 		
 		switch (tile) {
 			case Terrain.CHASM:

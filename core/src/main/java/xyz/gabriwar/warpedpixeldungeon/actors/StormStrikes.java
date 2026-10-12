@@ -147,7 +147,8 @@ public final class StormStrikes {
 	}
 
 	/** A cell within REACH of `from`, any of them alike, open ground: -1 when a few tries find
-	 *  none. */
+	 *  none. Never the open floor of a room the hero built (homestead/Rooms): only the roof over
+	 *  one, which takes the bolt (strike, Homestead.roofStruck). */
 	static int pick( Level level, int from ){
 		int w = level.width(), h = level.height();
 		int fx = from % w, fy = from / w;
@@ -155,7 +156,8 @@ public final class StormStrikes {
 			int x = fx + Random.IntRange( -REACH, REACH ), y = fy + Random.IntRange( -REACH, REACH );
 			if (x < 0 || y < 0 || x >= w || y >= h) continue;
 			int cell = x + y * w;
-			if (ground( level, cell )) return cell;
+			if (ground( level, cell ) && (xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.roofAt( level, cell ) != -1
+					|| xyz.gabriwar.warpedpixeldungeon.homestead.Rooms.at( level, cell ) == null)) return cell;
 		}
 		return -1;
 	}
@@ -195,6 +197,12 @@ public final class StormStrikes {
 	 */
 	public static void strike( int cell ){
 		Level level = Dungeon.level;
+		//a homestead's roof takes the bolt: thatch catches, the rest is hurt, and nobody under it is struck
+		if (xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.roofStruck( level, cell )){
+			show( level, cell, false, NONE, NONE );
+			NetVisuals.recordStrike( cell, false, NONE, NONE );
+			return;
+		}
 		Discharge d = StormCloud.jolt( cell, SKY, StormStrikes::share );
 		if (!inTown( level, cell )){
 			//the scorch is the bolt's own: the heavy rain a storm brings cannot take it back

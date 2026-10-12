@@ -666,7 +666,7 @@ abstract public class Weapon extends KindOfWeapon {
 				|| (enchantment2 != null && enchantment2.curse());
 	}
 
-	private static ItemSprite.Glowing HOLY = new ItemSprite.Glowing( 0xFFFF00 );
+	protected static ItemSprite.Glowing HOLY = new ItemSprite.Glowing( 0xFFFF00 );
 
 	@Override
 	public ItemSprite.Glowing glowing() {
@@ -783,6 +783,12 @@ abstract public class Weapon extends KindOfWeapon {
 			}
 
 			return multi;
+		}
+
+		/** the name in its own glow colour, for an item's description */
+		public String coloredName() {
+			ItemSprite.Glowing g = glowing();
+			return g == null ? name() : Messages.tint( g.textColor(), name() );
 		}
 
 		public String name() {

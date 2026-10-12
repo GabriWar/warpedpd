@@ -295,7 +295,6 @@ public class WndDebugPicker extends Window {
 				{40, 0, "Thief Boss"},
 				{41, 0, "Thief Catch"},
 				// Sokoban / Town
-				{50, 0, "Safe Level"},
 				{51, 0, "Sokoban Intro"},
 				{52, 0, "Sokoban Castle"},
 				{53, 0, "Sokoban Teleport"},

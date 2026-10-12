@@ -39,7 +39,7 @@ import com.watabou.utils.Callback;
  * The enchanting pedestal: an interactable station that can empower a weapon's
  * enchantments or weave a second one in, at the cost of alchemical energy.
  */
-public class EnchantingStation extends NPC {
+public class EnchantingStation extends NPC implements xyz.gabriwar.warpedpixeldungeon.homestead.HomesteadActor {
 
 	{
 		spriteClass = EnchantingStationSprite.class;

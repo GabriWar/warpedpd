@@ -70,6 +70,10 @@ public class DungeonWallsTilemap extends DungeonTilemap {
 
 		if (flat) return -1;
 
+		//a built wall's top in its material, a built door's leaf edge-on under any wall
+		int built = HomesteadVisuals.wallTop(map, mapWidth, size, pos, tile);
+		if (built != HomesteadVisuals.NONE) return built;
+
 		if (DungeonTileSheet.wallStitcheable(tile)) {
 			if (pos + mapWidth < size && !DungeonTileSheet.wallStitcheable(map[pos + mapWidth])){
 
@@ -115,6 +119,10 @@ public class DungeonWallsTilemap extends DungeonTilemap {
 		if (skipCells.contains(pos)){
 			return -1;
 		}
+
+		//the lip of a built wall below in its material, the lintel over a built door
+		built = HomesteadVisuals.lip(map, mapWidth, size, pos, tile);
+		if (built != HomesteadVisuals.NONE) return built;
 
 		if (map[pos] == Terrain.LOCKED_EXIT || map[pos] == Terrain.UNLOCKED_EXIT){
 			return DungeonTileSheet.EXIT_UNDERHANG;

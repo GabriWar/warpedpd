@@ -147,7 +147,11 @@ public class IceBlock extends Mob {
 			thaw();
 			return true;
 		}
-		return super.act();
+		//a lump of ice: it never wakes, wanders or hunts, whatever rouses the floor (the
+		//monster AI let a noise or an alarm set it wandering, and the block walked off)
+		state = PASSIVE;
+		spend( TICK );
+		return true;
 	}
 
 	/** one turn of the tile's temperature on the block; true once it has melted through */
@@ -190,6 +194,11 @@ public class IceBlock extends Mob {
 		return false;
 	}
 
+	//nothing calls a block of ice anywhere
+	@Override
+	public void beckon( int cell ){
+	}
+
 	//tapping it swings at it: it is an obstacle, not a conversation
 	@Override
 	public boolean heroShouldInteract(){
@@ -198,6 +207,7 @@ public class IceBlock extends Mob {
 
 	private void thaw(){
 		int cell = pos;
+		int meltwater = sprite instanceof IceBlockSprite ? ((IceBlockSprite) sprite).meltwater() : 0xFF9FD4E8;
 		destroy();
 		if (sprite != null) sprite.killAndErase();
 
@@ -205,7 +215,7 @@ public class IceBlock extends Mob {
 			Level.set( cell, Terrain.WATER );
 			GameScene.updateMap( cell );
 		}
-		Splash.at( cell, 0xFF9FD4E8, 12 );
+		Splash.at( cell, meltwater, 12 );
 		SpatialSound.play( Assets.Sounds.WATER, cell, 1f, 0.8f );
 		if (prize != null){
 			Dungeon.level.drop( prize, cell ).sprite.drop();

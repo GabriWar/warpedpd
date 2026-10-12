@@ -25,6 +25,7 @@ import xyz.gabriwar.warpedpixeldungeon.Challenges;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar;
+import xyz.gabriwar.warpedpixeldungeon.homestead.Shelter;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
@@ -214,7 +215,8 @@ public class PlantGrowthManager {
 
 	/**
 	 * Finds a random valid position for a plant on the level.
-	 * Up to 30 attempts: must be passable, valid terrain, no existing plant, no character.
+	 * Up to 30 attempts: must be passable, valid terrain, no existing plant, no character, and
+	 * nothing the hero built over it or round it (homestead/Shelter.growthBarred).
 	 */
 	private static int randomValidPlantPos(Level level) {
 		for (int tries = 0; tries < 30; tries++) {
@@ -223,6 +225,8 @@ public class PlantGrowthManager {
 			if (!isValidTerrain(level.map[pos])) continue;
 			if (level.plants.get(pos) != null) continue;
 			if (Actor.findChar(pos) != null) continue;
+			//nothing seeds itself on what the hero built, under his roofs or in his rooms
+			if (Shelter.growthBarred(level, pos)) continue;
 			return pos;
 		}
 		return -1;
@@ -286,7 +290,8 @@ public class PlantGrowthManager {
 	}
 
 	/**
-	 * Converts EMBERS → GRASS and GRASS → HIGH_GRASS over time.
+	 * Converts EMBERS → GRASS and GRASS → HIGH_GRASS over time, never on a built cell, under a
+	 * roof or in a room (homestead/Shelter.growthBarred).
 	 * Skips tiles in the player's FOV to avoid pop-in.
 	 */
 	private static void processGrassRegrowth(Level level, int tiles, boolean visuals) {
@@ -295,6 +300,7 @@ public class PlantGrowthManager {
 			int pos = Random.Int(level.length());
 			if (level.plants.get(pos) != null) continue;
 			if (Actor.findChar(pos) != null) continue;
+			if (Shelter.growthBarred(level, pos)) continue;
 
 			if (level.map[pos] == Terrain.EMBERS) {
 				// Embers cool down into grass first

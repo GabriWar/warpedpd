@@ -492,6 +492,9 @@ public class WndBag extends WndTabbed {
 			return Icons.get( Icons.ANKH_CHAIN );
 		} else if (bag instanceof KeyRing) {
 			return Icons.get( Icons.KEYRING );
+		} else if (bag instanceof xyz.gabriwar.warpedpixeldungeon.items.bags.BuildersSatchel) {
+			//no tab icon of its own on the icons sheet: the satchel's own picture
+			return new xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite( xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet.BUILDERS_SATCHEL );
 		} else {
 			return Icons.get( Icons.BACKPACK );
 		}

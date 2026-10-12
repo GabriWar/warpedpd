@@ -37,8 +37,10 @@ import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import com.watabou.noosa.Image;
 
 //a roof and a fire: inside the town's buildings and the village houses the hero is
-//comfy. The weather stays outside (ClimateManager reads it as an ideal room), and
-//neither the cold nor the heat can take hold while it lasts
+//comfy, and in a room he built with a fire going in it (homestead/Shelter.heated). The
+//weather stays outside (ClimateManager reads the interiors as an ideal room; a built
+//room's air is its own, TileTemperature), and neither the cold nor the heat can take
+//hold while it lasts
 public class Comfy extends Buff {
 
 	public static final float IDEAL_TEMP = 21f;
@@ -59,9 +61,9 @@ public class Comfy extends Buff {
 		return level instanceof TownInteriorLevel || level instanceof VillageHouseLevel;
 	}
 
-	//once a hero turn: on while indoors, gone the moment they step out
+	//once a hero turn: on while indoors or in a heated room, gone the moment they step out
 	public static void check( Hero hero ) {
-		if (indoors()) {
+		if (indoors() || xyz.gabriwar.warpedpixeldungeon.homestead.Shelter.heated( Dungeon.level, hero.pos )) {
 			if (hero.buff( Comfy.class ) == null) Buff.affect( hero, Comfy.class );
 		} else {
 			Comfy comfy = hero.buff( Comfy.class );

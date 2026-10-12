@@ -28,9 +28,14 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.StorageChest;
+import xyz.gabriwar.warpedpixeldungeon.homestead.BuildPiece;
+import xyz.gabriwar.warpedpixeldungeon.homestead.BuiltTerrain;
+import xyz.gabriwar.warpedpixeldungeon.homestead.Homestead;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
-import xyz.gabriwar.warpedpixeldungeon.levels.SafeLevel;
+import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.net.NetDialogs;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
@@ -40,10 +45,11 @@ import com.watabou.utils.Bundle;
 import java.util.ArrayList;
 
 /**
- * A personal storage chest kit. With the builder's tool in hand it can be
- * assembled anywhere in the safe zone, becoming a chest that stores items,
- * can be packed back up (keeping its contents) and re-placed. Three exist
- * per run: wooden, golden and crystal, each roomier than the last.
+ * A personal storage chest kit. It can be assembled on any plain ground out in the
+ * open world (wherever the homesteads may be built, never on a protected cell),
+ * becoming a chest that stores items, can be packed back up (keeping its contents)
+ * and re-placed. Three exist per run: wooden, golden and crystal, each roomier
+ * than the last.
  */
 public class PortableChest extends Item {
 
@@ -116,12 +122,12 @@ public class PortableChest extends Item {
 
 		if (action.equals( AC_PLACE )) {
 
-			if (!(Dungeon.level instanceof SafeLevel)){
-				GLog.w( Messages.get(this, "only_safe") );
-				return;
-			}
-			if (hero.belongings.getItem( BuildersTool.class ) == null){
-				GLog.w( Messages.get(this, "need_tool") );
+			//a co-op guest's hero: the host builds, the guest is told so on his own screen
+			if (NetDialogs.handleNetHero( hero, Homestead.Reason.GUEST.message() )) return;
+			if (hero != Dungeon.hero) return;
+			if (!Homestead.allowedHere( Dungeon.level )){
+				GLog.w( Dungeon.level instanceof OverworldLevel
+						? Homestead.Reason.GUEST.message() : Messages.get(this, "only_world") );
 				return;
 			}
 
@@ -134,9 +140,19 @@ public class PortableChest extends Item {
 		public void onSelect( Integer cell ) {
 			if (cell == null) return;
 
-			if (!Dungeon.level.passable[cell]
+			if (!Homestead.allowedHere( Dungeon.level )) return;
+			OverworldLevel ow = (OverworldLevel) Dungeon.level;
+			if (ow.protectedForBuilding( cell )){
+				GLog.w( Homestead.Reason.PROTECTED.message() );
+				return;
+			}
+			//plain ground in sight, nobody and nothing on it, no built piece but a floor or a path
+			BuildPiece built = Homestead.pieceAt( ow, cell );
+			if (!ow.heroFOV[cell]
+					|| !Homestead.plainGround( ow, cell )
+					|| (built != null && !BuiltTerrain.floor( built.terrain ) && built.terrain != Terrain.PATH_STONE)
 					|| Actor.findChar( cell ) != null
-					|| Dungeon.level.heaps.get( cell ) != null){
+					|| ow.heaps.get( cell ) != null){
 				GLog.w( Messages.get(PortableChest.class, "bad_spot") );
 				return;
 			}

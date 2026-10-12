@@ -256,7 +256,7 @@ public enum GearPerk {
 		ARTIFACT_CHARGE, MANA, DEBUFF_RESIST, MITIGATE, PIERCE }
 
 	/** the summed bonus of every worn ring, artifact and armor and the carried trinket for
-	 *  one hero stat. Every stat is a FRACTION (0.10 = +10%); there are no point values left */
+	 *  one hero stat: their type perks and their hero-wide rarity lines. Every stat is a FRACTION (0.10 = +10%); there are no point values left */
 	public static float heroBonus( Char ch, Stat stat ){
 		if (!(ch instanceof Hero) || ((Hero) ch).belongings == null) return 0f;
 		Hero hero = (Hero) ch;
@@ -266,6 +266,8 @@ public enum GearPerk {
 			Quality q = Quality.of( i );
 			GearPerk p = of( i );
 			if (q != null && p != null) total += p.bonus( i, q, hero, stat );
+			//the rolled lines of rings, trinkets and artifacts (unknown ones work all the same)
+			if (q != null) for (RarityLine l : q.lines) if (l.feeds( stat )) total += q.value( l );
 		}
 		return total;
 	}

@@ -1600,7 +1600,7 @@ public abstract class Char extends Actor {
 
 	/** Reserve an airborne destination; its terrain and movement reactions resolve on landing. */
 	public void beginAnimatedMove(int destination){
-		if (Dungeon.level.map[pos] == Terrain.OPEN_DOOR) Door.leave(pos);
+		if (Door.closesBehind(Dungeon.level.map[pos])) Door.leave(pos);
 		previousPos = -1;
 		pos = destination;
 		movementVersion++;
@@ -1631,7 +1631,7 @@ public abstract class Char extends Actor {
 			}
 		}
 
-		if (Dungeon.level.map[pos] == Terrain.OPEN_DOOR) {
+		if (Door.closesBehind(Dungeon.level.map[pos])) {
 			Door.leave( pos );
 		}
 
@@ -1708,7 +1708,9 @@ public abstract class Char extends Actor {
 	}
 
 	public boolean[] modifyPassable( boolean[] passable){
-		//do nothing by default, but some chars can pass over terrain that others can't
+		//some chars can pass over terrain that others can't. by default only the hero's allies,
+		//through a homestead's barred doors and gates (they open them as they step in)
+		xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.allyPassable( this, passable );
 		return passable;
 	}
 	

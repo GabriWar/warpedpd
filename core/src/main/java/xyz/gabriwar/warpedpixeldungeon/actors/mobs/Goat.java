@@ -28,6 +28,8 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.homestead.animals.Animals;
+import xyz.gabriwar.warpedpixeldungeon.homestead.animals.Leadable;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.food.MysteryMeat;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
@@ -56,7 +58,7 @@ import java.util.ArrayList;
  * and never struck, it lowers its horns first and butts on its next turn only if the hero is
  * still at its side - and that butt throws no one.
  */
-public class Goat extends Mob {
+public class Goat extends Mob implements Leadable {
 
 	{
 		spriteClass = GoatSprite.class;
@@ -68,6 +70,10 @@ public class Goat extends Mob {
 
 		alignment = Alignment.NEUTRAL;
 		state = WANDERING;
+
+		//one time in two its hide, for a homestead's leather (homestead/gathering/Hides): dropped in die()
+		declareExtraLoot( xyz.gabriwar.warpedpixeldungeon.items.materials.Hide.class,
+				xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Hides.GOAT );
 
 		//the crags' own beast: the cold is home, a thaw is what hurts
 		thermal = Thermal.COLD_DWELLER;
@@ -87,10 +93,16 @@ public class Goat extends Mob {
 		return null;
 	}
 
-	//a tap goes for it, as for a deer: an ordinary neutral would trade places
+	//a tap goes for it, as for a deer: an ordinary neutral would trade places. One the hero has
+	//roped, tied or penned is his: a tap opens its menu (homestead/animals/Roping)
 	@Override
 	public boolean heroShouldInteract() {
-		return false;
+		return Animals.shouldInteract( this );
+	}
+
+	@Override
+	public boolean interact( Char c ) {
+		return Animals.interact( this, c ) || super.interact( c );
 	}
 
 	@Override
@@ -120,6 +132,12 @@ public class Goat extends Mob {
 		if (level.heroFOV != null && level.heroFOV[pos] && !Bestiary.isSeen( getClass() )) Bestiary.setSeen( getClass() );
 		if (paralysed > 0 || state == SLEEPING){
 			spend( TICK );
+			return true;
+		}
+		//roped, tied, penned or off to a crop at night: the homesteads' (homestead/animals/Animals)
+		float held = Animals.act( this );
+		if (held > 0){
+			spend( held );
 			return true;
 		}
 
@@ -290,6 +308,8 @@ public class Goat extends Mob {
 		Bestiary.countEncounter( getClass() );
 		//one gone over the edge leaves nothing here to carve
 		if (cause == Chasm.class) return;
+		//one time in two its hide, for a homestead's leather (homestead/gathering/Hides), under the meat
+		xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Hides.drop( this, pos );
 		Heap carcass = Dungeon.level.drop( new MysteryMeat(), pos );
 		if (carcass.sprite != null) carcass.sprite.drop();
 	}

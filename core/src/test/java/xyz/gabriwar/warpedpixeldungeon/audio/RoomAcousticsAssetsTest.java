@@ -57,15 +57,15 @@ public class RoomAcousticsAssetsTest {
 	@Test
 	public void everyFileItPlaysIsThere(){
 		String[] assets = RoomAcoustics.assets();
-		assertEquals( 121, assets.length );
+		assertEquals( 157, assets.length );
 		assertEquals( "the switch's preview's tail loads first", "sounds/tail_hall_hit_strong.mp3", assets[0] );
-		assertEquals( "no file twice", 121, new HashSet<>( Arrays.asList( assets ) ).size() );
+		assertEquals( "no file twice", 157, new HashSet<>( Arrays.asList( assets ) ).size() );
 		int caverns = 0;
 		for (String path : assets){
 			assertTrue( "missing " + path, new File( ASSETS, path ).isFile() );
 			if (path.startsWith( "sounds/tail_cavern_" )) caverns++;
 		}
-		assertEquals( 32, caverns );
+		assertEquals( 41, caverns );
 		assertTrue( "the muffled copies load last: the last of them in tells they all are",
 				assets[assets.length - 1].startsWith( "sounds/muffled_" ) );
 	}
@@ -73,7 +73,7 @@ public class RoomAcousticsAssetsTest {
 	@Test
 	public void everySoundOfItsTableIsOneTheGameLoads(){
 		List<String> all = Arrays.asList( Assets.Sounds.all );
-		assertEquals( 33, RoomAcoustics.sounds().size() );
+		assertEquals( 44, RoomAcoustics.sounds().size() );
 		for (String id : RoomAcoustics.sounds()){
 			assertTrue( id + " is not in Assets.Sounds.all", all.contains( id ) );
 		}
@@ -96,7 +96,7 @@ public class RoomAcousticsAssetsTest {
 			assertEquals( name + regenerate, playLength( new File( ASSETS, "sounds/" + name + ".mp3" ) ), lengths[3], 1e-4 );
 			n++;
 		}
-		assertEquals( 32, n );
+		assertEquals( 41, n );
 	}
 
 	//MPEG layer III: kbit/s by bitrate index for MPEG 1, then for MPEG 2 and 2.5; Hz by rate index for each

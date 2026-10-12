@@ -131,7 +131,7 @@ public class WarpedRooms {
 	}
 
 	//the frozen cache is a sheet of ice: it needs a floor whose water can freeze at
-	//all (the city and the halls run with lava, which never does)
+	//all (the halls run with lava, which never does)
 	private static boolean allowed( Class<? extends Room> type, Level level ){
 		if (type == FrozenCacheRoom.class) return level.waterCanFreeze();
 		return true;

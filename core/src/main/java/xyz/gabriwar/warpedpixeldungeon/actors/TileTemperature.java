@@ -115,11 +115,13 @@ public final class TileTemperature {
     private static void stepWaterPhases(Level level) {
         if (level != Dungeon.level) return;
         boolean ambient = level.waterCanFreeze();
+        boolean frost = level.frostFreezesWater();
         for (int cell = 0; cell < level.length(); cell++) {
             int terrain = level.map[cell];
-            boolean freezing = terrain == Terrain.WATER && ambient;
+            boolean freezing = terrain == Terrain.WATER
+                    && (ambient || (frost && level.tileHeat[cell] < 0));
             boolean melting = terrain == Terrain.FROZEN_WATER
-                    && (ambient || level.tileHeat[cell] > 0);
+                    && (level.tileHeat[cell] > 0 || level.iceThawsInAir(cell));
             if (!freezing && !melting) {
                 level.waterPhaseProgress[cell] = 0;
                 continue;
@@ -238,7 +240,8 @@ public final class TileTemperature {
 
     /**
      * Returns the temperature in °C at the given cell, incorporating:
-     * - ClimateManager ambient (depth-adjusted, seasonal, diurnal)
+     * - ClimateManager ambient (depth-adjusted, seasonal, diurnal), or a built room's air
+     *   drawn from it (homestead/Shelter.air)
      * - Water/embers/wool-rug terrain modifiers
      * - Persistent tileHeat (deposited by blobs, decayed by diffusion)
      * - Plant contributions
@@ -250,7 +253,8 @@ public final class TileTemperature {
     private static float tileTemp(int cell, boolean torchWarmth) {
         if (Dungeon.level == null) return ClimateManager.localTemp();
 
-        float t = ClimateManager.localTemp();
+        // the open air, or the air of a room the hero built round the cell (homestead/Shelter)
+        float t = xyz.gabriwar.warpedpixeldungeon.homestead.Shelter.air(Dungeon.level, cell, ClimateManager.localTemp());
 
         int terrain = Dungeon.level.map[cell];
 
@@ -325,14 +329,15 @@ public final class TileTemperature {
     }
 
     /**
-     * Like tileTemp() but also applies wind chill, campfire warmth, the given
+     * Like tileTemp() but also applies wind chill (none in a built room: homestead/Shelter), campfire warmth, the given
      * character's Drenched state (wetness makes cold feel worse) and, for the hero
      * on their own cell, the warmth of the armor they wear.
      */
     public static float feelsLikeAt(int cell, Char ch) {
         float t = tileTemp(cell);
         float wind = ClimateManager.localWindSpeed();
-        if (t < 10f && wind > 3f) {
+        if (t < 10f && wind > 3f
+                && xyz.gabriwar.warpedpixeldungeon.homestead.Shelter.windReaches(Dungeon.level, cell)) {
             t -= wind * 0.5f;
         }
         // the embers cell itself already carries EMBERS_BONUS via tileTemp()

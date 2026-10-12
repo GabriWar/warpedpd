@@ -47,7 +47,6 @@ public enum LoadingSplash {
 	CHASM(Assets.Splashes.CHASM),
 	INFESTATION(Assets.Splashes.INFESTATION),
 	TENGU_DEN(Assets.Splashes.TENGU_DEN),
-	SANCTUARY(Assets.Splashes.SANCTUARY),
 	SOKOBAN(Assets.Splashes.SOKOBAN),
 	DRAGON_CAVE(Assets.Splashes.DRAGON_CAVE),
 	ZOT(Assets.Splashes.ZOT),
@@ -101,7 +100,6 @@ public enum LoadingSplash {
 			case 33: return CHASM;
 			case 35: return INFESTATION;
 			case 36: case 41: return TENGU_DEN;
-			case 50: return SANCTUARY;
 			case 51: case 52: case 53: case 54: case 66: return SOKOBAN;
 			case 67: return DRAGON_CAVE;
 			case 98: return SEWERS; // Developer room gallery uses sewer masonry.
@@ -133,10 +131,10 @@ public enum LoadingSplash {
 					case 2: return 52;
 					case 3: return 53;
 					case 4: return 54;
-					case 5: return 97;
 					case 6: return 66;
 					case 7: return 67;
-					default: return 50;
+					//the safe room's page (0) is gone, its rooms[] slot kept unused: the town
+					case 5: default: return 97;
 				}
 			default: return -1;
 		}

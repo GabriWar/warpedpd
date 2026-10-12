@@ -70,7 +70,7 @@ public class FlowParticle extends PixelParticle {
 	}
 
 	/**
-	 * The water spilling over a pit's lip from the water cell above it (Level.addVisuals): its
+	 * The water spilling over a pit's lip from the water cell above or beside it (Level.addVisuals): its
 	 * foam along the lip, streaks falling into the pit, a droplet thrown off now and then, a mist
 	 * sinking below (effects/fx/water/WaterFalls). Shown while the hero sees its water.
 	 */
@@ -79,11 +79,11 @@ public class FlowParticle extends PixelParticle {
 		private final int pos;
 		private final WaterFalls.Fall fall;
 		
-		public Flow( int pos ) {
+		public Flow( int pos, int side ) {
 			super();
 			
 			this.pos = pos;
-			fall = WaterFalls.fall( Dungeon.level, pos );
+			fall = WaterFalls.fall( Dungeon.level, pos, side );
 			add( fall.lip() );
 			autoKill = false;
 		}

@@ -196,7 +196,7 @@ public class BrokenSeal extends Item {
 	public String info() {
 		String info = super.info();
 		if (glyph != null){
-			info += "\n\n" + Messages.get(this, "inscribed", glyph.name());
+			info += "\n\n" + Messages.get(this, "inscribed", glyph.coloredName());
 			info += " " + glyph.desc();
 		}
 		return info;

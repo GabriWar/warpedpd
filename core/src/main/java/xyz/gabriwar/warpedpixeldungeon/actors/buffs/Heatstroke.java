@@ -59,6 +59,12 @@ public class Heatstroke extends Buff implements Hero.Doom {
 	// at 65°C (excess=30): 0.15/turn → 1 dmg per ~7 turns
 	private static final float DMG_DIVISOR    = 200f;
 
+	/** How much harder the heat hits with depth: 1 + a twentieth of it, on the world's slices of
+	 *  the deepest floor reached (Dungeon.weatherDepth), not of the slice's own depth number. */
+	public static float depthScale() {
+		return 1f + Dungeon.weatherDepth(Dungeon.harmDepth()) / 20f;
+	}
+
 	{
 		type = buffType.NEGATIVE;
 		announced = true;
@@ -92,8 +98,7 @@ public class Heatstroke extends Buff implements Hero.Doom {
 			// Scales with dungeon depth so later floors are more threatening.
 			float excess = Math.max(0f, temp - 35f);
 			if (excess > 0f) {
-				float depthScale = 1f + Dungeon.harmDepth() / 20f;
-				partialDmg += (excess / DMG_DIVISOR) * depthScale;
+				partialDmg += (excess / DMG_DIVISOR) * depthScale();
 				if (partialDmg >= 1f) {
 					int dmg = (int) partialDmg;
 					partialDmg -= dmg;

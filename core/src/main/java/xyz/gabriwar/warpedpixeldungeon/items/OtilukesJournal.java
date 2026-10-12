@@ -59,7 +59,9 @@ public class OtilukesJournal extends Item {
 	public static final int NUM_ROOMS = 10;
 
 	// Room number -> depth mapping:
-	// 0 = Safe Room    -> depth 50
+	// 0 = (the old Safe Room, gone: the slot is kept so the other rooms keep their
+	//      numbers in saves; a journal still holding it is settled by
+	//      homestead.legacy.SafeRoomMigration)
 	// 1 = Sokoban 1    -> depth 51
 	// 2 = Sokoban 2    -> depth 52
 	// 3 = Sokoban 3    -> depth 53
@@ -100,6 +102,8 @@ public class OtilukesJournal extends Item {
 	public boolean doPickUp(Hero hero, int pos) {
 		if (super.doPickUp(hero, pos)) {
 			Dungeon.LimitedDrops.JOURNAL.drop();
+			//a journal from an old save with the safe room's page bound in
+			xyz.gabriwar.warpedpixeldungeon.homestead.legacy.SafeRoomMigration.settleJournal(this, hero);
 			return true;
 		}
 		return false;
@@ -111,10 +115,10 @@ public class OtilukesJournal extends Item {
 
 		actions.add(AC_ADD);
 
-		// RETURN is only available when inside journal dimensions (depths 50-54, 66, 67,
+		// RETURN is only available when inside journal dimensions (depths 51-54, 66, 67,
 		// or the surface town) and we have a valid return depth stored
 		if (returnDepth > 0
-				&& Dungeon.depth >= 50
+				&& Dungeon.depth >= 51
 				&& (Dungeon.depth <= 55 || Dungeon.depth == 66 || Dungeon.depth == 67
 					|| xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldLayers.isLayerDepth( Dungeon.depth ))
 				&& !hero.petfollow) {
@@ -125,7 +129,7 @@ public class OtilukesJournal extends Item {
 		if (charge >= reqCharges()
 				&& Dungeon.depth < 26
 				&& !hero.petfollow
-				&& (journalLevel > 1 || rooms[0])) {
+				&& journalLevel > 1) {
 			actions.add(AC_PORT);
 		}
 
@@ -136,6 +140,10 @@ public class OtilukesJournal extends Item {
 	public void execute(Hero hero, String action) {
 
 		super.execute(hero, action);
+
+		//a journal from an old save with the safe room's page bound in (a guest's, or one
+		//that reached the pack without being picked up)
+		xyz.gabriwar.warpedpixeldungeon.homestead.legacy.SafeRoomMigration.settleJournal(this, hero);
 
 		if (action.equals(AC_PORT)) {
 
@@ -149,12 +157,13 @@ public class OtilukesJournal extends Item {
 			ArrayList<String> destNames = new ArrayList<>();
 			final ArrayList<Integer> destRooms = new ArrayList<>();
 
+			//room 0 was the safe room: gone, so the list starts at 1
 			String[] roomKeys = {
-				"room_safe", "room_sokoban1", "room_sokoban2", "room_sokoban3",
+				null, "room_sokoban1", "room_sokoban2", "room_sokoban3",
 				"room_sokoban4", "room_dolyahaven", "room_vault", "room_dragoncave"
 			};
 
-			for (int i = 0; i < 8; i++) {
+			for (int i = 1; i < roomKeys.length; i++) {
 				if (rooms[i]) {
 					destNames.add(Messages.get(this, roomKeys[i]));
 					destRooms.add(i);

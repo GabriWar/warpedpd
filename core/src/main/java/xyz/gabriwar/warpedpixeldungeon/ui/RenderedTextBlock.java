@@ -115,20 +115,35 @@ public class RenderedTextBlock extends Component {
 		clear();
 		words = new ArrayList<>();
 		boolean highlighting = false;
+		//a tinted span (Messages.tint) keeps its colour until the span closes
+		int spanColor = hightlightColor;
 		for (String str : tokens){
 
 			//if highlighting is enabled, '_' or '**' is used to toggle highlighting on or off
 			// the actual symbols are not rendered
 			if ((str.equals("_") || str.equals("**")) && highlightingEnabled){
 				highlighting = !highlighting;
+				spanColor = hightlightColor;
 			} else if (str.equals("\n")){
 				words.add(NEWLINE);
 			} else if (str.equals(" ")){
 				words.add(SPACE);
 			} else {
+				int tint = -1;
+				if (str.length() >= 7 && str.charAt(0) == Messages.TINT){
+					try {
+						tint = Integer.parseInt(str.substring(1, 7), 16);
+						str = str.substring(7);
+					} catch (NumberFormatException e){
+						tint = -1;
+					}
+					if (tint != -1 && highlighting) spanColor = tint;
+					if (str.isEmpty()) continue;
+				}
 				RenderedText word = new RenderedText(str, size);
 				
-				if (highlighting) word.hardlight(hightlightColor);
+				if (highlighting) word.hardlight(spanColor);
+				else if (tint != -1) word.hardlight(tint);
 				else if (color != -1) word.hardlight(color);
 				word.scale.set(zoom);
 				

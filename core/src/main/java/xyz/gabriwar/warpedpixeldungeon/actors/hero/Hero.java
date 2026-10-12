@@ -1137,6 +1137,9 @@ public class Hero extends Char {
 
 		speed *= sleepPenaltyFactor();
 
+		//a road, a cobbled path or a bridge out in the world is quicker going (homestead/travel/Paths)
+		speed *= xyz.gabriwar.warpedpixeldungeon.homestead.travel.Paths.speedFactor( this );
+
 		speed = AscensionChallenge.modifyHeroSpeed(speed);
 
 		// Sprouted: cap speed when pet is following and petHasteLevel is active
@@ -1656,6 +1659,9 @@ public class Hero extends Char {
 			} else if (curAction instanceof HeroAction.Mine) {
 				actResult = actMine( (HeroAction.Mine)curAction );
 
+			} else if (curAction instanceof HeroAction.Work) {
+				actResult = actWork( (HeroAction.Work)curAction );
+
 			}else if (curAction instanceof HeroAction.LvlTransition) {
 				actResult = actTransition( (HeroAction.LvlTransition)curAction );
 				
@@ -1859,6 +1865,12 @@ public class Hero extends Char {
 		//feels-like already includes the worn armor's thermalOffset (TileTemperature.feelsLikeAt)
 		float feelsLike = TileTemperature.feelsLikeAt(pos);
 
+		//a room the hero built keeps the wind and the weather off him, a roof the weather
+		//(homestead/Shelter: a thatch roof lets a drop in five through)
+		boolean windHere = xyz.gabriwar.warpedpixeldungeon.homestead.Shelter.windReaches(Dungeon.level, pos);
+		boolean wetHere = ClimateManager.localPrecipRate() <= 0f
+				|| xyz.gabriwar.warpedpixeldungeon.homestead.Shelter.precipitationReaches(Dungeon.level, pos);
+
 		checkThermalWarnings(feelsLike);
 
 		//a fire at your side, or the torch in your hand, dries you off
@@ -1896,8 +1908,8 @@ public class Hero extends Char {
 				&& buff(Hypothermia.class) == null
 				&& buff(xyz.gabriwar.warpedpixeldungeon.actors.buffs.FireImbue.class) == null) {
 			boolean isNight = DayNightCycle.phase() == DayNightCycle.Phase.NIGHT;
-			boolean isWindy = ClimateManager.localWindSpeed() > 8f;
-			boolean isSnowing = ClimateManager.isSnowing();
+			boolean isWindy = windHere && ClimateManager.localWindSpeed() > 8f;
+			boolean isSnowing = wetHere && ClimateManager.isSnowing();
 			boolean isDrenched = buff(Drenched.class) != null;
 
 			if (isNight || isWindy || isSnowing || isDrenched) {
@@ -1914,13 +1926,13 @@ public class Hero extends Char {
 		}
 
 		// --- Rain → Drenched ---
-		if (ClimateManager.localPrecipRate() > 0.3f && ClimateManager.isRaining()) {
+		if (wetHere && ClimateManager.localPrecipRate() > 0.3f && ClimateManager.isRaining()) {
 			Buff.prolong(this, Drenched.class, Drenched.DURATION);
 		}
 
 		// --- Wind → Windswept ---
 		float wind = ClimateManager.localWindSpeed();
-		if (wind > 10f) {
+		if (windHere && wind > 10f) {
 			Buff.prolong(this, Windswept.class, Windswept.DURATION);
 		}
 
@@ -2278,6 +2290,12 @@ public class Hero extends Char {
 		int doorCell = action.dst;
 		if (Dungeon.level.adjacent( pos, doorCell )) {
 			path = null;
+
+			//a homestead's barred door or gate needs no key: lifted by hand (onOperateComplete)
+			if (xyz.gabriwar.warpedpixeldungeon.homestead.BuiltTerrain.handOpened( Dungeon.level.map[doorCell] )){
+				sprite.operate( doorCell );
+				return false;
+			}
 			
 			boolean hasKey = false;
 			int door = Dungeon.level.map[doorCell];
@@ -2343,6 +2361,27 @@ public class Hero extends Char {
 		}
 	}
 
+	//a homestead's work on a cell: a stroke a turn until the tree is down, the boulder broken, the
+	//ground dug or the grass cut (homestead/gathering/Gathering); walked up to first when it is not
+	//beside him. a monster in view or a blow stops it as it stops a walk
+	private boolean actWork( HeroAction.Work action ){
+		if (xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Gathering.inReach( this, action.dst, action.job )){
+			path = null;
+			if (!xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Gathering.stroke( this, action.dst, action.job, done -> {
+				spendAndNext( TICK );
+				if (done) ready();
+			} )){
+				ready();
+			}
+			return false;
+		} else if (getCloser( action.dst )) {
+			return true;
+		} else {
+			ready();
+			return false;
+		}
+	}
+
 	private boolean actMine(HeroAction.Mine action){
 		if (Dungeon.level.adjacent(pos, action.dst)){
 			//a sealed tomb's dressed stone turns the pick (levels/overworld/CaveSites)
@@ -2354,6 +2393,28 @@ public class Hero extends Char {
 				return false;
 			}
 			path = null;
+			//a homestead's piece: the pick breaks at it, a heavy blow but no ore (demolishing it
+			//properly, materials back, is the builder's work: Homestead.remove)
+			if (!Dungeon.level.passable[action.dst]
+					&& xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.isBuilt( Dungeon.level, action.dst )){
+				final boolean wood = xyz.gabriwar.warpedpixeldungeon.homestead.BuiltTerrain.wooden( Dungeon.level.map[action.dst] );
+				sprite.attack(action.dst, new Callback() {
+					@Override
+					public void call() {
+						buff(Hunger.class).affectHunger(-3);
+						PixelScene.shake(0.3f, 0.3f);
+						if (wood) CellEmitter.get( action.dst ).burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.EarthParticle.SMALL, 4 );
+						else CellEmitter.get( action.dst ).burst( Speck.factory( Speck.ROCK ), 2 );
+						if (wood) SpatialSound.play( Assets.Sounds.CHOP, action.dst );
+						else WallBreak.play( action.dst, WallBreak.PICK, 1f );
+						xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.damage( action.dst,
+								xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.PICK_DAMAGE, Hero.this );
+						spendAndNext(TICK);
+						ready();
+					}
+				});
+				return false;
+			}
 			if ((Dungeon.level.map[action.dst] == Terrain.WALL
 					|| Dungeon.level.map[action.dst] == Terrain.WALL_DECO
 					|| Dungeon.level.map[action.dst] == Terrain.MINE_CRYSTAL
@@ -2415,6 +2476,11 @@ public class Hero extends Char {
 									? ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).oreFrom( action.dst ) : null;
 							if (ore != null) ore.struck( Hero.this, action.dst );
 							Level.set( action.dst, Terrain.EMPTY_DECO );
+							//and rough stone for building, out of the land's own rock (homestead/gathering)
+							if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel){
+								xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Gathering.wallStone(
+										(xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level, action.dst );
+							}
 
 						//1 hunger spent total
 						} else if (Dungeon.level.map[action.dst] == Terrain.MINE_CRYSTAL){
@@ -2471,12 +2537,13 @@ public class Hero extends Char {
 									for (int i : PathFinder.NEIGHBOURS9) {
 										GameScene.updateMap( action.dst+i );
 									}
-									spendAndNext(TICK);
+									//the pick's one turn, the mason's hammer's three
+									spendAndNext(TICK * action.turns);
 									ready();
 								}
 							});
 						} else {
-							spendAndNext(TICK);
+							spendAndNext(TICK * action.turns);
 							ready();
 						}
 
@@ -3389,6 +3456,33 @@ public class Hero extends Char {
 				curAction = new HeroAction.Attack( ch );
 			}
 
+		//a homestead's barred door or gate: opened by hand, like a lock with no key
+		} else if (xyz.gabriwar.warpedpixeldungeon.homestead.BuiltTerrain.handOpened( Dungeon.level.map[cell] )
+				&& xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.allowedHere( Dungeon.level )) {
+
+			curAction = new HeroAction.Unlock( cell );
+
+		//a homestead's wall, window, fence or shut door: the pick breaks at it, but only on a held
+		//press (CellSelector.heldTap) - a plain tap never damages what the hero built
+		} else if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
+				&& belongings.getItem(Pickaxe.class) != null
+				&& !Dungeon.level.passable[cell]
+				&& xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.isBuilt( Dungeon.level, cell )) {
+
+			if (xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector.heldTap) {
+				curAction = new HeroAction.Mine( cell );
+			} else {
+				GLog.i( Messages.get( Hero.class, "hold_to_break" ) );
+				curAction = null;
+			}
+
+		//a tree or a boulder beside him, an axe or a pick or a mason's hammer to hand: felled or
+		//quarried for building (homestead/gathering/Gathering). only beside him: a tap on one
+		//farther off still walks, so a stray tap in a forest fells nothing
+		} else if (xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Gathering.tapJob( this, cell ) != null) {
+
+			curAction = new HeroAction.Work( cell, xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Gathering.tapJob( this, cell ) );
+
 		//TODO perhaps only trigger this if hero is already adjacent? reducing mistaps
 		} else if ((Dungeon.level instanceof MiningLevel
 					|| (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
@@ -3400,6 +3494,15 @@ public class Hero extends Char {
 						|| Dungeon.level.map[cell] == Terrain.MINE_BOULDER)){
 
 			curAction = new HeroAction.Mine( cell );
+
+		//the world's rock with a mason's hammer and no pick: broken as the pick breaks it, slower
+		} else if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
+				&& Dungeon.level.insideMap( cell )
+				&& belongings.getItem( Pickaxe.class ) == null
+				&& belongings.getItem( xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MasonsHammer.class ) != null
+				&& (Dungeon.level.map[cell] == Terrain.WALL || Dungeon.level.map[cell] == Terrain.WALL_DECO)) {
+
+			curAction = new HeroAction.Mine( cell, xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Gathering.HAMMER_WALL_TURNS );
 
 		} else if (heap != null
 				//moving to an item doesn't auto-pickup when enemies are near...
@@ -3456,6 +3559,11 @@ public class Hero extends Char {
 	}
 	
 	public void earnExp( int exp, Class source ) {
+
+		//a well rested hero learns a little more from all he does (homestead/rooms/WellRested)
+		if (source != AscensionChallenge.class && source != PotionOfExperience.class){
+			exp += xyz.gabriwar.warpedpixeldungeon.homestead.rooms.WellRested.bonusExp( this, exp );
+		}
 
 		//xp granted by ascension challenge is only for on-exp gain effects
 		if (source != AscensionChallenge.class) {
@@ -3892,7 +4000,13 @@ public class Hero extends Char {
 			SkeletonKey.keyRecharge skele = buff(SkeletonKey.keyRecharge.class);
 			SkeletonKey.KeyReplacementTracker keyUseTrack = buff(SkeletonKey.KeyReplacementTracker.class);
 
-			if (skele != null && skele.isCursed() && Random.Int(6) != 0){
+			if (xyz.gabriwar.warpedpixeldungeon.homestead.BuiltTerrain.handOpened( door )){
+				//a homestead's barred door or gate, its bar lifted: it stands open while anyone is in it
+				if (Dungeon.level.distance( pos, doorCell ) <= 1
+						&& xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.openByHand( this, doorCell )){
+					spend( Actor.TICK );
+				}
+			} else if (skele != null && skele.isCursed() && Random.Int(6) != 0){
 				GLog.n(Messages.get(this, "key_distracted"));
 				spendAndNext(2*Key.TIME_TO_UNLOCK);
 				Buff.affect(this, Hunger.class).affectHunger(-4);

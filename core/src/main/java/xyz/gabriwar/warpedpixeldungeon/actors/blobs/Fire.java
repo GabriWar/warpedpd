@@ -64,6 +64,8 @@ public class Fire extends Blob {
 					burn( cell );
 
 					fire = cur[cell] - 1;
+					//a homestead's wooden piece burns a turn at a time: the flames stay on it while it stands
+					if (xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.burn( cell )) fire = Math.max( fire, 1 );
 					if (fire <= 0 && flamable[cell]) {
 
 						boolean wasBookshelf = Dungeon.level.map[cell] == Terrain.BOOKSHELF;
@@ -92,11 +94,12 @@ public class Fire extends Blob {
 
 				} else if (freeze == null || freeze.volume <= 0 || freeze.cur[cell] <= 0) {
 
-					if (flamable[cell]
-							&& (cur[cell-1] > 0
+					if ((cur[cell-1] > 0
 							|| cur[cell+1] > 0
 							|| cur[cell-Dungeon.level.width()] > 0
 							|| cur[cell+Dungeon.level.width()] > 0)
+							//a homestead's wooden station catches wherever it stands (on stone too)
+							&& (flamable[cell] || xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.catches( cell ))
 							//living overworld vegetation resists catching: ignition is
 							//probabilistic and subcritical there, so a fire burns a patch
 							//and gutters out instead of consuming the whole map

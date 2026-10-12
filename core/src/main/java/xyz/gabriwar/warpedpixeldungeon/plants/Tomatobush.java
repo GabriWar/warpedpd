@@ -73,6 +73,12 @@ public class Tomatobush extends Plant {
 	}
 
 	public void explode(int cell, Char notEffectedChar){
+		explode(cell, notEffectedChar, Dungeon.depth);
+	}
+
+	//the blast with its damage scaled to a depth: a fused tomato off a farm on the world's slices
+	//(homestead/farming) scales to the deepest floor reached, as the weather's harm there does
+	public void explode(int cell, Char notEffectedChar, int depth){
 
 		if (explodesDestructively()) {
 			if (Dungeon.level.heroFOV[cell]) {
@@ -93,8 +99,8 @@ public class Tomatobush extends Plant {
 					Char ch = Actor.findChar(c);
 					if (ch != null && ch != notEffectedChar) {
 						//those not at the center of the blast take damage less consistently.
-						int minDamage = c == cell ? Dungeon.depth + 5 : 1;
-						int maxDamage = 10 + Dungeon.depth * 2;
+						int minDamage = c == cell ? depth + 5 : 1;
+						int maxDamage = 10 + depth * 2;
 
 						int dmg = Random.NormalIntRange(minDamage, maxDamage) - ch.drRoll();
 						if (dmg > 0) {

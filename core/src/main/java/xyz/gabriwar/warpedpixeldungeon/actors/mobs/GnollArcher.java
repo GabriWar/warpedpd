@@ -30,7 +30,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.items.Gold;
 import xyz.gabriwar.warpedpixeldungeon.items.SewersKey;
 import xyz.gabriwar.warpedpixeldungeon.items.TenguKey;
-import xyz.gabriwar.warpedpixeldungeon.items.journalpages.SafeSpotPage;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.ForestDart;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -64,7 +63,6 @@ public class GnollArcher extends Mob {
 
 		declareExtraLoot(SewersKey.class, 1f);
 		declareExtraLoot(TenguKey.class, 1f);
-		declareExtraLoot(SafeSpotPage.class, 0.1f);
 		declareExtraLoot(ForestDart.class, 1f);
 	}
 
@@ -159,14 +157,8 @@ public class GnollArcher extends Mob {
 			trackedDrop(new TenguKey(), 1);
 		}
 
-		if (!Dungeon.LimitedDrops.SAFE_SPOT_PAGE.dropped()
-				&& Statistics.archersKilled > 20 && Random.Int(10) == 0) {
-			Dungeon.LimitedDrops.SAFE_SPOT_PAGE.drop();
-			trackedDrop(new SafeSpotPage(), 2);
-		}
-
 		if (Dungeon.depth > 25) {
-			trackedDrop(new ForestDart().quantity(3), 3);
+			trackedDrop(new ForestDart().quantity(3), 2);
 		}
 
 		if (!Dungeon.tengukilled && Statistics.archersKilled > 70 && Dungeon.depth >= Dungeon.POSTGAME_DEPTH) {

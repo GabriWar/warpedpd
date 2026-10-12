@@ -41,10 +41,10 @@ import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 
 /**
- * A placed personal storage chest in the safe zone. Deposit and withdraw
+ * A placed personal storage chest out in the open world. Deposit and withdraw
  * items freely; pack it up to move it - the contents travel with it.
  */
-public class StorageChest extends Mob {
+public class StorageChest extends Mob implements xyz.gabriwar.warpedpixeldungeon.homestead.HomesteadActor {
 
 	{
 		spriteClass = StorageChestSprite.class;
@@ -62,6 +62,13 @@ public class StorageChest extends Mob {
 	public int type = PortableChest.WOOD;
 	public PortableChest.StorageSpace storage = new PortableChest.StorageSpace();
 
+	/** What it holds where it stands: its own room, and more in a homestead's storehouse
+	 *  (homestead/rooms/RoomTypes.chestBonus). Packed up it holds its own again. */
+	public int capacity() {
+		return PortableChest.capacityFor(type)
+				+ xyz.gabriwar.warpedpixeldungeon.homestead.rooms.RoomTypes.chestBonus( Dungeon.level, pos );
+	}
+
 	@Override
 	public String name() {
 		switch (type){
@@ -73,7 +80,7 @@ public class StorageChest extends Mob {
 
 	@Override
 	public String description() {
-		return Messages.get(this, "desc", storage.items.size(), PortableChest.capacityFor(type));
+		return Messages.get(this, "desc", storage.items.size(), capacity());
 	}
 
 	@Override
@@ -110,7 +117,7 @@ public class StorageChest extends Mob {
 				GameScene.show( new WndOptions(
 						sprite(),
 						Messages.titleCase( name() ),
-						Messages.get(StorageChest.class, "wnd_msg", storage.items.size(), PortableChest.capacityFor(type)),
+						Messages.get(StorageChest.class, "wnd_msg", storage.items.size(), capacity()),
 						Messages.get(StorageChest.class, "open"),
 						Messages.get(StorageChest.class, "deposit"),
 						Messages.get(StorageChest.class, "pack"),
@@ -135,6 +142,8 @@ public class StorageChest extends Mob {
 			GLog.i( Messages.get(this, "empty") );
 			return;
 		}
+		//the grid fits all it holds: more than it now may, once out of a storehouse
+		storage.cap = Math.max( capacity(), storage.items.size() );
 		GameScene.show( new WndBag( storage, withdrawSelector ) );
 	}
 
@@ -144,6 +153,7 @@ public class StorageChest extends Mob {
 
 	private void packUp(){
 		PortableChest kit = new PortableChest( type );
+		storage.cap = Math.max( PortableChest.capacityFor( type ), storage.items.size() );
 		kit.storage = storage;
 		if (kit.doPickUp( Dungeon.hero )){
 			GLog.i( Messages.get(this, "packed") );
@@ -192,10 +202,12 @@ public class StorageChest extends Mob {
 		@Override
 		public void onSelect(Item item) {
 			if (item != null){
-				if (storage.items.size() >= PortableChest.capacityFor(type)){
+				int cap = capacity();
+				if (storage.items.size() >= cap){
 					GLog.w( Messages.get(StorageChest.class, "full") );
 					return;
 				}
+				storage.cap = cap;
 				item.detachAll( Dungeon.hero.belongings.backpack );
 				if (!item.collect( storage )){
 					GLog.w( Messages.get(StorageChest.class, "full") );

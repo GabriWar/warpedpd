@@ -517,6 +517,10 @@ public enum Bestiary {
 		classConversions.put(xyz.gabriwar.warpedpixeldungeon.actors.mobs.ShrinePiranha.class, AlbinoPiranha.class);
 		//a raid's bandits are bandits
 		classConversions.put(xyz.gabriwar.warpedpixeldungeon.actors.mobs.Raider.class, xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldBandit.class);
+		//the homesteads' threats: a siege's wolves are wolves, a home raid's bandits are bandits
+		classConversions.put(xyz.gabriwar.warpedpixeldungeon.homestead.threats.SiegeBrownWolf.class, BrownWolf.class);
+		classConversions.put(xyz.gabriwar.warpedpixeldungeon.homestead.threats.SiegeGrayWolf.class, GrayWolf.class);
+		classConversions.put(xyz.gabriwar.warpedpixeldungeon.homestead.threats.HomeRaider.class, xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldBandit.class);
 
 		//the Sokoban puzzles' sheep are sheep
 		classConversions.put(xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SheepSokoban.class,       Sheep.class);
@@ -556,6 +560,8 @@ public enum Bestiary {
 			//the Warped rooms' furniture and mechanisms
 			xyz.gabriwar.warpedpixeldungeon.actors.mobs.IceBlock.class,
 			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Bedroll.class,
+			//a bed the hero built in his homestead
+			xyz.gabriwar.warpedpixeldungeon.homestead.rooms.HomeBed.class,
 			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.BellowsValve.class,
 			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.BreakersBench.class,
 			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TemperingAnvil.class,
@@ -564,6 +570,23 @@ public enum Bestiary {
 			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.DwarvenForge.class,
 			//a summit's cairn on the peaks (levels/overworld/MountainSites)
 			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SummitCairn.class,
+			//the homesteads' furniture: a compost bin, a tie post (homestead/farming, homestead/animals)
+			xyz.gabriwar.warpedpixeldungeon.homestead.farming.CompostBin.class,
+			xyz.gabriwar.warpedpixeldungeon.homestead.animals.TiePost.class,
+			//the homesteads' defences
+			xyz.gabriwar.warpedpixeldungeon.homestead.threats.Watchtower.class,
+			xyz.gabriwar.warpedpixeldungeon.homestead.threats.AlarmBell.class,
+			//the homesteads' stations, and the stones the hero travels by
+			xyz.gabriwar.warpedpixeldungeon.homestead.stations.Workbench.class,
+			xyz.gabriwar.warpedpixeldungeon.homestead.stations.MasonsBench.class,
+			xyz.gabriwar.warpedpixeldungeon.homestead.stations.Kiln.class,
+			xyz.gabriwar.warpedpixeldungeon.homestead.stations.Hearth.class,
+			xyz.gabriwar.warpedpixeldungeon.homestead.stations.CookingPot.class,
+			xyz.gabriwar.warpedpixeldungeon.homestead.stations.TanningRack.class,
+			xyz.gabriwar.warpedpixeldungeon.homestead.stations.Forge.class,
+			xyz.gabriwar.warpedpixeldungeon.homestead.stations.Quern.class,
+			xyz.gabriwar.warpedpixeldungeon.homestead.travel.Hearthstone.class,
+			xyz.gabriwar.warpedpixeldungeon.homestead.travel.Waystone.class,
 			xyz.gabriwar.warpedpixeldungeon.net.SpectatorReceiver.NetHeroMob.class,
 			xyz.gabriwar.warpedpixeldungeon.net.SpectatorReceiver.SpectatorMob.class ) );
 
@@ -692,6 +715,9 @@ public enum Bestiary {
 	private static final String BESTIARY_SEEN       = "bestiary_seen";
 	private static final String BESTIARY_ENCOUNTERS = "bestiary_encounters";
 	private static final String BESTIARY_LOOT_SEEN  = "bestiary_loot_seen";
+	//set once the gnoll archer's loot slots are numbered without the safe spot page (gone with the
+	//safe room, homestead.legacy.SafeRoomMigration): its forest darts moved from slot 6 to 5
+	private static final String ARCHER_LOOT_SHIFTED = "bestiary_archer_loot_shifted";
 
 	public static void store( Bundle bundle ){
 
@@ -727,6 +753,7 @@ public enum Bestiary {
 		bundle.put( BESTIARY_SEEN, storeSeen );
 		bundle.put( BESTIARY_ENCOUNTERS, storeEncounters );
 		bundle.put( BESTIARY_LOOT_SEEN, storeLootSeen );
+		bundle.put( ARCHER_LOOT_SHIFTED, true );
 
 	}
 
@@ -747,13 +774,24 @@ public enum Bestiary {
 						cat.seen.put(classes[i], seen[i]);
 						cat.encounterCount.put(classes[i], encounters[i]);
 						if (lootSeenArr != null && i < lootSeenArr.length) {
-							cat.lootSeen.put(classes[i], lootSeenArr[i]);
+							int loot = lootSeenArr[i];
+							if (classes[i] == GnollArcher.class && !bundle.getBoolean(ARCHER_LOOT_SHIFTED)) {
+								loot = archerLootShifted(loot);
+							}
+							cat.lootSeen.put(classes[i], loot);
 						}
 					}
 				}
 			}
 		}
 
+	}
+
+	/** A gnoll archer's loot bits from before the safe spot page left its extra loot (slot 5):
+	 *  that bit goes, and the forest darts' (slot 6) move down to 5. */
+	static int archerLootShifted(int loot){
+		int darts = (loot >> 6) & 1;
+		return (loot & ~((1 << 5) | (1 << 6))) | (darts << 5);
 	}
 
 }

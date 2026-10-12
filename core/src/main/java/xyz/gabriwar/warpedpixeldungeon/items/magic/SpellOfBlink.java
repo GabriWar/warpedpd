@@ -50,7 +50,7 @@ public class SpellOfBlink extends ManaSpell {
 	@Override
 	protected void onZap(int cell) {
 		int depth = Dungeon.depth;
-		if ((depth >= 50 && depth <= 54) || depth == 66) {
+		if ((depth >= 51 && depth <= 54) || depth == 66) {
 			GLog.w(Messages.get(this, "no_blink"));
 			return;
 		}

@@ -383,6 +383,9 @@ public enum Catalog {
 		//ported content that is craft-only or otherwise outside the loot tables
 		MELEE_WEAPONS.addItems(Saber.class, Shovel.class, Spade.class, MinersTool.class, PocketKnife.class, DeathSword.class, AssassinsSpear.class, BeamSaber.class, ChainFlail.class, ChainWhip.class, DualGreatSword.class, ForceGlove.class, HolySword.class, HugeSword.class, Lance.class, LanceNShield.class, MeisterHammer.class, ObsidianShield.class, SharpKatana.class, SpearNShield.class, TrueRunicBlade.class, UnformedBlade.class, UnholyBible.class);
 		MELEE_WEAPONS.addItems(ElfBow.class, TaurcenBow.class, ShootGun.class, MiniGun.class, MegaCannon.class);
+		//the homesteads' tools, sold in the town (homestead/gathering/Wares)
+		MELEE_WEAPONS.addItems(xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.WoodcuttersAxe.class,
+				xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MasonsHammer.class);
 
 		ARMOR.addItems(Generator.Category.ARMOR.classes);
 		//specials rolled by Generator.randomArmor
@@ -423,7 +426,7 @@ public enum Catalog {
 
 		MISC_EQUIPMENT.addItems(BrokenSeal.class, SpiritBow.class, Waterskin.class, VelvetPouch.class,
 				PotionBandolier.class, ScrollHolder.class, MagicalHolster.class, Amulet.class,
-				AnkhChain.class, FoodPouch.class,
+				AnkhChain.class, FoodPouch.class, xyz.gabriwar.warpedpixeldungeon.items.bags.BuildersSatchel.class,
 				AutoPotion.class, Spectacles.class,
 				AresSword.class, CromCruachAxe.class, LokisFlail.class, NeptunusTrident.class,
 				Chainsaw.class, Spork.class, ArmorKit.class );
@@ -446,7 +449,9 @@ public enum Catalog {
 				FullMoonberry.class, DeathCap.class, Earthstar.class, GoldenJelly.class,
 				JackOLantern.class, BlueMilk.class, PixieParasol.class, PotionOfConstitution.class,
 				Aprico.class, Cornwheatshaft.class, Fish.class, Pasty.FishLeftover.class, Grape.class,
-				Peanut.class, PlantEgg.class );
+				Peanut.class, PlantEgg.class,
+				//the homesteads' quern and hearth (homestead/stations)
+				xyz.gabriwar.warpedpixeldungeon.items.food.Flour.class, xyz.gabriwar.warpedpixeldungeon.items.food.Bread.class );
 
 		EXOTIC_POTIONS.addItems(ExoticPotion.exoToReg.keySet().toArray(new Class[0]));
 
@@ -455,7 +460,9 @@ public enum Catalog {
 		BOMBS.addItems( Bomb.class, FrostBomb.class, Firebomb.class, SmokeBomb.class, RegrowthBomb.class,
 				WoollyBomb.class, Noisemaker.class, FlashBangBomb.class, HolyBomb.class, ArcaneBomb.class, ShrapnelBomb.class,
 				SmartBomb.class, ClusterBomb.class, DizzyBomb.class, HolyHandGrenade.class, DumplingBomb.class,
-				FishingBomb.class, SeekingBombItem.class, SeekingClusterBombItem.class );
+				FishingBomb.class, SeekingBombItem.class, SeekingClusterBombItem.class,
+				//a farm's tomato bush's crop (homestead/farming)
+				xyz.gabriwar.warpedpixeldungeon.items.bombs.FusedTomato.class );
 
 		TIPPED_DARTS.addItems(TippedDart.types.values().toArray(new Class[0]));
 
@@ -484,6 +491,15 @@ public enum Catalog {
 				SealShard.class, BrokenStaff.class, CloakScrap.class, BowFragment.class, BrokenHilt.class, TornPage.class,
 				SkeletonKey.class, GoldenSkeletonKey.class,
 				Rice.class, Mushroom.class, PuddingCup.class, StoneOre.class,
+				//the homesteads' building materials (items/materials)
+				xyz.gabriwar.warpedpixeldungeon.items.materials.Log.class, xyz.gabriwar.warpedpixeldungeon.items.materials.PineLog.class,
+				xyz.gabriwar.warpedpixeldungeon.items.materials.Plank.class, xyz.gabriwar.warpedpixeldungeon.items.materials.Resin.class,
+				xyz.gabriwar.warpedpixeldungeon.items.materials.RoughStone.class, xyz.gabriwar.warpedpixeldungeon.items.materials.CutStone.class,
+				xyz.gabriwar.warpedpixeldungeon.items.materials.Clay.class, xyz.gabriwar.warpedpixeldungeon.items.materials.FiredBrick.class,
+				xyz.gabriwar.warpedpixeldungeon.items.materials.Sand.class, xyz.gabriwar.warpedpixeldungeon.items.materials.GlassPane.class,
+				xyz.gabriwar.warpedpixeldungeon.items.materials.Thatch.class, xyz.gabriwar.warpedpixeldungeon.items.materials.Rope.class,
+				xyz.gabriwar.warpedpixeldungeon.items.materials.Hide.class, xyz.gabriwar.warpedpixeldungeon.items.materials.Leather.class,
+				xyz.gabriwar.warpedpixeldungeon.items.materials.Charcoal.class, xyz.gabriwar.warpedpixeldungeon.items.materials.IronFittings.class,
 				BlueNornStone.class, GreenNornStone.class, OrangeNornStone.class,
 				PurpleNornStone.class, YellowNornStone.class,
 				AdamantArmor.class, AdamantRing.class, AdamantWand.class, AdamantWeapon.class,

@@ -41,9 +41,12 @@ public class DungeonTerrainTilemap extends DungeonTilemap {
 
 	@Override
 	protected int getTileVisual(int pos, int tile, boolean flat) {
-		//in the safe zone, tilled soil gets its own farm-plot art instead of
-		//the furrowed grass visual used by the warden in the dungeon, and a
-		//surface village's fields their crop of the season.
+		//the homesteads' walls, doors, grounds and the ground under their standing pieces
+		if (Terrain.homestead(tile)) {
+			return HomesteadVisuals.terrain(this, map, mapWidth, size, pos, tile, flat);
+		}
+		//a surface village's fields get their crop of the season instead of
+		//the furrowed grass visual used by the warden in the dungeon.
 		//NUANCE: a terrain's look is composed by FOUR tilemaps, and changing it
 		//means gating every layer, not just this one:
 		//  1. DungeonTerrainTilemap (here) - the ground, flat+raised branches
@@ -54,11 +57,9 @@ public class DungeonTerrainTilemap extends DungeonTilemap {
 		//DungeonTileSheet.tilledSoil gates in each of those classes)
 		if (tile == xyz.gabriwar.warpedpixeldungeon.levels.Terrain.FURROWED_GRASS
 				&& DungeonTileSheet.tilledSoil( pos )){
-			if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel){
-				return DungeonTileSheet.fieldTile(
-						((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).fieldSeason(), pos );
-			}
-			return DungeonTileSheet.getVisualWithAlts(DungeonTileSheet.TILLED_SOIL, pos);
+			//tilledSoil is only ever true on the world's slices
+			return DungeonTileSheet.fieldTile(
+					((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).fieldSeason(), pos );
 		}
 		//a boulder in the world lies on the ground its neighbours show, never on a
 		//square of its own (snow in a green field, grass in a snowfield)
@@ -221,7 +222,7 @@ public class DungeonTerrainTilemap extends DungeonTilemap {
 	//corridor's. Only bare ground counts: water, embers, traps and the like are skipped
 	//the neighbour whose plain ground is the commonest round this cell (the slices' floors:
 	//snow, dirt, grass, paths), so a cell can be drawn as it; -1 if none is plain ground
-	private int sliceGroundAround(int pos){
+	int sliceGroundAround(int pos){
 		int best = -1, bestCount = 0;
 		for (int i : PathFinder.NEIGHBOURS8){
 			int n = pos + i;

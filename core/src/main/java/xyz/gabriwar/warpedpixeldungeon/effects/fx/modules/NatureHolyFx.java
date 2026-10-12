@@ -56,6 +56,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.Trample;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FireflyParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PillarRiseFX;
+import xyz.gabriwar.warpedpixeldungeon.homestead.gathering.GatheringFx;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfRegrowth;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
@@ -63,6 +64,7 @@ import xyz.gabriwar.warpedpixeldungeon.plants.Plant;
 import xyz.gabriwar.warpedpixeldungeon.plants.Sungrass;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress;
 import com.watabou.utils.PointF;
 
 import java.util.List;
@@ -251,6 +253,17 @@ public class NatureHolyFx implements FxModule {
 		} );
 		page.add( "a change of season over the grass", 3f, s ->
 				SeasonSweep.sweep( s.origin, s.grass(), SeasonSweep.color( GameCalendar.season() ) ) );
+		//the homesteads' felling (homestead/gathering/GatheringFx): the strokes, then the tree comes down
+		page.add( "an axe on an oak, and it falls east; a pine falls south", 4f, s -> {
+			final int oak = s.cell( -4, 1 ), pine = s.cell( -2, -1 );
+			for (int i = 0; i < 3; i++){
+				s.after( 0.1f + 0.45f * i, () -> GatheringFx.play( GatheringFx.CHOP, oak, 0, 0 ) );
+			}
+			s.after( 1.5f, () -> GatheringFx.play( GatheringFx.TREE_FALLS, oak, GatheringFx.direction( 1, 0, true ),
+					GatheringFx.picture( OverworldDress.OAK_SUMMER_TRUNK, OverworldDress.OAK_SUMMER_TOP ) ) );
+			s.after( 2.2f, () -> GatheringFx.play( GatheringFx.TREE_FALLS, pine, GatheringFx.direction( 0, 1, true ),
+					GatheringFx.picture( OverworldDress.SUMMER_PINES[0], -1 ) ) );
+		} );
 		//the climate's own events, switched on and off again (the scene shows what the climate says)
 		page.add( "the aurora", 5f, s -> {
 			if (!ClimateManager.isAuroraActive()) ClimateManager.debugToggleAurora();

@@ -53,7 +53,6 @@ public class Guidebook extends Item {
 		Document.ADVENTURERS_GUIDE.findPage(Document.GUIDE_ENCHANTING);
 		Document.ADVENTURERS_GUIDE.findPage(Document.GUIDE_FARMING);
 		Document.ADVENTURERS_GUIDE.findPage(Document.GUIDE_SKILLS);
-		Document.ADVENTURERS_GUIDE.findPage(Document.GUIDE_SAFE_ZONE);
 		Document.ADVENTURERS_GUIDE.findPage(Document.GUIDE_DIEING);
 
 		GameScene.pickUpJournal(this, pos);

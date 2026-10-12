@@ -66,9 +66,11 @@ public class ScrollOfEnchantment extends ExoticScroll {
 		GameScene.selectItem( itemSelector );
 	}
 
+	//only identified gear: its curse and its magic have to be known before more is laid on it
 	public static boolean enchantable( Item item ){
 		return (item instanceof Weapon || item instanceof Armor)
-				&& (item.isUpgradable() || item instanceof SpiritBow);
+				&& (item.isUpgradable() || item instanceof SpiritBow)
+				&& item.isIdentified();
 	}
 
 	private void confirmCancelation() {

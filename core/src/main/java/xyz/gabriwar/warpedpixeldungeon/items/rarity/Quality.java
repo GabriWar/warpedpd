@@ -120,9 +120,15 @@ public class Quality implements Bundlable {
 		return null;
 	}
 
-	/** rarity tiers, bonus lines and masterwork are for weapons, armor and wands only;
-	 *  rings, trinkets and artifacts carry just a type */
+	/** every family has rarity tiers, bonus lines and masterwork; a ring's, trinket's or
+	 *  artifact's lines are hero-wide stats (see RarityLine.stat) */
 	public static boolean hasRarity( Item item ){
+		return family( item ) != null;
+	}
+
+	/** whether the rarity also adds a share of the item's own number (potency): weapons,
+	 *  armor and wands have damage, block or zap power; rings, trinkets and artifacts do not */
+	public static boolean hasPotency( Item item ){
 		Family f = family( item );
 		return f == Family.WEAPON || f == Family.ARMOR || f == Family.MISSILE || f == Family.WAND;
 	}
@@ -259,7 +265,7 @@ public class Quality implements Bundlable {
 
 	public static float potency( Item item ){
 		Quality q = of( item );
-		return q == null || !hasRarity( item ) ? 0f : q.potency();
+		return q == null || !hasPotency( item ) ? 0f : q.potency();
 	}
 
 	/**
@@ -269,7 +275,7 @@ public class Quality implements Bundlable {
 	 */
 	public static int scale( Item item, RarityLine kind, int base ){
 		Quality q = of( item );
-		if (q == null || !hasRarity( item )) return base;
+		if (q == null || !hasPotency( item )) return base;
 		return Math.round( base * (1f + q.value( kind ) + q.potency()) );
 	}
 
@@ -309,7 +315,7 @@ public class Quality implements Bundlable {
 
 	public static float second( Item item ){
 		Quality q = of( item );
-		return q == null || !hasRarity( item ) ? 0f : q.second();
+		return q == null || !hasPotency( item ) ? 0f : q.second();
 	}
 
 	// ---------------------------------------------------------------- masterwork
@@ -625,7 +631,7 @@ public class Quality implements Bundlable {
 	public String describe( Item item ){
 		Family fam = family( item );
 		StringBuilder sb = new StringBuilder();
-		sb.append( Messages.get( this, "header", rarity.title(), type.title() ) );
+		sb.append( Messages.get( this, "header", rarityName(), typeName( type ) ) );
 		if (!known( item )){
 			sb.append( "\n\n" ).append( Messages.get( this, "unknown" ) );
 			return sb.toString();
@@ -636,7 +642,7 @@ public class Quality implements Bundlable {
 				sb.append( "\n_" ).append( lines.get( i ).describe( item, roll( lines.get( i ) ) ) ).append( "_" );
 			}
 		}
-		if (hasRarity( item )) sb.append( "\n" ).append( Messages.get( this, "potency", Math.round( potency() * 100f ) ) );
+		if (hasPotency( item )) sb.append( "\n" ).append( Messages.get( this, "potency", Math.round( potency() * 100f ) ) );
 		if (fam != null) sb.append( "\n\n" ).append( perkText( item, type ) );
 		if (masterwork > 0){
 			sb.append( "\n\n" ).append( Messages.get( this, fullyMasterworked() ? "masterwork_full" : "masterwork", masterwork, MASTERWORK_MAX, kills ) );
@@ -654,7 +660,7 @@ public class Quality implements Bundlable {
 
 	/** the rarity tab of {@link xyz.gabriwar.warpedpixeldungeon.windows.WndItemQuality} */
 	public String describeRarity( Item item ){
-		StringBuilder sb = new StringBuilder( Messages.get( this, "tab_rarity", rarity.title(), rarity.lines ) );
+		StringBuilder sb = new StringBuilder( Messages.get( this, "tab_rarity", rarityName(), rarity.lines ) );
 		if (!known( item )){
 			sb.append( "\n\n" ).append( Messages.get( this, "unknown_lines" ) );
 			sb.append( "\n\n" ).append( Messages.get( this, fullyMasterworked() ? "masterwork_full" : "masterwork", masterwork, MASTERWORK_MAX, kills ) );
@@ -666,16 +672,17 @@ public class Quality implements Bundlable {
 				sb.append( "\n_" ).append( lines.get( i ).describe( item, roll( lines.get( i ) ) ) ).append( "_" );
 			}
 		}
-		sb.append( "\n" ).append( Messages.get( this, "potency", Math.round( potency() * 100f ) ) );
+		if (hasPotency( item )) sb.append( "\n" ).append( Messages.get( this, "potency", Math.round( potency() * 100f ) ) );
 		sb.append( "\n\n" ).append( Messages.get( this, fullyMasterworked() ? "masterwork_full" : "masterwork", masterwork, MASTERWORK_MAX, kills ) );
 		if (masterworkCost() > 0) sb.append( " " ).append( Messages.get( this, "masterwork_next", masterworkCost() ) );
 		return sb.toString();
 	}
 
 	/** a rarity tab for a tier the item does not have: what that tier would give */
-	public String describeRarityTier( Rarity r ){
+	public String describeRarityTier( Item item, Rarity r ){
 		int from = r == Rarity.EXOTIC ? 15 : r == Rarity.LEGENDARY ? 5 : 1;
-		return Messages.get( this, "tab_rarity_other", r.title(), r.lines,
+		return Messages.get( this, hasPotency( item ) ? "tab_rarity_other" : "tab_rarity_other_gear",
+				Messages.tint( r.color, r.title() ), r.lines,
 				Math.round( r.minRoll * 100 ), Math.round( r.maxRoll * 100 ), from,
 				Math.round( r.potency() * 100f ) );
 	}
@@ -683,7 +690,7 @@ public class Quality implements Bundlable {
 	/** one type tab: what the item's perk does at that type, marked when it is the current one */
 	public String describeType( Item item, ItemType t ){
 		Family fam = family( item );
-		StringBuilder sb = new StringBuilder( Messages.get( this, t == type ? "tab_type_current" : "tab_type", t.title() ) );
+		StringBuilder sb = new StringBuilder( Messages.get( this, t == type ? "tab_type_current" : "tab_type", typeName( t ) ) );
 		if (fam != null) sb.append( "\n\n" ).append( known( item ) ? perkText( item, t ) : Messages.get( this, "unknown_perk" ) );
 		if (t.ordinal() > type.ordinal()){
 			int cost = 0;
@@ -691,6 +698,16 @@ public class Quality implements Bundlable {
 			sb.append( "\n\n" ).append( Messages.get( this, "tab_type_cost", cost ) );
 		}
 		return sb.toString();
+	}
+
+	/** the rarity's name in its own colour (white-gold once masterworked), for descriptions */
+	public String rarityName(){
+		return Messages.tint( titleColor(), rarity.title() );
+	}
+
+	/** a type's name in its plate's colour */
+	public static String typeName( ItemType t ){
+		return Messages.tint( t.color, t.title() );
 	}
 
 	/** the colour an item's name takes in windows: its rarity's, white-gold once masterworked */

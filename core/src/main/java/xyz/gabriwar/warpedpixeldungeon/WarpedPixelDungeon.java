@@ -67,6 +67,9 @@ public class WarpedPixelDungeon extends Game {
 				xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.HolyWater.class,
 				"xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.HolyWater" );
 
+		//the safe room is gone: its page and its level class, for saves from before
+		xyz.gabriwar.warpedpixeldungeon.homestead.legacy.SafeRoomMigration.registerAliases();
+
 	}
 	
 	@Override

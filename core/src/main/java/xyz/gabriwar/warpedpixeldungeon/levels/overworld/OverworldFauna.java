@@ -516,6 +516,63 @@ public class OverworldFauna {
 		return out;
 	}
 
+	/**
+	 * What finds a sleeper out in the world (Bedroll.ambushers): a pack - or one - of the HOSTILE
+	 * rows (no neutral beast: no deer, hare or goat) of the slice's band or the biome's table that
+	 * keep this hour and live on this ground (habitat bits), by their weights; the empty weight and
+	 * the weather play no part, since something did find him. When no hostile row keeps the hour,
+	 * one of any hour's. Empty only where the table holds nothing hostile for that ground at all
+	 * (open water, a biome with no table).
+	 */
+	public static ArrayList<Mob> ambushers( int altitude, WorldModel.Biome biome, Phase phase, int habitat ){
+		ArrayList<Mob> out = new ArrayList<>();
+		Band b = band( altitude );
+		Entry[] rows = b != null ? b.rows : TABLE.get( biome );
+		if (rows == null) return out;
+		ArrayList<Entry> fit = hostileRows( rows, phase, habitat );
+		if (fit.isEmpty()) fit = hostileRows( rows, null, habitat );
+		if (fit.isEmpty()) return out;
+		int total = 0;
+		for (Entry e : fit) total += e.weight;
+		int pick = Random.Int( total );
+		for (Entry e : fit){
+			pick -= e.weight;
+			if (pick >= 0) continue;
+			int n = Random.IntRange( e.packMin, e.packMax );
+			for (int i = 0; i < n; i++){
+				Mob m = Reflection.newInstance( e.cls );
+				if (m == null) continue;
+				prepare( m, altitude );
+				out.add( m );
+			}
+			break;
+		}
+		return out;
+	}
+
+	//the rows of hostile beasts on this ground that keep this hour (any hour: null)
+	private static ArrayList<Entry> hostileRows( Entry[] rows, Phase phase, int habitat ){
+		ArrayList<Entry> out = new ArrayList<>();
+		for (Entry e : rows){
+			if ((habitat & e.habitat.bit) == 0 || (phase != null && !e.phases.contains( phase ))) continue;
+			if (hostile( e.cls )) out.add( e );
+		}
+		return out;
+	}
+
+	//whether a kind of beast is the hero's enemy as it is made (a deer, a hare, a goat are not)
+	private static final HashMap<Class<? extends Mob>, Boolean> HOSTILE = new HashMap<>();
+
+	private static synchronized boolean hostile( Class<? extends Mob> cls ){
+		Boolean h = HOSTILE.get( cls );
+		if (h == null){
+			Mob m = Reflection.newInstance( cls );
+			h = m != null && m.alignment == xyz.gabriwar.warpedpixeldungeon.actors.Char.Alignment.ENEMY;
+			HOSTILE.put( cls, h );
+		}
+		return h;
+	}
+
 	/** What a beast needs beyond being made: the swamp's spiders their size; on a slice, the
 	 *  depth-scaled ones their band's strength (Mob.setStatDepth), the restless dead their wandering,
 	 *  and the high pastures' hares their winter coat. */
@@ -556,8 +613,13 @@ public class OverworldFauna {
 		int hx = Dungeon.hero.pos % w, hy = Dungeon.hero.pos / w;
 		for (Mob m : level.mobs.toArray( new Mob[0] )){
 			if (!gone.contains( m.getClass() )) continue;
+			//a homestead's own (a penned or roped animal) is no wildlife
+			if (m instanceof xyz.gabriwar.warpedpixeldungeon.homestead.HomesteadActor
+					&& ((xyz.gabriwar.warpedpixeldungeon.homestead.HomesteadActor) m).homesteadKept()) continue;
 			//a world event's beasts are the event's to end (HuntEvent): never culled mid-hunt
 			if (m.buff( HuntPack.class ) != null) continue;
+			//nor a grazer the night has sent after a crop (homestead/farming/Pests): dawn ends its errand
+			if (m.buff( xyz.gabriwar.warpedpixeldungeon.homestead.farming.Grazing.class ) != null) continue;
 			if (m.pos < 0 || m.pos >= level.heroFOV.length || level.heroFOV[m.pos]) continue;
 			if (Math.abs( m.pos % w - hx ) <= 20 && Math.abs( m.pos / w - hy ) <= 20) continue;
 			m.destroy();

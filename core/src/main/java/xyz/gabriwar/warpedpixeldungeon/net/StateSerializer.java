@@ -74,6 +74,12 @@ public class StateSerializer {
 	private static Long prevEventSig = null;
 	// A world slice's cracked ice (OverworldLevel.sharedHazards): shipped whole when it changes
 	private static Long prevHazardSig = null;
+	// A world slice's homesteads (OverworldLevel.sharedHomestead): the window's pieces and roofs,
+	// shipped whole when the fingerprint changes
+	private static Long prevHomeSig = null;
+	// The homes and waystones a guest's world map pins (homestead/travel/TravelShare): the run's,
+	// not the slice's, shipped whole when the fingerprint changes
+	private static Long prevTravelSig = null;
 	private static String prevHeroBuffHash = "";
 	private static HashMap<Integer, String> prevMobBuffHashes = new HashMap<>();
 	private static HashMap<Integer, MobState> prevMobStates = new HashMap<>();
@@ -117,7 +123,8 @@ public class StateSerializer {
 		int pos, hp;
 		boolean asleep;
 		float pf;
-		MobState(int pos, int hp, boolean asleep, float pf) { this.pos = pos; this.hp = hp; this.asleep = asleep; this.pf = pf; }
+		boolean working;
+		MobState(int pos, int hp, boolean asleep, float pf, boolean working) { this.pos = pos; this.hp = hp; this.asleep = asleep; this.pf = pf; this.working = working; }
 	}
 
 	/** A keeper's own price factor (Shopkeeper.priceFactor: a rescued caravan's, a saved village's,
@@ -126,6 +133,14 @@ public class StateSerializer {
 	static float priceFactorOf(Mob mob) {
 		return mob instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Shopkeeper
 				? ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Shopkeeper) mob).priceFactor() : -1f;
+	}
+
+	/** A homestead station hard at work (its fire lit, steam over its pot: HomesteadStation.busy),
+	 *  shipped as "wk" on stations only, so a guest's stand-in shows its work, light and sound
+	 *  (StationSprite). False for anything else. */
+	static boolean workingOf(Mob mob) {
+		return mob instanceof xyz.gabriwar.warpedpixeldungeon.homestead.stations.HomesteadStation
+				&& ((xyz.gabriwar.warpedpixeldungeon.homestead.stations.HomesteadStation) mob).busy();
 	}
 
 	public static void resetDeltaTracking() {
@@ -138,6 +153,8 @@ public class StateSerializer {
 		prevPortalSig = null;
 		prevEventSig = null;
 		prevHazardSig = null;
+		prevHomeSig = null;
+		prevTravelSig = null;
 		// Not blanked: every caller of this pairs it with a FULL_STATE, which already
 		// carries the current window. Blanking would make the very next delta re-ship
 		// the whole 176x176 map for nothing.
@@ -290,6 +307,7 @@ public class StateSerializer {
 				mobObj.put("sl", mob.state == mob.SLEEPING);
 				float pf = priceFactorOf(mob);
 				if (pf >= 0f) mobObj.put("pf", (double) pf);
+				if (workingOf(mob)) mobObj.put("wk", true);
 				mobsArr.put(mobObj);
 			}
 			state.put("mobs", mobsArr);
@@ -338,9 +356,19 @@ public class StateSerializer {
 				long hazardSig = ow.sharedHazardsSig();
 				state.put("whaz", ow.sharedHazards());
 				prevHazardSig = hazardSig;
+				// the homesteads' pieces and roofs (its fingerprint first, as above)
+				long homeSig = ow.sharedHomesteadSig();
+				state.put("whome", ow.sharedHomestead());
+				prevHomeSig = homeSig;
+				// the homes and the waystones known, for the guests' maps (as above)
+				long travelSig = xyz.gabriwar.warpedpixeldungeon.homestead.travel.TravelShare.sig();
+				state.put("wtravel", xyz.gabriwar.warpedpixeldungeon.homestead.travel.TravelShare.text());
+				prevTravelSig = travelSig;
 			} else {
 				prevEventSig = null;
 				prevHazardSig = null;
+				prevHomeSig = null;
+				prevTravelSig = null;
 			}
 
 			// Snapshot for delta tracking
@@ -354,7 +382,7 @@ public class StateSerializer {
 			prevMobStates.clear();
 			prevMobBuffHashes.clear();
 			for (Mob mob : level.mobs) {
-				prevMobStates.put(mob.id(), new MobState(mob.pos, mob.HP, mob.state == mob.SLEEPING, priceFactorOf(mob)));
+				prevMobStates.put(mob.id(), new MobState(mob.pos, mob.HP, mob.state == mob.SLEEPING, priceFactorOf(mob), workingOf(mob)));
 				prevMobBuffHashes.put(mob.id(), buffHash(mob));
 			}
 			prevNetHeroSig.clear();
@@ -487,7 +515,8 @@ public class StateSerializer {
 				int id = mob.id();
 				boolean asleep = mob.state == mob.SLEEPING;
 				float pf = priceFactorOf(mob);
-				newStates.put(id, new MobState(mob.pos, mob.HP, asleep, pf));
+				boolean working = workingOf(mob);
+				newStates.put(id, new MobState(mob.pos, mob.HP, asleep, pf, working));
 				String mbh = buffHash(mob);
 				newBuffHashes.put(id, mbh);
 				MobState prev = prevMobStates.get(id);
@@ -497,7 +526,9 @@ public class StateSerializer {
 				boolean sleepChanged = prev == null || prev.asleep != asleep;
 				//a keeper's prices change in place: the caravan saved, the market come to town
 				boolean priceChanged = prev == null || prev.pf != pf;
-				if (posHpChanged || buffChanged || sleepChanged || priceChanged) {
+				//a station's fire lit or out, its work begun or done
+				boolean workChanged = prev == null || prev.working != working;
+				if (posHpChanged || buffChanged || sleepChanged || priceChanged || workChanged) {
 					JSONObject mobObj = new JSONObject();
 					mobObj.put("id", id);
 					mobObj.put("pos", mob.pos);
@@ -507,6 +538,7 @@ public class StateSerializer {
 					mobObj.put("name", mob.name());
 					mobObj.put("sl", asleep);
 					if (pf >= 0f) mobObj.put("pf", (double) pf);
+					if (working) mobObj.put("wk", true);
 					if (buffChanged) {
 						mobObj.put("buffs", serializeBuffs(mob));
 					}
@@ -614,9 +646,25 @@ public class StateSerializer {
 					prevHazardSig = hazardSig;
 					hasChanges = true;
 				}
+				// a piece built, hurt, mended or taken down, a roof put up or fallen
+				long homeSig = ow.sharedHomesteadSig();
+				if (prevHomeSig == null || homeSig != prevHomeSig) {
+					delta.put("whome", ow.sharedHomestead());
+					prevHomeSig = homeSig;
+					hasChanges = true;
+				}
+				// a home founded, renamed or lost, a waystone seen or attuned
+				long travelSig = xyz.gabriwar.warpedpixeldungeon.homestead.travel.TravelShare.sig();
+				if (prevTravelSig == null || travelSig != prevTravelSig) {
+					delta.put("wtravel", xyz.gabriwar.warpedpixeldungeon.homestead.travel.TravelShare.text());
+					prevTravelSig = travelSig;
+					hasChanges = true;
+				}
 			} else {
 				prevEventSig = null;
 				prevHazardSig = null;
+				prevHomeSig = null;
+				prevTravelSig = null;
 			}
 
 			// Heap changes — track content hash, not just count
@@ -761,6 +809,8 @@ public class StateSerializer {
 			hash = hash * 31 + t.pos;
 			hash = hash * 31 + (t.visible ? 1 : 0);
 			hash = hash * 31 + (t.active ? 1 : 0);
+			//a trap that only changes its look (a homestead's spike trap sprung and armed again)
+			hash = hash * 31 + t.color;
 		}
 		return hash;
 	}

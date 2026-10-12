@@ -119,9 +119,9 @@ public class Chasm implements Hero.Doom {
 					= (xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level;
 			bedrock = !ow.fallsThrough( pos );
 		}
-		//the safe zone has no floor below it: falling here just drops the hero
-		//onto solid ground elsewhere on the same safe level, never out of it
-		if (bedrock || Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.SafeLevel) {
+		//a pit with nothing under it (the deepest cave) just drops the hero onto solid
+		//ground elsewhere on the same slice, never out of it
+		if (bedrock) {
 			Dungeon.hero.interrupt();
 			int land = Dungeon.level.randomRespawnCell( Dungeon.hero );
 			if (land == -1) {
@@ -259,7 +259,6 @@ public class Chasm implements Hero.Doom {
 		if (Dungeon.level instanceof OverworldLevel){
 			return ((OverworldLevel) Dungeon.level).fallDepth( mob.pos );
 		}
-		if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.SafeLevel) return -1;
 		int below = Dungeon.depth + 1;
 		if (Dungeon.depth < 1 || below > 25 || Dungeon.bossLevel( below )
 				|| xyz.gabriwar.warpedpixeldungeon.levels.Delves.lastFloor()) return -1;

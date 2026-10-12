@@ -439,6 +439,12 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 				// ...and the slice's cracked ice
 				((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) level)
 						.adoptSharedHazards(data.optString("whaz", null));
+				// ...and its homesteads' pieces and roofs
+				((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) level)
+						.adoptSharedHomestead(data.optString("whome", null));
+				// ...and the homes and waystones the host's map pins
+				xyz.gabriwar.warpedpixeldungeon.homestead.travel.TravelShare
+						.adopt(data.optString("wtravel", null));
 			}
 
 			String visitedRLE = data.optString("visited", "");
@@ -858,6 +864,17 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 						&& Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) {
 					((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level)
 							.adoptSharedHazards(data.optString("whaz", null));
+				}
+				// A world slice's homesteads: the roof layers draw them on this thread
+				if (data.has("whome")
+						&& Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) {
+					((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level)
+							.adoptSharedHomestead(data.optString("whome", null));
+				}
+				// The homes and waystones the host's world map pins (the map reads them on open)
+				if (data.has("wtravel")) {
+					xyz.gabriwar.warpedpixeldungeon.homestead.travel.TravelShare
+							.adopt(data.optString("wtravel", null));
 				}
 
 				// Mob updates
@@ -1640,12 +1657,15 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 
 	/** The host's sleepers (a village abed, a mob not yet woken) sleep here too: MobSprite
 	 *  draws the 'z' from the state. A host that sends no flag sends no sleepers, as before.
-	 *  The keepers' prices come with it, the stand-in's priceFactor. */
+	 *  The keepers' prices come with it, the stand-in's priceFactor, and a homestead station's
+	 *  work, its working. */
 	static void applySleep(Mob mob, JSONObject mobData) {
 		mob.state = mobData.optBoolean("sl", false) ? mob.SLEEPING : mob.PASSIVE;
 		//the host's keepers come with their prices ("pf"): a stand-in without one keeps no shelf
 		if (mob instanceof SpectatorMob) {
 			((SpectatorMob) mob).priceFactor = mobData.has("pf") ? (float) mobData.optDouble("pf", 1) : -1f;
+			//a homestead station at work ("wk"): sent whole with every entry for the mob
+			((SpectatorMob) mob).working = mobData.optBoolean("wk", false);
 		}
 	}
 
@@ -1676,6 +1696,8 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 		public int hostId = -1;
 		//the host keeper's price factor, or -1: not a keeper (applySleep)
 		public float priceFactor = -1f;
+		//the host's homestead station hard at work, its fire lit (applySleep; StationSprite reads it)
+		public volatile boolean working;
 		{
 			state = PASSIVE;
 		}

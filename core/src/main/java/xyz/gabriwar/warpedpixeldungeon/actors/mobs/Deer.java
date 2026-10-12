@@ -28,6 +28,8 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.homestead.animals.Animals;
+import xyz.gabriwar.warpedpixeldungeon.homestead.animals.Leadable;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
@@ -57,7 +59,7 @@ import java.util.ArrayList;
  * cell over its four sprinting moves and then loses three tenths of one a move: the pack has it
  * some fourteen turns in, a dozen cells from where the chase began - in front of the hero.
  */
-public class Deer extends Mob {
+public class Deer extends Mob implements Leadable {
 
 	{
 		spriteClass = DeerSprite.class;
@@ -69,6 +71,10 @@ public class Deer extends Mob {
 
 		alignment = Alignment.NEUTRAL;
 		state = WANDERING;
+
+		//always its hide, for a homestead's leather (homestead/gathering/Hides): dropped in die()
+		declareExtraLoot( xyz.gabriwar.warpedpixeldungeon.items.materials.Hide.class,
+				xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Hides.DEER );
 	}
 
 	//moves at full tilt before it flags, and calm turns before it settles again
@@ -106,10 +112,16 @@ public class Deer extends Mob {
 		return 0;
 	}
 
-	//a tap goes for it, as for any quarry: an ordinary neutral would trade places
+	//a tap goes for it, as for any quarry: an ordinary neutral would trade places. One the hero has
+	//roped, tied or penned is his: a tap opens its menu (homestead/animals/Roping)
 	@Override
 	public boolean heroShouldInteract() {
-		return false;
+		return Animals.shouldInteract( this );
+	}
+
+	@Override
+	public boolean interact( Char c ) {
+		return Animals.interact( this, c ) || super.interact( c );
 	}
 
 	@Override
@@ -124,6 +136,12 @@ public class Deer extends Mob {
 		if (level.heroFOV != null && level.heroFOV[pos] && !Bestiary.isSeen( getClass() )) Bestiary.setSeen( getClass() );
 		if (paralysed > 0 || state == SLEEPING){
 			spend( TICK );
+			return true;
+		}
+		//roped, tied, penned or off to a crop at night: the homesteads' (homestead/animals/Animals)
+		float held = Animals.act( this );
+		if (held > 0){
+			spend( held );
 			return true;
 		}
 		HuntPack pack = buff( HuntPack.class );
@@ -257,6 +275,8 @@ public class Deer extends Mob {
 		boolean byPack = HuntPack.isWolf( cause );
 		super.die( cause );
 		Bestiary.countEncounter( getClass() );
+		//its hide, for a homestead's leather (homestead/gathering/Hides), under the meat
+		xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Hides.drop( this, RaidEvent.dropCell( Dungeon.level, pos ) );
 		//what is left of it: more where the pack brought it down and was driven off it
 		Heap carcass = Dungeon.level.drop( new MysteryMeat().quantity( byPack ? 2 : 1 ), RaidEvent.dropCell( Dungeon.level, pos ) );
 		if (carcass.sprite != null) carcass.sprite.drop();

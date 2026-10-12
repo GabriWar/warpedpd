@@ -185,6 +185,12 @@ public class WndInfoCell extends Window {
 		if (extra != null){
 			desc += (desc.length() > 0 ? "\n\n" : "") + extra;
 		}
+
+		//something the hero built: what it is made of, its health, whether it burns, its roof
+		String built = xyz.gabriwar.warpedpixeldungeon.homestead.building.BuildInfo.cellLines(Dungeon.level, cell);
+		if (built != null){
+			desc += (desc.length() > 0 ? "\n\n" : "") + built;
+		}
 		titlebar.setRect(0, 0, WIDTH, 0);
 		add(titlebar);
 

@@ -917,7 +917,7 @@ public class EnchantingScene extends PixelScene {
 
 		@Override
 		public boolean itemSelectable(Item item) {
-			return item instanceof Weapon || item instanceof Armor;
+			return (item instanceof Weapon || item instanceof Armor) && item.isIdentified();
 		}
 
 		@Override

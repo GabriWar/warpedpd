@@ -25,6 +25,8 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.homestead.animals.Animals;
+import xyz.gabriwar.warpedpixeldungeon.homestead.animals.Leadable;
 import xyz.gabriwar.warpedpixeldungeon.items.food.MysteryMeat;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.BunnyVariantSprite;
@@ -32,8 +34,9 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
-/** A meadow bunny: hops about, bothers no one, drops dinner. */
-public class Bunny extends Mob {
+/** A meadow bunny: hops about, bothers no one, drops dinner - and may be roped and penned
+ *  (homestead/animals). */
+public class Bunny extends Mob implements Leadable {
 
 	{
 		spriteClass = BunnyVariantSprite.class;
@@ -71,6 +74,23 @@ public class Bunny extends Mob {
 	@Override
 	protected Char chooseEnemy() {
 		return null;
+	}
+
+	//roped, tied, penned or off to a crop at night: the homesteads' (homestead/animals/Animals)
+	@Override
+	protected boolean act() {
+		float held = Animals.act( this );
+		if (held > 0){
+			spend( held );
+			return true;
+		}
+		return super.act();
+	}
+
+	//a tap on one the hero has roped, tied or penned opens its menu (homestead/animals/Roping)
+	@Override
+	public boolean interact( Char c ) {
+		return Animals.interact( this, c ) || super.interact( c );
 	}
 
 	@Override

@@ -95,7 +95,9 @@ public class Pickaxe extends MeleeWeapon {
 				&& t != xyz.gabriwar.warpedpixeldungeon.levels.Terrain.ENTRANCE_SP
 				&& t != xyz.gabriwar.warpedpixeldungeon.levels.Terrain.PEDESTAL
 				&& t != xyz.gabriwar.warpedpixeldungeon.levels.Terrain.DOOR
-				&& t != xyz.gabriwar.warpedpixeldungeon.levels.Terrain.OPEN_DOOR;
+				&& t != xyz.gabriwar.warpedpixeldungeon.levels.Terrain.OPEN_DOOR
+				//nor through anything a homestead laid: a shaft never eats a floor, a path, a bridge
+				&& !xyz.gabriwar.warpedpixeldungeon.levels.Terrain.homestead( t );
 	}
 
 	@Override

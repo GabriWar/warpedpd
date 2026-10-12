@@ -757,6 +757,10 @@ public class InterlevelScene extends PixelScene {
 		Level level;
 		Dungeon.depth = returnDepth;
 		Dungeon.branch = returnBranch;
+		//a beacon or a journal still set in the old safe room: it is gone, the town's plaza instead
+		if (xyz.gabriwar.warpedpixeldungeon.homestead.legacy.SafeRoomMigration.relocate()) {
+			returnPos = -1;
+		}
 		if (Dungeon.levelHasBeenGenerated(Dungeon.depth, Dungeon.branch)) {
 			level = Dungeon.loadLevel( GamesInProgress.curSlot );
 		} else {
@@ -871,7 +875,7 @@ public class InterlevelScene extends PixelScene {
 
 	private void journalPortal() throws IOException {
 		int targetDepth = LoadingSplash.portalDepth(Mode.JOURNAL, journalpage);
-		if (journalpage == 5) {
+		if (targetDepth == xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel.DEPTH) {
 			xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel.arriveInTown(
 					xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldStructures.TOWN_PLAZA);
 		}
@@ -879,7 +883,7 @@ public class InterlevelScene extends PixelScene {
 		//The puzzle floors are rebuilt on every visit, as they were in Sprouted. WPD keeps
 		//generated levels, and a sokoban puzzle is trivially wedgeable - corner a sheep and
 		//the floor is unsolvable forever, taking its iron keys and prizes with it. Only the
-		//safe room (50) and the town (55) persist, which is the same split Sprouted used.
+		//town persists (Sprouted kept its safe room too; that room is gone).
 		//This is not a farming hole: the unique prizes hang off firsts[], which OtilukesJournal
 		//spends when you port, so a rebuilt floor comes back solvable but already stripped of
 		//them - exactly as in the source.

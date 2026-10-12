@@ -32,17 +32,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
 import xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill;
-import xyz.gabriwar.warpedpixeldungeon.items.Generator;
-import xyz.gabriwar.warpedpixeldungeon.items.Gold;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
-import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
-import xyz.gabriwar.warpedpixeldungeon.plants.Cornwheat;
-import xyz.gabriwar.warpedpixeldungeon.plants.Firebloom;
-import xyz.gabriwar.warpedpixeldungeon.plants.Icecap;
-import xyz.gabriwar.warpedpixeldungeon.plants.Plant;
-import xyz.gabriwar.warpedpixeldungeon.plants.Rose;
-import xyz.gabriwar.warpedpixeldungeon.plants.Sungrass;
-import xyz.gabriwar.warpedpixeldungeon.plants.Tomatobush;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldStructures;
 import xyz.gabriwar.warpedpixeldungeon.net.NetHeroSprite;
@@ -82,7 +72,7 @@ import java.util.Locale;
  * Automated screenshot run: walks the title, the rogue's hero splash, a fresh game on
  * the overworld (the town by day and by night, fully revealed and zoomed in; then
  * as found, with the world map, with the inventory, with the skill tree), the sky by
- * night and by day, and a furnished safe spot, saving a PNG of each at a fixed
+ * night and by day, and a homestead out in the world, saving a PNG of each at a fixed
  * resolution, then quits. The scene is rendered into an
  * offscreen framebuffer of that resolution, so the window manager's idea of the
  * window size does not matter.
@@ -234,29 +224,27 @@ public class ScreenshotTour {
 		skyShot( NIGHT_TURN, "08_sky_night" );
 		skyShot( DAY_TURN + DayNightCycle.FULL_CYCLE, "08_sky_day" ); //time only moves forward
 
-		//the safe spot, furnished the way a player would with the builder's tool
+		//a homestead out in the world, south of the town: the stone house and the log hut of
+		//the homestead-shell debug scene, on the first open ground there
 		act( () -> {
 			Dungeon.debugNoFog = true;
-			InterlevelScene.mode = InterlevelScene.Mode.RETURN;
-			InterlevelScene.returnDepth = 50;
-			InterlevelScene.returnBranch = 0;
-			InterlevelScene.returnPos = -1;
-			Game.switchScene( InterlevelScene.class );
+			OverworldLevel.arriveAt( WorldStructures.townWorldX( WorldStructures.TOWN_PLAZA ),
+					WorldStructures.townWorldY( WorldStructures.TOWN_PLAZA ) + 40 );
+			OverworldLevel.travelToSurface();
 		} );
 		until( () -> Game.scene() instanceof GameScene );
 		delay( 2f );
 		act( () -> {
 			closeWindows();
-			furnishSafeSpot();
-			float zoom = (float) Math.floor( Math.min( width / (float) (SAFE_PLAN[0].length() * DungeonTilemap.SIZE), height / (float) (SAFE_PLAN.length * DungeonTilemap.SIZE) ) );
+			int centre = homestead();
+			float zoom = (float) Math.floor( Math.min( width / (float) (HOMESTEAD_VIEW_W * DungeonTilemap.SIZE), height / (float) (HOMESTEAD_VIEW_H * DungeonTilemap.SIZE) ) );
 			Camera.main.zoom( Math.max( PixelScene.minZoom, zoom ) );
-			int centre = SAFE_X0 + SAFE_PLAN[0].length()/2 + Dungeon.level.width() * (SAFE_Y0 + SAFE_PLAN.length/2);
 			Camera.main.panTo( DungeonTilemap.tileCenterToWorld( centre ), 0 );
 			Camera.main.snapTo( DungeonTilemap.tileCenterToWorld( centre ) );
 		} );
 		delay( 1f );
 		act( ScreenshotTour::clearLog );
-		shot( "09_safe_spot" );
+		shot( "09_homestead" );
 
 		//the general store inside the town, keeper behind the counter
 		act( () -> {
@@ -296,25 +284,22 @@ public class ScreenshotTour {
 		act( () -> Game.instance.finish() );
 	}
 
-	//a cottage, a pond, a farm plot and a garden around the safe spot's entrance
-	//(cell 23,15 of SafeLevel), the sort of base the builder's tool is for
-	static final int SAFE_X0 = 4, SAFE_Y0 = 8;
-	static final String[] SAFE_PLAN = {
-		"##############################",
-		"#............................#",
-		"#..######wB####..~~~...\"\"\"'..#",
-		"#..#rrrr..BB..#..~~~~..'\"\"\"..#",
-		"#..#rrrr.....A#...~~...\"'\"...#",
-		"#..+.....S....#..........===.#",
-		"#..#...P......+..........===.#",
-		"#..#..........#....x.....===.#",
-		"#..#....E.....#..........===.#",
-		"#..######/#####..........===.#",
-		"#..........................s.#",
-		"#..sss......W........s....\"..#",
-		"#............................#",
-		"##############################",
-	};
+	//the cells the homestead shot frames: the house and the hut with three cells of ground round them
+	static final int HOMESTEAD_VIEW_W = HomesteadScenes.SPAN_W + 6, HOMESTEAD_VIEW_H = HomesteadScenes.SPAN_H + 6;
+
+	//the homestead-shell debug scene's house and hut, raised near the hero on the surface; the
+	//cell the camera centres on (the hero's own when there is no open ground near him)
+	static int homestead(){
+		OverworldLevel ow = (OverworldLevel) Dungeon.level;
+		int origin = HomesteadScenes.findGround( ow, Dungeon.hero.pos );
+		if (origin == -1) return Dungeon.hero.pos;
+		HomesteadScenes.buildShell( ow, origin, Dungeon.hero );
+		return homesteadCentre( ow, origin );
+	}
+
+	static int homesteadCentre( OverworldLevel ow, int origin ){
+		return origin + HomesteadScenes.SPAN_W / 2 + ow.width() * (HomesteadScenes.SPAN_H / 2);
+	}
 
 	//tools/screenshot_banners.py paints a caption band over the top fifth of the
 	//shot: windows slide down so their titles stay readable under it
@@ -344,69 +329,6 @@ public class ScreenshotTour {
 		}
 		GameScene.add( m );
 		return m;
-	}
-
-	static int terrainFor( char c ){
-		switch (c) {
-			case '#': return Terrain.WALL;
-			case 'w': return Terrain.WALL_DECO;
-			case ',': return Terrain.EMPTY_DECO;
-			case '+': return Terrain.DOOR;
-			case '/': return Terrain.OPEN_DOOR;
-			case '~': return Terrain.WATER;
-			case '"': return Terrain.GRASS;
-			case '\'': return Terrain.HIGH_GRASS;
-			case '=': return Terrain.FURROWED_GRASS;
-			case 'r': return Terrain.WOOL_RUG;
-			case 'B': return Terrain.BOOKSHELF;
-			case 'S': return Terrain.STATUE;
-			case 'A': return Terrain.ALCHEMY;
-			case 'P': return Terrain.PEDESTAL;
-			case 'W': return Terrain.WELL;
-			case 's': return Terrain.SHRUB;
-			case 'E': return Terrain.EMBERS;
-			default:  return Terrain.EMPTY;
-		}
-	}
-
-	static void furnishSafeSpot(){
-		Level level = Dungeon.level;
-		int w = level.width();
-		ArrayList<Integer> furrows = new ArrayList<>();
-		ArrayList<Integer> lawn = new ArrayList<>();
-		int rug = -1, pedestal = -1;
-		for (int y = 0; y < SAFE_PLAN.length; y++) {
-			for (int x = 0; x < SAFE_PLAN[y].length(); x++) {
-				char c = SAFE_PLAN[y].charAt( x );
-				int cell = SAFE_X0 + x + w * (SAFE_Y0 + y);
-				if (c == 'x') continue; //the entrance stays as it is
-				Level.set( cell, terrainFor( c ) );
-				if (c == '=') furrows.add( cell );
-				if (c == '"') lawn.add( cell );
-				if (c == 'r' && rug < 0) rug = cell;
-				if (c == 'P') pedestal = cell;
-			}
-		}
-		level.buildFlagMaps();
-		level.cleanWalls();
-		GameScene.updateMap();
-		Dungeon.observe();
-
-		Plant.Seed[] crops = { new Cornwheat.Seed(), new Tomatobush.Seed(), new Sungrass.Seed(), new Icecap.Seed() };
-		for (int i = 0; i < furrows.size(); i++) {
-			level.plant( crops[i % crops.length], furrows.get( i ) );
-		}
-		Plant.Seed[] flowers = { new Rose.Seed(), new Firebloom.Seed(), new Sungrass.Seed() };
-		for (int i = 0; i < lawn.size(); i += 2) {
-			level.plant( flowers[(i / 2) % flowers.length], lawn.get( i ) );
-		}
-
-		level.drop( Generator.random( Generator.Category.RING ), pedestal );
-		level.drop( Generator.random( Generator.Category.WEAPON ), rug );
-		level.drop( Generator.random( Generator.Category.ARMOR ), rug + 1 );
-		level.drop( Generator.random( Generator.Category.POTION ), rug + w );
-		level.drop( Generator.random( Generator.Category.SCROLL ), rug + w + 1 );
-		level.drop( new Gold( 250 ), rug + 2 );
 	}
 
 	//GameScene rebuilt at the given time of day, camera on the town square

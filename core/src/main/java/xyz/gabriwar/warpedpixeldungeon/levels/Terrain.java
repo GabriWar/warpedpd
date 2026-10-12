@@ -117,6 +117,41 @@ public class Terrain {
 	public static final int FLOWER_PATCH          = 86;
 	public static final int MUSHROOM_PATCH        = 87;
 
+	// Warped: the homesteads' built terrain (homestead/BuiltTerrain says what each one is made of
+	// and how it is drawn; docs/homesteads-engine.md). One block, HOMESTEAD_FIRST..HOMESTEAD_LAST:
+	// none of it is natural, so the overworld's diff store keeps it as the player's edit
+	public static final int BUILT_WALL_LOG         = 92;
+	public static final int BUILT_WALL_PLANK       = 93;
+	public static final int BUILT_WALL_STONE       = 94;
+	public static final int BUILT_WALL_BRICK       = 95;
+	public static final int BUILT_WINDOW_LOG       = 96;
+	public static final int BUILT_WINDOW_PLANK     = 97;
+	public static final int BUILT_WINDOW_STONE     = 98;
+	public static final int BUILT_WINDOW_BRICK     = 99;
+	public static final int BUILT_DOOR             = 100;
+	public static final int BUILT_DOOR_OPEN        = 101;
+	public static final int BUILT_DOOR_BARRED      = 102;
+	public static final int BUILT_DOOR_BARRED_OPEN = 103;
+	public static final int PALISADE               = 104;
+	public static final int FENCE                  = 105;
+	public static final int FENCE_GATE             = 106;
+	public static final int FENCE_GATE_OPEN        = 107;
+	public static final int PATH_STONE             = 108;
+	public static final int BRIDGE_PLANK           = 109;
+	public static final int FARMLAND               = 110;
+	//watered farmland: its own id, so the drying and the watering are plain terrain edits
+	public static final int FARMLAND_WET           = 111;
+	public static final int STUMP_OAK              = 112;
+	public static final int STUMP_PINE             = 113;
+	public static final int SAPLING_OAK            = 114;
+	public static final int SAPLING_PINE           = 115;
+	public static final int RUBBLE_WOOD            = 116;
+	public static final int RUBBLE_STONE           = 117;
+	public static final int FLOOR_PLANK            = 118;
+	public static final int FLOOR_STONE            = 119;
+	public static final int HOMESTEAD_FIRST        = BUILT_WALL_LOG;
+	public static final int HOMESTEAD_LAST         = FLOOR_STONE;
+
 	public static final int PASSABLE		= 0x01;
 	public static final int LOS_BLOCKING	= 0x02;
 	public static final int FLAMABLE		= 0x04;
@@ -211,6 +246,44 @@ public class Terrain {
 		// Overgrown: empty bookshelf has same flags as bookshelf
 		flags[EMPTY_BOOKSHELF]  = flags[BARRICADE];
 
+		// Warped: the homesteads. Walls block both ways, a window only the feet; the wooden
+		// pieces burn (slowly: Homestead.burn takes their health a burning turn at a time)
+		flags[BUILT_WALL_LOG]         = SOLID | LOS_BLOCKING | FLAMABLE;
+		flags[BUILT_WALL_PLANK]       = SOLID | LOS_BLOCKING | FLAMABLE;
+		flags[BUILT_WALL_STONE]       = SOLID | LOS_BLOCKING;
+		flags[BUILT_WALL_BRICK]       = SOLID | LOS_BLOCKING;
+		flags[BUILT_WINDOW_LOG]       = SOLID;
+		flags[BUILT_WINDOW_PLANK]     = SOLID;
+		flags[BUILT_WINDOW_STONE]     = SOLID;
+		flags[BUILT_WINDOW_BRICK]     = SOLID;
+		//a plain door is the dungeon's: anyone opens it by walking in
+		flags[BUILT_DOOR]             = flags[DOOR];
+		flags[BUILT_DOOR_OPEN]        = flags[OPEN_DOOR];
+		//a barred door and a gate are shut to every path: the hero and his allies open them
+		flags[BUILT_DOOR_BARRED]      = SOLID | LOS_BLOCKING | FLAMABLE;
+		flags[BUILT_DOOR_BARRED_OPEN] = PASSABLE | FLAMABLE;
+		flags[PALISADE]               = SOLID | FLAMABLE;
+		flags[FENCE]                  = SOLID | FLAMABLE;
+		flags[FENCE_GATE]             = SOLID | FLAMABLE;
+		flags[FENCE_GATE_OPEN]        = PASSABLE | FLAMABLE;
+		flags[PATH_STONE]             = PASSABLE;
+		flags[BRIDGE_PLANK]           = PASSABLE;
+		flags[FARMLAND]               = PASSABLE;
+		flags[FARMLAND_WET]           = PASSABLE;
+		flags[STUMP_OAK]              = PASSABLE;
+		flags[STUMP_PINE]             = PASSABLE;
+		flags[SAPLING_OAK]            = PASSABLE;
+		flags[SAPLING_PINE]           = PASSABLE;
+		flags[RUBBLE_WOOD]            = PASSABLE;
+		flags[RUBBLE_STONE]           = PASSABLE;
+		flags[FLOOR_PLANK]            = PASSABLE;
+		flags[FLOOR_STONE]            = PASSABLE;
+
+	}
+
+	/** One of the homesteads' terrains (BUILT_WALL_LOG..FLOOR_STONE)? */
+	public static boolean homestead( int terr ){
+		return terr >= HOMESTEAD_FIRST && terr <= HOMESTEAD_LAST;
 	}
 
 	public static int discover( int terr ) {

@@ -85,8 +85,7 @@ public class Hypothermia extends Buff implements Hero.Doom {
 			turnsSinceDmg += step;
 			if (turnsSinceDmg >= DMG_INTERVAL) {
 				turnsSinceDmg = 0;
-				int dmg = 1 + Dungeon.scalingDepth() / 10;
-				target.damage(dmg, this);
+				target.damage(damagePerHit(), this);
 				if (asleep && target instanceof Hero) {
 					GLog.w(Messages.get(this, "asleep"));
 				}
@@ -110,6 +109,12 @@ public class Hypothermia extends Buff implements Hero.Doom {
 
 		spend(TICK);
 		return true;
+	}
+
+	/** A hit of the cold: 1 + a tenth of the depth, on the world's slices the deepest floor
+	 *  reached (Dungeon.weatherDepth), not the slice's own depth number. */
+	public static int damagePerHit() {
+		return 1 + Dungeon.weatherDepth(Dungeon.scalingDepth()) / 10;
 	}
 
 	public float speedFactor() {

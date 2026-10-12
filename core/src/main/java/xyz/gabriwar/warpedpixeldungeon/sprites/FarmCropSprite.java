@@ -31,7 +31,7 @@ import com.watabou.noosa.TextureFilm;
 
 /**
  * A growing crop: renders its plant's art from the terrain features sheet,
- * translucent while growing and solid once mature.
+ * growing from a small faint sprout to its full size and solid once ripe.
  */
 public class FarmCropSprite extends MobSprite {
 
@@ -72,7 +72,12 @@ public class FarmCropSprite extends MobSprite {
 	public void update() {
 		super.update();
 		if (ch instanceof FarmCrop){
-			alpha( ((FarmCrop) ch).mature() ? 1f : 0.6f );
+			FarmCrop crop = (FarmCrop) ch;
+			//it grows up out of its furrow: small and faint when sown, full and solid when ripe
+			float grown = crop.grownShown();
+			alpha( crop.mature() ? 1f : 0.6f + 0.25f * grown );
+			origin.set( width / 2f, height );
+			scale.set( 0.55f + 0.45f * grown );
 		}
 	}
 }

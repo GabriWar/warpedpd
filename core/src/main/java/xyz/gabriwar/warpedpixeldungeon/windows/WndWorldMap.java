@@ -25,14 +25,17 @@
 package xyz.gabriwar.warpedpixeldungeon.windows;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.homestead.travel.MapMarks;
 import xyz.gabriwar.warpedpixeldungeon.levels.Delves;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.CaveSites;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.MountainSites;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldEvents;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldLayers;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldStructures;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
+import xyz.gabriwar.warpedpixeldungeon.ui.BuildIcons;
 import xyz.gabriwar.warpedpixeldungeon.ui.IconButton;
 import xyz.gabriwar.warpedpixeldungeon.ui.Icons;
 import xyz.gabriwar.warpedpixeldungeon.ui.RedButton;
@@ -68,6 +71,10 @@ import java.util.List;
  * pinned in their own colours, a size up from the hero's pin, and named: a fallen star pale
  * gold (0xFFFFE070), a travelling market fair magenta (0xFFFF5FC8). A tap near one sets the
  * waypoint on it.
+ *
+ * The homesteads' marks are pinned too (homestead/travel/MapMarks): the homes as houses with their
+ * names, the waystones attuned bright and those only seen dim, and whatever the homesteads' other
+ * parts mark (a home under threat). A tap by one of the map's own slice sets the waypoint on it.
  */
 public class WndWorldMap extends Window {
 
@@ -100,6 +107,8 @@ public class WndWorldMap extends Window {
 		float x, y;
 		//how much bigger than the hero's pin it is drawn
 		float grow = 1f;
+		//a picture's own on-screen width (the homesteads' marks), 0 for a dot sized by grow
+		float fixed = 0f;
 		Pin( Image dot, float x, float y ){
 			this.dot = dot;
 			this.x = x;
@@ -114,6 +123,8 @@ public class WndWorldMap extends Window {
 		final RenderedTextBlock text;
 		final float x, y;
 		final boolean right, below;
+		//how far off its anchor it hangs at the least, on screen: clear of a homestead mark's picture
+		float clear = 0f;
 		Label( RenderedTextBlock text, float x, float y, boolean right, boolean below ){
 			this.text = text;
 			this.x = x;
@@ -133,6 +144,11 @@ public class WndWorldMap extends Window {
 
 	//the live events the hero has heard of, pinned in their own colours (WorldEvents.Type.pin)
 	private final ArrayList<WorldEvents.Event> events = new ArrayList<>();
+
+	//the homesteads' marks of the map's own slice (homes, waystones; homestead/travel/MapMarks), for a tap
+	private final ArrayList<MapMarks.Mark> marks = new ArrayList<>();
+	//a homestead mark's picture, its on-screen width
+	private static final float MARK_SIZE = 9f;
 
 	//the view rides the hero until the player takes the wheel by panning or zooming
 	private boolean following = true;
@@ -179,6 +195,7 @@ public class WndWorldMap extends Window {
 		//under the hero's pin, which is drawn last
 		markEvents();
 		markSites();
+		markHomesteads();
 		heroPin = pin( MARKER, heroWx, heroWy );
 
 		labelSites();
@@ -325,6 +342,47 @@ public class WndWorldMap extends Window {
 		}
 	}
 
+	//the homes, the waystones known and the other marks of the homesteads (MapMarks): a house, a
+	//waystone or a dot, faded as the mark says, named in its colour where it carries a name; a tap
+	//on one of the map's own slice sets the waypoint on it
+	private void markHomesteads(){
+		int depth = WorldLayers.depthOf( level.altitude() );
+		for (MapMarks.Mark m : MapMarks.all( depth )){
+			Image img;
+			switch (m.icon){
+				case HOME:
+					img = BuildIcons.get( BuildIcons.ROOFS );
+					img.tint( m.color, 0.35f );
+					break;
+				case WAYSTONE:
+					img = BuildIcons.get( BuildIcons.TRAVEL );
+					break;
+				default:
+					img = new Image( TextureCache.createSolid( 0xFF000000 | m.color ) );
+					break;
+			}
+			page.add( img );
+			Pin p = new Pin( img, chart.chartX( m.wx ), chart.chartY( m.wy ) );
+			if (m.icon == MapMarks.Icon.DOT) p.grow = 1.5f;
+			else p.fixed = MARK_SIZE;
+			img.alpha( m.alpha );
+			pins.add( p );
+			place( p );
+			if (m.blink) blinking.add( p );
+			if (m.labelled){
+				RenderedTextBlock t = label( m.name, p.x, p.y, true, true );
+				t.hardlight( m.color );
+				t.alpha( m.alpha );
+				if (m.icon != MapMarks.Icon.DOT){
+					Label l = labels.get( labels.size() - 1 );
+					l.clear = MARK_SIZE / 2f;
+					place( l );
+				}
+			}
+			if (m.depth == depth) marks.add( m );
+		}
+	}
+
 	//an event listed before the i-th stands on the very same cell
 	static boolean stacked( List<WorldEvents.Event> events, int i ){
 		WorldEvents.Event e = events.get( i );
@@ -398,7 +456,7 @@ public class WndWorldMap extends Window {
 				&& l.x < WorldChart.SIZE && l.y < WorldChart.SIZE
 				&& s * WorldChart.STRIDE >= NAMED_SCALE;
 		//the chart's site dots are 3 chart pixels wide
-		float half = 1.5f * s + 1;
+		float half = Math.max( 1.5f * s + 1, l.clear );
 		float tx = l.right ? l.x * s + half : l.x * s - half - l.text.width();
 		float ty = l.below ? l.y * s + half : l.y * s - half - l.text.height();
 		l.text.setPos( tx, ty );
@@ -407,13 +465,14 @@ public class WndWorldMap extends Window {
 	//pins keep a constant on-screen size; only their anchors scale
 	private void place( Pin p ){
 		float s = baseZoom * viewZoom;
-		float size = Math.max( 3, baseZoom * 3 ) * p.grow;
+		float size = p.fixed > 0 ? p.fixed : Math.max( 3, baseZoom * 3 ) * p.grow;
 		//a pin whose world position has left the painted slab has nothing to mark
 		p.dot.visible = p.x >= 0 && p.y >= 0
 				&& p.x < WorldChart.SIZE && p.y < WorldChart.SIZE;
-		p.dot.scale.set( size );
-		p.dot.x = p.x * s - size / 2f;
-		p.dot.y = p.y * s - size / 2f;
+		//a dot is one texel, a picture (MapMarks) its own width: either is drawn `size` wide
+		p.dot.scale.set( size / p.dot.width );
+		p.dot.x = p.x * s - p.dot.width() / 2f;
+		p.dot.y = p.y * s - p.dot.height() / 2f;
 	}
 
 	//the slab on show changed under the chart (its own arrived): lay the page out again
@@ -532,9 +591,23 @@ public class WndWorldMap extends Window {
 					hit = e;
 				}
 			}
+			//...and one on (or by) a home or a waystone of this slice, for that
+			MapMarks.Mark mark = null;
+			if (hit == null){
+				for (MapMarks.Mark m : marks){
+					int d = Math.max( Math.abs( wx - m.wx ), Math.abs( wy - m.wy ) );
+					if (d < best){
+						best = d;
+						mark = m;
+					}
+				}
+			}
 			if (hit != null){
 				level.setWaypoint( hit.wx, hit.wy );
 				GLog.p( Messages.get( WndWorldMap.class, "waypoint_event", Messages.get( WorldEvents.class, "map_" + hit.type.key ) ) );
+			} else if (mark != null){
+				level.setWaypoint( mark.wx, mark.wy );
+				GLog.p( Messages.get( WndWorldMap.class, "waypoint_event", mark.name ) );
 			} else {
 				level.setWaypoint( wx, wy );
 				GLog.p( Messages.get( WndWorldMap.class, "waypoint_set" ) );

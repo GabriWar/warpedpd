@@ -76,7 +76,9 @@ public class Messages {
 			Assets.Messages.UI,
 			Assets.Messages.WINDOWS,
 			Assets.Messages.RARITY,
-			Assets.Messages.WARPED_ROOMS
+			Assets.Messages.WARPED_ROOMS,
+			Assets.Messages.HOMESTEAD,
+			Assets.Messages.HOMESTEAD_FARMING
 	};
 
 	static{
@@ -184,6 +186,15 @@ public class Messages {
 			formatters.put(format, new DecimalFormat(format, DecimalFormatSymbols.getInstance(locale())));
 		}
 		return formatters.get(format).format(number);
+	}
+
+	/** Marks the start of a coloured word: TINT, then the colour as six hex digits. Put it at
+	 *  the start of a highlighted (_..._) span and the whole span takes the colour instead of
+	 *  the highlight's; outside a span it colours the one word. RenderedTextBlock reads it. */
+	public static final char TINT = '\u00A7';
+
+	public static String tint( int rgb, String str ){
+		return TINT + String.format( Locale.ENGLISH, "%06X", rgb & 0xFFFFFF ) + str;
 	}
 
 	public static String capitalize( String str ){

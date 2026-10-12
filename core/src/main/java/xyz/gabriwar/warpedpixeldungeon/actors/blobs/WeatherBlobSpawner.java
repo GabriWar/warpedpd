@@ -73,9 +73,12 @@ public class WeatherBlobSpawner {
 		for (int i = 0; i < open.length; i++) {
 			open[i] = Dungeon.level.passable[i] && !Dungeon.level.solid[i] && !Dungeon.level.pit[i];
 		}
+
 		PathFinder.buildDistanceMap(cell, open, PATCH_RADIUS);
 		for (int i = 0; i < open.length; i++) {
-			if (PathFinder.distance[i] <= PATCH_RADIUS) patch.add(i);
+			//the weather stays out of a room the hero built and from under his roofs (homestead/Shelter)
+			if (PathFinder.distance[i] <= PATCH_RADIUS
+					&& !xyz.gabriwar.warpedpixeldungeon.homestead.Shelter.covered(Dungeon.level, i)) patch.add(i);
 		}
 		java.util.Collections.shuffle(patch);
 		//the seed cell always, the rest nearest first so the patch stays in one piece
@@ -211,7 +214,8 @@ public class WeatherBlobSpawner {
 					&& !Dungeon.level.solid[cell]
 					&& !Dungeon.level.pit[cell]
 					&& Dungeon.level.distance(cell, Dungeon.hero.pos) >= 3
-					&& Dungeon.level.distance(cell, Dungeon.hero.pos) <= 12) {
+					&& Dungeon.level.distance(cell, Dungeon.hero.pos) <= 12
+					&& !xyz.gabriwar.warpedpixeldungeon.homestead.Shelter.covered(Dungeon.level, cell)) {
 				return cell;
 			}
 		}

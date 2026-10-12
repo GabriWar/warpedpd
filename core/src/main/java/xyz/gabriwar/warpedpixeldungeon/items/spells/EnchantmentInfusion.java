@@ -49,7 +49,7 @@ public class EnchantmentInfusion extends InventorySpell {
 
 	@Override
 	protected boolean usableOnItem(Item item) {
-		return item instanceof Weapon || item instanceof Armor;
+		return (item instanceof Weapon || item instanceof Armor) && item.isIdentified();
 	}
 
 	@Override

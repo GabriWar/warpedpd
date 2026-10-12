@@ -323,6 +323,24 @@ public class GameCalendar {
 		return Season.values()[turnDateComponents()[1]];
 	}
 
+	/**
+	 * The season of a day of the world's clock (WorldClock.day()): today's is season(), and a day
+	 * gone by is what the homesteads settle a long absence by (the fields' frost and growth).
+	 */
+	public static Season seasonOfDay(int worldDay) {
+		if (Dungeon.isChallenged(Challenges.REAL_CLOCK)) {
+			//a real-clock day is a local day counted from the epoch (WorldClock): its date in UTC
+			Calendar cal = Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"));
+			cal.setTimeInMillis((long) worldDay * 86_400_000L);
+			int month = cal.get(Calendar.MONTH);
+			if (month >= Calendar.MARCH && month <= Calendar.MAY)          return Season.SPRING;
+			if (month >= Calendar.JUNE && month <= Calendar.AUGUST)        return Season.SUMMER;
+			if (month >= Calendar.SEPTEMBER && month <= Calendar.NOVEMBER) return Season.AUTUMN;
+			return Season.WINTER;
+		}
+		return Season.values()[resolveAbsoluteDay(Dungeon.calendarStartDay + worldDay)[1]];
+	}
+
 	public static int dayOfSeason() {
 		if (Dungeon.isChallenged(Challenges.REAL_CLOCK)) return realDayOfSeason();
 		return turnDateComponents()[2];

@@ -26,7 +26,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfUpgrade;
-import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfEnchantment;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.SpiritBow;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -47,7 +47,9 @@ public class StoneOfAugmentation extends InventoryStone {
 
 	@Override
 	protected boolean usableOnItem(Item item) {
-		return ScrollOfEnchantment.enchantable(item);
+		//the same gear the enchantment scroll takes, but augmenting needs nothing identified
+		return (item instanceof Weapon || item instanceof Armor)
+				&& (item.isUpgradable() || item instanceof SpiritBow);
 	}
 
 	@Override

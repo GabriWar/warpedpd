@@ -47,8 +47,12 @@ final class RoomAcousticsLengths {
 			case "blast":          return new float[]{ 1.4106f, 2.0376f, 3.1869f, 1.3061f };
 			case "bones":          return new float[]{ 1.0710f, 1.9592f, 3.1608f, 0.8620f };
 			case "chains":         return new float[]{ 0.8359f, 1.5151f, 2.4816f, 0.7576f };
+			case "chop":           return new float[]{ 0.7053f, 1.6457f, 3.2131f, 0.3918f };
+			case "dig":            return new float[]{ 1.2800f, 2.0376f, 3.1869f, 1.0188f };
+			case "door_bar":       return new float[]{ 0.7314f, 1.8024f, 2.9518f, 0.4963f };
 			case "door_open":      return new float[]{ 0.8098f, 1.8808f, 3.1086f, 0.3918f };
 			case "grass":          return new float[]{ 0.6792f, 1.6980f, 2.8735f, 0.2640f };
+			case "hammer":         return new float[]{ 0.9404f, 2.0114f, 3.2914f, 0.5486f };
 			case "hit":            return new float[]{ 0.6531f, 1.6718f, 2.8212f, 0.3600f };
 			case "hit_arrow":      return new float[]{ 0.7576f, 1.8024f, 3.0302f, 0.4320f };
 			case "hit_crush":      return new float[]{ 0.7053f, 1.7502f, 3.0302f, 0.3840f };
@@ -61,10 +65,14 @@ final class RoomAcousticsLengths {
 			case "mine":           return new float[]{ 1.0971f, 2.0376f, 3.1869f, 0.8160f };
 			case "miss":           return new float[]{ 0.7314f, 1.7502f, 2.9780f, 0.4180f };
 			case "puff":           return new float[]{ 0.7314f, 1.7763f, 3.0563f, 0.4441f };
+			case "reap":           return new float[]{ 0.8620f, 1.6718f, 2.6384f, 0.6792f };
 			case "rocks":          return new float[]{ 1.5151f, 2.2988f, 3.3959f, 1.2960f };
 			case "rocks_light":    return new float[]{ 0.8359f, 1.8547f, 3.0302f, 0.5224f };
+			case "rope":           return new float[]{ 0.9927f, 2.0898f, 3.3176f, 0.6531f };
+			case "saw":            return new float[]{ 1.2016f, 2.1420f, 3.4743f, 0.9404f };
 			case "shatter":        return new float[]{ 0.7314f, 1.4629f, 2.4555f, 0.5486f };
 			case "step":           return new float[]{ 0.7314f, 1.7502f, 3.0563f, 0.2351f };
+			case "stone_set":      return new float[]{ 0.7314f, 1.8024f, 3.0824f, 0.4702f };
 			case "sturdy":         return new float[]{ 0.6531f, 1.7241f, 3.0041f, 0.2160f };
 			case "trample":        return new float[]{ 0.6531f, 1.6457f, 2.7951f, 0.2640f };
 			case "trap":           return new float[]{ 0.6008f, 1.5673f, 2.6906f, 0.1306f };
@@ -73,6 +81,7 @@ final class RoomAcousticsLengths {
 			case "wall_break_2":   return new float[]{ 1.6718f, 2.2465f, 3.4482f, 1.5935f };
 			case "wall_break_3":   return new float[]{ 1.8024f, 2.2465f, 3.2914f, 1.6196f };
 			case "water":          return new float[]{ 0.6269f, 1.6196f, 2.6906f, 0.2090f };
+			case "wood_break":     return new float[]{ 1.2539f, 1.8547f, 3.0563f, 1.2016f };
 			case "zap":            return new float[]{ 0.9665f, 1.9331f, 3.1608f, 0.7053f };
 			default: return null;
 		}

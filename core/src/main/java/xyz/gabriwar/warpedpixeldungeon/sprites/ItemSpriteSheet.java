@@ -1119,6 +1119,7 @@ public class ItemSpriteSheet {
 	public static final int SEED_BUTTERLION      = SEEDS2+4;
 	public static final int SEED_SNOWHEDGE       = SEEDS2+5;
 	public static final int SEED_STEAMWEED       = SEEDS2+6;
+	public static final int SEED_BLANDFRUIT      = SEEDS2+7;
 	public static final int SEED_SEEDPOD         = SEEDS2+8;
 	public static final int SEED_CHANDALIERTAIL  = SEEDS2+9;
 	public static final int SEED_NIGHTSHADEONION = SEEDS2+10;
@@ -1382,6 +1383,61 @@ public class ItemSpriteSheet {
 		assignItemRect(GEM_EMERALD   ,  8, 10);
 		assignItemRect(GEM_SAPPHIRE  ,  9, 11);
 		assignItemRect(GEM_DIAMOND   , 10, 10);
+	}
+
+	//the homesteads' materials, the builder's tools and the farm's food (tools/homestead_items_gen.py,
+	//docs/homesteads-art-items.md). The tails of rows 34 and 35: their first cells are POTIONS5 and
+	//EXOTIC_POTIONS5, one slot each
+	private static final int HOMESTEAD                      =                                xy(2, 34);   //15 slots
+	public static final int LOG                                     = HOMESTEAD+0;
+	public static final int LOG_PINE                                = HOMESTEAD+1;
+	public static final int PLANK                                   = HOMESTEAD+2;
+	public static final int RESIN                                   = HOMESTEAD+3;
+	public static final int ROUGH_STONE                             = HOMESTEAD+4;
+	public static final int CUT_STONE                               = HOMESTEAD+5;
+	public static final int CLAY                                    = HOMESTEAD+6;
+	public static final int FIRED_BRICK                             = HOMESTEAD+7;
+	public static final int SAND                                    = HOMESTEAD+8;
+	public static final int GLASS_PANE                              = HOMESTEAD+9;
+	public static final int THATCH                                  = HOMESTEAD+10;
+	public static final int ROPE                                    = HOMESTEAD+11;
+	public static final int HIDE                                    = HOMESTEAD+12;
+	public static final int LEATHER                                 = HOMESTEAD+13;
+	public static final int CHARCOAL                                = HOMESTEAD+14;
+	static {
+		assignItemRect(LOG        , 16, 13);
+		assignItemRect(LOG_PINE   , 16, 13);
+		assignItemRect(PLANK      , 16, 10);
+		assignItemRect(RESIN      , 11, 11);
+		assignItemRect(ROUGH_STONE, 14, 11);
+		assignItemRect(CUT_STONE  , 13, 11);
+		assignItemRect(CLAY       , 13, 11);
+		assignItemRect(FIRED_BRICK, 15, 10);
+		assignItemRect(SAND       , 13,  8);
+		assignItemRect(GLASS_PANE , 11, 12);
+		assignItemRect(THATCH     , 14, 14);
+		assignItemRect(ROPE       , 14, 12);
+		assignItemRect(HIDE       , 14, 12);
+		assignItemRect(LEATHER    , 14, 10);
+		assignItemRect(CHARCOAL   , 14,  9);
+	}
+
+	private static final int HOMESTEAD2                     =                                xy(2, 35);   //15 slots
+	public static final int IRON_FITTINGS                           = HOMESTEAD2+0;
+	public static final int BUILDERS_SATCHEL                        = HOMESTEAD2+1;
+	public static final int WOODCUTTERS_AXE                         = HOMESTEAD2+2;
+	public static final int MASONS_HAMMER                           = HOMESTEAD2+3;
+	public static final int FLOUR                                   = HOMESTEAD2+4;
+	public static final int BREAD                                   = HOMESTEAD2+5;
+	public static final int FUSED_TOMATO                            = HOMESTEAD2+6;
+	static {
+		assignItemRect(IRON_FITTINGS   , 12, 14);
+		assignItemRect(BUILDERS_SATCHEL, 16, 16);
+		assignItemRect(WOODCUTTERS_AXE , 16, 16);
+		assignItemRect(MASONS_HAMMER   , 14, 15);
+		assignItemRect(FLOUR           , 12, 14);
+		assignItemRect(BREAD           , 14,  9);
+		assignItemRect(FUSED_TOMATO    , 10, 13);
 	}
 
 	/* Sprite sheet nuances (learned the hard way porting SPS-PD weapons):

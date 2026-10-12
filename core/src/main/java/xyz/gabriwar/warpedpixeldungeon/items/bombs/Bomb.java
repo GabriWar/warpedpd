@@ -216,6 +216,9 @@ public class Bomb extends Item {
 				}
 			}
 
+			//a homestead's pieces in or beside the blast, and the roofs over it, take its blow
+			xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.blast( Dungeon.level, affectedCells );
+
 			for (int w : wallsToBreak){
 				BuildersTool.applyTerrain(w, Terrain.EMPTY, false);
 				if (Dungeon.level.heroFOV[w]) {
@@ -230,7 +233,8 @@ public class Bomb extends Item {
 					CellEmitter.get(i).burst(SmokeParticle.FACTORY, 4);
 				}
 
-				if (Dungeon.level.flamable[i]) {
+				//a built piece still standing took the blast's blow above, not a burning
+				if (Dungeon.level.flamable[i] && !xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.isBuilt( Dungeon.level, i )) {
 					Dungeon.level.destroy(i);
 					GameScene.updateMap(i);
 					terrainAffected = true;

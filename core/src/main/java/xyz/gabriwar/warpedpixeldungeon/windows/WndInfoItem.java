@@ -147,7 +147,6 @@ public class WndInfoItem extends WndTabbed {
 	}
 
 	private void buildQualityPages(){
-		//rings, trinkets and artifacts carry a type only: no rarity strip
 		if (Quality.hasRarity( qualityItem )) buildRarityStrip();
 
 		//bottom: the type plates as real tabs
@@ -184,7 +183,7 @@ public class WndInfoItem extends WndTabbed {
 
 		rarityPages = new RenderedTextBlock[Rarity.values().length];
 		for (Rarity r : Rarity.values()){
-			String body = r == quality.rarity ? quality.describeRarity( qualityItem ) : quality.describeRarityTier( r );
+			String body = r == quality.rarity ? quality.describeRarity( qualityItem ) : quality.describeRarityTier( qualityItem, r );
 			rarityPages[r.ordinal()] = PixelScene.renderTextBlock( body, 6 );
 			rarityPages[r.ordinal()].visible = false;
 			add( rarityPages[r.ordinal()] );

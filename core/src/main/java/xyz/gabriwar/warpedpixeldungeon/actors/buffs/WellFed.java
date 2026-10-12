@@ -76,6 +76,12 @@ public class WellFed extends Buff {
 	public void extend( float duration ) {
 		left += duration;
 	}
+
+	//the turns of it left (a kitchen meal reads it: homestead/rooms/RoomTypes.kitchenMeal; a trip's
+	//hunger comes out of the meal first, as Hunger.affectHunger takes it: homestead/travel/Travel)
+	public int turnsLeft() {
+		return left;
+	}
 	
 	@Override
 	public int icon() {

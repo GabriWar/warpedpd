@@ -63,18 +63,25 @@ public class Food extends Item {
 	// Seed used to spice this food; eating applies the seed's spiceEffect
 	public Plant.Seed seed = null;
 
+	//cooked at a pot in a kitchen: a meal that leaves the eater well fed keeps him so longer
+	//(homestead/rooms/RoomTypes.cookedAt; only such a meal is ever marked)
+	public boolean kitchenMade = false;
+
 	private static final String SEED = "SPICE";
+	private static final String KITCHEN_MADE = "kitchen_made";
 
 	@Override
 	public void storeInBundle(Bundle bundle) {
 		super.storeInBundle(bundle);
 		bundle.put(SEED, seed);
+		bundle.put(KITCHEN_MADE, kitchenMade);
 	}
 
 	@Override
 	public void restoreFromBundle(Bundle bundle) {
 		super.restoreFromBundle(bundle);
 		seed = (Plant.Seed) bundle.get(SEED);
+		kitchenMade = bundle.getBoolean(KITCHEN_MADE);
 	}
 
 	{
@@ -108,12 +115,16 @@ public class Food extends Item {
 	}
 
 	@Override
-	public String desc(){ return super.desc() + spiceDescription(); }
+	public String desc(){
+		return super.desc() + spiceDescription()
+				+ (kitchenMade ? "\n\n" + Messages.get(Food.class, "kitchen_made") : "");
+	}
 
 	@Override
 	public boolean isSimilar(Item item) {
 		// spiced food doesn't stack with unspiced food
 		return super.isSimilar(item)
+				&& kitchenMade == ((Food) item).kitchenMade
 				&& (seed == null) == (((Food) item).seed == null)
 				&& (seed == null || seed.getClass() == ((Food) item).seed.getClass());
 	}
@@ -133,7 +144,7 @@ public class Food extends Item {
 			detach( hero.belongings.backpack );
 			Catalog.countUse(getClass());
 
-			satisfy(hero);
+			meal( hero );
 			GLog.i( Messages.get(this, "eat_msg") );
 
 			eatEffect( hero );
@@ -223,6 +234,21 @@ public class Food extends Item {
 		} else {
 			return TIME_TO_EAT;
 		}
+	}
+
+	//what eating it does to the eater's stomach: satisfy, and a meal in a kitchen, or cooked in
+	//one, keeps him well fed longer (homestead/rooms/RoomTypes.kitchenMeal)
+	public final void meal( Hero hero ){
+		xyz.gabriwar.warpedpixeldungeon.actors.buffs.WellFed fed = hero.buff(xyz.gabriwar.warpedpixeldungeon.actors.buffs.WellFed.class);
+		int fedBefore = fed == null ? -1 : fed.turnsLeft();
+		satisfy(hero);
+		xyz.gabriwar.warpedpixeldungeon.homestead.rooms.RoomTypes.kitchenMeal( hero, this, fedBefore );
+	}
+
+	//does eating it make the eater well fed (set his WellFed afresh, in satisfy)? A kitchen
+	//makes such a meal last longer (homestead/rooms/RoomTypes)
+	public boolean grantsWellFed(){
+		return false;
 	}
 
 	protected void satisfy( Hero hero ){

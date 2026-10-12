@@ -71,8 +71,23 @@ public class HeroAction {
 	}
 
 	public static class Mine extends HeroAction {
+		//how many turns the blow takes: the pick's one, the mason's hammer's three on rock
+		public final float turns;
 		public Mine( int wall ) {
+			this( wall, 1f );
+		}
+		public Mine( int wall, float turns ) {
 			this.dst = wall;
+			this.turns = turns;
+		}
+	}
+
+	//a homestead's work on a cell: felling, quarrying, digging, reaping (homestead/gathering/Gathering)
+	public static class Work extends HeroAction {
+		public final xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Gathering.Job job;
+		public Work( int cell, xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Gathering.Job job ) {
+			this.dst = cell;
+			this.job = job;
 		}
 	}
 	

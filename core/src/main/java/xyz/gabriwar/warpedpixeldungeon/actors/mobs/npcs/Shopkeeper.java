@@ -427,6 +427,11 @@ public class Shopkeeper extends NPC {
 
 	private static int basePrice(Item item){
 
+		//the homesteads' goods keep prices of their own: the town store's tools at the town's
+		//rates, any building material at twice its worth (homestead/gathering/Wares)
+		int ware = xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Wares.shelfPrice(item);
+		if (ware > 0) return ware;
+
 		//special surface levels sit at huge depth numbers (overworld = 97);
 		//price them like the late-game city instead of 100x base value.
 		//keyed off depth/branch, not the level class, so a multiplayer client

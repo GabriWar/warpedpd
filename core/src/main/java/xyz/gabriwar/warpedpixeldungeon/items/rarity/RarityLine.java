@@ -53,7 +53,18 @@ public enum RarityLine {
 	DURABILITY ( Quality.Family.MISSILE ),
 	CHARGES    ( Quality.Family.WAND ),
 	RECHARGE   ( Quality.Family.WAND ),
-	ZAP_DAMAGE ( Quality.Family.WAND );
+	ZAP_DAMAGE ( Quality.Family.WAND ),
+	//rings, trinkets and artifacts have no number of their own: their lines are hero-wide
+	//stats, summed with the type perks in GearPerk.heroBonus
+	MIGHT      ( Quality.Family.RING, Quality.Family.ARTIFACT ),
+	AIM        ( Quality.Family.RING, Quality.Family.ARTIFACT, Quality.Family.TRINKET ),
+	DODGE      ( Quality.Family.RING, Quality.Family.ARTIFACT, Quality.Family.TRINKET ),
+	VIGOR      ( Quality.Family.RING, Quality.Family.ARTIFACT, Quality.Family.TRINKET ),
+	STRIDE     ( Quality.Family.RING, Quality.Family.ARTIFACT ),
+	CHANNEL    ( Quality.Family.RING, Quality.Family.ARTIFACT ),
+	RESOLVE    ( Quality.Family.RING, Quality.Family.TRINKET ),
+	SATIETY    ( Quality.Family.ARTIFACT, Quality.Family.TRINKET ),
+	PROSPECT   ( Quality.Family.TRINKET );
 
 	private final Quality.Family[] families;
 
@@ -83,7 +94,32 @@ public enum RarityLine {
 			case STR_REQ:                      return 0.15f;
 			case CHARGES:                      return 0.90f;
 			case WARMTH:                       return 3f;
+			//hero-wide: about what one gamma-to-beta type step of the matching perk gives
+			case MIGHT:                        return 0.08f;
+			case AIM: case DODGE:              return 0.10f;
+			case VIGOR:                        return 0.25f;
+			case STRIDE:                       return 0.06f;
+			case CHANNEL:                      return 0.12f;
+			case RESOLVE:                      return 0.08f;
+			case SATIETY:                      return 0.15f;
+			case PROSPECT:                     return 0.20f;
 			default:                           return 1f;
+		}
+	}
+
+	/** whether this line adds to a hero-wide stat, and so is read by GearPerk.heroBonus */
+	public boolean feeds( GearPerk.Stat stat ){
+		switch (this){
+			case MIGHT:    return stat == GearPerk.Stat.DAMAGE;
+			case AIM:      return stat == GearPerk.Stat.ACCURACY;
+			case DODGE:    return stat == GearPerk.Stat.EVASION;
+			case VIGOR:    return stat == GearPerk.Stat.REGEN;
+			case STRIDE:   return stat == GearPerk.Stat.SPEED;
+			case CHANNEL:  return stat == GearPerk.Stat.WAND_CHARGE || stat == GearPerk.Stat.ARTIFACT_CHARGE;
+			case RESOLVE:  return stat == GearPerk.Stat.DEBUFF_RESIST;
+			case SATIETY:  return stat == GearPerk.Stat.HUNGER;
+			case PROSPECT: return stat == GearPerk.Stat.GOLD;
+			default:       return false;
 		}
 	}
 

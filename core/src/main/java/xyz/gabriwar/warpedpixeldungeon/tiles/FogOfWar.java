@@ -270,8 +270,9 @@ public class FogOfWar extends Image {
 						continue;
 					}
 					
-					//the top of the overworld's rock is ground seen from below: its own fog, no wall rules
-					if (Dungeon.level.rockTopAt(cell)) {
+					//the top of the overworld's rock is ground seen from below, and a built wall's top
+					//(and a built shelf) is painted: their own fog, no wall rules
+					if (Dungeon.level.rockTopAt(cell) || HomesteadVisuals.ownFog(Dungeon.level, cell)) {
 						fillCell(fog, j, i, FOG_COLORS[getCellFog(cell)][brightness]);
 						cell++;
 						continue;

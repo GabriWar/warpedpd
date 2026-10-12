@@ -95,6 +95,11 @@ public class TerrainFeaturesTilemap extends DungeonTilemap {
 			return plants.get(pos).image + 7*16;
 		}
 
+		//the homesteads' standing pieces, on every slice (one sheet serves them all)
+		if (Terrain.homestead(tile)){
+			return HomesteadVisuals.feature(map, mapWidth, size, pos, tile);
+		}
+
 		//Only the upstream sheets were split into base art + decoration in v4.0.
 		//Custom sheets still contain the complete object (including its overhang).
 		//Adding a depth-based overlay paints prison bars over Spider Nest minecarts.

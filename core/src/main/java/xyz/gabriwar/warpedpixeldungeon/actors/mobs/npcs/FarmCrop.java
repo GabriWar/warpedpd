@@ -28,12 +28,15 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar;
+import xyz.gabriwar.warpedpixeldungeon.actors.WorldClock;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
-import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle;
-import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Sickle;
+import xyz.gabriwar.warpedpixeldungeon.homestead.farming.Crop;
+import xyz.gabriwar.warpedpixeldungeon.homestead.farming.FarmRules;
+import xyz.gabriwar.warpedpixeldungeon.homestead.farming.Farming;
+import xyz.gabriwar.warpedpixeldungeon.levels.Level;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.plants.BlandfruitBush;
 import xyz.gabriwar.warpedpixeldungeon.plants.Dewcatcher;
@@ -51,21 +54,18 @@ import xyz.gabriwar.warpedpixeldungeon.plants.Swiftthistle;
 import xyz.gabriwar.warpedpixeldungeon.sprites.FarmCropSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Bundle;
-import com.watabou.utils.PathFinder;
-import com.watabou.utils.Random;
 import com.watabou.utils.Reflection;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
- * A seed sown on tilled soil in the safe zone. It ripens on its own game-clock
- * (growing even while the hero is off on other floors), and on each finished
- * cycle either withers or drops a fresh seed of its kind on an adjacent tile,
- * up to a per-species cap. A sickle harvests a guaranteed seed from a ripe
- * crop - but kills the plant.
+ * A crop growing in farmland (homestead/farming): on the world's slices the FarmSlice's record is
+ * the crop, and this shows it and answers for it. It ripens on the global clock, at its season's
+ * pace (Farming.tend), catching up on everything while the hero is away; ripe, it waits for the
+ * sickle - food from the food plants, its own seed from the rest - and each cycle after drops a
+ * seed beside it or withers, up to a per-species cap of seeds.
  */
-public class FarmCrop extends Mob {
+public class FarmCrop extends Mob implements xyz.gabriwar.warpedpixeldungeon.homestead.HomesteadActor {
 
 	{
 		spriteClass = FarmCropSprite.class;
@@ -123,10 +123,9 @@ public class FarmCrop extends Mob {
 		return WATER_LOVERS.contains(plantCls);
 	}
 
-	public Plant.Seed seed = null;
-	//the game-clock time this cycle started growing
-	public float cycleStart = 0;
-	public int seedsGiven = 0;
+	/** Its crop: on a world slice the slice's own record (homestead/farming/FarmSlice), which this
+	 *  only shows and is touched for; anywhere else its own. */
+	public Crop crop = new Crop();
 
 	//the true continuous game clock: Statistics.duration only folds in elapsed
 	//time when fixTime() runs (saves/level switches), so the live component
@@ -135,162 +134,131 @@ public class FarmCrop extends Mob {
 		return Statistics.duration + Actor.now();
 	}
 
+	/** Sows a seed here, off the world's slices (on them, Farming.plant sows). */
 	public void sow( Plant.Seed seed ){
-		this.seed = seed;
-		this.cycleStart = clock();
+		crop = new Crop( seed.getClass(), clock(), WorldClock.day() );
 	}
 
-	private int[] profile(){
-		return seed != null ? profileFor(seed.getPlantClass()) : DEFAULT_PROFILE;
+	private Class<? extends Plant> plant(){
+		return crop == null ? null : crop.plant();
 	}
 
-	//number of adjacent water tiles (0-4) that count toward a water-loving crop
+	//the water it has (0-4: homestead/farming/FarmRules.water)
 	public int adjacentWater(){
-		if (seed == null || !lovesWater(seed.getPlantClass())) return 0;
-		int n = 0;
-		for (int d : PathFinder.NEIGHBOURS8){
-			int c = pos + d;
-			if (c >= 0 && c < Dungeon.level.length()
-					&& Dungeon.level.map[c] == xyz.gabriwar.warpedpixeldungeon.levels.Terrain.WATER){
-				n++;
-			}
-		}
-		return Math.min(4, n);
+		return Farming.waterAt( Dungeon.level, pos );
 	}
 
-	//water-loving crops grow up to 40% faster with 4 adjacent water tiles
-	private int effectiveGrowth(){
-		int base = profile()[0];
-		return Math.round( base * (1f - 0.10f * adjacentWater()) );
+	//the turns of growth its cycle takes, with its water
+	private int cycleTurns(){
+		Class<? extends Plant> p = plant();
+		return p == null ? DEFAULT_PROFILE[0] : FarmRules.cycleTurns( p, adjacentWater() );
 	}
 
-	//and shed up to 40 percentage points off their wither chance
-	private int effectiveWither(){
-		return Math.max( 5, profile()[2] - 10 * adjacentWater() );
-	}
-
-	//how far along the current cycle is, on the global clock
-	private float elapsed(){
-		return Math.max(0, clock() - cycleStart);
-	}
-
-	//whole turns until this cycle completes
+	//whole turns until it ripens at today's pace; -1 while it is not growing (winter in the open)
 	public int turnsLeft(){
-		return Math.max(0, (int)Math.ceil(effectiveGrowth() - elapsed()));
+		float rate = Farming.rateAt( Dungeon.level, pos );
+		if (rate <= 0f) return -1;
+		return Math.max( 0, (int) Math.ceil( (cycleTurns() - crop.growth) / rate ) );
 	}
 
+	/** Ripe: it waits for the sickle. */
 	public boolean mature(){
-		return elapsed() >= effectiveGrowth();
+		return crop != null && crop.ripe();
 	}
 
-	//plant food: advances a quarter of the REMAINING growth. no cap, but the
-	//returns diminish sharply - each application does less than the last, so
-	//near maturity a dose is almost nothing. returns false when it can't help
+	//plant food: a quarter of the growth left in its cycle, so each dose does less than the last;
+	//false when it would not help (ripe, or almost)
 	public boolean fertilize(){
-		if (seed == null || mature()) return false;
-		float remaining = effectiveGrowth() - elapsed();
-		float add = remaining * 0.25f;
-		if (add < 1f) return false;
-		cycleStart -= add;
-		if (Dungeon.level.heroFOV[pos]){
-			CellEmitter.get(pos).burst(LeafParticle.GENERAL, 5);
-		}
-		return true;
+		shown = -1f;
+		return crop != null && Farming.feed( Dungeon.level, pos, crop );
 	}
 
 	public int growthPercent(){
-		return Math.min(100, (int)(100 * elapsed() / effectiveGrowth()));
+		if (mature()) return 100;
+		return Math.min( 99, (int) (100 * crop.growth / cycleTurns()) );
+	}
+
+	//how grown its sprite shows it (0..1), worked out again once after it acts or is fed: the
+	//sprite asks every frame, and growthPercent looks at the water round it
+	private float shown = -1f;
+
+	public float grownShown(){
+		if (shown < 0f) shown = mature() ? 1f : growthPercent() / 100f;
+		return shown;
 	}
 
 	//the plant art frame, for the sprite
 	public int plantImage(){
-		if (seed != null){
-			Plant p = Reflection.newInstance(seed.getPlantClass());
-			if (p != null) return p.image;
+		Class<? extends Plant> p = plant();
+		if (p != null){
+			Plant pl = Reflection.newInstance( p );
+			if (pl != null) return pl.image;
 		}
 		return 0;
 	}
 
 	@Override
 	public String name() {
-		return seed != null
-				? Messages.get(this, "name", seed.name())
+		return crop != null && crop.seed != null
+				? Messages.get(this, "name", Farming.name( crop ))
 				: Messages.get(this, "name_generic");
 	}
 
 	@Override
 	public String description() {
-		int[] p = profile();
-		String desc = Messages.get(this, "desc", growthPercent(), turnsLeft(), seedsGiven, p[1], effectiveWither());
-		if (seed != null && lovesWater(seed.getPlantClass())){
-			int w = adjacentWater();
-			desc += "\n\n" + (w > 0
-					? Messages.get(this, "water_active", w)
-					: Messages.get(this, "water_hint"));
+		Class<? extends Plant> p = plant();
+		if (p == null) return Messages.get(this, "name_generic");
+		int water = adjacentWater();
+		StringBuilder desc = new StringBuilder();
+		if (mature()){
+			desc.append( Messages.get(this, "desc_ripe", crop.seeds, FarmRules.maxSeeds( p ), FarmRules.witherChance( p, water )) );
+		} else {
+			int left = turnsLeft();
+			desc.append( left < 0
+					? Messages.get(this, "desc_dormant", growthPercent())
+					: Messages.get(this, "desc", growthPercent(), left) );
 		}
-		return desc;
+		if (FarmRules.food( p )) desc.append( "\n\n" ).append( Messages.get(this, "food") );
+		if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel){
+			desc.append( "\n\n" ).append( Farming.greenhouse( Dungeon.level, pos )
+					? Messages.get(this, "glass")
+					: Messages.get(this, "season", Messages.titleCase( GameCalendar.season().name().toLowerCase( java.util.Locale.ENGLISH ) ),
+							Math.round( 100 * Farming.rateAt( Dungeon.level, pos ) )) );
+		}
+		desc.append( "\n\n" ).append( water > 0
+				? Messages.get(this, lovesWater( p ) ? "water_active" : "water_some", water)
+				: Messages.get(this, lovesWater( p ) ? "water_hint" : "water_none") );
+		if (crop.fed > 0) desc.append( "\n\n" ).append( Messages.get(this, "fed") );
+		return desc.toString();
 	}
 
 	@Override
 	protected boolean act() {
-
-		if (seed == null){
-			destroy();
-			if (sprite != null) sprite.killAndErase();
+		Level level = Dungeon.level;
+		if (crop == null || plant() == null){
+			vanish();
 			return true;
 		}
-
-		int[] p = profile();
-
-		//catch up on every full cycle that elapsed since the last act (including
-		//time spent away on other floors, since the clock is global). the growth
-		//and wither values are recomputed each cycle so live water changes apply
-		while (elapsed() >= effectiveGrowth() && seed != null){
-
-			cycleStart += effectiveGrowth();
-
-			if (Random.Int(100) < effectiveWither()){
-				//the plant gives out and withers with nothing to show
-				wither(true);
-				return true;
-			}
-
-			//a fresh seed drops on a free neighbouring cell
-			ArrayList<Integer> spots = new ArrayList<>();
-			for (int n : PathFinder.NEIGHBOURS8){
-				int c = pos + n;
-				if (c >= 0 && c < Dungeon.level.length()
-						&& Dungeon.level.passable[c] && Actor.findChar(c) == null
-						&& Dungeon.level.heaps.get(c) == null){
-					spots.add(c);
-				}
-			}
-			int spot = spots.isEmpty() ? pos : Random.element(spots);
-			Plant.Seed drop = (Plant.Seed) Reflection.newInstance(seed.getClass());
-			Dungeon.level.drop(drop, spot).sprite.drop();
-			seedsGiven++;
-
-			if (Dungeon.level.heroFOV[pos]){
-				CellEmitter.get(pos).burst(ShaftParticle.FACTORY, 4);
-				GLog.p(Messages.get(this, "yield", seed.name()));
-			}
-
-			if (seedsGiven >= p[1]){
-				//spent: the plant withers after its last seed
-				wither(false);
+		//on a world slice: the crop of the record on its cell, or a stray leaving
+		if (level instanceof OverworldLevel && !Farming.owns( (OverworldLevel) level, this )){
+			vanish();
+			return true;
+		}
+		if (!Farming.waiting( level, crop )){
+			shown = -1f;
+			Farming.Outcome o = Farming.tend( level, pos, crop, true );
+			if (o != Farming.Outcome.GROWING){
+				Farming.dies( level, pos, crop, o, true );
+				if (isAlive() && level.mobs.contains( this )) vanish();
 				return true;
 			}
 		}
-
 		spend(TICK);
 		return true;
 	}
 
-	private void wither(boolean fruitless){
-		if (Dungeon.level.heroFOV[pos]){
-			CellEmitter.get(pos).burst(LeafParticle.GENERAL, 6);
-			GLog.w(Messages.get(this, fruitless ? "wither" : "spent", seed != null ? seed.name() : ""));
-		}
+	//gone without a word: a stray, or a crop its record no longer holds
+	private void vanish(){
 		destroy();
 		if (sprite != null) sprite.killAndErase();
 	}
@@ -298,7 +266,8 @@ public class FarmCrop extends Mob {
 	@Override
 	public void damage(int dmg, Object src) {
 		//rough handling destroys the crop
-		wither(true);
+		Farming.dies( Dungeon.level, pos, crop, Farming.Outcome.WITHERED, true );
+		if (Dungeon.level.mobs.contains( this )) vanish();
 	}
 
 	@Override
@@ -313,34 +282,35 @@ public class FarmCrop extends Mob {
 
 	@Override
 	public boolean interact(Char c) {
-		if (c != Dungeon.hero) return true;
-
-		//a crop whose seed class no longer exists (removed/renamed content) just clears
-		if (seed == null){
-			destroy();
-			if (sprite != null) sprite.killAndErase();
+		if (c != Dungeon.hero){
+			//the fields are the host's to reap in a shared game
+			if (c instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero){
+				xyz.gabriwar.warpedpixeldungeon.net.NetManager.heroLog( (xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero) c,
+						Messages.get(this, "host_only") );
+			}
 			return true;
 		}
 
-		if (mature() && Dungeon.hero.belongings.getItem(Sickle.class) != null){
-			//sickle harvest: one guaranteed seed, but it kills the plant
-			Plant.Seed harvest = (Plant.Seed) Reflection.newInstance(seed.getClass());
-			if (!harvest.collect()){
-				Dungeon.level.drop(harvest, pos).sprite.drop();
-			}
-			GLog.p(Messages.get(this, "harvest", seed.name()));
-			CellEmitter.get(pos).burst(LeafParticle.GENERAL, 8);
-			destroy();
-			if (sprite != null) sprite.killAndErase();
-			Dungeon.hero.spendAndNext(1f);
+		//a crop whose seed class no longer exists (removed/renamed content) just clears
+		if (plant() == null){
+			vanish();
+			return true;
+		}
+
+		if (mature() && Farming.hasSickle( Dungeon.hero )){
+			Farming.harvest( Dungeon.hero, this );
 		} else if (mature()){
 			GLog.i(Messages.get(this, "ready_no_sickle"));
 		} else {
-			GLog.i(Messages.get(this, "progress", growthPercent(), turnsLeft()));
+			int left = turnsLeft();
+			GLog.i(left < 0 ? Messages.get(this, "progress_dormant", growthPercent())
+					: Messages.get(this, "progress", growthPercent(), left));
 		}
 		return true;
 	}
 
+	private static final String CROP   = "crop";
+	//a save from before the fields of the world: the old crop's own fields
 	private static final String SEED   = "seed";
 	private static final String START  = "cycle_start";
 	private static final String GIVEN  = "seeds_given";
@@ -348,16 +318,23 @@ public class FarmCrop extends Mob {
 	@Override
 	public void storeInBundle(Bundle bundle) {
 		super.storeInBundle(bundle);
-		bundle.put(SEED, seed);
-		bundle.put(START, cycleStart);
-		bundle.put(GIVEN, seedsGiven);
+		bundle.put(CROP, crop);
 	}
 
 	@Override
 	public void restoreFromBundle(Bundle bundle) {
 		super.restoreFromBundle(bundle);
-		seed = (Plant.Seed) bundle.get(SEED);
-		cycleStart = bundle.getFloat(START);
-		seedsGiven = bundle.getInt(GIVEN);
+		if (bundle.contains(CROP)){
+			crop = (Crop) bundle.get(CROP);
+		} else {
+			//an old crop: what had grown of its cycle carries over, and one that had given a seed is ripe
+			Plant.Seed seed = (Plant.Seed) bundle.get(SEED);
+			float now = clock();
+			crop = new Crop( seed == null ? null : seed.getClass(), now, WorldClock.day() );
+			crop.growth = Math.max( 0, now - bundle.getFloat(START) );
+			crop.seeds = bundle.getInt(GIVEN);
+			crop.cycles = crop.seeds > 0 ? 1 : 0;
+		}
+		if (crop == null) crop = new Crop();
 	}
 }

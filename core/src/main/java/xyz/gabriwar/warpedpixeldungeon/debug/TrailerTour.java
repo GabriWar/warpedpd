@@ -40,6 +40,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Goo;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Rat;
+import xyz.gabriwar.warpedpixeldungeon.homestead.BuildCatalog;
+import xyz.gabriwar.warpedpixeldungeon.homestead.Homestead;
 import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
@@ -194,42 +196,46 @@ public class TrailerTour {
 		floor( 17 );
 		floor( 22 );
 
-		// ---- 4. the safe spot, built tile by tile ----
-		goTo( 50, 0 );
+		// ---- 4. a homestead, raised piece by piece out in the world ----
+		act( () -> {
+			ScreenshotTour.closeWindows();
+			OverworldLevel.arriveAt( WorldStructures.townWorldX( WorldStructures.TOWN_PLAZA ),
+					WorldStructures.townWorldY( WorldStructures.TOWN_PLAZA ) + 40 );
+			OverworldLevel.travelToSurface();
+		} );
+		until( () -> Game.scene() instanceof GameScene );
 		delay( 0.5f );
 		act( () -> {
 			ScreenshotTour.closeWindows();
 			ScreenshotTour.clearLog();
 			Dungeon.observe();
-			float zoom = (float) Math.floor( Math.min( width / (float) (ScreenshotTour.SAFE_PLAN[0].length() * DungeonTilemap.SIZE), height / (float) (ScreenshotTour.SAFE_PLAN.length * DungeonTilemap.SIZE) ) );
-			Camera.main.zoom( Math.max( PixelScene.minZoom, zoom ) );
-			int centre = ScreenshotTour.SAFE_X0 + ScreenshotTour.SAFE_PLAN[0].length()/2 + Dungeon.level.width() * (ScreenshotTour.SAFE_Y0 + ScreenshotTour.SAFE_PLAN.length/2);
-			Camera.main.panTo( DungeonTilemap.tileCenterToWorld( centre ), 0 );
-			Camera.main.snapTo( DungeonTilemap.tileCenterToWorld( centre ) );
-			caption( "Build your own home", "A safe haven of your own: build it tile by tile, farm it, fill it with loot" );
+			OverworldLevel ow = (OverworldLevel) Dungeon.level;
+			int origin = HomesteadScenes.findGround( ow, Dungeon.hero.pos );
 			buildQueue.clear();
-			for (int y = 0; y < ScreenshotTour.SAFE_PLAN.length; y++) {
-				for (int x = 0; x < ScreenshotTour.SAFE_PLAN[y].length(); x++) {
-					char c = ScreenshotTour.SAFE_PLAN[y].charAt( x );
-					if (c != '.' && c != 'x') buildQueue.add( ScreenshotTour.SAFE_X0 + x + Dungeon.level.width() * (ScreenshotTour.SAFE_Y0 + y) );
+			buildPieces.clear();
+			if (origin != -1) {
+				for (Object[] step : HomesteadScenes.shellPlan( ow, origin )) {
+					buildQueue.add( (Integer) step[0] );
+					buildPieces.add( (String) step[1] );
 				}
 			}
+			int centre = origin == -1 ? Dungeon.hero.pos : ScreenshotTour.homesteadCentre( ow, origin );
+			float zoom = (float) Math.floor( Math.min( width / (float) (ScreenshotTour.HOMESTEAD_VIEW_W * DungeonTilemap.SIZE), height / (float) (ScreenshotTour.HOMESTEAD_VIEW_H * DungeonTilemap.SIZE) ) );
+			Camera.main.zoom( Math.max( PixelScene.minZoom, zoom ) );
+			Camera.main.panTo( DungeonTilemap.tileCenterToWorld( centre ), 0 );
+			Camera.main.snapTo( DungeonTilemap.tileCenterToWorld( centre ) );
+			caption( "Build your own home", "Raise walls, doors and roofs anywhere out in the world" );
 		} );
 		steps.add( () -> {
-			//two tiles a frame: the house rises in a few seconds, the hero hammering away
+			//two pieces a frame: the house rises in a few seconds, the hero hammering away
 			for (int i = 0; i < 2 && !buildQueue.isEmpty(); i++) {
 				int cell = buildQueue.remove( 0 );
-				char c = ScreenshotTour.SAFE_PLAN[cell / Dungeon.level.width() - ScreenshotTour.SAFE_Y0].charAt( cell % Dungeon.level.width() - ScreenshotTour.SAFE_X0 );
-				Level.set( cell, ScreenshotTour.terrainFor( c ) );
-				GameScene.updateMap( cell );
+				Homestead.build( (OverworldLevel) Dungeon.level, cell, BuildCatalog.byId( buildPieces.remove( 0 ) ), Dungeon.hero );
 				if (frame % 12 == 0) Dungeon.hero.sprite.operate( cell );
 			}
 			return buildQueue.isEmpty();
 		} );
-		act( () -> {
-			ScreenshotTour.furnishSafeSpot();
-			Dungeon.hero.sprite.idle();
-		} );
+		act( () -> Dungeon.hero.sprite.idle() );
 		delay( 2.5f );
 
 		// ---- 5. the journal: the catalogue of things ----
@@ -326,6 +332,7 @@ public class TrailerTour {
 	}
 
 	private final ArrayList<Integer> buildQueue = new ArrayList<>();
+	private final ArrayList<String> buildPieces = new ArrayList<>();
 	private final ArrayList<SpectatorReceiver.NetHeroMob> party = new ArrayList<>();
 	private WndJournal journal;
 	private Goo boss;

@@ -119,13 +119,20 @@ public final class RoomAcoustics {
 				Assets.Sounds.UNLOCK, Assets.Sounds.SHATTER, Assets.Sounds.LIGHTNING, Assets.Sounds.TRAP,
 				Assets.Sounds.ROCKS_LIGHT, Assets.Sounds.BLAST, Assets.Sounds.MINE, Assets.Sounds.WALL_BREAK_1,
 				Assets.Sounds.WALL_BREAK_2, Assets.Sounds.WALL_BREAK_3 );
+		//the homesteads' blows: an axe, a nail, a stone laid, a door barred, a wooden piece broken
+		add( true, true, true, false, Assets.Sounds.CHOP, Assets.Sounds.HAMMER, Assets.Sounds.STONE_SET,
+				Assets.Sounds.DOOR_BAR, Assets.Sounds.WOOD_BREAK );
 		add( true, true, false, false, Assets.Sounds.MISS, Assets.Sounds.ZAP, Assets.Sounds.ROCKS );
+		add( true, true, false, false, Assets.Sounds.DIG, Assets.Sounds.SAW );
 		add( true, false, true, false, Assets.Sounds.CHAINS );
 		add( true, false, false, true, Assets.Sounds.STEP, Assets.Sounds.STURDY, Assets.Sounds.GRASS,
 				Assets.Sounds.TRAMPLE, Assets.Sounds.WATER );
 		add( true, false, false, false, Assets.Sounds.BONES, Assets.Sounds.PUFF );
+		add( true, false, false, false, Assets.Sounds.REAP, Assets.Sounds.ROPE );
 		//the alarm plays unseen, through the walls, and rings on by itself
 		add( false, true, false, false, Assets.Sounds.ALERT );
+		//as do the alarm bell and a falling tree (too long for a tail: each carries its own space)
+		add( false, true, false, false, Assets.Sounds.BELL, Assets.Sounds.TREE_FALL );
 	}
 
 	//the switch's taste of it: a heavy blow in a big hall

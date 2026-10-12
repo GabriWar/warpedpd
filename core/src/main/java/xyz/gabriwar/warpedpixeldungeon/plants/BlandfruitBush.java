@@ -26,6 +26,7 @@ package xyz.gabriwar.warpedpixeldungeon.plants;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.poisonparticles.BlandfruitPoisonParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.food.Blandfruit;
 import com.watabou.noosa.particles.Emitter;
@@ -62,6 +63,8 @@ public class BlandfruitBush extends Plant {
 	//seed is never dropped
 	public static class Seed extends Plant.Seed {
 		{
+			image = ItemSpriteSheet.SEED_BLANDFRUIT;
+
 			plantClass = BlandfruitBush.class;
 		}
 

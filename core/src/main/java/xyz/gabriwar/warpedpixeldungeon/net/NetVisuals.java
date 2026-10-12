@@ -407,6 +407,24 @@ public class NetVisuals {
 		} catch (JSONException ignored) {}
 	}
 
+	/**
+	 * Record a piece of the homesteads' gathering (homestead/gathering/GatheringFx): its kind, its
+	 * cell and two numbers ("n", "m", each sent only when not 0). The guest's GatheringFx plays it,
+	 * the sound with it.
+	 */
+	public static void recordGather(int kind, int cell, int n, int m) {
+		if (!NetManager.isHost()) return;
+		try {
+			JSONObject evt = new JSONObject();
+			evt.put("t", "gw");
+			evt.put("k", kind);
+			evt.put("c", cell);
+			if (n != 0) evt.put("n", n);
+			if (m != 0) evt.put("m", m);
+			pendingEvents.add(evt);
+		} catch (JSONException ignored) {}
+	}
+
 	private static JSONArray cells(int[] cells) {
 		JSONArray a = new JSONArray();
 		for (int c : cells) a.put(c);
@@ -555,6 +573,7 @@ public class NetVisuals {
 			case "cc": replayCheckedCell(evt); break;
 			case "sk": replayStrike(evt); break;
 			case "fh": replayFire(evt); break;
+			case "gw": replayGather(evt); break;
 		}
 	}
 
@@ -576,6 +595,13 @@ public class NetVisuals {
 			list = java.util.Arrays.copyOf(list, k);
 		}
 		xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.FireNet.play(evt.getInt("k"), cell, evt.optInt("n", 0), evt.optInt("m", 0), list);
+	}
+
+	//a piece of gathering: played only on a cell of the guest's level
+	private static void replayGather(JSONObject evt) throws JSONException {
+		int cell = evt.getInt("c");
+		if (Dungeon.level == null || cell < 0 || cell >= Dungeon.level.length()) return;
+		xyz.gabriwar.warpedpixeldungeon.homestead.gathering.GatheringFx.play(evt.getInt("k"), cell, evt.optInt("n", 0), evt.optInt("m", 0));
 	}
 
 	private static void replayStrike(JSONObject evt) throws JSONException {

@@ -93,6 +93,11 @@ public final class Earshot {
 				Terrain.BOOKSHELF, Terrain.EMPTY_BOOKSHELF }) CLASS[t] = WALL_CELL;
 		for (int t : new int[]{ Terrain.DOOR, Terrain.LOCKED_DOOR, Terrain.HERO_LKD_DR, Terrain.CRYSTAL_DOOR,
 				Terrain.BARRICADE, Terrain.LOCKED_EXIT }) CLASS[t] = DOOR_CELL;
+		//the homesteads' own: a built wall stops a sound as rock does, and a shut door or a pane of
+		//glass muffles it as a door does, so a house the hero built rings as a room
+		for (int t = Terrain.BUILT_WALL_LOG; t <= Terrain.BUILT_WALL_BRICK; t++) CLASS[t] = WALL_CELL;
+		for (int t = Terrain.BUILT_WINDOW_LOG; t <= Terrain.BUILT_WINDOW_BRICK; t++) CLASS[t] = DOOR_CELL;
+		for (int t : new int[]{ Terrain.BUILT_DOOR, Terrain.BUILT_DOOR_BARRED }) CLASS[t] = DOOR_CELL;
 		ABSORB[Terrain.SNOW] = 1f;
 		for (int t : new int[]{ Terrain.HIGH_GRASS, Terrain.FURROWED_GRASS, Terrain.SOIL_CORNWHEAT, Terrain.SOIL_GREENWHEAT,
 				Terrain.SOIL_STRAWWHEAT, Terrain.SOIL_WATERWHEAT, Terrain.WOOL_RUG, Terrain.TREE_PINE, Terrain.TREE_OAK }) ABSORB[t] = 0.7f;
@@ -433,12 +438,14 @@ public final class Earshot {
 		}
 	}
 
-	//what a cell gives back of a sound under the open sky: rock most, the town's walls less, a
-	//tree stops it and gives nothing; -1 lets it pass
+	//what a cell gives back of a sound under the open sky: rock most, the town's walls and a built
+	//stone or brick wall less, a built wooden wall less again, a tree stops it and gives nothing;
+	//-1 lets it pass
 	private static float reflection( int t ){
 		switch (t){
 			case Terrain.WALL: case Terrain.WALL_DECO: return 0.95f;
-			case Terrain.TOWN_SOLID: return 0.8f;
+			case Terrain.TOWN_SOLID: case Terrain.BUILT_WALL_STONE: case Terrain.BUILT_WALL_BRICK: return 0.8f;
+			case Terrain.BUILT_WALL_LOG: case Terrain.BUILT_WALL_PLANK: return 0.6f;
 			case Terrain.TREE_PINE: case Terrain.TREE_OAK: return 0f;
 			default: return -1f;
 		}

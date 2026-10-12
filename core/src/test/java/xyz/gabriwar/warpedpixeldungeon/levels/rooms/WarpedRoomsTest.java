@@ -204,6 +204,12 @@ public class WarpedRoomsTest {
 	// ---------------------------------------------------------------- painting
 
 	@Test
+	public void theCitysWaterCanFreezeButTheHallsLavaNever(){
+		assertTrue( new xyz.gabriwar.warpedpixeldungeon.levels.CityLevel().waterCanFreeze() );
+		assertFalse( new xyz.gabriwar.warpedpixeldungeon.levels.HallsLevel().waterCanFreeze() );
+	}
+
+	@Test
 	public void everyRoomPaintsWithItsDoorOnAnyWall() throws Exception {
 		for (Class<?> type : ROOMS){
 			for (int wall = 0; wall < 4; wall++){
@@ -287,6 +293,24 @@ public class WarpedRoomsTest {
 	private void floor(){
 		Painter.fill( level, 1, 1, 38, 38, Terrain.EMPTY );
 		level.buildFlagMaps();
+	}
+
+	@Test
+	public void anIceBlockStaysPutWhenTheFloorIsRoused() throws Exception {
+		floor();
+		int cell = 20 + 20 * level.width();
+		xyz.gabriwar.warpedpixeldungeon.actors.mobs.IceBlock block = new xyz.gabriwar.warpedpixeldungeon.actors.mobs.IceBlock();
+		block.pos = cell;
+		level.mobs.add( block );
+		//what a noise or an alarm does to every monster on the floor
+		block.beckon( cell + 6 );
+		//and whatever else might set it going: it must not hunt or wander all the same
+		block.state = block.HUNTING;
+		java.lang.reflect.Method act = block.getClass().getDeclaredMethod( "act" );
+		act.setAccessible( true );
+		for (int i = 0; i < 10; i++) act.invoke( block );
+		assertEquals( "the block walked", cell, block.pos );
+		assertEquals( block.PASSIVE, block.state );
 	}
 
 	@Test

@@ -129,6 +129,11 @@ public final class WeatherSounds extends Gizmo {
 	/** What reaches the hero on a level, of the weather. */
 	static WeatherScape.Where where( Level level ){
 		if (Comfy.indoors( level )) return WeatherScape.Where.INDOORS;
+		//in a room the hero built, the weather is on its roof and its walls (homestead/Rooms)
+		if (level instanceof OverworldLevel && Dungeon.hero != null
+				&& xyz.gabriwar.warpedpixeldungeon.homestead.Rooms.at( level, Dungeon.hero.pos ) != null){
+			return WeatherScape.Where.INDOORS;
+		}
 		if (level instanceof OverworldLevel){
 			return ((OverworldLevel) level).openSky() ? WeatherScape.Where.OPEN : WeatherScape.Where.CAVE;
 		}
@@ -202,6 +207,8 @@ public final class WeatherSounds extends Gizmo {
 
 	private void readSky(){
 		WeatherScape.Sky sky = scape.sky;
+		//the hero steps into a room he built and out of it again (where)
+		sky.where = where( level );
 		PrecipType type = ClimateManager.localPrecipType();
 		float rate = type == PrecipType.NONE ? 0f : ClimateManager.localPrecipRate();
 		if (sky.where == WeatherScape.Where.INDOORS){

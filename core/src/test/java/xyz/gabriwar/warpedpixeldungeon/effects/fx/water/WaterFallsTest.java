@@ -219,6 +219,48 @@ public class WaterFallsTest {
 	}
 
 	@Test
+	public void sideEdgesSpillOutIntoThePitBesideAndNoLowerThanIt(){
+		Level l = Dungeon.level;
+		//pits down both sides of the pool
+		for (int y = 4; y < 10; y++){
+			l.map[5 + y * W] = Terrain.CHASM;
+			l.map[16 + y * W] = Terrain.CHASM;
+		}
+		l.buildFlagMaps();
+		Dungeon.hero.pos = 10 + 6 * W;
+		WaterFalls.Fall[] falls = new WaterFalls.Fall[4];
+		FxEmitter[] es = new FxEmitter[4];
+		for (int i = 0; i < 4; i++){
+			boolean right = i % 2 == 0;
+			falls[i] = WaterFalls.fall( l, (right ? 15 : 6) + (5 + i) * W, right ? 1 : -1 );
+			es[i] = new FxEmitter();
+			es[i].autoKill = false;
+			layers[GameScene.Layer.EFFECTS.ordinal()].add( es[i] );
+		}
+		assertEquals( 16 * 16 - 1f, falls[0].lipX, 0.001f );
+		assertEquals( 6 * 16f, falls[1].lipX, 0.001f );
+		int most = 0;
+		for (int f = 0; f < 600; f++){
+			Game.timeTotal += Game.elapsed;
+			for (int i = 0; i < 4; i++){
+				WaterFalls.Fall fall = falls[i];
+				WaterFalls.fall( fall, es[i], true, Game.elapsed );
+				es[i].update();
+				assertTrue( fall.live() <= WaterFalls.PER_EDGE );
+				for (Gizmo g : es[i].membersView()){
+					if (!(g instanceof WaterFalls.FallDrop) || !g.alive) continue;
+					FxParticle p = (FxParticle) g;
+					assertTrue( "out: " + p.px, fall.side * (p.px - fall.lipX) >= -0.001f );
+					assertTrue( "low: " + p.py, p.py <= fall.top + 16 + 0.001f );
+				}
+			}
+			most = Math.max( most, WaterFalls.falling() );
+		}
+		assertTrue( "falling: " + most, most > 4 );
+		assertTrue( falls[0].lip().visible );
+	}
+
+	@Test
 	public void edgesOutOfSightLetTheirDropsGoSoTheOthersStillFall(){
 		Level l = Dungeon.level;
 		for (int x = 6; x < 16; x++) l.map[x + 10 * W] = Terrain.CHASM;

@@ -180,6 +180,7 @@ public class GuideGraph {
 	private static final int PEAKS    = 0xC8D4E0;
 	private static final int DEEP     = 0x9C8CE0;
 	private static final int BARROW   = 0x50C0B0;
+	private static final int HOMESTEAD = 0xD8A860;
 	private static final int TOPIC    = 0xCCCCCC;
 
 	//--- discoveries: what reaching a place or seeing a thing writes into the guide ---
@@ -196,10 +197,15 @@ public class GuideGraph {
 	public static final String TAG_CAVES        = "caves";         //down into the caves under the world
 	public static final String TAG_CAVES_DEEP   = "caves_deep";    //down where the gas pools (-4 and down)
 	public static final String TAG_CAVE_SITE    = "cave_site";     //a place of the caves, found
+	public static final String TAG_BUILT        = "built";         //a first piece built out in the world
+	public static final String TAG_FARM         = "farm";          //a first seed sown, or farmland made
+	public static final String TAG_ROPE         = "rope";          //a first rope thrown over an animal
+	public static final String TAG_STONES       = "stones";        //a waystone attuned, or a hearthstone set down
 
 	public static final List<String> ALL_TAGS = Collections.unmodifiableList( Arrays.asList(
 			TAG_SURFACE, TAG_TOWN_INSIDE, TAG_VILLAGE, TAG_WORLD_MAP, TAG_WORLD_EVENT, TAG_BARROW,
-			TAG_MOUNTAINS, TAG_HEIGHTS, TAG_PEAK_SITE, TAG_CAVES, TAG_CAVES_DEEP, TAG_CAVE_SITE ) );
+			TAG_MOUNTAINS, TAG_HEIGHTS, TAG_PEAK_SITE, TAG_CAVES, TAG_CAVES_DEEP, TAG_CAVE_SITE,
+			TAG_BUILT, TAG_FARM, TAG_ROPE, TAG_STONES ) );
 
 	//the save numbering of the places (see Dungeon.newLevel, WorldLayers, Delves)
 	static final int SURFACE_DEPTH = 97;
@@ -487,6 +493,20 @@ public class GuideGraph {
 		surface.child( deep );
 		root.child( surface );
 
+		//building, farming and travelling out in the world (homestead/)
+		Node homestead = new Node( "ch_homestead", HOMESTEAD ).icon( Icons.WAYFARERS_CAMP );
+		homestead.child( page( "hs_overview", HOMESTEAD, Icons.INFO ).tag( TAG_SURFACE ) );
+		homestead.child( page( "hs_gathering", HOMESTEAD, Icons.GRASS ).tag( TAG_SURFACE ) );
+		homestead.child( page( "hs_building", HOMESTEAD, Icons.BREAKERS_BENCH ).tag( TAG_SURFACE ) );
+		homestead.child( page( "hs_stations", HOMESTEAD, Icons.TEMPERING_FORGE ).tag( TAG_BUILT ) );
+		homestead.child( page( "hs_rooms", HOMESTEAD, Icons.SLEEP ).tag( TAG_BUILT ) );
+		homestead.child( page( "hs_shelter", HOMESTEAD, Icons.THERMAL_SPRING ).tag( TAG_BUILT ) );
+		homestead.child( page( "hs_farming", HOMESTEAD, Icons.HOTHOUSE ).tag( TAG_FARM ) );
+		homestead.child( page( "hs_animals", HOMESTEAD, Icons.PEDIGREE_HALL ).tag( TAG_ROPE ) );
+		homestead.child( page( "hs_homes", HOMESTEAD, Icons.ALERT ).tag( TAG_STONES ) );
+		homestead.child( page( "hs_travel", HOMESTEAD, Icons.COMPASS ).tag( TAG_STONES ) );
+		root.child( homestead );
+
 		Node town = new Node( "ch_town", TOWN ).icon( Icons.STAIRS_GRASS );
 		town.child( page( "town_overview", TOWN, Icons.INFO ).tag( TAG_SURFACE ) );
 		town.child( page( "town_dolyahaven", TOWN, Icons.DEPTH_GRASS ).tag( TAG_TOWN_INSIDE ) );
@@ -589,8 +609,7 @@ public class GuideGraph {
 		root.child( dens );
 
 		Node sokoban = new Node( "ch_sokoban", SOKOBAN ).icon( Icons.STAIRS_SECRETS );
-		sokoban.child( page( "sokoban_overview", SOKOBAN, Icons.INFO ).floor( 50, 51, 52, 53, 54, 66 ) );
-		sokoban.child( page( "sok_saferoom", SOKOBAN, Icons.DEPTH ).floor( 50 ) );
+		sokoban.child( page( "sokoban_overview", SOKOBAN, Icons.INFO ).floor( 51, 52, 53, 54, 66 ) );
 		sokoban.child( page( "sok_practice", SOKOBAN, Icons.DEPTH ).floor( 51 ) );
 		sokoban.child( page( "sok_castle", SOKOBAN, Icons.DEPTH ).floor( 52 ) );
 		sokoban.child( page( "sok_portals", SOKOBAN, Icons.DEPTH ).floor( 53 ) );

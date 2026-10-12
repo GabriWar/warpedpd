@@ -90,7 +90,6 @@ import xyz.gabriwar.warpedpixeldungeon.levels.MiningLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.PrisonBossLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.PrisonLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.RegularLevel;
-import xyz.gabriwar.warpedpixeldungeon.levels.SafeLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.SewerBossLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.SewerLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.SkeletonBossLevel;
@@ -208,7 +207,6 @@ public class Dungeon {
 		CONCH_SHELL,
 		TENGU_KEY,
 		JOURNAL,
-		SAFE_SPOT_PAGE,
 		DRAGON_CAVE,
 		BERRIES,
 		SCORPIO_HP,
@@ -388,6 +386,9 @@ public class Dungeon {
 		Notes.reset();
 		Portals.reset();
 		xyz.gabriwar.warpedpixeldungeon.levels.Delves.reset();
+		xyz.gabriwar.warpedpixeldungeon.homestead.HomesteadWorld.reset();
+		//a new run never had the old safe room to empty
+		xyz.gabriwar.warpedpixeldungeon.homestead.legacy.SafeRoomMigration.reset();
 
 		quickslot.reset();
 		QuickSlotButton.reset();
@@ -574,9 +575,6 @@ public class Dungeon {
 					break;
 				case 41:
 					level = new ThiefCatchLevel();
-					break;
-				case 50:
-					level = new SafeLevel();
 					break;
 				case 51:
 					level = new SokobanIntroLevel();
@@ -928,7 +926,6 @@ public class Dungeon {
 		if (depth >= 21 && depth <= 26) return "Halls";
 		if (depth == 27) return "Fields";
 		if (depth == 33) return "Chasm";
-		if (depth == 50) return "Safe Room";
 		if (depth >= 51 && depth <= 54) return "Sokoban";
 		if (depth >= 56 && depth <= 65) return "Mines";
 		if (depth == 66) return "Vault";
@@ -963,6 +960,15 @@ public class Dungeon {
 			if (alt != 0) d = Math.min( d, xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldLayers.statDepth( alt ) );
 		}
 		return d;
+	}
+
+	/** The depth the weather's own harm (Hypothermia, Heatstroke) is scaled by: on the world's
+	 *  slices the deepest floor reached, as the town's prices step up with it (TownLedger.scaled) -
+	 *  the slices' depth numbers (87..112, the surface 97) are no floors - and `dungeon` (the harm's
+	 *  own depth: scalingDepth, harmDepth) everywhere else. */
+	public static int weatherDepth( int dungeon ){
+		return level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
+				? Statistics.deepestFloor : dungeon;
 	}
 
 	public static boolean interfloorTeleportAllowed(){
@@ -1034,6 +1040,9 @@ public class Dungeon {
 		hero.viewDistance = light == null ? level.viewDistance : Math.max( Light.DISTANCE, level.viewDistance );
 		
 		hero.curAction = hero.lastAction = null;
+
+		//what the old safe room held, laid beside the town plaza once the hero is there
+		xyz.gabriwar.warpedpixeldungeon.homestead.legacy.SafeRoomMigration.deliver( level );
 
 		observe();
 		try {
@@ -1302,6 +1311,8 @@ public class Dungeon {
 			Generator.storeInBundle( bundle );
 			Portals.storeInBundle( bundle );
 			xyz.gabriwar.warpedpixeldungeon.levels.Delves.storeInBundle( bundle );
+			xyz.gabriwar.warpedpixeldungeon.homestead.HomesteadWorld.storeInBundle( bundle );
+			xyz.gabriwar.warpedpixeldungeon.homestead.legacy.SafeRoomMigration.storeInBundle( bundle );
 
 			int[] bundleArr = new int[generatedLevels.size()];
 			for (int i = 0; i < generatedLevels.size(); i++){
@@ -1341,6 +1352,10 @@ public class Dungeon {
 			updateLevelExplored();
 			saveGame( GamesInProgress.curSlot );
 			saveLevel( GamesInProgress.curSlot );
+			//the old safe room's chest is in the level's file now: the game's lets it go
+			if (xyz.gabriwar.warpedpixeldungeon.homestead.legacy.SafeRoomMigration.afterSaveAll( GamesInProgress.curSlot )){
+				saveGame( GamesInProgress.curSlot );
+			}
 
 			GamesInProgress.set( GamesInProgress.curSlot );
 
@@ -1459,6 +1474,8 @@ public class Dungeon {
 			xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel.arriveInTown(
 					xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldStructures.TOWN_PLAZA );
 		}
+		//saves standing in the old safe room: it is gone, the hero wakes on the town's plaza
+		xyz.gabriwar.warpedpixeldungeon.homestead.legacy.SafeRoomMigration.relocateOnLoad();
 
 		gold = bundle.getInt( GOLD );
 		bullet = bundle.getInt( BULLET );
@@ -1508,6 +1525,10 @@ public class Dungeon {
 		Generator.restoreFromBundle( bundle );
 		Portals.restoreFromBundle( bundle );
 		xyz.gabriwar.warpedpixeldungeon.levels.Delves.restoreFromBundle( bundle );
+		xyz.gabriwar.warpedpixeldungeon.homestead.HomesteadWorld.restoreFromBundle( bundle );
+		xyz.gabriwar.warpedpixeldungeon.homestead.legacy.SafeRoomMigration.restoreFromBundle( bundle );
+		//a save from before the safe room went: its belongings, its pet and its pages, once
+		if (fullLoad) xyz.gabriwar.warpedpixeldungeon.homestead.legacy.SafeRoomMigration.migrate( save );
 
 	}
 	

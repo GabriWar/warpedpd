@@ -36,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPassage;
 import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
 import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.InterlevelScene;
@@ -124,9 +125,7 @@ public class BeaconOfReturning extends Spell {
 		}
 
 		BeaconTracker tracker = Buff.affect(hero, BeaconTracker.class);
-		tracker.returnDepth = Dungeon.depth;
-		tracker.returnBranch = Dungeon.branch;
-		tracker.returnPos = hero.pos;
+		tracker.aim(Dungeon.level, Dungeon.depth, Dungeon.branch, hero.pos);
 
 		Notes.add(Notes.Landmark.BEACON_LOCATION, tracker.returnDepth);
 		
@@ -154,15 +153,19 @@ public class BeaconOfReturning extends Spell {
 			tracker.returnPos = returnPos;
 		}
 		
-		if (tracker.returnDepth == Dungeon.depth && tracker.returnBranch == Dungeon.branch) {
+		//a beacon set out in the world is a world cell: where it is in the window now, if it is in
+		//it (the window moves under it); one off the window is reached as a far trip on the slice
+		int target = tracker.returnCell(Dungeon.level, Dungeon.depth, Dungeon.branch);
 
-			Char existing = Actor.findChar(tracker.returnPos);
+		if (tracker.returnDepth == Dungeon.depth && tracker.returnBranch == Dungeon.branch && target != -1) {
+
+			Char existing = Actor.findChar(target);
 			if (existing != null && existing != hero){
 				Char toPush = Char.hasProp(existing, Char.Property.IMMOVABLE) ? hero : existing;
 
 				ArrayList<Integer> candidates = new ArrayList<>();
 				for (int n : PathFinder.NEIGHBOURS8) {
-					int cell = tracker.returnPos + n;
+					int cell = target + n;
 					if (!Dungeon.level.solid[cell] && Actor.findChar( cell ) == null
 							&& (!Char.hasProp(toPush, Char.Property.LARGE) || Dungeon.level.openSpace[cell])) {
 						candidates.add( cell );
@@ -172,7 +175,7 @@ public class BeaconOfReturning extends Spell {
 
 				if (!candidates.isEmpty()){
 					if (toPush == hero){
-						tracker.returnPos = candidates.get(0);
+						target = candidates.get(0);
 					} else {
 						Actor.add( new Pushing( toPush, toPush.pos, candidates.get(0) ) );
 						toPush.pos = candidates.get(0);
@@ -184,7 +187,7 @@ public class BeaconOfReturning extends Spell {
 				}
 			}
 
-			if (ScrollOfTeleportation.teleportToLocation(hero, tracker.returnPos)){
+			if (ScrollOfTeleportation.teleportToLocation(hero, target)){
 				hero.spendAndNext( 1f );
 			} else {
 				return;
@@ -192,7 +195,9 @@ public class BeaconOfReturning extends Spell {
 
 		} else {
 
-			if (!Dungeon.interfloorTeleportAllowed()) {
+			//the same slice, its window gone from the beacon's cell: the trip of a far landing
+			if (!(tracker.returnDepth == Dungeon.depth && tracker.returnBranch == Dungeon.branch)
+					&& !Dungeon.interfloorTeleportAllowed()) {
 				GLog.w( Messages.get(this, "preventing") );
 				return;
 			}
@@ -209,6 +214,11 @@ public class BeaconOfReturning extends Spell {
 			InterlevelScene.returnDepth = tracker.returnDepth;
 			InterlevelScene.returnBranch = tracker.returnBranch;
 			InterlevelScene.returnPos = tracker.returnPos;
+			if (tracker.world){
+				//the slice's window is centred on the beacon's world cell as the hero lands
+				OverworldLevel.arriveAt( tracker.returnWX, tracker.returnWY );
+				InterlevelScene.returnPos = -1;
+			}
 			Game.switchScene( InterlevelScene.class );
 		}
 		if (quantity == 1){
@@ -300,10 +310,40 @@ public class BeaconOfReturning extends Spell {
 		public int returnDepth	= -1;
 		public int returnBranch	= 0;
 		public int returnPos;
+		//set on a world slice: the beacon is the world cell (returnWX, returnWY), since a window
+		//cell (returnPos) means another place once the window has moved
+		public boolean world	= false;
+		public int returnWX, returnWY;
+
+		/** Sets the beacon on a cell of a level: on a world slice, its world cell too. */
+		public void aim( Level level, int depth, int branch, int pos ) {
+			returnDepth = depth;
+			returnBranch = branch;
+			returnPos = pos;
+			world = level instanceof OverworldLevel;
+			if (world) {
+				OverworldLevel ow = (OverworldLevel) level;
+				returnWX = ow.worldX + pos % ow.width();
+				returnWY = ow.worldY + pos / ow.width();
+			}
+		}
+
+		/** The beacon's cell on a level being played at this depth and branch: on a world slice
+		 *  the window cell its world cell is at now, -1 when that is off the window (or the level
+		 *  is not the beacon's). */
+		public int returnCell( Level level, int depth, int branch ) {
+			if (depth != returnDepth || branch != returnBranch) return -1;
+			if (!world) return returnPos;
+			if (!(level instanceof OverworldLevel)) return -1;
+			return ((OverworldLevel) level).localCell( returnWX, returnWY );
+		}
 
 		private static final String DEPTH	= "depth";
 		private static final String BRANCH	= "branch";
 		private static final String POS		= "pos";
+		private static final String WORLD	= "world";
+		private static final String WX		= "wx";
+		private static final String WY		= "wy";
 
 		@Override
 		public void storeInBundle( Bundle bundle ) {
@@ -313,6 +353,11 @@ public class BeaconOfReturning extends Spell {
 			if (returnDepth != -1) {
 				bundle.put( POS, returnPos );
 			}
+			if (world) {
+				bundle.put( WORLD, true );
+				bundle.put( WX, returnWX );
+				bundle.put( WY, returnWY );
+			}
 		}
 
 		@Override
@@ -321,6 +366,9 @@ public class BeaconOfReturning extends Spell {
 			returnDepth	= bundle.getInt( DEPTH );
 			returnBranch = bundle.getInt( BRANCH );
 			returnPos	= bundle.getInt( POS );
+			world = bundle.contains( WORLD ) && bundle.getBoolean( WORLD );
+			returnWX = bundle.getInt( WX );
+			returnWY = bundle.getInt( WY );
 		}
 	}
 }

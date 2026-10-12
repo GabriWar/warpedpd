@@ -100,6 +100,10 @@ public class Regeneration extends Buff {
 				Breathless thin = target.buff( Breathless.class );
 				if (thin != null) delay /= thin.regenFactor();
 
+				//a night in a homestead's bed, and a shrine's blessing (homestead/rooms)
+				delay /= xyz.gabriwar.warpedpixeldungeon.homestead.rooms.WellRested.regenFactor( target )
+						* xyz.gabriwar.warpedpixeldungeon.homestead.rooms.ShrineBlessing.regenFactor( target );
+
 				partialRegen += 1f / delay;
 
 				if (partialRegen >= 1) {

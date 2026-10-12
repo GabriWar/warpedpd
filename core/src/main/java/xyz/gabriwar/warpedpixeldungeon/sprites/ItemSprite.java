@@ -417,5 +417,12 @@ public class ItemSprite extends MovieClip {
 			
 			this.period = period;
 		}
+
+		/** the glow as a colour words can be read in on a dark window: a curse's black
+		 *  glow becomes a dark red */
+		public int textColor(){
+			int r = (color >> 16) & 0xFF, g = (color >> 8) & 0xFF, b = color & 0xFF;
+			return Math.max( r, Math.max( g, b ) ) < 0x50 ? 0xB0405A : color & 0xFFFFFF;
+		}
 	}
 }

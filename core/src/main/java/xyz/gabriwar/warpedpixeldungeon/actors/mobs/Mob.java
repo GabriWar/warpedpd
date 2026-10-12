@@ -360,11 +360,12 @@ public abstract class Mob extends Char {
 			}
 		}
 
-		// --- Precipitation: organic mobs get Drenched in heavy rain ---
+		// --- Precipitation: organic mobs get Drenched in heavy rain (not in a room or under a roof) ---
 		if (ClimateManager.localPrecipRate() > 0.3f
 				&& ClimateManager.isRaining()
 				&& !properties().contains(Property.INORGANIC)
-				&& !properties().contains(Property.FIERY)) {
+				&& !properties().contains(Property.FIERY)
+				&& xyz.gabriwar.warpedpixeldungeon.homestead.Shelter.precipitationReaches(Dungeon.level, pos)) {
 			Buff.prolong(this, Drenched.class, Drenched.DURATION);
 		}
 	}
@@ -1093,6 +1094,40 @@ public abstract class Mob extends Char {
 		}
 	}
 	
+	/**
+	 * Carries out an order of homestead/threats/Breaker: STRIKE a blow at the built piece on its
+	 * cell (with this mob's damage roll unless the order names the damage), STEP a step on the way
+	 * to its cell, WAIT a turn spent outside. Same contract as act(): false while a blow's swing is
+	 * still showing.
+	 */
+	protected boolean obeyBreaker( xyz.gabriwar.warpedpixeldungeon.homestead.threats.Breaker.Order order ){
+		if (order.kind == xyz.gabriwar.warpedpixeldungeon.homestead.threats.Breaker.Order.Kind.STRIKE){
+			final int cell = order.cell;
+			final int dmg = order.damage > 0 ? order.damage : damageRoll();
+			if (sprite != null && sprite.visible){
+				sprite.attack( cell, () -> {
+					sprite.idle();
+					xyz.gabriwar.warpedpixeldungeon.homestead.threats.Breaker.strike( Mob.this, cell, dmg );
+					spend( attackDelay() );
+					next();
+				} );
+				return false;
+			}
+			xyz.gabriwar.warpedpixeldungeon.homestead.threats.Breaker.strike( this, cell, dmg );
+			spend( attackDelay() );
+			return true;
+		}
+		if (order.kind == xyz.gabriwar.warpedpixeldungeon.homestead.threats.Breaker.Order.Kind.STEP){
+			int oldPos = pos;
+			if (getCloser( order.cell )){
+				spend( 1 / speed() );
+				return sprite == null || moveSprite( oldPos, pos );
+			}
+		}
+		spend( TICK );
+		return true;
+	}
+
 	@Override
 	public void onAttackComplete() {
 		attack( enemy );
@@ -2017,6 +2052,12 @@ public abstract class Mob extends Char {
 
 				} else {
 
+					//walled out by what the hero built: a breaker hits the weakest way in, the rest
+					//wait outside (homestead/threats/Breaker)
+					xyz.gabriwar.warpedpixeldungeon.homestead.threats.Breaker.Order order
+							= xyz.gabriwar.warpedpixeldungeon.homestead.threats.Breaker.walledOut(
+									Mob.this, enemy, target, enemyInFOV );
+					if (order != null) return obeyBreaker( order );
 					return handleUnreachableTarget(enemyInFOV, justAlerted);
 				}
 			}
@@ -2359,6 +2400,12 @@ public abstract class Mob extends Char {
 			} else if (mob.alignment == Alignment.ALLY
 					&& mob.intelligentAlly
 					&& Dungeon.level.distance(holdFromPos, mob.pos) <= 5){
+				level.mobs.remove( mob );
+				heldAllies.add(mob);
+
+			//an animal the hero leads on a rope, beside him, comes along to another of the world's
+			//slices; any other roped one's rope slips (homestead/animals/Roping)
+			} else if (xyz.gabriwar.warpedpixeldungeon.homestead.animals.Roping.goesAlong( mob, holdFromPos )){
 				level.mobs.remove( mob );
 				heldAllies.add(mob);
 			}

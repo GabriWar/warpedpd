@@ -18,6 +18,8 @@ public class TileTemperatureTest {
 	private float previousTemperature;
 	private String previousVersion;
 	private boolean canFreeze;
+	//null: as the level's default (its water freezes in the air or not at all)
+	private Boolean frostFreezes, thawsInAir;
 	private Level level;
 	private static final int CENTER = 24;
 
@@ -33,6 +35,8 @@ public class TileTemperatureTest {
 			@Override protected void createMobs() { }
 			@Override protected void createItems() { }
 			@Override public boolean waterCanFreeze() { return canFreeze; }
+			@Override public boolean frostFreezesWater() { return frostFreezes != null ? frostFreezes : super.frostFreezesWater(); }
+			@Override public boolean iceThawsInAir(int cell) { return thawsInAir != null ? thawsInAir : super.iceThawsInAir(cell); }
 		};
 		level.setSize(7, 7);
 		java.util.Arrays.fill(level.solid, true);
@@ -204,5 +208,57 @@ public class TileTemperatureTest {
 		assertEquals(0.5f, level.waterPhaseProgress[moved], 0f);
 		assertEquals(0f, level.tileHeat[CENTER], 0f);
 		assertEquals(0f, level.waterPhaseProgress[CENTER], 0f);
+	}
+
+	//the overworld: its weather never freezes its water, but frost does, and that ice thaws
+	//back once the frost is gone and the air is warm
+	@Test
+	public void frostFreezesWaterTheWeatherCannotAndThatIceThawsInWarmAir() {
+		frostFreezes = true;
+		thawsInAir = true;
+		ClimateManager.debugTempOverride = 20f;
+		Level.set(CENTER, Terrain.WATER, level);
+		Freezing frost = new Freezing();
+		frost.seed(level, CENTER, 100);
+		for (int turn = 0; turn < 3; turn++) {
+			frost.act();
+			TileTemperature.stepDiffusion(level);
+		}
+		assertEquals(Terrain.FROZEN_WATER, level.map[CENTER]);
+		frost.clear(CENTER);
+		for (int turn = 0; turn < 80 && level.map[CENTER] == Terrain.FROZEN_WATER; turn++) {
+			TileTemperature.stepDiffusion(level);
+		}
+		assertEquals(Terrain.WATER, level.map[CENTER]);
+	}
+
+	@Test
+	public void withoutFrostSuchWaterStaysOpenInTheColdestAir() {
+		frostFreezes = true;
+		ClimateManager.debugTempOverride = -30f;
+		Level.set(CENTER, Terrain.WATER, level);
+		for (int turn = 0; turn < 20; turn++) TileTemperature.stepDiffusion(level);
+		assertEquals(Terrain.WATER, level.map[CENTER]);
+	}
+
+	//the overworld's own ice is the season's: warm air alone never thaws it
+	@Test
+	public void iceThatDoesNotThawInAirOutlastsWarmAir() {
+		thawsInAir = false;
+		ClimateManager.debugTempOverride = 30f;
+		for (int turn = 0; turn < 20; turn++) TileTemperature.stepDiffusion(level);
+		assertEquals(Terrain.FROZEN_WATER, level.map[CENTER]);
+	}
+
+	@Test
+	public void lavaNeverFreezes() {
+		Level.set(CENTER, Terrain.WATER, level);
+		Freezing frost = new Freezing();
+		frost.seed(level, CENTER, 100);
+		for (int turn = 0; turn < 10; turn++) {
+			frost.act();
+			TileTemperature.stepDiffusion(level);
+		}
+		assertEquals(Terrain.WATER, level.map[CENTER]);
 	}
 }

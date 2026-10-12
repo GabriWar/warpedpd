@@ -47,6 +47,39 @@ public class Sickle extends MeleeWeapon {
 		ACC = 0.68f; //32% penalty to accuracy
 	}
 
+	public static final String AC_REAP = "REAP";
+
+	//out in the world the sickle cuts tall grass for thatch (homestead/gathering/Gathering): the
+	//host's own hero, on his own slice of the world
+	@Override
+	public java.util.ArrayList<String> actions(Hero hero) {
+		java.util.ArrayList<String> actions = super.actions(hero);
+		if (xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.allowedHere(Dungeon.level)) actions.add(AC_REAP);
+		return actions;
+	}
+
+	@Override
+	public void execute(Hero hero, String action) {
+		super.execute(hero, action);
+		if (action.equals(AC_REAP) && xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Gathering.mayWork(hero)) {
+			xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.selectCell(grassPicker);
+		}
+	}
+
+	private final xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector.Listener grassPicker
+			= new xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector.Listener() {
+		@Override
+		public void onSelect(Integer cell) {
+			xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Gathering.begin(curUser, cell,
+					xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Gathering.Job.REAP);
+		}
+
+		@Override
+		public String prompt() {
+			return Messages.get(Sickle.class, "reap_prompt");
+		}
+	};
+
 	@Override
 	public int max(int lvl) {
 		return  Math.round(6.67f*(tier+1)) +    //20 base, up from 15

@@ -43,6 +43,9 @@ public class GrayWolf extends Mob {
 		maxLvl = 29;
 		loot = MysteryMeat.class;
 		lootChance = 0.2f / 4f;
+		//one time in three its hide, for a homestead's leather (homestead/gathering/Hides)
+		declareExtraLoot( xyz.gabriwar.warpedpixeldungeon.items.materials.Hide.class,
+				xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Hides.WOLF );
 
 		//built for the cold: the deep freeze is home, the thaw is what hurts
 		thermal = Thermal.COLD_DWELLER;
@@ -95,5 +98,16 @@ public class GrayWolf extends Mob {
 		}
 
 		return result;
+	}
+
+	@Override
+	protected void dropExtraLoot(){
+		xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Hides.drop( this, pos );
+	}
+
+	//a hide is no prize to outgrow: it drops whatever the hero's level
+	@Override
+	protected boolean extraLootIgnoresLevel(){
+		return true;
 	}
 }

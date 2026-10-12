@@ -42,6 +42,11 @@ public class MeatPie extends Food {
 		super.satisfy( hero );
 		Buff.affect(hero, WellFed.class).reset();
 	}
+
+	@Override
+	public boolean grantsWellFed() {
+		return true;
+	}
 	
 	@Override
 	public int value() {

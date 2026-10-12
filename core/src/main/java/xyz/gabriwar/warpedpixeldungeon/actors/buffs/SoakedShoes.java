@@ -75,7 +75,8 @@ public class SoakedShoes extends Buff {
 		}
 		float tickCost;
 		if (Dungeon.level.water[target.pos]
-				|| (ClimateManager.isRaining() && ClimateManager.localPrecipRate() > 0f)) {
+				|| (ClimateManager.isRaining() && ClimateManager.localPrecipRate() > 0f
+					&& xyz.gabriwar.warpedpixeldungeon.homestead.Shelter.precipitationReaches(Dungeon.level, target.pos))) {
 			// standing in water or rain keeps them soaked
 			tickCost = 0f;
 		} else if (TileTemperature.nearFire(target.pos)) {

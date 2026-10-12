@@ -25,6 +25,7 @@
 package xyz.gabriwar.warpedpixeldungeon.sprites;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.IceBlock;
 import com.watabou.noosa.TextureFilm;
@@ -32,7 +33,8 @@ import com.watabou.noosa.TextureFilm;
 /**
  * An ice block with something in it (tools/warped_rooms_art.py, 16x16). Frames 0-8 are
  * three silhouettes (long, round, small) at three stages of thaw, shape * 3 + stage;
- * 9-11 are the block going to pieces.
+ * 9-11 are the block going to pieces. Drawn in the ice of the sheet it stands on: each region's
+ * copy is that region's frozen water (tools/wr_art/ice_block_regions.py).
  */
 public class IceBlockSprite extends MobSprite {
 
@@ -41,7 +43,7 @@ public class IceBlockSprite extends MobSprite {
 	public IceBlockSprite(){
 		super();
 
-		texture( Assets.Sprites.ICE_BLOCK );
+		texture( ice() );
 		frames = new TextureFilm( texture, 16, 16 );
 
 		idle = new Animation( 1, true );
@@ -56,6 +58,16 @@ public class IceBlockSprite extends MobSprite {
 		play( idle );
 	}
 
+	//the block in the ice of the floor's own frozen water
+	private static String ice(){
+		String tiles = Dungeon.level == null ? null : Dungeon.level.tilesTex();
+		if (Assets.Environment.TILES_SEWERS.equals( tiles )) return Assets.Sprites.ICE_BLOCK_SEWERS;
+		if (Assets.Environment.TILES_PRISON.equals( tiles )) return Assets.Sprites.ICE_BLOCK_PRISON;
+		if (Assets.Environment.TILES_CAVES.equals( tiles )) return Assets.Sprites.ICE_BLOCK_CAVES;
+		if (Assets.Environment.TILES_CITY.equals( tiles )) return Assets.Sprites.ICE_BLOCK_CITY;
+		return Assets.Sprites.ICE_BLOCK;
+	}
+
 	public void show( int shape, int stage ){
 		idle = new Animation( 1, true );
 		idle.frames( frames, shape * 3 + stage );
@@ -68,8 +80,14 @@ public class IceBlockSprite extends MobSprite {
 		if (ch instanceof IceBlock) show( ((IceBlock) ch).shape(), ((IceBlock) ch).stage() );
 	}
 
+	//chips off it: its pale ice (the first frame's frosted top), in this region's copy
 	@Override
 	public int blood(){
-		return 0xFFBFE6F5;
+		return texture.getPixel( 3, 1 );
+	}
+
+	/** Its meltwater as it thaws away: its body's ice, in this region's copy. */
+	public int meltwater(){
+		return texture.getPixel( 2, 5 );
 	}
 }

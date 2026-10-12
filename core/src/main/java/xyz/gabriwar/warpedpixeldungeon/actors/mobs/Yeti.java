@@ -47,6 +47,10 @@ public class Yeti extends Mob {
 
 		immunities.add( Paralysis.class );
 		immunities.add( Freezing.class );
+
+		//one time in two its hide, for a homestead's leather (homestead/gathering/Hides)
+		declareExtraLoot( xyz.gabriwar.warpedpixeldungeon.items.materials.Hide.class,
+				xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Hides.YETI );
 	}
 
 	@Override
@@ -62,5 +66,16 @@ public class Yeti extends Mob {
 	@Override
 	public int drRoll() {
 		return super.drRoll() + Random.NormalIntRange( 0, 20 );
+	}
+
+	@Override
+	protected void dropExtraLoot(){
+		xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Hides.drop( this, pos );
+	}
+
+	//a hide is no prize to outgrow: it drops whatever the hero's level
+	@Override
+	protected boolean extraLootIgnoresLevel(){
+		return true;
 	}
 }

@@ -86,7 +86,13 @@ public class Shovel extends MeleeWeapon {
     public void execute(Hero hero, String action) {
         super.execute(hero, action);
         if (action.equals(AC_DIG)) {
-            dig(hero.pos);
+            //out in the world the spade goes into one patch of ground, picked: tilled for a
+            //field, a bank's clay, a beach's sand, a stump dug out (homestead/gathering/Gathering)
+            if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) {
+                if (xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Gathering.mayWork(hero)) GameScene.selectCell(groundPicker);
+            } else {
+                dig(hero.pos);
+            }
         }
     }
 
@@ -100,6 +106,20 @@ public class Shovel extends MeleeWeapon {
         return  5*(tier+1) +
                 lvl*(tier+1);
     }
+
+    private final xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector.Listener groundPicker
+            = new xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector.Listener() {
+        @Override
+        public void onSelect(Integer cell) {
+            xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Gathering.begin(curUser, cell,
+                    xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Gathering.Job.DIG);
+        }
+
+        @Override
+        public String prompt() {
+            return Messages.get(Shovel.class, "dig_prompt");
+        }
+    };
 
     public void dig(int pos) {
         ArrayList<Integer> tiles = new ArrayList<>();

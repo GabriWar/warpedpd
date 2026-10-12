@@ -46,6 +46,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Windswept;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.MobSpawner;
+import xyz.gabriwar.warpedpixeldungeon.levels.Level;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldFauna;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.WarpedRooms;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.net.NetDialogs;
@@ -74,7 +77,11 @@ import java.util.ArrayList;
  *   - an unwatched sleeper can be found. The odds grow with how long is slept and with the
  *     moon (GameCalendar.moonSpawnMultiplier: a new moon half again, a full moon half),
  *     and a fire burning by the bedroll halves them. Found, the hero wakes early, mid-
- *     phase, with company.
+ *     phase, with company: on a floor of the dungeon one or two of its own (MobSpawner's
+ *     rotation), out in the world the wild of the bedroll's own ground, at the hour he wakes
+ *     (OverworldFauna.ambushers). Nobody finds a sleeper under a waystation's roof or in a
+ *     sealed room the hero built (homestead/Rooms: every door shut, no wall broken), and the
+ *     enemies he sees only through such a room's windows do not keep him from lying down.
  *   - a cold camp with no fire by it sends the sleeper off to a cold awakening
  *
  * The clock is the party's, so in multiplayer the bedroll is the host's to use.
@@ -94,13 +101,15 @@ public class Bedroll extends NPC {
 		if (c != Dungeon.hero) return true;
 		final Hero hero = (Hero) c;
 
-		if (hero.visibleEnemies() > 0){
+		if (hero.visibleEnemies() > 0 && !shutOut( Dungeon.level, pos, hero.getVisibleEnemies() )){
 			GLog.w( Messages.get( this, "not_safe" ) );
 			return true;
 		}
 
 		final DayNightCycle.Phase next = DayNightCycle.phase().next();
 		final boolean dawnIsNext = next == DayNightCycle.Phase.DAWN;
+		//read here, on the game's thread: a bed's reads its room
+		final String menu = restMenu();
 		Game.runOnRenderThread( new Callback(){
 			@Override
 			public void call(){
@@ -112,7 +121,7 @@ public class Bedroll extends NPC {
 										Messages.get( Bedroll.class, "stay_up" ) };
 				GameScene.show( new WndOptions( sprite(),
 						Messages.titleCase( name() ),
-						Messages.get( Bedroll.class, fireBy() ? "menu_fire" : "menu_cold" ),
+						menu,
 						options ){
 					@Override
 					protected void onSelect( int index ){
@@ -137,9 +146,51 @@ public class Bedroll extends NPC {
 	 *  let out, under a roof - always warm, and nobody finds a sleeper there */
 	public boolean shelter = false;
 
+	/** Nobody finds a sleeper here: a waystation's bed, or one in a sealed room the hero built
+	 *  (homestead/Rooms.sealedAt: every door of it shut, no wall of it broken). */
+	public boolean safe(){
+		return shelter || xyz.gabriwar.warpedpixeldungeon.homestead.Rooms.sealedAt( Dungeon.level, pos );
+	}
+
+	/** Is every one of `seen` (the enemies the hero sees) shut out of the sealed room the bed at
+	 *  `bed` stands in - seen only through its windows? Then he may lie down with them prowling
+	 *  outside: nothing finds a sleeper there (safe). */
+	public static boolean shutOut( Level level, int bed, java.util.List<Mob> seen ){
+		xyz.gabriwar.warpedpixeldungeon.homestead.Rooms.Room room = xyz.gabriwar.warpedpixeldungeon.homestead.Rooms.at( level, bed );
+		if (room == null || !room.sealed()) return false;
+		for (Mob m : seen){
+			if (room.contains( m.pos )) return false;
+		}
+		return true;
+	}
+
+	// ----------------------------------------------------------------- what a bed makes of it
+	//(the homesteads' beds, homestead/rooms/HomeBed, sleep as a bedroll does, with their own answers)
+
+	/** The share of the sleeper's health a whole night gives back: a bedroll's quarter. */
+	protected float healFraction(){
+		return 0.25f;
+	}
+
+	/** What lying down here looks like, the sleep menu's text. */
+	protected String restMenu(){
+		return Messages.get( Bedroll.class, fireBy() ? "menu_fire" : "menu_cold" );
+	}
+
+	/** With no fire by him, does the sleeper wake chilled: is the cold he feels past the warning? */
+	protected boolean wakesCold( Hero hero ){
+		return TileTemperature.feelsLikeAt( hero.pos, hero ) < Hypothermia.WARN_TEMP;
+	}
+
+	/** After the sleep, before his next turn: found (woken by whoever came, or roused just before
+	 *  by a guard) or slept through; `toDawn` when he lay down until dawn rather than the next
+	 *  phase. */
+	protected void woke( Hero hero, boolean found, boolean toDawn ){
+	}
+
 	//a fire that is burning, not a pit of old embers: the camp's own pit alight, or
 	//failing a pit any open flame beside the bed
-	private boolean fireBy(){
+	protected boolean fireBy(){
 		if (shelter) return true;
 		if (firePit >= 0){
 			CampFire fire = (CampFire) Dungeon.level.blobs.get( CampFire.class );
@@ -167,25 +218,44 @@ public class Bedroll extends NPC {
 	}
 
 	private void rest( Hero hero, boolean toDawn ){
+		hero.sprite.operate( pos );
+		GameScene.flash( 0xFF000000, false );
+		sleep( hero, toDawn );
+		hero.spendAndNext( 1f );
+		Dungeon.observe();
+		GameScene.updateFog();
+	}
+
+	/** How likely the sleeper is to be found over a sleep of `turns`: longer sleeps and darker
+	 *  moons are riskier, a fire by the bed halves it; three in four at most. */
+	protected float findChance( int turns, boolean fire ){
+		float risk = (0.12f + 0.10f * turns / 600f) * GameCalendar.moonSpawnMultiplier();
+		if (fire) risk *= 0.5f;
+		return Math.min( 0.75f, risk );
+	}
+
+	/**
+	 * The night itself, everything but the screen (rest shows it and ends the hero's turn): the
+	 * clock moved on, the sleeper healed and his stomach slowed, the cold, and whoever found him.
+	 * True when he was found.
+	 */
+	public boolean sleep( Hero hero, boolean toDawn ){
 		boolean fire = fireBy();
 		boolean realClock = Dungeon.isChallenged( Challenges.REAL_CLOCK );
 		int turns = realClock ? 0 : Math.max( 1, turnsTo( toDawn ) );
+		//on a home's ground with an alarm bell, a siege or a raid coming in the night wakes him in
+		//the dark as it comes (homestead/threats/AlarmBell)
+		turns = xyz.gabriwar.warpedpixeldungeon.homestead.threats.AlarmBell.sleepFor( Dungeon.level, hero, turns );
 
-		//is the sleeper found? longer sleeps and darker moons are riskier, a fire safer
-		float risk = (0.12f + 0.10f * turns / 600f) * GameCalendar.moonSpawnMultiplier();
-		if (fire) risk *= 0.5f;
-		boolean found = !realClock && !shelter && Random.Float() < Math.min( 0.75f, risk );
+		boolean found = !realClock && !safe() && Random.Float() < findChance( turns, fire );
 		if (found) turns = Math.round( turns * Random.Float( 0.3f, 0.7f ) );
-
-		hero.sprite.operate( pos );
-		GameScene.flash( 0xFF000000, false );
 
 		Sleepiness tired = hero.buff( Sleepiness.class );
 		if (tired != null) tired.wake( found ? tired.level() / 2f : tired.level() );
 		Buff.detach( hero, Heatstroke.class );
 		Buff.detach( hero, SoakedShoes.class );
 		Buff.detach( hero, Windswept.class );
-		if (!found) hero.heal( hero.HT / 4 );
+		if (!found) hero.heal( (int)(hero.HT * healFraction()) );
 
 		if (turns > 0){
 			//the sleeper's stomach keeps a quarter of its pace, and never reaches starving
@@ -202,47 +272,85 @@ public class Bedroll extends NPC {
 		//a fire by the bed is the whole difference on a cold floor
 		if (fire){
 			Buff.detach( hero, Hypothermia.class );
-		} else if (TileTemperature.feelsLikeAt( hero.pos, hero ) < Hypothermia.WARN_TEMP
-				&& hero.buff( Hypothermia.class ) == null){
+		} else if (wakesCold( hero ) && hero.buff( Hypothermia.class ) == null){
 			Buff.affect( hero, Hypothermia.class );
 			GLog.w( Messages.get( this, "woke_cold" ) );
 		}
 
 		if (found){
-			ambush( hero );
-			GLog.n( Messages.get( this, "woke_found" ) );
+			//who found him, of the hour he wakes; a guard (the threats' alarm bell:
+			//homestead/SleepGuards) hears them coming and rouses him first
+			ArrayList<Mob> visitors = ambushers( Dungeon.level, pos );
+			xyz.gabriwar.warpedpixeldungeon.homestead.SleepGuards.Roused roused =
+					xyz.gabriwar.warpedpixeldungeon.homestead.SleepGuards.rouse( Dungeon.level, pos, hero, visitors );
+			if (roused == null || !roused.placed) ambush( hero, visitors, roused != null );
+			if (roused == null) GLog.n( Messages.get( this, "woke_found" ) );
+			else if (roused.line != null) GLog.w( roused.line );
 		} else if (realClock){
 			GLog.p( Messages.get( this, "rested_clock" ) );
 		} else {
 			GLog.p( Messages.get( this, "rested", phaseName( DayNightCycle.phase() ) ) );
 		}
-
-		hero.spendAndNext( 1f );
-		Dungeon.observe();
-		GameScene.updateFog();
+		woke( hero, found, toDawn );
+		return found;
 	}
 
-	//one or two of the floor's own, already on top of the sleeper
-	private void ambush( Hero hero ){
-		ArrayList<Class<? extends Mob>> rotation = MobSpawner.getMobRotation( WarpedRooms.threat() );
-		if (rotation.isEmpty()) return;
-		ArrayList<Integer> spots = new ArrayList<>();
-		PathFinder.buildDistanceMap( hero.pos, Dungeon.level.passable, 3 );
-		for (int i = 0; i < Dungeon.level.length(); i++){
-			if (PathFinder.distance[i] >= 2 && PathFinder.distance[i] <= 3 && Actor.findChar( i ) == null){
-				spots.add( i );
-			}
-		}
+	/** Who found him (ambushers: one or two of the floor's own, out in the world of the wild that
+	 *  lives where the bedroll lies) set down already on top of the sleeper; a sleeper a guard roused
+	 *  sees them coming, farther off. */
+	protected void ambush( Hero hero, ArrayList<Mob> found, boolean roused ){
+		if (found.isEmpty()) return;
+		ArrayList<Integer> spots = ambushSpots( hero.pos, roused ? 4 : 2, roused ? 6 : 3 );
+		//no room out there (a hut's walls close by): as near as they would have come
+		if (spots.isEmpty() && roused) spots = ambushSpots( hero.pos, 2, 3 );
 		Random.shuffle( spots );
-		int count = Math.min( spots.size(), Random.IntRange( 1, 2 ) );
+		int count = Math.min( spots.size(), found.size() );
 		for (int i = 0; i < count; i++){
-			Mob mob = Reflection.newInstance( rotation.get( i % rotation.size() ) );
-			if (mob == null) continue;
+			Mob mob = found.get( i );
 			mob.pos = spots.get( i );
 			mob.state = mob.HUNTING;
 			GameScene.add( mob );
 			mob.beckon( hero.pos );
 		}
+	}
+
+	/** The free cells from `near` to `far` steps of walking from a cell of the shown level: where the
+	 *  night's visitors turn up. */
+	public static ArrayList<Integer> ambushSpots( int from, int near, int far ){
+		ArrayList<Integer> spots = new ArrayList<>();
+		PathFinder.buildDistanceMap( from, Dungeon.level.passable, far );
+		for (int i = 0; i < Dungeon.level.length(); i++){
+			if (PathFinder.distance[i] >= near && PathFinder.distance[i] <= far && Actor.findChar( i ) == null){
+				spots.add( i );
+			}
+		}
+		return spots;
+	}
+
+	/**
+	 * Who finds a sleeper on a bedroll at this cell, one or two of them: on a floor of the dungeon
+	 * the floor's own (MobSpawner's rotation for its threat), on a world slice the hostile wild of
+	 * the slice and the bedroll's ground at the hour it is now (OverworldFauna.ambushers: the
+	 * slice's band or the biome's table, never a deer or a hare). Made, not yet placed.
+	 */
+	public static ArrayList<Mob> ambushers( Level level, int cell ){
+		ArrayList<Mob> out = new ArrayList<>();
+		int count = Random.IntRange( 1, 2 );
+		if (level instanceof OverworldLevel){
+			OverworldLevel ow = (OverworldLevel) level;
+			int ground = OverworldFauna.habitat( ow, cell );
+			if (ground == 0) ground = OverworldFauna.Habitat.DRY.bit;
+			ArrayList<Mob> wild = OverworldFauna.ambushers( ow.altitude(), ow.biomeAtCell( cell ),
+					DayNightCycle.phase(), ground );
+			for (int i = 0; i < Math.min( count, wild.size() ); i++) out.add( wild.get( i ) );
+			return out;
+		}
+		ArrayList<Class<? extends Mob>> rotation = MobSpawner.getMobRotation( WarpedRooms.threat() );
+		for (int i = 0; i < count && !rotation.isEmpty(); i++){
+			Mob mob = Reflection.newInstance( rotation.get( i % rotation.size() ) );
+			if (mob != null) out.add( mob );
+		}
+		return out;
 	}
 
 	@Override

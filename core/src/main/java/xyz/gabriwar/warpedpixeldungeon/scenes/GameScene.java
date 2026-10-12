@@ -131,6 +131,7 @@ import xyz.gabriwar.warpedpixeldungeon.ui.StyledButton;
 import xyz.gabriwar.warpedpixeldungeon.ui.Tag;
 import xyz.gabriwar.warpedpixeldungeon.ui.TargetHealthIndicator;
 import xyz.gabriwar.warpedpixeldungeon.ui.Toast;
+import xyz.gabriwar.warpedpixeldungeon.ui.HudSwap;
 import xyz.gabriwar.warpedpixeldungeon.ui.Toolbar;
 import xyz.gabriwar.warpedpixeldungeon.ui.Window;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
@@ -178,6 +179,7 @@ import com.watabou.utils.Point;
 import com.watabou.utils.PointF;
 import com.watabou.utils.Random;
 import com.watabou.utils.RectF;
+import com.watabou.noosa.ui.Component;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -964,6 +966,8 @@ public class GameScene extends PixelScene {
 			} else {
 				GLog.h(Messages.get(this, "return"), arrivalPlace());
 			}
+			//the old safe room's removal, told while the save loaded (homestead.legacy)
+			xyz.gabriwar.warpedpixeldungeon.homestead.legacy.SafeRoomMigration.tell();
 
 			//lunar flavour on arriving at a dungeon floor: the moon reaches down here
 			if (Dungeon.branch == 0 && Dungeon.depth >= 1 && Dungeon.depth <= 26) {
@@ -1140,6 +1144,9 @@ public class GameScene extends PixelScene {
 		}
 
 		Emitter.freezeEmitters = false;
+
+		//the build bar and its ghosts go with this screen: placing is forgotten, not taken down
+		xyz.gabriwar.warpedpixeldungeon.homestead.building.BuildPlacer.forget();
 		
 		scene = null;
 		Badges.saveGlobal();
@@ -1723,6 +1730,11 @@ public class GameScene extends PixelScene {
 		if (scene != null) scene.overFogEffects.add( effect );
 	}
 
+	/** A group of visuals over the fog, world-anchored (the build bar's ghosts, effects/BuildGhost). */
+	public static void effectOverFog( Group effects ) {
+		if (scene != null) scene.overFogEffects.add( effects );
+	}
+
 	//a picture lying on the ground, under everyone and under the walls, world-anchored
 	//(shiftWorldVisuals moves floorEmitters; floorEmitter() is the same layer for emitters):
 	//the sea of clouds below a peak, the caves' glowing fungus caps
@@ -2222,6 +2234,8 @@ public class GameScene extends PixelScene {
 			if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel){
 				((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).redressRock( cell );
 				((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).retop( cell );
+				//a tree felled, a wall built or torn down: the dressing around it worked out again
+				((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).redressAround( cell );
 			}
 			//update adjacent cells too
 			updateFog( cell, 1 );
@@ -2294,9 +2308,55 @@ public class GameScene extends PixelScene {
 		}
 	}
 
-	//the toolbar's top edge in uiCamera units (it draws on its own, smaller camera)
+	//the toolbar's top edge in uiCamera units (it draws on its own, smaller camera); the build
+	//bar's while it stands in for the toolbar, so the log and the tags sit above it
 	private static float toolbarTopInUi(){
+		if (scene.buildBar != null) return scene.buildBar.top();
 		return scene.toolbar.top() * toolbarCamera.zoom / uiCamera.zoom;
+	}
+
+	//the homesteads' build bar (homestead/building/BuildPlacer, ui/BuildBar), in place of the toolbar
+	//and the inventory pane while the hero builds; what they were before it came up
+	private Component buildBar;
+	private HudSwap buildSwap;
+
+	/** Puts the build bar along the bottom of the screen in place of the toolbar and the
+	 *  inventory pane, which are hidden as they were (HudSwap). False when there is no game
+	 *  screen or a bar is already up. The bar keeps its own height. */
+	public static boolean showBuildBar( Component bar ){
+		if (scene == null || scene.buildBar != null) return false;
+		scene.buildSwap = new HudSwap( scene.toolbar, scene.inventory );
+		scene.buildSwap.hide();
+		bar.camera = uiCamera;
+		scene.add( bar );
+		scene.buildBar = bar;
+		layoutBuildBar( bar, bar.height() );
+		return true;
+	}
+
+	/** Stands the build bar on the screen's foot (again, at a new height: it grows with its
+	 *  words): the whole width, or right of the status pane where that sits at the bottom (the
+	 *  full desktop interface, whose pane is 160 wide, StatusPane). */
+	public static void layoutBuildBar( Component bar, float height ){
+		if (scene == null || scene.buildBar != bar) return;
+		RectF insets = scene.getCommonInsets();
+		float left = insets.left + (WPDSettings.interfaceSize() > 0 ? 160 : 0);
+		bar.setRect( left, uiCamera.height - height - insets.bottom,
+				uiCamera.width - left - insets.right, height );
+		layoutTags();
+	}
+
+	/** Takes the build bar down and puts the toolbar and the inventory pane back exactly as they
+	 *  were. Nothing when that bar is not the one up. */
+	public static void hideBuildBar( Component bar ){
+		if (scene == null || scene.buildBar != bar) return;
+		scene.buildBar = null;
+		//erased, not removed: the bar may be taking itself down from its own update
+		scene.erase( bar );
+		bar.destroy();
+		scene.buildSwap.restore();
+		scene.buildSwap = null;
+		layoutTags();
 	}
 
 	private static void applyInvState(){
@@ -2320,6 +2380,9 @@ public class GameScene extends PixelScene {
 				scene.toolbar.setPos(scene.toolbar.left(), scene.inventory.top() - scene.toolbar.height());
 				break;
 		}
+		//the build bar stands in for the pane: laid out (and shown or not) as above when the bar
+		//comes down, hidden while it is up (the hero's items change with every piece built)
+		if (scene.buildSwap != null) scene.buildSwap.renote(scene.inventory);
 	}
 
 	private static void restoreInvState(){

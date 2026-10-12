@@ -94,6 +94,8 @@ public class Assets {
 		//the cracks thin ice shows once stepped on (tools/ice_cracks_gen.py, levels/overworld/IceCracks)
 		public static final String ICE_CRACKS         = "environment/ice_cracks.png";
 		public static final String OVERWORLD_VILLAGES = "environment/overworld_villages.png";
+		//the homesteads' roofs, by kind and neighbour mask (tools/homestead_art_gen.py, tiles/RoofTiles)
+		public static final String ROOFS              = "environment/roofs.png";
 		public static final String TILES_TOWN_INSIDE  = "environment/tiles_town_inside.png";
 		public static final String TILES_TOWN_BLANK   = "environment/tiles_town_blank.png";
 		public static final String TILES_VAULT      = TILES_CITY;    // TODO: golden/vault theme
@@ -107,10 +109,11 @@ public class Assets {
 		public static final String WATER_HALLS  = "environment/water4.png";
 
 		// Frozen water overlays (only for real water regions, not lava)
-		// City (water3) and Halls (water4) are lava — they never freeze
+		// Halls (water4) are lava — they never freeze
 		public static final String FROZEN_SEWERS = "environment/frozen0.png";
 		public static final String FROZEN_PRISON = "environment/frozen1.png";
 		public static final String FROZEN_CAVES  = "environment/frozen2.png";
+		public static final String FROZEN_CITY   = "environment/frozen3.png";
 
 		public static final String CARPET           = "environment/custom_tiles/carpet.png";
 		public static final String RAT_KING_ROOM    = "environment/custom_tiles/rat_king_room.png";
@@ -176,6 +179,9 @@ public class Assets {
 		public static final String RADIAL_MENU      = "interfaces/radial_menu.png";
 
 		public static final String CHANGE_ICONS    = "interfaces/change_icons.png";
+
+		//the build menu's categories, placing modes and cost badges (ui/BuildIcons, tools/build_icons_gen.py)
+		public static final String BUILD_ICONS     = "interfaces/build_icons.png";
 	}
 
 	//these points to resource bundles, not raw asset files
@@ -193,6 +199,9 @@ public class Assets {
 		public static final String WINDOWS  = "messages/windows/windows";
 		public static final String RARITY   = "messages/rarity/rarity";
 		public static final String WARPED_ROOMS = "messages/warpedrooms/warpedrooms";
+		public static final String HOMESTEAD = "messages/homestead/homestead";
+		//the homesteads' fields and animals (homestead/farming, homestead/animals)
+		public static final String HOMESTEAD_FARMING = "messages/homestead/farming";
 	}
 
 	public static class Music {
@@ -314,6 +323,22 @@ public class Assets {
 		public static final String WALL_BREAK_3 = "sounds/wall_break_3.mp3";
 		//what a bomb in the open throws up, coming back down after its blast (Bomb.explode)
 		public static final String DEBRIS   = "sounds/debris.mp3";
+		//the homesteads' work (tools/effect_sound_gen.py, docs/homesteads-art-items.md): an axe into
+		//a trunk, a tree coming down, a saw through a plank, a nail driven, a stone laid, a spadeful
+		//dug, grass reaped, a door barred, the alarm bell, a wooden piece broken, a kiln drawing
+		//(eases in and out: played again every second or so it runs on unbroken), a rope drawn tight
+		public static final String CHOP       = "sounds/chop.mp3";
+		public static final String TREE_FALL  = "sounds/tree_fall.mp3";
+		public static final String SAW        = "sounds/saw.mp3";
+		public static final String HAMMER     = "sounds/hammer.mp3";
+		public static final String STONE_SET  = "sounds/stone_set.mp3";
+		public static final String DIG        = "sounds/dig.mp3";
+		public static final String REAP       = "sounds/reap.mp3";
+		public static final String DOOR_BAR   = "sounds/door_bar.mp3";
+		public static final String BELL       = "sounds/bell.mp3";
+		public static final String WOOD_BREAK = "sounds/wood_break.mp3";
+		public static final String KILN       = "sounds/kiln.mp3";
+		public static final String ROPE       = "sounds/rope.mp3";
 
 		public static final String[] all = new String[]{
 				CLICK, BADGE, GOLD,
@@ -327,7 +352,8 @@ public class Assets {
 				CHALLENGE, CURSED, TRAP, EVOKE, TOMB, ALERT, MELD, BOSS, BLAST, PLANT, RAY, BEACON,
 				TELEPORT, CHARMS, MASTERY, PUFF, ROCKS, ROCKS_LIGHT, BURNING, FALLING, GHOST, SECRET, BONES,
 				BEE, DEGRADE, MIMIC, DEBUFF, CHARGEUP, GAS, CHAINS, SCAN, SHEEP, MINE, HOWL,
-				WALL_BREAK_1, WALL_BREAK_2, WALL_BREAK_3, DEBRIS
+				WALL_BREAK_1, WALL_BREAK_2, WALL_BREAK_3, DEBRIS,
+				CHOP, TREE_FALL, SAW, HAMMER, STONE_SET, DIG, REAP, DOOR_BAR, BELL, WOOD_BREAK, KILN, ROPE
 		};
 	}
 
@@ -358,7 +384,6 @@ public class Assets {
 		public static final String CHASM = "splashes/chasm.jpg";
 		public static final String INFESTATION = "splashes/infestation.jpg";
 		public static final String TENGU_DEN = "splashes/tengu_den.jpg";
-		public static final String SANCTUARY = "splashes/sanctuary.jpg";
 		public static final String SOKOBAN = "splashes/sokoban.jpg";
 		public static final String DRAGON_CAVE = "splashes/dragon_cave.jpg";
 		public static final String ZOT = "splashes/zot.jpg";
@@ -427,9 +452,15 @@ public class Assets {
 		public static final String TEMPERING_ANVIL     = "sprites/warped_rooms/anvil.png";
 		public static final String BREAKERS_BENCH      = "sprites/warped_rooms/breakers_bench.png";
 		public static final String ICE_BLOCK           = "sprites/warped_rooms/ice_block.png";
+		public static final String ICE_BLOCK_SEWERS    = "sprites/warped_rooms/ice_block_sewers.png";
+		public static final String ICE_BLOCK_PRISON    = "sprites/warped_rooms/ice_block_prison.png";
+		public static final String ICE_BLOCK_CAVES     = "sprites/warped_rooms/ice_block_caves.png";
+		public static final String ICE_BLOCK_CITY      = "sprites/warped_rooms/ice_block_city.png";
 		public static final String BELLOWS_VALVE       = "sprites/warped_rooms/bellows_valve.png";
 		public static final String BEDROLL             = "sprites/warped_rooms/bedroll.png";
 		public static final String HOARD_SQUIRREL      = "sprites/warped_rooms/squirrel.png";
+		//the homesteads' stations and furniture (tools/homestead_art_gen.py, sprites/HomesteadSprites)
+		public static final String HOMESTEAD           = "sprites/homestead.png";
 		//the places of the caves (tools/cave_sites_gen.py): the camp's dwarf miner, the lake shrine's idol
 		public static final String CAVE_MINER          = "sprites/cave_miner.png";
 		public static final String CAVE_SHRINE         = "sprites/cave_shrine.png";

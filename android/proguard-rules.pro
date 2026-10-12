@@ -6,6 +6,9 @@
 -keep class * extends com.watabou.noosa.Gizmo { *; }
 -keep class * extends com.watabou.glscripts.Script { *; }
 -keep class * implements com.watabou.utils.Bundlable { *; }
+# the homesteads' registries load their providers and sections by class name
+# (homestead/BuildCatalog, HomesteadStore, HomesteadWorld): nothing else references them
+-keep class xyz.gabriwar.warpedpixeldungeon.homestead.** { *; }
 
 # retained to support meaningful stack traces
 # note that the mapping file must be referenced in order to make sense of line numbers

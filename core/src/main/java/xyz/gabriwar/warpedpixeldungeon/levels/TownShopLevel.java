@@ -192,7 +192,9 @@ public class TownShopLevel extends TownInteriorLevel {
 				} else if (!stocked.contains(xyz.gabriwar.warpedpixeldungeon.items.BulletBelt.class)) {
 					it = new xyz.gabriwar.warpedpixeldungeon.items.BulletBelt();
 				} else {
-					it = distinctItem(stocked, true);
+					//then what a builder needs, before the rest (homestead/gathering/Wares)
+					it = xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Wares.townStock(stocked);
+					if (it == null) it = distinctItem(stocked, true);
 				}
 				stocked.add(it.getClass());
 				drop(it, i).type = Heap.Type.FOR_SALE;

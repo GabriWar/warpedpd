@@ -54,7 +54,10 @@ import com.watabou.noosa.Gizmo;
  * A pit's lip: a 1 px line of foam along the water's edge over the pit at 0.6, flickering between
  * two looks four times a second; streaks of the highlight falling 10-14 px into the pit at 200
  * px/s^2 (no turning), six a second; a droplet thrown off the lip every 2 s that falls back into
- * the pit; a mist (EDGE_WISP at 0.15) sinking 1 px/s below it every 2 s. Half as busy beyond six
+ * the pit; a mist (EDGE_WISP at 0.15) sinking 1 px/s below it every 2 s. Water beside a pit spills
+ * over its side the same way: the foam a 1 px column along the water's side over the pit, the
+ * streaks leaving it outward into the pit (4-10 px/s) and falling no lower than the pit cell's foot,
+ * the droplet thrown up and out, the mist in the pit beside it. Half as busy beyond six
  * cells of the hero, and thinned as more than six such edges show at once; at most 8 particles an
  * edge, 64 for all of them. An edge going out of sight lets what it had falling go (its emitter
  * stops updating them), so edges left behind never hold the others' share.
@@ -163,21 +166,31 @@ public final class WaterFalls {
 	private static int shownLast, shownNow;
 	private static float countedAt = -1f;
 
+	/** A side spill's streaks: their speed out over the pit, px/s; the lowest they start below the
+	 *  cell's top, px. */
+	public static final float SIDE_OUT_MIN = 4f, SIDE_OUT_MAX = 10f, SIDE_LOW = 8f;
+
 	/** An edge of water over a pit: its lip's foam and what falls from it. */
 	public static final class Fall {
 		public final int pos;
-		public final float x0, lipY;
+		/** Where the pit lies: 0 below the water, -1 left of it, 1 right of it. */
+		public final int side;
+		/** The cell's left and top; the lip's row (front) or column (side). */
+		public final float x0, top, lipY, lipX;
 		final ColorBlock lip;
 		float streaks, bounceIn, mistIn, flick;
 		int live;
 
-		Fall( int pos, float x0, float lipY ){
+		Fall( int pos, int side, float x0, float top ){
 			this.pos = pos;
+			this.side = side;
 			this.x0 = x0;
-			this.lipY = lipY;
-			lip = new ColorBlock( SIZE, 1, 0xFFFFFFFF );
-			lip.x = x0;
-			lip.y = lipY;
+			this.top = top;
+			lipY = top + SIZE - 1f;
+			lipX = side > 0 ? x0 + SIZE - 1f : x0;
+			lip = side == 0 ? new ColorBlock( SIZE, 1, 0xFFFFFFFF ) : new ColorBlock( 1, SIZE, 0xFFFFFFFF );
+			lip.x = side == 0 ? x0 : lipX;
+			lip.y = side == 0 ? lipY : top;
 			lip.visible = false;
 			bounceIn = FxRandom.Float( 0f, BOUNCE_EVERY );
 			mistIn = FxRandom.Float( 0f, MIST_EVERY );
@@ -196,8 +209,13 @@ public final class WaterFalls {
 
 	/** The edge of the water cell `pos` over the pit below it: its lip the cell's lowest row. */
 	public static Fall fall( Level level, int pos ){
+		return fall( level, pos, 0 );
+	}
+
+	/** The edge of the water cell `pos` over the pit on its `side` (0 below, -1 left, 1 right). */
+	public static Fall fall( Level level, int pos, int side ){
 		int w = level.width();
-		return new Fall( pos, (pos % w) * SIZE, (pos / w + 1) * SIZE - 1f );
+		return new Fall( pos, side, (pos % w) * SIZE, (pos / w) * SIZE );
 	}
 
 	/** The particles every edge has out (tests). */
@@ -234,6 +252,10 @@ public final class WaterFalls {
 		f.lip.am = ((int)f.flick & 1) == 0 ? LIP_ALPHA : LIP_DIM;
 
 		float share = share( f );
+		if (f.side != 0){
+			spill( f, e, l, share, dt );
+			return;
+		}
 		f.streaks += STREAKS * share * dt;
 		while (f.streaks >= 1f){
 			f.streaks -= 1f;
@@ -258,6 +280,38 @@ public final class WaterFalls {
 			FallDrop d = drop( f, e, x, y );
 			float life = FxRandom.Float( 2f, 3f );
 			if (d != null) d.look( FxFrames.EDGE_WISP, 0 ).paint( l.foam ).vel( FxRandom.Float( -1f, 1f ), MIST_SINK )
+					.life( life ).alpha( MIST_ALPHA, life * 0.3f, life * 0.4f ).smooth().priority( FxBudget.P3 );
+		}
+	}
+
+	//a side edge's frame: the front's, turned to leave the water's side and fall beside it
+	private static void spill( Fall f, FxEmitter e, Element.Liquid l, float share, float dt ){
+		float foot = f.top + SIZE;
+		f.streaks += STREAKS * share * dt;
+		while (f.streaks >= 1f){
+			f.streaks -= 1f;
+			float x = f.lipX + f.side, y = f.top + FxRandom.IntRange( 1, (int)SIDE_LOW );
+			FallDrop d = drop( f, e, x, y );
+			if (d != null) d.look( FxFrames.DROP_3 ).paint( l.highlight )
+					.vel( f.side * FxRandom.Float( SIDE_OUT_MIN, SIDE_OUT_MAX ), FxRandom.Float( 4f, 10f ) ).gravity( FALL_G )
+					.ground( Math.min( y + FxRandom.Float( REACH_MIN, REACH_MAX ), foot ), FxParticle.DIE, 0 ).life( 0.6f )
+					.alpha( 0.8f, 0, 0.1f ).priority( FxBudget.P2 );
+		}
+		if ((f.bounceIn -= dt) <= 0f){
+			f.bounceIn = BOUNCE_EVERY / Math.max( 0.25f, share );
+			float y = f.top + FxRandom.IntRange( 2, (int)SIDE_LOW );
+			FallDrop d = drop( f, e, f.lipX, y );
+			if (d != null) d.look( FxFrames.DROP_2 ).paint( l.foam ).orient()
+					.polar( (float)(-Math.PI / 2) + f.side * FxRandom.Float( 0.4f, 1.1f ), FxRandom.Float( 15f, 25f ) ).gravity( 240f )
+					.ground( Math.min( y + FxRandom.Float( REACH_MIN, REACH_MAX ), foot ), FxParticle.DIE, 0 ).life( 0.8f )
+					.alpha( 0.9f, 0, 0.1f ).priority( FxBudget.P3 );
+		}
+		if ((f.mistIn -= dt) <= 0f){
+			f.mistIn = MIST_EVERY / Math.max( 0.25f, share );
+			float x = f.lipX + f.side * FxRandom.IntRange( 3, 8 ), y = f.top + FxRandom.IntRange( 4, 10 );
+			FallDrop d = drop( f, e, x, y );
+			float life = FxRandom.Float( 2f, 3f );
+			if (d != null) d.look( FxFrames.EDGE_WISP, 0 ).paint( l.foam ).vel( FxRandom.Float( -0.5f, 0.5f ), MIST_SINK )
 					.life( life ).alpha( MIST_ALPHA, life * 0.3f, life * 0.4f ).smooth().priority( FxBudget.P3 );
 		}
 	}

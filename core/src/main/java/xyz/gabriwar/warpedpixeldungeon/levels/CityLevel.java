@@ -138,6 +138,11 @@ public class CityLevel extends RegularLevel {
 	}
 
 	@Override
+	public String frozenWaterTex() {
+		return Assets.Environment.FROZEN_CITY;
+	}
+
+	@Override
 	protected Painter painter() {
 		return new CityPainter()
 				.setWater(feeling == Feeling.WATER ? 0.90f : 0.30f, 4)

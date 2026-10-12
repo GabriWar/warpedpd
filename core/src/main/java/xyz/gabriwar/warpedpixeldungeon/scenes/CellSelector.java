@@ -85,6 +85,7 @@ public class CellSelector extends ScrollArea {
 			
 		} else {
 			
+			heldTap = System.currentTimeMillis() - downAt >= HOLD_MS;
 			PointF p = Camera.main.screenToCamera( (int) event.current.x, (int) event.current.y );
 
 			//Prioritizes a sprite if it and a tile overlap, so long as that sprite isn't more than 4 pixels into another tile.
@@ -152,42 +153,52 @@ public class CellSelector extends ScrollArea {
 	}
 	
 	public void select( int cell, int button ) {
+		try {
 
-		//a waypoint march never leaves the hero 'ready' - it seats a fresh leg on every
-		//act - so a tap on the world would fall through to cancel() and the march would
-		//run on forever. Tapping the world IS how the player says stop: pause the march
-		//(the waypoint is kept, the hud tag resumes it) and swallow the tap
-		if (cell != -1 && button != PointerEvent.RIGHT && pauseWaypointMarch()) {
-			return;
-		}
-
-		if (enabled && Dungeon.hero.ready && !GameScene.interfaceBlockingHero()
-				&& listener != null && cell != -1) {
-
-			switch (button){
-				default:
-					listener.onSelect( cell );
-					break;
-				case PointerEvent.RIGHT:
-					listener.onRightClick( cell );
-					break;
+			//a waypoint march never leaves the hero 'ready' - it seats a fresh leg on every
+			//act - so a tap on the world would fall through to cancel() and the march would
+			//run on forever. Tapping the world IS how the player says stop: pause the march
+			//(the waypoint is kept, the hud tag resumes it) and swallow the tap
+			if (cell != -1 && button != PointerEvent.RIGHT && pauseWaypointMarch()) {
+				return;
 			}
-			GameScene.ready();
-			
-		} else {
-			
-			//an online game that will not answer a tap is nearly impossible to read from
-			//the outside, so say which gate closed on it
-			if (xyz.gabriwar.warpedpixeldungeon.net.NetManager.isActive()) {
-				xyz.gabriwar.warpedpixeldungeon.net.NetManager.log("[NET] tap dropped on CellSelector #"
-						+ System.identityHashCode(this) + " cell=" + cell
-						+ " enabled=" + enabled
-						+ " ready=" + (Dungeon.hero != null && Dungeon.hero.ready)
-						+ " blocking=" + GameScene.interfaceBlockingHero()
-						+ " listener=" + (listener == null ? "null" : listener.getClass().getSimpleName()));
+
+			//while the build bar is up a tap on the map picks a cell to build on, never a walk
+			//(homestead/building/BuildPlacer); dragging and pinching still move the view
+			if (cell != -1 && xyz.gabriwar.warpedpixeldungeon.homestead.building.BuildPlacer.takesTap( cell, button == PointerEvent.RIGHT )) {
+				return;
 			}
-			GameScene.cancel();
+
+			if (enabled && Dungeon.hero.ready && !GameScene.interfaceBlockingHero()
+					&& listener != null && cell != -1) {
+
+				switch (button){
+					default:
+						listener.onSelect( cell );
+						break;
+					case PointerEvent.RIGHT:
+						listener.onRightClick( cell );
+						break;
+				}
+				GameScene.ready();
 			
+			} else {
+			
+				//an online game that will not answer a tap is nearly impossible to read from
+				//the outside, so say which gate closed on it
+				if (xyz.gabriwar.warpedpixeldungeon.net.NetManager.isActive()) {
+					xyz.gabriwar.warpedpixeldungeon.net.NetManager.log("[NET] tap dropped on CellSelector #"
+							+ System.identityHashCode(this) + " cell=" + cell
+							+ " enabled=" + enabled
+							+ " ready=" + (Dungeon.hero != null && Dungeon.hero.ready)
+							+ " blocking=" + GameScene.interfaceBlockingHero()
+							+ " listener=" + (listener == null ? "null" : listener.getClass().getSimpleName()));
+				}
+				GameScene.cancel();
+			
+			}
+		} finally {
+			heldTap = false;
 		}
 	}
 	
@@ -216,6 +227,13 @@ public class CellSelector extends ScrollArea {
 		return true;
 	}
 
+	/** How long a press must last to count as a hold, in milliseconds. */
+	public static final long HOLD_MS = 400;
+	/** Whether the tap being handled now was held (pressed at least HOLD_MS before release).
+	 *  Breaking what the hero built takes a hold, so a stray tap never damages it (Hero.handle). */
+	public static boolean heldTap = false;
+	private long downAt;
+
 	private boolean pinching = false;
 	private PointerEvent another;
 	private float startZoom;
@@ -224,6 +242,10 @@ public class CellSelector extends ScrollArea {
 	@Override
 	protected void onPointerDown( PointerEvent event ) {
 		camera.edgeScroll.set(-1);
+		heldTap = false;
+		if (another == null && (event == curEvent || curEvent == null || curEvent.type == PointerEvent.Type.UP)) {
+			downAt = System.currentTimeMillis();
+		}
 		if (event != curEvent && another == null) {
 					
 			if (curEvent.type == PointerEvent.Type.UP) {

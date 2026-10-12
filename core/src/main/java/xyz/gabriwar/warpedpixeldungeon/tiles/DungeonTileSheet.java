@@ -139,6 +139,11 @@ public class DungeonTileSheet {
 		chasmStitcheable.put( Terrain.HERO_LKD_DR,  CHASM_WALL );
 		chasmStitcheable.put( Terrain.SECRET_DOOR,  CHASM_WALL );
 		chasmStitcheable.put( Terrain.WALL_DECO,    CHASM_WALL );
+		//the homesteads: walls, windows and doors show a wall's foot, the rest stands on ground
+		for (int t = Terrain.HOMESTEAD_FIRST; t <= Terrain.HOMESTEAD_LAST; t++){
+			chasmStitcheable.put( t, xyz.gabriwar.warpedpixeldungeon.homestead.BuiltTerrain.wallLike( t )
+					|| xyz.gabriwar.warpedpixeldungeon.homestead.BuiltTerrain.door( t ) ? CHASM_WALL : CHASM_FLOOR );
+		}
 
 		//water
 		chasmStitcheable.put( Terrain.WATER,        CHASM_WATER );
@@ -176,10 +181,8 @@ public class DungeonTileSheet {
 	public static final int WARPED_TILES =                                  xy(1, 18);  //16 slots
 	public static final int SHRUB_TILE    = WARPED_TILES+0;
 	public static final int WOOL_RUG_TILE = WARPED_TILES+1;
-	//tilled farm soil (safe zone visual for FURROWED_GRASS), 3 variants
-	public static final int TILLED_SOIL       = WARPED_TILES+2;
-	public static final int TILLED_SOIL_ALT   = WARPED_TILES+3;
-	public static final int TILLED_SOIL_RARE  = WARPED_TILES+4;
+	//slots 2-4 hold the old safe room's tilled soil, no longer drawn: tools/field_tiles_gen.py
+	//and tools/hs_art/ground.py still read it as the source of the fields and the farmland
 	public static final int SNOW_TILE         = WARPED_TILES+5;
 	public static final int DIRT_PATH_TILE    = WARPED_TILES+6;
 	public static final int WAYSTONE_TILE     = WARPED_TILES+7;
@@ -195,14 +198,13 @@ public class DungeonTileSheet {
 	public static final int FIELD_WINTER      = WARPED_TILES+15;
 
 	/** Is the FURROWED_GRASS on this cell of the level farm ground rather than the warden's
-	 *  furrowed grass - the safe zone's tilled plots, a surface village's fields? Then none of
-	 *  the grass's raised tuft, its overhang on the wall above or its stage dressing is drawn
-	 *  over it: every one of the four layers that draw it asks here. */
+	 *  furrowed grass - a surface village's fields? Then none of the grass's raised tuft, its
+	 *  overhang on the wall above or its stage dressing is drawn over it: every one of the four
+	 *  layers that draw it asks here. (The hero's own beds are FARMLAND, drawn by HomesteadVisuals.) */
 	public static boolean tilledSoil( int pos ){
 		xyz.gabriwar.warpedpixeldungeon.levels.Level l = Dungeon.level;
-		return l instanceof xyz.gabriwar.warpedpixeldungeon.levels.SafeLevel
-				|| (l instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
-					&& ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) l).fieldAt( pos ));
+		return l instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
+				&& ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) l).fieldAt( pos );
 	}
 
 	/** A surface village's field in a season (OverworldLevel.fieldSeason). */
@@ -229,7 +231,14 @@ public class DungeonTileSheet {
 			Terrain.FLEECING_TRAP, Terrain.WOOL_RUG, Terrain.CHANGE_SHEEP_TRAP,
 			Terrain.SOKOBAN_SHEEP, Terrain.CORNER_SOKOBAN_SHEEP, Terrain.SWITCH_SOKOBAN_SHEEP,
 			Terrain.SOKOBAN_ITEM_REVEAL, Terrain.SOKOBAN_HEAP, Terrain.BLACK_SOKOBAN_SHEEP,
-			Terrain.PORT_WELL, Terrain.SOKOBAN_PORT_SWITCH
+			Terrain.PORT_WELL, Terrain.SOKOBAN_PORT_SWITCH,
+			//the homesteads: doors like the dungeon's, the grounds and whatever stands on the
+			//ground. not a plank bridge: the water runs on under it, as under Terrain.BRIDGE
+			Terrain.BUILT_DOOR, Terrain.BUILT_DOOR_OPEN, Terrain.BUILT_DOOR_BARRED, Terrain.BUILT_DOOR_BARRED_OPEN,
+			Terrain.FLOOR_PLANK, Terrain.FLOOR_STONE, Terrain.FARMLAND, Terrain.FARMLAND_WET,
+			Terrain.PATH_STONE, Terrain.PALISADE, Terrain.FENCE, Terrain.FENCE_GATE, Terrain.FENCE_GATE_OPEN,
+			Terrain.STUMP_OAK, Terrain.STUMP_PINE, Terrain.SAPLING_OAK, Terrain.SAPLING_PINE,
+			Terrain.RUBBLE_WOOD, Terrain.RUBBLE_STONE
 	));
 
 	//the surface's own grounds: snow, sand, roads and whatever stands on open
@@ -431,7 +440,10 @@ public class DungeonTileSheet {
 	//These tiles count as wall for the purposes of wall stitching
 	private static int[] wallStitcheable = new int[]{
 			Terrain.WALL, Terrain.WALL_DECO, Terrain.SECRET_DOOR,
-			Terrain.LOCKED_EXIT, Terrain.UNLOCKED_EXIT, Terrain.BOOKSHELF, Terrain.EMPTY_BOOKSHELF, NULL_TILE
+			Terrain.LOCKED_EXIT, Terrain.UNLOCKED_EXIT, Terrain.BOOKSHELF, Terrain.EMPTY_BOOKSHELF, NULL_TILE,
+			//the homesteads' walls and windows (tiles/HomesteadVisuals draws them in their material)
+			Terrain.BUILT_WALL_LOG, Terrain.BUILT_WALL_PLANK, Terrain.BUILT_WALL_STONE, Terrain.BUILT_WALL_BRICK,
+			Terrain.BUILT_WINDOW_LOG, Terrain.BUILT_WINDOW_PLANK, Terrain.BUILT_WINDOW_STONE, Terrain.BUILT_WINDOW_BRICK
 	};
 
 	public static boolean wallStitcheable(int tile){
@@ -479,7 +491,9 @@ public class DungeonTileSheet {
 	}
 
 	private static int[] doorTiles = new int[]{
-			Terrain.DOOR, Terrain.LOCKED_DOOR, Terrain.HERO_LKD_DR, Terrain.CRYSTAL_DOOR, Terrain.OPEN_DOOR
+			Terrain.DOOR, Terrain.LOCKED_DOOR, Terrain.HERO_LKD_DR, Terrain.CRYSTAL_DOOR, Terrain.OPEN_DOOR,
+			//the homesteads' doors (tiles/HomesteadVisuals)
+			Terrain.BUILT_DOOR, Terrain.BUILT_DOOR_OPEN, Terrain.BUILT_DOOR_BARRED, Terrain.BUILT_DOOR_BARRED_OPEN
 	};
 
 	public static boolean doorTile(int tile){
@@ -733,8 +747,6 @@ public class DungeonTileSheet {
 	static {
 		tileAltVisuals.put(FLOOR,           new tileAlt(new float[]{52.5f, 5f}, FLOOR_ALT_1, FLOOR_ALT_2));
 		tileAltVisuals.put(GRASS,           new tileAlt(new float[]{50f}, GRASS_ALT));
-		//Warped: tilled farm soil, 47.5% common alt / 5% rare alt like the floor
-		tileAltVisuals.put(TILLED_SOIL,     new tileAlt(new float[]{52.5f, 5f}, TILLED_SOIL_ALT, TILLED_SOIL_RARE));
 		tileAltVisuals.put(FIELD_SPRING,    new tileAlt(new float[]{50f}, FIELD_SPRING_ALT));
 		tileAltVisuals.put(FIELD_SUMMER,    new tileAlt(new float[]{50f}, FIELD_SUMMER_ALT));
 		tileAltVisuals.put(FIELD_AUTUMN,    new tileAlt(new float[]{50f}, FIELD_AUTUMN_ALT));
@@ -757,6 +769,10 @@ public class DungeonTileSheet {
 		tileAltVisuals.put(RAISED_FURROWED_GRASS,   new tileAlt(new float[]{50f}, RAISED_FURROWED_ALT));
 		tileAltVisuals.put(HIGH_GRASS_OVERHANG,     new tileAlt(new float[]{50f}, HIGH_GRASS_OVERHANG_ALT));
 		tileAltVisuals.put(FURROWED_OVERHANG,       new tileAlt(new float[]{50f}, FURROWED_OVERHANG_ALT));
+
+		//the homesteads' floors take their looks the way the dungeon's floor does
+		tileAltVisuals.put(HomesteadTiles.FLOOR_PLANK, new tileAlt(new float[]{52.5f, 5f}, HomesteadTiles.FLOOR_PLANK_ALT, HomesteadTiles.FLOOR_PLANK_ALT_2));
+		tileAltVisuals.put(HomesteadTiles.FLOOR_STONE, new tileAlt(new float[]{52.5f, 5f}, HomesteadTiles.FLOOR_STONE_ALT, HomesteadTiles.FLOOR_STONE_ALT_2));
 	}
 
 	public static void updateAltVariants(){
