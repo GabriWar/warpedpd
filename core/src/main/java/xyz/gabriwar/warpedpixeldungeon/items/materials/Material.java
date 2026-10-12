@@ -75,9 +75,13 @@ public abstract class Material extends Item {
 		return true;
 	}
 
+	/** What count() says while the debug menu's infinite building materials is on. */
+	public static final int INFINITE = 999;
+
 	/** How many of a material the hero carries, in the satchel and the pack alike. Gold is the
 	 *  purse's (Dungeon.gold): a piece or a recipe may cost gold as well (BuildPiece.Cost.gold). */
 	public static int count( Hero hero, Class<? extends Item> material ){
+		if (Dungeon.debugInfiniteMaterials) return INFINITE;
 		if (material == Gold.class) return Dungeon.gold;
 		int n = 0;
 		for (Item i : stacks( hero, material )) n += i.quantity();
@@ -89,7 +93,7 @@ public abstract class Material extends Item {
 	 * taken, when he carries fewer.
 	 */
 	public static boolean spend( Hero hero, Class<? extends Item> material, int amount ){
-		if (amount <= 0) return true;
+		if (amount <= 0 || Dungeon.debugInfiniteMaterials) return true;
 		if (material == Gold.class){
 			if (Dungeon.gold < amount) return false;
 			Dungeon.gold -= amount;

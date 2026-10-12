@@ -1622,6 +1622,8 @@ public class Dungeon {
 	//debug toggle: every hero attack lands and kills
 	public static boolean debugOneHitKill = false;
 	public static boolean debugInfiniteMana = false;
+	//debug toggle: building costs (materials, and gold for the pieces bought with it) are never short and never spent
+	public static boolean debugInfiniteMaterials = false;
 
 	public static void observe( int dist ) {
 		long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();

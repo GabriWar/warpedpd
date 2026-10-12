@@ -538,6 +538,9 @@ public final class DebugMenu {
 			Dungeon.debugInfiniteMana = !Dungeon.debugInfiniteMana;
 			if (Dungeon.debugInfiniteMana) h.MP = h.MT;
 		} ) ).icon( buff( BuffIndicator.RECHARGING ) );
+		t.toggle( "Infinite building materials", () -> Dungeon.debugInfiniteMaterials,
+				() -> Dungeon.debugInfiniteMaterials = !Dungeon.debugInfiniteMaterials )
+				.icon( item( xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet.BUILDERS_SATCHEL ) );
 
 		t.header( "Map", small( BuffIndicator.MIND_VISION ) );
 		t.toggle( "No fog of war", () -> Dungeon.debugNoFog, DebugMenu::flipNoFog )
