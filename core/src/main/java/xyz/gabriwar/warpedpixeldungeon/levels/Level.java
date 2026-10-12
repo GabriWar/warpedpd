@@ -815,6 +815,23 @@ public abstract class Level implements Bundlable {
 		return 0;
 	}
 
+	/**
+	 * The transition of a type that leads back where the hero came from (its destination the floor
+	 * and branch he left), else the first of that type as getTransition(type). A floor can hold two
+	 * branch stairways (the smith's mines and the temple on the same caves floor): coming up out of
+	 * one must land on its own stairs, not whichever branch exit happens to be listed first.
+	 */
+	public LevelTransition getTransition(LevelTransition.Type type, int fromDepth, int fromBranch){
+		if (type != null){
+			for (LevelTransition transition : transitions){
+				if (transition.type == type && transition.destDepth == fromDepth && transition.destBranch == fromBranch){
+					return transition;
+				}
+			}
+		}
+		return getTransition(type);
+	}
+
 	public LevelTransition getTransition(LevelTransition.Type type){
 		if (transitions.isEmpty()){
 			return null;

@@ -22,6 +22,7 @@
 package xyz.gabriwar.warpedpixeldungeon.ui;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.levels.features.LevelTransition;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.noosa.Camera;
 import com.watabou.noosa.Image;
@@ -46,6 +47,24 @@ public class Compass extends Image {
 		this.cell = cell;
 		cellCenter = DungeonTilemap.tileCenterToWorld( cell );
 		visible = false;
+	}
+
+	/** An arrow for one of the floor's ways out, in the colour of where it leads (colorOf). */
+	public Compass( int cell, int rgb ) {
+		this( cell );
+		color( rgb );
+	}
+
+	/** Each kind of stairway its own colour: down gold, up sky blue, a branch's way in violet,
+	 *  a branch's way back up green, the way out to the surface white. */
+	public static int colorOf( LevelTransition.Type type ) {
+		switch (type) {
+			case REGULAR_EXIT:     return 0xFFD040;
+			case REGULAR_ENTRANCE: return 0x66CCFF;
+			case BRANCH_EXIT:      return 0xD070FF;
+			case BRANCH_ENTRANCE:  return 0x70E070;
+			case SURFACE: default: return 0xFFFFFF;
+		}
 	}
 	
 	@Override

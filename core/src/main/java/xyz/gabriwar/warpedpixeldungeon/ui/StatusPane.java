@@ -84,7 +84,8 @@ public class StatusPane extends Component {
 	private BitmapText level;
 
 	private BuffIndicator buffs;
-	private Compass compass;
+	//one arrow per way off the floor, each in its kind's colour (Compass.colorOf)
+	private final java.util.ArrayList<Compass> compasses = new java.util.ArrayList<>();
 
 	private BusyIndicator busy;
 	private CircleArc counter;
@@ -144,8 +145,15 @@ public class StatusPane extends Component {
 
 		talentBlink = 0;
 
-		compass = new Compass( Statistics.amuletObtained ? Dungeon.level.entrance() : Dungeon.level.exit() );
-		add( compass );
+		if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) {
+			//the world's window holds dozens of ways between its slices: the one arrow, as before
+			compasses.add( new Compass( Statistics.amuletObtained ? Dungeon.level.entrance() : Dungeon.level.exit() ) );
+		} else {
+			for (xyz.gabriwar.warpedpixeldungeon.levels.features.LevelTransition t : Dungeon.level.transitions) {
+				compasses.add( new Compass( t.cell(), Compass.colorOf( t.type ) ) );
+			}
+		}
+		for (Compass c : compasses) add( c );
 
 		if (large)  shieldHP = new Image(asset, 0, 112, 128, 9);
 		else        shieldHP = new Image(asset, 0, 44, 50, 4);
@@ -239,9 +247,11 @@ public class StatusPane extends Component {
 
 		heroInfo.setRect( x, y, heroPaneWidth, large ? 40 : 36 );
 
-		compass.x = avatar.x + avatar.width / 2f - compass.origin.x;
-		compass.y = avatar.y + avatar.height / 2f - compass.origin.y;
-		PixelScene.align(compass);
+		for (Compass compass : compasses) {
+			compass.x = avatar.x + avatar.width / 2f - compass.origin.x;
+			compass.y = avatar.y + avatar.height / 2f - compass.origin.y;
+			PixelScene.align(compass);
+		}
 
 		if (large) {
 			exp.x = x + 30;
@@ -569,7 +579,7 @@ public class StatusPane extends Component {
 		exp.alpha(value);
 		if (expText != null) expText.alpha(0.6f*value);
 		level.alpha(value);
-		compass.alpha(value);
+		for (Compass compass : compasses) compass.alpha(value);
 		busy.alpha(value);
 		counter.alpha(value);
 	}

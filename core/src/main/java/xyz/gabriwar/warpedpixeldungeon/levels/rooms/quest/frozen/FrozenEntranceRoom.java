@@ -67,6 +67,10 @@ public class FrozenEntranceRoom extends StandardRoom {
 				LevelTransition.Type.BRANCH_ENTRANCE));
 
 		Painter.set( level, entrance, Terrain.EXIT );
+		//its own picture, so it isn't taken for the floor's stairs down
+		xyz.gabriwar.warpedpixeldungeon.tiles.CustomTilemap stairs = new xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.BranchStairs.Frozen();
+		stairs.pos( entrance, level );
+		level.customTiles.add( stairs );
 
 		//a little frost creeps out around the opening
 		for (Point p : getPoints()) {

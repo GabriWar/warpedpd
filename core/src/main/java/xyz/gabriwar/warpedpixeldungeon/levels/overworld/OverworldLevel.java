@@ -1027,6 +1027,14 @@ public class OverworldLevel extends Level {
 		return altitude == 0
 				&& WorldStructures.townCell( worldX + cell % width(), worldY + cell / width() ) != -1;
 	}
+
+	//an arrival here is placed by landingCell (getTransition), never by the first of the window's
+	//many slice links that happens to lead where the hero came from
+	@Override
+	public LevelTransition getTransition( LevelTransition.Type type, int fromDepth, int fromBranch ){
+		return getTransition( type );
+	}
+
 	//the hero is placed at getTransition(null) on arrival. the town doorways
 	//are the level's real transitions; the arrival point is a synthetic one at
 	//the pending/last arrival cell, re-centring the window on it if it is not

@@ -678,6 +678,7 @@ public class InterlevelScene extends PixelScene {
 			Dungeon.saveAll();
 
 			Level level;
+			int fromDepth = Dungeon.depth, fromBranch = Dungeon.branch;
 			Dungeon.depth = curTransition.destDepth;
 			Dungeon.branch = curTransition.destBranch;
 
@@ -687,7 +688,7 @@ public class InterlevelScene extends PixelScene {
 				level = Dungeon.newLevel();
 			}
 
-			LevelTransition destTransition = level.getTransition(curTransition.destType);
+			LevelTransition destTransition = level.getTransition(curTransition.destType, fromDepth, fromBranch);
 			curTransition = null;
 			Dungeon.switchLevel( level, destTransition.cell() );
 		}
@@ -736,6 +737,7 @@ public class InterlevelScene extends PixelScene {
 		Dungeon.saveAll();
 
 		Level level;
+		int fromDepth = Dungeon.depth, fromBranch = Dungeon.branch;
 		Dungeon.depth = curTransition.destDepth;
 		Dungeon.branch = curTransition.destBranch;
 
@@ -745,7 +747,7 @@ public class InterlevelScene extends PixelScene {
 			level = Dungeon.newLevel();
 		}
 
-		LevelTransition destTransition = level.getTransition(curTransition.destType);
+		LevelTransition destTransition = level.getTransition(curTransition.destType, fromDepth, fromBranch);
 		curTransition = null;
 		Dungeon.switchLevel( level, destTransition.cell() );
 	}

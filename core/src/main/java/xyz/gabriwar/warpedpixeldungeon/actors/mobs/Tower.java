@@ -59,7 +59,7 @@ public class Tower extends Mob implements Callback {
 	{
 		spriteClass = TowerSprite.class;
 
-		HP = HT = 300 + Dungeon.depth * Random.NormalIntRange(2, 5);
+		HP = HT = 220 + Dungeon.depth * Random.NormalIntRange(2, 4);
 		defenseSkill = 0;
 
 		EXP = 25;
@@ -97,6 +97,12 @@ public class Tower extends Mob implements Callback {
 		// Do nothing
 	}
 
+	//neutral, yet a thing to break, not to talk to: a tap on it attacks it
+	@Override
+	public boolean heroShouldInteract() {
+		return false;
+	}
+
 	@Override
 	public int damageRoll() {
 		return 0;
@@ -109,12 +115,12 @@ public class Tower extends Mob implements Callback {
 
 	@Override
 	public int drRoll() {
-		return super.drRoll() + Random.NormalIntRange(0, 10);
+		return super.drRoll() + Random.NormalIntRange(0, 6);
 	}
 
 	@Override
 	protected boolean act() {
-		switch (Random.Int(4)) {
+		switch (Random.Int(6)) {
 			case 1:
 				for (Mob mob : Dungeon.level.mobs) {
 					if (mob instanceof Tower && mob != this) {
@@ -124,10 +130,13 @@ public class Tower extends Mob implements Callback {
 				}
 				break;
 			case 2:
-				if (Dungeon.level.mobs.size() < 10) {
+				if (Dungeon.level.mobs.size() < 8) {
+					//two at most a print, in a sixth of its turns
+					int printed = 0;
 					for (int n : PathFinder.NEIGHBOURS4) {
 						int cell = pos + n;
-						if (Dungeon.level.passable[cell] && Actor.findChar(cell) == null) {
+						if (printed < 2 && Dungeon.level.passable[cell] && Actor.findChar(cell) == null) {
+							printed++;
 							BrokenRobot robot = new BrokenRobot();
 							robot.pos = cell;
 							robot.state = robot.HUNTING;

@@ -64,6 +64,10 @@ public class SpiderNestEntranceRoom extends StandardRoom {
 				LevelTransition.Type.BRANCH_ENTRANCE));
 
 		Painter.set( level, entrance, Terrain.EXIT );
+		//its own picture, so it isn't taken for the floor's stairs down
+		xyz.gabriwar.warpedpixeldungeon.tiles.CustomTilemap stairs = new xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.BranchStairs.Spider();
+		stairs.pos( entrance, level );
+		level.customTiles.add( stairs );
 
 		//webbing spreading out from the hole
 		for (Point p : getPoints()) {

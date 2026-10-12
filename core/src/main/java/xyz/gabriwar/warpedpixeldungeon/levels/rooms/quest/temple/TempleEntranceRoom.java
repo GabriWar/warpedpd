@@ -66,6 +66,10 @@ public class TempleEntranceRoom extends StandardRoom {
 				LevelTransition.Type.BRANCH_ENTRANCE));
 
 		Painter.set( level, entrance, Terrain.EXIT );
+		//its own picture, so it isn't taken for the floor's stairs down
+		xyz.gabriwar.warpedpixeldungeon.tiles.CustomTilemap stairs = new xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.BranchStairs.Temple();
+		stairs.pos( entrance, level );
+		level.customTiles.add( stairs );
 
 		//worn flagstones lead up to the doorway
 		for (Point p : getPoints()) {
