@@ -25,6 +25,12 @@ public class IceFallTextureTest {
 					float[] frayed = IceFallTexture.averageHsl(atlas, 0, IceFallTexture.FIRST_TILE / 16 * 16, false);
 					float apart = Math.abs(ice[0] - frayed[0]);
 					assertEquals(region + ": fringe hue against ice hue", 0f, Math.min(apart, 1 - apart), 0.02f);
+					//and every coloured frayed pixel is one of the ice's own colours: no seam
+					java.util.HashSet<Integer> icePalette = new java.util.HashSet<>();
+					for (int c : IceFallTexture.palette(terrain, DungeonTileSheet.FROZEN_WATER / 16 * 16, 16, true)) icePalette.add(c & 0xFFFFFF00);
+					for (int c : IceFallTexture.palette(atlas, 0, IceFallTexture.FIRST_TILE / 16 * 16, false)) {
+						org.junit.Assert.assertTrue(region + ": a frayed pixel off the ice's palette", icePalette.contains(c & 0xFFFFFF00));
+					}
 				} finally {
 					atlas.dispose();
 					terrain.dispose();

@@ -61,27 +61,61 @@ final class IceFallTexture {
 
 	/**
 	 * The fringe art is drawn once, in steel blue, but each tileset frosts its own water: the
-	 * sewers' ice is mint, the caves' teal. Turn the fringe's hue and saturation to the average
-	 * of this tileset's ice (its stitched pool row), keeping each pixel's lightness, so the frayed
-	 * edge belongs to the ice it frays from. A tileset with no ice row keeps the art as drawn.
+	 * sewers' ice is mint, the caves' teal. Recolour every coloured fringe pixel with the colour
+	 * this tileset's own ice (its stitched pool row) has at the same lightness rank: the fringe's
+	 * darkest tones take the ice's darkest, its lightest the ice's lightest. The fray then uses
+	 * exactly the ice's own palette, so it reads as the same ice breaking up, with no paler or
+	 * bluer seam where the pool ends. A tileset with no ice row keeps the art as drawn.
 	 */
 	static void matchIce(Pixmap atlas, Pixmap terrain) {
-		float[] ice = averageHsl(terrain, DungeonTileSheet.FROZEN_WATER / 16 * 16, 16, true);
-		if (ice == null) return;
-		float[] fringe = averageHsl(atlas, 0, FIRST_TILE / 16 * 16, false);
-		if (fringe == null || fringe[1] <= 0.01f) return;
+		int[] ice = palette(terrain, DungeonTileSheet.FROZEN_WATER / 16 * 16, 16, true);
+		if (ice.length == 0) return;
+		int rows = FIRST_TILE / 16 * 16;
+		int[] fringe = palette(atlas, 0, rows, false);
+		if (fringe.length == 0) return;
 		float[] hsl = new float[3];
-		for (int y = 0; y < FIRST_TILE / 16 * 16; y++) {
+		for (int y = 0; y < rows; y++) {
 			for (int x = 0; x < atlas.getWidth(); x++) {
 				int c = atlas.getPixel(x, y);
 				if ((c & 255) == 0) continue;
 				toHsl(c, hsl);
 				if (hsl[1] < 0.04f) continue;
-				hsl[0] = ice[0];
-				hsl[1] = Math.min(1f, hsl[1] * ice[1] / fringe[1]);
-				atlas.drawPixel(x, y, fromHsl(hsl, c & 255));
+				//this tone's middle rank among the fringe's coloured pixels, as a share
+				float l = hsl[2];
+				int lo = 0, hi = fringe.length;
+				while (lo < hi) { int m = (lo + hi) >>> 1; if (lightness(fringe[m]) < l) lo = m + 1; else hi = m; }
+				int first = lo;
+				hi = fringe.length;
+				while (lo < hi) { int m = (lo + hi) >>> 1; if (lightness(fringe[m]) <= l) lo = m + 1; else hi = m; }
+				float share = fringe.length == 1 ? 0.5f : ((first + lo - 1) / 2f) / (fringe.length - 1);
+				int pick = ice[Math.round(share * (ice.length - 1))];
+				atlas.drawPixel(x, y, (pick & 0xFFFFFF00) | (c & 255));
 			}
 		}
+	}
+
+	//every coloured (and, if litOnly, lit) opaque pixel of a band of rows, sorted darkest first
+	static int[] palette(Pixmap pixels, int top, int rows, boolean litOnly) {
+		java.util.ArrayList<Integer> out = new java.util.ArrayList<>();
+		float[] hsl = new float[3];
+		for (int y = top; y < Math.min(top + rows, pixels.getHeight()); y++) {
+			for (int x = 0; x < pixels.getWidth(); x++) {
+				int c = pixels.getPixel(x, y);
+				if ((c & 255) < 200) continue;
+				toHsl(c, hsl);
+				if (hsl[1] < 0.04f || (litOnly && hsl[2] < 0.3f)) continue;
+				out.add(c);
+			}
+		}
+		out.sort((a, b) -> Float.compare(lightness(a), lightness(b)));
+		int[] arr = new int[out.size()];
+		for (int i = 0; i < arr.length; i++) arr[i] = out.get(i);
+		return arr;
+	}
+
+	private static float lightness(int rgba) {
+		float r = (rgba >>> 24) / 255f, g = (rgba >>> 16 & 255) / 255f, b = (rgba >>> 8 & 255) / 255f;
+		return (Math.max(r, Math.max(g, b)) + Math.min(r, Math.min(g, b))) / 2f;
 	}
 
 	//mean hue (as a vector, so it does not wrap), saturation and lightness of the coloured,
@@ -120,29 +154,5 @@ final class IceFallTexture {
 			h /= 6f;
 		}
 		out[0] = h; out[1] = s; out[2] = l;
-	}
-
-	private static int fromHsl(float[] hsl, int alpha) {
-		float h = hsl[0], s = hsl[1], l = hsl[2];
-		float r, g, b;
-		if (s == 0) {
-			r = g = b = l;
-		} else {
-			float q = l < 0.5f ? l * (1 + s) : l + s - l * s;
-			float p = 2 * l - q;
-			r = hue(p, q, h + 1f / 3f);
-			g = hue(p, q, h);
-			b = hue(p, q, h - 1f / 3f);
-		}
-		return Math.round(r * 255) << 24 | Math.round(g * 255) << 16 | Math.round(b * 255) << 8 | alpha;
-	}
-
-	private static float hue(float p, float q, float t) {
-		if (t < 0) t += 1;
-		if (t > 1) t -= 1;
-		if (t < 1f / 6f) return p + (q - p) * 6 * t;
-		if (t < 1f / 2f) return q;
-		if (t < 2f / 3f) return p + (q - p) * (2f / 3f - t) * 6;
-		return p;
 	}
 }
