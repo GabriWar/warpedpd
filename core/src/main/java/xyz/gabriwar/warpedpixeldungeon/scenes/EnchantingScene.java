@@ -83,6 +83,7 @@ import java.util.ArrayList;
  * drifting glyphs, and its two sockets lie beside it as cards, each an enchantment (or glyph)
  * named in its own colour with its level, what it does and what can be done to it. A new
  * weave is revealed for energy: three are shown as cards, and the one taken costs nothing more.
+ * The pedestal does not remember them: closed unchosen, they are gone.
  */
 public class EnchantingScene extends PixelScene {
 
@@ -90,7 +91,8 @@ public class EnchantingScene extends PixelScene {
 	// belongings, never detached - changes apply to it wherever it lives
 	private static Item target = null;
 
-	/** what seeing three weaves costs, to fill a socket or to replace what is in it; taking one is free */
+	/** what seeing three weaves costs, to fill a socket or to replace what is in it; taking one is
+	 *  free, and three left unchosen are lost */
 	public static final int REVEAL_COST = 20;
 	public static final int DISENCHANT_ENERGY = 20;
 
@@ -444,16 +446,13 @@ public class EnchantingScene extends PixelScene {
 			c.text( Messages.get( EnchantingScene.class, locked ? "second_desc"
 					: (p.isWeapon() ? "empty_desc_weapon" : "empty_desc_armor"), REVEAL_COST ) );
 			if (!locked){
-				final boolean waiting = p.waiting( -1 );
-				RedButton reveal = new RedButton( waiting ? Messages.get( EnchantingScene.class, "waiting" )
-						: Messages.get( EnchantingScene.class, "reveal", REVEAL_COST ), 6 ){
+				RedButton reveal = new RedButton( Messages.get( EnchantingScene.class, "reveal", REVEAL_COST ), 6 ){
 					@Override
 					protected void onClick() {
 						reveal( p, -1 );
 					}
 				};
-				reveal.enable( waiting || Dungeon.energy >= REVEAL_COST );
-				if (waiting) reveal.textColor( Window.TITLE_COLOR );
+				reveal.enable( Dungeon.energy >= REVEAL_COST );
 				c.buttons( reveal );
 			}
 			return c;
@@ -491,16 +490,13 @@ public class EnchantingScene extends PixelScene {
 			empower.textColor( color );
 		}
 
-		final boolean waiting = p.waiting( slot );
-		RedButton reroll = new RedButton( waiting ? Messages.get( EnchantingScene.class, "waiting" )
-				: Messages.get( EnchantingScene.class, "reroll", REVEAL_COST ), 6 ){
+		RedButton reroll = new RedButton( Messages.get( EnchantingScene.class, "reroll", REVEAL_COST ), 6 ){
 			@Override
 			protected void onClick() {
 				reveal( p, slot );
 			}
 		};
-		reroll.enable( waiting || Dungeon.energy >= REVEAL_COST );
-		if (waiting) reroll.textColor( Window.TITLE_COLOR );
+		reroll.enable( Dungeon.energy >= REVEAL_COST );
 
 		IconButton info = new IconButton( Icons.get( Icons.INFO ) ){
 			@Override
@@ -515,33 +511,26 @@ public class EnchantingScene extends PixelScene {
 	// ------------------------------------------------------------------ weaving
 
 	//a weave into the free socket (slot -1) or in place of the one in a socket: three are
-	//revealed for REVEAL_COST, then wait on the piece until one is taken
+	//revealed for REVEAL_COST and live only in the window that shows them
 	private <E> void reveal( Piece<E> p, int slot ){
-		if (!p.usable()){
+		if (!p.usable() || Dungeon.energy < REVEAL_COST || (slot >= 0 && p.at( slot ) == null)){
 			updateState();
 			return;
 		}
-		E[] opts = p.waiting( slot ) ? p.pending( slot ) : null;
-		if (opts == null){
-			if (Dungeon.energy < REVEAL_COST){
-				updateState();
-				return;
-			}
-			Dungeon.energy -= REVEAL_COST;
-			opts = p.roll();
-			p.pending( slot, opts );
-			saveAll();
-			bubbleEmitter.start( Speck.factory( Speck.BUBBLE ), 0.01f, 60 );
-			sparkEmitter.burst( SparkParticle.FACTORY, 12 );
-			Sample.INSTANCE.play( Assets.Sounds.READ, 0.6f );
-			updateState();
-		}
+		Dungeon.energy -= REVEAL_COST;
+		E[] opts = p.roll();
+		saveNeeded = true;
+		bubbleEmitter.start( Speck.factory( Speck.BUBBLE ), 0.01f, 60 );
+		sparkEmitter.burst( SparkParticle.FACTORY, 12 );
+		Sample.INSTANCE.play( Assets.Sounds.READ, 0.6f );
+		updateState();
 		addToFront( new WndWeaves<>( p, slot, opts ) );
 	}
 
-	//one of the three taken: free, the reveal paid for it
+	//one of the three taken: free, the reveal paid for it. The piece may have changed under the
+	//window (a weave elsewhere): three that no longer fit it are refused
 	private <E> void take( Piece<E> p, int slot, E[] opts, int index ){
-		if (!p.usable() || p.pending( slot ) != opts){
+		if (!p.usable() || !p.valid( opts )){
 			updateState();
 			return;
 		}
@@ -551,7 +540,6 @@ public class EnchantingScene extends PixelScene {
 				updateState();
 				return;
 			}
-			p.pending( slot, null );
 			p.weave( chosen );
 		} else {
 			E old = p.at( slot );
@@ -560,7 +548,6 @@ public class EnchantingScene extends PixelScene {
 				return;
 			}
 			p.level( chosen, p.level( old ) );
-			p.pending( slot, null );
 			p.replace( slot, chosen );
 		}
 		onWeave();
@@ -683,12 +670,6 @@ public class EnchantingScene extends PixelScene {
 		abstract String rawDesc( E e );
 		abstract int color( E e );
 
-		abstract E[] weaveOpts();
-		abstract void weaveOpts( E[] opts );
-		abstract E[] rerollOpts();
-		abstract int rerollSlot();
-		abstract void rerollOpts( E[] opts, int slot );
-
 		String name( E e ){
 			return Messages.titleCase( rawName( e ) );
 		}
@@ -713,22 +694,6 @@ public class EnchantingScene extends PixelScene {
 
 		boolean usable(){
 			return Dungeon.hero.belongings.contains( item() ) && !cursed();
-		}
-
-		/** the trio waiting for a socket: slot -1 the free one, else to replace that socket's */
-		E[] pending( int slot ){
-			if (slot < 0) return weaveOpts();
-			return rerollSlot() == slot ? rerollOpts() : null;
-		}
-
-		void pending( int slot, E[] opts ){
-			if (slot < 0) weaveOpts( opts );
-			else rerollOpts( opts, opts == null ? -1 : slot );
-		}
-
-		/** a paid trio still fits the piece (a weave elsewhere may have taken one of them) */
-		boolean waiting( int slot ){
-			return valid( pending( slot ) );
 		}
 	}
 
@@ -781,9 +746,6 @@ public class EnchantingScene extends PixelScene {
 		@Override
 		void unweave(){
 			wep.enchant( null );
-			wep.pendingWeaveOpts = null;
-			wep.pendingRerollOpts = null;
-			wep.pendingRerollSlot = -1;
 		}
 
 		@Override int maxLevel(){ return Weapon.Enchantment.MAX_LEVEL; }
@@ -793,17 +755,6 @@ public class EnchantingScene extends PixelScene {
 		@Override String desc( Weapon.Enchantment e ){ return e.desc(); }
 		@Override String rawDesc( Weapon.Enchantment e ){ return Messages.get( e, "desc" ); }
 		@Override int color( Weapon.Enchantment e ){ return e.glowing() == null ? VIOLET : e.glowing().textColor(); }
-
-		@Override Weapon.Enchantment[] weaveOpts(){ return wep.pendingWeaveOpts; }
-		@Override void weaveOpts( Weapon.Enchantment[] opts ){ wep.pendingWeaveOpts = opts; }
-		@Override Weapon.Enchantment[] rerollOpts(){ return wep.pendingRerollOpts; }
-		@Override int rerollSlot(){ return wep.pendingRerollSlot; }
-
-		@Override
-		void rerollOpts( Weapon.Enchantment[] opts, int slot ){
-			wep.pendingRerollOpts = opts;
-			wep.pendingRerollSlot = slot;
-		}
 	}
 
 	static class ArmorPiece extends Piece<Armor.Glyph> {
@@ -855,9 +806,6 @@ public class EnchantingScene extends PixelScene {
 		@Override
 		void unweave(){
 			arm.inscribe( null );
-			arm.pendingWeaveOpts = null;
-			arm.pendingRerollOpts = null;
-			arm.pendingRerollSlot = -1;
 		}
 
 		@Override int maxLevel(){ return Armor.Glyph.MAX_LEVEL; }
@@ -867,17 +815,6 @@ public class EnchantingScene extends PixelScene {
 		@Override String desc( Armor.Glyph e ){ return e.desc(); }
 		@Override String rawDesc( Armor.Glyph e ){ return Messages.get( e, "desc" ); }
 		@Override int color( Armor.Glyph e ){ return e.glowing() == null ? VIOLET : e.glowing().textColor(); }
-
-		@Override Armor.Glyph[] weaveOpts(){ return arm.pendingWeaveOpts; }
-		@Override void weaveOpts( Armor.Glyph[] opts ){ arm.pendingWeaveOpts = opts; }
-		@Override Armor.Glyph[] rerollOpts(){ return arm.pendingRerollOpts; }
-		@Override int rerollSlot(){ return arm.pendingRerollSlot; }
-
-		@Override
-		void rerollOpts( Armor.Glyph[] opts, int slot ){
-			arm.pendingRerollOpts = opts;
-			arm.pendingRerollSlot = slot;
-		}
 	}
 
 	// ------------------------------------------------------------------ the three weaves

@@ -97,6 +97,12 @@ public final class WarpedUpdates {
 
 	/** Newest first. */
 	public static final Entry[] ALL = {
+		new Entry( 10644, item( ItemSpriteSheet.MASTERWORK_CORE ), "Masterwork in three steps",
+				"Masterwork is 3 steps of a core each; the last doubles every bonus line.",
+				"Masterwork now takes three steps, one core each. The first and the second lift every rarity bonus line by a quarter, and the third, which still needs a legendary or exotic piece, doubles them. Gear masterworked before keeps its place: steps one to five count as the first step, six to nine as the second, and the tenth as the third." ),
+		new Entry( 10644, item( ItemSpriteSheet.STYLUS ), "Weaves are not kept",
+				"Three weaves left unchosen at the pedestal are lost.",
+				"The enchanting pedestal no longer keeps three weaves you paid to see: take one or they are gone, and seeing three more costs 20 again. Closing them unchosen still asks first." ),
 		new Entry( 10643, item( ItemSpriteSheet.STYLUS ), "A new enchanting pedestal",
 				"The pedestal is remade: socket cards, and 20 energy shows three new weaves.",
 				"The enchanting pedestal is remade. Your piece rests in a ring of glyphs in its enchantments' colours, and each of its two sockets is a card: the enchantment or glyph named in its own colour, its level as pips, what it does, and Empower, Reroll and full details at hand. Weaving a new one or rerolling one now costs 20 energy to see three, shown side by side with what each does, and the one you take is free. Leave without taking one and they wait on the piece, free to come back to." ),

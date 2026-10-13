@@ -58,9 +58,10 @@ public class Quality implements Bundlable {
 
 	public enum Family { WEAPON, ARMOR, MISSILE, WAND, RING, TRINKET, ARTIFACT }
 
-	public static final int MASTERWORK_MAX = 10;
+	//three steps, a core each: the first two lift every bonus line by a quarter, the third doubles them
+	public static final int MASTERWORK_MAX = 3;
 	//how many masterwork steps a common-to-rare base can take; the last needs legendary or exotic
-	public static final int MASTERWORK_CAP_LOW = 9;
+	public static final int MASTERWORK_CAP_LOW = 2;
 
 	public Rarity rarity = Rarity.COMMON;
 	public ItemType type = ItemType.GAMMA;
@@ -235,13 +236,18 @@ public class Quality implements Bundlable {
 
 	// ---------------------------------------------------------------- line values
 
-	/** effective roll of a line: each masterwork step closes a share of the gap left to the
-	 *  line's maximum, so a step always pays - a floor did nothing to an already-high roll */
+	/** effective roll of a line: its rolled share of the maximum, times the masterwork's
+	 *  {@link #lineScale} (so a fully masterworked line can read twice its maximum) */
 	public float roll( RarityLine kind ){
 		int i = lines.indexOf( kind );
 		if (i < 0) return 0f;
-		float base = rolls.get( i );
-		return base + (masterwork / (float) MASTERWORK_MAX) * rarity.closure() * (1f - base);
+		return rolls.get( i ) * lineScale();
+	}
+
+	/** what masterwork does to every bonus line: x1.25 after one step, x1.5 after two, doubled
+	 *  when full */
+	public float lineScale(){
+		return fullyMasterworked() ? 2f : 1f + 0.25f * masterwork;
 	}
 
 	public boolean has( RarityLine kind ){
@@ -334,9 +340,7 @@ public class Quality implements Bundlable {
 
 	/** cores the next step costs, 0 when no step is possible */
 	public int masterworkCost(){
-		if (masterwork >= masterworkCap()) return 0;
-		int next = masterwork + 1;
-		return next <= 5 ? 1 : next <= 9 ? 2 : 3;
+		return masterwork >= masterworkCap() ? 0 : 1;
 	}
 
 	/** one masterwork step: lines rise through {@link #roll}; a common base gains a line
@@ -724,6 +728,8 @@ public class Quality implements Bundlable {
 	private static final String RARITY = "rarity";
 	private static final String TYPE = "type";
 	private static final String MASTERWORK = "masterwork";
+	//written beside the masterwork since it has three steps: a save without it counted ten
+	private static final String MASTERWORK_STEPS = "masterwork_steps";
 	private static final String KILLS = "kills";
 	private static final String GRANTED = "granted";
 	private static final String LINES = "lines";
@@ -734,6 +740,7 @@ public class Quality implements Bundlable {
 		bundle.put( RARITY, rarity );
 		bundle.put( TYPE, type );
 		bundle.put( MASTERWORK, masterwork );
+		bundle.put( MASTERWORK_STEPS, MASTERWORK_MAX );
 		bundle.put( KILLS, kills );
 		bundle.put( GRANTED, granted );
 		String[] names = new String[lines.size()];
@@ -751,6 +758,12 @@ public class Quality implements Bundlable {
 		rarity = bundle.getEnum( RARITY, Rarity.class );
 		type = bundle.getEnum( TYPE, ItemType.class );
 		masterwork = bundle.getInt( MASTERWORK );
+		//a save from when masterwork had ten steps: one to five are the first step, six to
+		//nine the second, the tenth the third
+		if (!bundle.contains( MASTERWORK_STEPS ) && masterwork > 0){
+			masterwork = masterwork >= 10 ? 3 : masterwork >= 6 ? 2 : 1;
+		}
+		masterwork = Math.min( masterwork, MASTERWORK_MAX );
 		kills = bundle.getInt( KILLS );
 		granted = bundle.getBoolean( GRANTED );
 		lines.clear();

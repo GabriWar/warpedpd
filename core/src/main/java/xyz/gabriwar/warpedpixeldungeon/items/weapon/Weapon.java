@@ -249,9 +249,6 @@ abstract public class Weapon extends KindOfWeapon {
 	private static final String AVAILABLE_USES  = "available_uses";
 	private static final String ENCHANTMENT	    = "enchantment";
 	private static final String ENCHANTMENT_2  = "enchantment2";
-	private static final String PENDING_WEAVE   = "pending_weave_opts";
-	private static final String PENDING_REROLL  = "pending_reroll_opts";
-	private static final String PENDING_REROLL_SLOT = "pending_reroll_slot";
 	private static final String ENCHANT_HARDENED = "enchant_hardened";
 	private static final String CURSE_INFUSION_BONUS = "curse_infusion_bonus";
 	private static final String MASTERY_POTION_BONUS = "mastery_potion_bonus";
@@ -264,9 +261,6 @@ abstract public class Weapon extends KindOfWeapon {
 		bundle.put( AVAILABLE_USES, availableUsesToID );
 		bundle.put( ENCHANTMENT, enchantment );
 		bundle.put( ENCHANTMENT_2, enchantment2 );
-		if (pendingWeaveOpts != null)  bundle.put( PENDING_WEAVE, java.util.Arrays.asList( pendingWeaveOpts ) );
-		if (pendingRerollOpts != null) bundle.put( PENDING_REROLL, java.util.Arrays.asList( pendingRerollOpts ) );
-		bundle.put( PENDING_REROLL_SLOT, pendingRerollSlot );
 		bundle.put( ENCHANT_HARDENED, enchantHardened );
 		bundle.put( CURSE_INFUSION_BONUS, curseInfusionBonus );
 		bundle.put( MASTERY_POTION_BONUS, masteryPotionBonus );
@@ -280,9 +274,6 @@ abstract public class Weapon extends KindOfWeapon {
 		availableUsesToID = bundle.getFloat( AVAILABLE_USES );
 		enchantment = (Enchantment)bundle.get( ENCHANTMENT );
 		enchantment2 = (Enchantment)bundle.get( ENCHANTMENT_2 );
-		pendingWeaveOpts = restorePendingOpts( bundle, PENDING_WEAVE );
-		pendingRerollOpts = restorePendingOpts( bundle, PENDING_REROLL );
-		pendingRerollSlot = bundle.contains( PENDING_REROLL_SLOT ) ? bundle.getInt( PENDING_REROLL_SLOT ) : -1;
 		enchantHardened = bundle.getBoolean( ENCHANT_HARDENED );
 		curseInfusionBonus = bundle.getBoolean( CURSE_INFUSION_BONUS );
 		masteryPotionBonus = bundle.getBoolean( MASTERY_POTION_BONUS );
@@ -290,21 +281,6 @@ abstract public class Weapon extends KindOfWeapon {
 		augment = bundle.getEnum(AUGMENT, Augment.class);
 	}
 	
-	//options already rolled at an enchanting pedestal but not yet chosen.
-	//persisted so cancelling (or reloading) can't fish for a better trio
-	public Enchantment[] pendingWeaveOpts  = null;
-	public Enchantment[] pendingRerollOpts = null;
-	public int pendingRerollSlot = -1;
-
-	private static Enchantment[] restorePendingOpts( Bundle bundle, String key ){
-		if (!bundle.contains( key )) return null;
-		java.util.ArrayList<Enchantment> opts = new java.util.ArrayList<>();
-		for (com.watabou.utils.Bundlable b : bundle.getCollection( key )){
-			opts.add( (Enchantment) b );
-		}
-		return opts.size() == 3 ? opts.toArray( new Enchantment[0] ) : null;
-	}
-
 	@Override
 	public void reset() {
 		super.reset();

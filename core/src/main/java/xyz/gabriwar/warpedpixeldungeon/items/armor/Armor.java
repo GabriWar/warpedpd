@@ -188,9 +188,6 @@ public class Armor extends EquipableItem {
 	private static final String GLYPH			= "glyph";
 	private static final String GLYPH_2			= "glyph2";
 	private static final String GLYPH_HARDENED	= "glyph_hardened";
-	private static final String PENDING_WEAVE   = "pending_weave_opts";
-	private static final String PENDING_REROLL  = "pending_reroll_opts";
-	private static final String PENDING_REROLL_SLOT = "pending_reroll_slot";
 	private static final String CURSE_INFUSION_BONUS = "curse_infusion_bonus";
 	private static final String MASTERY_POTION_BONUS = "mastery_potion_bonus";
 	private static final String SEAL            = "seal";
@@ -203,9 +200,6 @@ public class Armor extends EquipableItem {
 		bundle.put( AVAILABLE_USES, availableUsesToID );
 		bundle.put( GLYPH, glyph );
 		bundle.put( GLYPH_2, glyph2 );
-		if (pendingWeaveOpts != null)  bundle.put( PENDING_WEAVE, java.util.Arrays.asList( pendingWeaveOpts ) );
-		if (pendingRerollOpts != null) bundle.put( PENDING_REROLL, java.util.Arrays.asList( pendingRerollOpts ) );
-		bundle.put( PENDING_REROLL_SLOT, pendingRerollSlot );
 		bundle.put( GLYPH_HARDENED, glyphHardened );
 		bundle.put( CURSE_INFUSION_BONUS, curseInfusionBonus );
 		bundle.put( MASTERY_POTION_BONUS, masteryPotionBonus );
@@ -223,9 +217,6 @@ public class Armor extends EquipableItem {
 		if (glyph2 != null && (glyph == null || glyph2.getClass() == glyph.getClass())){
 			promoteGlyphSlots();
 		}
-		pendingWeaveOpts = restorePendingOpts( bundle, PENDING_WEAVE );
-		pendingRerollOpts = restorePendingOpts( bundle, PENDING_REROLL );
-		pendingRerollSlot = bundle.contains( PENDING_REROLL_SLOT ) ? bundle.getInt( PENDING_REROLL_SLOT ) : -1;
 		glyphHardened = bundle.getBoolean(GLYPH_HARDENED);
 		curseInfusionBonus = bundle.getBoolean( CURSE_INFUSION_BONUS );
 		masteryPotionBonus = bundle.getBoolean( MASTERY_POTION_BONUS );
@@ -950,21 +941,6 @@ public class Armor extends EquipableItem {
 	public boolean hasCurseGlyph(){
 		return (glyph != null && glyph.curse())
 				|| (glyph2 != null && glyph2.curse());
-	}
-
-	//options already rolled at an enchanting pedestal but not yet chosen.
-	//persisted so cancelling (or reloading) can't fish for a better trio
-	public Glyph[] pendingWeaveOpts  = null;
-	public Glyph[] pendingRerollOpts = null;
-	public int pendingRerollSlot = -1;
-
-	private static Glyph[] restorePendingOpts( Bundle bundle, String key ){
-		if (!bundle.contains( key )) return null;
-		java.util.ArrayList<Glyph> opts = new java.util.ArrayList<>();
-		for (com.watabou.utils.Bundlable b : bundle.getCollection( key )){
-			opts.add( (Glyph) b );
-		}
-		return opts.size() == 3 ? opts.toArray( new Glyph[0] ) : null;
 	}
 
 	private static ItemSprite.Glowing HOLY = new ItemSprite.Glowing( 0xFFFF00 );

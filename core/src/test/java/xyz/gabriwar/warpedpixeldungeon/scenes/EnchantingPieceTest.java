@@ -48,38 +48,25 @@ public class EnchantingPieceTest {
 	}
 
 	@Test
-	public void aRevealedTrioWaitsOnItsSocket(){
+	public void threeRevealedFitThePieceUntilItChanges(){
 		Longsword sword = new Longsword();
 		EnchantingScene.WeaponPiece p = new EnchantingScene.WeaponPiece( sword );
 		assertNull( p.at( 0 ) );
-		assertFalse( p.waiting( -1 ) );
 
 		Weapon.Enchantment[] opts = p.roll();
 		assertEquals( 3, opts.length );
 		assertNotEquals( opts[0].getClass(), opts[1].getClass() );
 		assertNotEquals( opts[0].getClass(), opts[2].getClass() );
 		assertNotEquals( opts[1].getClass(), opts[2].getClass() );
-		p.pending( -1, opts );
-		assertTrue( p.waiting( -1 ) );
-		//a reroll trio is another socket's: the free socket's stays apart
-		assertFalse( p.waiting( 0 ) );
+		assertTrue( p.valid( opts ) );
 
-		//taking one fills the first socket, and the trio no longer fits the piece
-		p.pending( -1, null );
+		//taking one fills the first socket, and the three no longer fit the piece
 		p.weave( opts[1] );
 		assertNotNull( p.at( 0 ) );
 		assertEquals( 1, p.filled() );
-		p.pending( -1, opts );
-		assertFalse( "a trio holding what the piece has is stale", p.waiting( -1 ) );
-
-		//a reroll trio waits on its own socket only
-		Weapon.Enchantment[] re = p.roll();
-		p.pending( 0, re );
-		assertTrue( p.waiting( 0 ) );
-		assertFalse( p.waiting( 1 ) );
-		p.pending( 0, null );
-		assertFalse( p.waiting( 0 ) );
-		assertEquals( -1, sword.pendingRerollSlot );
+		assertFalse( "three holding what the piece has are refused", p.valid( opts ) );
+		//and a new reveal never offers what the piece already holds
+		for (Weapon.Enchantment o : p.roll()) assertNotEquals( opts[1].getClass(), o.getClass() );
 	}
 
 	@Test
@@ -87,14 +74,12 @@ public class EnchantingPieceTest {
 		LeatherArmor leather = new LeatherArmor();
 		EnchantingScene.ArmorPiece p = new EnchantingScene.ArmorPiece( leather );
 		Armor.Glyph[] opts = p.roll();
-		p.pending( -1, opts );
-		assertTrue( p.waiting( -1 ) );
+		assertTrue( p.valid( opts ) );
 		p.weave( opts[0] );
 		assertEquals( opts[0], p.at( 0 ) );
 		assertTrue( p.hasGood() );
 		p.unweave();
 		assertNull( p.at( 0 ) );
-		assertNull( leather.pendingWeaveOpts );
 	}
 
 	@Test

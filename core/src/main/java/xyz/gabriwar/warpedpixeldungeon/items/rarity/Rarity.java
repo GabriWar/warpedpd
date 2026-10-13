@@ -82,11 +82,6 @@ public enum Rarity {
 		}
 	}
 
-	/** how much of the gap to a line's maximum one masterwork step closes */
-	public float closure(){
-		return ordinal() >= LEGENDARY.ordinal() ? 1.0f : this == RARE ? 0.8f : 0.6f;
-	}
-
 	public float weight( int depth ){
 		if (this == LEGENDARY && depth < 5) return 0;
 		if (this == EXOTIC && depth < 15) return 0;
