@@ -97,6 +97,9 @@ public final class WarpedUpdates {
 
 	/** Newest first. */
 	public static final Entry[] ALL = {
+		new Entry( 10647, item( ItemSpriteSheet.SCROLL_HOLDER ), "Scholars' shelves",
+				"Searched bookshelves give a scroll 1 time in 20, and only five useful kinds.",
+				"A bookshelf emptied by a search now holds a scroll 1 time in 20 instead of 1 in 10, but always a scholar's kind: Identify, Remove Curse, Recharging, Transmutation or Magic Mapping." ),
 		new Entry( 10646, icon( Icons.LANGS ), "Back to English",
 				"This update starts the game in English once; switching language now asks first.",
 				"This update starts the game in English once, since Warped is written in English and much of it is not translated yet. You can pick another language again in the settings, and it stays; changing the language now asks you to confirm first." ),

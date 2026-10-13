@@ -4021,6 +4021,23 @@ public class Hero extends Char {
 		super.onAttackComplete();
 	}
 	
+	//a bookshelf a search empties holds a scroll 1 time in 20, and only a scholar's sort: what
+	//names, cleanses, changes or charges things, or maps the floor. Drawn apart from the scroll
+	//deck (Generator), so shelves never thin out the scrolls the dungeon drops
+	public static final float SHELF_SCROLL_CHANCE = 0.05f;
+	private static final Class<?>[] SHELF_SCROLLS = {
+			xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfIdentify.class,
+			xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfRemoveCurse.class,
+			xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfRecharging.class,
+			xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTransmutation.class,
+			xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfMagicMapping.class };
+	//their weights as the scroll deck has them
+	private static final float[] SHELF_WEIGHTS = { 3, 2, 2, 1, 1 };
+
+	public static Item shelfScroll(){
+		return (Item) com.watabou.utils.Reflection.newInstance( SHELF_SCROLLS[Random.chances( SHELF_WEIGHTS )] );
+	}
+
 	//a fight in a doorway or a corridor, or with two monsters at your side: where you stand matters
 	private boolean crampedFight(){
 		int t = Dungeon.level.map[pos];
@@ -4220,8 +4237,8 @@ public class Hero extends Char {
 						xyz.gabriwar.warpedpixeldungeon.levels.Level.set( curr, Terrain.EMPTY_BOOKSHELF );
 						GameScene.updateMap( curr );
 						smthFound = true;
-						if (Random.Float() < 0.10f){
-							Dungeon.level.drop( xyz.gabriwar.warpedpixeldungeon.items.Generator.random( xyz.gabriwar.warpedpixeldungeon.items.Generator.Category.SCROLL ), pos ).sprite.drop();
+						if (Random.Float() < SHELF_SCROLL_CHANCE){
+							Dungeon.level.drop( shelfScroll(), pos ).sprite.drop();
 						}
 						//the same pages a burning shelf can give up, without needing to burn it
 						if (Random.Float() < 0.02f && !Dungeon.LimitedDrops.VAULT_PAGE.dropped()){
