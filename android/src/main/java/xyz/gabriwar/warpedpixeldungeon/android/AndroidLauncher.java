@@ -59,6 +59,30 @@ public class AndroidLauncher extends AndroidApplication {
 	
 	private static AndroidPlatformSupport support;
 	
+	//what a crash report needs beside the stack: the build (tools/retrace.py picks that build's R8
+	//map by its code, a release's line numbers mean nothing without it), the phone, and where the
+	//game was. Each part on its own: a header that fails must not cost the report
+	@SuppressWarnings("deprecation")
+	private String crashHeader(){
+		StringBuilder sb = new StringBuilder();
+		try {
+			android.content.pm.PackageInfo pi = getPackageManager().getPackageInfo( getPackageName(), 0 );
+			long code = Build.VERSION.SDK_INT >= 28 ? pi.getLongVersionCode() : pi.versionCode;
+			sb.append( "Version: " ).append( pi.versionName ).append( " (" ).append( code ).append( ")\n" );
+		} catch (Throwable ignored) {}
+		sb.append( "Android: " ).append( Build.VERSION.RELEASE ).append( " (API " ).append( Build.VERSION.SDK_INT ).append( ")\n" );
+		sb.append( "Device: " ).append( Build.MANUFACTURER ).append( ' ' ).append( Build.MODEL ).append( '\n' );
+		try {
+			sb.append( "Place: depth " ).append( xyz.gabriwar.warpedpixeldungeon.Dungeon.depth )
+					.append( ", branch " ).append( xyz.gabriwar.warpedpixeldungeon.Dungeon.branch );
+			if (xyz.gabriwar.warpedpixeldungeon.net.NetManager.isActive()){
+				sb.append( xyz.gabriwar.warpedpixeldungeon.net.NetManager.isHost() ? ", co-op host" : ", co-op guest" );
+			}
+			sb.append( '\n' );
+		} catch (Throwable ignored) {}
+		return sb.append( '\n' ).toString();
+	}
+
 	@SuppressLint("SetTextI18n")
 	@Override
 	protected void onCreate (Bundle savedInstanceState) {
@@ -70,7 +94,7 @@ public class AndroidLauncher extends AndroidApplication {
 			try {
 				StringWriter sw = new StringWriter();
 				throwable.printStackTrace(new PrintWriter(sw));
-				String stackTrace = "Thread: " + thread.getName() + "\n\n" + sw.toString();
+				String stackTrace = crashHeader() + "Thread: " + thread.getName() + "\n\n" + sw.toString();
 
 				Intent intent = new Intent(AndroidLauncher.this, CrashReportActivity.class);
 				intent.putExtra(CrashReportActivity.EXTRA_CRASH_LOG, stackTrace);

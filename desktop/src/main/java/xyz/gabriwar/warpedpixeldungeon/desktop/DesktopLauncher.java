@@ -49,6 +49,44 @@ import java.util.Locale;
 
 public class DesktopLauncher {
 
+	//where the game keeps its files, for a crash report written next to them (crashBase stays
+	//null until it is known: a crash before that goes to the temp folder)
+	private static String crashBase = null;
+	private static Files.FileType crashType = null;
+
+	//the build, the computer and where the game was, above the stack: the version's code says
+	//which build's lines the stack names
+	private static String crashHeader(){
+		StringBuilder sb = new StringBuilder();
+		sb.append( "Version: " ).append( Game.version ).append( " (" ).append( Game.versionCode ).append( ")\n" );
+		sb.append( "OS: " ).append( System.getProperty( "os.name" ) ).append( ' ' ).append( System.getProperty( "os.version" ) )
+				.append( ' ' ).append( System.getProperty( "os.arch" ) ).append( '\n' );
+		sb.append( "Java: " ).append( System.getProperty( "java.version" ) ).append( '\n' );
+		try {
+			sb.append( "Place: depth " ).append( xyz.gabriwar.warpedpixeldungeon.Dungeon.depth )
+					.append( ", branch " ).append( xyz.gabriwar.warpedpixeldungeon.Dungeon.branch );
+			if (xyz.gabriwar.warpedpixeldungeon.net.NetManager.isActive()){
+				sb.append( xyz.gabriwar.warpedpixeldungeon.net.NetManager.isHost() ? ", co-op host" : ", co-op guest" );
+			}
+			sb.append( '\n' );
+		} catch (Throwable ignored) {}
+		return sb.append( '\n' ).toString();
+	}
+
+	//the path it was written to, or null
+	private static String saveCrashReport( String report ){
+		try {
+			java.io.File f = crashBase != null
+					? new Lwjgl3FileHandle( crashBase + "crash-report.txt", crashType ).file()
+					: new java.io.File( System.getProperty( "java.io.tmpdir" ), "warped-crash-report.txt" );
+			if (f.getParentFile() != null) f.getParentFile().mkdirs();
+			java.nio.file.Files.write( f.toPath(), report.getBytes( java.nio.charset.StandardCharsets.UTF_8 ) );
+			return f.getAbsolutePath();
+		} catch (Throwable t) {
+			return null;
+		}
+	}
+
 	public static void main (String[] args) {
 
 		if (!DesktopLaunchValidator.verifyValidJVMState(args)){
@@ -81,6 +119,8 @@ public class DesktopLauncher {
 				throwable.printStackTrace(pw);
 				pw.flush();
 				String exceptionMsg = sw.toString();
+				//the whole report, untrimmed, in the game's folder: the box below shortens it
+				String saved = saveCrashReport( crashHeader() + "Thread: " + thread.getName() + "\n\n" + exceptionMsg );
 
 				//shorten/simplify exception message to make it easier to fit into a message box
 				exceptionMsg = exceptionMsg.replaceAll("\\(.*:([0-9]*)\\)", "($1)");
@@ -102,14 +142,16 @@ public class DesktopLauncher {
 							title + " was not able to initialize its graphics display, sorry about that!\n\n" +
 									"This usually happens when your graphics card has misconfigured drivers or does not support openGL 2.0+.\n\n" +
 									"If you are certain the game should work on your computer, please message the developer (reportwpd@gabriwar.xyz)\n\n" +
-									"version: " + Game.version + "\n" +
+									"version: " + Game.version + " (" + Game.versionCode + ")\n" +
+									(saved != null ? "full report: " + saved + "\n\n" : "") +
 									exceptionMsg,
 							"ok", "error", false);
 				} else {
 					TinyFileDialogs.tinyfd_messageBox(title + " Has Crashed!",
 							title + " has run into an error it cannot recover from and has crashed, sorry about that!\n\n" +
 									"If you could, please email this error message to the developer (reportwpd@gabriwar.xyz):\n\n" +
-									"version: " + Game.version + "\n" +
+									"version: " + Game.version + " (" + Game.versionCode + ")\n" +
+									(saved != null ? "full report: " + saved + "\n\n" : "") +
 									exceptionMsg,
 							"ok", "error", false);
 				}
@@ -198,6 +240,8 @@ public class DesktopLauncher {
 		}
 
 		config.setPreferencesConfig( basePath, baseFileType );
+		crashBase = basePath;
+		crashType = baseFileType;
 		WPDSettings.set( new Lwjgl3Preferences( new Lwjgl3FileHandle(basePath + WPDSettings.DEFAULT_PREFS_FILE, baseFileType) ));
 		FileUtils.setDefaultFileProperties( baseFileType, basePath );
 		if (screenshots != null && System.getProperty("wpd.screenshots.lang") != null) {

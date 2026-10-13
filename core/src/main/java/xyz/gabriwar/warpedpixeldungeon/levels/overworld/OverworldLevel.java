@@ -2890,6 +2890,9 @@ public class OverworldLevel extends Level {
 		l.plants = new SparseArray<>();
 		l.traps = new SparseArray<>();
 		l.customTiles = new ArrayList<>();
+		//the terrain overlays too: GameScene walks all three, and a guest's level without this
+		//one crashed opening the game scene
+		l.customTerrain = new ArrayList<>();
 		l.customWalls = new ArrayList<>();
 		l.butter = new SparseArray<>();
 		l.naturalPlantOrder = new ArrayList<>();

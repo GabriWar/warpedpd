@@ -97,6 +97,9 @@ public final class WarpedUpdates {
 
 	/** Newest first. */
 	public static final Entry[] ALL = {
+		new Entry( 10649, icon( Icons.WARNING ), "Co-op crash fixed",
+				"Fixed a crash for a co-op guest arriving out in the world.",
+				"Fixed a crash that could close the game for a co-op guest as the world above opened. Crash reports now also say which version crashed, on what device and where in the game, so fixes come faster." ),
 		new Entry( 10648, item( ItemSpriteSheet.SCROLL_HOLDER ), "Scholars' shelves",
 				"Searched bookshelves give a scroll 8% of the time, and only five useful kinds.",
 				"A bookshelf emptied by a search now holds a scroll 8% of the time instead of 10%, but always a scholar's kind: Identify, Remove Curse, Recharging, Transmutation or Magic Mapping." ),
