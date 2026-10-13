@@ -97,6 +97,9 @@ public final class WarpedUpdates {
 
 	/** Newest first. */
 	public static final Entry[] ALL = {
+		new Entry( 10643, item( ItemSpriteSheet.STYLUS ), "A new enchanting pedestal",
+				"The pedestal is remade: socket cards, and 20 energy shows three new weaves.",
+				"The enchanting pedestal is remade. Your piece rests in a ring of glyphs in its enchantments' colours, and each of its two sockets is a card: the enchantment or glyph named in its own colour, its level as pips, what it does, and Empower, Reroll and full details at hand. Weaving a new one or rerolling one now costs 20 energy to see three, shown side by side with what each does, and the one you take is free. Leave without taking one and they wait on the piece, free to come back to." ),
 		new Entry( 10642, item( ItemSpriteSheet.SWORD ), "Strength lines that work",
 				"A strength line takes off 1, or 2 on a good roll, on every weapon and armor.",
 				"A bonus line that lowers the strength a piece needs now takes off what it says: 1, or 2 when it rolled at least half. It never reads -0 any more, and the guns, bows, Greataxe and other pieces that ignored the line now get it too." ),

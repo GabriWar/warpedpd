@@ -643,8 +643,8 @@ public final class BasicsDemos {
 				.turns( 2 );
 	}
 
-	//The pedestal weaves a new enchantment for 40 energy (EnchantingScene.INFUSE_COST) and empowers
-	//one by a level for 10, 20, 30, 40, then 50 (EnchantingScene.empowerCost).
+	//The pedestal shows three weaves for 20 energy, the one taken free (EnchantingScene.REVEAL_COST),
+	//and empowers one by a level for 10, 20, 30, 40, then 50 (EnchantingScene.empowerCost).
 	private static void enchanting( DemoBook book ){
 		book.demo( "basics_enchanting" ).under( "works on gear for alchemical energy" )
 				.stage( Demo.Region.CITY,
@@ -659,7 +659,7 @@ public final class BasicsDemos {
 				.operate( "you", 3, 2 )
 				.beat()
 				.burst( GuideEffect.ARCANE, 3, 2 )
-				.status( "you", "minus_forty", CharSprite.NEUTRAL )
+				.status( "you", "minus_twenty", CharSprite.NEUTRAL )
 				.turns( 2 )
 				.caption( "empower" )
 				.operate( "you", 3, 2 )

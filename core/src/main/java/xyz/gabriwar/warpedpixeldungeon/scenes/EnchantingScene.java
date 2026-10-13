@@ -50,13 +50,14 @@ import xyz.gabriwar.warpedpixeldungeon.ui.Icons;
 import xyz.gabriwar.warpedpixeldungeon.ui.ItemSlot;
 import xyz.gabriwar.warpedpixeldungeon.ui.RedButton;
 import xyz.gabriwar.warpedpixeldungeon.ui.RenderedTextBlock;
-import xyz.gabriwar.warpedpixeldungeon.ui.StyledButton;
+import xyz.gabriwar.warpedpixeldungeon.ui.Window;
 import xyz.gabriwar.warpedpixeldungeon.windows.IconTitle;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndEnergizeItem;
+import xyz.gabriwar.warpedpixeldungeon.windows.WndGuideNode;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndInfoItem;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
-import xyz.gabriwar.warpedpixeldungeon.windows.WndGuideNode;
+import xyz.gabriwar.warpedpixeldungeon.windows.WndTitledMessage;
 import com.watabou.gltextures.TextureCache;
 import com.watabou.input.GameAction;
 import com.watabou.glwrap.Blending;
@@ -78,9 +79,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 /**
- * The enchanting pedestal's fullscreen crafting scene, in the style of the
- * alchemy scene: lay a weapon on the pedestal, then empower, reroll or weave
- * its enchantments using alchemical energy.
+ * The enchanting pedestal's fullscreen scene: the piece lies on the pedestal in a ring of
+ * drifting glyphs, and its two sockets lie beside it as cards, each an enchantment (or glyph)
+ * named in its own colour with its level, what it does and what can be done to it. A new
+ * weave is revealed for energy: three are shown as cards, and the one taken costs nothing more.
  */
 public class EnchantingScene extends PixelScene {
 
@@ -88,7 +90,8 @@ public class EnchantingScene extends PixelScene {
 	// belongings, never detached - changes apply to it wherever it lives
 	private static Item target = null;
 
-	public static final int INFUSE_COST = 40;
+	/** what seeing three weaves costs, to fill a socket or to replace what is in it; taking one is free */
+	public static final int REVEAL_COST = 20;
 	public static final int DISENCHANT_ENERGY = 20;
 
 	public static int empowerCost( int level ){
@@ -96,32 +99,37 @@ public class EnchantingScene extends PixelScene {
 		return 10 * (level + 1);
 	}
 
-	public static int rerollCost( int level ){
-		//rerolling keeps the slot's level, so pricier the more empowered it is
-		return 20 + 10 * level;
-	}
+	private static final int SOCKETS = 2;
+	private static final int GAP = 4;
+	private static final int TOP_BAR = 22;
+	private static final int SLOT_SIZE = 32;
+	private static final int HALO_R = 30;
+	//a cursed piece's red, the pedestal's violet, and the faded text of an empty socket
+	private static final int CURSE_RED = 0xCC3344, VIOLET = 0x9966FF, FADED = 0x8A7FA0;
 
 	private Emitter bubbleEmitter;
 	private Emitter lowerBubbles;
 	private Emitter sparkEmitter;
 	private SkinnedBlock water;
 
+	private RenderedTextBlock energyText;
 	private Image energyIcon;
-	private RenderedTextBlock energyLeft;
 	private IconButton energyAdd;
+	private NinePatch energyBg;
 
+	private Halo halo;
 	private WeaponButton weaponSlot;
-	private RenderedTextBlock desc;
-	private final ArrayList<Component> actionElems = new ArrayList<>();
+	private RenderedTextBlock itemName;
+	private RenderedTextBlock itemSub;
+	private final ArrayList<Component> stateElems = new ArrayList<>();
 
-	private static int centerW;
-	private int pw;
-	private int left;
-	private float actionTop;
-
-	private static final int BTN_SIZE   = 28;
-	private static final int BTN_HEIGHT = 16;
-	private static final int GAP        = 2;
+	//the pedestal's centre, and the box the socket cards stack in
+	private float px, py;
+	private float cardsX, cardsY, cardsW, cardsH;
+	private float underItemY, nameW;
+	//a wide screen: the pedestal on the left, the cards beside it. A tall one stacks them
+	private boolean wide;
+	private float contentBottom;
 
 	{
 		inGameScene = true;
@@ -135,10 +143,7 @@ public class EnchantingScene extends PixelScene {
 		int h = Camera.main.height;
 		RectF insets = getCommonInsets();
 
-		water = new SkinnedBlock(
-				w, h,
-				Dungeon.level.waterTex() ){
-
+		water = new SkinnedBlock( w, h, Dungeon.level.waterTex() ){
 			@Override
 			protected NoosaScript script() {
 				return NoosaScriptNoLighting.get();
@@ -153,134 +158,40 @@ public class EnchantingScene extends PixelScene {
 			}
 		};
 		water.autoAdjust = true;
-		add(water);
+		add( water );
 
 		//a violet veil over the water, so the pedestal feels arcane rather than damp
-		ColorBlock veil = new ColorBlock( w, h, 0x66341a66 );
-		add(veil);
+		add( new ColorBlock( w, h, 0x66341a66 ) );
 
-		Image im = new Image(TextureCache.createGradient(0x662a1144, 0x88221144, 0xAA190b33, 0xCC120722, 0xFF0a0414));
+		Image im = new Image( TextureCache.createGradient( 0x662a1144, 0x88221144, 0xAA190b33, 0xCC120722, 0xFF0a0414 ) );
 		im.angle = 90;
 		im.x = w;
-		im.scale.x = h/5f;
+		im.scale.x = h / 5f;
 		im.scale.y = w;
-		add(im);
+		add( im );
 
+		float left = insets.left, top = insets.top;
 		w -= insets.left + insets.right;
 		h -= insets.top + insets.bottom;
 
+		lowerBubbles = new Emitter();
+		lowerBubbles.pos( 0, 0, Camera.main.width, Camera.main.height );
+		lowerBubbles.autoKill = false;
+		add( lowerBubbles );
+
+		//the top bar: energy on the left, the name in the middle, the guide and the way out on the right
 		ExitButton btnExit = new ExitButton(){
 			@Override
 			protected void onClick() {
-				Game.switchScene(GameScene.class);
+				Game.switchScene( GameScene.class );
 			}
 		};
-		btnExit.setPos( insets.left + w - btnExit.width(), insets.top );
+		btnExit.setPos( left + w - btnExit.width(), top );
 		add( btnExit );
 
-		bubbleEmitter = new Emitter();
-		add(bubbleEmitter);
-
-		lowerBubbles = new Emitter();
-		add(lowerBubbles);
-
-		IconTitle title = new IconTitle( new ItemSprite(ItemSpriteSheet.STYLUS),
-				Messages.titleCase(Messages.get(EnchantingStation.class, "name")) );
-		title.setSize(200, 0);
-		title.setPos(
-				insets.left + (w - title.reqWidth()) / 2f,
-				insets.top + (20 - title.height()) / 2f
-		);
-		align(title);
-		add(title);
-
-		pw = Math.min(50 + w/2, 150);
-		left = (int)(insets.left) + (w - pw)/2;
-		centerW = left + pw/2;
-
-		int pos = (int)(insets.top) + (h - 160)/2;
-
-		desc = PixelScene.renderTextBlock(6);
-		desc.maxWidth(pw);
-		desc.text( Messages.get(EnchantingScene.class, "text") );
-		desc.setPos(left + (pw - desc.width())/2, pos);
-		add(desc);
-
-		pos += desc.height() + 6;
-
-		NinePatch inputBG = Chrome.get(Chrome.Type.TOAST_TR);
-		inputBG.x = left + (pw - BTN_SIZE - 8)/2f;
-		inputBG.y = pos;
-		inputBG.size(BTN_SIZE+8, BTN_SIZE+8);
-		add(inputBG);
-
-		weaponSlot = new WeaponButton();
-		weaponSlot.setRect(inputBG.x + 4, pos + 4, BTN_SIZE, BTN_SIZE);
-		add(weaponSlot);
-
-		actionTop = pos + BTN_SIZE + 8 + 4;
-
-		if (Camera.main.height >= 280){
-			centerW = (int)(insets.left) + w/2;
-		}
-
-		bubbleEmitter.pos(0,
-				0,
-				2*centerW,
-				Camera.main.height);
-		bubbleEmitter.autoKill = false;
-
-		lowerBubbles.pos(0,
-				0,
-				2*centerW,
-				Camera.main.height);
-		lowerBubbles.autoKill = false;
-
-		String energyText = Messages.get(AlchemyScene.class, "energy") + " " + Dungeon.energy;
-
-		energyLeft = PixelScene.renderTextBlock(energyText, 9);
-		energyLeft.setPos(
-				centerW - energyLeft.width()/2,
-				insets.top + h - 8 - energyLeft.height()
-		);
-		energyLeft.hardlight(0x44CCFF);
-		add(energyLeft);
-
-		energyIcon = new ItemSprite( ItemSpriteSheet.ENERGY );
-		energyIcon.x = energyLeft.left() - energyIcon.width();
-		energyIcon.y = energyLeft.top() - (energyIcon.height() - energyLeft.height())/2;
-		align(energyIcon);
-		add(energyIcon);
-
-		energyAdd = new IconButton(Icons.get(Icons.PLUS)){
+		IconButton btnGuide = new IconButton( new ItemSprite( ItemSpriteSheet.GUIDE_PAGE ) ){
 			@Override
 			protected void onClick() {
-				WndEnergizeItem.openItemSelector();
-			}
-
-			@Override
-			public GameAction keyAction() {
-				return WPDAction.TAG_ACTION;
-			}
-
-			@Override
-			protected String hoverText() {
-				return Messages.get(AlchemyScene.class, "energize");
-			}
-		};
-		energyAdd.setRect(energyLeft.right(), energyLeft.top() - (16 - energyLeft.height())/2, 16, 16);
-		align(energyAdd);
-		add(energyAdd);
-
-		sparkEmitter = new Emitter();
-		sparkEmitter.pos(energyLeft.left(), energyLeft.top(), energyLeft.width(), energyLeft.height());
-		sparkEmitter.autoKill = false;
-		add(sparkEmitter);
-
-		StyledButton btnGuide = new StyledButton( Chrome.Type.TOAST_TR, Messages.get(AlchemyScene.class, "guide")){
-			@Override
-			protected void onClick() {
-				super.onClick();
 				WndGuideNode page = WndGuideNode.forPage( GuideGraph.BASICS_ENCHANTING, null, false );
 				if (page != null) EnchantingScene.this.addToFront( page );
 			}
@@ -295,11 +206,101 @@ public class EnchantingScene extends PixelScene {
 				return Messages.titleCase( GuideGraph.titleForKey( GuideGraph.BASICS_ENCHANTING ) );
 			}
 		};
-		btnGuide.icon(new ItemSprite(ItemSpriteSheet.GUIDE_PAGE));
-		btnGuide.setSize(btnGuide.reqWidth()+4, 18);
-		btnGuide.setPos(centerW - btnGuide.width()/2f, energyAdd.top() - btnGuide.height()-2);
-		align(btnGuide);
-		add(btnGuide);
+		btnGuide.setRect( btnExit.left() - 18, top + (btnExit.height() - 16) / 2f, 16, 16 );
+		add( btnGuide );
+
+		IconTitle title = new IconTitle( new ItemSprite( ItemSpriteSheet.STYLUS ),
+				Messages.titleCase( Messages.get( EnchantingStation.class, "name" ) ) );
+		title.setSize( 200, 0 );
+		title.setPos( left + (w - title.reqWidth()) / 2f, top + (TOP_BAR - title.height()) / 2f );
+		align( title );
+		add( title );
+
+		energyBg = Chrome.get( Chrome.Type.TOAST_TR );
+		add( energyBg );
+		energyIcon = new ItemSprite( ItemSpriteSheet.ENERGY );
+		add( energyIcon );
+		energyText = PixelScene.renderTextBlock( 9 );
+		energyText.hardlight( 0x44CCFF );
+		add( energyText );
+		energyAdd = new IconButton( Icons.get( Icons.PLUS ) ){
+			@Override
+			protected void onClick() {
+				WndEnergizeItem.openItemSelector();
+			}
+
+			@Override
+			public GameAction keyAction() {
+				return WPDAction.TAG_ACTION;
+			}
+
+			@Override
+			protected String hoverText() {
+				return Messages.get( AlchemyScene.class, "energize" );
+			}
+		};
+		add( energyAdd );
+		//the pedestal on the left with the cards beside it on a wide screen, above them on a tall one;
+		//energy sits in the top bar's corner when there is room for it beside the name, else at the bottom
+		float contentTop = top + TOP_BAR + 2;
+		float contentH = h - TOP_BAR - 4;
+		wide = w >= 300;
+		if (wide){
+			energyBg.x = left + 2;
+			energyBg.y = top + 2;
+		} else {
+			contentH -= 22;
+			energyBg.y = top + h - 20;
+		}
+		contentBottom = contentTop + contentH;
+		if (wide){
+			float pedW = Math.min( 170, w * 0.4f );
+			px = left + pedW / 2f + 6;
+			py = contentTop + contentH * 0.42f;
+			cardsW = Math.min( 240, w - pedW - 18 );
+			cardsX = left + pedW + 12 + (w - pedW - 18 - cardsW) / 2f;
+			cardsY = contentTop + 2;
+			cardsH = contentH - 4;
+			nameW = pedW - 8;
+		} else {
+			px = left + w / 2f;
+			py = contentTop + HALO_R + 6;
+			cardsW = Math.min( 240, w - 12 );
+			cardsX = left + (w - cardsW) / 2f;
+			cardsY = py + HALO_R + 32;
+			cardsH = contentBottom - cardsY;
+			nameW = w - 8;
+		}
+
+		halo = new Halo();
+		add( halo );
+		halo.center( px, py );
+
+		NinePatch slotBg = Chrome.get( Chrome.Type.TOAST_TR );
+		slotBg.size( SLOT_SIZE + 8, SLOT_SIZE + 8 );
+		slotBg.x = px - slotBg.width() / 2f;
+		slotBg.y = py - slotBg.height() / 2f;
+		add( slotBg );
+
+		weaponSlot = new WeaponButton();
+		weaponSlot.setRect( px - SLOT_SIZE / 2f, py - SLOT_SIZE / 2f, SLOT_SIZE, SLOT_SIZE );
+		add( weaponSlot );
+
+		itemName = PixelScene.renderTextBlock( 9 );
+		add( itemName );
+		itemSub = PixelScene.renderTextBlock( 6 );
+		add( itemSub );
+		underItemY = py + HALO_R + 4;
+
+		bubbleEmitter = new Emitter();
+		bubbleEmitter.pos( 0, 0, Camera.main.width, Camera.main.height );
+		bubbleEmitter.autoKill = false;
+		add( bubbleEmitter );
+
+		sparkEmitter = new Emitter();
+		sparkEmitter.pos( px - SLOT_SIZE / 2f, py - SLOT_SIZE / 2f, SLOT_SIZE, SLOT_SIZE );
+		sparkEmitter.autoKill = false;
+		add( sparkEmitter );
 
 		updateState();
 
@@ -323,523 +324,269 @@ public class EnchantingScene extends PixelScene {
 
 	@Override
 	protected void onBackPressed() {
-		Game.switchScene(GameScene.class);
+		Game.switchScene( GameScene.class );
 	}
 
-	//rebuilds the action buttons for the current weapon and energy
+	// ------------------------------------------------------------------ state
+
+	/** the piece on the pedestal as the cards read it, or null with none (or none of ours) */
+	private static Piece<?> piece(){
+		if (target instanceof Weapon) return new WeaponPiece( (Weapon) target );
+		if (target instanceof Armor)  return new ArmorPiece( (Armor) target );
+		return null;
+	}
+
+	//rebuilds everything that depends on the piece and the energy
 	private void updateState(){
 
-		for (Component c : actionElems){
-			c.killAndErase();
-		}
-		actionElems.clear();
+		for (Component c : stateElems) c.killAndErase();
+		stateElems.clear();
 
-		weaponSlot.item(target);
-
-		float pos = actionTop;
-
-		if (target == null){
-			desc.text( Messages.get(EnchantingScene.class, "text") );
-			desc.setPos(left + (pw - desc.width())/2, desc.top());
-			updateEnergyText();
-			return;
-		}
-
-		desc.text( Messages.titleCase(target.name()) );
-		desc.setPos(left + (pw - desc.width())/2, desc.top());
-
-		//cursed items refuse the glyphs entirely
-		boolean cursed = target.cursed
-				|| (target instanceof Weapon && ((Weapon) target).hasCurseEnchant())
-				|| (target instanceof Armor && ((Armor) target).hasCurseGlyph());
-		if (cursed){
-			RenderedTextBlock msg = PixelScene.renderTextBlock(
-					Messages.get(EnchantingStation.class, "cursed"), 6 );
-			msg.maxWidth( pw );
-			msg.setPos( left + (pw - msg.width())/2f, pos );
-			add( msg );
-			actionElems.add( msg );
-			updateEnergyText();
-			return;
-		}
-
-		if (target instanceof Weapon){
-			pos = buildWeaponActions( (Weapon) target, pos );
-		} else if (target instanceof Armor){
-			pos = buildArmorActions( (Armor) target, pos );
-		}
-
+		weaponSlot.item( target );
 		updateEnergyText();
-	}
 
-	private float buildWeaponActions( final Weapon wep, float pos ){
+		Piece<?> p = piece();
+		halo.colors( p == null ? null : p.colors() );
 
-		//one empower + one reroll button per enchantment on the weapon
-		for (final Weapon.Enchantment ench : wep.enchantments()){
+		if (p == null){
+			itemName.text( Messages.get( EnchantingScene.class, "text" ) );
+			itemName.hardlight( 0xFFFFFF );
+			itemSub.text( Messages.get( EnchantingScene.class, "tap_slot" ) );
+			itemSub.hardlight( FADED );
+			placeUnderItem();
+			return;
+		}
 
-			String label;
-			boolean enabled;
-			final int cost = empowerCost( ench.level() );
+		itemName.text( Messages.titleCase( target.title() ) );
+		itemName.hardlight( target.quality != null ? target.quality.titleColor() : 0xFFFFFF );
+		itemSub.text( Messages.get( EnchantingScene.class, p.isWeapon() ? "sub_weapon" : "sub_armor", p.filled(), SOCKETS ) );
+		itemSub.hardlight( FADED );
+		placeUnderItem();
 
-			if (ench.level() >= Weapon.Enchantment.MAX_LEVEL){
-				//a maxed slot shows a plain line, never a button that could be pressed
-				RenderedTextBlock maxed = PixelScene.renderTextBlock( Messages.get(EnchantingStation.class, "maxed",
-						Messages.get(ench, "enchant"), ench.level()), 6 );
-				maxed.hardlight( ench.glowing().color );
-				maxed.maxWidth( pw );
-				maxed.setPos( left + (pw - maxed.width())/2f, pos );
-				add( maxed );
-				actionElems.add( maxed );
-				pos = maxed.bottom() + GAP;
-				label = null;
-				enabled = false;
-			} else {
-				label = Messages.get(EnchantingStation.class, "empower",
-						Messages.get(ench, "enchant"), ench.level(), ench.level() + 1, cost);
-				enabled = Dungeon.energy >= cost;
-			}
-
-			if (label != null) {
-			RedButton btn = new RedButton( label, 6 ){
+		float y = itemSub.bottom() + 4;
+		float under = itemSub.bottom();
+		if (p.hasGood() && !p.cursed()){
+			final Piece<?> fp = p;
+			RedButton unweave = new RedButton( Messages.get( EnchantingScene.class, "unweave", DISENCHANT_ENERGY ), 6 ){
 				@Override
 				protected void onClick() {
-					//Recheck on activation: queued clicks may refer to an outdated button.
-					if (!Dungeon.hero.belongings.contains(wep) || wep.cursed
-							|| wep.hasCurseEnchant() || !java.util.Arrays.asList(wep.enchantments()).contains(ench)
-							|| ench.level() >= Weapon.Enchantment.MAX_LEVEL
-							|| empowerCost(ench.level()) != cost || Dungeon.energy < cost){
+					confirmUnweave( fp );
+				}
+			};
+			unweave.setSize( unweave.reqWidth() + 6, 14 );
+			unweave.setPos( px - unweave.width() / 2f, y );
+			align( unweave );
+			addState( unweave );
+			under = unweave.bottom();
+		}
+		//stacked under the pedestal, the cards start below whatever stands under it
+		if (!wide){
+			cardsY = under + 6;
+			cardsH = contentBottom - cardsY;
+		}
+
+		if (p.cursed()){
+			Card c = new Card( CURSE_RED );
+			c.title( Messages.get( EnchantingScene.class, "cursed_title" ), CURSE_RED );
+			c.text( Messages.get( EnchantingStation.class, "cursed" ) );
+			c.setRect( cardsX, cardsY, cardsW, 0 );
+			addState( c );
+			centerCards( c.height() );
+			return;
+		}
+
+		Card[] cards = new Card[SOCKETS];
+		float total = 0;
+		for (int s = 0; s < SOCKETS; s++){
+			cards[s] = socketCard( p, s );
+			cards[s].setRect( cardsX, 0, cardsW, 0 );
+			total += cards[s].height() + (s > 0 ? GAP : 0);
+		}
+		float cy = cardsY + Math.max( 0, (cardsH - total) / 2f );
+		for (Card c : cards){
+			c.setPos( cardsX, cy );
+			align( c );
+			addState( c );
+			cy = c.bottom() + GAP;
+		}
+	}
+
+	private void centerCards( float height ){
+		Component last = stateElems.get( stateElems.size() - 1 );
+		last.setPos( cardsX, cardsY + Math.max( 0, (cardsH - height) / 2f ) );
+		align( last );
+	}
+
+	private void addState( Component c ){
+		add( c );
+		stateElems.add( c );
+	}
+
+	private void placeUnderItem(){
+		itemName.maxWidth( (int)nameW );
+		itemName.setPos( px - itemName.width() / 2f, underItemY );
+		align( itemName );
+		itemSub.maxWidth( (int)nameW );
+		itemSub.setPos( px - itemSub.width() / 2f, itemName.bottom() + 1 );
+		align( itemSub );
+	}
+
+	//one socket as a card: what is woven into it, or how to fill it
+	private <E> Card socketCard( final Piece<E> p, final int slot ){
+		final E e = p.at( slot );
+
+		if (e == null){
+			//the second socket opens once the first holds a weave
+			boolean locked = slot > 0 && p.at( 0 ) == null;
+			Card c = new Card( locked ? 0x3A2E4A : VIOLET );
+			c.gem( locked ? 0x3A2E4A : 0x5A4A7A, true );
+			c.title( Messages.get( EnchantingScene.class, locked ? "second_socket" : "empty_socket" ), locked ? FADED : 0xD8CCF0 );
+			c.text( Messages.get( EnchantingScene.class, locked ? "second_desc"
+					: (p.isWeapon() ? "empty_desc_weapon" : "empty_desc_armor"), REVEAL_COST ) );
+			if (!locked){
+				final boolean waiting = p.waiting( -1 );
+				RedButton reveal = new RedButton( waiting ? Messages.get( EnchantingScene.class, "waiting" )
+						: Messages.get( EnchantingScene.class, "reveal", REVEAL_COST ), 6 ){
+					@Override
+					protected void onClick() {
+						reveal( p, -1 );
+					}
+				};
+				reveal.enable( waiting || Dungeon.energy >= REVEAL_COST );
+				if (waiting) reveal.textColor( Window.TITLE_COLOR );
+				c.buttons( reveal );
+			}
+			return c;
+		}
+
+		final int color = p.color( e );
+		Card c = new Card( color );
+		c.gem( color, false );
+		c.title( p.name( e ), color );
+		c.pips( p.level( e ), color );
+		c.text( p.gist( e ) );
+
+		final int level = p.level( e );
+		RedButton empower;
+		if (level >= p.maxLevel()){
+			empower = new RedButton( Messages.get( EnchantingScene.class, "maxed" ), 6 );
+			empower.enable( false );
+		} else {
+			final int cost = empowerCost( level );
+			empower = new RedButton( Messages.get( EnchantingScene.class, "empower", cost ), 6 ){
+				@Override
+				protected void onClick() {
+					//recheck on activation: a queued click may belong to an older card
+					if (!p.usable() || p.at( slot ) != e || p.level( e ) != level
+							|| level >= p.maxLevel() || Dungeon.energy < cost){
 						updateState();
 						return;
 					}
 					Dungeon.energy -= cost;
-					ench.level( ench.level() + 1 );
+					p.level( e, level + 1 );
 					onWeave();
 				}
 			};
-			btn.textColor( ench.glowing().color );
-			btn.enable( enabled );
-			btn.multiline = true;
-			btn.setRect( left, pos, pw, BTN_HEIGHT );
-			add( btn );
-			actionElems.add( btn );
-			pos = btn.bottom() + GAP;
+			empower.enable( Dungeon.energy >= cost );
+			empower.textColor( color );
+		}
+
+		final boolean waiting = p.waiting( slot );
+		RedButton reroll = new RedButton( waiting ? Messages.get( EnchantingScene.class, "waiting" )
+				: Messages.get( EnchantingScene.class, "reroll", REVEAL_COST ), 6 ){
+			@Override
+			protected void onClick() {
+				reveal( p, slot );
 			}
+		};
+		reroll.enable( waiting || Dungeon.energy >= REVEAL_COST );
+		if (waiting) reroll.textColor( Window.TITLE_COLOR );
 
-			final int rerollCost = rerollCost( ench.level() );
-			RedButton reroll = new RedButton( Messages.get(EnchantingStation.class, "reroll",
-					Messages.get(ench, "enchant"), rerollCost), 6 ){
-				@Override
-				protected void onClick() {
-					chooseReroll( wep, ench, rerollCost );
-				}
-			};
-			reroll.enable( Dungeon.energy >= rerollCost );
-			reroll.multiline = true;
-			reroll.setRect( left, pos, pw, BTN_HEIGHT );
-			add( reroll );
-			actionElems.add( reroll );
-			pos = reroll.bottom() + GAP;
-		}
-
-		if (wep.hasGoodEnchant()) {
-			RedButton disenchant = new RedButton(Messages.get(EnchantingStation.class,
-					"disenchant", DISENCHANT_ENERGY), 6) {
-				@Override
-				protected void onClick() {
-					confirmDisenchant(wep);
-				}
-			};
-			disenchant.multiline = true;
-			disenchant.setRect(left, pos, pw, BTN_HEIGHT);
-			add(disenchant);
-			actionElems.add(disenchant);
-			pos = disenchant.bottom() + GAP;
-		}
-
-		//weave a new enchantment when a slot is free
-		if (wep.enchantment == null || wep.enchantment2 == null){
-			final boolean first = wep.enchantment == null;
-			String label = Messages.get(EnchantingStation.class,
-					first ? "infuse_first" : "infuse", INFUSE_COST);
-
-			RedButton btn = new RedButton( label, 6 ){
-				@Override
-				protected void onClick() {
-					chooseInfusion( wep );
-				}
-			};
-			btn.enable( Dungeon.energy >= INFUSE_COST );
-			btn.multiline = true;
-			btn.setRect( left, pos, pw, BTN_HEIGHT );
-			add( btn );
-			actionElems.add( btn );
-			pos = btn.bottom() + GAP;
-		}
-
-		return pos;
+		IconButton info = new IconButton( Icons.get( Icons.INFO ) ){
+			@Override
+			protected void onClick() {
+				EnchantingScene.this.addToFront( new WndTitledMessage( new ItemSprite( target ), p.name( e ), p.desc( e ) ) );
+			}
+		};
+		c.buttons( empower, reroll, info );
+		return c;
 	}
 
-	private void confirmDisenchant(final Weapon wep) {
-		addToFront(new WndOptions(new ItemSprite(wep), Messages.titleCase(wep.name()),
-				Messages.get(EnchantingStation.class, "disenchant_msg", DISENCHANT_ENERGY),
-				Messages.get(EnchantingStation.class, "disenchant", DISENCHANT_ENERGY),
-				Messages.get(EnchantingStation.class, "cancel")) {
+	// ------------------------------------------------------------------ weaving
+
+	//a weave into the free socket (slot -1) or in place of the one in a socket: three are
+	//revealed for REVEAL_COST, then wait on the piece until one is taken
+	private <E> void reveal( Piece<E> p, int slot ){
+		if (!p.usable()){
+			updateState();
+			return;
+		}
+		E[] opts = p.waiting( slot ) ? p.pending( slot ) : null;
+		if (opts == null){
+			if (Dungeon.energy < REVEAL_COST){
+				updateState();
+				return;
+			}
+			Dungeon.energy -= REVEAL_COST;
+			opts = p.roll();
+			p.pending( slot, opts );
+			saveAll();
+			bubbleEmitter.start( Speck.factory( Speck.BUBBLE ), 0.01f, 60 );
+			sparkEmitter.burst( SparkParticle.FACTORY, 12 );
+			Sample.INSTANCE.play( Assets.Sounds.READ, 0.6f );
+			updateState();
+		}
+		addToFront( new WndWeaves<>( p, slot, opts ) );
+	}
+
+	//one of the three taken: free, the reveal paid for it
+	private <E> void take( Piece<E> p, int slot, E[] opts, int index ){
+		if (!p.usable() || p.pending( slot ) != opts){
+			updateState();
+			return;
+		}
+		E chosen = opts[index];
+		if (slot < 0){
+			if (p.at( 0 ) != null && p.at( 1 ) != null){
+				updateState();
+				return;
+			}
+			p.pending( slot, null );
+			p.weave( chosen );
+		} else {
+			E old = p.at( slot );
+			if (old == null){
+				updateState();
+				return;
+			}
+			p.level( chosen, p.level( old ) );
+			p.pending( slot, null );
+			p.replace( slot, chosen );
+		}
+		onWeave();
+	}
+
+	private void confirmUnweave( final Piece<?> p ){
+		addToFront( new WndOptions( new ItemSprite( target ), Messages.titleCase( target.name() ),
+				Messages.get( EnchantingScene.class, p.isWeapon() ? "unweave_msg_weapon" : "unweave_msg_armor", DISENCHANT_ENERGY ),
+				Messages.get( EnchantingScene.class, "unweave", DISENCHANT_ENERGY ),
+				Messages.get( EnchantingStation.class, "cancel" ) ){
 			@Override
-			protected void onSelect(int index) {
-				if (index != 0 || !Dungeon.hero.belongings.contains(wep)
-						|| wep.cursed || wep.hasCurseEnchant() || !wep.hasGoodEnchant()) return;
-				wep.enchant(null);
-				wep.pendingWeaveOpts = null;
-				wep.pendingRerollOpts = null;
-				wep.pendingRerollSlot = -1;
+			protected void onSelect( int index ) {
+				if (index != 0 || !p.usable() || !p.hasGood()) return;
+				p.unweave();
 				Dungeon.energy += DISENCHANT_ENERGY;
 				createEnergy();
 				Item.updateQuickslot();
-			}
-		});
-	}
-
-	private void confirmDisenchant(final Armor arm) {
-		addToFront(new WndOptions(new ItemSprite(arm), Messages.titleCase(arm.name()),
-				Messages.get(EnchantingStation.class, "disenchant_armor_msg", DISENCHANT_ENERGY),
-				Messages.get(EnchantingStation.class, "disenchant_armor", DISENCHANT_ENERGY),
-				Messages.get(EnchantingStation.class, "cancel")) {
-			@Override
-			protected void onSelect(int index) {
-				if (index != 0 || !Dungeon.hero.belongings.contains(arm)
-						|| arm.cursed || arm.hasCurseGlyph() || !arm.hasGoodGlyph()) return;
-				arm.inscribe(null);
-				arm.pendingWeaveOpts = null;
-				arm.pendingRerollOpts = null;
-				arm.pendingRerollSlot = -1;
-				Dungeon.energy += DISENCHANT_ENERGY;
-				createEnergy();
-				Item.updateQuickslot();
-			}
-		});
-	}
-
-	private float buildArmorActions( final Armor arm, float pos ){
-
-		//one empower + one reroll button per glyph on the armor
-		for (final Armor.Glyph gl : arm.glyphs()){
-
-			String label;
-			boolean enabled;
-			final int cost = empowerCost( gl.level() );
-
-			if (gl.level() >= Armor.Glyph.MAX_LEVEL){
-				//a maxed slot shows a plain line, never a button that could be pressed
-				RenderedTextBlock maxed = PixelScene.renderTextBlock( Messages.get(EnchantingStation.class, "maxed",
-						Messages.get(gl, "glyph"), gl.level()), 6 );
-				maxed.hardlight( gl.glowing().color );
-				maxed.maxWidth( pw );
-				maxed.setPos( left + (pw - maxed.width())/2f, pos );
-				add( maxed );
-				actionElems.add( maxed );
-				pos = maxed.bottom() + GAP;
-				label = null;
-				enabled = false;
-			} else {
-				label = Messages.get(EnchantingStation.class, "empower",
-						Messages.get(gl, "glyph"), gl.level(), gl.level() + 1, cost);
-				enabled = Dungeon.energy >= cost;
-			}
-
-			if (label != null) {
-			RedButton btn = new RedButton( label, 6 ){
-				@Override
-				protected void onClick() {
-					//Recheck on activation: queued clicks may refer to an outdated button.
-					if (!Dungeon.hero.belongings.contains(arm) || arm.cursed
-							|| arm.hasCurseGlyph() || !java.util.Arrays.asList(arm.glyphs()).contains(gl)
-							|| gl.level() >= Armor.Glyph.MAX_LEVEL
-							|| empowerCost(gl.level()) != cost || Dungeon.energy < cost){
-						updateState();
-						return;
-					}
-					Dungeon.energy -= cost;
-					gl.level( gl.level() + 1 );
-					onWeave();
-				}
-			};
-			btn.textColor( gl.glowing().color );
-			btn.enable( enabled );
-			btn.multiline = true;
-			btn.setRect( left, pos, pw - BTN_HEIGHT - GAP, BTN_HEIGHT );
-			IconButton glyphInfo = new IconButton(Icons.get(Icons.INFO)) {
-				@Override protected void onClick() {
-					EnchantingScene.this.addToFront(new xyz.gabriwar.warpedpixeldungeon.windows.WndTitledMessage(
-							new ItemSprite(arm), gl.name(), gl.desc()));
-				}
-			};
-			glyphInfo.setRect(btn.right() + GAP, pos, BTN_HEIGHT, BTN_HEIGHT);
-			add(glyphInfo);
-			actionElems.add(glyphInfo);
-			add( btn );
-			actionElems.add( btn );
-			pos = btn.bottom() + GAP;
-			}
-
-			final int rerollCost = rerollCost( gl.level() );
-			RedButton reroll = new RedButton( Messages.get(EnchantingStation.class, "reroll",
-					Messages.get(gl, "glyph"), rerollCost), 6 ){
-				@Override
-				protected void onClick() {
-					chooseReroll( arm, gl, rerollCost );
-				}
-			};
-			reroll.enable( Dungeon.energy >= rerollCost );
-			reroll.multiline = true;
-			reroll.setRect( left, pos, pw, BTN_HEIGHT );
-			add( reroll );
-			actionElems.add( reroll );
-			pos = reroll.bottom() + GAP;
-		}
-
-		if (arm.hasGoodGlyph()) {
-			RedButton disenchant = new RedButton(Messages.get(EnchantingStation.class,
-					"disenchant_armor", DISENCHANT_ENERGY), 6) {
-				@Override
-				protected void onClick() {
-					confirmDisenchant(arm);
-				}
-			};
-			disenchant.multiline = true;
-			disenchant.setRect(left, pos, pw, BTN_HEIGHT);
-			add(disenchant);
-			actionElems.add(disenchant);
-			pos = disenchant.bottom() + GAP;
-		}
-
-		//weave a new glyph when a slot is free
-		if (arm.glyph == null || arm.glyph2 == null){
-			final boolean first = arm.glyph == null;
-			String label = Messages.get(EnchantingStation.class,
-					first ? "infuse_first" : "infuse", INFUSE_COST);
-
-			RedButton btn = new RedButton( label, 6 ){
-				@Override
-				protected void onClick() {
-					chooseInfusion( arm );
-				}
-			};
-			btn.enable( Dungeon.energy >= INFUSE_COST );
-			btn.multiline = true;
-			btn.setRect( left, pos, pw, BTN_HEIGHT );
-			add( btn );
-			actionElems.add( btn );
-			pos = btn.bottom() + GAP;
-		}
-
-		return pos;
-	}
-
-	//a rolled trio sticks to the weapon until one is chosen - cancelling
-	// (or quitting) never rerolls it for free
-	private static Weapon.Enchantment[] rollOptions( Weapon wep ){
-		Weapon.Enchantment[] opts = new Weapon.Enchantment[3];
-		Class<? extends Weapon.Enchantment> e1 = wep.enchantment != null ? wep.enchantment.getClass() : null;
-		Class<? extends Weapon.Enchantment> e2 = wep.enchantment2 != null ? wep.enchantment2.getClass() : null;
-		opts[0] = Weapon.Enchantment.randomCommon( e1, e2 );
-		opts[1] = Weapon.Enchantment.randomUncommon( e1, e2 );
-		opts[2] = Weapon.Enchantment.random( e1, e2, opts[0].getClass(), opts[1].getClass() );
-		return opts;
-	}
-
-	//stored options go stale if the weapon's enchants changed since the roll
-	private static boolean optsValid( Weapon wep, Weapon.Enchantment[] opts ){
-		if (opts == null || opts.length != 3) return false;
-		for (Weapon.Enchantment o : opts){
-			if (o == null) return false;
-			if (wep.enchantment  != null && o.getClass() == wep.enchantment.getClass())  return false;
-			if (wep.enchantment2 != null && o.getClass() == wep.enchantment2.getClass()) return false;
-		}
-		return true;
-	}
-
-	private void chooseInfusion( final Weapon wep ){
-
-		if (!optsValid( wep, wep.pendingWeaveOpts )){
-			wep.pendingWeaveOpts = rollOptions( wep );
-			saveAll();
-		}
-		final Weapon.Enchantment[] opts = wep.pendingWeaveOpts;
-
-		addToFront( new WndOptions(
-				new ItemSprite( wep ),
-				Messages.titleCase( wep.name() ),
-				Messages.get(EnchantingStation.class, "choice_msg"),
-				opts[0].name(),
-				opts[1].name(),
-				opts[2].name(),
-				Messages.get(EnchantingStation.class, "cancel") ){
-
-			@Override protected boolean hasInfo(int index) { return index >= 0 && index < 3; }
-			@Override protected void onInfo(int index) {
-				EnchantingScene.this.addToFront(new xyz.gabriwar.warpedpixeldungeon.windows.WndTitledMessage(
-						new ItemSprite(wep), opts[index].name(), opts[index].desc()));
-			}
-
-			@Override
-			protected void onSelect( int index ) {
-				if (index >= 0 && index < 3 && Dungeon.energy >= INFUSE_COST){
-					Dungeon.energy -= INFUSE_COST;
-					wep.pendingWeaveOpts = null;
-					wep.addEnchant( opts[index] );
-					onWeave();
-				}
-			}
-		} );
-	}
-
-	//swap one enchantment for a fresh one, keeping the slot's level
-	private void chooseReroll( final Weapon wep, final Weapon.Enchantment ench, final int cost ){
-
-		int slot = (ench == wep.enchantment) ? 0 : 1;
-		if (wep.pendingRerollSlot != slot || !optsValid( wep, wep.pendingRerollOpts )){
-			wep.pendingRerollOpts = rollOptions( wep );
-			wep.pendingRerollSlot = slot;
-			saveAll();
-		}
-		final Weapon.Enchantment[] opts = wep.pendingRerollOpts;
-
-		addToFront( new WndOptions(
-				new ItemSprite( wep ),
-				Messages.titleCase( wep.name() ),
-				Messages.get(EnchantingStation.class, "reroll_msg", Messages.get(ench, "enchant")),
-				opts[0].name(),
-				opts[1].name(),
-				opts[2].name(),
-				Messages.get(EnchantingStation.class, "cancel") ){
-
-			@Override protected boolean hasInfo(int index) { return index >= 0 && index < 3; }
-			@Override protected void onInfo(int index) {
-				EnchantingScene.this.addToFront(new xyz.gabriwar.warpedpixeldungeon.windows.WndTitledMessage(
-						new ItemSprite(wep), opts[index].name(), opts[index].desc()));
-			}
-
-			@Override
-			protected void onSelect( int index ) {
-				if (index >= 0 && index < 3 && Dungeon.energy >= cost){
-					Dungeon.energy -= cost;
-					wep.pendingRerollOpts = null;
-					wep.pendingRerollSlot = -1;
-					opts[index].level( ench.level() );
-					if (wep.enchantment == ench){
-						wep.enchantment = opts[index];
-					} else {
-						wep.enchantment2 = opts[index];
-					}
-					onWeave();
-				}
-			}
-		} );
-	}
-
-	private static Armor.Glyph[] rollOptions( Armor arm ){
-		Armor.Glyph[] opts = new Armor.Glyph[3];
-		Class<? extends Armor.Glyph> e1 = arm.glyph != null ? arm.glyph.getClass() : null;
-		Class<? extends Armor.Glyph> e2 = arm.glyph2 != null ? arm.glyph2.getClass() : null;
-		opts[0] = Armor.Glyph.randomCommon( e1, e2 );
-		opts[1] = Armor.Glyph.randomUncommon( e1, e2 );
-		opts[2] = Armor.Glyph.random( e1, e2, opts[0].getClass(), opts[1].getClass() );
-		return opts;
-	}
-
-	private static boolean optsValid( Armor arm, Armor.Glyph[] opts ){
-		if (opts == null || opts.length != 3) return false;
-		for (Armor.Glyph o : opts){
-			if (o == null) return false;
-			if (arm.glyph  != null && o.getClass() == arm.glyph.getClass())  return false;
-			if (arm.glyph2 != null && o.getClass() == arm.glyph2.getClass()) return false;
-		}
-		return true;
-	}
-
-	private void chooseInfusion( final Armor arm ){
-
-		if (!optsValid( arm, arm.pendingWeaveOpts )){
-			arm.pendingWeaveOpts = rollOptions( arm );
-			saveAll();
-		}
-		final Armor.Glyph[] opts = arm.pendingWeaveOpts;
-
-		addToFront( new WndOptions(
-				new ItemSprite( arm ),
-				Messages.titleCase( arm.name() ),
-				Messages.get(EnchantingStation.class, "choice_msg"),
-				opts[0].name(),
-				opts[1].name(),
-				opts[2].name(),
-				Messages.get(EnchantingStation.class, "cancel") ){
-
-			@Override protected boolean hasInfo(int index) { return index >= 0 && index < 3; }
-			@Override protected void onInfo(int index) {
-				EnchantingScene.this.addToFront(new xyz.gabriwar.warpedpixeldungeon.windows.WndTitledMessage(
-						new ItemSprite(arm), opts[index].name(), opts[index].desc()));
-			}
-
-			@Override
-			protected void onSelect( int index ) {
-				if (index >= 0 && index < 3 && Dungeon.energy >= INFUSE_COST){
-					Dungeon.energy -= INFUSE_COST;
-					arm.pendingWeaveOpts = null;
-					arm.addGlyph( opts[index] );
-					onWeave();
-				}
-			}
-		} );
-	}
-
-	private void chooseReroll( final Armor arm, final Armor.Glyph gl, final int cost ){
-
-		int slot = (gl == arm.glyph) ? 0 : 1;
-		if (arm.pendingRerollSlot != slot || !optsValid( arm, arm.pendingRerollOpts )){
-			arm.pendingRerollOpts = rollOptions( arm );
-			arm.pendingRerollSlot = slot;
-			saveAll();
-		}
-		final Armor.Glyph[] opts = arm.pendingRerollOpts;
-
-		addToFront( new WndOptions(
-				new ItemSprite( arm ),
-				Messages.titleCase( arm.name() ),
-				Messages.get(EnchantingStation.class, "reroll_msg", Messages.get(gl, "glyph")),
-				opts[0].name(),
-				opts[1].name(),
-				opts[2].name(),
-				Messages.get(EnchantingStation.class, "cancel") ){
-
-			@Override protected boolean hasInfo(int index) { return index >= 0 && index < 3; }
-			@Override protected void onInfo(int index) {
-				EnchantingScene.this.addToFront(new xyz.gabriwar.warpedpixeldungeon.windows.WndTitledMessage(
-						new ItemSprite(arm), opts[index].name(), opts[index].desc()));
-			}
-
-			@Override
-			protected void onSelect( int index ) {
-				if (index >= 0 && index < 3 && Dungeon.energy >= cost){
-					Dungeon.energy -= cost;
-					arm.pendingRerollOpts = null;
-					arm.pendingRerollSlot = -1;
-					opts[index].level( gl.level() );
-					if (arm.glyph == gl){
-						arm.glyph = opts[index];
-					} else {
-						arm.glyph2 = opts[index];
-					}
-					if (arm.checkSeal() != null) arm.checkSeal().setGlyph( arm.glyph );
-					onWeave();
-				}
 			}
 		} );
 	}
 
 	//shared success path: vfx, sound, and a state refresh
 	private void onWeave(){
-		bubbleEmitter.start(Speck.factory( Speck.BUBBLE ), 0.01f, 100 );
-		sparkEmitter.burst(SparkParticle.FACTORY, 20);
+		bubbleEmitter.start( Speck.factory( Speck.BUBBLE ), 0.01f, 100 );
+		sparkEmitter.burst( SparkParticle.FACTORY, 20 );
+		halo.flare();
 		Sample.INSTANCE.play( Assets.Sounds.READ );
 		Item.updateQuickslot();
 		saveNeeded = true;
@@ -849,23 +596,24 @@ public class EnchantingScene extends PixelScene {
 	private void updateEnergyText(){
 		//energy is never allowed to read below zero, whatever spent it
 		if (Dungeon.energy < 0) Dungeon.energy = 0;
-		energyLeft.text( Messages.get(AlchemyScene.class, "energy") + " " + Dungeon.energy );
-		energyLeft.setPos(
-				centerW - energyLeft.width()/2,
-				energyLeft.top()
-		);
-
-		energyIcon.x = energyLeft.left() - energyIcon.width();
-		align(energyIcon);
-
-		energyAdd.setPos(energyLeft.right(), energyAdd.top());
-		align(energyAdd);
+		energyText.text( Integer.toString( Dungeon.energy ) );
+		//the chip's width follows the number: centred at the bottom of a tall screen
+		float chipW = 3 + energyIcon.width() + 1 + energyText.width() + 2 + 16 + 2;
+		if (!wide) energyBg.x = px - chipW / 2f;
+		energyIcon.x = energyBg.x + 3;
+		energyIcon.y = energyBg.y + 2;
+		energyText.setPos( energyIcon.x + energyIcon.width() + 1, energyIcon.y + (energyIcon.height() - energyText.height()) / 2f );
+		energyAdd.setRect( energyText.right() + 2, energyIcon.y, 16, 16 );
+		energyBg.size( energyAdd.right() - energyBg.x + 2, 20 );
+		align( energyIcon );
+		align( energyText );
+		sparkEmitter.pos( px - SLOT_SIZE / 2f, py - SLOT_SIZE / 2f, SLOT_SIZE, SLOT_SIZE );
 	}
 
 	//called when items are energized while this scene is up
 	public void createEnergy(){
-		bubbleEmitter.start(Speck.factory( Speck.BUBBLE ), 0.01f, 100 );
-		sparkEmitter.burst(SparkParticle.FACTORY, 20);
+		bubbleEmitter.start( Speck.factory( Speck.BUBBLE ), 0.01f, 100 );
+		sparkEmitter.burst( SparkParticle.FACTORY, 20 );
 		//at half: the lightning is a whole bolt now, and this is a window's spark
 		Sample.INSTANCE.play( Assets.Sounds.LIGHTNING, 0.5f );
 
@@ -882,7 +630,7 @@ public class EnchantingScene extends PixelScene {
 			Badges.saveGlobal();
 			Journal.saveGlobal();
 		} catch (IOException e) {
-			WarpedPixelDungeon.reportException(e);
+			WarpedPixelDungeon.reportException( e );
 		}
 	}
 
@@ -900,10 +648,600 @@ public class EnchantingScene extends PixelScene {
 		super.destroy();
 	}
 
+	//a description's first sentence, its highlights closed
+	static String gist( String desc ){
+		int cut = desc.indexOf( ". " );
+		int nl = desc.indexOf( '\n' );
+		String s;
+		if (nl >= 0 && (cut < 0 || nl < cut)) s = desc.substring( 0, nl ).trim();
+		else s = cut < 0 ? desc.trim() : desc.substring( 0, cut + 1 );
+		int marks = 0;
+		for (int i = 0; i < s.length(); i++) if (s.charAt( i ) == '_') marks++;
+		return marks % 2 == 0 ? s : s + "_";
+	}
+
+	// ------------------------------------------------------------------ the piece
+
+	/** a weapon's enchantments or an armor's glyphs, as one: the scene never asks which */
+	static abstract class Piece<E> {
+
+		abstract boolean isWeapon();
+		abstract Item item();
+		abstract E at( int slot );
+		abstract E[] roll();
+		abstract boolean valid( E[] opts );
+		abstract void weave( E e );
+		abstract void replace( int slot, E e );
+		abstract boolean cursed();
+		abstract boolean hasGood();
+		abstract void unweave();
+		abstract int maxLevel();
+		abstract int level( E e );
+		abstract void level( E e, int value );
+		abstract String rawName( E e );
+		abstract String desc( E e );
+		abstract String rawDesc( E e );
+		abstract int color( E e );
+
+		abstract E[] weaveOpts();
+		abstract void weaveOpts( E[] opts );
+		abstract E[] rerollOpts();
+		abstract int rerollSlot();
+		abstract void rerollOpts( E[] opts, int slot );
+
+		String name( E e ){
+			return Messages.titleCase( rawName( e ) );
+		}
+
+		String gist( E e ){
+			return EnchantingScene.gist( rawDesc( e ) );
+		}
+
+		int filled(){
+			int n = 0;
+			for (int s = 0; s < SOCKETS; s++) if (at( s ) != null) n++;
+			return n;
+		}
+
+		int[] colors(){
+			ArrayList<Integer> out = new ArrayList<>();
+			for (int s = 0; s < SOCKETS; s++) if (at( s ) != null) out.add( color( at( s ) ) );
+			int[] c = new int[out.size()];
+			for (int i = 0; i < c.length; i++) c[i] = out.get( i );
+			return c;
+		}
+
+		boolean usable(){
+			return Dungeon.hero.belongings.contains( item() ) && !cursed();
+		}
+
+		/** the trio waiting for a socket: slot -1 the free one, else to replace that socket's */
+		E[] pending( int slot ){
+			if (slot < 0) return weaveOpts();
+			return rerollSlot() == slot ? rerollOpts() : null;
+		}
+
+		void pending( int slot, E[] opts ){
+			if (slot < 0) weaveOpts( opts );
+			else rerollOpts( opts, opts == null ? -1 : slot );
+		}
+
+		/** a paid trio still fits the piece (a weave elsewhere may have taken one of them) */
+		boolean waiting( int slot ){
+			return valid( pending( slot ) );
+		}
+	}
+
+	static class WeaponPiece extends Piece<Weapon.Enchantment> {
+
+		private final Weapon wep;
+
+		WeaponPiece( Weapon wep ){
+			this.wep = wep;
+		}
+
+		@Override boolean isWeapon(){ return true; }
+		@Override Item item(){ return wep; }
+		@Override Weapon.Enchantment at( int slot ){ return slot == 0 ? wep.enchantment : wep.enchantment2; }
+
+		//one common, one uncommon and one of any kind, never one the weapon has
+		@Override
+		Weapon.Enchantment[] roll(){
+			Weapon.Enchantment[] opts = new Weapon.Enchantment[3];
+			Class<? extends Weapon.Enchantment> e1 = wep.enchantment != null ? wep.enchantment.getClass() : null;
+			Class<? extends Weapon.Enchantment> e2 = wep.enchantment2 != null ? wep.enchantment2.getClass() : null;
+			opts[0] = Weapon.Enchantment.randomCommon( e1, e2 );
+			opts[1] = Weapon.Enchantment.randomUncommon( e1, e2 );
+			opts[2] = Weapon.Enchantment.random( e1, e2, opts[0].getClass(), opts[1].getClass() );
+			return opts;
+		}
+
+		@Override
+		boolean valid( Weapon.Enchantment[] opts ){
+			if (opts == null || opts.length != 3) return false;
+			for (Weapon.Enchantment o : opts){
+				if (o == null) return false;
+				if (wep.enchantment  != null && o.getClass() == wep.enchantment.getClass())  return false;
+				if (wep.enchantment2 != null && o.getClass() == wep.enchantment2.getClass()) return false;
+			}
+			return true;
+		}
+
+		@Override void weave( Weapon.Enchantment e ){ wep.addEnchant( e ); }
+
+		@Override
+		void replace( int slot, Weapon.Enchantment e ){
+			if (slot == 0) wep.enchantment = e;
+			else wep.enchantment2 = e;
+		}
+
+		@Override boolean cursed(){ return wep.cursed || wep.hasCurseEnchant(); }
+		@Override boolean hasGood(){ return wep.hasGoodEnchant(); }
+
+		@Override
+		void unweave(){
+			wep.enchant( null );
+			wep.pendingWeaveOpts = null;
+			wep.pendingRerollOpts = null;
+			wep.pendingRerollSlot = -1;
+		}
+
+		@Override int maxLevel(){ return Weapon.Enchantment.MAX_LEVEL; }
+		@Override int level( Weapon.Enchantment e ){ return e.level(); }
+		@Override void level( Weapon.Enchantment e, int value ){ e.level( value ); }
+		@Override String rawName( Weapon.Enchantment e ){ return e.name(); }
+		@Override String desc( Weapon.Enchantment e ){ return e.desc(); }
+		@Override String rawDesc( Weapon.Enchantment e ){ return Messages.get( e, "desc" ); }
+		@Override int color( Weapon.Enchantment e ){ return e.glowing() == null ? VIOLET : e.glowing().textColor(); }
+
+		@Override Weapon.Enchantment[] weaveOpts(){ return wep.pendingWeaveOpts; }
+		@Override void weaveOpts( Weapon.Enchantment[] opts ){ wep.pendingWeaveOpts = opts; }
+		@Override Weapon.Enchantment[] rerollOpts(){ return wep.pendingRerollOpts; }
+		@Override int rerollSlot(){ return wep.pendingRerollSlot; }
+
+		@Override
+		void rerollOpts( Weapon.Enchantment[] opts, int slot ){
+			wep.pendingRerollOpts = opts;
+			wep.pendingRerollSlot = slot;
+		}
+	}
+
+	static class ArmorPiece extends Piece<Armor.Glyph> {
+
+		private final Armor arm;
+
+		ArmorPiece( Armor arm ){
+			this.arm = arm;
+		}
+
+		@Override boolean isWeapon(){ return false; }
+		@Override Item item(){ return arm; }
+		@Override Armor.Glyph at( int slot ){ return slot == 0 ? arm.glyph : arm.glyph2; }
+
+		@Override
+		Armor.Glyph[] roll(){
+			Armor.Glyph[] opts = new Armor.Glyph[3];
+			Class<? extends Armor.Glyph> e1 = arm.glyph != null ? arm.glyph.getClass() : null;
+			Class<? extends Armor.Glyph> e2 = arm.glyph2 != null ? arm.glyph2.getClass() : null;
+			opts[0] = Armor.Glyph.randomCommon( e1, e2 );
+			opts[1] = Armor.Glyph.randomUncommon( e1, e2 );
+			opts[2] = Armor.Glyph.random( e1, e2, opts[0].getClass(), opts[1].getClass() );
+			return opts;
+		}
+
+		@Override
+		boolean valid( Armor.Glyph[] opts ){
+			if (opts == null || opts.length != 3) return false;
+			for (Armor.Glyph o : opts){
+				if (o == null) return false;
+				if (arm.glyph  != null && o.getClass() == arm.glyph.getClass())  return false;
+				if (arm.glyph2 != null && o.getClass() == arm.glyph2.getClass()) return false;
+			}
+			return true;
+		}
+
+		@Override void weave( Armor.Glyph e ){ arm.addGlyph( e ); }
+
+		@Override
+		void replace( int slot, Armor.Glyph e ){
+			if (slot == 0) arm.glyph = e;
+			else arm.glyph2 = e;
+			if (arm.checkSeal() != null) arm.checkSeal().setGlyph( arm.glyph );
+		}
+
+		@Override boolean cursed(){ return arm.cursed || arm.hasCurseGlyph(); }
+		@Override boolean hasGood(){ return arm.hasGoodGlyph(); }
+
+		@Override
+		void unweave(){
+			arm.inscribe( null );
+			arm.pendingWeaveOpts = null;
+			arm.pendingRerollOpts = null;
+			arm.pendingRerollSlot = -1;
+		}
+
+		@Override int maxLevel(){ return Armor.Glyph.MAX_LEVEL; }
+		@Override int level( Armor.Glyph e ){ return e.level(); }
+		@Override void level( Armor.Glyph e, int value ){ e.level( value ); }
+		@Override String rawName( Armor.Glyph e ){ return e.name(); }
+		@Override String desc( Armor.Glyph e ){ return e.desc(); }
+		@Override String rawDesc( Armor.Glyph e ){ return Messages.get( e, "desc" ); }
+		@Override int color( Armor.Glyph e ){ return e.glowing() == null ? VIOLET : e.glowing().textColor(); }
+
+		@Override Armor.Glyph[] weaveOpts(){ return arm.pendingWeaveOpts; }
+		@Override void weaveOpts( Armor.Glyph[] opts ){ arm.pendingWeaveOpts = opts; }
+		@Override Armor.Glyph[] rerollOpts(){ return arm.pendingRerollOpts; }
+		@Override int rerollSlot(){ return arm.pendingRerollSlot; }
+
+		@Override
+		void rerollOpts( Armor.Glyph[] opts, int slot ){
+			arm.pendingRerollOpts = opts;
+			arm.pendingRerollSlot = slot;
+		}
+	}
+
+	// ------------------------------------------------------------------ the three weaves
+
+	//three revealed weaves as cards side by side (stacked on a narrow screen): one is taken
+	//for free; closing without taking one asks first, the reveal was paid
+	private class WndWeaves<E> extends Window {
+
+		private static final int MARGIN = 4;
+
+		WndWeaves( final Piece<E> p, final int slot, final E[] opts ){
+			super();
+
+			int maxW = Math.min( PixelScene.uiCamera.width - 16, 300 );
+			boolean row = maxW >= 240;
+			int width = row ? maxW : Math.min( maxW, 160 );
+
+			IconTitle title = new IconTitle( new ItemSprite( p.item() ), Messages.get( EnchantingScene.class, "choose_title" ) );
+			title.setRect( 0, 0, width, 0 );
+			add( title );
+
+			E old = slot < 0 ? null : p.at( slot );
+			RenderedTextBlock msg = PixelScene.renderTextBlock( old == null
+					? Messages.get( EnchantingScene.class, "choose_msg" )
+					: Messages.get( EnchantingScene.class, "choose_reroll_msg", p.name( old ) ), 6 );
+			msg.maxWidth( width );
+			msg.setPos( 0, title.bottom() + 3 );
+			add( msg );
+
+			float top = msg.bottom() + MARGIN;
+			Card[] cards = new Card[opts.length];
+			float cw = row ? (width - (opts.length - 1) * MARGIN) / (float) opts.length : width;
+			for (int i = 0; i < opts.length; i++){
+				final int index = i;
+				final E e = opts[i];
+				int color = p.color( e );
+				Card c = new Card( color );
+				c.gem( color, false );
+				c.title( p.name( e ), color );
+				c.tag( Messages.get( EnchantingScene.class, "tier_" + i ) );
+				c.text( p.gist( e ) );
+				RedButton takeIt = new RedButton( Messages.get( EnchantingScene.class, "take" ), 6 ){
+					@Override
+					protected void onClick() {
+						hide();
+						take( p, slot, opts, index );
+					}
+				};
+				takeIt.textColor( color );
+				IconButton info = new IconButton( Icons.get( Icons.INFO ) ){
+					@Override
+					protected void onClick() {
+						EnchantingScene.this.addToFront( new WndTitledMessage( new ItemSprite( p.item() ), p.name( e ), p.desc( e ) ) );
+					}
+				};
+				c.buttons( takeIt, info );
+				c.setRect( 0, 0, cw, 0 );
+				cards[i] = c;
+			}
+			//side by side, the cards share the tallest one's height so their buttons line up
+			float tallest = 0;
+			for (Card c : cards) tallest = Math.max( tallest, c.height() );
+			float y = top;
+			for (int i = 0; i < cards.length; i++){
+				Card c = cards[i];
+				if (row){
+					c.stretch( tallest );
+					c.setPos( i * (cw + MARGIN), top );
+				} else {
+					c.setPos( 0, y );
+					y = c.bottom() + MARGIN;
+				}
+				add( c );
+			}
+			float bottom = row ? top + tallest : y - MARGIN;
+
+			resize( width, (int)Math.ceil( bottom ) );
+		}
+
+		@Override
+		public void onBackPressed() {
+			EnchantingScene.this.addToFront( new WndOptions(
+					Icons.get( Icons.WARNING ),
+					Messages.get( EnchantingScene.class, "leave_title" ),
+					Messages.get( EnchantingScene.class, "leave_msg", REVEAL_COST ),
+					Messages.get( EnchantingScene.class, "leave_no" ),
+					Messages.get( EnchantingScene.class, "leave_yes" ) ){
+				@Override
+				protected void onSelect( int index ) {
+					if (index == 1) WndWeaves.this.hide();
+				}
+			} );
+		}
+	}
+
+	// ------------------------------------------------------------------ the pieces of the scene
+
+	/**
+	 * A card: a dark plate with a stripe of its colour down the left, a gem, a title in the
+	 * colour, level pips, a line of text and a row of buttons. Its height follows its width.
+	 */
+	private static class Card extends Component {
+
+		private static final int PAD = 4;
+		private static final int BTN_H = 15;
+
+		private final int color;
+		private NinePatch bg;
+		private ColorBlock stripe;
+		private Gem gem;
+		private RenderedTextBlock title;
+		private RenderedTextBlock tag;
+		private ColorBlock[] pips;
+		private int pipsOn;
+		private RenderedTextBlock text;
+		private Component[] buttons;
+		private float minHeight = 0;
+
+		Card( int color ){
+			super();
+			this.color = color;
+			bg = Chrome.get( Chrome.Type.TOAST_TR );
+			add( bg );
+			stripe = new ColorBlock( 2, 1, 0xFF000000 | color );
+			stripe.alpha( 0.8f );
+			add( stripe );
+		}
+
+		void gem( int color, boolean hollow ){
+			gem = new Gem( color, hollow );
+			add( gem );
+		}
+
+		void title( String s, int color ){
+			title = PixelScene.renderTextBlock( s, 9 );
+			title.hardlight( color );
+			add( title );
+		}
+
+		void tag( String s ){
+			tag = PixelScene.renderTextBlock( s, 6 );
+			tag.hardlight( FADED );
+			add( tag );
+		}
+
+		void pips( int level, int color ){
+			pipsOn = level;
+			pips = new ColorBlock[Weapon.Enchantment.MAX_LEVEL];
+			for (int i = 0; i < pips.length; i++){
+				pips[i] = new ColorBlock( 6, 3, i < level ? 0xFF000000 | color : 0xFF3A2E4A );
+				add( pips[i] );
+			}
+		}
+
+		void text( String s ){
+			text = PixelScene.renderTextBlock( s, 6 );
+			add( text );
+		}
+
+		void buttons( Component... b ){
+			buttons = b;
+			for (Component c : b) add( c );
+		}
+
+		//at least this tall, buttons at the bottom (cards side by side line their buttons up)
+		void stretch( float height ){
+			minHeight = height;
+			layout();
+		}
+
+		@Override
+		protected void layout() {
+			float inner = width - 2 * PAD - 3;
+			float x0 = x + PAD + 3;
+			float y0 = y + PAD;
+
+			float headX = x0;
+			if (gem != null){
+				gem.setRect( x0, y0 + 1, Gem.SIZE, Gem.SIZE );
+				headX = gem.right() + 3;
+			}
+			float cursor = y0;
+			if (title != null){
+				title.maxWidth( (int)(x + width - PAD - headX) );
+				title.setPos( headX, y0 + (gem != null ? Math.max( 0, (Gem.SIZE + 2 - title.height()) / 2f ) : 0) );
+				PixelScene.align( title );
+				cursor = Math.max( cursor, title.bottom() );
+			}
+			if (gem != null) cursor = Math.max( cursor, gem.bottom() );
+			if (tag != null){
+				tag.setPos( headX, cursor + 1 );
+				PixelScene.align( tag );
+				cursor = tag.bottom();
+			}
+			if (pips != null){
+				float pxx = headX;
+				for (ColorBlock pip : pips){
+					pip.x = pxx;
+					pip.y = cursor + 3;
+					pxx += 7;
+				}
+				cursor += 6;
+			}
+			if (text != null){
+				text.maxWidth( (int)inner );
+				text.setPos( x0, cursor + 3 );
+				PixelScene.align( text );
+				cursor = text.bottom();
+			}
+
+			float h = cursor - y + PAD;
+			if (buttons != null){
+				h += 3 + BTN_H;
+			}
+			h = Math.max( h, minHeight );
+			height = h;
+
+			if (buttons != null){
+				float by = y + height - PAD - BTN_H;
+				//an icon button is a square; the others share what is left
+				int wide = 0;
+				float fixed = 0;
+				for (Component b : buttons){
+					if (b instanceof IconButton) fixed += BTN_H;
+					else wide++;
+				}
+				float gaps = (buttons.length - 1) * 2;
+				float bw = wide == 0 ? 0 : (inner - fixed - gaps) / wide;
+				float bx = x0;
+				for (Component b : buttons){
+					float thisW = b instanceof IconButton ? BTN_H : bw;
+					b.setRect( bx, by, thisW, BTN_H );
+					PixelScene.align( b );
+					bx += thisW + 2;
+				}
+			}
+
+			bg.x = x;
+			bg.y = y;
+			bg.size( width, height );
+			stripe.x = x + 2;
+			stripe.y = y + 3;
+			stripe.size( 2, height - 6 );
+		}
+
+		private float pulse = 0;
+
+		@Override
+		public void update() {
+			super.update();
+			if (pips != null && pipsOn > 0){
+				//the highest lit pip breathes, so the level reads at a glance
+				pulse += Game.elapsed;
+				pips[pipsOn - 1].alpha( 0.65f + 0.35f * (float)Math.abs( Math.sin( pulse * 2.4f ) ) );
+			}
+		}
+	}
+
+	/** a cut gem of a colour: dark rim, the colour, a glint; a hollow one is an empty socket */
+	private static class Gem extends Component {
+
+		static final int SIZE = 9;
+
+		private final ColorBlock rim, face, glint;
+		private final boolean hollow;
+		private float t = Random.Float( 6f );
+
+		Gem( int color, boolean hollow ){
+			super();
+			this.hollow = hollow;
+			rim = new ColorBlock( SIZE, SIZE, 0xFF140A22 );
+			add( rim );
+			face = new ColorBlock( SIZE - 2, SIZE - 2, 0xFF000000 | color );
+			add( face );
+			glint = new ColorBlock( 2, 2, 0xFFFFFFFF );
+			glint.alpha( hollow ? 0f : 0.7f );
+			add( glint );
+			if (hollow) face.alpha( 0.35f );
+		}
+
+		@Override
+		protected void layout() {
+			rim.x = x;
+			rim.y = y;
+			face.x = x + 1;
+			face.y = y + 1;
+			glint.x = x + 2;
+			glint.y = y + 2;
+		}
+
+		@Override
+		public void update() {
+			super.update();
+			if (hollow) return;
+			t += Game.elapsed;
+			face.alpha( 0.8f + 0.2f * (float)Math.sin( t * 2f ) );
+		}
+	}
+
+	/** the pedestal's ring: two circles of motes in the piece's colours, turning opposite ways */
+	private static class Halo extends Component {
+
+		private static final int OUTER = 16, INNER = 10;
+
+		private final ColorBlock[] outer = new ColorBlock[OUTER];
+		private final ColorBlock[] inner = new ColorBlock[INNER];
+		private float cx, cy, angle, flare;
+
+		Halo(){
+			super();
+			for (int i = 0; i < OUTER; i++){
+				outer[i] = new ColorBlock( 2, 2, 0xFFFFFFFF );
+				add( outer[i] );
+			}
+			for (int i = 0; i < INNER; i++){
+				inner[i] = new ColorBlock( 1, 1, 0xFFFFFFFF );
+				add( inner[i] );
+			}
+			colors( null );
+		}
+
+		void center( float x, float y ){
+			cx = x;
+			cy = y;
+		}
+
+		//the piece's weaves, or the pedestal's violet with none
+		void colors( int[] colors ){
+			if (colors == null || colors.length == 0) colors = new int[]{ VIOLET };
+			for (int i = 0; i < OUTER; i++) outer[i].hardlight( colors[i % colors.length] );
+			for (int i = 0; i < INNER; i++) inner[i].hardlight( colors[(i + 1) % colors.length] );
+		}
+
+		//a weave lands: the ring swells and brightens, then settles
+		void flare(){
+			flare = 1f;
+		}
+
+		@Override
+		public void update() {
+			super.update();
+			angle += Game.elapsed * 0.5f;
+			if (flare > 0) flare = Math.max( 0, flare - Game.elapsed * 1.5f );
+			float r = HALO_R + 4 * flare;
+			for (int i = 0; i < OUTER; i++){
+				double a = angle + i * Math.PI * 2 / OUTER;
+				outer[i].x = cx + (float)Math.cos( a ) * r - 1;
+				outer[i].y = cy + (float)Math.sin( a ) * r - 1;
+				outer[i].alpha( Math.min( 1f, 0.35f + 0.45f * (float)Math.abs( Math.sin( angle * 2 + i ) ) + flare ) );
+			}
+			float ri = r - 7;
+			for (int i = 0; i < INNER; i++){
+				double a = -angle * 1.6f + i * Math.PI * 2 / INNER;
+				inner[i].x = cx + (float)Math.cos( a ) * ri;
+				inner[i].y = cy + (float)Math.sin( a ) * ri;
+				inner[i].alpha( Math.min( 1f, 0.3f + 0.3f * (float)Math.abs( Math.cos( angle * 3 + i ) ) + flare ) );
+			}
+		}
+	}
+
 	private final WndBag.ItemSelector weaponSelector = new WndBag.ItemSelector() {
 		@Override
 		public String textPrompt() {
-			return Messages.get(EnchantingStation.class, "prompt");
+			return Messages.get( EnchantingStation.class, "prompt" );
 		}
 
 		@Override
@@ -912,12 +1250,12 @@ public class EnchantingScene extends PixelScene {
 		}
 
 		@Override
-		public boolean itemSelectable(Item item) {
+		public boolean itemSelectable( Item item ) {
 			return (item instanceof Weapon || item instanceof Armor) && item.isIdentified();
 		}
 
 		@Override
-		public void onSelect(Item item) {
+		public void onSelect( Item item ) {
 			if (item instanceof Weapon || item instanceof Armor) {
 				target = item;
 				updateState();
@@ -952,13 +1290,13 @@ public class EnchantingScene extends PixelScene {
 				@Override
 				protected void onClick() {
 					super.onClick();
-					EnchantingScene.this.addToFront(WndBag.getBag( weaponSelector ));
+					EnchantingScene.this.addToFront( WndBag.getBag( weaponSelector ) );
 				}
 
 				@Override
 				protected boolean onLongClick() {
 					if (item != null){
-						EnchantingScene.this.addToFront(new WndInfoItem(item));
+						EnchantingScene.this.addToFront( new WndInfoItem( item ) );
 						return true;
 					}
 					return false;
@@ -972,12 +1310,12 @@ public class EnchantingScene extends PixelScene {
 				@Override
 				protected String hoverText() {
 					if (item == null){
-						return Messages.get(EnchantingScene.class, "select");
+						return Messages.get( EnchantingScene.class, "select" );
 					}
 					return super.hoverText();
 				}
 			};
-			slot.enable(true);
+			slot.enable( true );
 			add( slot );
 		}
 
