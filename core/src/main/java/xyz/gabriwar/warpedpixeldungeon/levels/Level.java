@@ -364,7 +364,7 @@ public abstract class Level implements Bundlable {
 
 			transitions = new ArrayList<>();
 
-			mobs = new HashSet<>();
+			mobs = new MobSet();
 			heaps = new SparseArray<>();
 			blobs = new HashMap<>();
 			plants = new SparseArray<>();
@@ -477,7 +477,7 @@ public abstract class Level implements Bundlable {
 			waterPhaseProgress = bundle.getFloatArray(WATER_PHASE_PROGRESS);
 		}
 
-		mobs = new HashSet<>();
+		mobs = new MobSet();
 		heaps = new SparseArray<>();
 		blobs = new HashMap<>();
 		plants = new SparseArray<>();

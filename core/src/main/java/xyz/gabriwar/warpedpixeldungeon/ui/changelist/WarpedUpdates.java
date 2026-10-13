@@ -97,6 +97,15 @@ public final class WarpedUpdates {
 
 	/** Newest first. */
 	public static final Entry[] ALL = {
+		new Entry( 10646, icon( Icons.LANGS ), "Back to English",
+				"This update starts the game in English once; switching language now asks first.",
+				"This update starts the game in English once, since Warped is written in English and much of it is not translated yet. You can pick another language again in the settings, and it stays; changing the language now asks you to confirm first." ),
+		new Entry( 10646, icon( Icons.MAGNIFY ), "Identifying three times a week",
+				"The hermit identifies 3 items free a week; the fortune teller reads 3 a week.",
+				"The hermit in his mountain hut now identifies three items for free each week instead of one each day, then charges his usual fee. The town's fortune teller now reads three items a week for her price instead of one a season. Both tell you how many are left this week." ),
+		new Entry( 10646, icon( Icons.WARNING ), "A crash fixed",
+				"Fixed a crash when a monster picked its target as another one appeared.",
+				"Fixed a crash that could close the game while monsters were choosing whom to fight, when a creature appeared or left at the same moment." ),
 		new Entry( 10645, item( ItemSpriteSheet.MASTERWORK_CORE ), "Masterwork in five steps",
 				"Masterwork is 5 steps of a core each; the last doubles every bonus line.",
 				"Masterwork now takes five steps, one core each. Each of the first four lifts every rarity bonus line by 15%, and the fifth, which still needs a legendary or exotic piece, doubles them. A fully masterworked piece stays fully masterworked, and the steps of one partly done keep their place." ),

@@ -639,7 +639,12 @@ public class WndDebugPicker extends Window {
 				for (int i = 0; i < count; i++) {
 					Item item = maker.make(cell);
 					if (item != null) {
-						item.identify();
+						//a potion or scroll comes as it would be found, its kind unknown: the list
+						//names it, identifying it would teach the whole run what it looks like
+						if (!(item instanceof xyz.gabriwar.warpedpixeldungeon.items.potions.Potion
+								|| item instanceof xyz.gabriwar.warpedpixeldungeon.items.scrolls.Scroll)) {
+							item.identify();
+						}
 						Dungeon.level.drop(item, cell).sprite.drop();
 					}
 				}

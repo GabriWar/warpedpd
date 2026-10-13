@@ -1274,17 +1274,30 @@ public class WndSettings extends WndTabbed {
 					@Override
 					protected void onClick() {
 						super.onClick();
-						Messages.setup(langs.get(langIndex));
-						WarpedPixelDungeon.seamlessResetScene(new Game.SceneChangeCallback() {
+						if (langs.get(langIndex) == Messages.lang()) return;
+						//a tap too many should not leave a player in a language they cannot read
+						final String target = Messages.titleCase(langs.get(langIndex).nativeName());
+						WarpedPixelDungeon.scene().addToFront(new WndOptions(Icons.get(Icons.LANGS),
+								Messages.get(LangsTab.class, "confirm_title"),
+								Messages.get(LangsTab.class, "confirm_msg", target),
+								Messages.get(LangsTab.class, "confirm_yes", target),
+								Messages.get(LangsTab.class, "confirm_no")){
 							@Override
-							public void beforeCreate() {
-								WPDSettings.language(langs.get(langIndex));
-								GameLog.wipe();
-								Game.platform.resetGenerators();
-							}
-							@Override
-							public void afterCreate() {
-								//do nothing
+							protected void onSelect(int index) {
+								if (index != 0) return;
+								Messages.setup(langs.get(langIndex));
+								WarpedPixelDungeon.seamlessResetScene(new Game.SceneChangeCallback() {
+									@Override
+									public void beforeCreate() {
+										WPDSettings.language(langs.get(langIndex));
+										GameLog.wipe();
+										Game.platform.resetGenerators();
+									}
+									@Override
+									public void afterCreate() {
+										//do nothing
+									}
+								});
 							}
 						});
 					}

@@ -45,9 +45,10 @@ public class TownLedger {
 	//one a day each: the tithe, the bard's song, the keepsake sale
 	public static int titheDay, songDay, keepsakeDay;
 
-	//the fortune teller reads one item a season: the season of her last reading
-	//(GameCalendar.seasonIndex), -1 before the first
-	public static int readingSeason;
+	//the fortune teller reads three items a week: the week of her last reading
+	//(GameCalendar.weekIndex) and how many she has read in it
+	public static final int READINGS_PER_WEEK = 3;
+	public static int readingWeek, readingsThisWeek;
 
 	//the mercenary teaches one lesson per boss you have put down
 	public static int lessonsTaken;
@@ -77,7 +78,8 @@ public class TownLedger {
 		bountyTarget = null;
 		bountyReward = 0;
 		servicesUsed = 0;
-		readingSeason = -1;
+		readingWeek = Integer.MIN_VALUE;
+		readingsThisWeek = 0;
 	}
 
 	//the calendar day, so the once-a-day services roll over at the same moment
@@ -86,13 +88,23 @@ public class TownLedger {
 		return Dungeon.cycleTurn / DayNightCycle.FULL_CYCLE;
 	}
 
-	//this season's reading is spent; a new season, or the same one next year, brings another
+	//this week's three readings are spent; the next week brings three more
 	public static boolean readingSpent(){
-		return readingSeason == GameCalendar.seasonIndex();
+		return readingsLeft() == 0;
+	}
+
+	public static int readingsLeft(){
+		if (readingWeek != GameCalendar.weekIndex()) return READINGS_PER_WEEK;
+		return Math.max( 0, READINGS_PER_WEEK - readingsThisWeek );
 	}
 
 	public static void spendReading(){
-		readingSeason = GameCalendar.seasonIndex();
+		int week = GameCalendar.weekIndex();
+		if (week != readingWeek){
+			readingWeek = week;
+			readingsThisWeek = 0;
+		}
+		readingsThisWeek++;
 	}
 
 	//the town charges what the dungeon pays: prices step up with the deepest floor
@@ -128,7 +140,8 @@ public class TownLedger {
 	private static final String BOUNTY_TARGET = "town_bounty";
 	private static final String REWARD       = "town_bounty_reward";
 	private static final String SERVICES     = "town_services";
-	private static final String READING      = "town_reading_season";
+	private static final String READING_WEEK = "town_reading_week";
+	private static final String READINGS     = "town_readings";
 
 	public static void storeInBundle( Bundle bundle ){
 		bundle.put( MEAL_DAY, mealDay );
@@ -146,7 +159,8 @@ public class TownLedger {
 		if (bountyTarget != null) bundle.put( BOUNTY_TARGET, bountyTarget );
 		bundle.put( REWARD, bountyReward );
 		bundle.put( SERVICES, servicesUsed );
-		bundle.put( READING, readingSeason );
+		bundle.put( READING_WEEK, readingWeek );
+		bundle.put( READINGS, readingsThisWeek );
 	}
 
 	@SuppressWarnings("unchecked")
@@ -168,7 +182,8 @@ public class TownLedger {
 		bountyTarget = bundle.contains( BOUNTY_TARGET ) ? (Class<? extends Mob>) bundle.getClass( BOUNTY_TARGET ) : null;
 		bountyReward = bundle.getInt( REWARD );
 		servicesUsed = bundle.getInt( SERVICES );
-		//a save from before the fortune teller kept to one reading a season
-		if (bundle.contains( READING )) readingSeason = bundle.getInt( READING );
+		//a save from before the fortune teller kept to three readings a week starts a fresh week
+		readingWeek = bundle.contains( READING_WEEK ) ? bundle.getInt( READING_WEEK ) : Integer.MIN_VALUE;
+		readingsThisWeek = bundle.getInt( READINGS );
 	}
 }

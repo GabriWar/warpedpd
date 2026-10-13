@@ -546,13 +546,19 @@ public class MountainSitesLiveTest {
 	// ------------------------------------------------------------------ the hermit
 
 	@Test
-	public void hermitLooksAtAnItemForNothingOnceADay(){
+	public void hermitLooksAtThreeItemsForNothingAWeek(){
 		Hermit h = Hermit.of( 77L, 10, -20, 3 );
-		int day = WorldClock.day();
-		assertEquals( 0, h.idFee( day, hero ) );
-		h.freeDay = day;
-		assertTrue( h.idFee( day, hero ) > 0 );
-		assertEquals( 0, h.idFee( day + 1, hero ) );
+		//the first day of a week, so the whole week lies ahead
+		int day = Math.floorDiv( WorldClock.day(), 7 ) * 7;
+		for (int i = 0; i < Hermit.FREE_PER_WEEK; i++){
+			assertEquals( Hermit.FREE_PER_WEEK - i, h.freeLeft( day + i ) );
+			assertEquals( 0, h.idFee( day + i, hero ) );
+			h.useFree( day + i );
+		}
+		assertEquals( 0, h.freeLeft( day + 3 ) );
+		assertTrue( "the rest of the week he charges", h.idFee( day + 6, hero ) > 0 );
+		assertEquals( "a new week, three more", 0, h.idFee( day + 7, hero ) );
+		assertEquals( Hermit.FREE_PER_WEEK, h.freeLeft( day + 7 ) );
 		Bundle b = new Bundle();
 		h.storeInBundle( b );
 		Hermit back = new Hermit();
@@ -561,7 +567,8 @@ public class MountainSitesLiveTest {
 		assertEquals( 10, back.homeX );
 		assertEquals( -20, back.homeY );
 		assertEquals( 3, back.altitude );
-		assertEquals( day, back.freeDay );
+		assertEquals( h.freeWeek, back.freeWeek );
+		assertEquals( Hermit.FREE_PER_WEEK, back.freeUsed );
 	}
 
 	@Test
@@ -711,13 +718,14 @@ public class MountainSitesLiveTest {
 		Hermit h = Hermit.of( 3L, 1, 2, 4 );
 		b = new Bundle();
 		h.storeInBundle( b );
-		for (String k : new String[]{ "hermit_site", "home_x", "home_y", "hermit_alt", "free_day", "first_stock" }) b.remove( k );
+		for (String k : new String[]{ "hermit_site", "home_x", "home_y", "hermit_alt", "free_week", "free_used", "first_stock" }) b.remove( k );
 		Hermit oldH = new Hermit();
 		oldH.restoreFromBundle( b );
 		assertEquals( 0L, oldH.siteKey );
 		assertEquals( Integer.MIN_VALUE, oldH.homeX );
 		assertEquals( 1, oldH.altitude );
-		assertEquals( Integer.MIN_VALUE, oldH.freeDay );
+		assertEquals( Integer.MIN_VALUE, oldH.freeWeek );
+		assertEquals( 0, oldH.freeUsed );
 
 		SummitCairn c = new SummitCairn();
 		c.topped = true;

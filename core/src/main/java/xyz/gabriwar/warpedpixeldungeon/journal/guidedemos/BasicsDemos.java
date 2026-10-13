@@ -359,7 +359,7 @@ public final class BasicsDemos {
 				.turns( 2 );
 	}
 
-	//A Scroll of Identify names one item (ScrollOfIdentify); the town's fortune teller reads one a season
+	//A Scroll of Identify names one item (ScrollOfIdentify); the town's fortune teller reads three a week
 	//(TownLedger.readingSpent) for 50 gold, 40 under a full moon and 65 under a new one (FortuneTellerFolk:
 	//COST_ONE, moonRate).
 	private static void identifying( DemoBook book ){

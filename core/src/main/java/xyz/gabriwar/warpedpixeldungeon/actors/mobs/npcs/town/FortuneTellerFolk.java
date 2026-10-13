@@ -41,10 +41,9 @@ import xyz.gabriwar.warpedpixeldungeon.Badges;
 import com.watabou.noosa.Game;
 import com.watabou.utils.Callback;
 
-import java.util.Locale;
 
 //Remixed PD's town fortune teller. For gold she reads an item's nature (identifies
-//it), one item a season - the service the old plaza fortune teller offered, now
+//it), three items a week - the service the old plaza fortune teller offered, now
 //inside her building.
 public class FortuneTellerFolk extends FlavorNPC {
 
@@ -106,10 +105,9 @@ public class FortuneTellerFolk extends FlavorNPC {
 		if (!(c instanceof Hero)) return true;
 		final Hero hero = (Hero) c;
 
-		//one reading a season: the sight comes back when the season turns
+		//three readings a week: the sight comes back when the week turns
 		if (TownLedger.readingSpent()) {
-			tell( Messages.get( this, "spent", Messages.get( GameCalendar.class,
-					GameCalendar.season().next().name().toLowerCase( Locale.ENGLISH ) ) ) );
+			tell( Messages.get( this, "spent" ) );
 			return true;
 		}
 
@@ -125,7 +123,7 @@ public class FortuneTellerFolk extends FlavorNPC {
 			public void call() {
 				GameScene.show( new WndOptions( sprite(),
 						Messages.get( FortuneTellerFolk.this, "name" ),
-						Messages.get( FortuneTellerFolk.this, greetingKey(), oneCost ),
+						Messages.get( FortuneTellerFolk.this, greetingKey(), oneCost, TownLedger.readingsLeft() ),
 						Messages.get( FortuneTellerFolk.this, "one", oneCost ),
 						Messages.get( FortuneTellerFolk.this, "bye" ) ) {
 

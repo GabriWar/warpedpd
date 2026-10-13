@@ -2884,7 +2884,7 @@ public class OverworldLevel extends Level {
 	 */
 	public static void initNetworkCollections( Level l ){
 		l.transitions = new ArrayList<>();
-		l.mobs = new java.util.HashSet<>();
+		l.mobs = new xyz.gabriwar.warpedpixeldungeon.levels.MobSet();
 		l.heaps = new SparseArray<>();
 		l.blobs = new HashMap<>();
 		l.plants = new SparseArray<>();

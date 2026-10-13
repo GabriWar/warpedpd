@@ -84,6 +84,11 @@ public class WarpedPixelDungeon extends Game {
 	public void create() {
 		super.create();
 
+		//this update starts every game in English once; the words already loaded follow it
+		if (WPDSettings.resetLanguageOnce()){
+			xyz.gabriwar.warpedpixeldungeon.messages.Messages.setup( WPDSettings.language() );
+		}
+
 		updateSystemUI();
 		WPDAction.loadBindings();
 		

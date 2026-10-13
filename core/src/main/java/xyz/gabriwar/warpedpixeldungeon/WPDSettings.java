@@ -627,6 +627,18 @@ public class WPDSettings extends GameSettings {
 		put( KEY_LANG, lang.code());
 	}
 	
+	//one update put every game back in English, once: the flag says it has been done, so a
+	//language chosen after it stays
+	public static final String KEY_LANG_RESET   = "language_reset_1";
+
+	/** Back to English the first time a game with this update starts; true when it did. */
+	public static boolean resetLanguageOnce() {
+		if (getBoolean(KEY_LANG_RESET, false)) return false;
+		put(KEY_LANG, Languages.ENGLISH.code());
+		put(KEY_LANG_RESET, true);
+		return true;
+	}
+
 	public static Languages language() {
 		String code = getString(KEY_LANG, null);
 		if (code == null){

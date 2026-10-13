@@ -46,7 +46,7 @@ public class SpectatorLevel extends Level {
 
 	public SpectatorLevel() {
 		// Initialize collections that Level.create() normally sets up
-		mobs = new HashSet<>();
+		mobs = new xyz.gabriwar.warpedpixeldungeon.levels.MobSet();
 		heaps = new SparseArray<>();
 		blobs = new HashMap<>();
 		plants = new SparseArray<>();

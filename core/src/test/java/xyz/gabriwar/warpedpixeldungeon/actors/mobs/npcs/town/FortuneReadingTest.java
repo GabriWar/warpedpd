@@ -39,10 +39,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-/** The fortune teller reads one item a season (TownLedger.readingSpent / spendReading). */
+/** The fortune teller reads three items a week (TownLedger.readingSpent / spendReading). */
 public class FortuneReadingTest {
 
-	private int turn, startDay, challenges, reading;
+	private int turn, startDay, challenges, week, used;
 
 	@BeforeClass
 	public static void up(){
@@ -54,7 +54,8 @@ public class FortuneReadingTest {
 		turn = Dungeon.cycleTurn;
 		startDay = Dungeon.calendarStartDay;
 		challenges = Dungeon.challenges;
-		reading = TownLedger.readingSeason;
+		week = TownLedger.readingWeek;
+		used = TownLedger.readingsThisWeek;
 		Dungeon.challenges = 0;
 		Dungeon.calendarStartDay = 0;
 		Dungeon.cycleTurn = 0;
@@ -66,57 +67,51 @@ public class FortuneReadingTest {
 		Dungeon.cycleTurn = turn;
 		Dungeon.calendarStartDay = startDay;
 		Dungeon.challenges = challenges;
-		TownLedger.readingSeason = reading;
+		TownLedger.readingWeek = week;
+		TownLedger.readingsThisWeek = used;
 	}
 
 	private static void day( int d ){
 		Dungeon.cycleTurn = d * DayNightCycle.FULL_CYCLE + 100;
 	}
 
-	@Test
-	public void oneReadingUntilTheSeasonTurns(){
+	//the first day of a week, so the rest of it lies ahead
+	private static int weekStart(){
 		day( 0 );
-		assertEquals( Season.SPRING, GameCalendar.season() );
-		assertFalse( TownLedger.readingSpent() );
-		TownLedger.spendReading();
-		assertTrue( TownLedger.readingSpent() );
-
-		//the last day of spring is still spring
-		day( GameCalendar.daysInSeason( Season.SPRING, 0 ) - 1 );
-		assertEquals( Season.SPRING, GameCalendar.season() );
-		assertTrue( TownLedger.readingSpent() );
-
-		day( GameCalendar.daysInSeason( Season.SPRING, 0 ) );
-		assertEquals( Season.SUMMER, GameCalendar.season() );
-		assertFalse( TownLedger.readingSpent() );
+		int w = GameCalendar.weekIndex();
+		int d = 0;
+		while (GameCalendar.weekIndex() == w){
+			d++;
+			day( d );
+		}
+		return d;
 	}
 
 	@Test
-	public void theSameSeasonNextYearIsANewOne(){
-		day( 0 );
-		TownLedger.spendReading();
-
-		day( GameCalendar.daysInYear( 0 ) );
-		assertEquals( Season.SPRING, GameCalendar.season() );
-		assertEquals( 1, GameCalendar.year() );
-		assertFalse( TownLedger.readingSpent() );
-	}
-
-	@Test
-	public void winterIntoSpringIsANewSeason(){
-		int winter = GameCalendar.daysInYear( 0 ) - 1;
-		day( winter );
-		assertEquals( Season.WINTER, GameCalendar.season() );
-		TownLedger.spendReading();
+	public void threeReadingsUntilTheWeekTurns(){
+		int start = weekStart();
+		day( start );
+		for (int i = 0; i < TownLedger.READINGS_PER_WEEK; i++){
+			assertFalse( TownLedger.readingSpent() );
+			assertEquals( TownLedger.READINGS_PER_WEEK - i, TownLedger.readingsLeft() );
+			day( start + i );
+			TownLedger.spendReading();
+		}
 		assertTrue( TownLedger.readingSpent() );
-		day( winter + 1 );
+
+		//the last day of the week is still that week
+		day( start + 6 );
+		assertTrue( TownLedger.readingSpent() );
+
+		day( start + 7 );
 		assertFalse( TownLedger.readingSpent() );
+		assertEquals( TownLedger.READINGS_PER_WEEK, TownLedger.readingsLeft() );
 	}
 
 	@Test
-	public void theReadingIsSavedAndOldSavesHaveOne(){
-		day( 0 );
-		TownLedger.spendReading();
+	public void theReadingsAreSavedAndOldSavesStartAFreshWeek(){
+		day( weekStart() );
+		for (int i = 0; i < TownLedger.READINGS_PER_WEEK; i++) TownLedger.spendReading();
 		Bundle bundle = new Bundle();
 		TownLedger.storeInBundle( bundle );
 		TownLedger.reset();
@@ -124,9 +119,10 @@ public class FortuneReadingTest {
 		TownLedger.restoreFromBundle( bundle );
 		assertTrue( TownLedger.readingSpent() );
 
-		//a save from before the limit: the ledger's books but no reading kept
+		//a save from the one-a-season days: the season it read in, no week
 		Bundle old = new Bundle();
 		old.put( "town_meal_day", -1 );
+		old.put( "town_reading_season", GameCalendar.seasonIndex() );
 		TownLedger.restoreFromBundle( old );
 		assertFalse( TownLedger.readingSpent() );
 	}

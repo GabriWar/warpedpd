@@ -55,8 +55,8 @@ import java.util.ArrayList;
 /**
  * The old man of a hut on the mountains (levels/overworld/MountainSites). He keeps a small shelf of
  * what the heights call for - a scroll against curses, stew, a chilli draught and an elixir of
- * warmth - at a climber's mark-up; he will look over an item and tell you what it is, once a day
- * for nothing and otherwise for a fee; and he knows the mountains: asked, he tells of a real place
+ * warmth - at a climber's mark-up; he will look over an item and tell you what it is, three times
+ * a week for nothing and otherwise for a fee; and he knows the mountains: asked, he tells of a real place
  * near his own (MountainSites.rumour), a new one each day.
  *
  * Kept forever in the parked store as every NPC is; driven off (a shopkeeper's flight), he never
@@ -76,8 +76,11 @@ public class Hermit extends Shopkeeper {
 	public long siteKey = 0;
 	public int homeX = Integer.MIN_VALUE, homeY = Integer.MIN_VALUE;
 	public int altitude = 1;
-	//the world day he last looked at an item for nothing
-	public int freeDay = Integer.MIN_VALUE;
+	//he looks at FREE_PER_WEEK items a week for nothing: the week of the last free look, and how
+	//many he has given that week
+	public static final int FREE_PER_WEEK = 3;
+	public int freeWeek = Integer.MIN_VALUE;
+	public int freeUsed = 0;
 	private boolean firstStock = false;
 
 	//today's rumour, worked out once a day (not bundled: a load works it out again)
@@ -132,10 +135,28 @@ public class Hermit extends Shopkeeper {
 		return Messages.get( Hermit.class, "talk_" + Math.floorMod( WorldClock.day() + (int) siteKey, 5 ) );
 	}
 
-	/** What he asks today for a look at an item: nothing once a day, else his share of a scroll. */
+	/** What he asks today for a look at an item: nothing three times a week, else his share of a scroll. */
 	public int idFee( int day, Hero buyer ){
-		if (day != freeDay) return 0;
+		if (week( day ) != freeWeek || freeUsed < FREE_PER_WEEK) return 0;
 		return Math.max( 1, Math.round( ID_SHARE * Shopkeeper.sellPrice( new ScrollOfIdentify(), buyer, this ) ) );
+	}
+
+	private static int week( int day ){
+		return Math.floorDiv( day, xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar.Weekday.DAYS_PER_WEEK );
+	}
+
+	/** Free looks he still gives this week. */
+	public int freeLeft( int day ){
+		return week( day ) != freeWeek ? FREE_PER_WEEK : Math.max( 0, FREE_PER_WEEK - freeUsed );
+	}
+
+	/** One free look given on this day. */
+	public void useFree( int day ){
+		if (week( day ) != freeWeek){
+			freeWeek = week( day );
+			freeUsed = 0;
+		}
+		freeUsed++;
 	}
 
 	//today's rumour: worked out on the actor thread (it resolves the sites round his home), once a day
@@ -164,7 +185,7 @@ public class Hermit extends Shopkeeper {
 		final String talk = chatTextFor( hero );
 		Game.runOnRenderThread( () -> GameScene.show( new WndOptions( sprite(), Messages.titleCase( name() ), talk,
 				Messages.get( Hermit.class, "opt_trade" ),
-				fee == 0 ? Messages.get( Hermit.class, "opt_identify_free" ) : Messages.get( Hermit.class, "opt_identify", fee ),
+				fee == 0 ? Messages.get( Hermit.class, "opt_identify_free", freeLeft( day ) ) : Messages.get( Hermit.class, "opt_identify", fee ),
 				Messages.get( Hermit.class, "opt_rumour" ) ){
 			@Override
 			protected void onSelect( int index ){
@@ -202,7 +223,7 @@ public class Hermit extends Shopkeeper {
 					GLog.w( Messages.get( Hermit.class, "no_gold", fee ) );
 					return;
 				}
-				if (fee == 0) freeDay = day;
+				if (fee == 0) useFree( day );
 				else Dungeon.gold -= fee;
 				if (hero.sprite != null && hero.sprite.parent != null){
 					hero.sprite.parent.add( new Identification( hero.sprite.center().offset( 0, -16 ) ) );
@@ -234,7 +255,8 @@ public class Hermit extends Shopkeeper {
 	private static final String HOME_X = "home_x";
 	private static final String HOME_Y = "home_y";
 	private static final String ALTITUDE = "hermit_alt";
-	private static final String FREE_DAY = "free_day";
+	private static final String FREE_WEEK = "free_week";
+	private static final String FREE_USED = "free_used";
 	private static final String FIRST_STOCK = "first_stock";
 
 	@Override
@@ -244,7 +266,8 @@ public class Hermit extends Shopkeeper {
 		bundle.put( HOME_X, homeX );
 		bundle.put( HOME_Y, homeY );
 		bundle.put( ALTITUDE, altitude );
-		bundle.put( FREE_DAY, freeDay );
+		bundle.put( FREE_WEEK, freeWeek );
+		bundle.put( FREE_USED, freeUsed );
 		bundle.put( FIRST_STOCK, firstStock );
 	}
 
@@ -255,7 +278,8 @@ public class Hermit extends Shopkeeper {
 		homeX = bundle.contains( HOME_X ) ? bundle.getInt( HOME_X ) : Integer.MIN_VALUE;
 		homeY = bundle.contains( HOME_Y ) ? bundle.getInt( HOME_Y ) : Integer.MIN_VALUE;
 		altitude = bundle.contains( ALTITUDE ) ? bundle.getInt( ALTITUDE ) : 1;
-		freeDay = bundle.contains( FREE_DAY ) ? bundle.getInt( FREE_DAY ) : Integer.MIN_VALUE;
+		freeWeek = bundle.contains( FREE_WEEK ) ? bundle.getInt( FREE_WEEK ) : Integer.MIN_VALUE;
+		freeUsed = bundle.getInt( FREE_USED );
 		firstStock = bundle.contains( FIRST_STOCK ) && bundle.getBoolean( FIRST_STOCK );
 	}
 }
