@@ -41,7 +41,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-//a searched bookshelf gives a scroll 1 time in 20, and only one of five kinds
+//a searched bookshelf gives a scroll 8% of the time, and only one of five kinds
 public class ShelfScrollTest {
 
 	@BeforeClass
@@ -51,7 +51,7 @@ public class ShelfScrollTest {
 
 	@Test
 	public void onlyTheScholarsScrolls(){
-		assertEquals( 0.05f, Hero.SHELF_SCROLL_CHANCE, 0f );
+		assertEquals( 0.08f, Hero.SHELF_SCROLL_CHANCE, 0f );
 		List<Class<?>> allowed = Arrays.asList( ScrollOfIdentify.class, ScrollOfRemoveCurse.class,
 				ScrollOfRecharging.class, ScrollOfTransmutation.class, ScrollOfMagicMapping.class );
 		HashSet<Class<?>> seen = new HashSet<>();

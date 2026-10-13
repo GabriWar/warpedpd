@@ -4021,10 +4021,10 @@ public class Hero extends Char {
 		super.onAttackComplete();
 	}
 	
-	//a bookshelf a search empties holds a scroll 1 time in 20, and only a scholar's sort: what
+	//a bookshelf a search empties holds a scroll 8% of the time, and only a scholar's sort: what
 	//names, cleanses, changes or charges things, or maps the floor. Drawn apart from the scroll
 	//deck (Generator), so shelves never thin out the scrolls the dungeon drops
-	public static final float SHELF_SCROLL_CHANCE = 0.05f;
+	public static final float SHELF_SCROLL_CHANCE = 0.08f;
 	private static final Class<?>[] SHELF_SCROLLS = {
 			xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfIdentify.class,
 			xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfRemoveCurse.class,
