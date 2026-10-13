@@ -231,7 +231,12 @@ public class NinePatch extends Visual {
 	@Override
 	public void destroy() {
 		super.destroy();
-		if (buffer != null)
+		//let go of the buffer: its id goes back to GL and may be handed to another visual, so
+		//drawing this one again (or destroying it twice) must not touch it; a new one is made
+		if (buffer != null){
 			buffer.delete();
+			buffer = null;
+			dirty = true;
+		}
 	}
 }

@@ -61,18 +61,22 @@ public class FiredampParticle extends FxParticle {
 		@Override
 		public void emit( Emitter emitter, int index, float x, float y ){
 			if (!emitter.visible || !FxBudget.keep( FxBudget.P1, x, y )) return;
-			FxParticle p = Flames.make( emitter, FiredampParticle.class, x, y );
-			float life = FxRandom.Float( 2.5f, 4f );
-			if (FxRandom.Int( 3 ) == 0){
-				int v = FxRandom.Int( 2 );
-				p.look( SMALL[v], 0 ).then( 0.5f, LARGE[v] );
-			} else {
-				p.look( FxFrames.EDGE_WISP[FxRandom.Int( FxFrames.EDGE_WISP.length )] );
-			}
-			p.ramp( RAMP, false ).smooth().life( life ).alpha( ALPHA, life * 0.3f, life * 0.4f )
-					.vel( FxRandom.Float( -4f, 4f ), -FxRandom.Float( 1f, 3f ) ).drag( 0.1f )
-					.turbulence( FxRandom.Float( 1f, 2f ), FxRandom.Float( 1.5f, 3f ) ).wind( 0.15f )
-					.source( x, y ).priority( FxBudget.P1 );
+			haze( Flames.make( emitter, FiredampParticle.class, x, y ) ).wind( 0.15f ).source( x, y );
 		}
 	};
+
+	/** Sets `p` up as a wisp or a body of the haze, on no level: no wind, seen wherever it is (the
+	 *  Descent Guide's). FACTORY adds the cave's draught and hides it where the hero does not see. */
+	public static FxParticle haze( FxParticle p ){
+		float life = FxRandom.Float( 2.5f, 4f );
+		if (FxRandom.Int( 3 ) == 0){
+			int v = FxRandom.Int( 2 );
+			p.look( SMALL[v], 0 ).then( 0.5f, LARGE[v] );
+		} else {
+			p.look( FxFrames.EDGE_WISP[FxRandom.Int( FxFrames.EDGE_WISP.length )] );
+		}
+		return p.ramp( RAMP, false ).smooth().life( life ).alpha( ALPHA, life * 0.3f, life * 0.4f )
+				.vel( FxRandom.Float( -4f, 4f ), -FxRandom.Float( 1f, 3f ) ).drag( 0.1f )
+				.turbulence( FxRandom.Float( 1f, 2f ), FxRandom.Float( 1.5f, 3f ) ).priority( FxBudget.P1 );
+	}
 }

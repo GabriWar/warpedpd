@@ -32,6 +32,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
+import com.watabou.noosa.Camera;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
 import com.watabou.noosa.Image;
@@ -127,9 +128,11 @@ public class Surprise extends Image {
 	}
 
 	//six crosses of light bursting out of it, as many as the budget allows (at least one), spaced
-	//evenly round it (render thread)
+	//evenly round it (render thread). Only in the game's world: a guide scene's surprise, under a
+	//window's own camera, has no lights of the world to throw them into
 	private void ring(){
-		if (!visible) return;
+		Camera c = camera();
+		if (!visible || (c != null && c != Camera.main)) return;
 		FxEmitter glow = Fx.glowAir();
 		if (glow == null) return;
 		int n = FxBudget.allow( RING, FxBudget.P1 );

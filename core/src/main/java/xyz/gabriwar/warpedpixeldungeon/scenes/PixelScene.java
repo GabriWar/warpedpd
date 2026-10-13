@@ -409,7 +409,7 @@ public class PixelScene extends Scene {
 						left += BadgeBanner.SIZE * BadgeBanner.DEFAULT_SCALE;
 					}
 
-					WndJournal.last_index = 4;
+					WndJournal.last_index = WndJournal.BADGES;
 					WndJournal.BadgesTab.global = badge.type != Badges.BadgeType.LOCAL;
 
 				}

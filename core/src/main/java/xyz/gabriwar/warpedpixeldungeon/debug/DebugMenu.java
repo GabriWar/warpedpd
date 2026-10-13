@@ -59,6 +59,7 @@ import xyz.gabriwar.warpedpixeldungeon.ui.BuffIcon;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.ui.Icons;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.windows.WndDebugGear;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndDebugPicker;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndDebugReport;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndDebugScenes;
@@ -372,8 +373,10 @@ public final class DebugMenu {
 				.closing().icon( item( ItemSpriteSheet.SPELL_HOLDER ) );
 
 		t.header( "What you carry", small( BuffIndicator.IMBUE ) );
-		t.action( "Enchant weapon / armor", WndDebugPicker::forEnchanting )
+		t.action( "Enchant weapon / armor", WndDebugGear::enchant )
 				.closing().icon( icon( Icons.ALCHEMY ) );
+		t.action( "Rarity and stats", WndDebugGear::quality )
+				.closing().icon( item( ItemSpriteSheet.MASTERWORK_CORE ) );
 		t.action( "Identify all", withHero( h -> {
 			for (Item item : h.belongings) item.identify();
 		} ) ).enabledIf( () -> Dungeon.hero != null ).icon( icon( Icons.MAGNIFY ) );
@@ -546,6 +549,9 @@ public final class DebugMenu {
 		t.toggle( "No fog of war", () -> Dungeon.debugNoFog, DebugMenu::flipNoFog )
 				.icon( buff( BuffIndicator.MIND_VISION ) );
 		t.action( "Reveal level", DebugMenu::revealLevel ).icon( icon( Icons.MAGNIFY ) );
+		//the sprite and tile inspector overlay (debug/SpriteInspector); it used to be a Settings checkbox
+		t.toggle( "Inspector", WPDSettings::inspector, () -> WPDSettings.inspector( !WPDSettings.inspector() ) )
+				.icon( icon( Icons.MAGNIFY ) );
 
 		t.header( "Body", small( BuffIndicator.HEART ) );
 		t.action( "Full heal", withHero( h -> h.HP = h.HT ) ).half();
@@ -780,19 +786,19 @@ public final class DebugMenu {
 
 		t.header( "Guide", icon( Icons.LOST ) );
 		t.action( "Fill guide", () -> {
+			GuideProgress.descend();
 			for (String key : GuideGraph.allKeys()) GuideProgress.findPage( key );
 		} ).half();
 		t.action( "Clear guide", GuideProgress::clear ).half();
-		//debug builds mark every guide page read at startup, which is exactly what hides the
-		//guidebook, its trail and the searching page: back to first-run
+		//a read intro page hides the guide's first page and its trail, and a found searching page
+		//the floor-1 door: back to first-run
 		t.action( "Reset tutorial", () -> {
 			WPDSettings.intro( true );
-			for (String page : Document.ADVENTURERS_GUIDE.pageNames()){
-				Document.ADVENTURERS_GUIDE.deletePage( page );
-			}
+			GuideProgress.forget( GuideGraph.BASICS_INTRO );
+			GuideProgress.forget( GuideGraph.BASICS_SEARCHING );
 			//to disk now: a restart would otherwise bring the read pages back
 			Journal.saveGlobal();
-			GLog.p( "Tutorial reset: the guidebook returns in the next new game." );
+			GLog.p( "Tutorial reset: the guide's first page returns in the next new game." );
 		} ).icon( icon( Icons.REPEAT ) );
 
 		//online play asks the relay for a supporter receipt. This is the relay's own test

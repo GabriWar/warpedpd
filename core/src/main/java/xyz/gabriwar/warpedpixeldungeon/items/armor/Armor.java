@@ -794,7 +794,7 @@ public class Armor extends EquipableItem {
 		if (masteryPotionBonus){
 			req -= 2;
 		}
-		req -= xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.strReqBonus( this, req );
+		req -= xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.strReqBonus( this );
 		return req;
 	}
 

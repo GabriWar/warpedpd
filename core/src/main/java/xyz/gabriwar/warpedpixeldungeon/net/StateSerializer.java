@@ -1165,13 +1165,15 @@ public class StateSerializer {
 		return arr;
 	}
 
-	// Cheap change-signature for delta gating (only state + discovery matter visually).
+	// Cheap change-signature for delta gating: state + discovery, and the cell, which a client's tap
+	// on a gate is matched against (GameScene) and the town's gate changes with every window slide.
 	private static String portalSig() {
 		StringBuilder sb = new StringBuilder();
 		for (java.util.Map.Entry<Integer, Portals.Record> e : Portals.entries()) {
 			sb.append(e.getKey()).append(':')
 			  .append(e.getValue().state.ordinal()).append(':')
-			  .append(e.getValue().discovered ? 1 : 0).append('|');
+			  .append(e.getValue().discovered ? 1 : 0).append(':')
+			  .append(e.getValue().cell).append('|');
 		}
 		return sb.toString();
 	}

@@ -25,7 +25,6 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
-import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
@@ -63,6 +62,9 @@ public class ChaosMage extends Mob {
 		state = HUNTING;
 
 		properties.add( Property.DEMONIC );
+
+		loot = PotionOfExperience.class;
+		lootChance = 0.02f;
 
 		resistances.add( Grim.class );
 		resistances.add( Vampiric.class );
@@ -106,12 +108,6 @@ public class ChaosMage extends Mob {
 		}
 
 		return damage;
-	}
-
-	@Override
-	public void die( Object cause ) {
-		super.die( cause );
-		Dungeon.level.drop( new PotionOfExperience(), pos ).sprite.drop();
 	}
 
 	private void corrupt( Hero hero ) {

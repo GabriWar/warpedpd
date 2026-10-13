@@ -25,9 +25,27 @@
 package xyz.gabriwar.warpedpixeldungeon.items.bags;
 
 import xyz.gabriwar.warpedpixeldungeon.items.AdamantRing;
+import xyz.gabriwar.warpedpixeldungeon.items.AncientCoin;
 import xyz.gabriwar.warpedpixeldungeon.items.Ankh;
+import xyz.gabriwar.warpedpixeldungeon.items.BookOfDead;
+import xyz.gabriwar.warpedpixeldungeon.items.BookOfLife;
+import xyz.gabriwar.warpedpixeldungeon.items.BookOfTranscendence;
+import xyz.gabriwar.warpedpixeldungeon.items.Bone;
+import xyz.gabriwar.warpedpixeldungeon.items.CavesKey;
+import xyz.gabriwar.warpedpixeldungeon.items.CityKey;
+import xyz.gabriwar.warpedpixeldungeon.items.ConchShell;
+import xyz.gabriwar.warpedpixeldungeon.items.HallsKey;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
+import xyz.gabriwar.warpedpixeldungeon.items.PrisonKey;
+import xyz.gabriwar.warpedpixeldungeon.items.ReturnBeacon;
+import xyz.gabriwar.warpedpixeldungeon.items.SanChikarah;
+import xyz.gabriwar.warpedpixeldungeon.items.SewersKey;
+import xyz.gabriwar.warpedpixeldungeon.items.TenguKey;
+import xyz.gabriwar.warpedpixeldungeon.items.artifacts.LloydsBeacon;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.RingOfDisintegration;
+import xyz.gabriwar.warpedpixeldungeon.items.artifacts.SkeletonKey;
+import xyz.gabriwar.warpedpixeldungeon.items.keys.Key;
+import xyz.gabriwar.warpedpixeldungeon.items.quest.EscapeCrystal;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.Ring;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 
@@ -40,7 +58,20 @@ public class AnkhChain extends Bag {
 	@Override
 	public boolean canHold( Item item ) {
 		if (item instanceof Ankh || item instanceof Ring || item instanceof RingOfDisintegration
-				|| item instanceof AdamantRing){
+				|| item instanceof AdamantRing
+				//keys of every kind: the ancient keys that open portals, the dungeon's door
+				//keys and the skeleton key artifact
+				|| item instanceof SewersKey || item instanceof PrisonKey
+				|| item instanceof CavesKey || item instanceof CityKey
+				|| item instanceof HallsKey || item instanceof TenguKey
+				|| item instanceof Key || item instanceof SkeletonKey
+				//and everything else that takes you somewhere: the books, the coin, the bone and the
+				//conch that open portals, the forged SanChikarah, the beacons and the vault's crystal
+				|| item instanceof BookOfDead || item instanceof BookOfLife
+				|| item instanceof BookOfTranscendence || item instanceof AncientCoin
+				|| item instanceof Bone || item instanceof ConchShell || item instanceof SanChikarah
+				|| item instanceof ReturnBeacon || item instanceof LloydsBeacon
+				|| item instanceof EscapeCrystal){
 			return super.canHold(item);
 		} else {
 			return false;

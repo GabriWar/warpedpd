@@ -50,10 +50,9 @@ public final class AmbientPlayer {
 	//a source PAN_CELLS to one side is panned as far as it goes, MAX_PAN: never fully into one ear
 	public static final float PAN_CELLS = 8f, MAX_PAN = 0.75f;
 	//while spatial sound is on (SpatialSound.on) the curve is the wide one: half at
-	//WIDE_HALF_CELLS, and panned as far as WIDE_MAX_PAN from WIDE_PAN_CELLS to a side, as the
-	//effects are: a sound pans the same on either channel
-	public static final float WIDE_HALF_CELLS = 4f, WIDE_PAN_CELLS = SpatialSound.PAN_CELLS,
-			WIDE_MAX_PAN = SpatialSound.MAX_PAN;
+	//WIDE_HALF_CELLS, and panned as the effects are (SpatialSound.pan, at its strength): a sound
+	//pans the same on either channel
+	public static final float WIDE_HALF_CELLS = 4f;
 	//how far off pitch a play may be, either way
 	public static final float PITCH_SPREAD = 0.06f;
 
@@ -70,9 +69,8 @@ public final class AmbientPlayer {
 
 	/** The pan of a source this many cells to the hero's right (negative: left). */
 	public static float pan( float dx ){
-		boolean wide = SpatialSound.on;
-		float max = wide ? WIDE_MAX_PAN : MAX_PAN;
-		return Math.max( -max, Math.min( max, dx / (wide ? WIDE_PAN_CELLS : PAN_CELLS) ) );
+		if (SpatialSound.on) return SpatialSound.pan( dx );
+		return Math.max( -MAX_PAN, Math.min( MAX_PAN, dx / PAN_CELLS ) );
 	}
 
 	/** Is the ambience heard at all right now: on, not at zero, and the game not in the background. */

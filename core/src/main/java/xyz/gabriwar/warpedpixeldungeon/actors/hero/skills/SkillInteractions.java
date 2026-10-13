@@ -132,11 +132,6 @@ public final class SkillInteractions {
         final boolean melee=Dungeon.level.adjacent(attacker.pos,hero.pos);
         defer(()->{if(hero.isAlive()&&attacker.isAlive())hero.heroSkills.onHeroMissed(attacker,melee);});
     }
-    /** Mob AI: mob noticed the hero */
-    public static void heroNoticed(Mob mob,boolean wasSleeping){
-        Hero hero=Dungeon.hero;if(hero==null||hero.heroSkills==null)return;
-        defer(()->{if(hero.isAlive()&&mob.isAlive())hero.heroSkills.onHeroNoticed(mob,wasSleeping);});
-    }
 
     private static boolean magicDispatch;
     /** call before a hero wand zap or bolt spell damages target; pass the result to afterMagicHit */

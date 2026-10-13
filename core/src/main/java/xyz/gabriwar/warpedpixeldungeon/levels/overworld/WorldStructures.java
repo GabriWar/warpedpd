@@ -58,6 +58,7 @@ public class WorldStructures {
 	public static final int TOWN_DUNGEON_GATE  = 141;  //the north gate: the dungeon's front door (floor 1)
 	public static final int TOWN_TEMPLE_DOOR = 412;
 	public static final int TOWN_ALTAR      = 350;  //norn-stone altar
+	public static final int TOWN_PORTAL     = 399;  //the portal gate (Portals.TOWN): the town square, against the hay east of the campfire, off every way through it
 	//doorways into the building interiors (branch 6), indexed by interior depth 1..6
 	public static final int[] TOWN_DOORS = { -1, 296, 490, 146, 530, 440, 340 };
 

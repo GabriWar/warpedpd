@@ -25,7 +25,8 @@ import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
-import xyz.gabriwar.warpedpixeldungeon.journal.Document;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideProgress;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.SnakeSprite;
 import com.watabou.utils.Random;
@@ -67,9 +68,9 @@ public class Snake extends Mob {
 		if (Dungeon.level.heroFOV[pos]) {
 			dodges++;
 		}
-		if ((dodges >= 2 && !Document.ADVENTURERS_GUIDE.isPageRead(Document.GUIDE_SURPRISE_ATKS))
-				|| (dodges >= 4 && !Badges.isUnlocked(Badges.Badge.BOSS_SLAIN_1))){
-			GameScene.flashForDocument(Document.ADVENTURERS_GUIDE, Document.GUIDE_SURPRISE_ATKS);
+		boolean again = dodges >= 4 && !Badges.isUnlocked(Badges.Badge.BOSS_SLAIN_1);
+		if ((dodges >= 2 && !GuideProgress.isRead(GuideGraph.BASICS_SURPRISE)) || again){
+			GameScene.adviseGuide(GuideGraph.BASICS_SURPRISE, again);
 			dodges = 0;
 		}
 		return super.defenseVerb();

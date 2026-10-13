@@ -59,7 +59,8 @@ public class Tower extends Mob implements Callback {
 	{
 		spriteClass = TowerSprite.class;
 
-		HP = HT = 220 + Dungeon.depth * Random.NormalIntRange(2, 4);
+		//DM-300's one tower: about half the 250 to 280 (220 + depth x 2 to 4) it had beside a second one
+		HP = HT = 130;
 		defenseSkill = 0;
 
 		EXP = 25;

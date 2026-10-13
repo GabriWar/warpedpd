@@ -27,7 +27,7 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
-import xyz.gabriwar.warpedpixeldungeon.journal.Document;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.EnchantingScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -78,11 +78,8 @@ public class EnchantingStation extends NPC implements xyz.gabriwar.warpedpixeldu
 			return true;
 		}
 
-		//point new players at the enchanting guide page, like the alchemy pot does
-		Document.ADVENTURERS_GUIDE.findPage( Document.GUIDE_ENCHANTING );
-		if (!Document.ADVENTURERS_GUIDE.isPageRead( Document.GUIDE_ENCHANTING )){
-			GameScene.flashForDocument( Document.ADVENTURERS_GUIDE, Document.GUIDE_ENCHANTING );
-		}
+		//point new players at the guide's page on enchanting
+		GameScene.adviseGuide( GuideGraph.BASICS_ENCHANTING );
 
 		Game.runOnRenderThread(new Callback() {
 			@Override

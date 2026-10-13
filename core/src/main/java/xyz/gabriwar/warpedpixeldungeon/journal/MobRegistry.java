@@ -117,7 +117,6 @@ final class MobRegistry {
         xyz.gabriwar.warpedpixeldungeon.actors.mobs.Minotaur.class,
         xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mirage.class,
         xyz.gabriwar.warpedpixeldungeon.actors.mobs.Monk.class,
-        xyz.gabriwar.warpedpixeldungeon.actors.mobs.MonsterBox.class,
         xyz.gabriwar.warpedpixeldungeon.actors.mobs.MossySkeleton.class,
         xyz.gabriwar.warpedpixeldungeon.actors.mobs.MrDestructo.class,
         xyz.gabriwar.warpedpixeldungeon.actors.mobs.MrDestructo2dot0.class,

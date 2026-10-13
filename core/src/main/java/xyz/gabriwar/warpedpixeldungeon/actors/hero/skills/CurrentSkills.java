@@ -800,8 +800,8 @@ public class CurrentSkills {
 		return false;
 	}
 
-	public void onHeroNoticed( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob mob, boolean wasSleeping ){
-		for (Skill s : allSkills) if (s.level > 0) s.onHeroNoticed( mob, wasSleeping );
+	public void onEnemySpotted( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob mob ){
+		for (Skill s : allSkills) if (s.level > 0) s.onEnemySpotted( mob );
 	}
 
 	public void onDamageTaken( int hpLost, int shieldLost, Object source ){

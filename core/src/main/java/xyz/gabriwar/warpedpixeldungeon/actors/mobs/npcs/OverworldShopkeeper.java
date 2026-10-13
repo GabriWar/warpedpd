@@ -117,6 +117,8 @@ public class OverworldShopkeeper extends Shopkeeper {
 		if (firstStock || Random.Int( 4 ) == 0){
 			stock.add( new xyz.gabriwar.warpedpixeldungeon.items.MagicWorldMap() );
 		}
+		//every shop keeps a stack of five empty bottles
+		stock.add( new xyz.gabriwar.warpedpixeldungeon.items.EmptyBottle().quantity( 5 ) );
 		for (int i = 0; i < 6; i++){
 			Item it;
 			switch (speciality){

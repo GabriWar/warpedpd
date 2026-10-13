@@ -331,21 +331,7 @@ public class CavesBossLevel extends Level {
 		PixelScene.shake( 3, 0.7f );
 		SpatialSound.play( Assets.Sounds.ROCKS, entrance );
 
-		DM300 boss = new DM300();
-		boss.state = boss.WANDERING;
-		do {
-			boss.pos = pointToCell(Random.element(mainArena.getPoints()));
-		} while (!openSpace[boss.pos] || map[boss.pos] == Terrain.EMPTY_SP || Actor.findChar(boss.pos) != null);
-		GameScene.add( boss );
-
-		//Sprouted stands two of DM-300's towers in the arena alongside it
-		for (int i = 0; i < 2; i++) {
-			Tower tower = new Tower();
-			do {
-				tower.pos = pointToCell(Random.element(mainArena.getPoints()));
-			} while (!openSpace[tower.pos] || map[tower.pos] == Terrain.EMPTY_SP || Actor.findChar(tower.pos) != null);
-			GameScene.add( tower );
-		}
+		spawnFight();
 
 		Game.runOnRenderThread(new Callback() {
 			@Override
@@ -354,6 +340,22 @@ public class CavesBossLevel extends Level {
 			}
 		});
 
+	}
+
+	//DM-300 and its one tower (Sprouted stood two), each on open floor in the arena
+	void spawnFight(){
+		DM300 boss = new DM300();
+		boss.state = boss.WANDERING;
+		do {
+			boss.pos = pointToCell(Random.element(mainArena.getPoints()));
+		} while (!openSpace[boss.pos] || map[boss.pos] == Terrain.EMPTY_SP || Actor.findChar(boss.pos) != null);
+		GameScene.add( boss );
+
+		Tower tower = new Tower();
+		do {
+			tower.pos = pointToCell(Random.element(mainArena.getPoints()));
+		} while (!openSpace[tower.pos] || map[tower.pos] == Terrain.EMPTY_SP || Actor.findChar(tower.pos) != null);
+		GameScene.add( tower );
 	}
 
 	@Override

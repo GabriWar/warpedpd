@@ -25,10 +25,8 @@
 package xyz.gabriwar.warpedpixeldungeon.items.rarity;
 
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
-import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.DamageWand;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.Wand;
-import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 
 import java.util.ArrayList;
@@ -74,8 +72,8 @@ public enum RarityLine {
 
 	/**
 	 * The bonus at a full roll. Most lines are fractions of the item's own number; the
-	 * countable ones are a share that a whole step is taken from (see Quality.strReqBonus
-	 * and Quality.chargeBonus), and WARMTH is degrees, because a percentage of a
+	 * countable ones are whole steps: STR_REQ takes 1 or 2 points by its roll (Quality.strReqStep),
+	 * CHARGES a share of the wand's charges (Quality.chargeBonus), and WARMTH is degrees, because a percentage of a
 	 * temperature means nothing to the climate that reads it.
 	 */
 	public float max(){
@@ -146,11 +144,8 @@ public enum RarityLine {
 		switch (this){
 			case WARMTH:
 				return Messages.get( this, "warmth", Math.round( max() * roll * 10f ) / 10f );
-			case STR_REQ: {
-				int req = item instanceof Weapon ? ((Weapon) item).STRReq()
-						: item instanceof Armor ? ((Armor) item).STRReq() : 10;
-				return Messages.get( this, "str_req", Quality.strReqStep( req, max() * roll ) );
-			}
+			case STR_REQ:
+				return Messages.get( this, "str_req", Quality.strReqStep( max() * roll ) );
 			case CHARGES:
 				return Messages.get( this, "charges", Quality.chargeStep(
 						item instanceof Wand ? ((Wand) item).initialCharges() : 2, max() * roll ) );

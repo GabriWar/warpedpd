@@ -804,6 +804,25 @@ public class CombatFxTest {
 	}
 
 	@Test
+	public void aBurningBodyThatJumpsKeepsItsLightsAndLeavesNoneBehind(){
+		//a burning rat, lit: its glow on the body and its pool at the feet
+		CharSprite s = rat( at( 3, 3 ) );
+		s.add( CharSprite.State.BURNING );
+		frames( 20 );
+		assertEquals( 2, FxLight.live() );
+		//it is somewhere else from one frame to the next (a teleport, the world's window sliding,
+		//a long frame mid-push): its lights are still its own, so it keeps the same two
+		s.ch.pos = at( 12, 12 );
+		s.place( at( 12, 12 ) );
+		frames( 40 );
+		assertEquals( 2, FxLight.live() );
+		//the fire out: both go, none stays stuck on the body
+		s.remove( CharSprite.State.BURNING );
+		frames( 30 );
+		assertEquals( 0, FxLight.live() );
+	}
+
+	@Test
 	public void onlyAThrownCreatureSlamsIntoAWall(){
 		Game.elapsed = 1 / 60f;
 		//a split or a summon put down beside a wall: already on its cell as it slides out

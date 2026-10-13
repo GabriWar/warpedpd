@@ -22,7 +22,6 @@
 package xyz.gabriwar.warpedpixeldungeon.journal;
 
 import xyz.gabriwar.warpedpixeldungeon.Badges;
-import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfIdentify;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
@@ -36,7 +35,6 @@ import java.util.LinkedHashMap;
 
 public enum Document {
 	
-	ADVENTURERS_GUIDE(ItemSpriteSheet.GUIDE_PAGE, false),
 	ALCHEMY_GUIDE(ItemSpriteSheet.ALCH_PAGE, false),
 
 	INTROS(Icons.STAIRS, true),
@@ -173,48 +171,10 @@ public enum Document {
 	}
 
 	public Image pageSprite(String page){
-		if (page.isEmpty() || !isPageFound(page) || this != ADVENTURERS_GUIDE){
-			if (pageIcon != null){
-				return Icons.get(pageIcon);
-			} else {
-				return new ItemSprite(pageSprite);
-			}
+		if (pageIcon != null){
+			return Icons.get(pageIcon);
 		} else {
-			//special per-page visuals for guidebook
-			switch (page){
-				case Document.GUIDE_INTRO: default:
-					return new ItemSprite(ItemSpriteSheet.MASTERY);
-				case "Examining":
-					return Icons.get(Icons.MAGNIFY);
-				case "Surprise_Attacks":
-					return Icons.get(Icons.SNAKE);
-				case "Identifying":
-					return new ItemSprite( new ScrollOfIdentify() );
-				case "Food":
-					return new ItemSprite( ItemSpriteSheet.PASTY );
-				case "Alchemy":
-					return new ItemSprite( ItemSpriteSheet.TRINKET_CATA );
-				case "Enchanting":
-					return new ItemSprite( ItemSpriteSheet.STYLUS );
-				case "Farming":
-					return new ItemSprite( ItemSpriteSheet.SEED_SUNGRASS );
-				case "Dieing":
-					return new ItemSprite( ItemSpriteSheet.TOMB );
-				case Document.GUIDE_SEARCHING:
-					return Icons.get(Icons.MAGNIFY);
-				case "Strength":
-					return new ItemSprite( ItemSpriteSheet.GREATAXE );
-				case "Upgrades":
-					return new ItemSprite( ItemSpriteSheet.RING_EMERALD );
-				case "Looting":
-					return new ItemSprite( ItemSpriteSheet.CRYSTAL_KEY );
-				case "Levelling":
-					return Icons.get(Icons.TALENT);
-				case "Positioning":
-					return new ItemSprite( ItemSpriteSheet.SPIRIT_BOW );
-				case "Magic":
-					return new ItemSprite( ItemSpriteSheet.WAND_FIREBOLT );
-			}
+			return new ItemSprite(pageSprite);
 		}
 	}
 
@@ -247,44 +207,11 @@ public enum Document {
 		return pageBody( pagesStates.keySet().toArray(new String[0])[pageIdx] );
 	}
 
-	public static final String GUIDE_INTRO          = "Intro";
-	public static final String GUIDE_EXAMINING      = "Examining";
-	public static final String GUIDE_SURPRISE_ATKS  = "Surprise_Attacks";
-	public static final String GUIDE_IDING          = "Identifying";
-	public static final String GUIDE_FOOD           = "Food";
-	public static final String GUIDE_ALCHEMY        = "Alchemy";
-	public static final String GUIDE_ENCHANTING     = "Enchanting";
-	public static final String GUIDE_FARMING        = "Farming";
-	public static final String GUIDE_SKILLS         = "Skills";
-	public static final String GUIDE_DIEING         = "Dieing";
-
-	public static final String GUIDE_SEARCHING      = "Searching";
-
 	public static final String KING_ATTRITION       = "attrition";
 
 	//pages and default states
 	static {
 		boolean debug = DeviceCompat.isDebug();
-		//hero gets these when guidebook is collected
-		ADVENTURERS_GUIDE.pagesStates.put(GUIDE_INTRO,          debug ? READ : NOT_FOUND);
-		ADVENTURERS_GUIDE.pagesStates.put(GUIDE_EXAMINING,      debug ? READ : NOT_FOUND);
-		ADVENTURERS_GUIDE.pagesStates.put(GUIDE_SURPRISE_ATKS,  debug ? READ : NOT_FOUND);
-		ADVENTURERS_GUIDE.pagesStates.put(GUIDE_IDING,          debug ? READ : NOT_FOUND);
-		ADVENTURERS_GUIDE.pagesStates.put(GUIDE_FOOD,           debug ? READ : NOT_FOUND);
-		ADVENTURERS_GUIDE.pagesStates.put(GUIDE_ALCHEMY,        debug ? READ : NOT_FOUND);
-		ADVENTURERS_GUIDE.pagesStates.put(GUIDE_ENCHANTING,     debug ? READ : NOT_FOUND);
-		ADVENTURERS_GUIDE.pagesStates.put(GUIDE_FARMING,        debug ? READ : NOT_FOUND);
-		ADVENTURERS_GUIDE.pagesStates.put(GUIDE_SKILLS,         debug ? READ : NOT_FOUND);
-		ADVENTURERS_GUIDE.pagesStates.put(GUIDE_DIEING,         debug ? READ : NOT_FOUND);
-		//given in sewers
-		ADVENTURERS_GUIDE.pagesStates.put(GUIDE_SEARCHING,      debug ? READ : NOT_FOUND);
-		ADVENTURERS_GUIDE.pagesStates.put("Strength",           debug ? READ : NOT_FOUND);
-		ADVENTURERS_GUIDE.pagesStates.put("Upgrades",           debug ? READ : NOT_FOUND);
-		ADVENTURERS_GUIDE.pagesStates.put("Looting",            debug ? READ : NOT_FOUND);
-		ADVENTURERS_GUIDE.pagesStates.put("Levelling",          debug ? READ : NOT_FOUND);
-		ADVENTURERS_GUIDE.pagesStates.put("Positioning",        debug ? READ : NOT_FOUND);
-		ADVENTURERS_GUIDE.pagesStates.put("Magic",              debug ? READ : NOT_FOUND);
-		
 		//given in sewers
 		ALCHEMY_GUIDE.pagesStates.put("Potions",                debug ? READ : NOT_FOUND);
 		ALCHEMY_GUIDE.pagesStates.put("Stones",                 debug ? READ : NOT_FOUND);

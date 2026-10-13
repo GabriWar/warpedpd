@@ -99,10 +99,32 @@ public class RoomAcousticsTest {
 		AllItemsTest.titleScreen();
 	}
 
+	private int wasSpatialStrength, wasStrength;
+
+	@Test
+	public void strongerDullsMoreThroughWallsAndDoors(){
+		for (int k = RoomAcoustics.MIN_STRENGTH; k < RoomAcoustics.MAX_STRENGTH; k++){
+			RoomAcoustics.strength( k );
+			float wall = RoomAcoustics.dull( 0.6f ), door = RoomAcoustics.dull( 0.8f );
+			RoomAcoustics.strength( k + 1 );
+			assertTrue( RoomAcoustics.dull( 0.6f ) < wall );
+			assertTrue( RoomAcoustics.dull( 0.8f ) < door );
+			assertTrue( "a door lets more through than the rock", RoomAcoustics.dull( 0.8f ) > RoomAcoustics.dull( 0.6f ) );
+		}
+		RoomAcoustics.strength( 2 );
+		assertEquals( "strength 2 is how it first sounded", 0.6f, RoomAcoustics.dull( 0.6f ), 1e-6f );
+		assertTrue( "the default is stronger than it first was", RoomAcoustics.DEFAULT_STRENGTH > 2 );
+	}
+
 	@Before
 	public void setUp(){
 		wasSpatial = SpatialSound.on;
 		wasDesktop = SpatialSound.desktop;
+		//the numbers here are strength 2's, how both first sounded
+		wasSpatialStrength = SpatialSound.strength;
+		wasStrength = RoomAcoustics.strength;
+		SpatialSound.strength( 2 );
+		RoomAcoustics.strength( 2 );
 		wasOn = RoomAcoustics.on;
 		wasEarshotClock = Earshot.clock;
 		wasClock = RoomAcoustics.clock;
@@ -126,6 +148,8 @@ public class RoomAcousticsTest {
 	public void tearDown(){
 		SpatialSound.on = wasSpatial;
 		SpatialSound.desktop = wasDesktop;
+		SpatialSound.strength( wasSpatialStrength );
+		RoomAcoustics.strength( wasStrength );
 		SpatialSound.out = SpatialSound.SAMPLE;
 		RoomAcoustics.on = wasOn;
 		Earshot.clock = wasEarshotClock;

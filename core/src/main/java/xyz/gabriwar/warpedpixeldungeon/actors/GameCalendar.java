@@ -324,6 +324,21 @@ public class GameCalendar {
 	}
 
 	/**
+	 * Which season this is, counted across the years: year * 4 + the season's place, so the same
+	 * season next year is a different number. A real-clock January and February belong to the
+	 * winter that began the December before.
+	 */
+	public static int seasonIndex() {
+		if (Dungeon.isChallenged(Challenges.REAL_CLOCK)) {
+			int y = realYear();
+			if (Calendar.getInstance().get(Calendar.MONTH) <= Calendar.FEBRUARY) y--;
+			return y * 4 + realSeason().ordinal();
+		}
+		int[] d = turnDateComponents();
+		return d[0] * 4 + d[1];
+	}
+
+	/**
 	 * The season of a day of the world's clock (WorldClock.day()): today's is season(), and a day
 	 * gone by is what the homesteads settle a long absence by (the fields' frost and growth).
 	 */

@@ -28,19 +28,24 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Chrome;
 import xyz.gabriwar.warpedpixeldungeon.WPDAction;
 import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph;
 import xyz.gabriwar.warpedpixeldungeon.journal.GuideLayout;
 import xyz.gabriwar.warpedpixeldungeon.journal.GuideProgress;
 import xyz.gabriwar.warpedpixeldungeon.journal.Journal;
+import xyz.gabriwar.warpedpixeldungeon.journal.guidecites.Cite;
+import xyz.gabriwar.warpedpixeldungeon.journal.guidecites.GuideCites;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import xyz.gabriwar.warpedpixeldungeon.sprites.GuidePuppet;
+import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.ExitButton;
 import xyz.gabriwar.warpedpixeldungeon.ui.Icons;
 import xyz.gabriwar.warpedpixeldungeon.ui.RenderedTextBlock;
 import xyz.gabriwar.warpedpixeldungeon.ui.StyledButton;
 import xyz.gabriwar.warpedpixeldungeon.ui.TitleBackground;
 import xyz.gabriwar.warpedpixeldungeon.ui.Window;
+import xyz.gabriwar.warpedpixeldungeon.ui.guide.CiteArt;
+import xyz.gabriwar.warpedpixeldungeon.ui.guide.LiveCrop;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndGuideNode;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndTextInput;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndTitledMessage;
@@ -64,7 +69,6 @@ import com.watabou.utils.DeviceCompat;
 import com.watabou.utils.PointF;
 import com.watabou.utils.Random;
 import com.watabou.utils.RectF;
-import com.watabou.utils.Reflection;
 import com.watabou.utils.Signal;
 
 import java.util.ArrayList;
@@ -81,11 +85,12 @@ import java.util.Locale;
 //
 //Motion: cards spring out of their chapter and connectors draw out behind them, collapse
 //folds them back, fresh pages glow and ink flows down the lines towards them, locked pages
-//scribble, bosses idle, sparks and dust drift. Off-screen cards stop updating.
+//scribble, bosses and the things pages are about idle and strike now and then, sparks and dust
+//drift. Off-screen cards stop updating.
 public class GuideScene extends PixelScene {
 
 	//where back leads: the title journal by default, or the game when opened from the
-	//in-game guidebook tab. one-shot - resets after use.
+	//game (the journal button, its guide tab, a page's button). one-shot - resets after use.
 	public static Class<? extends PixelScene> returnScene = JournalScene.class;
 
 	//a page to open the guide on (the one just found), one-shot
@@ -1099,43 +1104,11 @@ public class GuideScene extends PixelScene {
 			return;
 		}
 
-		String text = node.text();
-		String sub = node.subtitle();
-		String body;
-		ArrayList<Mob.DropInfo> drops = null;
-		if (node.mob != null){
-			String msg = "";
-			try {
-				Mob mob = (Mob) Reflection.newInstance( node.mob );
-				if (mob != null){
-					msg = mob.description() + mob.dropsInfo();
-					drops = mob.getDrops();
-				}
-			} catch (Exception e){
-				//no game state to describe it from (the title screen): the journal alone
-				msg = "";
-				drops = null;
-			}
-			if (text != null){
-				msg += (msg.isEmpty() ? "" : "\n\n") + Messages.get( this, "from_journal" ) + "\n\n" + text;
-			}
-			body = msg;
-		} else {
-			body = (sub != null ? "_" + sub + "_\n\n" : "")
-					+ (text != null ? text : Messages.get( this, "blank" ));
-		}
-
 		//read as it opens; its card lights down, sparks flying, as it closes: the window
 		//covers most of a phone's screen while it is up
 		final boolean fresh = node.key != null && !GuideProgress.isRead( node.key );
 		if (fresh) GuideProgress.markRead( node.key );
-		addToFront( new WndGuideNode( windowIcon( node ), node.title(), body, drops ){
-			@Override
-			public void hide() {
-				super.hide();
-				if (fresh) pageClosed( node );
-			}
-		} );
+		addToFront( WndGuideNode.forNode( node, fresh ? () -> pageClosed( node ) : null, false ) );
 		Sample.INSTANCE.play( Assets.Sounds.READ, 0.5f );
 	}
 
@@ -1145,25 +1118,6 @@ public class GuideScene extends PixelScene {
 		Card c = cards.get( node );
 		if (c != null) c.burst();
 		refreshUp( node );
-	}
-
-	private Image windowIcon( GuideGraph.Node node ){
-		if (node.mob != null){
-			CharSprite s = bossSprite( node );
-			if (s != null) return new Image( s );
-		}
-		return Icons.get( node.icon != null ? node.icon : Icons.INFO );
-	}
-
-	private static CharSprite bossSprite( GuideGraph.Node node ){
-		try {
-			Mob mob = (Mob) Reflection.newInstance( node.mob );
-			CharSprite sprite = mob == null ? null : mob.sprite();
-			if (sprite != null) sprite.idle();
-			return sprite;
-		} catch (Exception e){
-			return null;
-		}
 	}
 
 	//--- colours ---
@@ -1243,6 +1197,8 @@ public class GuideScene extends PixelScene {
 			unread = p[2];
 			fresh = !locked && (GuideGraph.isNew( node ) || (chapter && unread > 0));
 
+			//a live icon holds a creature's sprite of its own: let it go with the old icon
+			if (icon != null) icon.destroy();
 			clear();
 			for (int i = 0; i < glow.length; i++) glow[i] = null;
 			ringBlocks = null;
@@ -1314,10 +1270,15 @@ public class GuideScene extends PixelScene {
 				q.measure();
 				return q;
 			}
+			//its subject alive: the boss, or what the page is about (creatures strike now and then,
+			//items glow), else the chapter's own art or the page's icon
 			if (node.mob != null){
-				CharSprite s = bossSprite( node );
-				if (s != null) return new Portrait( s, ICON_MAX, ICON_MAX );
+				CharSprite s = GuidePuppet.make( node.mob );
+				if (s != null) return new LiveCrop( s, ICON_MAX, ICON_MAX, 6, 10 );
 			}
+			Cite primary = GuideCites.primary( node.key );
+			if (primary != null && primary.still()) return CiteArt.icon( primary, ICON_MAX, ICON_MAX, 6, 10 );
+			if (node.sprite >= 0) return new ItemSprite( node.sprite );
 			return Icons.get( node.icon != null ? node.icon : Icons.INFO );
 		}
 
@@ -1678,63 +1639,6 @@ public class GuideScene extends PixelScene {
 					v.y = Math.round( v.y * grid ) / (float) grid;
 				}
 			}
-		}
-	}
-
-	//a boss's live idle animation, cropped to a card's icon box so a giant stays the size of
-	//the rest (never scaled: cropping keeps every pixel whole)
-	private static class Portrait extends Image {
-
-		private final CharSprite src;
-		private final int maxW, maxH;
-		//the source frame last cropped, by value: CharSprite.frame() hands out a fresh copy
-		private final RectF lastFrame = new RectF( -1, -1, -1, -1 );
-		private final RectF crop = new RectF();
-
-		Portrait( CharSprite src, int maxW, int maxH ){
-			super( src );
-			this.src = src;
-			this.maxW = maxW;
-			this.maxH = maxH;
-			cropFrame();
-		}
-
-		private boolean still = false;
-
-		@Override
-		public void update() {
-			super.update();
-			if (still) return;
-			try {
-				src.update();
-			} catch (Exception e){
-				//a sprite that can't live without its creature in a level: keep its first frame
-				still = true;
-				return;
-			}
-			cropFrame();
-		}
-
-		private void cropFrame(){
-			RectF f = src.frame();
-			if (f == null || texture == null) return;
-			if (f.left == lastFrame.left && f.top == lastFrame.top
-					&& f.right == lastFrame.right && f.bottom == lastFrame.bottom) return;
-			lastFrame.set( f.left, f.top, f.right, f.bottom );
-			float tw = texture.width, th = texture.height;
-			float fw = Math.round( f.width() * tw ), fh = Math.round( f.height() * th );
-			crop.set( f.left, f.top, f.right, f.bottom );
-			if (fw > maxW){
-				int cut = (int)((fw - maxW) / 2f);
-				crop.left = f.left + cut / tw;
-				crop.right = crop.left + maxW / tw;
-			}
-			if (fh > maxH){
-				int cut = (int)((fh - maxH) / 3f);
-				crop.top = f.top + cut / th;
-				crop.bottom = crop.top + maxH / th;
-			}
-			frame( crop );
 		}
 	}
 

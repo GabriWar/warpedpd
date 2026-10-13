@@ -450,7 +450,7 @@ public class TitleScene extends PixelScene {
 			if (Updates.updateAvailable() || Updates.isInstallable()){
 				WarpedPixelDungeon.scene().addToFront( new WndUpdate() );
 			} else {
-				ChangesScene.changesSelected = 0;
+				ChangesScene.changesSelected = ChangesScene.NEWEST;
 				WarpedPixelDungeon.switchNoFade( ChangesScene.class );
 			}
 		}

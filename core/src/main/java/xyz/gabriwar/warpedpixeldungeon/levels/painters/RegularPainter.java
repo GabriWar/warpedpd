@@ -25,7 +25,8 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.WPDSettings;
 import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.TrapMechanism;
-import xyz.gabriwar.warpedpixeldungeon.journal.Document;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideProgress;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Patch;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
@@ -269,7 +270,7 @@ public abstract class RegularPainter extends Painter {
 				//until the searching page (which lies in that room) has been picked up
 				if (d.type == Room.Door.Type.UNLOCKED && (r.isEntrance() || n.isEntrance())){
 					if (Dungeon.depth == 1
-							&& (WPDSettings.intro() || !Document.ADVENTURERS_GUIDE.isPageFound(Document.GUIDE_SEARCHING))) {
+							&& (WPDSettings.intro() || !GuideProgress.pageFound(GuideGraph.BASICS_SEARCHING))) {
 						d.type = Room.Door.Type.HIDDEN;
 					}
 				}

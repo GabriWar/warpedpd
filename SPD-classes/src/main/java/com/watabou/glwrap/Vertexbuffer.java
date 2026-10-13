@@ -98,8 +98,9 @@ public class Vertexbuffer {
 
 	public void delete(){
 		synchronized (buffers) {
+			//once only: a deleted id can already belong to another buffer
+			if (!buffers.remove(this)) return;
 			Gdx.gl.glDeleteBuffer( id );
-			buffers.remove(this);
 		}
 	}
 

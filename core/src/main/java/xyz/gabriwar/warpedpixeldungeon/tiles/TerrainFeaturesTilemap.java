@@ -218,24 +218,22 @@ public class TerrainFeaturesTilemap extends DungeonTilemap {
 	}
 
 	public static Image getTrapVisual( Trap trap ){
-		if (instance == null) instance = new TerrainFeaturesTilemap(null, null);
-
-		RectF uv = instance.tileset.get((trap.active ? trap.color : Trap.BLACK) + (trap.shape * 16));
-		if (uv == null) return null;
-
-		Image img = new Image( instance.texture );
-		img.frame(uv);
-		return img;
+		return feature( (trap.active ? trap.color : Trap.BLACK) + (trap.shape * 16) );
 	}
 
 	public static Image getPlantVisual( Plant plant ){
-		if (instance == null) instance = new TerrainFeaturesTilemap(null, null);
+		return feature( plant.image + 7*16 );
+	}
 
-		RectF uv = instance.tileset.get(plant.image + 7*16);
-		if (uv == null) return null;
-
-		Image img = new Image( instance.texture );
-		img.frame(uv);
+	//a tile of the sheet as the texture cache holds it now, never the map's own texture: that one is
+	//the cache's only while the game's scene lives. Any other scene (the guide, the title) clears the
+	//cache as it opens (PixelScene.create), deleting it while `instance` still holds it, and its GL name
+	//then draws whatever texture the driver handed that name to next
+	private static Image feature( int visual ){
+		Image img = new Image( Assets.Environment.TERRAIN_FEATURES );
+		int cols = img.texture.width / SIZE, rows = img.texture.height / SIZE;
+		if (visual < 0 || visual >= cols * rows) return null;
+		img.frame( img.texture.uvRectBySize( (visual % cols) * SIZE, (visual / cols) * SIZE, SIZE, SIZE ) );
 		return img;
 	}
 

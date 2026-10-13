@@ -225,14 +225,19 @@ public class AmbientPlayerTest {
 		last = -1f;
 		for (float dx = -20f; dx <= 20f; dx += 0.5f){
 			float p = AmbientPlayer.pan( dx );
-			assertTrue( Math.abs( p ) <= AmbientPlayer.WIDE_MAX_PAN );
+			assertTrue( Math.abs( p ) <= SpatialSound.maxPan() );
 			assertTrue( "further right, further right", p >= last );
 			assertEquals( "the same either side", -p, AmbientPlayer.pan( -dx ), 1e-6f );
 			last = p;
 		}
-		assertEquals( AmbientPlayer.WIDE_MAX_PAN, AmbientPlayer.pan( AmbientPlayer.WIDE_PAN_CELLS ), 1e-6f );
-		assertTrue( "harder than the classic", AmbientPlayer.WIDE_MAX_PAN > AmbientPlayer.MAX_PAN );
-		assertTrue( "never wholly into one ear", AmbientPlayer.WIDE_MAX_PAN < 1f );
+		assertEquals( SpatialSound.maxPan(), AmbientPlayer.pan( SpatialSound.panCells() ), 1e-6f );
+		int was = SpatialSound.strength;
+		for (int k = 2; k < SpatialSound.MAX_STRENGTH; k++){
+			SpatialSound.strength( k );
+			assertTrue( "harder than the classic", SpatialSound.maxPan() > AmbientPlayer.MAX_PAN );
+			assertTrue( "never wholly into one ear below the top", SpatialSound.maxPan() < 1f );
+		}
+		SpatialSound.strength( was );
 	}
 
 	@Test

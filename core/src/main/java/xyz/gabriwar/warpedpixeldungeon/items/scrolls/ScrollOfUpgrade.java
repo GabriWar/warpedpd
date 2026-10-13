@@ -36,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.rings.Ring;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.Wand;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
@@ -63,6 +64,7 @@ public class ScrollOfUpgrade extends InventoryScroll {
 	protected void onItemSelected( Item item ) {
 
 		GameScene.show(new WndUpgrade(this, item, identifiedByUse));
+		GameScene.adviseGuide( GuideGraph.BASICS_UPGRADES );
 
 	}
 

@@ -190,23 +190,9 @@ public class NetDialogs {
 					hero.buff(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger.class);
 			if (hg != null) hg.affectHunger(-150f, true);
 
-			final int destCell = r.cell;
-			com.watabou.noosa.Game.runOnRenderThread(new com.watabou.utils.Callback() {
-				@Override
-				public void call() {
-					NetManager.setPendingRelocationAnchor(destCell);
-					xyz.gabriwar.warpedpixeldungeon.levels.Level.beforeTransition();
-					xyz.gabriwar.warpedpixeldungeon.scenes.InterlevelScene.mode =
-							xyz.gabriwar.warpedpixeldungeon.scenes.InterlevelScene.Mode.RETURN;
-					xyz.gabriwar.warpedpixeldungeon.scenes.InterlevelScene.returnDepth =
-							xyz.gabriwar.warpedpixeldungeon.Portals.depthOf(destDepth);
-					xyz.gabriwar.warpedpixeldungeon.scenes.InterlevelScene.returnBranch =
-							xyz.gabriwar.warpedpixeldungeon.Portals.branchOf(destDepth);
-					xyz.gabriwar.warpedpixeldungeon.scenes.InterlevelScene.returnPos = destCell;
-					com.watabou.noosa.Game.switchScene(
-							xyz.gabriwar.warpedpixeldungeon.scenes.InterlevelScene.class);
-				}
-			});
+			// the same switch the host's own window uses: a shop's floor at its gate, or the
+			// town on the surface beside its gate
+			xyz.gabriwar.warpedpixeldungeon.windows.WndPortal.switchTo(destDepth, r);
 		}
 	}
 

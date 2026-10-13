@@ -30,7 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
-import xyz.gabriwar.warpedpixeldungeon.journal.Document;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.AlchemyScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -73,9 +73,7 @@ public class TrinketCatalyst extends Item {
 	@Override
 	public boolean doPickUp(Hero hero, int pos) {
 		if (super.doPickUp(hero, pos)){
-			if (!Document.ADVENTURERS_GUIDE.isPageRead(Document.GUIDE_ALCHEMY)){
-				GameScene.flashForDocument(Document.ADVENTURERS_GUIDE, Document.GUIDE_ALCHEMY);
-			}
+			GameScene.adviseGuide( GuideGraph.BASICS_ALCHEMY );
 			return true;
 		} else {
 			return false;

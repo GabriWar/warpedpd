@@ -21,7 +21,11 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.bags;
 
+import xyz.gabriwar.warpedpixeldungeon.items.ActiveMrDestructo;
+import xyz.gabriwar.warpedpixeldungeon.items.ActiveMrDestructo2;
 import xyz.gabriwar.warpedpixeldungeon.items.ArcaneResin;
+import xyz.gabriwar.warpedpixeldungeon.items.InactiveMrDestructo;
+import xyz.gabriwar.warpedpixeldungeon.items.InactiveMrDestructo2;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.Stylus;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.Scroll;
@@ -39,7 +43,9 @@ public class ScrollHolder extends Bag {
 	@Override
 	public boolean canHold( Item item ) {
 		if (item instanceof Scroll || item instanceof Spell
-				|| item instanceof ArcaneResin || item instanceof Stylus){
+				|| item instanceof ArcaneResin || item instanceof Stylus
+				|| item instanceof InactiveMrDestructo || item instanceof ActiveMrDestructo
+				|| item instanceof InactiveMrDestructo2 || item instanceof ActiveMrDestructo2){
 			return super.canHold(item);
 		} else {
 			return false;

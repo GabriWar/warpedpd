@@ -25,6 +25,8 @@
 package xyz.gabriwar.warpedpixeldungeon.items.journal;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.WPDAction;
+import xyz.gabriwar.warpedpixeldungeon.WPDSettings;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -34,7 +36,10 @@ import xyz.gabriwar.warpedpixeldungeon.journal.GuideProgress;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
+import xyz.gabriwar.warpedpixeldungeon.ui.GameLog;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import com.watabou.input.ControllerHandler;
+import com.watabou.input.KeyBindings;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Bundle;
 
@@ -56,11 +61,37 @@ public class DescentPage extends Item {
 		return page;
 	}
 
+	/** The tome of dungeon mastery and its torn pages became pages of the guide: old saves' copies load as these. */
+	public static void registerAliases(){
+		Bundle.addAlias( DescentPage.class, "xyz.gabriwar.warpedpixeldungeon.items.journal.Guidebook" );
+		Bundle.addAlias( DescentPage.class, "xyz.gabriwar.warpedpixeldungeon.items.journal.GuidePage" );
+	}
+
 	@Override
 	public final boolean doPickUp(Hero hero, int pos) {
 		GameScene.pickUpJournal(this, pos);
+		boolean basics = GuideGraph.basics( page );
 		if (GuideProgress.findPage(page)){
-			announce( page );
+			if (basics){
+				//a page of the basics, lying where the tutorial put it: the journal button shows it over the game
+				if (GuideGraph.BASICS_INTRO.equals( page )) GameLog.wipe();
+				String title = GuideGraph.titleForKey( page );
+				GLog.p( Messages.get( this, "unlocked", title == null ? "?" : title ) );
+				GameScene.adviseGuide( page, true );
+				//the intro's advice says nothing of its own: the tutorial points at the button
+				if (GuideGraph.BASICS_INTRO.equals( page )){
+					if (WPDSettings.interfaceSize() == 0){
+						GLog.p( Messages.get( GameScene.class, "tutorial_guide_mobile" ) );
+					} else {
+						GLog.p( Messages.get( GameScene.class, "tutorial_guide_desktop", KeyBindings.getKeyName(
+								KeyBindings.getFirstKeyForAction( WPDAction.JOURNAL, ControllerHandler.isControllerConnected() ) ) ) );
+					}
+				}
+			} else {
+				announce( page );
+			}
+		} else if (basics && !GuideProgress.isRead( page )){
+			GameScene.adviseGuide( page );
 		} else {
 			GLog.i( Messages.get(this, "already_found") );
 		}
@@ -115,5 +146,11 @@ public class DescentPage extends Item {
 	public void restoreFromBundle(Bundle bundle) {
 		super.restoreFromBundle(bundle);
 		page = bundle.getString( PAGE );
+		//the tome of dungeon mastery (no page: it opened on its introduction) or one of its torn pages
+		if (page == null || page.isEmpty()){
+			page = GuideGraph.BASICS_INTRO;
+		} else if (GuideProgress.LEGACY_TOME.containsKey( page )){
+			page = GuideProgress.LEGACY_TOME.get( page );
+		}
 	}
 }

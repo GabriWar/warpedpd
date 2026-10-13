@@ -211,4 +211,20 @@ public class GuideLayoutTest {
 		assertEquals( 1f, GuideLayout.ease( 2 ), 0 );
 		assertEquals( 1f, GuideLayout.easeOutBack( 1 ), 1e-5 );
 	}
+
+	//a page's chips flow left to right in rows no wider than the page, 4 px apart
+	@Test
+	public void figuresFlowIntoRows(){
+		int[][] at = GuideLayout.flow( new int[]{ 40, 40, 40, 130, 30 }, 120, 4 );
+		assertArrayEquals( new int[]{ 0, 0 }, at[0] );
+		assertArrayEquals( new int[]{ 44, 0 }, at[1] );
+		//40 + 4 + 40 + 4 + 40 = 128: a third would overflow 120
+		assertArrayEquals( new int[]{ 0, 1 }, at[2] );
+		//wider than a row: a row of its own, never pushed off
+		assertArrayEquals( new int[]{ 0, 2 }, at[3] );
+		assertArrayEquals( new int[]{ 0, 3 }, at[4] );
+		assertEquals( 0, GuideLayout.flow( new int[0], 120, 4 ).length );
+		//exactly filling a row fits
+		assertArrayEquals( new int[]{ 62, 0 }, GuideLayout.flow( new int[]{ 58, 58 }, 120, 4 )[1] );
+	}
 }

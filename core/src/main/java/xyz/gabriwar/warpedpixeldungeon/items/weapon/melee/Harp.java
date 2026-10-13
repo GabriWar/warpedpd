@@ -38,6 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.Notes;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import com.watabou.utils.PathFinder;
@@ -58,6 +59,12 @@ public class Harp extends MeleeWeapon {
 	public int max(int lvl) {
 		return  4*(tier+1) +    //24 base, down from 30
 				lvl*(tier);     //+5 per level, down from +6
+	}
+
+	@Override
+	public void hitSound( float pitch, Char defender ){
+		super.hitSound( pitch, defender );
+		Notes.play( Assets.Sounds.HARP_NOTE, defender );
 	}
 
 	@Override
@@ -117,6 +124,7 @@ public class Harp extends MeleeWeapon {
 		new Flare(6, 22).color(0xCCDDFF, true).show(hero.sprite, 0.9f).angularSpeed = 45;
 		SpatialSound.play(Assets.Sounds.CHARMS, hero, 1f, 0.8f);
 		SpatialSound.playDelayed(Assets.Sounds.CHARMS, 0.25f, hero, 1f, 1.2f);
+		Notes.phrase(Assets.Sounds.HARP_NOTE, hero, 4);
 
 		int slow = requiemSlow();
 		for (Char ch : enemies){

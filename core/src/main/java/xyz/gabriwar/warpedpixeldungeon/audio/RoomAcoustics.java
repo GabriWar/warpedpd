@@ -41,7 +41,8 @@ import java.util.concurrent.ThreadLocalRandom;
  * Room acoustics (Settings, Audio): the game's effects as the space round the hero gives them
  * back (Earshot). A blow in a hall blooms, one in a corridor rings short, a blast in a cavern or
  * under a cliff comes back a moment later, and one behind a door or the rock comes through
- * dull and quieter. Off, every effect plays exactly as it always has.
+ * dull and quieter, all of it as strongly as its strength slider says. Off, every effect plays
+ * exactly as it always has.
  *
  * Each effect of its table plays as spatial sound would play it, and beside it up to two more
  * plays: its space's tail (tail_room_, tail_hall_ and tail_cavern_, the reverb alone, from
@@ -61,12 +62,38 @@ public final class RoomAcoustics {
 	/** Is it on? enable() sets it, at boot and from its switch. */
 	public static volatile boolean on = false;
 
+	/** How strong it is, MIN_STRENGTH to MAX_STRENGTH (Settings, Audio): WPDSettings sets it at
+	 *  boot and from its slider. 2 is how it first sounded; DEFAULT_STRENGTH is much wetter. */
+	public static volatile int strength;
+	public static final int MIN_STRENGTH = 1, MAX_STRENGTH = 5, DEFAULT_STRENGTH = 4;
+
+	//by strength (index 1 to 5): the tails' gain over strength 2 (dB), the echoes' level times
+	//this, how far off a sound still echoes (cells), and the power the dulling through a door or
+	//the rock is raised to (2: a wall's 0.6 is 0.36, a door's 0.8 is 0.64)
+	private static final float[] TAIL_DB = { 0, -4f, 0f, 3f, 6f, 9f };
+	private static final float[] ECHO = { 0, 0.6f, 1f, 1.5f, 2f, 2.6f };
+	private static final int[] ECHO_CELLS = { 0, 6, 8, 10, 12, 14 };
+	private static final float[] DULL = { 0, 0.5f, 1f, 1.6f, 2.3f, 3.1f };
+
+	static {
+		strength( DEFAULT_STRENGTH );
+	}
+
+	/** Sets the strength, kept within MIN_STRENGTH and MAX_STRENGTH. */
+	public static void strength( int value ){
+		strength = Math.max( MIN_STRENGTH, Math.min( MAX_STRENGTH, value ) );
+	}
+
+	/** How much of a sound comes through a door or the rock, `base` being what strength 2 lets
+	 *  through: less the stronger it is. */
+	public static float dull( float base ){
+		return (float) Math.pow( base, DULL[strength] );
+	}
+
 	//under this volume a play is a quiet one: one tail between it and the footsteps, never an echo
 	private static final float QUIET = 0.5f;
 	//at most this many extras at once
 	private static final int MAX_EXTRAS = 3;
-	//an echo comes back only for a sound this near the hero (cells)
-	private static final int ECHO_CELLS = 8;
 	//the muffled copies are used once the last of them has been loaded this long (s): the device
 	//may still be decoding it, and a copy played before then is silence
 	private static final double READY_AFTER = 10.0;
@@ -186,10 +213,11 @@ public final class RoomAcoustics {
 		}
 	}
 
-	/** The switch's taste of it, half a second on: a heavy blow, centred, with a big hall's tail. */
+	/** The switch's and the slider's taste of it, half a second on: a heavy blow, centred, with a
+	 *  big hall's tail as loud as the strength makes it. */
 	public static void preview(){
 		SpatialSound.playPanned( Assets.Sounds.HIT_STRONG, 0.5f, 1f, 1f, 0f );
-		SpatialSound.playPanned( PREVIEW_TAIL, 0.5f, gain( -8f ), 1f, 0f );
+		SpatialSound.playPanned( PREVIEW_TAIL, 0.5f, Math.min( 1f, gain( -8f + TAIL_DB[strength] ) ), 1f, 0f );
 	}
 
 	//a tail's volume for one L dB under its dry sound: the files are stored 6 dB under theirs
@@ -329,7 +357,7 @@ public final class RoomAcoustics {
 		float dryVolume = volume * lvl, dryPan = pan;
 		if (heard != Earshot.Relation.CLEAR){
 			boolean door = heard == Earshot.Relation.DOOR;
-			dryVolume *= door ? (s.openAir ? 0.89f : 0.8f) : (s.openAir ? 0.77f : 0.6f);
+			dryVolume *= dull( door ? (s.openAir ? 0.89f : 0.8f) : (s.openAir ? 0.77f : 0.6f) );
 			//a copy that never loaded (its file failed, or the switch went off meanwhile) would be silence
 			if (e.muffled != null && ready && loaded.loaded( e.muffled )) dry = e.muffled;
 			int through = door ? s.door( cell ) : -1;
@@ -342,14 +370,15 @@ public final class RoomAcoustics {
 		double tailLength = 0;
 		if (heard != Earshot.Relation.WALL && s.tail != Earshot.Tail.NONE){
 			tail = e.tail( s.tail );
-			tailVolume = Math.min( 1.12f * dryVolume, volume * gain( s.level ) * (0.55f + 0.45f * lvl)
-					* (heard == Earshot.Relation.DOOR ? 0.7f : 1f) );
+			float boost = (float) Math.pow( 10, TAIL_DB[strength] / 20f );
+			tailVolume = Math.min( 1f, boost * Math.min( 1.12f * dryVolume, volume * gain( s.level ) * (0.55f + 0.45f * lvl)
+					* (heard == Earshot.Relation.DOOR ? 0.7f : 1f) ) );
 			tailLength = e.tailLength( s.tail ) / pitch;
 		}
 
 		//an echo: a loud sound near the hero, heard clear, where something far gives it back
 		boolean wantEcho = e.echo && !quiet && heard == Earshot.Relation.CLEAR && s.echoDelay > 0f
-				&& Math.max( Math.abs( cell % w - hero % w ), Math.abs( cell / w - hero / w ) ) <= ECHO_CELLS;
+				&& Math.max( Math.abs( cell % w - hero % w ), Math.abs( cell / w - hero / w ) ) <= ECHO_CELLS[strength];
 
 		boolean withTail = false, withEcho = false;
 		float echoDelay = 0f;
@@ -390,7 +419,7 @@ public final class RoomAcoustics {
 
 		SpatialSound.playPanned( dry, delay, dryVolume, pitch, dryPan );
 		if (withTail) SpatialSound.playPanned( tail, delay, tailVolume, pitch, -0.3f * dryPan );
-		if (withEcho) SpatialSound.playPanned( e.dry, delay + echoDelay, volume * lvl * s.echoLevel, pitch,
+		if (withEcho) SpatialSound.playPanned( e.dry, delay + echoDelay, Math.min( 1f, volume * lvl * s.echoLevel * ECHO[strength] ), pitch,
 				SpatialSound.on ? s.echoPan : 0f );
 		return true;
 	}

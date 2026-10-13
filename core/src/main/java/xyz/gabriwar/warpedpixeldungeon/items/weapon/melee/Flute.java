@@ -40,6 +40,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.Notes;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import com.watabou.utils.PathFinder;
@@ -55,6 +56,12 @@ public class Flute extends MeleeWeapon {
 
 		tier = 2;
 		RCH = 2;    //extra reach
+	}
+
+	@Override
+	public void hitSound( float pitch, Char defender ){
+		super.hitSound( pitch, defender );
+		Notes.play( Assets.Sounds.FLUTE_NOTE, defender );
 	}
 
 	@Override
@@ -118,6 +125,7 @@ public class Flute extends MeleeWeapon {
 		hero.sprite.operate(hero.pos);
 		hero.sprite.emitter().start(Speck.factory(Speck.NOTE), 0.3f, 5);
 		SpatialSound.play(Assets.Sounds.LULLABY, hero);
+		Notes.phrase(Assets.Sounds.FLUTE_NOTE, hero, 4);
 		Invisibility.dispel();
 		hero.spendAndNext(hero.attackDelay());
 		wep.afterAbilityUsed(hero);

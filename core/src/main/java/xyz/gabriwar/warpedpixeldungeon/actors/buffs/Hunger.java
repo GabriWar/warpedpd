@@ -28,7 +28,7 @@ import xyz.gabriwar.warpedpixeldungeon.WPDSettings;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfChallenge;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.SaltCube;
-import xyz.gabriwar.warpedpixeldungeon.journal.Document;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
@@ -121,9 +121,7 @@ public class Hunger extends Buff implements Hero.Doom {
 
 					GLog.w( Messages.get(this, "onhungry") );
 
-					if (!Document.ADVENTURERS_GUIDE.isPageRead(Document.GUIDE_FOOD)){
-						GameScene.flashForDocument(Document.ADVENTURERS_GUIDE, Document.GUIDE_FOOD);
-					}
+					GameScene.adviseGuide( GuideGraph.BASICS_HUNGER );
 
 				}
 				level = newLevel;

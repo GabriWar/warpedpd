@@ -1193,10 +1193,12 @@ public class OverworldLevel extends Level {
 	//nothing the player owns is ever duplicated or lost
 	private void park( Mob m, int wx, int wy ){
 		//never stored: the road's walkers (RoadTraffic puts whoever should be out back on the
-		//road), an outlaw making off with a caravan's goods, and a hunt's beasts (the hunt ends
-		//with the first to leave, HuntEvent). read BEFORE Actor.remove, which detaches buffs
+		//road), an outlaw making off with a caravan's goods, a hunt's beasts (the hunt ends
+		//with the first to leave, HuntEvent) and the town's portal gate (placeTownGate puts it
+		//back on its own cell). read BEFORE Actor.remove, which detaches buffs
 		xyz.gabriwar.warpedpixeldungeon.actors.mobs.HuntPack hunting = m.buff( xyz.gabriwar.warpedpixeldungeon.actors.mobs.HuntPack.class );
 		if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.RoadWalker
+				|| m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.PortalGate
 				|| (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldBandit
 						&& ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldBandit) m).retreating)
 				|| hunting != null){
@@ -2065,6 +2067,8 @@ public class OverworldLevel extends Level {
 	//everything the town keeps alive, idempotent: run whenever the window
 	//moves or the level is (re)built
 	private void populateTown(){
+		//before anyone is put back, so the gate's cell is still its own
+		placeTownGate();
 		unparkMobs();
 		if (altitude != 0){
 			//townsfolk who wandered onto a slice before the town was the surface's alone
@@ -2114,21 +2118,23 @@ public class OverworldLevel extends Level {
 			drop( townChestPrize(), cell ).type = Heap.Type.CHEST;
 		}
 
-		//the adventurer's guide lies beside the arrival tile, so a new player has it
+		//the guide's first page lies beside the arrival tile, so a new player has it
 		//before the first stairs. Same rule as the floor-1 copy (EntranceRoom): only
-		//while the intro page is unread or the tutorial is on. The plaza cell is its
-		//own spawn marker, nothing else in the town claims it
+		//while the intro page is unread or the tutorial is on, and it is found anew when
+		//picked up. The plaza cell is its own spawn marker, nothing else in the town claims it
 		int plaza = localTownCell( WorldStructures.TOWN_PLAZA );
 		if (plaza != -1 && !townSpawned.contains( WorldStructures.TOWN_PLAZA )
-				&& (!xyz.gabriwar.warpedpixeldungeon.journal.Document.ADVENTURERS_GUIDE.isPageRead(
-						xyz.gabriwar.warpedpixeldungeon.journal.Document.GUIDE_INTRO )
+				&& (!xyz.gabriwar.warpedpixeldungeon.journal.GuideProgress.isRead(
+						xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph.BASICS_INTRO )
 					|| xyz.gabriwar.warpedpixeldungeon.WPDSettings.intro())){
 			townSpawned.add( WorldStructures.TOWN_PLAZA );
 			int at = freeSpotWithin( plaza + 1, 2 );
 			if (at == -1) at = plaza;
-			drop( new xyz.gabriwar.warpedpixeldungeon.items.journal.Guidebook(), at );
-			xyz.gabriwar.warpedpixeldungeon.journal.Document.ADVENTURERS_GUIDE.deletePage(
-					xyz.gabriwar.warpedpixeldungeon.journal.Document.GUIDE_INTRO );
+			xyz.gabriwar.warpedpixeldungeon.items.journal.DescentPage intro = new xyz.gabriwar.warpedpixeldungeon.items.journal.DescentPage();
+			intro.page( xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph.BASICS_INTRO );
+			drop( intro, at );
+			xyz.gabriwar.warpedpixeldungeon.journal.GuideProgress.forget(
+					xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph.BASICS_INTRO );
 		}
 
 		//the norn-stone altar: a blob, re-seeded whenever its cell is back in
@@ -2160,6 +2166,51 @@ public class OverworldLevel extends Level {
 				}
 			}
 		}
+	}
+
+	//the town's portal gate (Portals.TOWN), on the square: always lit, never paid for. It stands
+	//whenever the window holds its cell and is never parked (park): all it knows lives in Portals,
+	//so a gate the window slid off is let go and a fresh one is put back on its own cell the next
+	//time, before the folk come back. A save from before the town had one gets it here too. The
+	//registry is told where it stands now, or -1 while it is away, for the gate's own checks
+	//(WndPortal.atGate) and a client's tap on it
+	private void placeTownGate(){
+		if (altitude != 0) return;
+		xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.PortalGate gate = null;
+		for (Mob m : mobs){
+			if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.PortalGate){
+				gate = (xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.PortalGate) m;
+			}
+		}
+		int cell = localTownCell( WorldStructures.TOWN_PORTAL );
+		if (gate == null && cell != -1){
+			int at = gateSpot( cell );
+			if (at != -1){
+				gate = new xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.PortalGate();
+				gate.state = xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.PortalGate.State.ACTIVE;
+				addFolk( gate, at );
+			}
+		}
+		xyz.gabriwar.warpedpixeldungeon.Portals.register( xyz.gabriwar.warpedpixeldungeon.Portals.TOWN,
+				gate != null ? gate.pos : -1 );
+	}
+
+	//the gate's own cell when it is clear, else the nearest clear one within two: open ground
+	//nobody stands on and nothing lies on (an item under an immovable gate could never be taken)
+	private int gateSpot( int cell ){
+		int cx = cell % width(), cy = cell / width();
+		for (int r = 0; r <= 2; r++){
+			for (int dy = -r; dy <= r; dy++){
+				for (int dx = -r; dx <= r; dx++){
+					if (Math.max( Math.abs( dx ), Math.abs( dy ) ) != r) continue;
+					int x = cx + dx, y = cy + dy;
+					if (x <= 0 || y <= 0 || x >= width()-1 || y >= height()-1) continue;
+					int c = x + y * width();
+					if (passable[c] && !occupied( c ) && heaps.get( c ) == null) return c;
+				}
+			}
+		}
+		return -1;
 	}
 
 	private Item townChestPrize(){

@@ -190,6 +190,25 @@ public final class GuideLayout {
 		out[1] = path[path.length - 1];
 	}
 
+	//--- a page's figures ---
+
+	/** Left-aligned flow of boxes of these widths into rows no wider than maxW, gapX apart: {x, row} each.
+	 *  A box wider than a row stands on a row of its own. */
+	public static int[][] flow( int[] widths, int maxW, int gapX ){
+		int[][] out = new int[widths.length][2];
+		int x = 0, row = 0;
+		for (int i = 0; i < widths.length; i++){
+			if (x > 0 && x + widths[i] > maxW){
+				x = 0;
+				row++;
+			}
+			out[i][0] = x;
+			out[i][1] = row;
+			x += widths[i] + gapX;
+		}
+		return out;
+	}
+
 	//--- the camera ---
 
 	/** The whole zoom steps the guide offers: from half the interface's zoom (rounded up) to

@@ -29,7 +29,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.CorruptGas;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
-import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
 import xyz.gabriwar.warpedpixeldungeon.items.StoneOre;
 import xyz.gabriwar.warpedpixeldungeon.items.nornstone.*;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.relic.RelicMeleeWeapon;
@@ -87,18 +86,9 @@ public class Gullin extends Mob {
 	public void die(Object cause) {
 		if (Dungeon.LimitedDrops.NORNSTONES.count < 5
 				&& Random.Int(5) < 3) {
-			NornStone stone;
-			if (Dungeon.hero.heroClass == HeroClass.HUNTRESS) {
-				// Huntress gets all 5 types equally
-				stone = Random.element( new NornStone[]{
-						new BlueNornStone(), new GreenNornStone(), new OrangeNornStone(),
-						new PurpleNornStone(), new YellowNornStone() } );
-			} else {
-				// Other classes don't get GreenNornStone
-				stone = Random.element( new NornStone[]{
-						new BlueNornStone(), new OrangeNornStone(),
-						new PurpleNornStone(), new YellowNornStone() } );
-			}
+			NornStone stone = Random.element( new NornStone[]{
+					new BlueNornStone(), new GreenNornStone(), new OrangeNornStone(),
+					new PurpleNornStone(), new YellowNornStone() } );
 			Dungeon.level.drop( stone, pos ).sprite.drop();
 			Dungeon.LimitedDrops.NORNSTONES.count++;
 		}

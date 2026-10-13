@@ -5,6 +5,9 @@
  * Shattered Pixel Dungeon
  * Copyright (C) 2014-2026 Evan Debenham
  *
+ * Warped Pixel Dungeon
+ * Copyright (C) 2026 Gabriel Duarte Guerra (gabriwar)
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -19,25 +22,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
 
-package xyz.gabriwar.warpedpixeldungeon.items.journal;
+package xyz.gabriwar.warpedpixeldungeon.audio;
 
-import xyz.gabriwar.warpedpixeldungeon.journal.Document;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
+import org.junit.Test;
 
-public class GuidePage extends DocumentPage {
-	
-	{
-		image = ItemSpriteSheet.GUIDE_PAGE;
-	}
-	
-	@Override
-	public Document document() {
-		return Document.ADVENTURERS_GUIDE;
-	}
+import java.util.HashSet;
 
-	@Override
-	public String desc() {
-		return Messages.get(this, "desc", document().pageTitle(page()));
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+
+public class NotesTest {
+
+	@Test
+	public void notesWalkThePentatonicScaleNeverRepeating(){
+		HashSet<Float> heard = new HashSet<>();
+		float last = -1;
+		for (int i = 0; i < 500; i++){
+			float pitch = Notes.next();
+			assertTrue( pitch >= 1f && pitch <= 2f );
+			assertNotEquals( last, pitch, 0f );
+			heard.add( pitch );
+			last = pitch;
+		}
+		assertEquals( "every step of the scale comes up", 6, heard.size() );
 	}
 }

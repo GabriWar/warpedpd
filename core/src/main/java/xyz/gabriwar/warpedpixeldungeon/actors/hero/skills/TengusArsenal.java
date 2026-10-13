@@ -24,26 +24,18 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
-import com.watabou.utils.PathFinder;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
-import xyz.gabriwar.warpedpixeldungeon.actors.Char;
-import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
-import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Fire;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.TenguFireBomb;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.TenguShockBomb;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.TenguSmokeBomb;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Tengu;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
-import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -58,9 +50,9 @@ import java.util.ArrayList;
 /**
  * Rogue: Tengu's tricks, learned by watching him. The rogue picks which bomb to
  * throw: the smoke bomb with its three-count fuse and a blast two tiles wide, the
- * fire bomb that bursts into a ring of flame, and at mastery the shocker that sits
- * where it lands and arcs lightning across its cell for three turns. None of them
- * hurt the rogue or an ally.
+ * fire bomb that sits where it lands and keeps the ground around it ablaze, and at
+ * mastery the shocker that arcs lightning all around it for six turns. Only the fire
+ * bomb's flames can hurt the rogue or an ally.
  */
 public class TengusArsenal extends Skill {
 
@@ -125,7 +117,8 @@ public class TengusArsenal extends Skill {
 			hero.MP -= getManaCost();
 			castTextYell();
 			Invisibility.dispel();
-			Item look = kind == SHOCK ? new TenguShockBomb.RogueShockerItem() : new TenguSmokeBomb.RogueBombItem();
+			Item look = kind == SHOCK ? new TenguShockBomb.RogueShockerItem()
+					: kind == FIRE ? new TenguFireBomb.RogueFireBombItem() : new TenguSmokeBomb.RogueBombItem();
 			hero.busy();
 			hero.sprite.zap( cell );
 			SpatialSound.play( Assets.Sounds.MISS, hero, 1f, 1.2f + 0.15f * kind );
@@ -143,24 +136,7 @@ public class TengusArsenal extends Skill {
 			}
 			switch (kind){
 				case FIRE:
-					SpatialSound.play( Assets.Sounds.BURNING, cell, 1f, 0.9f );
-					//the burst at the centre first, then the ring of flame catching around it
-					if (Dungeon.level.heroFOV[cell]) CellEmitter.center( cell ).burst( FlameParticle.FACTORY, 10 );
-					FxTimeline flames = FxTimeline.start();
-					int order = 0;
-					for (int n : PathFinder.NEIGHBOURS9){
-						int c = cell + n;
-						if (c < 0 || c >= Dungeon.level.length() || Dungeon.level.solid[c]) continue;
-						GameScene.add( Blob.seed( c, 4, Fire.class ) );
-						if (Dungeon.level.heroFOV[c] && n != 0){
-							final int at = c;
-							flames.at( 0.05f + 0.03f * order++, () -> CellEmitter.get( at ).burst( FlameParticle.FACTORY, 4 ) );
-						}
-						Char ch = Actor.findChar( c );
-						if (ch != null && ch.alignment == Char.Alignment.ENEMY){
-							Buff.affect( ch, Burning.class ).reignite( ch );
-						}
-					}
+					Buff.append( hero, TenguFireBomb.class ).set( cell, level );
 					break;
 				case SHOCK:
 					Buff.append( hero, TenguShockBomb.class ).set( cell, level );

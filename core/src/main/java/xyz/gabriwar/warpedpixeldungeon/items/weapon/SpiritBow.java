@@ -187,7 +187,7 @@ public class SpiritBow extends Weapon {
 	
 	@Override
 	public int STRReq(int lvl) {
-		return STRReq(1, lvl); //tier 1
+		return STRReq(1, lvl) - xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.strReqBonus( this ); //tier 1
 	}
 	
 	@Override

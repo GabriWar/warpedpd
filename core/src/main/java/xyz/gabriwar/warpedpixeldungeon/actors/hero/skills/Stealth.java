@@ -62,9 +62,10 @@ public class Stealth extends PassiveSkillA2 {
 		return level;
 	}
 
-	//an enemy that notices you anyway sees only a smoky double where you stood, and hunts that first
+	//the moment you spot a new enemy, a smoky double rises beside you: an awake enemy hunts that
+	//first, a sleeping one sleeps on. Once per enemy
 	@Override
-	public void onHeroNoticed( Mob mob, boolean wasSleeping ){
+	public void onEnemySpotted( Mob mob ){
 		Hero hero = Dungeon.hero;
 		if (level <= 0 || hero == null || mob == null || !mob.isAlive() || mob.alignment != Char.Alignment.ENEMY
 				|| mob.properties().contains( Char.Property.BOSS )
@@ -86,7 +87,7 @@ public class Stealth extends PassiveSkillA2 {
 		SkillSpectacleFX.show( SkillSpectacleFX.SHADOW, cell );
 		if (hero.sprite != null) hero.sprite.emitter().burst( ShadowParticle.UP, 6 );
 		SpatialSound.play( Assets.Sounds.MELD, cell, 1f, 1.3f );
-		mob.aggro( decoy );
+		if (mob.state != mob.SLEEPING && mob.state != mob.PASSIVE) mob.aggro( decoy );
 	}
 
 	private static int decoyCell( Hero hero ){
@@ -101,7 +102,7 @@ public class Stealth extends PassiveSkillA2 {
 		return -1;
 	}
 
-	/** this enemy has already been fooled by a double once */
+	/** a double has already risen for this enemy once */
 	public static class Seen extends xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff {
 		@Override
 		public int icon(){ return xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator.NONE; }

@@ -158,6 +158,7 @@ public class HolySword extends MeleeWeapon implements AlchemyWeapon {
         if (masteryPotionBonus){
             req -= 2;
         }
+        req -= xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.strReqBonus( this );
         return req;
     }
 

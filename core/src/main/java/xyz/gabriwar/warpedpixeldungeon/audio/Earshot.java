@@ -221,7 +221,8 @@ public final class Earshot {
 	}
 
 	private static float pan( float dx ){
-		return Math.max( -SpatialSound.MAX_PAN, Math.min( SpatialSound.MAX_PAN, dx / SpatialSound.PAN_CELLS ) );
+		float max = SpatialSound.maxPan();
+		return Math.max( -max, Math.min( max, dx / SpatialSound.panCells() ) );
 	}
 
 	private static byte cellInfo( int doors, int path ){

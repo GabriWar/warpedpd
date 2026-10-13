@@ -37,7 +37,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.NPC;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
-import xyz.gabriwar.warpedpixeldungeon.items.armor.ClassArmor;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.Wand;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
@@ -111,7 +110,8 @@ public class Quality implements Bundlable {
 		if (item instanceof MissileWeapon) return Family.MISSILE;
 		//melee weapons and the guns and bows that extend Weapon directly
 		if (item instanceof Weapon) return Family.WEAPON;
-		if (item instanceof Armor && !(item instanceof ClassArmor)) return Family.ARMOR;
+		//class armor too: the crown and the armor kit carry the old armor's quality over
+		if (item instanceof Armor) return Family.ARMOR;
 		if (item instanceof Wand) return Family.WAND;
 		if (item instanceof xyz.gabriwar.warpedpixeldungeon.items.rings.Ring) return Family.RING;
 		if (item instanceof xyz.gabriwar.warpedpixeldungeon.items.trinkets.Trinket
@@ -180,8 +180,8 @@ public class Quality implements Bundlable {
 		}
 	}
 
-	//stats that are stored on the item rather than computed each time
-	private void applyDerived( Item item ){
+	//stats that are stored on the item rather than computed each time; public for the debug editor
+	public void applyDerived( Item item ){
 		if (item instanceof Wand){
 			Wand w = (Wand) item;
 			w.maxCharges = Math.min( w.initialCharges() + w.level() + chargeBonus( w ), chargeCap() );
@@ -279,14 +279,18 @@ public class Quality implements Bundlable {
 		return Math.round( base * (1f + q.value( kind ) + q.potency()) );
 	}
 
-	/** how many whole points of strength requirement a rolled STR_REQ line takes off */
-	public static int strReqStep( int req, float value ){
-		return Math.min( 2, Math.round( req * value ) );
+	/** how many points of strength requirement a rolled STR_REQ line takes off: 1, or 2 once
+	 *  its roll is at least a half. Not a share of the requirement: the line shows the cut, and
+	 *  a share of the requirement after the cut (or before a weapon's own extra) could round to
+	 *  another number than the one taken off, or to 0 */
+	public static int strReqStep( float value ){
+		if (value <= 0) return 0;
+		return value >= RarityLine.STR_REQ.max() / 2f ? 2 : 1;
 	}
 
-	public static int strReqBonus( Item item, int req ){
+	public static int strReqBonus( Item item ){
 		Quality q = of( item );
-		return q == null ? 0 : strReqStep( req, q.value( RarityLine.STR_REQ ) );
+		return q == null ? 0 : strReqStep( q.value( RarityLine.STR_REQ ) );
 	}
 
 	/** how many whole charges a rolled CHARGES line adds */

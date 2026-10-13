@@ -41,6 +41,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.PortalGate;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldStructures;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.net.NetManager;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.InterlevelScene;
@@ -122,6 +125,9 @@ public class WndPortal extends WndOptions {
 	}
 
 	public static String depthLabel(int key) {
+		if (key == Portals.TOWN) {
+			return Messages.get(xyz.gabriwar.warpedpixeldungeon.homestead.travel.Waystones.class, "town");
+		}
 		int depth = Portals.depthOf(key);
 		if (Portals.branchOf(key) == xyz.gabriwar.warpedpixeldungeon.levels.SpiderNestLevel.SPIDER_BRANCH) {
 			return "Spider Nest — Floor " + depth;
@@ -237,18 +243,33 @@ public class WndPortal extends WndOptions {
 		Hunger h = traveler.buff(Hunger.class);
 		if (h != null) h.affectHunger(-TELEPORT_HUNGER, true);
 
-		// MP: hint NetManager to land netHeroes adjacent to the destination gate
-		// instead of the floor's regular entrance.
-		NetManager.setPendingRelocationAnchor(r.cell);
+		switchTo(destDepth, r);
+	}
 
-		Game.runOnRenderThread(() -> {
-			Level.beforeTransition();
-			InterlevelScene.mode = InterlevelScene.Mode.RETURN;
-			InterlevelScene.returnDepth = Portals.depthOf(destDepth);
-			InterlevelScene.returnBranch = Portals.branchOf(destDepth);
-			InterlevelScene.returnPos = r.cell;
-			Game.switchScene(InterlevelScene.class);
-		});
+	/** Takes the whole party through to a lit gate, on the render thread (host and single player;
+	 *  NetDialogs routes a remote hero's pick here too). */
+	public static void switchTo(int destKey, Portals.Record r) {
+		Game.runOnRenderThread(() -> leaveFor(destKey, r));
+	}
+
+	// The town's gate is on the surface, which is reached the way every trip there is: an arrival
+	// on its world cell (OverworldLevel.arriveInTown), where the hero lands beside the gate and
+	// the other heroes gather round him (NetManager, with no anchor). A shop's floor is entered at
+	// its gate, and in MP the netHeroes land beside it instead of at the floor's entrance.
+	static void leaveFor(int destKey, Portals.Record r) {
+		if (destKey == Portals.TOWN) {
+			NetManager.setPendingRelocationAnchor(-1);
+			OverworldLevel.arriveInTown(WorldStructures.TOWN_PORTAL);
+			OverworldLevel.travelToSurface();
+			return;
+		}
+		Level.beforeTransition();
+		NetManager.setPendingRelocationAnchor(r.cell);
+		InterlevelScene.mode = InterlevelScene.Mode.RETURN;
+		InterlevelScene.returnDepth = Portals.depthOf(destKey);
+		InterlevelScene.returnBranch = Portals.branchOf(destKey);
+		InterlevelScene.returnPos = r.cell;
+		Game.switchScene(InterlevelScene.class);
 	}
 
 	// --- Host-side handlers for client-routed portal actions (run on actor thread) ---

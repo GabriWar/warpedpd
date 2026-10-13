@@ -358,7 +358,7 @@ public class ItemSpriteSheet {
 		assignItemRect(RELIC_ARESSWORD , 14, 14);
 		assignItemRect(RELIC_CROMAXE   , 15, 15);
 		assignItemRect(RELIC_LOKISFLAIL, 16, 14);
-		assignItemRect(JUPITERS_WRAITH , 15, 15);
+		assignItemRect(JUPITERS_WRAITH , 11, 15);
 	}
 
 	private static final int MISSILE_WEP         =                               xy(1, 12);   //16 slots
@@ -1350,12 +1350,16 @@ public class ItemSpriteSheet {
 	public static final int WORLD_MAP                               = WARPED_CONSUMABLES+2;
 	public static final int STAR_FRAGMENT                           = WARPED_CONSUMABLES+3;
 	public static final int EAGLE_EGG                               = WARPED_CONSUMABLES+4;
+	public static final int EMPTY_BOTTLE                            = WARPED_CONSUMABLES+5;
+	public static final int BOTTLE_OF_WATER                         = WARPED_CONSUMABLES+6;
 	static {
 		assignItemRect(COFFEE                        , 12, 13);
 		assignItemRect(FERTILIZER , 10, 13);
 		assignItemRect(WORLD_MAP  , 14, 11);
 		assignItemRect(STAR_FRAGMENT, 12, 13);
 		assignItemRect(EAGLE_EGG, 11, 12);
+		assignItemRect(EMPTY_BOTTLE, 12, 14);
+		assignItemRect(BOTTLE_OF_WATER, 12, 14);
 	}
 
 	//ore and rough gems the pickaxe prises out of the world's rock (items/ore, tools/ore_art.py)
@@ -1436,8 +1440,8 @@ public class ItemSpriteSheet {
 	static {
 		assignItemRect(IRON_FITTINGS   , 12, 14);
 		assignItemRect(BUILDERS_SATCHEL, 16, 16);
-		assignItemRect(WOODCUTTERS_AXE , 16, 16);
-		assignItemRect(MASONS_HAMMER   , 14, 15);
+		assignItemRect(WOODCUTTERS_AXE , 14, 16);
+		assignItemRect(MASONS_HAMMER   , 16, 16);
 		assignItemRect(FLOUR           , 12, 14);
 		assignItemRect(BREAD           , 14,  9);
 		assignItemRect(FUSED_TOMATO    , 10, 13);
@@ -1484,8 +1488,8 @@ public class ItemSpriteSheet {
 		assignItemRect(DUAL_KNIFE                    , 14, 13);
 		assignItemRect(TRIANGOLO                     , 16, 13);
 		assignItemRect(FLUTE                         ,  6, 16);
-		assignItemRect(WARDRUM                       , 14, 13);
-		assignItemRect(TRUMPET                       , 12, 14);
+		assignItemRect(WARDRUM                       , 16, 16);
+		assignItemRect(TRUMPET                       , 16, 12);
 		assignItemRect(HARP                          , 15, 14);
 		assignItemRect(HOLY_WATER                    , 11, 16);
 		assignItemRect(PRAYER_WHEEL                  , 15, 15);
@@ -1519,15 +1523,15 @@ public class ItemSpriteSheet {
 		assignItemRect(SMALL_CHAKRAM                , 14, 14);
 		assignItemRect(BOTTLE_FIRE                  , 12, 13);
 		assignItemRect(EMP_BOLA                     , 14, 13);
-		assignItemRect(HONEY_ARROW                  , 12, 12);
+		assignItemRect(HONEY_ARROW                  , 15, 15);
 		assignItemRect(MIND_ARROW                   , 12, 12);
 		assignItemRect(THROWING_WAVE                , 14, 16);
 		assignItemRect(THROWING_SKULL               ,  8, 8);
 		assignItemRect(LIFE_ARMOR                   , 14, 13);
-		assignItemRect(SOLDIER_ARMOR                , 10, 13);
+		assignItemRect(SOLDIER_ARMOR                , 12, 13);
 		assignItemRect(PERFORMER_ARMOR              , 14, 13);
-		assignItemRect(ASCETIC_ARMOR                , 13, 16);
-		assignItemRect(FOLLOWER_ARMOR               , 15, 13);
+		assignItemRect(ASCETIC_ARMOR                , 14, 15);
+		assignItemRect(FOLLOWER_ARMOR               , 15, 16);
 		assignItemRect(CERAMICS_ARMOR               , 14, 13);
 		assignItemRect(MACHINE_ARMOR                , 16, 13);
 	}
@@ -1550,7 +1554,7 @@ public class ItemSpriteSheet {
 		assignItemRect(TAURCEN_BOW                  , 16, 16);
 		assignItemRect(MINI_GUN                     , 14, 16);
 		assignItemRect(SHOOT_GUN                    , 14, 16);
-		assignItemRect(MEGA_CANNON                  , 13, 7);
+		assignItemRect(MEGA_CANNON                  , 16, 11);
 		assignItemRect(ELF_BOW_AMMO                 , 12, 12);
 		assignItemRect(TAURCEN_BOW_AMMO             , 12, 12);
 		assignItemRect(MINI_GUN_AMMO                ,  6, 6);

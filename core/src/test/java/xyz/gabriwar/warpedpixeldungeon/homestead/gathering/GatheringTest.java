@@ -433,8 +433,9 @@ public class GatheringTest {
 		GatheringSlice slice = ow.homestead().section( GatheringSlice.class );
 		assertEquals( (Integer) WorldClock.day(), slice.felledOn( ow.worldX + oak % W, ow.worldY + oak / W ) );
 		assertEquals( 0, Gathering.strokesAt( hero, oak, Gathering.Job.CHOP ) );
-		//the stump left is the axe's work too now: chopped out, not felled
-		assertEquals( Gathering.Job.CHOP, Gathering.tapJob( hero, oak ) );
+		//the stump left is walked over on a plain tap; a held one chops it out with the axe
+		assertNull( Gathering.tapJob( hero, oak ) );
+		assertEquals( Gathering.Job.CHOP, heldTapJob( hero, oak ) );
 		assertEquals( Gathering.lightChop( Gathering.WOODCUTTERS_AXE_TURNS ), Gathering.turns( hero, oak, Gathering.Job.CHOP ) );
 	}
 
@@ -597,7 +598,8 @@ public class GatheringTest {
 		work( oak, Gathering.Job.CHOP );
 		assertEquals( Terrain.STUMP_OAK, ow.map[oak] );
 		int logs = count( ow.heaps.get( oak ), Log.class );
-		assertEquals( Gathering.Job.CHOP, Gathering.tapJob( hero, oak ) );
+		assertNull( Gathering.tapJob( hero, oak ) );
+		assertEquals( Gathering.Job.CHOP, heldTapJob( hero, oak ) );
 		assertEquals( Gathering.lightChop( Gathering.WOODCUTTERS_AXE_TURNS ), work( oak, Gathering.Job.CHOP ) );
 		assertEquals( Terrain.GRASS, ow.map[oak] );
 		assertEquals( logs + 1, count( ow.heaps.get( oak ), Log.class ) );
@@ -1302,5 +1304,15 @@ public class GatheringTest {
 		assertFalse( Messages.get( Sickle.class, "reap_prompt" ).contains( "NO TEXT" ) );
 		assertFalse( Messages.get( Sickle.class, "ac_reap" ).contains( "NO TEXT" ) );
 		assertFalse( OverworldShopkeeper.of( OverworldShopkeeper.CARPENTER, 0 ).name().contains( "NO TEXT" ) );
+	}
+
+	//what a held press on the cell puts the hero to (CellSelector.heldTap)
+	private static Gathering.Job heldTapJob( Hero hero, int cell ){
+		xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector.heldTap = true;
+		try {
+			return Gathering.tapJob( hero, cell );
+		} finally {
+			xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector.heldTap = false;
+		}
 	}
 }

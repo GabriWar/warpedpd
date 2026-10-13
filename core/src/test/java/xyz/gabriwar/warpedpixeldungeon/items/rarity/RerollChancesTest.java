@@ -76,8 +76,12 @@ public class RerollChancesTest {
 
 	@Test
 	public void tenCoresGiveExoticItsLongShot(){
-		for (int depth : new int[]{ 1, 10, 25 }){
+		for (int depth : new int[]{ 15, 25, 97 }){
 			assertEquals( Rarity.MAX_EXOTIC_POCKETS, Rarity.rerollPockets( depth, Rarity.MAX_STAKE )[Rarity.EXOTIC.ordinal()] );
+		}
+		//no stake buys exotic above the depth that gates it
+		for (int depth : new int[]{ 1, 10, 14 }){
+			assertEquals( 0, Rarity.rerollPockets( depth, Rarity.MAX_STAKE )[Rarity.EXOTIC.ordinal()] );
 		}
 		//a gamble still: exotic never passes one in four, at any stake or depth
 		for (int depth : new int[]{ 1, 10, 25, 97 }){

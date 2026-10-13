@@ -234,7 +234,8 @@ public abstract class Recipe {
 		new StewedMeat.oneMonsterMeat(),
 		new TrinketCatalyst.Recipe(),
 		new Trinket.UpgradeTrinket(),
-		new xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.HolyWater.Recipe()
+		new xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.HolyWater.Recipe(),
+		new EmptyBottle.Fill()
 	};
 	
 	private static Recipe[] twoIngredientRecipes = new Recipe[]{

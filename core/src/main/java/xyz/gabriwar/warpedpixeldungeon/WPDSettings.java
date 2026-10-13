@@ -503,6 +503,8 @@ public class WPDSettings extends GameSettings {
 	public static final String KEY_AMBIENCE_VOL = "ambience_vol";
 	public static final String KEY_SPATIAL      = "spatial_audio";
 	public static final String KEY_ACOUSTICS    = "room_acoustics";
+	public static final String KEY_SPATIAL_STRENGTH   = "spatial_strength";
+	public static final String KEY_ACOUSTICS_STRENGTH = "acoustics_strength";
 
 	public static void music( boolean value ) {
 		Music.INSTANCE.enable( value );
@@ -579,6 +581,25 @@ public class WPDSettings extends GameSettings {
 
 	public static boolean roomAcoustics() {
 		return getBoolean( KEY_ACOUSTICS, true );
+	}
+
+	//how strong each is, 1 to 5 (2 is how they first sounded)
+	public static void spatialStrength( int value ) {
+		SpatialSound.strength( value );
+		put( KEY_SPATIAL_STRENGTH, SpatialSound.strength );
+	}
+
+	public static int spatialStrength() {
+		return getInt( KEY_SPATIAL_STRENGTH, SpatialSound.DEFAULT_STRENGTH, SpatialSound.MIN_STRENGTH, SpatialSound.MAX_STRENGTH );
+	}
+
+	public static void acousticsStrength( int value ) {
+		RoomAcoustics.strength( value );
+		put( KEY_ACOUSTICS_STRENGTH, RoomAcoustics.strength );
+	}
+
+	public static int acousticsStrength() {
+		return getInt( KEY_ACOUSTICS_STRENGTH, RoomAcoustics.DEFAULT_STRENGTH, RoomAcoustics.MIN_STRENGTH, RoomAcoustics.MAX_STRENGTH );
 	}
 
 	public static void ignoreSilentMode( boolean value ){

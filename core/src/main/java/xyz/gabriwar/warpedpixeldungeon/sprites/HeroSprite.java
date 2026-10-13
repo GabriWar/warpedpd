@@ -83,6 +83,23 @@ public class HeroSprite extends CharSprite {
 	}
 
 	public void updateArmor(int tier) {
+		animations( tier );
+
+		if (Dungeon.hero.isAlive())
+			idle();
+		else
+			die();
+	}
+
+	//a hero's look with no hero behind it, for the Descent Guide's scenes (GuidePuppet.hero)
+	HeroSprite( HeroClass cls, int tier ) {
+		super();
+		texture( cls.spritesheet() );
+		animations( tier );
+		play( idle );
+	}
+
+	private void animations(int tier) {
 		TextureFilm film = new TextureFilm( tiers(), tier, FRAME_WIDTH, FRAME_HEIGHT );
 		
 		idle = new Animation( 1, true );
@@ -107,11 +124,6 @@ public class HeroSprite extends CharSprite {
 
 		read = new Animation( 20, false );
 		read.frames( film, 19, 20, 20, 20, 20, 20, 20, 20, 20, 19 );
-		
-		if (Dungeon.hero.isAlive())
-			idle();
-		else
-			die();
 	}
 	
 	@Override
@@ -171,7 +183,7 @@ public class HeroSprite extends CharSprite {
 
 	@Override
 	public void update() {
-		sleeping = ch.isAlive() && ((Hero)ch).resting;
+		sleeping = ch != null && ch.isAlive() && ((Hero)ch).resting;
 		
 		super.update();
 	}

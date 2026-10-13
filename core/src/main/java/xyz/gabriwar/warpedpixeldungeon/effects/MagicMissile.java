@@ -391,7 +391,7 @@ public class MagicMissile extends Emitter implements Lit {
 	}
 
 	//its first frame: its look made, and a bolt of light carried over the night's tint
-	private void setOff(){
+	protected void setOff(){
 		fx.begin( type, x + width / 2f, y + height / 2f, sx, sy, callback != null );
 		boolean light = factory != null && factory.lightMode();
 		if (light) {

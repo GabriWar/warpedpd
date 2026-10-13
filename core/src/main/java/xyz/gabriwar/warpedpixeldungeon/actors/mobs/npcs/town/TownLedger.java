@@ -28,6 +28,7 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle;
+import xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import com.watabou.utils.Bundle;
 
@@ -43,6 +44,10 @@ public class TownLedger {
 
 	//one a day each: the tithe, the bard's song, the keepsake sale
 	public static int titheDay, songDay, keepsakeDay;
+
+	//the fortune teller reads one item a season: the season of her last reading
+	//(GameCalendar.seasonIndex), -1 before the first
+	public static int readingSeason;
 
 	//the mercenary teaches one lesson per boss you have put down
 	public static int lessonsTaken;
@@ -72,12 +77,22 @@ public class TownLedger {
 		bountyTarget = null;
 		bountyReward = 0;
 		servicesUsed = 0;
+		readingSeason = -1;
 	}
 
 	//the calendar day, so the once-a-day services roll over at the same moment
 	//the townsfolk wake
 	public static int today(){
 		return Dungeon.cycleTurn / DayNightCycle.FULL_CYCLE;
+	}
+
+	//this season's reading is spent; a new season, or the same one next year, brings another
+	public static boolean readingSpent(){
+		return readingSeason == GameCalendar.seasonIndex();
+	}
+
+	public static void spendReading(){
+		readingSeason = GameCalendar.seasonIndex();
 	}
 
 	//the town charges what the dungeon pays: prices step up with the deepest floor
@@ -113,6 +128,7 @@ public class TownLedger {
 	private static final String BOUNTY_TARGET = "town_bounty";
 	private static final String REWARD       = "town_bounty_reward";
 	private static final String SERVICES     = "town_services";
+	private static final String READING      = "town_reading_season";
 
 	public static void storeInBundle( Bundle bundle ){
 		bundle.put( MEAL_DAY, mealDay );
@@ -130,6 +146,7 @@ public class TownLedger {
 		if (bountyTarget != null) bundle.put( BOUNTY_TARGET, bountyTarget );
 		bundle.put( REWARD, bountyReward );
 		bundle.put( SERVICES, servicesUsed );
+		bundle.put( READING, readingSeason );
 	}
 
 	@SuppressWarnings("unchecked")
@@ -151,5 +168,7 @@ public class TownLedger {
 		bountyTarget = bundle.contains( BOUNTY_TARGET ) ? (Class<? extends Mob>) bundle.getClass( BOUNTY_TARGET ) : null;
 		bountyReward = bundle.getInt( REWARD );
 		servicesUsed = bundle.getInt( SERVICES );
+		//a save from before the fortune teller kept to one reading a season
+		if (bundle.contains( READING )) readingSeason = bundle.getInt( READING );
 	}
 }

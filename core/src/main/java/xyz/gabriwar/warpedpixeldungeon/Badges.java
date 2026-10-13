@@ -23,6 +23,8 @@ package xyz.gabriwar.warpedpixeldungeon;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AscensionChallenge;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.Artifact;
@@ -1351,6 +1353,10 @@ public class Badges {
 			GLog.h( Messages.get(Badges.class, "new", badge.title() + " (" + badge.desc() + ")") );
 			GLog.newLine();
 			PixelScene.showBadge( badge );
+			//a hero unlocked: the page on heroes and classes writes itself
+			if (badge.name().startsWith( "UNLOCK_" )){
+				GameScene.adviseGuide( GuideGraph.TOPIC_HEROES );
+			}
 		}
 	}
 	

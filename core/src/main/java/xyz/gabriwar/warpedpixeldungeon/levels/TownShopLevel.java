@@ -184,13 +184,16 @@ public class TownShopLevel extends TownInteriorLevel {
 		for (int i : STORE_SPOTS) {
 			if (heaps.get(i) == null) {
 				Item it;
-				//the town store always keeps plant food and gun ammo in stock
+				//the town store always keeps plant food, gun ammo and empty bottles in stock
 				if (!stocked.contains(Fertilizer.class)) {
 					it = new Fertilizer();
 					//planting season: the guaranteed stack is twice as deep
 					it.quantity(GameCalendar.season() == GameCalendar.Season.SPRING ? 8 : 4);
 				} else if (!stocked.contains(xyz.gabriwar.warpedpixeldungeon.items.BulletBelt.class)) {
 					it = new xyz.gabriwar.warpedpixeldungeon.items.BulletBelt();
+				} else if (!stocked.contains(xyz.gabriwar.warpedpixeldungeon.items.EmptyBottle.class)) {
+					//and empty bottles, five to a stack, as every shop does
+					it = new xyz.gabriwar.warpedpixeldungeon.items.EmptyBottle().quantity(5);
 				} else {
 					//then what a builder needs, before the rest (homestead/gathering/Wares)
 					it = xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Wares.townStock(stocked);

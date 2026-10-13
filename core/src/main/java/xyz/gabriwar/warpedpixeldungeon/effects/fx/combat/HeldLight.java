@@ -36,8 +36,10 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
  *
  * The kit's lights are pooled and capped: past the cap the dimmest makes way, and a light that
  * made way may be taken up again at once by some other effect. So a held light is checked every
- * frame - still alive and still where this sprite would put it - and let go of (never touched
- * again) the moment it is not. A held light is only ever asked for while the kit has room under
+ * frame - still alive and never set up again since it was handed over (FxLight.setups) - and let
+ * go of (never touched again) the moment it is not. Where the light stands is no test of whose it
+ * is: a sprite can be far from its light for a frame (a teleport, the world's window sliding, a
+ * long frame), and a light of its own let go of then would follow it, lit, for good. A held light is only ever asked for while the kit has room under
  * its cap, so one never makes another (a held one, a fire's) make way; without room it waits,
  * asking again every RETRY seconds, and one taken up again after it made way fades back in over
  * BACK_IN s instead of popping on. Lights of states are transient to the kit (a sprite's light
@@ -51,9 +53,6 @@ final class HeldLight {
 	/** A light taken up again after it made way fades back in from BACK_FROM of its level over
 	 *  BACK_IN s. */
 	static final float BACK_IN = 0.2f, BACK_FROM = 0.2f;
-	//how far a held light may stray from where this sprite puts it and still be ours, px: more
-	//than a sprite moves in a slow frame, less than the cell a foreign light would stand on
-	private static final float MINE = 24f;
 
 	private final boolean pool;
 	private final int size;
@@ -62,9 +61,8 @@ final class HeldLight {
 	private final boolean reflect;
 	private final float dayShare;
 	private FxLight light;
-	//its colour as it was made: a light set up afresh by another owner takes theirs
-	private float madeR, madeG, madeB;
-	private float dx, dy;
+	//the light's setups as it was handed over: one set up afresh since is another owner's
+	private int setups;
 	private float retryIn;
 	//1 once it is fully in; under 1 while one taken up again fades back in
 	private float in = 1f;
@@ -88,9 +86,7 @@ final class HeldLight {
 	 * without letting it go); made, or made again after it made way.
 	 */
 	void update( CharSprite s, float dx, float dy, float level, float dt ){
-		this.dx = dx;
-		this.dy = dy;
-		if (light != null && !mine( s )){
+		if (light != null && !mine( light )){
 			light = null;
 			lost = true;
 			retryIn = RETRY;
@@ -109,9 +105,7 @@ final class HeldLight {
 			light = pool ? FxLight.pool( cx, cy, size, color, l ) : FxLight.glow( cx, cy, size, color, l );
 			light.flicker( flicker ).day( dayShare ).follow( s, dx, dy );
 			if (reflect) light.reflect();
-			madeR = light.rm;
-			madeG = light.gm;
-			madeB = light.bm;
+			setups = light.setups();
 		} else if (in < 1f){
 			in = Math.min( 1f, in + dt * (1f - BACK_FROM) / BACK_IN );
 		}
@@ -124,14 +118,10 @@ final class HeldLight {
 		color = c & 0xFFFFFF;
 	}
 
-	//still the light this holder was given: alive, never made persistent, in its colour and about
-	//where the sprite would put it (a light taken up again is set up afresh by its new owner)
-	private boolean mine( CharSprite s ){
-		FxLight l = light;
-		if (!l.alive || l.isPersistent()) return false;
-		if (l.rm != madeR || l.gm != madeG || l.bm != madeB) return false;
-		float ex = s.x + s.width() / 2f + dx, ey = s.y + s.height() / 2f + dy;
-		return Math.abs( l.centerX() - ex ) <= MINE && Math.abs( l.centerY() - ey ) <= MINE;
+	//still the light this holder was given: alive, never made persistent, never set up again (a
+	//light taken up again is set up afresh by its new owner), wherever it stands now
+	private boolean mine( FxLight l ){
+		return l.alive && !l.isPersistent() && l.setups() == setups;
 	}
 
 	/** Whether it holds a light now. */
@@ -144,10 +134,11 @@ final class HeldLight {
 		return light;
 	}
 
-	/** Put out over `fade` s and let go of. Any thread. */
+	/** Put out over `fade` s and let go of (one taken up by another owner since is theirs, left
+	 *  alone). Any thread. */
 	void putOut( float fade ){
 		FxLight l = light;
 		light = null;
-		if (l != null && l.alive) l.putOut( fade );
+		if (l != null && mine( l )) l.putOut( fade );
 	}
 }

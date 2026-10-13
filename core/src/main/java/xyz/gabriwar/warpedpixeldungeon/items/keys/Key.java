@@ -56,7 +56,7 @@ public abstract class Key extends Item {
 		Catalog.setSeen(getClass());
 		Statistics.itemTypesDiscovered.add(getClass());
 		GameScene.pickUpJournal(this, pos);
-		WndJournal.last_index = 0;
+		WndJournal.last_index = WndJournal.NOTES;
 		Notes.add(this);
 		SpatialSound.play( Assets.Sounds.ITEM, hero );
 		hero.spendAndNext( pickupDelay() );

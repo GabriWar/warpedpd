@@ -29,8 +29,9 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
-import xyz.gabriwar.warpedpixeldungeon.items.journal.Guidebook;
-import xyz.gabriwar.warpedpixeldungeon.journal.Document;
+import xyz.gabriwar.warpedpixeldungeon.items.journal.DescentPage;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideProgress;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldStructures;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
@@ -43,7 +44,7 @@ import com.watabou.utils.PointF;
 import java.util.ArrayList;
 
 //a line of chevrons on the floor from the hero to where a new player should go
-//next: the adventurer's guide while it lies on this level, then - once the intro
+//next: the guide's first page while it lies on this level, then - once the intro
 //is read and the dungeon is still unvisited - the gate into the dungeon. Laid along
 //the walking path, each arrow turned toward the next step, pulsing in sequence so
 //the eye runs down it.
@@ -95,13 +96,14 @@ public class GuideTrail extends Group {
 
 	private static int targetCell() {
 		for (Heap heap : Dungeon.level.heaps.valueList()) {
-			if (heap.peek() instanceof Guidebook) return heap.pos;
+			if (heap.peek() instanceof DescentPage
+					&& GuideGraph.BASICS_INTRO.equals( ((DescentPage) heap.peek()).page() )) return heap.pos;
 		}
-		//book read, dungeon never entered: the north gate - the dungeon's front door
+		//page read, dungeon never entered: the north gate - the dungeon's front door
 		//(the plaza's staircase goes down to the mines) - while the town window shows it
 		if (Dungeon.level instanceof OverworldLevel
 				&& Statistics.deepestFloor == 0
-				&& Document.ADVENTURERS_GUIDE.isPageRead( Document.GUIDE_INTRO )) {
+				&& GuideProgress.isRead( GuideGraph.BASICS_INTRO )) {
 			return ((OverworldLevel) Dungeon.level).townLocal( WorldStructures.TOWN_DUNGEON_GATE );
 		}
 		return -1;

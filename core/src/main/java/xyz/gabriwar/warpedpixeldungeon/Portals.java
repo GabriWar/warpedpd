@@ -59,6 +59,14 @@ public class Portals {
 		return depth + branch * BRANCH_STRIDE;
 	}
 
+	//the town's gate, in Dolyahaven's square on the surface (OverworldLevel.placeTownGate): keyed
+	//by the surface's own depth on branch 0, so keyHere() names it while the hero stands in the
+	//town. No dungeon floor has that pair: the surface holds no shop, and the world's other slices
+	//and every branch have depths or keys of their own. It has no keeper and costs nothing: it is
+	//always lit, known from the first turn, and nothing ever puts it out (a surface trader who
+	//flees calls markDead here too)
+	public static final int TOWN = key(xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel.DEPTH, 0);
+
 	public static int keyHere() {
 		return key(Dungeon.depth, Dungeon.branch);
 	}
@@ -84,6 +92,7 @@ public class Portals {
 
 	public static void reset() {
 		records.clear();
+		keepTown();
 	}
 
 	// Called when a PortalGate is spawned during level gen.
@@ -96,6 +105,7 @@ public class Portals {
 		}
 		r.cell = cell;
 		unlockFirstShop(depth, r);
+		if (depth == TOWN) keepTown();
 		return r;
 	}
 
@@ -104,6 +114,18 @@ public class Portals {
 		if (key == key(6, 0) && record.state == PortalGate.State.LOCKED) {
 			record.state = PortalGate.State.ACTIVE;
 		}
+	}
+
+	//The town's record always exists, lit and known: a new game, a save from before the town
+	//had a gate, and a run that has not been back to the surface since all travel there.
+	private static void keepTown() {
+		Record r = records.get(TOWN);
+		if (r == null) {
+			r = new Record();
+			records.put(TOWN, r);
+		}
+		r.state = PortalGate.State.ACTIVE;
+		r.discovered = true;
 	}
 
 	public static Record get(int depth) {
@@ -130,6 +152,7 @@ public class Portals {
 	}
 
 	public static void setState(int depth, PortalGate.State s) {
+		if (depth == TOWN && s != PortalGate.State.ACTIVE) return;
 		Record r = records.get(depth);
 		if (r == null) {
 			r = new Record();
@@ -141,6 +164,7 @@ public class Portals {
 	}
 
 	public static void markDead(int depth) {
+		if (depth == TOWN) return;
 		Record r = records.get(depth);
 		if (r == null) {
 			r = new Record();
@@ -165,7 +189,7 @@ public class Portals {
 		}
 	}
 
-	// Depths the player can fast-travel to right now.
+	// Depths the player can fast-travel to right now: the town first, then the shops from the top down.
 	public static List<Integer> travelable(int excludeDepth) {
 		ArrayList<Integer> out = new ArrayList<>();
 		for (Map.Entry<Integer, Record> e : records.entrySet()) {
@@ -176,6 +200,7 @@ public class Portals {
 			out.add(e.getKey());
 		}
 		java.util.Collections.sort(out);
+		if (out.remove((Integer) TOWN)) out.add(0, TOWN);
 		return out;
 	}
 
@@ -206,19 +231,21 @@ public class Portals {
 
 	public static void restoreFromBundle(Bundle bundle) {
 		records.clear();
-		if (!bundle.contains(DEPTHS)) return;
-		int[] depths = bundle.getIntArray(DEPTHS);
-		int[] states = bundle.getIntArray(STATES);
-		int[] cells  = bundle.getIntArray(CELLS);
-		boolean[] discovered = bundle.getBooleanArray(DISCOVERED);
-		PortalGate.State[] vals = PortalGate.State.values();
-		for (int i = 0; i < depths.length; i++) {
-			Record r = new Record();
-			r.state = vals[states[i]];
-			r.cell  = cells[i];
-			r.discovered = discovered[i];
-			unlockFirstShop(depths[i], r);
-			records.put(depths[i], r);
+		if (bundle.contains(DEPTHS)) {
+			int[] depths = bundle.getIntArray(DEPTHS);
+			int[] states = bundle.getIntArray(STATES);
+			int[] cells  = bundle.getIntArray(CELLS);
+			boolean[] discovered = bundle.getBooleanArray(DISCOVERED);
+			PortalGate.State[] vals = PortalGate.State.values();
+			for (int i = 0; i < depths.length; i++) {
+				Record r = new Record();
+				r.state = vals[states[i]];
+				r.cell  = cells[i];
+				r.discovered = discovered[i];
+				unlockFirstShop(depths[i], r);
+				records.put(depths[i], r);
+			}
 		}
+		keepTown();
 	}
 }

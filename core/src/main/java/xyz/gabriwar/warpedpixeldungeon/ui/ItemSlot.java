@@ -157,6 +157,7 @@ public class ItemSlot extends Button {
 	private int sparkCount = 0;
 	private float frameL, frameT, frameW, frameH;
 	private boolean sparksOn = false;
+	private float qualityAlpha = 1f;
 
 	private void updateQuality(){
 		xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality q = item == null ? null : item.quality;
@@ -165,7 +166,7 @@ public class ItemSlot extends Button {
 			b.visible = frame;
 			if (frame){
 				b.hardlight( q.titleColor() );
-				b.alpha( FRAME_ALPHA );
+				b.alpha( FRAME_ALPHA * qualityAlpha );
 			}
 		}
 		sparksOn = frame;
@@ -202,7 +203,7 @@ public class ItemSlot extends Button {
 				//the tail trails behind whichever way the mote is going
 				float p = ((sparkPos[i] - k * dir) % per + per) % per;
 				placeOnFrame( b, p );
-				b.alpha( k == 0 ? 1f : k == 1 ? 0.6f : 0.3f );
+				b.alpha( (k == 0 ? 1f : k == 1 ? 0.6f : 0.3f) * qualityAlpha );
 			}
 		}
 	}
@@ -234,6 +235,16 @@ public class ItemSlot extends Button {
 		PixelScene.align( typeBadge );
 		for (com.watabou.noosa.ColorBlock b : qualityFrame){ PixelScene.align( b ); sendToBack( b ); }
 		for (com.watabou.noosa.ColorBlock b : qualitySparks) bringToFront( b );
+		//shown only on a slot laid out to its size, with the motes already on the frame: made
+		//before that (an item given to a slot not yet placed) they were drawn at the screen's
+		//corner, or as a square of the rarity's colour, for a frame
+		boolean placed = w > 2 && h > 2;
+		for (com.watabou.noosa.ColorBlock b : qualityFrame) b.visible = sparksOn && placed;
+		for (int i = 0; i < qualitySparks.length; i++){
+			qualitySparks[i].visible = sparksOn && placed && i / 3 < sparkCount;
+		}
+		if (sparksOn && placed) flowSparks();
+		typeBadge.visible = item != null && item.quality != null && placed;
 		bringToFront( typeBadge );
 		if (status != null) bringToFront( status );
 	}
@@ -355,6 +366,13 @@ public class ItemSlot extends Button {
 		if (itemIcon != null)   itemIcon.alpha(value);
 		if (level != null)      level.alpha(value);
 		if (enchLvl != null)    enchLvl.alpha(value);
+		//the rarity frame, its motes and the type letter fade with the rest (a window fading in):
+		//at their own alpha they showed before the slot did
+		qualityAlpha = value;
+		if (qualityFrame != null){
+			for (com.watabou.noosa.ColorBlock b : qualityFrame) b.alpha( FRAME_ALPHA * value );
+			typeBadge.alpha( value );
+		}
 	}
 
 	private void refreshEnchText(){

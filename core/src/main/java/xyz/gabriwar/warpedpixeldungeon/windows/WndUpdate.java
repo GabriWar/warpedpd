@@ -158,7 +158,7 @@ public class WndUpdate extends Window {
 			protected void onClick() {
 				super.onClick();
 				hide();
-				ChangesScene.changesSelected = 0;
+				ChangesScene.changesSelected = ChangesScene.NEWEST;
 				WarpedPixelDungeon.switchNoFade(ChangesScene.class);
 			}
 		};

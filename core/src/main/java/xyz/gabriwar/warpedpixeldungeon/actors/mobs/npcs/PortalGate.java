@@ -29,6 +29,7 @@
  *   LOCKED  – costs gold to activate (shopkeeper alive, not yet paid)
  *   ACTIVE  – usable as travel destination (paid)
  *   DEAD    – shopkeeper killed; permanently unusable for this run
+ * The town's gate (Portals.TOWN, OverworldLevel.placeTownGate) has no keeper: always ACTIVE.
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs;
@@ -132,6 +133,9 @@ public class PortalGate extends NPC {
 
 	public void setState(State s) {
 		if (state == s) return;
+		// The town's gate has no keeper to lose: a surface trader who flees puts out every
+		// gate on the level, and this one stays lit.
+		if (Portals.keyHere() == Portals.TOWN && s != State.ACTIVE) return;
 		State prev = state;
 		state = s;
 		Portals.setState(Portals.keyHere(), s);

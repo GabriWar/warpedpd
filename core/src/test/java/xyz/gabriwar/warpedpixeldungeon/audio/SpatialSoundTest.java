@@ -77,6 +77,32 @@ public class SpatialSoundTest {
 	private Hero previousHero;
 	private Hero hero;
 
+	private int wasStrength;
+
+	@Test
+	public void strongerPansHarderAndFadesSooner(){
+		SpatialSound.on = true;
+		SpatialSound.desktop = true;
+		for (int k = SpatialSound.MIN_STRENGTH; k < SpatialSound.MAX_STRENGTH; k++){
+			SpatialSound.strength( k );
+			float pan = SpatialSound.pan( 2f ), far = SpatialSound.level( 8f, 0f ), device = SpatialSound.devicePan( SpatialSound.maxPan() );
+			SpatialSound.strength( k + 1 );
+			assertTrue( "wider at " + (k + 1), SpatialSound.pan( 2f ) > pan );
+			assertTrue( "quieter far off at " + (k + 1), SpatialSound.level( 8f, 0f ) < far );
+			assertTrue( "harder on desktop at " + (k + 1), SpatialSound.devicePan( SpatialSound.maxPan() ) > device );
+			assertEquals( "all of it at the hero", 1f, SpatialSound.level( 0f, 0f ), 0f );
+		}
+		assertTrue( "the default is stronger than it first was", SpatialSound.DEFAULT_STRENGTH > 2 );
+		SpatialSound.strength( 0 );
+		assertEquals( SpatialSound.MIN_STRENGTH, SpatialSound.strength );
+		SpatialSound.strength( 99 );
+		assertEquals( SpatialSound.MAX_STRENGTH, SpatialSound.strength );
+		//off, no strength moves it
+		SpatialSound.on = false;
+		assertEquals( 0f, SpatialSound.pan( 4f ), 0f );
+		assertEquals( 1f, SpatialSound.level( 4f, 0f ), 0f );
+	}
+
 	@BeforeClass
 	public static void boot(){
 		AllItemsTest.titleScreen();
@@ -86,6 +112,9 @@ public class SpatialSoundTest {
 	public void setUp(){
 		wasOn = SpatialSound.on;
 		wasDesktop = SpatialSound.desktop;
+		//the numbers here are strength 2's, how it first sounded
+		wasStrength = SpatialSound.strength;
+		SpatialSound.strength( 2 );
 		//spatial sound alone: room acoustics would add a 17 by 17 hall's tails to these
 		wasAcoustics = RoomAcoustics.on;
 		RoomAcoustics.on = false;
@@ -119,6 +148,7 @@ public class SpatialSoundTest {
 	public void tearDown(){
 		SpatialSound.on = wasOn;
 		SpatialSound.desktop = wasDesktop;
+		SpatialSound.strength( wasStrength );
 		RoomAcoustics.on = wasAcoustics;
 		SpatialSound.out = SpatialSound.SAMPLE;
 		Actor.clear();
@@ -193,11 +223,11 @@ public class SpatialSoundTest {
 		//straight below: no side, the fall-off of its distance alone
 		SpatialSound.play( Assets.Sounds.HIT, HERE + 6 * W );
 		assertEquals( 0f, last().pan, 0f );
-		assertEquals( SpatialSound.FLOOR + (1f - SpatialSound.FLOOR) / 2f, last().volume, 1e-6f );
+		assertEquals( SpatialSound.floor() + (1f - SpatialSound.floor()) / 2f, last().volume, 1e-6f );
 
 		//far to the right and below: as far to the side as it goes
 		SpatialSound.playDelayed( Assets.Sounds.BLAST, 0.5f, charAt( HERE + 8 + 4 * W ), 1f, 0.9f );
-		assertEquals( SpatialSound.MAX_PAN, last().pan, 1e-6f );
+		assertEquals( SpatialSound.maxPan(), last().pan, 1e-6f );
 		assertEquals( SpatialSound.level( 8f, 4f ), last().volume, 1e-6f );
 		assertEquals( 0.5f, last().delay, 0f );
 		assertEquals( 0.9f, last().pitch, 0f );
@@ -208,12 +238,12 @@ public class SpatialSoundTest {
 		SpatialSound.on = true;
 		assertEquals( 0f, SpatialSound.pan( 0f ), 0f );
 		assertEquals( 0.2f, SpatialSound.pan( 1f ), 1e-6f );
-		assertEquals( SpatialSound.MAX_PAN, SpatialSound.pan( SpatialSound.PAN_CELLS ), 1e-6f );
-		assertEquals( SpatialSound.MAX_PAN, SpatialSound.pan( 100f ), 1e-6f );
+		assertEquals( SpatialSound.maxPan(), SpatialSound.pan( SpatialSound.panCells() ), 1e-6f );
+		assertEquals( SpatialSound.maxPan(), SpatialSound.pan( 100f ), 1e-6f );
 		float last = -1f;
 		for (float dx = -30f; dx <= 30f; dx += 0.5f){
 			float p = SpatialSound.pan( dx );
-			assertTrue( Math.abs( p ) <= SpatialSound.MAX_PAN );
+			assertTrue( Math.abs( p ) <= SpatialSound.maxPan() );
 			assertTrue( "further right, further right", p >= last );
 			assertEquals( "the same either side", -p, SpatialSound.pan( -dx ), 1e-6f );
 			assertTrue( "to its own side", dx == 0f || Math.signum( p ) == Math.signum( dx ) );
@@ -229,7 +259,7 @@ public class SpatialSoundTest {
 		assertEquals( 0.93f, SpatialSound.level( 2f, 0f ), 0.005f );
 		assertEquals( 0.785f, SpatialSound.level( 4f, 0f ), 0.005f );
 		assertEquals( "half of what it can lose at HALF_CELLS", 0.65f,
-				SpatialSound.level( SpatialSound.HALF_CELLS, 0f ), 1e-6f );
+				SpatialSound.level( SpatialSound.halfCells(), 0f ), 1e-6f );
 		assertEquals( 0.55f, SpatialSound.level( 8f, 0f ), 0.005f );
 		assertEquals( 0.44f, SpatialSound.level( 12f, 0f ), 0.005f );
 		assertEquals( 0.36f, SpatialSound.level( 20f, 0f ), 0.005f );
@@ -238,10 +268,10 @@ public class SpatialSoundTest {
 		for (float d = 0f; d <= 200f; d += 0.5f){
 			float l = SpatialSound.level( d, 0f );
 			assertTrue( "never louder further off: " + d, l <= last );
-			assertTrue( "never under the floor: " + d, l >= SpatialSound.FLOOR );
+			assertTrue( "never under the floor: " + d, l >= SpatialSound.floor() );
 			last = l;
 		}
-		assertEquals( SpatialSound.FLOOR, SpatialSound.level( 1000f, 1000f ), 0.001f );
+		assertEquals( SpatialSound.floor(), SpatialSound.level( 1000f, 1000f ), 0.001f );
 	}
 
 	@Test
@@ -273,7 +303,7 @@ public class SpatialSoundTest {
 		//what Sample.play makes of a left and a right volume: the louder of the two, panned by
 		//right - left
 		for (float v : new float[]{ 0.05f, 0.3f, 1f, 2f }){
-			for (float p = -SpatialSound.MAX_PAN; p <= SpatialSound.MAX_PAN + 1e-4f; p += 0.1f){
+			for (float p = -SpatialSound.maxPan(); p <= SpatialSound.maxPan() + 1e-4f; p += 0.1f){
 				float l = SpatialSound.left( v, p ), r = SpatialSound.right( v, p );
 				assertEquals( v, Math.max( l, r ), 1e-6f );
 				assertEquals( p, r - l, 1e-6f );
@@ -311,8 +341,8 @@ public class SpatialSoundTest {
 		assertEquals( -SpatialSound.devicePan( 0.6f ), SpatialSound.devicePan( -0.6f ), 0f );
 		assertEquals( SpatialSound.deviceVolume( 0.7f, 0.6f ), SpatialSound.deviceVolume( 0.7f, -0.6f ), 0f );
 		//the widest an effect goes is about as wide as Android makes it (its far side at 1 - pan)
-		float p = SpatialSound.devicePan( SpatialSound.MAX_PAN );
-		assertEquals( 20 * Math.log10( 1 - SpatialSound.MAX_PAN ),
+		float p = SpatialSound.devicePan( SpatialSound.maxPan() );
+		assertEquals( 20 * Math.log10( 1 - SpatialSound.maxPan() ),
 				20 * Math.log10( desktopEar( p, false ) / desktopEar( p, true ) ), 1.5 );
 	}
 

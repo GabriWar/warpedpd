@@ -45,7 +45,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.artifacts.Artifact;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.DriedRose;
 import xyz.gabriwar.warpedpixeldungeon.items.food.SupplyRation;
 import xyz.gabriwar.warpedpixeldungeon.items.journal.DocumentPage;
-import xyz.gabriwar.warpedpixeldungeon.items.journal.GuidePage;
 import xyz.gabriwar.warpedpixeldungeon.items.journal.RegionLorePage;
 import xyz.gabriwar.warpedpixeldungeon.items.keys.CrystalKey;
 import xyz.gabriwar.warpedpixeldungeon.items.keys.GoldenKey;
@@ -421,15 +420,12 @@ public abstract class RegularLevel extends Level {
 				type = Heap.Type.CHEST;
 				break;
 			case 5:
+			case 6:
 				if (Dungeon.depth > 1 && findMob(cell) == null){
 					mobs.add(Mimic.spawnAt(cell, toDrop));
 					continue;
 				}
 				type = Heap.Type.CHEST;
-				break;
-			case 6:
-				//SPS-PD hides a monster box among the chests; it looks like a plain one
-				type = Dungeon.depth > 1 ? Heap.Type.MONSTER_BOX : Heap.Type.HEAP;
 				break;
 			default:
 				type = Heap.Type.HEAP;
@@ -579,88 +575,60 @@ public abstract class RegularLevel extends Level {
 			}
 		Random.popGenerator();
 
-		//guide pages
-		Random.pushGenerator( Random.Long() );
-			Collection<String> allPages = Document.ADVENTURERS_GUIDE.pageNames();
-			ArrayList<String> missingPages = new ArrayList<>();
-			for ( String page : allPages){
-				if (!Document.ADVENTURERS_GUIDE.isPageFound(page)){
-					missingPages.add(page);
-				}
-			}
-
-			//a total of 6 pages drop randomly, the rest are specially dropped or are given at the start
-			missingPages.remove(Document.GUIDE_SEARCHING);
-
-			//chance to find a page is 0/25/50/75/100% for floors 1/2/3/4/5+
-			float dropChance = 0.25f*(Dungeon.depth-1);
-			if (!missingPages.isEmpty() && Random.Float() < dropChance){
-				GuidePage p = new GuidePage();
-				p.page(missingPages.get(0));
-				int cell = randomDropCell();
-				if (map[cell] == Terrain.HIGH_GRASS || map[cell] == Terrain.FURROWED_GRASS) {
-					map[cell] = Terrain.GRASS;
-					losBlocking[cell] = false;
-				}
-				drop( p, cell );
-			}
-		Random.popGenerator();
+		//the draw the tome of dungeon mastery's pages took: seeds keep their floors
+		Random.Long();
 
 		//lore pages
 		//TODO a fair bit going on here, I might want to refactor/externalize this in the future
 		Random.pushGenerator( Random.Long() );
-			if (Document.ADVENTURERS_GUIDE.allPagesFound()){
+			int region = 1+(Dungeon.depth-1)/5;
 
-				int region = 1+(Dungeon.depth-1)/5;
+			Document regionDoc;
+			switch( region ){
+				default: regionDoc = null; break;
+				case 1: regionDoc = Document.SEWERS_GUARD; break;
+				case 2: regionDoc = Document.PRISON_WARDEN; break;
+				case 3: regionDoc = Document.CAVES_EXPLORER; break;
+				case 4: regionDoc = Document.CITY_WARLOCK; break;
+				case 5: regionDoc = Document.HALLS_KING; break;
+			}
 
-				Document regionDoc;
-				switch( region ){
-					default: regionDoc = null; break;
-					case 1: regionDoc = Document.SEWERS_GUARD; break;
-					case 2: regionDoc = Document.PRISON_WARDEN; break;
-					case 3: regionDoc = Document.CAVES_EXPLORER; break;
-					case 4: regionDoc = Document.CITY_WARLOCK; break;
-					case 5: regionDoc = Document.HALLS_KING; break;
-				}
+			if (regionDoc != null && !regionDoc.allPagesFound()) {
 
-				if (regionDoc != null && !regionDoc.allPagesFound()) {
+				Dungeon.LimitedDrops limit = limitedDocs.get(regionDoc);
 
-					Dungeon.LimitedDrops limit = limitedDocs.get(regionDoc);
+				if (limit == null || !limit.dropped()) {
 
-					if (limit == null || !limit.dropped()) {
-
-						float totalPages = 0;
-						float pagesFound = 0;
-						String pageToDrop = null;
-						for (String page : regionDoc.pageNames()) {
-							totalPages++;
-							if (!regionDoc.isPageFound(page)) {
-								if (pageToDrop == null) {
-									pageToDrop = page;
-								}
-							} else {
-								pagesFound++;
+					float totalPages = 0;
+					float pagesFound = 0;
+					String pageToDrop = null;
+					for (String page : regionDoc.pageNames()) {
+						totalPages++;
+						if (!regionDoc.isPageFound(page)) {
+							if (pageToDrop == null) {
+								pageToDrop = page;
 							}
+						} else {
+							pagesFound++;
 						}
-						float percentComplete = pagesFound / totalPages;
+					}
+					float percentComplete = pagesFound / totalPages;
 
-						// initial value is the first floor in a region
-						int targetFloor = 5*(region-1) + 1;
-						targetFloor += Math.round(3*percentComplete);
+					// initial value is the first floor in a region
+					int targetFloor = 5*(region-1) + 1;
+					targetFloor += Math.round(3*percentComplete);
 
-						//TODO maybe drop last page in boss floor with custom logic?
-						if (Dungeon.depth >= targetFloor){
-							DocumentPage page = RegionLorePage.pageForDoc(regionDoc);
-							page.page(pageToDrop);
-							int cell = randomDropCell();
-							if (map[cell] == Terrain.HIGH_GRASS || map[cell] == Terrain.FURROWED_GRASS) {
-								map[cell] = Terrain.GRASS;
-								losBlocking[cell] = false;
-							}
-							drop(page, cell);
-							if (limit != null) limit.drop();
+					//TODO maybe drop last page in boss floor with custom logic?
+					if (Dungeon.depth >= targetFloor){
+						DocumentPage page = RegionLorePage.pageForDoc(regionDoc);
+						page.page(pageToDrop);
+						int cell = randomDropCell();
+						if (map[cell] == Terrain.HIGH_GRASS || map[cell] == Terrain.FURROWED_GRASS) {
+							map[cell] = Terrain.GRASS;
+							losBlocking[cell] = false;
 						}
-
+						drop(page, cell);
+						if (limit != null) limit.drop();
 					}
 
 				}

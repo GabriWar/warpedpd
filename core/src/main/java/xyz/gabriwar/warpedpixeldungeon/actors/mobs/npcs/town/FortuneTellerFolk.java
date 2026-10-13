@@ -41,13 +41,14 @@ import xyz.gabriwar.warpedpixeldungeon.Badges;
 import com.watabou.noosa.Game;
 import com.watabou.utils.Callback;
 
+import java.util.Locale;
+
 //Remixed PD's town fortune teller. For gold she reads an item's nature (identifies
-//it), or the whole pack at once for a steeper price - the service the old plaza
-//fortune teller offered, now inside her building.
+//it), one item a season - the service the old plaza fortune teller offered, now
+//inside her building.
 public class FortuneTellerFolk extends FlavorNPC {
 
 	private static final int COST_ONE = 50;
-	private static final int COST_ALL = 40; //per item, cheaper in bulk
 
 	{
 		spriteClass = FortuneTellerFolkSprite.class;
@@ -74,12 +75,28 @@ public class FortuneTellerFolk extends FlavorNPC {
 		return "greeting";
 	}
 
-	private static int unidentified( Hero hero ) {
-		int n = 0;
+	private static boolean hasUnidentified( Hero hero ) {
 		for (Item item : hero.belongings) {
-			if (!item.isIdentified()) n++;
+			if (!item.isIdentified()) return true;
 		}
-		return n;
+		return false;
+	}
+
+	//a window with only her words and a goodbye
+	private void tell( final String text ) {
+		//a window measures its own text, and text can only be measured on the render
+		//thread; interact() runs on the actor thread, so building one here crashes
+		Game.runOnRenderThread( new Callback() {
+			@Override
+			public void call() {
+				GameScene.show( new WndOptions( sprite(),
+						Messages.get( FortuneTellerFolk.this, "name" ),
+						text,
+						Messages.get( FortuneTellerFolk.this, "bye" ) ) {
+					@Override protected void onSelect( int index ) {}
+				} );
+			}
+		} );
 	}
 
 	@Override
@@ -89,73 +106,54 @@ public class FortuneTellerFolk extends FlavorNPC {
 		if (!(c instanceof Hero)) return true;
 		final Hero hero = (Hero) c;
 
-		final int unknown = unidentified( hero );
+		//one reading a season: the sight comes back when the season turns
+		if (TownLedger.readingSpent()) {
+			tell( Messages.get( this, "spent", Messages.get( GameCalendar.class,
+					GameCalendar.season().next().name().toLowerCase( Locale.ENGLISH ) ) ) );
+			return true;
+		}
 
-		//a window measures its own text, and text can only be measured on the render
-		//thread; interact() runs on the actor thread, so building one here crashes
-		if (unknown == 0) {
-			Game.runOnRenderThread( new Callback() {
-				@Override
-				public void call() {
-					GameScene.show( new WndOptions( sprite(),
-							Messages.get( FortuneTellerFolk.this, "name" ),
-							Messages.get( FortuneTellerFolk.this, "nothing" ),
-							Messages.get( FortuneTellerFolk.this, "bye" ) ) {
-						@Override protected void onSelect( int index ) {}
-					} );
-				}
-			} );
+		if (!hasUnidentified( hero )) {
+			tell( Messages.get( this, "nothing" ) );
 			return true;
 		}
 
 		final int oneCost = Math.round( COST_ONE * moonRate() );
-		final int allCost = Math.round( COST_ALL * unknown * moonRate() );
 
 		Game.runOnRenderThread( new Callback() {
 			@Override
 			public void call() {
 				GameScene.show( new WndOptions( sprite(),
 						Messages.get( FortuneTellerFolk.this, "name" ),
-						Messages.get( FortuneTellerFolk.this, greetingKey(), oneCost, allCost ),
+						Messages.get( FortuneTellerFolk.this, greetingKey(), oneCost ),
 						Messages.get( FortuneTellerFolk.this, "one", oneCost ),
-						Messages.get( FortuneTellerFolk.this, "all", allCost ),
 						Messages.get( FortuneTellerFolk.this, "bye" ) ) {
 
 					@Override
 					protected void onSelect( int index ) {
-						if (index == 0) {
-							if (Dungeon.gold < oneCost) {
-								GLog.w( Messages.get( FortuneTellerFolk.class, "no_gold" ) );
-								return;
-							}
-							GameScene.selectItem( new WndBag.ItemSelector() {
-								@Override public String textPrompt() {
-									return Messages.get( FortuneTellerFolk.class, "select" );
-								}
-								@Override public boolean itemSelectable( Item item ) {
-									return !item.isIdentified();
-								}
-								@Override public void onSelect( Item item ) {
-									if (item != null && !item.isIdentified()) {
-										Dungeon.gold -= oneCost;
-										item.identify();
-										if (fullMoon()) Badges.validateMoonlitReading();
-										GLog.p( Messages.get( FortuneTellerFolk.class, "revealed", item.name() ) );
-									}
-								}
-								@Override public Class<? extends Bag> preferredBag() { return null; }
-							} );
-
-						} else if (index == 1) {
-							if (Dungeon.gold < allCost) {
-								GLog.w( Messages.get( FortuneTellerFolk.class, "no_gold" ) );
-								return;
-							}
-							Dungeon.gold -= allCost;
-							hero.belongings.identify();
-							if (fullMoon()) Badges.validateMoonlitReading();
-							GLog.p( Messages.get( FortuneTellerFolk.class, "revealed_all" ) );
+						if (index != 0) return;
+						if (Dungeon.gold < oneCost) {
+							GLog.w( Messages.get( FortuneTellerFolk.class, "no_gold" ) );
+							return;
 						}
+						GameScene.selectItem( new WndBag.ItemSelector() {
+							@Override public String textPrompt() {
+								return Messages.get( FortuneTellerFolk.class, "select" );
+							}
+							@Override public boolean itemSelectable( Item item ) {
+								return !item.isIdentified();
+							}
+							@Override public void onSelect( Item item ) {
+								if (item != null && !item.isIdentified() && !TownLedger.readingSpent()) {
+									Dungeon.gold -= oneCost;
+									item.identify();
+									TownLedger.spendReading();
+									if (fullMoon()) Badges.validateMoonlitReading();
+									GLog.p( Messages.get( FortuneTellerFolk.class, "revealed", item.name() ) );
+								}
+							}
+							@Override public Class<? extends Bag> preferredBag() { return null; }
+						} );
 					}
 				} );
 			}

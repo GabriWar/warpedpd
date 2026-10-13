@@ -63,7 +63,7 @@ public class vWarped_Changes {
 				"The source is open under the GPL, and the About screen credits every mod Warped is built from."));
 
 		changes.addButton( new ChangeButton(Icons.get(Icons.NEWS), "How updates reach you",
-				"Warped updates often and in small steps. The news feed on the title screen lists what changed in each build, so this screen only covers the big picture."));
+				"Warped updates often and in small steps. The version tabs beside this one (v18, v17 and so on) list what each update brought, one square per version, and the screen you see after an update shows what is new since you last played. This tab covers the big picture."));
 	}
 
 	public static void add_Online( ArrayList<ChangeInfo> changeInfos ) {

@@ -294,6 +294,8 @@ public class ShopRoom extends SpecialRoom {
 				itemsToSpawn.add( new PortableChest( PortableChest.WOOD ) );
 				//the sickle: harvests seeds from safe-zone crops
 				itemsToSpawn.add( new xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Sickle() );
+				//the run's only Lloyd's Beacon: Tengu, DM-300 and the Dwarf King each raise one carried
+				itemsToSpawn.add( new xyz.gabriwar.warpedpixeldungeon.items.artifacts.LloydsBeacon() );
 			}
 			break;
 			
@@ -326,6 +328,8 @@ public class ShopRoom extends SpecialRoom {
 
 		//every shop keeps a cup of coffee behind the counter
 		itemsToSpawn.add( new Coffee() );
+		//and a stack of five empty bottles
+		itemsToSpawn.add( new xyz.gabriwar.warpedpixeldungeon.items.EmptyBottle().quantity( 5 ) );
 
 		w.enchant(null);
 		w.cursed = false;

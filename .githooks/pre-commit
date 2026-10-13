@@ -1,22 +1,42 @@
 #!/usr/bin/env bash
-# Warped PD: a reminder, not a block. When a commit changes the game (code or assets) but not
-# the Descent Guide, say so: the guide must stay true to the game. Enabled for every worktree
-# by `git config core.hooksPath .githooks`.
+# Warped PD: reminders, not blocks. When a commit changes the game (code or assets) but not
+# the Descent Guide, or not the Changes screen, say so: the guide must stay true to the game,
+# and every update must list what it changed. Enabled for every worktree by
+# `git config core.hooksPath .githooks`.
 guide='^core/src/main/(assets/messages/guide/|java/xyz/gabriwar/warpedpixeldungeon/journal/Guide)'
+changes='^core/src/main/java/xyz/gabriwar/warpedpixeldungeon/ui/changelist/WarpedUpdates\.java$'
 staged=$(git diff --cached --name-only --diff-filter=ACMRD)
-game=$(printf '%s\n' "$staged" | grep -E '^core/src/main/' | grep -vE "$guide")
+game=$(printf '%s\n' "$staged" | grep -E '^core/src/main/' | grep -vE "$guide|$changes")
 [ -z "$game" ] && exit 0
-printf '%s\n' "$staged" | grep -qE "$guide" && exit 0
+
+list_game(){
+	echo "  Game files in this commit:"
+	printf '%s\n' "$game" | head -6 | sed 's/^/    /'
+	n=$(printf '%s\n' "$game" | wc -l)
+	[ "$n" -gt 6 ] && echo "    ... and $((n - 6)) more"
+}
+
+if ! printf '%s\n' "$staged" | grep -qE "$guide"; then
 {
 	echo "=============================================================================="
 	echo "  WARNING: this commit changes the game but not the Descent Guide."
 	echo "  Always update the guide when you change anything a player can see or rely on"
 	echo "  (core/src/main/assets/messages/guide/guide.properties, journal/GuideGraph.java)."
-	echo "  Game files in this commit:"
-	printf '%s\n' "$game" | head -6 | sed 's/^/    /'
-	n=$(printf '%s\n' "$game" | wc -l)
-	[ "$n" -gt 6 ] && echo "    ... and $((n - 6)) more"
+	list_game
 	echo "  If nothing in it touches what the guide says, carry on."
 	echo "=============================================================================="
 } >&2
+fi
+
+if ! printf '%s\n' "$staged" | grep -qE "$changes"; then
+{
+	echo "=============================================================================="
+	echo "  WARNING: this commit changes the game but not the Changes screen."
+	echo "  Every update lists whatever it changed: add an entry (icon, title, summary,"
+	echo "  body, since = commit count + 80) to ui/changelist/WarpedUpdates.java."
+	list_game
+	echo "  If a player cannot see this change, carry on."
+	echo "=============================================================================="
+} >&2
+fi
 exit 0

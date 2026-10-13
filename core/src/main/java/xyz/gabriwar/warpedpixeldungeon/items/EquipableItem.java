@@ -28,7 +28,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MagicImmune;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
-import xyz.gabriwar.warpedpixeldungeon.journal.Document;
+import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
@@ -55,8 +57,8 @@ public abstract class EquipableItem extends Item {
 	@Override
 	public boolean doPickUp(Hero hero, int pos) {
 		if (super.doPickUp(hero, pos)){
-			if (!isIdentified() && !Document.ADVENTURERS_GUIDE.isPageRead(Document.GUIDE_IDING)){
-				GameScene.flashForDocument(Document.ADVENTURERS_GUIDE, Document.GUIDE_IDING);
+			if (!isIdentified()){
+				GameScene.adviseGuide( GuideGraph.BASICS_IDENTIFYING );
 			}
 			return true;
 		} else {
@@ -77,6 +79,10 @@ public abstract class EquipableItem extends Item {
 			int slot = Dungeon.quickslot.getSlot( this );
 			slotOfUnequipped = -1;
 			doEquip(hero);
+			//gear heavier than you can carry well: what strength asks
+			if (STRReq( this ) > hero.STR()){
+				GameScene.adviseGuide( GuideGraph.BASICS_STRENGTH );
+			}
 			if (slot != -1) {
 				Dungeon.quickslot.setSlot( slot, this );
 				updateQuickslot();
@@ -89,6 +95,13 @@ public abstract class EquipableItem extends Item {
 		} else if (action.equals( AC_UNEQUIP )) {
 			doUnequip( hero, true );
 		}
+	}
+
+	//the strength a weapon or armor asks, 0 for other gear
+	private static int STRReq( EquipableItem item ){
+		if (item instanceof Weapon) return ((Weapon) item).STRReq();
+		if (item instanceof Armor) return ((Armor) item).STRReq();
+		return 0;
 	}
 
 	@Override

@@ -5,8 +5,8 @@
  * Shattered Pixel Dungeon
  * Copyright (C) 2014-2026 Evan Debenham
  *
- * Sprouted Pixel Dungeon
- * Copyright (C) 2015 dachhack
+ * Warped Pixel Dungeon
+ * Copyright (C) 2026 Gabriel Duarte Guerra (gabriwar)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,37 +22,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
 
-package xyz.gabriwar.warpedpixeldungeon.sprites;
+package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
-import xyz.gabriwar.warpedpixeldungeon.Assets;
-import com.watabou.noosa.TextureFilm;
+import org.junit.Test;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 
-public class MonsterBoxSprite extends MobSprite {
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
-	public MonsterBoxSprite() {
-		super();
+public class DwarfKingTombTest {
 
-		texture( Assets.Sprites.MONSTER_BOX );
-
-		TextureFilm frames = new TextureFilm( texture, 16, 16 );
-
-		idle = new Animation( 5, true );
-		idle.frames( frames, 0, 0, 0, 1, 1 );
-
-		run = new Animation( 10, true );
-		run.frames( frames, 0, 1, 2, 3, 3, 2, 1 );
-
-		attack = new Animation( 10, false );
-		attack.frames( frames, 0, 4, 5, 6 );
-
-		die = new Animation( 5, false );
-		die.frames( frames, 7, 8, 9 );
-
-		play( idle );
-	}
-
-	@Override
-	public int blood() {
-		return 0xFFcb9700;
+	@Test
+	public void theTombIsATargetNotSomeoneToTalkTo(){
+		DwarfKingTomb tomb = new DwarfKingTomb();
+		assertEquals( Char.Alignment.ENEMY, tomb.alignment );
+		assertFalse( "a tap attacks it", tomb.heroShouldInteract() );
+		assertEquals( 0, tomb.damageRoll() );
 	}
 }

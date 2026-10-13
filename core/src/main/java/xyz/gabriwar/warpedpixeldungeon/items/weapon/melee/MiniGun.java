@@ -124,7 +124,7 @@ public class MiniGun extends Weapon {
 
 	@Override
 	public int STRReq(int lvl) {
-		return STRReq(1, lvl); //tier 1, STR 10 like the SPS original
+		return STRReq(1, lvl) - xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.strReqBonus( this ); //tier 1, STR 10 like the SPS original
 	}
 
 	//SPS stats: 5-10 base, +3 min / +5 max per upgrade

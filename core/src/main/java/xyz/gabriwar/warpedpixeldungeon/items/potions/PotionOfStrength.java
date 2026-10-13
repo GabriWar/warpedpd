@@ -22,10 +22,13 @@
 package xyz.gabriwar.warpedpixeldungeon.items.potions;
 
 import xyz.gabriwar.warpedpixeldungeon.Badges;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.arcane.ItemFx;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
@@ -52,6 +55,8 @@ public class PotionOfStrength extends Potion {
 		
 		Badges.validateStrengthAttained();
 		Badges.validateDuelistUnlock();
+
+		if (hero == Dungeon.hero) GameScene.adviseGuide( GuideGraph.BASICS_STRENGTH );
 	}
 
 	@Override

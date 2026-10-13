@@ -153,7 +153,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.artifacts.TalismanOfForesight;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.TimekeepersHourglass;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.MagicalHolster;
 import xyz.gabriwar.warpedpixeldungeon.items.bombs.Bomb;
-import xyz.gabriwar.warpedpixeldungeon.items.journal.Guidebook;
+import xyz.gabriwar.warpedpixeldungeon.items.journal.DescentPage;
 import xyz.gabriwar.warpedpixeldungeon.items.keys.CrystalKey;
 import xyz.gabriwar.warpedpixeldungeon.items.keys.GoldenKey;
 import xyz.gabriwar.warpedpixeldungeon.items.keys.GoldenSkeletonKey;
@@ -201,11 +201,14 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.WornShortsword;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.alchemy.UnholyBible;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.MissileWeapon;
 import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
-import xyz.gabriwar.warpedpixeldungeon.journal.Document;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideProgress;
 import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.MiningLevel;
+import xyz.gabriwar.warpedpixeldungeon.levels.RegularLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
+import xyz.gabriwar.warpedpixeldungeon.levels.rooms.connection.ConnectionRoom;
 import xyz.gabriwar.warpedpixeldungeon.levels.VaultLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.features.Chasm;
 import xyz.gabriwar.warpedpixeldungeon.levels.features.LevelTransition;
@@ -399,6 +402,9 @@ public class Hero extends Char {
 
 
 	private ArrayList<Mob> visibleEnemies;
+	//enemies in the hero's own sight (mind vision not counted) at the last check: one that joins
+	//them has just been spotted
+	private ArrayList<Mob> sightedEnemies = new ArrayList<>();
 
 	//This list is maintained so that some logic checks can be skipped
 	// for enemies we know we aren't seeing normally, resulting in better performance
@@ -2095,6 +2101,7 @@ public class Hero extends Char {
 				return false;
 			}
 
+			GameScene.adviseGuide( GuideGraph.BASICS_ALCHEMY );
 			AlchemyScene.clearToolkit();
 			WarpedPixelDungeon.switchScene(AlchemyScene.class);
 			return false;
@@ -2123,13 +2130,17 @@ public class Hero extends Char {
 				if (item.doPickUp( this )) {
 					heap.pickUp();
 
+					if (this == Dungeon.hero){
+						GameScene.adviseGuide( GuideGraph.lessonFor( item ) );
+					}
+
 					//TODO this statement is getting silly, might be better to handle this as a propery of items
 					if (item instanceof Dewdrop
 							|| (item instanceof DwarfToken && Imp.Quest.mirrorUsed)
 							|| item instanceof TimekeepersHourglass.sandBag
 							|| item instanceof DriedRose.Petal
 							|| item instanceof Key
-							|| item instanceof Guidebook
+							|| item instanceof DescentPage
 							|| (item instanceof MissileWeapon && !MissileWeapon.UpgradedSetTracker.pickupValid(this, (MissileWeapon) item))) {
 						//Do Nothing
 					} else if (item instanceof DarkGold) {
@@ -3190,11 +3201,8 @@ public class Hero extends Char {
 					} else if (distance(target) > distance(m)) {
 						target = m;
 					}
-					if (m instanceof Snake && Dungeon.level.distance(m.pos, pos) <= 4
-							&& !Document.ADVENTURERS_GUIDE.isPageRead(Document.GUIDE_EXAMINING)){
-						GameScene.flashForDocument(Document.ADVENTURERS_GUIDE, Document.GUIDE_EXAMINING);
-						//we set to read here to prevent this message popping up a bunch
-						Document.ADVENTURERS_GUIDE.readPage(Document.GUIDE_EXAMINING);
+					if (m instanceof Snake && Dungeon.level.distance(m.pos, pos) <= 4){
+						GameScene.adviseGuide(GuideGraph.BASICS_EXAMINING);
 					}
 				}
 			}
@@ -3216,6 +3224,7 @@ public class Hero extends Char {
 		}
 
 		visibleEnemies = visible;
+		spotEnemies();
 
 		//we also scan for blob landmarks here
 		for (Blob b : Dungeon.level.blobs.values().toArray(new Blob[0])){
@@ -3244,6 +3253,24 @@ public class Hero extends Char {
 		}
 	}
 	
+	/** skill tree: tells the skills about every enemy the hero now sees with his own eyes (not by mind
+	 *  vision, and not an invisible one) that was not in his sight at the last check */
+	public void spotEnemies() {
+		ArrayList<Mob> sighted = new ArrayList<>();
+		for (Mob m : Dungeon.level.mobs.toArray(new Mob[0])) {
+			if (fieldOfView[ m.pos ] && m.alignment == Alignment.ENEMY && m.invisible <= 0
+					&& !mindVisionEnemies.contains( m )) {
+				sighted.add( m );
+			}
+		}
+		ArrayList<Mob> before = sightedEnemies;
+		sightedEnemies = sighted;
+		if (this != Dungeon.hero || heroSkills == null) return;
+		for (Mob m : sighted) {
+			if (!before.contains( m )) heroSkills.onEnemySpotted( m );
+		}
+	}
+
 	public int visibleEnemies() {
 		return visibleEnemies.size();
 	}
@@ -3653,6 +3680,11 @@ public class Hero extends Char {
 		
 		if (levelUp) {
 
+			if (this == Dungeon.hero){
+				GameScene.adviseGuide( GuideGraph.BASICS_LEVELLING );
+				GameScene.adviseGuide( GuideGraph.BASICS_SKILLS );
+			}
+
 			if (sprite != null) {
 				GLog.newLine();
 				GLog.p( Messages.get(this, "new_level") );
@@ -3970,6 +4002,11 @@ public class Hero extends Char {
 		//a marksman's follow-up after a kill at range costs no time
 		if (!xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.freeAttack( belongings.attackingWeapon() )) spend( attackDelay() );
 
+		if (wasEnemy && this == Dungeon.hero && !GuideProgress.isRead( GuideGraph.BASICS_POSITIONING )
+				&& crampedFight()){
+			GameScene.adviseGuide( GuideGraph.BASICS_POSITIONING );
+		}
+
 		if (hit && subClass == HeroSubClass.GLADIATOR && wasEnemy){
 			Buff.affect( this, Combo.class ).hit(attackTarget);
 		}
@@ -3984,6 +4021,20 @@ public class Hero extends Char {
 		super.onAttackComplete();
 	}
 	
+	//a fight in a doorway or a corridor, or with two monsters at your side: where you stand matters
+	private boolean crampedFight(){
+		int t = Dungeon.level.map[pos];
+		if (t == Terrain.DOOR || t == Terrain.OPEN_DOOR) return true;
+		if (Dungeon.level instanceof RegularLevel
+				&& ((RegularLevel) Dungeon.level).room( pos ) instanceof ConnectionRoom) return true;
+		int foes = 0;
+		for (int n : PathFinder.NEIGHBOURS8){
+			Char ch = Actor.findChar( pos + n );
+			if (ch != null && ch.alignment == Alignment.ENEMY) foes++;
+		}
+		return foes >= 2;
+	}
+
 	@Override
 	public void onMotionComplete() {
 		GameScene.checkKeyHold();

@@ -48,6 +48,7 @@ import com.watabou.noosa.Camera;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.MovieClip;
 import com.watabou.noosa.NoosaScript;
+import com.watabou.noosa.Group;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.tweeners.AlphaTweener;
 import com.watabou.noosa.tweeners.PosTweener;
@@ -502,23 +503,37 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 	}
 	
 	public Emitter emitter() {
-		Emitter emitter = GameScene.emitter();
+		Emitter emitter = newEmitter();
 		if (emitter != null) emitter.pos( this );
 		return emitter;
 	}
 	
 	public Emitter centerEmitter() {
-		Emitter emitter = GameScene.emitter();
+		Emitter emitter = newEmitter();
 		if (emitter != null) emitter.pos( center() );
 		return emitter;
 	}
 	
 	public Emitter bottomEmitter() {
-		Emitter emitter = GameScene.emitter();
+		Emitter emitter = newEmitter();
 		if (emitter != null) emitter.pos( x, y + height, width, 0 );
 		return emitter;
 	}
 	
+	//the game's emitter layer, or, for a sprite drawn outside the game (a Descent Guide demo's
+	//puppet), one beside the sprite: the game's layer would show its particles over the map, at
+	//the demo's coordinates, and keep them there after the demo closed
+	private Emitter newEmitter(){
+		Group p = parent;
+		while (p != null && !(p instanceof GameScene)) p = p.parent;
+		if (p == null && parent != null){
+			Emitter emitter = new Emitter();
+			parent.add( emitter );
+			return emitter;
+		}
+		return GameScene.emitter();
+	}
+
 	public void burst( final int color, int n ) {
 		if (visible) {
 			Splash.at( center(), color, n );

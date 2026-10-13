@@ -78,7 +78,7 @@ public class Chainsaw extends MeleeWeapon {
 	public int max(int lvl) { return 12 + lvl * 6; }
 
 	@Override
-	public int STRReq(int lvl) { return 16 - lvl; }
+	public int STRReq(int lvl) { return 16 - lvl - xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.strReqBonus( this ); }
 
 	@Override
 	public ArrayList<String> actions(Hero hero) {

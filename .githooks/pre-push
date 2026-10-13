@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Warped PD: a reminder, not a block. When the commits being pushed change the game but none of
+# them touches the Changes screen, list them: every update lists whatever it changed. Enabled for
+# every worktree by `git config core.hooksPath .githooks`.
+changes='core/src/main/java/xyz/gabriwar/warpedpixeldungeon/ui/changelist/WarpedUpdates.java'
+zero=0000000000000000000000000000000000000000
+while read -r _ local _ remote; do
+	[ "$local" = "$zero" ] && continue
+	if [ "$remote" = "$zero" ]; then range="$local --not --remotes"; else range="$remote..$local"; fi
+	game=$(git log --no-merges --format='%h %s' $range -- core/src/main ":(exclude)$changes")
+	[ -z "$game" ] && continue
+	[ -n "$(git log -1 --format=%h $range -- "$changes")" ] && continue
+	{
+		echo "=============================================================================="
+		echo "  WARNING: pushing game changes with nothing new on the Changes screen."
+		echo "  Every update lists whatever it changed (ui/changelist/WarpedUpdates.java)."
+		echo "  Game commits in this push:"
+		printf '%s\n' "$game" | head -8 | cut -c1-90 | sed 's/^/    /'
+		n=$(printf '%s\n' "$game" | wc -l)
+		[ "$n" -gt 8 ] && echo "    ... and $((n - 8)) more"
+		echo "=============================================================================="
+	} >&2
+done
+exit 0

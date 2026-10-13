@@ -24,13 +24,15 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.bags;
 
+import xyz.gabriwar.warpedpixeldungeon.items.BuildersTool;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
+import xyz.gabriwar.warpedpixeldungeon.items.PortableChest;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.Material;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 
 /**
- * The builder's satchel: a bag that holds the homesteads' building materials and nothing else
- * (items/materials), so logs and stone do not fill the backpack. Building spends from it first
+ * The builder's satchel: a bag that holds the homesteads' building materials (items/materials)
+ * and tools: portable chests and the builder's tool, so none of them fill the backpack. Building spends from it first
  * (Material.spend).
  */
 public class BuildersSatchel extends Bag {
@@ -41,7 +43,8 @@ public class BuildersSatchel extends Bag {
 
 	@Override
 	public boolean canHold( Item item ){
-		return item instanceof Material && super.canHold( item );
+		return (item instanceof Material || item instanceof PortableChest || item instanceof BuildersTool)
+				&& super.canHold( item );
 	}
 
 	@Override

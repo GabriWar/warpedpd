@@ -134,6 +134,16 @@ public class MissileSprite extends ItemSprite implements Tweener.Listener {
 		ANGULAR_SPEEDS.put(TenguSprite.TenguShuriken.class, 2160);
 	}
 
+	/** How fast a thrown item of this class turns as it flies, degrees a second (0: point first). */
+	public static int angularSpeed( Class<? extends Item> item ){
+		for (Class<?extends Item> cls : ANGULAR_SPEEDS.keySet()){
+			if (cls.isAssignableFrom(item)){
+				return ANGULAR_SPEEDS.get(cls);
+			}
+		}
+		return DEFAULT_ANGULAR_SPEED;
+	}
+
 	//TODO it might be nice to have a source and destination angle, to improve thrown weapon visuals
 	private void setup( PointF from, PointF to, Item item, Callback listener ){
 
@@ -152,14 +162,8 @@ public class MissileSprite extends ItemSprite implements Tweener.Listener {
 		PointF d = PointF.diff( to, from );
 		speed.set(d).normalize().scale(SPEED);
 		
-		angularSpeed = DEFAULT_ANGULAR_SPEED;
-		for (Class<?extends Item> cls : ANGULAR_SPEEDS.keySet()){
-			if (cls.isAssignableFrom(item.getClass())){
-				angularSpeed = ANGULAR_SPEEDS.get(cls);
-				break;
-			}
-		}
-		
+		angularSpeed = angularSpeed( item.getClass() );
+
 		angle = 135 - (float)(Math.atan2( d.x, d.y ) / 3.1415926 * 180);
 		
 		if (d.x >= 0){

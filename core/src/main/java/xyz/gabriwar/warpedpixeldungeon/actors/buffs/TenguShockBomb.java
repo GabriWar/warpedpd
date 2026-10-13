@@ -28,6 +28,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Tengu;
 import com.watabou.utils.Bundle;
+import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
@@ -40,11 +41,13 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 
+import java.util.ArrayList;
+
 /**
- * Tengu's shocker, thrown by the rogue: it sits where it landed and for three turns
- * arcs lightning across its cell, first along the diagonals, then the cross, and
- * back. Enemies on the four cells it arcs through are shocked; the rogue and allies
- * are not.
+ * Tengu's shocker, thrown by the rogue: it sits where it landed and for six turns
+ * arcs lightning in all eight directions at once, 2 tiles out, then goes off in the
+ * smoke bomb's blast. Enemies the arcs pass through are shocked; the rogue and
+ * allies are not.
  */
 public class TenguShockBomb extends Buff {
 
@@ -58,17 +61,17 @@ public class TenguShockBomb extends Buff {
 
 	private int cell = -1;
 	private int depth = -1, branch = 0;
-	private int turns = 3;
+	public static final int TURNS = 6, RANGE = 2;
+
+	private int turns = TURNS;
 	private int level = 1;
-	private boolean diagonals = true;
 
 	public void set( int cell, int level ){
 		this.cell = cell;
 		this.level = level;
 		this.depth = Dungeon.depth;
 		this.branch = Dungeon.branch;
-		this.turns = 3;
-		this.diagonals = true;
+		this.turns = TURNS;
 		//the shocker sits where it landed, sparking, for as long as it arcs
 		Dungeon.level.drop( new RogueShockerItem(), cell );
 		if (Dungeon.level.heroFOV[cell]) CellEmitter.center( cell ).burst( SparkParticle.FACTORY, 8 );
@@ -92,17 +95,12 @@ public class TenguShockBomb extends Buff {
 			detach();
 			return true;
 		}
-		int w = Dungeon.level.width();
-		int[] cells = diagonals
-				? new int[]{ cell - 1 - w, cell + 1 + w, cell - 1 + w, cell + 1 - w }
-				: new int[]{ cell - w, cell + w, cell - 1, cell + 1 };
+		ArrayList<Integer> cells = arcCells( cell );
 		if (Dungeon.level.heroFOV[cell] && target.sprite != null && target.sprite.parent != null){
-			if (diagonals){
-				target.sprite.parent.add( new Lightning( cell - 1 - w, cell + 1 + w, null ).noGlow() );
-				target.sprite.parent.add( new Lightning( cell - 1 + w, cell + 1 - w, null ).noGlow() );
-			} else {
-				target.sprite.parent.add( new Lightning( cell - w, cell + w, null ).noGlow() );
-				target.sprite.parent.add( new Lightning( cell - 1, cell + 1, null ).noGlow() );
+			//one bolt across each of the four lines through the shocker, as far as the arcs reach
+			for (int i = 0; i < 4; i++){
+				int dir = PathFinder.NEIGHBOURS8[i];
+				target.sprite.parent.add( new Lightning( arcEnd( cell, dir ), arcEnd( cell, -dir ), null ).noGlow() );
 			}
 			CellEmitter.center( cell ).burst( SparkParticle.FACTORY, 4 );
 			SpatialSound.play( Assets.Sounds.LIGHTNING, cell, 0.8f, Random.Float( 0.9f, 1.2f ) );
@@ -110,7 +108,6 @@ public class TenguShockBomb extends Buff {
 		int lvl = target instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero
 				? ((xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero) target).lvl : Dungeon.scalingDepth();
 		for (int c : cells){
-			if (c < 0 || c >= Dungeon.level.length()) continue;
 			Char ch = Actor.findChar( c );
 			if (ch == null || ch.alignment != Char.Alignment.ENEMY) continue;
 			int dmg = Random.NormalIntRange( 3 + lvl / 4, 7 + lvl / 2 ) + level;
@@ -119,15 +116,40 @@ public class TenguShockBomb extends Buff {
 			if (ch.sprite != null) ch.sprite.flash();
 			if (ch.isAlive() && level >= 3 && !ch.properties().contains( Char.Property.BOSS )) Buff.affect( ch, Paralysis.class, 1f );
 		}
-		diagonals = !diagonals;
 		turns--;
 		if (turns <= 0){
 			clearItem();
+			TenguSmokeBomb.blast( this, cell, level );
 			detach();
 		} else {
 			spend( TICK );
 		}
 		return true;
+	}
+
+	/** the cells the arcs pass through: all eight directions, up to RANGE tiles out,
+	 *  each stopped by the first wall */
+	public static ArrayList<Integer> arcCells( int cell ){
+		ArrayList<Integer> cells = new ArrayList<>();
+		for (int dir : PathFinder.NEIGHBOURS8){
+			for (int step = 1; step <= RANGE; step++){
+				int c = cell + dir * step;
+				if (c < 0 || c >= Dungeon.level.length() || Dungeon.level.solid[c]) break;
+				cells.add( c );
+			}
+		}
+		return cells;
+	}
+
+	/** the last cell an arc reaches going `dir` from the shocker */
+	private static int arcEnd( int cell, int dir ){
+		int end = cell;
+		for (int step = 1; step <= RANGE; step++){
+			int c = cell + dir * step;
+			if (c < 0 || c >= Dungeon.level.length() || Dungeon.level.solid[c]) break;
+			end = c;
+		}
+		return end;
 	}
 
 	private void clearItem(){
@@ -145,7 +167,7 @@ public class TenguShockBomb extends Buff {
 		return BuffIndicator.NONE;
 	}
 
-	private static final String CELL = "cell", TURNS = "turns", LEVEL = "level", DIAG = "diag";
+	private static final String CELL = "cell", TURNS_LEFT = "turns", LEVEL = "level";
 
 	@Override
 	public void storeInBundle( Bundle bundle ) {
@@ -153,9 +175,8 @@ public class TenguShockBomb extends Buff {
 		bundle.put( CELL, cell );
 		bundle.put( "depth", depth );
 		bundle.put( "branch", branch );
-		bundle.put( TURNS, turns );
+		bundle.put( TURNS_LEFT, turns );
 		bundle.put( LEVEL, level );
-		bundle.put( DIAG, diagonals );
 	}
 
 	@Override
@@ -164,8 +185,7 @@ public class TenguShockBomb extends Buff {
 		cell = bundle.getInt( CELL );
 		depth = bundle.contains( "depth" ) ? bundle.getInt( "depth" ) : -1;
 		branch = bundle.getInt( "branch" );
-		turns = bundle.getInt( TURNS );
+		turns = bundle.getInt( TURNS_LEFT );
 		level = bundle.getInt( LEVEL );
-		diagonals = bundle.getBoolean( DIAG );
 	}
 }

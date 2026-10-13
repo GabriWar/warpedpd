@@ -315,8 +315,9 @@ public class Skill implements SkillInteractions.HeroDamageSource {
 	/** synchronous, inside a sleeping mob's turn: it just rolled to wake up because it noticed the hero; true keeps it asleep */
 	public boolean preventsWaking( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob mob ){ return false; }
 
-	/** deferred: mob just noticed the hero (woke up facing it, or spotted it while wandering) */
-	public void onHeroNoticed( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob mob, boolean wasSleeping ){}
+	/** synchronous, end of Hero.checkVisibleMobs: the hero just spotted this enemy with his own eyes
+	 *  (mind vision does not count); it was not in his sight at the last check */
+	public void onEnemySpotted( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob mob ){}
 
 	/** synchronous, end of Hero.damage: the hero is alive and really lost hpLost health and shieldLost
 	 *  shielding to this source. Never fired for damage over time or hunger */

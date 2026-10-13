@@ -78,7 +78,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Honeypot;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.DriedRose;
-import xyz.gabriwar.warpedpixeldungeon.items.journal.Guidebook;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.Potion;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.InventoryScroll;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTeleportation;
@@ -87,6 +86,8 @@ import xyz.gabriwar.warpedpixeldungeon.items.trinkets.TrinketCatalyst;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
 import xyz.gabriwar.warpedpixeldungeon.journal.Bestiary;
 import xyz.gabriwar.warpedpixeldungeon.journal.Document;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideProgress;
 import xyz.gabriwar.warpedpixeldungeon.journal.Journal;
 import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
@@ -638,13 +639,13 @@ public class GameScene extends PixelScene {
 		menu.camera = uiCamera;
 		menu.setPos( menuBarMaxLeft, screentop);
 		add(menu);
-		//a fresh guide page keeps the journal button flashing across floors (and when it was
-		//written while the level loaded) until the guide is opened or the page read
+		//a fresh guide page, or a page of the basics advised, keeps the journal button flashing
+		//across floors (and when it was written while the level loaded) until it is read
 		if (guideFlash != null){
-			if (xyz.gabriwar.warpedpixeldungeon.journal.GuideProgress.isRead( guideFlash )){
+			if (GuideProgress.isRead( guideFlash )){
 				guideFlash = null;
 			} else {
-				menu.flashForGuide( guideFlash );
+				menu.flashForGuide( guideFlash, guideFlashOpen );
 			}
 		}
 
@@ -1076,11 +1077,14 @@ public class GameScene extends PixelScene {
 			
 		}
 
-		//Tutorial
+		//Tutorial: its page read in the guide itself (the journal's guide tab) ends it
+		if (WPDSettings.intro() && GuideProgress.isRead( GuideGraph.BASICS_INTRO )){
+			endIntro();
+		}
 		if (WPDSettings.intro()){
 
-			if (Document.ADVENTURERS_GUIDE.isPageFound(Document.GUIDE_INTRO)){
-				GameScene.flashForDocument(Document.ADVENTURERS_GUIDE, Document.GUIDE_INTRO);
+			if (GuideProgress.pageFound( GuideGraph.BASICS_INTRO )){
+				GameScene.adviseGuide( GuideGraph.BASICS_INTRO, true );
 			} else if (ControllerHandler.isControllerConnected()) {
 				GameLog.wipe();
 				GLog.p(Messages.get(GameScene.class, "tutorial_move_controller"));
@@ -1096,10 +1100,18 @@ public class GameScene extends PixelScene {
 			if (inventory != null) inventory.visible = inventory.active = false;
 		}
 
-		if (!WPDSettings.intro() &&
-				Rankings.INSTANCE.totalNumber > 0 &&
-				!Document.ADVENTURERS_GUIDE.isPageRead(Document.GUIDE_DIEING)){
-			GameScene.flashForDocument(Document.ADVENTURERS_GUIDE, Document.GUIDE_DIEING);
+		if (!WPDSettings.intro() && Rankings.INSTANCE.totalNumber > 0){
+			GameScene.adviseGuide( GuideGraph.BASICS_DEFEAT );
+		}
+		//a hero unlocked in an earlier run (by its badge: a debug build opens every hero): the page
+		//on heroes and classes
+		if (!WPDSettings.intro()){
+			for (Badges.Badge b : Badges.Badge.values()){
+				if (b.name().startsWith( "UNLOCK_" ) && Badges.isUnlocked( b )){
+					GameScene.adviseGuide( GuideGraph.TOPIC_HEROES );
+					break;
+				}
+			}
 		}
 
 		TrinketCatalyst cata = Dungeon.hero.belongings.getItem(TrinketCatalyst.class);
@@ -1437,44 +1449,24 @@ public class GameScene extends PixelScene {
 			}
 		}
 
-		if (scene.tagAttack){
-			scene.attack.setRect( tagLeft, pos - Tag.SIZE, tagWidth, Tag.SIZE );
-			scene.attack.flip(tagsOnLeft);
-			pos = scene.attack.top();
-		}
-
-		if (scene.tagLoot) {
-			scene.loot.setRect( tagLeft, pos - Tag.SIZE, tagWidth, Tag.SIZE );
-			scene.loot.flip(tagsOnLeft);
-			pos = scene.loot.top();
-		}
-
-		if (scene.tagAction) {
-			scene.action.setRect( tagLeft, pos - Tag.SIZE, tagWidth, Tag.SIZE );
-			scene.action.flip(tagsOnLeft);
-			pos = scene.action.top();
-		}
-
-		if (scene.tagResume) {
-			scene.resume.setRect( tagLeft, pos - Tag.SIZE, tagWidth, Tag.SIZE );
-			scene.resume.flip(tagsOnLeft);
-			pos = scene.resume.top();
-		}
-
-		if (scene.tagWaypoint) {
-			scene.waypointTag.setRect( tagLeft, pos - Tag.SIZE, tagWidth, Tag.SIZE );
-			scene.waypointTag.flip(tagsOnLeft);
-			pos = scene.waypointTag.top();
-		}
-
-		if (scene.tagSkills) {
-			scene.skillTag.setRect( tagLeft, pos - Tag.SIZE, tagWidth, Tag.SIZE );
-			scene.skillTag.flip(tagsOnLeft);
-			pos = scene.skillTag.top();
-		}
+		pos = stackTag( scene.attack, scene.tagAttack, tagLeft, tagWidth, pos, tagsOnLeft );
+		pos = stackTag( scene.loot, scene.tagLoot, tagLeft, tagWidth, pos, tagsOnLeft );
+		pos = stackTag( scene.action, scene.tagAction, tagLeft, tagWidth, pos, tagsOnLeft );
+		pos = stackTag( scene.resume, scene.tagResume, tagLeft, tagWidth, pos, tagsOnLeft );
+		pos = stackTag( scene.waypointTag, scene.tagWaypoint, tagLeft, tagWidth, pos, tagsOnLeft );
+		pos = stackTag( scene.skillTag, scene.tagSkills, tagLeft, tagWidth, pos, tagsOnLeft );
 
 	}
 	
+	//a tag stacks up from pos; a hidden one is placed where it would come up as well, taking no
+	//room: the actor thread can show it (a monster in reach) in a frame drawn before the next
+	//layout, and a tag never placed is drawn in the screen's top-left corner
+	private static float stackTag( Tag tag, boolean shown, float left, float width, float pos, boolean flip ){
+		tag.setRect( left, pos - Tag.SIZE, width, Tag.SIZE );
+		tag.flip( flip );
+		return shown ? tag.top() : pos;
+	}
+
 	@Override
 	protected void onBackPressed() {
 		if (!cancel()) {
@@ -1984,29 +1976,60 @@ public class GameScene extends PixelScene {
 
 	public static void flashForDocument( Document doc, String page ){
 		if (scene != null) {
-			if (doc == Document.ADVENTURERS_GUIDE){
-				if (!page.equals(Document.GUIDE_INTRO)) {
-					if (WPDSettings.interfaceSize() == 0) {
-						GLog.p(Messages.get(Guidebook.class, "hint_mobile"));
-					} else {
-						GLog.p(Messages.get(Guidebook.class, "hint_desktop", KeyBindings.getKeyName(KeyBindings.getFirstKeyForAction(WPDAction.JOURNAL, ControllerHandler.isControllerConnected()))));
-					}
-				}
-				Dungeon.hero.sprite.showStatus(CharSprite.POSITIVE, Messages.get(Guidebook.class, "hint_status"));
-			}
 			scene.menu.flashForPage( doc, page );
 		}
 	}
 
-	//the fresh guide page the journal button flashes for, until the guide is opened or it is read
+	//the guide page the journal button flashes for, until the guide is opened or it is read; open:
+	//pressing the button shows the page over the game (a basics page advised), else it opens the
+	//guide on it (a page just found)
 	private static String guideFlash = null;
+	private static boolean guideFlashOpen = false;
 
 	/** Flashes the journal button for a fresh Descent Guide page: pressing it opens the
 	 *  guide on that page. */
 	public static void flashForGuide( String key ){
+		//the tutorial's own page is the only one the button flashes for: a page found before it
+		//(word of the world reaching the town square) waits, unread, in the guide
+		if (WPDSettings.intro()) return;
 		guideFlash = key;
+		guideFlashOpen = false;
 		if (scene != null && scene.menu != null) {
-			scene.menu.flashForGuide( key );
+			scene.menu.flashForGuide( key, false );
+		}
+	}
+
+	/** A basics page fits what just happened: the journal button flashes until it is pressed (it shows the page
+	 *  over the game) or the page is read. Quiet once read, unless evenIfRead. No repeat while it already flashes for it,
+	 *  and, unless evenIfRead, no other page while an advised one waits unread: one lesson at a time. */
+	public static void adviseGuide( String key ){
+		adviseGuide( key, false );
+	}
+
+	public static void adviseGuide( String key, boolean evenIfRead ){
+		if (key == null) return;
+		//the lesson came up: its page of the basics writes itself (not yet, before the dungeon)
+		GuideProgress.findPage( key );
+		if (!GuideProgress.pageFound( key ) && !GuideProgress.isRead( key )) return;
+		if (!evenIfRead && GuideProgress.isRead( key )) return;
+		if (WPDSettings.intro() && !key.equals( GuideGraph.BASICS_INTRO )) return;
+		if (key.equals( guideFlash ) && guideFlashOpen) return;
+		//a lesson advised every turn (a snake in sight) would otherwise take the button back and forth
+		if (!evenIfRead && guideFlash != null && guideFlashOpen && !GuideProgress.isRead( guideFlash )) return;
+		guideFlash = key;
+		guideFlashOpen = true;
+		if (scene == null || scene.menu == null) return;
+		scene.menu.flashForGuide( key, true );
+		//the intro's page is the tutorial's: it says its own words
+		if (!key.equals( GuideGraph.BASICS_INTRO )){
+			if (WPDSettings.interfaceSize() == 0) {
+				GLog.p(Messages.get(GameScene.class, "guide_hint_mobile"));
+			} else {
+				GLog.p(Messages.get(GameScene.class, "guide_hint_desktop", KeyBindings.getKeyName(KeyBindings.getFirstKeyForAction(WPDAction.JOURNAL, ControllerHandler.isControllerConnected()))));
+			}
+		}
+		if (Dungeon.hero != null && Dungeon.hero.sprite != null){
+			Dungeon.hero.sprite.showStatus(CharSprite.POSITIVE, Messages.get(GameScene.class, "guide_hint_status"));
 		}
 	}
 
@@ -3045,8 +3068,8 @@ public class GameScene extends PixelScene {
 					Icons.get(Icons.INFO), title, body));
 		} else if ( o instanceof Mob && ((Mob) o).isActive() ){
 			GameScene.show(new WndInfoMob((Mob) o));
-			if (o instanceof Snake && !Document.ADVENTURERS_GUIDE.isPageRead(Document.GUIDE_SURPRISE_ATKS)){
-				GameScene.flashForDocument(Document.ADVENTURERS_GUIDE, Document.GUIDE_SURPRISE_ATKS);
+			if (o instanceof Snake){
+				GameScene.adviseGuide( GuideGraph.BASICS_SURPRISE );
 			}
 		} else if ( o instanceof Heap && !((Heap) o).isEmpty() ){
 			GameScene.show(new WndInfoItem((Heap)o));

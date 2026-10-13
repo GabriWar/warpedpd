@@ -368,7 +368,6 @@ public class WndSettings extends WndTabbed {
 		RedButton btnToolbarSettings;
 		CheckBox chkFlipTags;
 		CheckBox chkSundial;
-		CheckBox chkInspector;
 		ColorBlock sep2;
 		CheckBox chkFont;
 		CheckBox chkVibrate;
@@ -577,18 +576,6 @@ public class WndSettings extends WndTabbed {
 			chkSundial.checked(WPDSettings.sundial());
 			add(chkSundial);
 
-			if (DeviceCompat.isDebug() || WPDSettings.debugUnlocked()) {
-				chkInspector = new CheckBox(Messages.get(this, "inspector")) {
-					@Override
-					protected void onClick() {
-						super.onClick();
-						WPDSettings.inspector(checked());
-					}
-				};
-				chkInspector.checked(WPDSettings.inspector());
-				add(chkInspector);
-			}
-
 			sep2 = new ColorBlock(1, 1, 0xFF000000);
 			add(sep2);
 
@@ -664,10 +651,6 @@ public class WndSettings extends WndTabbed {
 			chkSundial.setRect(0, height + GAP, width, BTN_HEIGHT);
 			height = chkSundial.bottom();
 
-			if (chkInspector != null) {
-				chkInspector.setRect(0, height + GAP, width, BTN_HEIGHT);
-				height = chkInspector.bottom();
-			}
 
 			sep2.size(width, 1);
 			sep2.y = height + GAP;
@@ -967,7 +950,9 @@ public class WndSettings extends WndTabbed {
 		CheckBox chkMuteAmbience;
 		ColorBlock sepSpatial;
 		CheckBox chkSpatial;
+		OptionSlider optSpatial;
 		CheckBox chkAcoustics;
+		OptionSlider optAcoustics;
 		ColorBlock sep3;
 		CheckBox chkIgnoreSilent;
 		CheckBox chkMusicBG;
@@ -1077,13 +1062,29 @@ public class WndSettings extends WndTabbed {
 					//a taste of it (the press has clicked already): a step to the left, then
 					//one to the right
 					if (checked()) {
-						SpatialSound.playPanned( Assets.Sounds.STEP, 0.1f, 1f, 1f, -SpatialSound.MAX_PAN );
-						SpatialSound.playPanned( Assets.Sounds.STEP, 0.45f, 1f, 1f, SpatialSound.MAX_PAN );
+						SpatialSound.playPanned( Assets.Sounds.STEP, 0.1f, 1f, 1f, -SpatialSound.maxPan() );
+						SpatialSound.playPanned( Assets.Sounds.STEP, 0.45f, 1f, 1f, SpatialSound.maxPan() );
 					}
 				}
 			};
 			chkSpatial.checked(WPDSettings.spatialAudio());
 			add( chkSpatial );
+
+			//how hard it pans and how fast a sound fades with distance; heard at once, a step to
+			//each side as far as it now goes
+			optSpatial = new OptionSlider(Messages.get(this, "spatial_strength"), "1", "5",
+					SpatialSound.MIN_STRENGTH, SpatialSound.MAX_STRENGTH) {
+				@Override
+				protected void onChange() {
+					WPDSettings.spatialStrength(getSelectedValue());
+					if (SpatialSound.on) {
+						SpatialSound.playPanned( Assets.Sounds.STEP, 0.1f, 1f, 1f, -SpatialSound.maxPan() );
+						SpatialSound.playPanned( Assets.Sounds.STEP, 0.45f, 1f, 1f, SpatialSound.maxPan() );
+					}
+				}
+			};
+			optSpatial.setSelectedValue(WPDSettings.spatialStrength());
+			add(optSpatial);
 
 			//room acoustics (audio.RoomAcoustics): the effects with their room's reverb and echo,
 			//and dull through doors and rock
@@ -1098,6 +1099,18 @@ public class WndSettings extends WndTabbed {
 			};
 			chkAcoustics.checked(WPDSettings.roomAcoustics());
 			add( chkAcoustics );
+
+			//how loud the rooms' reverb and echoes are and how dull a sound through a wall
+			optAcoustics = new OptionSlider(Messages.get(this, "acoustics_strength"), "1", "5",
+					RoomAcoustics.MIN_STRENGTH, RoomAcoustics.MAX_STRENGTH) {
+				@Override
+				protected void onChange() {
+					WPDSettings.acousticsStrength(getSelectedValue());
+					if (RoomAcoustics.on) RoomAcoustics.preview();
+				}
+			};
+			optAcoustics.setSelectedValue(WPDSettings.acousticsStrength());
+			add(optAcoustics);
 
 			if (DeviceCompat.isiOS()){
 
@@ -1175,13 +1188,18 @@ public class WndSettings extends WndTabbed {
 			sepSpatial.size(width, 1);
 			sepSpatial.y = height + GAP;
 			if (width > 200) {
+				//each switch over its strength, side by side
 				chkSpatial.setRect(0, sepSpatial.y + 1 + GAP, width/2-1, BTN_HEIGHT);
+				optSpatial.setRect(0, chkSpatial.bottom() + GAP, width/2-1, SLIDER_HEIGHT);
 				chkAcoustics.setRect(chkSpatial.right()+2, chkSpatial.top(), width/2-1, BTN_HEIGHT);
+				optAcoustics.setRect(optSpatial.right()+2, optSpatial.top(), width/2-1, SLIDER_HEIGHT);
 			} else {
 				chkSpatial.setRect(0, sepSpatial.y + 1 + GAP, width, BTN_HEIGHT);
-				chkAcoustics.setRect(0, chkSpatial.bottom() + GAP, width, BTN_HEIGHT);
+				optSpatial.setRect(0, chkSpatial.bottom() + GAP, width, SLIDER_HEIGHT);
+				chkAcoustics.setRect(0, optSpatial.bottom() + GAP, width, BTN_HEIGHT);
+				optAcoustics.setRect(0, chkAcoustics.bottom() + GAP, width, SLIDER_HEIGHT);
 			}
-			height = chkAcoustics.bottom();
+			height = optAcoustics.bottom();
 
 			if (chkIgnoreSilent != null){
 				sep3.size(width, 1);

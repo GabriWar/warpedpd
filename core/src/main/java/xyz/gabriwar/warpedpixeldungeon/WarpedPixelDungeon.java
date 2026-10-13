@@ -57,6 +57,11 @@ public class WarpedPixelDungeon extends Game {
 				xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfDisintegration.class,
 				"xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfDisintegration2" );
 
+		//the monster box merged into the mimic
+		com.watabou.utils.Bundle.addAlias(
+				xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mimic.class,
+				"xyz.gabriwar.warpedpixeldungeon.actors.mobs.MonsterBox" );
+
 		//pre-v3.3.0
 		com.watabou.utils.Bundle.addAlias(
 				xyz.gabriwar.warpedpixeldungeon.items.keys.WornKey.class,
@@ -69,6 +74,9 @@ public class WarpedPixelDungeon extends Game {
 
 		//the safe room is gone: its page and its level class, for saves from before
 		xyz.gabriwar.warpedpixeldungeon.homestead.legacy.SafeRoomMigration.registerAliases();
+
+		//the tome of dungeon mastery merged into the guide: the tome and its torn pages load as guide pages
+		xyz.gabriwar.warpedpixeldungeon.items.journal.DescentPage.registerAliases();
 
 	}
 	
@@ -86,6 +94,8 @@ public class WarpedPixelDungeon extends Game {
 		Sample.INSTANCE.ambientEnable( WPDSettings.ambience() );
 		Sample.INSTANCE.ambientVolume( WPDSettings.ambienceVol()*WPDSettings.ambienceVol()/100f );
 		SpatialSound.on = WPDSettings.spatialAudio();
+		SpatialSound.strength( WPDSettings.spatialStrength() );
+		RoomAcoustics.strength( WPDSettings.acousticsStrength() );
 
 		Sample.INSTANCE.load( Assets.Sounds.all );
 		Sample.INSTANCE.load( xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientSound.assets() );

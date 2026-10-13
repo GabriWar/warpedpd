@@ -26,6 +26,7 @@ package xyz.gabriwar.warpedpixeldungeon.journal;
 
 import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldDragon;
@@ -35,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.journal.DescentPage;
 import xyz.gabriwar.warpedpixeldungeon.levels.DeadEndLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.WarpedRoomsTest;
+import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.ui.BossHealthBar;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Reflection;
@@ -42,6 +44,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -50,7 +53,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Properties;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -66,8 +71,9 @@ import static org.junit.Assert.fail;
  * The Descent Guide's tree against its words and its world: every node has a title and every
  * page its text, no string is left over, every page can actually be earned (a floor page lies on
  * a floor the game builds, a discovery is one something in the game makes, a boss is a boss), the
- * record of found and read pages survives a save, and nothing the player reads talks about
- * gambling.
+ * record of found and read pages survives a save, the tome of dungeon mastery lives on as the
+ * guide's first chapter (old journals and old torn pages included), and nothing the player reads
+ * talks about gambling.
  */
 public class GuideGraphTest {
 
@@ -144,12 +150,14 @@ public class GuideGraphTest {
 	@Test
 	public void noStringIsLeftOver(){
 		GuideGraph.Node root = GuideGraph.build();
-		HashSet<String> ids = new HashSet<>(), keys = new HashSet<>(), places = new HashSet<>(), tags = new HashSet<>();
+		HashSet<String> ids = new HashSet<>(), keys = new HashSet<>(), places = new HashSet<>(), tags = new HashSet<>(),
+				taught = new HashSet<>();
 		for (GuideGraph.Node n : GuideGraph.all( root )){
 			ids.add( n.id );
 			if (n.key != null) keys.add( n.key );
 			if (n.place != null) places.add( n.place );
 			if (n.tag != null) tags.add( n.tag );
+			if (n.taught) taught.add( n.key );
 		}
 		for (String k : guide.stringPropertyNames()){
 			assertTrue( k, k.startsWith( "guide." ) );
@@ -161,7 +169,8 @@ public class GuideGraphTest {
 				String h = rest.substring( "hint.".length() );
 				boolean used = h.equals( "boss" ) || h.equals( "chapter" ) || h.equals( "floor" )
 						|| (h.startsWith( "place_" ) && places.contains( h.substring( 6 ) ))
-						|| (h.startsWith( "tag_" ) && tags.contains( h.substring( 4 ) ));
+						|| (h.startsWith( "tag_" ) && tags.contains( h.substring( 4 ) ))
+						|| taught.contains( h );
 				assertTrue( k + " is never shown", used );
 			} else {
 				assertTrue( k + " is a page no node holds", keys.contains( rest ) );
@@ -169,6 +178,7 @@ public class GuideGraphTest {
 		}
 		for (String p : places) assertNotNull( "no hint for " + p, guide.getProperty( "guide.hint.place_" + p ) );
 		for (String t : tags) assertNotNull( "no hint for " + t, guide.getProperty( "guide.hint.tag_" + t ) );
+		for (String t : taught) assertNotNull( "no hint for " + t, guide.getProperty( "guide.hint." + t ) );
 	}
 
 	@Test
@@ -233,6 +243,7 @@ public class GuideGraphTest {
 		assertEquals( xyz.gabriwar.warpedpixeldungeon.levels.VillageHouseLevel.BRANCH, GuideGraph.VILLAGE_HOUSE );
 
 		GuideProgress.clear();
+		GuideProgress.descend();
 		ArrayList<String> first = GuideGraph.discover( GuideGraph.TAG_SURFACE );
 		assertTrue( first.contains( "surface_overview" ) );
 		assertTrue( first.contains( "town_overview" ) );
@@ -244,6 +255,7 @@ public class GuideGraphTest {
 	@Test
 	public void everyFloorPageLiesOnItsFloor(){
 		GuideProgress.clear();
+		GuideProgress.descend();
 		Dungeon.seed = 0x6E1DEL;
 		xyz.gabriwar.warpedpixeldungeon.GamesInProgress.selectedClass = HeroClass.WARRIOR;
 		Dungeon.init();
@@ -281,6 +293,7 @@ public class GuideGraphTest {
 	@Test
 	public void everyBossChapterWritesItselfWhenItsFightBegins() throws IOException {
 		GuideProgress.clear();
+		GuideProgress.descend();
 		Dungeon.seed = 0xB055L;
 		xyz.gabriwar.warpedpixeldungeon.GamesInProgress.selectedClass = HeroClass.WARRIOR;
 		Dungeon.init();
@@ -305,6 +318,7 @@ public class GuideGraphTest {
 	@Test
 	public void theLairDragonsKillWritesItsChapter(){
 		GuideProgress.clear();
+		GuideProgress.descend();
 		Bestiary.setSeen( OverworldDragon.class );
 		assertTrue( GuideProgress.pageFound( "boss_dragon" ) );
 		GuideProgress.clear();
@@ -319,9 +333,11 @@ public class GuideGraphTest {
 		boolean wasLoaded = loaded.getBoolean( null );
 		try {
 			GuideProgress.clear();
+			GuideProgress.descend();
 			GuideProgress.findPage( "on_disk" );
 			Journal.saveGlobal( true );
 			GuideProgress.clear();
+			GuideProgress.descend();
 			loaded.setBoolean( null, false );
 
 			GuideProgress.findPage( "fresh" );
@@ -337,6 +353,7 @@ public class GuideGraphTest {
 	@Test
 	public void foundAndReadPagesSurviveASave(){
 		GuideProgress.clear();
+		GuideProgress.descend();
 		GuideProgress.findPage( "a" );
 		GuideProgress.findPage( "b" );
 		GuideProgress.findPage( "c" );
@@ -347,6 +364,7 @@ public class GuideGraphTest {
 		Bundle bundle = new Bundle();
 		GuideProgress.store( bundle );
 		GuideProgress.clear();
+		GuideProgress.descend();
 		assertNull( GuideProgress.newestUnread() );
 		GuideProgress.restore( bundle );
 		assertTrue( GuideProgress.pageFound( "a" ) );
@@ -366,13 +384,14 @@ public class GuideGraphTest {
 	@Test
 	public void lockingFollowsWhatWasFound(){
 		GuideProgress.clear();
+		GuideProgress.descend();
 		GuideGraph.Node root = GuideGraph.build();
 		GuideGraph.Node sewers = GuideGraph.find( root, "ch_sewers" );
 		GuideGraph.Node f2 = GuideGraph.find( root, "sewers_f2" );
 		assertFalse( GuideGraph.unlocked( sewers ) );
 		assertFalse( GuideGraph.unlocked( f2 ) );
 		assertTrue( GuideGraph.unlocked( root ) );
-		assertTrue( GuideGraph.unlocked( GuideGraph.find( root, "topic_meta" ) ) );
+		assertFalse( GuideGraph.unlocked( GuideGraph.find( root, "topic_meta" ) ) );
 		//the floor page of depth 2 lies on depth 3
 		assertTrue( GuideGraph.pagesToSpawn( 3, 0 ).contains( "sewers_f2" ) );
 		assertFalse( GuideGraph.pagesToSpawn( 2, 0 ).contains( "sewers_f2" ) );
@@ -404,5 +423,163 @@ public class GuideGraphTest {
 			if (!k.startsWith( "scenes.guidescene." )) continue;
 			assertFalse( k, GAMBLING.matcher( scenes.getProperty( k ) ).find() );
 		}
+	}
+
+	//the tome of dungeon mastery's subjects, in the order the chapter shows them
+	private static final List<String> BASICS = Arrays.asList(
+			GuideGraph.BASICS_INTRO, GuideGraph.BASICS_EXAMINING, GuideGraph.BASICS_SEARCHING,
+			GuideGraph.BASICS_SURPRISE, GuideGraph.BASICS_POSITIONING, GuideGraph.BASICS_HUNGER,
+			GuideGraph.BASICS_IDENTIFYING, GuideGraph.BASICS_STRENGTH, GuideGraph.BASICS_UPGRADES,
+			GuideGraph.BASICS_LEVELLING, GuideGraph.BASICS_SKILLS, GuideGraph.BASICS_MAGIC,
+			GuideGraph.BASICS_LOOTING, GuideGraph.BASICS_ALCHEMY, GuideGraph.BASICS_ENCHANTING,
+			GuideGraph.BASICS_FARMING, GuideGraph.BASICS_DEFEAT );
+
+	@Test
+	public void theTomeIsTheFirstChapterAndOpen(){
+		GuideProgress.clear();
+		GuideProgress.descend();
+		GuideGraph.Node root = GuideGraph.build();
+		GuideGraph.Node basics = root.children.get( 0 );
+		assertEquals( "ch_basics", basics.id );
+		assertEquals( ItemSpriteSheet.MASTERY, basics.sprite );
+		ArrayList<String> keys = new ArrayList<>();
+		for (GuideGraph.Node n : basics.children) keys.add( n.key );
+		assertEquals( BASICS, keys );
+		//the chapter is there from the start, each page taught when its lesson comes up, never
+		//lying on a floor (the intro and searching pages are laid out by the tutorial itself)
+		assertTrue( GuideGraph.unlocked( basics ) );
+		for (GuideGraph.Node n : basics.children){
+			assertFalse( n.key, GuideGraph.unlocked( n ) );
+			assertTrue( n.key, n.taught );
+			assertTrue( n.key, GuideGraph.basics( n.key ) );
+			assertNotNull( n.key, n.text() );
+			assertEquals( n.key, -1, GuideGraph.spawnDepth( n ) );
+		}
+		assertFalse( GuideGraph.basics( "sewers_f1" ) );
+		assertFalse( GuideGraph.basics( "ch_basics" ) );
+		//every page the tome had is one of them
+		assertEquals( 17, GuideProgress.LEGACY_TOME.size() );
+		assertTrue( new HashSet<>( BASICS ).equals( new HashSet<>( GuideProgress.LEGACY_TOME.values() ) ) );
+	}
+
+	@Test
+	public void pagesWaitForTheDungeon(){
+		GuideProgress.clear();
+		GuideGraph.Node root = GuideGraph.build();
+		//a fresh guide: every page locked, the first chapter there to be filled
+		for (GuideGraph.Node n : GuideGraph.all( root )){
+			if (n.key != null) assertFalse( n.key, GuideGraph.unlocked( n ) );
+		}
+		assertTrue( GuideGraph.unlocked( GuideGraph.find( root, "ch_basics" ) ) );
+
+		//before the dungeon nothing writes itself but the tutorial's own page
+		assertFalse( GuideProgress.findPage( GuideGraph.BASICS_HUNGER ) );
+		assertTrue( GuideGraph.discover( GuideGraph.TAG_SURFACE ).isEmpty() );
+		assertTrue( GuideProgress.findPage( GuideGraph.BASICS_INTRO ) );
+		assertTrue( GuideGraph.inDungeon( 1, 0 ) );
+		assertTrue( GuideGraph.inDungeon( 26, 0 ) );
+		assertFalse( GuideGraph.inDungeon( 97, 0 ) );
+		assertFalse( GuideGraph.inDungeon( 90, 0 ) );
+		assertFalse( GuideGraph.inDungeon( 105, 0 ) );
+		assertFalse( GuideGraph.inDungeon( 1, 6 ) );
+
+		GuideProgress.descend();
+		assertTrue( GuideProgress.findPage( GuideGraph.BASICS_HUNGER ) );
+		assertTrue( GuideGraph.unlocked( GuideGraph.find( root, GuideGraph.BASICS_HUNGER ) ) );
+		//back up under the sky: the word on the road
+		assertTrue( GuideGraph.arrivalTags( 97, 0 ).contains( GuideGraph.TAG_WORLD_EVENT ) );
+		//a first material in the pack: the homestead's first pages
+		assertTrue( GuideGraph.discover( GuideGraph.TAG_GATHER ).containsAll(
+				Arrays.asList( "hs_overview", "hs_gathering", "hs_building" ) ) );
+
+		//a full day in the dungeon: weather and seasons, once
+		for (int i = 1; i < DayNightCycle.FULL_CYCLE; i++) assertFalse( GuideProgress.dungeonTurn() );
+		assertTrue( GuideProgress.dungeonTurn() );
+		assertFalse( GuideProgress.dungeonTurn() );
+
+		Bundle bundle = new Bundle();
+		GuideProgress.store( bundle );
+		GuideProgress.clear();
+		GuideProgress.restore( bundle );
+		assertTrue( GuideProgress.descended() );
+		assertFalse( GuideProgress.dungeonTurn() );
+
+		//a journal from when the basics and the first topics were open: what was read stays,
+		//and its hero has been down
+		GuideProgress.clear();
+		Bundle old = new Bundle();
+		old.put( "guide_pages", new String[0] );
+		old.put( "guide_read", new String[]{ "topic_meta", GuideGraph.BASICS_MAGIC } );
+		GuideProgress.restore( old );
+		assertTrue( GuideGraph.unlocked( GuideGraph.find( root, "topic_meta" ) ) );
+		assertTrue( GuideGraph.unlocked( GuideGraph.find( root, GuideGraph.BASICS_MAGIC ) ) );
+		assertFalse( GuideGraph.unlocked( GuideGraph.find( root, GuideGraph.BASICS_LOOTING ) ) );
+		assertTrue( GuideProgress.descended() );
+		GuideProgress.clear();
+	}
+
+	@Test
+	public void oldTomeSavesMoveIntoTheGuide() throws Exception {
+		GuideProgress.clear();
+		GuideProgress.descend();
+		Journal.saveNeeded = false;
+		//a journal from before the merge: the tome's states (1 found, 2 read) beside the guide's own
+		Bundle tome = new Bundle();
+		tome.put( "Food", 2 );
+		tome.put( "Searching", 1 );
+		Bundle docs = new Bundle();
+		docs.put( "ADVENTURERS_GUIDE", tome );
+		Bundle old = new Bundle();
+		old.put( "documents", docs );
+		old.put( "guide_pages", new String[]{ "sewers_f2" } );
+		old.put( "guide_read", new String[0] );
+		GuideProgress.restore( old );
+
+		assertTrue( GuideProgress.pageFound( GuideGraph.BASICS_HUNGER ) );
+		assertTrue( GuideProgress.isRead( GuideGraph.BASICS_HUNGER ) );
+		assertTrue( GuideProgress.pageFound( GuideGraph.BASICS_SEARCHING ) );
+		assertFalse( GuideProgress.isRead( GuideGraph.BASICS_SEARCHING ) );
+		assertFalse( GuideProgress.pageFound( GuideGraph.BASICS_INTRO ) );
+		//the tome's pages never become the newest page found
+		assertEquals( "sewers_f2", GuideProgress.newestUnread() );
+		assertTrue( "the migrated journal is written back", Journal.saveNeeded );
+
+		//once written back, the guide holds them itself
+		Bundle saved = new Bundle();
+		GuideProgress.store( saved );
+		GuideProgress.clear();
+		GuideProgress.descend();
+		GuideProgress.restore( saved );
+		assertTrue( GuideProgress.isRead( GuideGraph.BASICS_HUNGER ) );
+		assertTrue( GuideProgress.pageFound( GuideGraph.BASICS_SEARCHING ) );
+
+		GuideProgress.forget( GuideGraph.BASICS_HUNGER );
+		assertFalse( GuideProgress.pageFound( GuideGraph.BASICS_HUNGER ) );
+		assertFalse( GuideProgress.isRead( GuideGraph.BASICS_HUNGER ) );
+		GuideProgress.clear();
+		GuideProgress.descend();
+
+		//the tome itself and its torn pages, lying in an old save, load as the guide's pages
+		DescentPage.registerAliases();
+		assertEquals( GuideGraph.BASICS_HUNGER, oldItem( "xyz.gabriwar.warpedpixeldungeon.items.journal.GuidePage", "Food" ).page() );
+		assertEquals( GuideGraph.BASICS_SURPRISE, oldItem( "xyz.gabriwar.warpedpixeldungeon.items.journal.GuidePage", "Surprise_Attacks" ).page() );
+		assertEquals( GuideGraph.BASICS_INTRO, oldItem( "xyz.gabriwar.warpedpixeldungeon.items.journal.Guidebook", null ).page() );
+		//a guide page of today's keeps its page
+		assertEquals( "sewers_f2", oldItem( DescentPage.class.getName(), "sewers_f2" ).page() );
+	}
+
+	//a torn page saved under an old class name with an old page name (null: none at all)
+	private static DescentPage oldItem( String className, String page ) throws Exception {
+		DescentPage p = new DescentPage();
+		p.page( page == null ? "placeholder_page" : page );
+		Bundle b = new Bundle();
+		b.put( "item", p );
+		String text = b.toString().replace( DescentPage.class.getName(), className );
+		if (page == null) text = text.replace( "\"page\":\"placeholder_page\",", "" ).replace( ",\"page\":\"placeholder_page\"", "" );
+		assertFalse( text.contains( "placeholder_page" ) );
+		Bundle back = Bundle.read( new ByteArrayInputStream( text.getBytes( StandardCharsets.UTF_8 ) ) );
+		Object item = back.get( "item" );
+		assertTrue( String.valueOf( item ), item instanceof DescentPage );
+		return (DescentPage) item;
 	}
 }

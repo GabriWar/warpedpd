@@ -1944,7 +1944,6 @@ public abstract class Mob extends Char {
 				notice();
 				state = HUNTING;
 				target = enemy.pos;
-				if (enemy == Dungeon.hero) xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.heroNoticed(Mob.this, true);
 			} else {
 				notice();
 				state = WANDERING;
@@ -1984,7 +1983,6 @@ public abstract class Mob extends Char {
 			alerted = true;
 			state = HUNTING;
 			target = enemy.pos;
-			if (enemy == Dungeon.hero) xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.heroNoticed(Mob.this, false);
 			
 			return true;
 		}

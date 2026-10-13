@@ -40,8 +40,14 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Tengu;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.ThiefKing;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.YogDzewa;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Zot;
+import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.journal.DescentPage;
+import xyz.gabriwar.warpedpixeldungeon.items.keys.Key;
+import xyz.gabriwar.warpedpixeldungeon.items.wands.Wand;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.plants.Plant;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.ui.Icons;
 
 import java.util.ArrayList;
@@ -61,13 +67,16 @@ import java.util.List;
 //  - branch pages lie on a floor of a side branch (branch(...));
 //  - discovered pages write themselves when you first reach a place or see a thing
 //    (tag(...)): the overworld is streamed, nothing can lie on its floor;
-//  - boss chapters write themselves the first time you face the boss.
+//  - boss chapters write themselves the first time you face the boss;
+//  - the basics (the tome of dungeon mastery's subjects) are open from the start.
 public class GuideGraph {
 
 	public static class Node {
 		public final String id;
 		public int color;
 		public Icons icon = null;
+		//an ItemSpriteSheet image standing for a chapter, in place of its icon (-1: none)
+		public int sprite = -1;
 		public Class<? extends Mob> mob = null;
 		//key into the guide messages bundle ("guide.<key>"), null = a chapter
 		public String key = null;
@@ -78,6 +87,9 @@ public class GuideGraph {
 		public int branch = 0;
 		public String place = null;
 		public String tag = null;
+		//a page of the basics: it writes itself the first time the game teaches its lesson
+		//(GameScene.adviseGuide), or when its torn page is picked up
+		public boolean taught = false;
 		public boolean open = false;
 
 		public Node parent = null;
@@ -96,6 +108,11 @@ public class GuideGraph {
 
 		public Node icon( Icons icon ){
 			this.icon = icon;
+			return this;
+		}
+
+		public Node sprite( int image ){
+			this.sprite = image;
 			return this;
 		}
 
@@ -126,6 +143,11 @@ public class GuideGraph {
 		//a page that writes itself when the tagged discovery happens
 		public Node tag( String tag ){
 			this.tag = tag;
+			return this;
+		}
+
+		public Node taught(){
+			this.taught = true;
 			return this;
 		}
 
@@ -182,6 +204,29 @@ public class GuideGraph {
 	private static final int BARROW   = 0x50C0B0;
 	private static final int HOMESTEAD = 0xD8A860;
 	private static final int TOPIC    = 0xCCCCCC;
+	private static final int BASICS   = 0xF0DCA8;
+
+	//--- the basics: open from the start, and the pages the journal button advises at the right moment ---
+
+	public static final String BASICS_INTRO       = "basics_intro";
+	public static final String BASICS_EXAMINING   = "basics_examining";
+	public static final String BASICS_SEARCHING   = "basics_searching";
+	public static final String BASICS_SURPRISE    = "basics_surprise";
+	public static final String BASICS_POSITIONING = "basics_positioning";
+	public static final String BASICS_HUNGER      = "basics_hunger";
+	public static final String BASICS_IDENTIFYING = "basics_identifying";
+	public static final String BASICS_STRENGTH    = "basics_strength";
+	public static final String BASICS_UPGRADES    = "basics_upgrades";
+	public static final String BASICS_LEVELLING   = "basics_levelling";
+	public static final String BASICS_SKILLS      = "basics_skills";
+	public static final String BASICS_MAGIC       = "basics_magic";
+	public static final String BASICS_LOOTING     = "basics_looting";
+	public static final String BASICS_ALCHEMY     = "basics_alchemy";
+	public static final String BASICS_ENCHANTING  = "basics_enchanting";
+	public static final String BASICS_FARMING     = "basics_farming";
+	public static final String BASICS_DEFEAT      = "basics_defeat";
+	public static final String TOPIC_HEROES       = "topic_heroes";
+	public static final String TOPIC_WEATHER      = "topic_weather";
 
 	//--- discoveries: what reaching a place or seeing a thing writes into the guide ---
 
@@ -201,11 +246,12 @@ public class GuideGraph {
 	public static final String TAG_FARM         = "farm";          //a first seed sown, or farmland made
 	public static final String TAG_ROPE         = "rope";          //a first rope thrown over an animal
 	public static final String TAG_STONES       = "stones";        //a waystone attuned, or a hearthstone set down
+	public static final String TAG_GATHER       = "gather";        //a first building material or builder's satchel in the pack
 
 	public static final List<String> ALL_TAGS = Collections.unmodifiableList( Arrays.asList(
 			TAG_SURFACE, TAG_TOWN_INSIDE, TAG_VILLAGE, TAG_WORLD_MAP, TAG_WORLD_EVENT, TAG_BARROW,
 			TAG_MOUNTAINS, TAG_HEIGHTS, TAG_PEAK_SITE, TAG_CAVES, TAG_CAVES_DEEP, TAG_CAVE_SITE,
-			TAG_BUILT, TAG_FARM, TAG_ROPE, TAG_STONES ) );
+			TAG_BUILT, TAG_FARM, TAG_ROPE, TAG_STONES, TAG_GATHER ) );
 
 	//the save numbering of the places (see Dungeon.newLevel, WorldLayers, Delves)
 	static final int SURFACE_DEPTH = 97;
@@ -217,7 +263,11 @@ public class GuideGraph {
 	public static ArrayList<String> arrivalTags( int depth, int branch ){
 		ArrayList<String> tags = new ArrayList<>();
 		if (branch == 0){
-			if (depth == SURFACE_DEPTH) tags.add( TAG_SURFACE );
+			//back up under the sky: what the world above holds, and its word on the road
+			if (depth == SURFACE_DEPTH){
+				tags.add( TAG_SURFACE );
+				tags.add( TAG_WORLD_EVENT );
+			}
 			if (depth >= TOP_PEAK && depth <= FIRST_PEAK) tags.add( TAG_MOUNTAINS );
 			if (depth >= TOP_PEAK && depth <= HEIGHTS_FROM) tags.add( TAG_HEIGHTS );
 			if (depth >= FIRST_CAVE && depth <= LAST_CAVE) tags.add( TAG_CAVES );
@@ -253,8 +303,21 @@ public class GuideGraph {
 		}
 	}
 
+	/** The dungeon under the town: not the world above, its mountains and caves, or a branch. */
+	public static boolean inDungeon( int depth, int branch ){
+		return branch == 0 && depth >= 1 && depth < TOP_PEAK;
+	}
+
+	/** A hero's turn: a full day spent in the dungeon writes the page on weather and seasons. */
+	public static void onHeroTurn( int depth, int branch ){
+		if (inDungeon( depth, branch ) && GuideProgress.dungeonTurn()){
+			GameScene.adviseGuide( TOPIC_WEATHER );
+		}
+	}
+
 	/** Reveals what arriving on this level discovers. */
 	public static void onArrive( int depth, int branch ){
+		if (inDungeon( depth, branch )) GuideProgress.descend();
 		for (String tag : arrivalTags( depth, branch )){
 			reveal( tag );
 		}
@@ -276,8 +339,10 @@ public class GuideGraph {
 		// itself (faced(): its health bar coming up, or its kill) so old bestiary
 		// data doesn't pre-unlock.
 		if (n.key != null){
-			if (n.mob != null || n.depths != null || n.tag != null){
-				return GuideProgress.pageFound( n.key );
+			//a page read before it had to be earned (the basics and the first topics were
+			//open from the start) stays
+			if (n.mob != null || n.depths != null || n.tag != null || n.taught){
+				return GuideProgress.pageFound( n.key ) || GuideProgress.isRead( n.key );
 			}
 			//a page with no way to earn it is common knowledge
 			return true;
@@ -321,6 +386,9 @@ public class GuideGraph {
 		}
 		if (n.tag != null){
 			return Messages.get( "guide.hint.tag_" + n.tag );
+		}
+		if (n.taught){
+			return Messages.get( "guide.hint." + n.key );
 		}
 		if (n.place != null){
 			return Messages.get( "guide.hint.place_" + n.place );
@@ -398,6 +466,14 @@ public class GuideGraph {
 		return mobKeys.get( cls );
 	}
 
+	/** The basics page an item teaches the first time it is picked up, or null. */
+	public static String lessonFor( Item item ){
+		if (item instanceof Wand) return BASICS_MAGIC;
+		if (item instanceof Plant.Seed) return BASICS_FARMING;
+		if (item instanceof Key) return BASICS_LOOTING;
+		return null;
+	}
+
 	private static void collectMobKeys( Node n, HashMap<Class<?>, String> out ){
 		if (n.mob != null && n.key != null){
 			out.put( n.mob, n.key );
@@ -443,6 +519,12 @@ public class GuideGraph {
 		return null;
 	}
 
+	/** Whether a key is one of the basics' pages (ch_basics). */
+	public static boolean basics( String key ){
+		Node n = find( build(), key );
+		return n != null && n.key != null && n.parent != null && "ch_basics".equals( n.parent.id );
+	}
+
 	//title of the node a page belongs to, for item descriptions and the log
 	public static String titleForKey( String key ){
 		Node n = find( build(), key );
@@ -473,6 +555,28 @@ public class GuideGraph {
 		Node root = new Node( "guide", 0xFFFFFF ).icon( Icons.WPD ).open();
 		root.expanded = true;
 
+		//the basics, what the tome of dungeon mastery taught: the chapter is always there, and
+		//each page writes itself when the game first teaches its lesson
+		Node basics = new Node( "ch_basics", BASICS ).sprite( ItemSpriteSheet.MASTERY ).open();
+		basics.child( page( BASICS_INTRO, BASICS, Icons.INFO ).taught() );
+		basics.child( page( BASICS_EXAMINING, BASICS, Icons.MAGNIFY ).taught() );
+		basics.child( page( BASICS_SEARCHING, BASICS, Icons.MAGNIFY ).taught() );
+		basics.child( page( BASICS_SURPRISE, BASICS, Icons.SNAKE ).taught() );
+		basics.child( page( BASICS_POSITIONING, BASICS, Icons.TARGET ).taught() );
+		basics.child( page( BASICS_HUNGER, BASICS, Icons.BUFFS ).taught() );
+		basics.child( page( BASICS_IDENTIFYING, BASICS, Icons.SCROLL_COLOR ).taught() );
+		basics.child( page( BASICS_STRENGTH, BASICS, Icons.TALENT ).taught() );
+		basics.child( page( BASICS_UPGRADES, BASICS, Icons.TALENT ).taught() );
+		basics.child( page( BASICS_LEVELLING, BASICS, Icons.TALENT ).taught() );
+		basics.child( page( BASICS_SKILLS, BASICS, Icons.BUFFS ).taught() );
+		basics.child( page( BASICS_MAGIC, BASICS, Icons.CHALLENGE_COLOR ).taught() );
+		basics.child( page( BASICS_LOOTING, BASICS, Icons.GOLD ).taught() );
+		basics.child( page( BASICS_ALCHEMY, BASICS, Icons.ALCHEMY ).taught() );
+		basics.child( page( BASICS_ENCHANTING, BASICS, Icons.CATALOG ).taught() );
+		basics.child( page( BASICS_FARMING, BASICS, Icons.GRASS ).taught() );
+		basics.child( page( BASICS_DEFEAT, BASICS, Icons.SKULL ).taught() );
+		root.child( basics );
+
 		//the world above: every run starts in the town on its surface
 		Node surface = new Node( "ch_surface", SURFACE ).icon( Icons.STAIRS_GRASS );
 		surface.child( page( "surface_overview", SURFACE, Icons.INFO ).tag( TAG_SURFACE ) );
@@ -495,9 +599,9 @@ public class GuideGraph {
 
 		//building, farming and travelling out in the world (homestead/)
 		Node homestead = new Node( "ch_homestead", HOMESTEAD ).icon( Icons.WAYFARERS_CAMP );
-		homestead.child( page( "hs_overview", HOMESTEAD, Icons.INFO ).tag( TAG_SURFACE ) );
-		homestead.child( page( "hs_gathering", HOMESTEAD, Icons.GRASS ).tag( TAG_SURFACE ) );
-		homestead.child( page( "hs_building", HOMESTEAD, Icons.BREAKERS_BENCH ).tag( TAG_SURFACE ) );
+		homestead.child( page( "hs_overview", HOMESTEAD, Icons.INFO ).tag( TAG_GATHER ) );
+		homestead.child( page( "hs_gathering", HOMESTEAD, Icons.GRASS ).tag( TAG_GATHER ) );
+		homestead.child( page( "hs_building", HOMESTEAD, Icons.BREAKERS_BENCH ).tag( TAG_GATHER ) );
 		homestead.child( page( "hs_stations", HOMESTEAD, Icons.TEMPERING_FORGE ).tag( TAG_BUILT ) );
 		homestead.child( page( "hs_rooms", HOMESTEAD, Icons.SLEEP ).tag( TAG_BUILT ) );
 		homestead.child( page( "hs_shelter", HOMESTEAD, Icons.THERMAL_SPRING ).tag( TAG_BUILT ) );
@@ -624,9 +728,9 @@ public class GuideGraph {
 		root.child( zot );
 
 		Node topics = new Node( "ch_topics", TOPIC ).icon( Icons.JOURNAL ).open();
-		topics.child( page( "topic_meta", TOPIC, Icons.INFO ) );
-		topics.child( page( "topic_heroes", TOPIC, Icons.TALENT ) );
-		topics.child( page( "topic_weather", TOPIC, Icons.CALENDAR ) );
+		topics.child( page( "topic_meta", TOPIC, Icons.INFO ).floor( 1 ) );
+		topics.child( page( TOPIC_HEROES, TOPIC, Icons.TALENT ).taught() );
+		topics.child( page( TOPIC_WEATHER, TOPIC, Icons.CALENDAR ).taught() );
 		topics.child( page( "topic_quests", TOPIC, Icons.SCROLL_COLOR ).floor( 2 ) );
 		topics.child( page( "topic_plants", TOPIC, Icons.GRASS ).floor( 2 ) );
 		topics.child( page( "topic_skills", TOPIC, Icons.BUFFS ).floor( 3 ) );

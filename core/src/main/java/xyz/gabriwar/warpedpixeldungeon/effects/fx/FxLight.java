@@ -89,6 +89,8 @@ public class FxLight extends Image {
 	private float reflectSwap, reflectWobble;
 	//how bright it showed last frame: the dimmest makes way
 	private float shown;
+	//how many times it was set up: each time it is someone else's light (setups())
+	private int setups;
 	private final RectF uv = new RectF(), reflectUv = new RectF();
 
 	public FxLight(){
@@ -152,6 +154,7 @@ public class FxLight extends Image {
 	}
 
 	private void setup( boolean pool, float x, float y, int size, int color, float level ){
+		setups++;
 		this.pool = pool;
 		persistent = core = false;
 		this.level = level;
@@ -278,6 +281,12 @@ public class FxLight extends Image {
 	/** How bright it showed last frame, 0..its cap. */
 	public float shown(){
 		return shown;
+	}
+
+	/** How many times it was set up (made, or recycled for a new light): a holder that kept the
+	 *  count it was handed knows whether the light is still the one it was given. */
+	public int setups(){
+		return setups;
 	}
 
 	// ------------------------------------------------------------------ the frame

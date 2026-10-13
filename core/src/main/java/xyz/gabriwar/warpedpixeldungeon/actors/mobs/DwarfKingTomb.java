@@ -48,7 +48,9 @@ public class DwarfKingTomb extends Mob {
 
 		EXP = 10;
 
-		alignment = Alignment.NEUTRAL;
+		//an enemy, so a tap strikes it and wands, throws and the attack button aim at it; it never
+		//attacks back, and stays immortal while its king stands
+		alignment = Alignment.ENEMY;
 		state = PASSIVE;
 
 		properties.add(Property.IMMOVABLE);

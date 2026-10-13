@@ -132,6 +132,11 @@ abstract public class ClassArmor extends Armor {
 		classArmor.cursed = armor.cursed;
 		classArmor.curseInfusionBonus = armor.curseInfusionBonus;
 		classArmor.masteryPotionBonus = armor.masteryPotionBonus;
+		//its rarity, type, lines and masterwork go with it: the hero's own armor, made of the old
+		if (armor.quality != null){
+			classArmor.quality = armor.quality.copy();
+			xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.empower( classArmor );
+		}
 		if (armor.levelKnown && armor.cursedKnown) {
 			classArmor.identify();
 		} else {

@@ -78,7 +78,12 @@ public class Messages {
 			Assets.Messages.RARITY,
 			Assets.Messages.WARPED_ROOMS,
 			Assets.Messages.HOMESTEAD,
-			Assets.Messages.HOMESTEAD_FARMING
+			Assets.Messages.HOMESTEAD_FARMING,
+			Assets.Messages.DEMOS_SURFACE,
+			Assets.Messages.DEMOS_EARLY,
+			Assets.Messages.DEMOS_LATE,
+			Assets.Messages.DEMOS_EXTRA,
+			Assets.Messages.DEMOS_BASICS
 	};
 
 	static{

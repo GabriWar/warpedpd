@@ -121,7 +121,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Kupua;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.LitTower;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.MagicEye;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.MineSentinel;
-import xyz.gabriwar.warpedpixeldungeon.actors.mobs.MonsterBox;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.MossySkeleton;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.MrDestructo;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.MrDestructo2dot0;
@@ -338,6 +337,7 @@ import com.watabou.utils.Bundle;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 
 //contains all the game's various entities, mostly enemies, NPCS, and allies, but also traps and plants
@@ -404,7 +404,7 @@ public enum Bestiary {
 				DemonGoo.class, PoisonGoo.class, DwarfLich.class, AlbinoPiranha.class,
 				Sentinel.class, MineSentinel.class, SokobanSentinel.class,
 				GnollArcher.class, FlyingProtector.class, ForestProtector.class, FishProtector.class, GraveProtector.class,
-				VaultProtector.class, MonsterBox.class, RatBoss.class,
+				VaultProtector.class, RatBoss.class,
 				//Unleashed PD ports
 				SlimeBrown.class, SlimeRed.class, Zombie.class,
 				ClayGolem.class, SpiderBot.class, Tinkerer.class, Minotaur.class,
@@ -768,17 +768,22 @@ public enum Bestiary {
 			int[] lootSeenArr = bundle.contains(BESTIARY_LOOT_SEEN)
 					? bundle.getIntArray(BESTIARY_LOOT_SEEN) : null;
 
+			//a class can come twice when a removed one is aliased to another (the monster box
+			//to the mimic): the two entries are joined, not the later one written over the first
+			HashSet<Class<?>> restored = new HashSet<>();
 			for (int i = 0; i < classes.length; i++){
+				boolean again = !restored.add(classes[i]);
 				for (Bestiary cat : values()){
 					if (cat.seen.containsKey(classes[i])){
-						cat.seen.put(classes[i], seen[i]);
-						cat.encounterCount.put(classes[i], encounters[i]);
+						cat.seen.put(classes[i], seen[i] || (again && cat.seen.get(classes[i])));
+						cat.encounterCount.put(classes[i], encounters[i] + (again ? cat.encounterCount.get(classes[i]) : 0));
 						if (lootSeenArr != null && i < lootSeenArr.length) {
 							int loot = lootSeenArr[i];
 							if (classes[i] == GnollArcher.class && !bundle.getBoolean(ARCHER_LOOT_SHIFTED)) {
 								loot = archerLootShifted(loot);
 							}
-							cat.lootSeen.put(classes[i], loot);
+							Integer had = cat.lootSeen.get(classes[i]);
+							cat.lootSeen.put(classes[i], again && had != null ? loot | had : loot);
 						}
 					}
 				}

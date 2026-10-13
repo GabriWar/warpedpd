@@ -197,58 +197,11 @@ public class WndDebugPicker extends Window {
 		return entries;
 	}
 
-	/** picks a weapon or armor from the pack, then a list of every enchantment or glyph
-	 *  (common, uncommon, rare and the curses) to put on it, or strips it */
-	public static void forEnchanting() {
-		GameScene.selectItem(new WndBag.ItemSelector() {
-			@Override
-			public String textPrompt() { return "Choose a weapon or armor to enchant"; }
-
-			@Override
-			public boolean itemSelectable(Item item) {
-				return item instanceof xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon
-						|| item instanceof xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
-			}
-
-			@Override
-			public void onSelect(Item item) {
-				if (item == null) return;
-				ArrayList<Entry> entries = new ArrayList<>();
-				boolean weapon = item instanceof xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
-				Class<?>[][] tables = weapon
-						? new Class<?>[][]{ xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon.Enchantment.common,
-								xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon.Enchantment.uncommon,
-								xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon.Enchantment.rare,
-								xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon.Enchantment.curses }
-						: new Class<?>[][]{ xyz.gabriwar.warpedpixeldungeon.items.armor.Armor.Glyph.common,
-								xyz.gabriwar.warpedpixeldungeon.items.armor.Armor.Glyph.uncommon,
-								xyz.gabriwar.warpedpixeldungeon.items.armor.Armor.Glyph.rare,
-								xyz.gabriwar.warpedpixeldungeon.items.armor.Armor.Glyph.curses };
-				String[] tiers = { "common", "uncommon", "rare", "curse" };
-				for (int t = 0; t < tables.length; t++) {
-					for (Class<?> cls : tables[t]) {
-						String name = xyz.gabriwar.warpedpixeldungeon.messages.Messages.get(cls, "name");
-						if (name.contains("NO TEXT FOUND")) name = cls.getSimpleName();
-						String label = name + " (" + tiers[t] + ")";
-						Entry e = new Entry(label, null, () -> {
-							Object ench = Reflection.newInstance(cls);
-							if (weapon) ((xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon) item).enchant((xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon.Enchantment) ench);
-							else ((xyz.gabriwar.warpedpixeldungeon.items.armor.Armor) item).inscribe((xyz.gabriwar.warpedpixeldungeon.items.armor.Armor.Glyph) ench);
-							xyz.gabriwar.warpedpixeldungeon.effects.Enchanting.show(Dungeon.hero, item);
-							Item.updateQuickslot();
-						});
-						e.searchText = label + " " + cls.getSimpleName();
-						entries.add(e);
-					}
-				}
-				entries.add(new Entry("- remove enchantment -", null, () -> {
-					if (weapon) ((xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon) item).enchant(null);
-					else ((xyz.gabriwar.warpedpixeldungeon.items.armor.Armor) item).inscribe(null);
-					Item.updateQuickslot();
-				}));
-				GameScene.show(new WndDebugPicker((weapon ? "ENCHANT " : "INSCRIBE ") + item.name().toUpperCase(), entries, false));
-			}
-		});
+	/** a plain list of labelled choices, in the given order: picking one closes the list and runs it */
+	static WndDebugPicker forChoices(String title, String[] labels, Runnable[] actions) {
+		ArrayList<Entry> entries = new ArrayList<>();
+		for (int i = 0; i < labels.length; i++) entries.add(new Entry(labels[i], null, actions[i]));
+		return new WndDebugPicker(title, entries, labels.length > 12);
 	}
 
 	// depth, branch, label: every place the fast travel list goes

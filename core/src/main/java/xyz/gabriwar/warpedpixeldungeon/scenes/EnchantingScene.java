@@ -38,7 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
-import xyz.gabriwar.warpedpixeldungeon.journal.Document;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph;
 import xyz.gabriwar.warpedpixeldungeon.journal.Journal;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.EnchantingStationSprite;
@@ -56,7 +56,7 @@ import xyz.gabriwar.warpedpixeldungeon.windows.WndBag;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndEnergizeItem;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndInfoItem;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndOptions;
-import xyz.gabriwar.warpedpixeldungeon.windows.WndStory;
+import xyz.gabriwar.warpedpixeldungeon.windows.WndGuideNode;
 import com.watabou.gltextures.TextureCache;
 import com.watabou.input.GameAction;
 import com.watabou.glwrap.Blending;
@@ -281,12 +281,8 @@ public class EnchantingScene extends PixelScene {
 			@Override
 			protected void onClick() {
 				super.onClick();
-				Document.ADVENTURERS_GUIDE.findPage( Document.GUIDE_ENCHANTING );
-				EnchantingScene.this.addToFront( new WndStory(
-						Document.ADVENTURERS_GUIDE.pageSprite( Document.GUIDE_ENCHANTING ),
-						Document.ADVENTURERS_GUIDE.pageTitle( Document.GUIDE_ENCHANTING ),
-						Document.ADVENTURERS_GUIDE.pageBody( Document.GUIDE_ENCHANTING ) ));
-				Document.ADVENTURERS_GUIDE.readPage( Document.GUIDE_ENCHANTING );
+				WndGuideNode page = WndGuideNode.forPage( GuideGraph.BASICS_ENCHANTING, null, false );
+				if (page != null) EnchantingScene.this.addToFront( page );
 			}
 
 			@Override
@@ -296,7 +292,7 @@ public class EnchantingScene extends PixelScene {
 
 			@Override
 			protected String hoverText() {
-				return Messages.titleCase( Document.ADVENTURERS_GUIDE.pageTitle( Document.GUIDE_ENCHANTING ) );
+				return Messages.titleCase( GuideGraph.titleForKey( GuideGraph.BASICS_ENCHANTING ) );
 			}
 		};
 		btnGuide.icon(new ItemSprite(ItemSpriteSheet.GUIDE_PAGE));

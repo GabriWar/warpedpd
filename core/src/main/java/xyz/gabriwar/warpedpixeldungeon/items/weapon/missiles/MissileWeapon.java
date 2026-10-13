@@ -134,7 +134,7 @@ abstract public class MissileWeapon extends Weapon {
 		if (masteryPotionBonus){
 			req -= 2;
 		}
-		req -= xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.strReqBonus( this, req );
+		req -= xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.strReqBonus( this );
 		return req;
 	}
 

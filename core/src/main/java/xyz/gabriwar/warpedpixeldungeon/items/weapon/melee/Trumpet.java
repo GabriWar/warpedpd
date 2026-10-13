@@ -42,6 +42,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.audio.Notes;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
@@ -58,6 +59,12 @@ public class Trumpet extends MeleeWeapon {
 
 		tier = 4;
 		RCH = 2;    //extra reach
+	}
+
+	@Override
+	public void hitSound( float pitch, Char defender ){
+		super.hitSound( pitch, defender );
+		Notes.play( Assets.Sounds.TRUMPET_NOTE, defender );
 	}
 
 	@Override
@@ -108,6 +115,7 @@ public class Trumpet extends MeleeWeapon {
 		Fx.shake( any ? 2 : 1, 0.3f );
 		SpatialSound.play( Assets.Sounds.CHALLENGE, hero, 1f, 1.3f );
 		SpatialSound.play( Assets.Sounds.BEACON, hero, 0.8f, 1.5f );
+		Notes.phrase( Assets.Sounds.TRUMPET_NOTE, hero, 4 );
 		hero.sprite.operate( hero.pos );
 		Invisibility.dispel();
 		hero.spendAndNext( 1f );

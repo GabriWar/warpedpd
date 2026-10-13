@@ -492,6 +492,7 @@ public class DayNightCycle {
 		Comfy.check( Dungeon.hero );
 		Badges.validateWorldTurn();
 		GuideTrail.onHeroTurn();
+		xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph.onHeroTurn( Dungeon.depth, Dungeon.branch );
 	}
 
 	public static void syncPhase() {

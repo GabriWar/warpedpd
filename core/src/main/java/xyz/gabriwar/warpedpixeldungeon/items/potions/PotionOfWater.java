@@ -34,10 +34,28 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 
+/**
+ * The bottle of water: plain water, always known, in a clear bottle of its own rather than one of
+ * the potions' unknown colours. Filled at any water from an empty bottle (EmptyBottle), or brewed
+ * from one in the alchemy pot.
+ */
 public class PotionOfWater extends Potion {
 
     {
         icon = ItemSpriteSheet.Icons.POTION_WATER;
+    }
+
+    @Override
+    public void reset() {
+        super.reset();
+        image = ItemSpriteSheet.BOTTLE_OF_WATER;
+        //known from the start, in the potions' records too (catalog, badges)
+        if (handler != null && handler.contains( this ) && !handler.isKnown( this )) handler.know( this );
+    }
+
+    @Override
+    public boolean isKnown() {
+        return true;
     }
 
     @Override

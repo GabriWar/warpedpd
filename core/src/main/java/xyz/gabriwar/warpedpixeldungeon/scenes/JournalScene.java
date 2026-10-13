@@ -31,8 +31,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.rings.Ring;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.Scroll;
 import xyz.gabriwar.warpedpixeldungeon.journal.Journal;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
-import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.tiles.TerrainFeaturesTilemap;
 import xyz.gabriwar.warpedpixeldungeon.ui.ExitButton;
 import xyz.gabriwar.warpedpixeldungeon.ui.IconButton;
@@ -128,15 +126,6 @@ public class JournalScene extends PixelScene {
 				catalog.updateList();
 				break;
 			case 2:
-				WndJournal.GuideTab guidebook = new WndJournal.GuideTab();
-				add(guidebook);
-				guidebook.setRect(panel.x + panel.marginLeft(),
-						panel.y + panel.marginTop(),
-						panel.width() - panel.marginHor(),
-						panel.height() - panel.marginVer());
-				guidebook.updateList();
-				break;
-			case 3:
 				WndJournal.AlchemyTab alchemy = new WndJournal.AlchemyTab();
 				add(alchemy);
 				alchemy.setRect(panel.x + panel.marginLeft(),
@@ -162,7 +151,7 @@ public class JournalScene extends PixelScene {
 			}
 		};
 		btnBadges.icon(Icons.BADGES.get());
-		btnBadges.setRect(panel.x, panel.y + ph - 3, pw/5f + 1.5f, lastIDX == 0 ? 25 : 20);
+		btnBadges.setRect(panel.x, panel.y + ph - 3, pw/4f + 1.5f, lastIDX == 0 ? 25 : 20);
 		align(btnBadges);
 		if (lastIDX != 0) btnBadges.icon().brightness(0.6f);
 		addToBack(btnBadges);
@@ -182,12 +171,12 @@ public class JournalScene extends PixelScene {
 			}
 		};
 		btnCatalog.icon(Icons.CATALOG.get());
-		btnCatalog.setRect(btnBadges.right()-2, btnBadges.top(), pw/5f + 1.5f, lastIDX == 1 ? 25 : 20);
+		btnCatalog.setRect(btnBadges.right()-2, btnBadges.top(), pw/4f + 1.5f, lastIDX == 1 ? 25 : 20);
 		align(btnCatalog);
 		if (lastIDX != 1) btnCatalog.icon().brightness(0.6f);
 		addToBack(btnCatalog);
 
-		StyledButton btnGuide =  new StyledButton(Chrome.Type.GREY_BUTTON_TR, ""){
+		StyledButton btnAlchemy =  new StyledButton(Chrome.Type.GREY_BUTTON_TR, ""){
 			@Override
 			protected void onClick() {
 				if (lastIDX != 2) {
@@ -198,33 +187,13 @@ public class JournalScene extends PixelScene {
 			}
 			@Override
 			protected String hoverText() {
-				return Messages.get(WndJournal.GuideTab.class, "title");
-			}
-		};
-		btnGuide.icon(new ItemSprite(ItemSpriteSheet.MASTERY));
-		btnGuide.setRect(btnCatalog.right()-2, btnBadges.top(), pw/5f + 1.5f, lastIDX == 2 ? 25 : 20);
-		align(btnGuide);
-		if (lastIDX != 2) btnGuide.icon().brightness(0.6f);
-		addToBack(btnGuide);
-
-		StyledButton btnAlchemy =  new StyledButton(Chrome.Type.GREY_BUTTON_TR, ""){
-			@Override
-			protected void onClick() {
-				if (lastIDX != 3) {
-					lastIDX = 3;
-				}
-				WarpedPixelDungeon.seamlessResetScene();
-				super.onClick();
-			}
-			@Override
-			protected String hoverText() {
 				return Messages.get(WndJournal.AlchemyTab.class, "title");
 			}
 		};
 		btnAlchemy.icon(Icons.ALCHEMY.get());
-		btnAlchemy.setRect(btnGuide.right()-2, btnBadges.top(), pw/5f + 1.5f, lastIDX == 3 ? 25 : 20);
+		btnAlchemy.setRect(btnCatalog.right()-2, btnBadges.top(), pw/4f + 1.5f, lastIDX == 2 ? 25 : 20);
 		align(btnAlchemy);
-		if (lastIDX != 3) btnAlchemy.icon().brightness(0.6f);
+		if (lastIDX != 2) btnAlchemy.icon().brightness(0.6f);
 		addToBack(btnAlchemy);
 
 		StyledButton btnGuideMap = new StyledButton(Chrome.Type.GREY_BUTTON_TR, ""){
@@ -239,7 +208,7 @@ public class JournalScene extends PixelScene {
 			}
 		};
 		btnGuideMap.icon(Icons.MAGNIFY.get());
-		btnGuideMap.setRect(btnAlchemy.right()-2, btnBadges.top(), pw/5f + 1.5f, 20);
+		btnGuideMap.setRect(btnAlchemy.right()-2, btnBadges.top(), pw/4f + 1.5f, 20);
 		align(btnGuideMap);
 		btnGuideMap.icon().brightness(0.6f);
 		addToBack(btnGuideMap);

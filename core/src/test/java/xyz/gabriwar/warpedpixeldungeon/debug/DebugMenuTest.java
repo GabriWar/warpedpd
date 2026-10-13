@@ -122,6 +122,7 @@ public class DebugMenuTest {
 			"Items|ACTION|Spells",
 			"Items|HEADER|What you carry",
 			"Items|ACTION|Enchant weapon / armor",
+			"Items|ACTION|Rarity and stats",
 			"Items|ACTION|Identify all",
 
 			"Mobs|ACTION|All mobs",
@@ -154,6 +155,7 @@ public class DebugMenuTest {
 			"Hero|HEADER|Map",
 			"Hero|TOGGLE|No fog of war",
 			"Hero|ACTION|Reveal level",
+			"Hero|TOGGLE|Inspector",
 			"Hero|HEADER|Body",
 			"Hero|ACTION|Full heal",
 			"Hero|ACTION|+5 strength",

@@ -40,6 +40,8 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.MissileWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.Dart;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.TippedDart;
 import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideProgress;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph;
 import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -276,6 +278,15 @@ public class Item implements Bundlable {
 
 		if (quantity <= 0){
 			return true;
+		}
+
+		//a first building material (a hide, a log...) or a builder's satchel in the pack writes the
+		//homestead's first pages into the Descent Guide
+		if ((this instanceof xyz.gabriwar.warpedpixeldungeon.items.materials.Material
+				|| this instanceof xyz.gabriwar.warpedpixeldungeon.items.bags.BuildersSatchel)
+				&& Dungeon.hero != null && container.owner == Dungeon.hero
+				&& !GuideProgress.pageFound( "hs_gathering" )){
+			GuideGraph.reveal( GuideGraph.TAG_GATHER );
 		}
 
 		//an item handed straight to the hero (a reward, a purchase) gets its rarity and

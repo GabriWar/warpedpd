@@ -35,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.ui.ScrollPane;
 import xyz.gabriwar.warpedpixeldungeon.ui.StyledButton;
 import xyz.gabriwar.warpedpixeldungeon.ui.changelist.ChangeInfo;
 import xyz.gabriwar.warpedpixeldungeon.ui.changelist.WndChanges;
+import xyz.gabriwar.warpedpixeldungeon.ui.changelist.WarpedUpdates;
 import xyz.gabriwar.warpedpixeldungeon.ui.changelist.WndChangesTabbed;
 import xyz.gabriwar.warpedpixeldungeon.ui.changelist.v0_1_X_Changes;
 import xyz.gabriwar.warpedpixeldungeon.ui.changelist.v0_2_X_Changes;
@@ -64,7 +65,12 @@ import java.util.ArrayList;
 
 public class ChangesScene extends PixelScene {
 	
+	/** The tab shown: 0 Warped's overview, 1 to 8 Shattered's history, WARPED + n the updates of
+	 *  Warped's major version n, OLDER the majors past the newest few. NEWEST opens the newest. */
 	public static int changesSelected = 0;
+	public static final int NEWEST = -1, OLDER = 999, WARPED = 1000;
+	//version tabs a page has room for beside the overview and the way to Shattered's history
+	private static final int VERSION_TABS = 4;
 
 	private NinePatch rightPanel;
 	private ScrollPane rightScroll;
@@ -157,14 +163,23 @@ public class ChangesScene extends PixelScene {
 			changeInfos.add(langWarn);
 		}
 		
-		//everything past the first tab is Shattered's own history, kept as Evan wrote it
-		if (changesSelected != 0){
+		ArrayList<Integer> majors = WarpedUpdates.majors();
+		if (changesSelected == NEWEST){
+			changesSelected = majors.isEmpty() ? 0 : WARPED + majors.get( 0 );
+		}
+
+		//tabs 1 to 8 are Shattered's own history, kept as Evan wrote it
+		if (changesSelected >= 1 && changesSelected <= 8){
 			ChangeInfo base = new ChangeInfo(Messages.get(this, "base_title"), true, Messages.get(this, "base_body"));
 			base.hardlight(0xCCCCCC);
 			changeInfos.add(base);
 		}
 
-		switch (changesSelected){
+		if (changesSelected >= WARPED){
+			WarpedUpdates.addMajors( changeInfos, java.util.Collections.singletonList( changesSelected - WARPED ) );
+		} else if (changesSelected == OLDER){
+			WarpedUpdates.addMajors( changeInfos, majors.subList( Math.min( VERSION_TABS - 1, majors.size() ), majors.size() ) );
+		} else switch (changesSelected){
 			case 0: default:
 				vWarped_Changes.addAllChanges(changeInfos);
 				break;
@@ -252,11 +267,22 @@ public class ChangesScene extends PixelScene {
 				panel.innerHeight() + 2);
 		list.scrollTo(0, 0);
 
-		//one tab for Warped, then Shattered's history split the way Evan splits it,
-		//in two pages so nine tabs fit the panel
+		//Warped's page: its overview, a tab per major version (the newest few, then the rest
+		//together), and the way to Shattered's history, split the way Evan splits it in two
+		//pages so its nine tabs fit the panel
 		float left = list.left()-4f;
 
-		if (changesSelected <= 4){
+		if (changesSelected == 0 || changesSelected >= OLDER){
+
+			left = setupChangesSelectionButton(0, "WPD", left, list.bottom(), 24);
+			boolean fold = majors.size() > VERSION_TABS;
+			for (int i = 0; i < majors.size() && i < (fold ? VERSION_TABS - 1 : VERSION_TABS); i++){
+				left = setupChangesSelectionButton(WARPED + majors.get( i ), "v" + majors.get( i ), left, list.bottom(), 24);
+			}
+			if (fold) left = setupChangesSelectionButton(OLDER, "Older", left, list.bottom(), 24);
+			left = setupChangesSelectionButton(1, "SPD->", left, list.bottom(), 29);
+
+		} else if (changesSelected <= 4){
 
 			left = setupChangesSelectionButton(0, "WPD", left, list.bottom(), 24);
 			left = setupChangesSelectionButton(1, "v4.X", left, list.bottom(), 24);

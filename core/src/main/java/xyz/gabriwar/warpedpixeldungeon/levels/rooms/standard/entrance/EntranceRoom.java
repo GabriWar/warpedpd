@@ -23,9 +23,9 @@ package xyz.gabriwar.warpedpixeldungeon.levels.rooms.standard.entrance;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.WPDSettings;
-import xyz.gabriwar.warpedpixeldungeon.items.journal.GuidePage;
-import xyz.gabriwar.warpedpixeldungeon.items.journal.Guidebook;
-import xyz.gabriwar.warpedpixeldungeon.journal.Document;
+import xyz.gabriwar.warpedpixeldungeon.items.journal.DescentPage;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideProgress;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.features.LevelTransition;
@@ -103,30 +103,32 @@ public class EntranceRoom extends StandardRoom {
 		//use a separate generator here so meta progression doesn't affect levelgen
 		Random.pushGenerator();
 
-		//places the first guidebook page on floor 1
+		//places the guide's first page on floor 1
 		if (Dungeon.depth == 1 &&
-				(!Document.ADVENTURERS_GUIDE.isPageRead(Document.GUIDE_INTRO) || WPDSettings.intro() )){
+				(!GuideProgress.isRead(GuideGraph.BASICS_INTRO) || WPDSettings.intro() )){
 			int pos;
 			do {
 				//can't be on bottom row of tiles
 				pos = level.pointToCell(new Point( Random.IntRange( r.left + 1, r.right - 1 ),
 						Random.IntRange( r.top + 1, r.bottom - 2 )));
 			} while (pos == level.entrance() || level.map[pos] == Terrain.REGION_DECO);
-			level.drop( new Guidebook(), pos );
-			Document.ADVENTURERS_GUIDE.deletePage(Document.GUIDE_INTRO);
+			DescentPage intro = new DescentPage();
+			intro.page(GuideGraph.BASICS_INTRO);
+			level.drop( intro, pos );
+			GuideProgress.forget(GuideGraph.BASICS_INTRO);
 		}
 
-		//places the searching page on floor 1: the guidebook itself is picked up in the
-		//town, so the first floor is where the dungeon's own lessons start
-		if (Dungeon.depth == 1 && !Document.ADVENTURERS_GUIDE.isPageFound(Document.GUIDE_SEARCHING)){
+		//places the searching page on floor 1: the first page is picked up in the town,
+		//so the first floor is where the dungeon's own lessons start
+		if (Dungeon.depth == 1 && !GuideProgress.pageFound(GuideGraph.BASICS_SEARCHING)){
 			int pos;
 			do {
 				//can't be on bottom row of tiles
 				pos = level.pointToCell(new Point( Random.IntRange( r.left + 1, r.right - 1 ),
 						Random.IntRange( r.top + 1, r.bottom - 2 )));
 			} while (pos == level.entrance() || level.map[pos] == Terrain.REGION_DECO);
-			GuidePage p = new GuidePage();
-			p.page(Document.GUIDE_SEARCHING);
+			DescentPage p = new DescentPage();
+			p.page(GuideGraph.BASICS_SEARCHING);
 			level.drop( p, pos );
 		}
 

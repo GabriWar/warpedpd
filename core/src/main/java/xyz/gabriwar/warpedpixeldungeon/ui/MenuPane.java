@@ -29,6 +29,8 @@ import xyz.gabriwar.warpedpixeldungeon.WPDSettings;
 import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.journal.Document;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideProgress;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -36,6 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GuideScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndChallenges;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndGame;
+import xyz.gabriwar.warpedpixeldungeon.windows.WndGuideNode;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndJournal;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndKeyBindings;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndStory;
@@ -48,6 +51,7 @@ import com.watabou.noosa.Image;
 import com.watabou.noosa.NinePatch;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.ui.Component;
+import com.watabou.utils.Callback;
 import com.watabou.utils.DeviceCompat;
 
 public class MenuPane extends Component {
@@ -239,8 +243,10 @@ public class MenuPane extends Component {
 		btnJournal.flashingPage = page;
 	}
 
-	public void flashForGuide( String key ){
+	/** open: pressing the button shows the page over the game (a basics page advised), else it opens the guide on it. */
+	public void flashForGuide( String key, boolean open ){
 		btnJournal.flashingGuide = key;
+		btnJournal.flashingGuideOpen = open;
 	}
 
 	//"Sewers(3)" in the dungeon; just the place on the surface and in buildings
@@ -254,8 +260,31 @@ public class MenuPane extends Component {
 	//icon when that one is up)
 	//the place's name sits under the icon, flush with its right edge: names run
 	//from "Sewers(1)" to a village's, and beside the icon the long ones ran into it
+	//the widest the place line may run left of the stairs icon, in interface units
+	private static final float MAX_PLACE_WIDTH = 64;
+
 	private void placeDepthText(){
-		depthText.scale.set(PixelScene.align(0.67f));
+		//a whole number of screen pixels per pixel of the font, at the interface's own zoom (not
+		//the game's default zoom): at a fractional size some of the letters' columns doubled and
+		//others didn't, and "Halls(22)" read "Ha11s"
+		float zoom = camera() != null ? camera().zoom : PixelScene.uiCamera.zoom;
+		//and it always fits: a long place name (a village's, a biome's) steps down a screen pixel
+		//per font pixel at a time, and only past the smallest is it shortened
+		String full = placeLine();
+		depthText.text( full );
+		depthText.measure();
+		int px = Math.max( 1, Math.round( 0.67f * zoom ) );
+		while (px > 1 && depthText.width() * px / zoom > MAX_PLACE_WIDTH) px--;
+		if (depthText.width() * px / zoom > MAX_PLACE_WIDTH){
+			String cut = full;
+			while (cut.length() > 1){
+				cut = cut.substring( 0, cut.length() - 1 );
+				depthText.text( cut.trim() + ".." );
+				depthText.measure();
+				if (depthText.width() * px / zoom <= MAX_PLACE_WIDTH) break;
+			}
+		}
+		depthText.scale.set( px / zoom );
 		//four characters of air on the right, so it does not butt against the buttons:
 		//four average glyphs of the measured text (the font has no frame to ask for "0")
 		float pad = depthText.text().isEmpty() ? 0
@@ -274,8 +303,6 @@ public class MenuPane extends Component {
 		if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
 				&& Dungeon.hero != null && Dungeon.hero.pos != lastHeroPos){
 			lastHeroPos = Dungeon.hero.pos;
-			depthText.text( placeLine() );
-			depthText.measure();
 			placeDepthText();
 		}
 	}
@@ -292,8 +319,10 @@ public class MenuPane extends Component {
 
 		private Document flashingDoc = null;
 		private String flashingPage = null;
-		//a Descent Guide page just found: pressing the button opens the guide on it
+		//a Descent Guide page just found: pressing the button opens the guide on it, or, for a
+		//basics page advised, shows the page over the game
 		private String flashingGuide = null;
+		private boolean flashingGuideOpen = false;
 
 		public JournalButton() {
 			super();
@@ -302,9 +331,14 @@ public class MenuPane extends Component {
 			height = bg.height + 10;
 		}
 
+		//the tutorial: the button comes up once its torn page is picked up off the ground
+		private static boolean hidden(){
+			return WPDSettings.intro() && !GuideProgress.pageFound( GuideGraph.BASICS_INTRO );
+		}
+
 		@Override
 		public GameAction keyAction() {
-			return WPDAction.JOURNAL;
+			return hidden() ? null : WPDAction.JOURNAL;
 		}
 
 		@Override
@@ -344,6 +378,7 @@ public class MenuPane extends Component {
 
 		@Override
 		public void update() {
+			visible = !hidden();
 			super.update();
 
 			if (flashingPage != null || flashingGuide != null){
@@ -386,39 +421,45 @@ public class MenuPane extends Component {
 		protected void onClick() {
 			time = 0;
 			keyIcon.am = journalIcon.am = 1;
-			//a page of the adventurer's guide (the tutorial's) goes first: the intro waits on it
+			//a guide page goes first: the tutorial's own page waits on it
 			if (flashingGuide != null && flashingPage == null){
-				GuideScene.focusKey = flashingGuide;
-				GuideScene.returnScene = GameScene.class;
+				String key = flashingGuide;
+				boolean open = flashingGuideOpen;
 				flashingGuide = null;
 				updateKeyDisplay();
-				WarpedPixelDungeon.switchScene( GuideScene.class );
-				return;
-			}
-			if (flashingPage != null){
-				if (flashingDoc == Document.ALCHEMY_GUIDE){
-					WndJournal.last_index = 2;
-					GameScene.show( new WndJournal() );
-				} else if (flashingDoc.pageNames().contains(flashingPage)){
-					if (flashingDoc == Document.ADVENTURERS_GUIDE){
-						WndJournal.last_index = 1;
-					} else if (flashingDoc.isLoreDoc()){
-						WndJournal.last_index = 3;
-						WndJournal.CatalogTab.currentItemIdx = 3;
-					}
-					GameScene.show( new WndStory( flashingDoc.pageSprite(flashingPage),
-							flashingDoc.pageTitle(flashingPage),
-							flashingDoc.pageBody(flashingPage) ){
+				GameScene.guideFlashSeen();
+				if (open){
+					//a page of the basics, over the game; reading the intro's ends the tutorial
+					WndGuideNode page = WndGuideNode.forPage( key, new Callback() {
 						@Override
-						public void hide() {
-							super.hide();
+						public void call() {
+							GuideTrail.refresh();
 							if (WPDSettings.intro()){
 								GameScene.endIntro();
 							}
 						}
-					});
+					}, !WPDSettings.intro() );
+					GameScene.show( page != null ? page : new WndJournal() );
+				} else {
+					GuideScene.focusKey = key;
+					GuideScene.returnScene = GameScene.class;
+					WarpedPixelDungeon.switchScene( GuideScene.class );
+				}
+				return;
+			}
+			if (flashingPage != null){
+				if (flashingDoc == Document.ALCHEMY_GUIDE){
+					WndJournal.last_index = WndJournal.ALCHEMY;
+					GameScene.show( new WndJournal() );
+				} else if (flashingDoc.pageNames().contains(flashingPage)){
+					if (flashingDoc.isLoreDoc()){
+						WndJournal.last_index = WndJournal.CATALOG;
+						WndJournal.CatalogTab.currentItemIdx = 3;
+					}
+					GameScene.show( new WndStory( flashingDoc.pageSprite(flashingPage),
+							flashingDoc.pageTitle(flashingPage),
+							flashingDoc.pageBody(flashingPage) ) );
 					flashingDoc.readPage(flashingPage);
-					GuideTrail.refresh();
 				} else {
 					GameScene.show( new WndJournal() );
 				}

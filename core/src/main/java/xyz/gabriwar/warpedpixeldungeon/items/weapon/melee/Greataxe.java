@@ -56,6 +56,7 @@ public class Greataxe extends MeleeWeapon {
 		if (masteryPotionBonus){
 			req -= 2;
 		}
+		req -= xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.strReqBonus( this );
 		return req;
 	}
 

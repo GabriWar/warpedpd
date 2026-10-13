@@ -27,7 +27,6 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
-import xyz.gabriwar.warpedpixeldungeon.actors.mobs.MonsterBox;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Wraith;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Shopkeeper;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
@@ -45,15 +44,16 @@ import xyz.gabriwar.warpedpixeldungeon.items.food.FrozenCarpaccio;
 import xyz.gabriwar.warpedpixeldungeon.items.food.Food;
 import xyz.gabriwar.warpedpixeldungeon.items.food.MonsterMeat;
 import xyz.gabriwar.warpedpixeldungeon.items.food.MysteryMeat;
+import xyz.gabriwar.warpedpixeldungeon.items.journal.DescentPage;
 import xyz.gabriwar.warpedpixeldungeon.items.journal.DocumentPage;
-import xyz.gabriwar.warpedpixeldungeon.items.journal.Guidebook;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.Potion;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfWealth;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.Scroll;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.Wand;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.Dart;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.TippedDart;
-import xyz.gabriwar.warpedpixeldungeon.journal.Document;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideProgress;
 import xyz.gabriwar.warpedpixeldungeon.items.RedDewdrop;
 import xyz.gabriwar.warpedpixeldungeon.items.VioletDewdrop;
 import xyz.gabriwar.warpedpixeldungeon.items.YellowDewdrop;
@@ -76,7 +76,6 @@ public class Heap implements Bundlable {
 		CHEST,
 		LOCKED_CHEST,
 		CRYSTAL_CHEST,
-		MONSTER_BOX,
 		TOMB,
 		SKELETON,
 		REMAINS
@@ -95,14 +94,6 @@ public class Heap implements Bundlable {
 	
 	public void open( Hero hero ) {
 		switch (type) {
-		case MONSTER_BOX:
-			//looks exactly like a chest until it is opened
-			if (MonsterBox.spawnAt( pos, new ArrayList<>( items ) ) != null) {
-				GLog.n( Messages.get( this, "monster_box" ) );
-				destroy();
-				return;
-			}
-			break;
 		case TOMB:
 			Wraith.spawnAround( hero.pos );
 			break;
@@ -456,7 +447,6 @@ public class Heap implements Bundlable {
 					return i.title();
 				}
 			case CHEST:
-			case MONSTER_BOX:
 				return Messages.get(this, "chest");
 			case LOCKED_CHEST:
 				return Messages.get(this, "locked_chest");
@@ -476,7 +466,6 @@ public class Heap implements Bundlable {
 	public String info(){
 		switch(type){
 			case CHEST:
-			case MONSTER_BOX:
 				return Messages.get(this, "chest_desc");
 			case LOCKED_CHEST:
 				return Messages.get(this, "locked_chest_desc");
@@ -511,7 +500,9 @@ public class Heap implements Bundlable {
 	public void restoreFromBundle( Bundle bundle ) {
 		pos = bundle.getInt( POS );
 		seen = bundle.getBoolean( SEEN );
-		type = Type.valueOf( bundle.getString( TYPE ) );
+		//the monster box is gone: one unopened in an old save is a plain chest
+		String t = bundle.getString( TYPE );
+		type = t.equals( "MONSTER_BOX" ) ? Type.CHEST : Type.valueOf( t );
 		
 		items = new LinkedList<>((Collection<Item>) ((Collection<?>) bundle.getCollection(ITEMS)));
 		items.removeAll(Collections.singleton(null));
@@ -523,8 +514,13 @@ public class Heap implements Bundlable {
 					||    ((DocumentPage) item).document().isPageFound(((DocumentPage) item).page()))){
 				items.remove(item);
 			}
-			if (item instanceof Guidebook && Document.ADVENTURERS_GUIDE.isPageRead(0)){
-				items.remove(item);
+			//a guide page the guide no longer holds, or a page of the basics already read (the tome
+			//of dungeon mastery, left lying in an old save, comes back as the intro's page)
+			if (item instanceof DescentPage){
+				String page = ((DescentPage) item).page();
+				if (GuideGraph.titleForKey(page) == null || (GuideGraph.basics(page) && GuideProgress.isRead(page))){
+					items.remove(item);
+				}
 			}
 		}
 		

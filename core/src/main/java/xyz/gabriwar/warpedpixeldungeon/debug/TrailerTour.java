@@ -242,7 +242,7 @@ public class TrailerTour {
 		act( () -> {
 			caption( "Hundreds of items", "New potions, scrolls, seeds, weapons, wands and artifacts" );
 			for (Catalog c : Catalog.values()) for (Class<?> cls : c.items()) Catalog.setSeen( cls );
-			WndJournal.last_index = 3;
+			WndJournal.last_index = WndJournal.CATALOG;
 			WndJournal.CatalogTab.currentItemIdx = 1;
 			journal = new WndJournal();
 			GameScene.show( journal );

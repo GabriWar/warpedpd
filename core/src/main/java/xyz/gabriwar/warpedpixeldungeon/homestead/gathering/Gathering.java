@@ -191,6 +191,8 @@ public final class Gathering {
 		Level level = Dungeon.level;
 		if (!(level instanceof OverworldLevel) || cell < 0 || cell >= level.length() || !level.adjacent( hero.pos, cell )) return null;
 		int t = level.map[cell];
+		//a stump is walked onto: only a held press chops it out
+		if (BuiltTerrain.stump( t ) && !xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector.heldTap) return null;
 		if (choppable( t ) && axe( hero ) != null) return Job.CHOP;
 		if (t == Terrain.BOULDER && quarryTool( hero ) != null) return Job.QUARRY;
 		return null;

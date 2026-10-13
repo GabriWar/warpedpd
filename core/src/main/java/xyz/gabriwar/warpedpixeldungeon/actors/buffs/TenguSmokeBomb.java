@@ -141,13 +141,21 @@ public class TenguSmokeBomb extends Buff {
 		}
 
 		clearItem();
+		blast( this, cell, level );
+		detach();
+		return true;
+	}
+
+	/** the bomb going off: everything within 2 tiles is hit, never the rogue or an ally.
+	 *  The shocker and the mastered fire bomb end with the same blast. */
+	public static void blast( Buff bomb, int cell, int level ){
 		SpatialSound.play( Assets.Sounds.BLAST, cell );
 		if (Dungeon.level.heroFOV[cell]){
 			CellEmitter.center( cell ).burst( BlastParticle.FACTORY, 30 );
 			Fx.shake( 3, 0.5f );
 		}
-		int lvl = target instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero
-				? ((xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero) target).lvl : Dungeon.scalingDepth();
+		int lvl = bomb.target instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero
+				? ((xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero) bomb.target).lvl : Dungeon.scalingDepth();
 		PathFinder.buildDistanceMap( cell, BArray.not( Dungeon.level.solid, null ), 2 );
 		for (int c = 0; c < PathFinder.distance.length; c++){
 			if (PathFinder.distance[c] == Integer.MAX_VALUE) continue;
@@ -156,10 +164,8 @@ public class TenguSmokeBomb extends Buff {
 			if (ch == null || ch.alignment != Char.Alignment.ENEMY) continue;
 			int dmg = Random.NormalIntRange( 5 + lvl / 3, 10 + 2 * lvl / 3 ) + 2 * level;
 			dmg -= ch.drRoll();
-			if (dmg > 0) ch.damage( dmg, this );
+			if (dmg > 0) ch.damage( dmg, bomb );
 		}
-		detach();
-		return true;
 	}
 
 	private void puff( int n ){

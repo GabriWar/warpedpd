@@ -71,7 +71,6 @@ import xyz.gabriwar.warpedpixeldungeon.ui.RedButton;
 import xyz.gabriwar.warpedpixeldungeon.ui.RenderedTextBlock;
 import xyz.gabriwar.warpedpixeldungeon.ui.ScrollPane;
 import xyz.gabriwar.warpedpixeldungeon.ui.ScrollingGridPane;
-import xyz.gabriwar.warpedpixeldungeon.ui.ScrollingListPane;
 import xyz.gabriwar.warpedpixeldungeon.ui.Window;
 import com.watabou.input.KeyBindings;
 import com.watabou.input.KeyEvent;
@@ -96,13 +95,15 @@ public class WndJournal extends WndTabbed {
 	
 	private static final int ITEM_HEIGHT	= 18;
 	
-	private GuideTab guideTab;
 	private AlchemyTab alchemyTab;
 	private NotesTab notesTab;
 	private CatalogTab catalogTab;
 	private BadgesTab badgesTab;
 	
-	public static int last_index = 0;
+	//the tabs, in order (the Descent Guide's launcher comes last and is never one to come back to)
+	public static final int NOTES = 0, ALCHEMY = 1, CATALOG = 2, BADGES = 3;
+
+	public static int last_index = NOTES;
 
 	private static WndJournal INSTANCE = null;
 	
@@ -116,11 +117,6 @@ public class WndJournal extends WndTabbed {
 		int height = PixelScene.landscape() ? HEIGHT_L : HEIGHT_P;
 		
 		resize(width, height);
-		
-		guideTab = new GuideTab();
-		add(guideTab);
-		guideTab.setRect(0, 0, width, height);
-		guideTab.updateList();
 		
 		alchemyTab = new AlchemyTab();
 		add(alchemyTab);
@@ -146,7 +142,7 @@ public class WndJournal extends WndTabbed {
 					protected void select( boolean value ) {
 						super.select( value );
 						notesTab.active = notesTab.visible = value;
-						if (value) last_index = 0;
+						if (value) last_index = NOTES;
 					}
 
 					@Override
@@ -154,23 +150,11 @@ public class WndJournal extends WndTabbed {
 						return Messages.get(notesTab, "title");
 					}
 				},
-				new IconTab( new ItemSprite(ItemSpriteSheet.MASTERY, null) ) {
-					protected void select( boolean value ) {
-						super.select( value );
-						guideTab.active = guideTab.visible = value;
-						if (value) last_index = 1;
-					}
-
-					@Override
-					protected String hoverText() {
-						return Messages.get(guideTab, "title");
-					}
-				},
 				new IconTab( Icons.ALCHEMY.get() ) {
 					protected void select( boolean value ) {
 						super.select( value );
 						alchemyTab.active = alchemyTab.visible = value;
-						if (value) last_index = 2;
+						if (value) last_index = ALCHEMY;
 					}
 
 					@Override
@@ -182,7 +166,7 @@ public class WndJournal extends WndTabbed {
 					protected void select( boolean value ) {
 						super.select( value );
 						catalogTab.active = catalogTab.visible = value;
-						if (value) last_index = 3;
+						if (value) last_index = CATALOG;
 					}
 
 					@Override
@@ -194,7 +178,7 @@ public class WndJournal extends WndTabbed {
 					protected void select( boolean value ) {
 						super.select( value );
 						badgesTab.active = badgesTab.visible = value;
-						if (value) last_index = 4;
+						if (value) last_index = BADGES;
 					}
 
 					@Override
@@ -246,61 +230,9 @@ public class WndJournal extends WndTabbed {
 	@Override
 	public void offset(int xOffset, int yOffset) {
 		super.offset(xOffset, yOffset);
-		guideTab.layout();
 		alchemyTab.layout();
 		notesTab.layout();
 		catalogTab.layout();
-	}
-	
-	public static class GuideTab extends Component {
-
-		private ScrollingListPane list;
-		
-		@Override
-		protected void createChildren() {
-			list = new ScrollingListPane();
-			add( list );
-		}
-		
-		@Override
-		protected void layout() {
-			super.layout();
-			list.setRect( x, y, width, height);
-		}
-		
-		public void updateList(){
-			list.addTitle(Document.ADVENTURERS_GUIDE.title());
-
-			for (String page : Document.ADVENTURERS_GUIDE.pageNames()){
-				boolean found = Document.ADVENTURERS_GUIDE.isPageFound(page);
-				ScrollingListPane.ListItem item = new ScrollingListPane.ListItem(
-						Document.ADVENTURERS_GUIDE.pageSprite(page),
-						null,
-						found ? Messages.titleCase(Document.ADVENTURERS_GUIDE.pageTitle(page)) : Messages.titleCase(Messages.get( this, "missing" ))
-				){
-					@Override
-					public boolean onClick(float x, float y) {
-						if (inside( x, y ) && found) {
-							WarpedPixelDungeon.scene().addToFront( new WndStory( Document.ADVENTURERS_GUIDE.pageSprite(page),
-									Document.ADVENTURERS_GUIDE.pageTitle(page),
-									Document.ADVENTURERS_GUIDE.pageBody(page) ));
-							Document.ADVENTURERS_GUIDE.readPage(page);
-							return true;
-						} else {
-							return false;
-						}
-					}
-				};
-				if (!found){
-					item.hardlight(0x999999);
-					item.hardlightIcon(0x999999);
-				}
-				list.addItem(item);
-			}
-
-			list.setRect(x, y, width, height);
-		}
-
 	}
 	
 	public static class AlchemyTab extends Component {

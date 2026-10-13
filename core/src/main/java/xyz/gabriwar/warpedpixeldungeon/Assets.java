@@ -204,6 +204,12 @@ public class Assets {
 		public static final String HOMESTEAD = "messages/homestead/homestead";
 		//the homesteads' fields and animals (homestead/farming, homestead/animals)
 		public static final String HOMESTEAD_FARMING = "messages/homestead/farming";
+		//the Descent Guide's acted-out scenes, a bundle for each group of chapters (journal/guidedemos)
+		public static final String DEMOS_SURFACE = "messages/guide/demos_surface";
+		public static final String DEMOS_EARLY   = "messages/guide/demos_early";
+		public static final String DEMOS_LATE    = "messages/guide/demos_late";
+		public static final String DEMOS_EXTRA   = "messages/guide/demos_extra";
+		public static final String DEMOS_BASICS  = "messages/guide/demos_basics";
 	}
 
 	public static class Music {
@@ -341,6 +347,9 @@ public class Assets {
 		public static final String WOOD_BREAK = "sounds/wood_break.mp3";
 		public static final String KILN       = "sounds/kiln.mp3";
 		public static final String ROPE       = "sounds/rope.mp3";
+		public static final String TRUMPET_NOTE = "sounds/trumpet_note.mp3";
+		public static final String FLUTE_NOTE   = "sounds/flute_note.mp3";
+		public static final String HARP_NOTE    = "sounds/harp_note.mp3";
 
 		public static final String[] all = new String[]{
 				CLICK, BADGE, GOLD,
@@ -355,7 +364,8 @@ public class Assets {
 				TELEPORT, CHARMS, MASTERY, PUFF, ROCKS, ROCKS_LIGHT, BURNING, FALLING, GHOST, SECRET, BONES,
 				BEE, DEGRADE, MIMIC, DEBUFF, CHARGEUP, GAS, CHAINS, SCAN, SHEEP, MINE, HOWL,
 				WALL_BREAK_1, WALL_BREAK_2, WALL_BREAK_3, DEBRIS,
-				CHOP, TREE_FALL, SAW, HAMMER, STONE_SET, DIG, REAP, DOOR_BAR, BELL, WOOD_BREAK, KILN, ROPE
+				CHOP, TREE_FALL, SAW, HAMMER, STONE_SET, DIG, REAP, DOOR_BAR, BELL, WOOD_BREAK, KILN, ROPE,
+				TRUMPET_NOTE, FLUTE_NOTE, HARP_NOTE
 		};
 	}
 
@@ -583,7 +593,6 @@ public class Assets {
 		public static final String RAT_BOSS        = "sprites/ratboss.png";
 		public static final String BANDIT_KING     = "sprites/banditking.png";
 		public static final String THIEF_KING      = "sprites/thiefking.png";
-		public static final String MONSTER_BOX     = "sprites/monsterbox.png";
 		public static final String KUPUA           = "sprites/kupua.png";
 		public static final String GULLIN          = "sprites/gullin.png";
 		public static final String TOWER           = "sprites/tower.png";

@@ -794,10 +794,16 @@ public class DungeonTileSheet {
 	//alt visual priority is back to front, so put lowest chance ones last
 	//e.g. a 67% and a 33% chance work out to 33% chance each with a 33% chance of no alt
 	public static int getVisualWithAlts(int visual, int pos){
+		return visualWithAlts(visual, tileVariance[pos]);
+	}
+
+	/** The look a visual takes on a cell whose variance (0-99) is this: a level's cells take theirs from
+	 *  tileVariance, a guide scene's from its own (it has no level). */
+	public static int visualWithAlts(int visual, int variance){
 		if (tileAltVisuals.containsKey(visual)){
 			tileAlt alts = tileAltVisuals.get(visual);
 			for (int i = 0; i < alts.chances.length; i++){
-				if (tileVariance[pos] < alts.chances[i]){
+				if (variance < alts.chances[i]){
 					visual = alts.alts[i];
 				}
 			}

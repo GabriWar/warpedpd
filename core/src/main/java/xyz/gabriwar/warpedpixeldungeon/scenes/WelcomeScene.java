@@ -33,7 +33,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.BannerSprites;
 import xyz.gabriwar.warpedpixeldungeon.effects.WobblyBanner;
 import xyz.gabriwar.warpedpixeldungeon.effects.Fireball;
 import xyz.gabriwar.warpedpixeldungeon.journal.Document;
-import xyz.gabriwar.warpedpixeldungeon.services.news.News;
 import xyz.gabriwar.warpedpixeldungeon.journal.Journal;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.ui.Icons;
@@ -182,6 +181,7 @@ public class WelcomeScene extends PixelScene {
 				protected void onClick() {
 					super.onClick();
 					updateVersion(previousVersion);
+					ChangesScene.changesSelected = ChangesScene.NEWEST;
 					WarpedPixelDungeon.switchScene(ChangesScene.class);
 				}
 			};
@@ -207,18 +207,11 @@ public class WelcomeScene extends PixelScene {
 				message = Messages.get(this, "update_intro");
 				message += "\n\n" + Messages.get(this, "update_msg");
 			} else {
-				message = Messages.get(this, "patch_intro");
-				//show the latest release's actual changelog when the news feed is
-				//loaded; fall back to the generic blurb if it isn't yet
-				String changelog = latestNewsChangelog();
-				if (changelog != null) {
-					message += "\n\n" + changelog;
-				} else {
-					message += "\n";
-					message += "\n" + Messages.get(this, "patch_balance");
-					message += "\n" + Messages.get(this, "patch_bugfixes");
-					message += "\n" + Messages.get(this, "patch_translations");
-				}
+				//what is new since the version the player last ran, as rows with their icons,
+				//from the same list as the Changes screen's version tabs (WarpedUpdates)
+				float titleBottom = title.y + title.height();
+				addPatchRows( previousVersion, insets.left, w, titleBottom + 2, okay.top() - 4 );
+				return;
 			}
 		} else {
 			message = Messages.get(this, "what_msg");
@@ -255,21 +248,88 @@ public class WelcomeScene extends PixelScene {
 
 	//the latest release's changelog as plain bullet text (hashes stripped), or null
 	//if the news feed hasn't loaded yet
-	private static String latestNewsChangelog(){
-		if (!News.articlesAvailable()) return null;
-		java.util.ArrayList<xyz.gabriwar.warpedpixeldungeon.services.news.NewsArticle> arts = News.articles();
-		if (arts == null || arts.isEmpty()) return null;
-		StringBuilder sb = new StringBuilder();
-		int n = 0;
-		for (String l : arts.get(0).summary.split("\n")){
-			l = l.trim().replaceAll("\\s*\\([0-9a-f]{7,10}\\)\\s*$", "");
-			if (l.isEmpty()) continue;
-			if (n > 0) sb.append("\n");
-			sb.append(l);
-			if (++n >= 8) break;
+	/**
+	 * The patched screen's list: a heading, then one row per update newer than the version the
+	 * player last ran (or the newest one), each its icon beside its title in the title colour and a
+	 * one-line summary under it, as many as fit between the banner and the buttons, and a last line
+	 * pointing to the Changes screen for the rest. The block is centred in that space.
+	 */
+	private void addPatchRows( int previousVersion, float left, float width, float top, float bottom ){
+		java.util.ArrayList<xyz.gabriwar.warpedpixeldungeon.ui.changelist.WarpedUpdates.Entry> news =
+				xyz.gabriwar.warpedpixeldungeon.ui.changelist.WarpedUpdates.since( previousVersion );
+		if (news.isEmpty() && xyz.gabriwar.warpedpixeldungeon.ui.changelist.WarpedUpdates.ALL.length > 0){
+			news.add( xyz.gabriwar.warpedpixeldungeon.ui.changelist.WarpedUpdates.ALL[0] );
 		}
-		return n > 0 ? sb.toString() : null;
+		float colW = Math.min( width - 20, 220 );
+		float colX = left + (width - colW) / 2f;
+		final float ICON = 16, GAP = 5, ROW_GAP = 6;
+
+		RenderedTextBlock heading = PixelScene.renderTextBlock( Messages.get( this, "patch_intro" ), 9 );
+		heading.hardlight( 0xFFFFFF );
+		java.util.ArrayList<com.watabou.noosa.ui.Component> rows = new java.util.ArrayList<>();
+		java.util.ArrayList<Float> heights = new java.util.ArrayList<>();
+		float used = heading.height() + 8;
+		int shown = 0;
+		for (xyz.gabriwar.warpedpixeldungeon.ui.changelist.WarpedUpdates.Entry e : news){
+			RenderedTextBlock t = PixelScene.renderTextBlock( e.title, 7 );
+			t.hardlight( xyz.gabriwar.warpedpixeldungeon.ui.Window.TITLE_COLOR );
+			t.maxWidth( (int)(colW - ICON - GAP) );
+			RenderedTextBlock d = PixelScene.renderTextBlock( e.summary, 6 );
+			d.hardlight( 0xCACFC2 );
+			d.maxWidth( (int)(colW - ICON - GAP) );
+			float h = Math.max( ICON, t.height() + 2 + d.height() );
+			//room left for this row and, if more follow, the line pointing to the Changes screen
+			float more = news.size() - shown - 1 > 0 ? 12 : 0;
+			if (used + h + more > bottom - top && shown > 0) break;
+			Image icon = e.icon.get();
+			float s = Math.min( 1f, ICON / Math.max( icon.width(), icon.height() ) );
+			icon.scale.set( s );
+			final RenderedTextBlock ft = t, fd = d;
+			final Image fi = icon;
+			com.watabou.noosa.ui.Component row = new com.watabou.noosa.ui.Component(){
+				@Override
+				protected void layout(){
+					fi.x = x + (ICON - fi.width() * fi.scale.x) / 2f;
+					fi.y = y + (Math.min( height, ICON + 4 ) - fi.height() * fi.scale.y) / 2f;
+					PixelScene.align( fi );
+					ft.setPos( x + ICON + GAP, y );
+					fd.setPos( x + ICON + GAP, ft.bottom() + 2 );
+				}
+			};
+			row.add( icon );
+			row.add( t );
+			row.add( d );
+			rows.add( row );
+			heights.add( h );
+			used += h + ROW_GAP;
+			shown++;
+		}
+		RenderedTextBlock rest = null;
+		if (news.size() > shown){
+			rest = PixelScene.renderTextBlock( Messages.get( this, "patch_more", news.size() - shown ), 6 );
+			rest.hardlight( 0xA0A79A );
+			used += rest.height();
+		}
+
+		float y = top + Math.max( 0, (bottom - top - used) / 2f );
+		heading.setPos( left + (width - heading.width()) / 2f, y );
+		PixelScene.align( heading );
+		add( heading );
+		y = heading.bottom() + 8;
+		for (int i = 0; i < rows.size(); i++){
+			com.watabou.noosa.ui.Component row = rows.get( i );
+			row.setRect( colX, y, colW, heights.get( i ) );
+			add( row );
+			y += heights.get( i ) + ROW_GAP;
+		}
+		if (rest != null){
+			rest.setPos( left + (width - rest.width()) / 2f, y );
+			PixelScene.align( rest );
+			add( rest );
+		}
 	}
+
+
 
 	private void updateVersion(int previousVersion){
 

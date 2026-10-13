@@ -143,7 +143,7 @@ public class MegaCannon extends Weapon {
 
 	@Override
 	public int STRReq(int lvl) {
-		return STRReq(1, lvl); //tier 1, STR 10 like the SPS original
+		return STRReq(1, lvl) - xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.strReqBonus( this ); //tier 1, STR 10 like the SPS original
 	}
 
 	//SPS stats: 1-5 base, +1 min / +3 max per upgrade

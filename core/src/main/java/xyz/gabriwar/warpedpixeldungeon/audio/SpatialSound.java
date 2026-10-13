@@ -33,7 +33,8 @@ import com.watabou.utils.DeviceCompat;
 
 /**
  * The game's sound effects from where they happen. While spatial sound is on (Settings, Audio)
- * a sound is panned to the side of the hero it is on and is quieter the further off it is; off,
+ * a sound is panned to the side of the hero it is on and is quieter the further off it is, as
+ * strongly as its strength slider says; off,
  * every one plays exactly as it always has, centred and at its own volume. So does a sound at
  * the hero's own cell, or one with nowhere to be (no hero or level, a cell off the map, no char).
  *
@@ -53,40 +54,80 @@ public final class SpatialSound {
 	/** Is spatial sound on? WPDSettings sets it at boot and from its switch. */
 	public static volatile boolean on = false;
 
-	//a sound PAN_CELLS or more to one side is panned as far as it goes, MAX_PAN: never wholly
-	//into one ear (see desktop)
-	public static final float PAN_CELLS = 5f, MAX_PAN = 0.8f;
-	//a sound HALF_CELLS away has lost half of what distance can take from it, and none drops
-	//below FLOOR: whatever the game tells by ear is still heard from across the map
-	public static final float HALF_CELLS = 6f, FLOOR = 0.3f;
+	/** How strong it is, MIN_STRENGTH to MAX_STRENGTH (Settings, Audio): WPDSettings sets it at boot
+	 *  and from its slider. 2 is how it first sounded; DEFAULT_STRENGTH is twice as wide. */
+	public static volatile int strength;
+	public static final int MIN_STRENGTH = 1, MAX_STRENGTH = 5, DEFAULT_STRENGTH = 4;
+
+	//by strength (index 1 to 5): a sound PAN_CELLS or more to one side is panned as far as it goes,
+	//MAX_PAN (short of 1 below the top: never wholly into one ear); one HALF_CELLS away has lost half
+	//of what distance can take from it, and none drops below FLOOR, so what the game tells by ear is
+	//still heard from across the map; DESKTOP_PAN is the part of a pan desktop gets (see desktop)
+	private static final float[] PAN_CELLS   = { 0, 8f,    5f,   3.5f,  2.5f,  2f    };
+	private static final float[] MAX_PAN     = { 0, 0.6f,  0.8f, 0.9f,  0.95f, 1f    };
+	private static final float[] HALF_CELLS  = { 0, 9f,    6f,   4.5f,  3.5f,  2.5f  };
+	private static final float[] FLOOR       = { 0, 0.45f, 0.3f, 0.22f, 0.15f, 0.1f  };
+	private static final float[] DESKTOP_PAN = { 0, 0.5f,  0.5f, 0.6f,  0.7f,  0.85f };
+
+	static {
+		strength( DEFAULT_STRENGTH );
+	}
+
+	/** Sets the strength, kept within MIN_STRENGTH and MAX_STRENGTH. */
+	public static void strength( int value ){
+		strength = Math.max( MIN_STRENGTH, Math.min( MAX_STRENGTH, value ) );
+	}
+
+	/** The cells to one side from which a sound is panned as far as it goes, at this strength. */
+	public static float panCells(){
+		return PAN_CELLS[strength];
+	}
+
+	/** The furthest a sound is panned, at this strength. */
+	public static float maxPan(){
+		return MAX_PAN[strength];
+	}
+
+	/** The distance (cells) at which a sound has lost half of what distance can take, at this strength. */
+	public static float halfCells(){
+		return HALF_CELLS[strength];
+	}
+
+	/** The least of its volume a placed sound keeps however far off, at this strength. */
+	public static float floor(){
+		return FLOOR[strength];
+	}
 
 	/** The pan of a sound this many cells to the hero's right (negative: left): 0 while off. */
 	public static float pan( float dx ){
 		if (!on) return 0f;
-		return Math.max( -MAX_PAN, Math.min( MAX_PAN, dx / PAN_CELLS ) );
+		float max = maxPan();
+		return Math.max( -max, Math.min( max, dx / panCells() ) );
 	}
 
 	/** How much of its volume a sound this many cells off the hero keeps: all of it while off. */
 	public static float level( float dx, float dy ){
 		if (!on) return 1f;
-		float d = (dx * dx + dy * dy) / (HALF_CELLS * HALF_CELLS);
-		return FLOOR + (1f - FLOOR) / (1f + d);
+		float half = halfCells(), floor = floor();
+		float d = (dx * dx + dy * dy) / (half * half);
+		return floor + (1f - floor) / (1f + d);
 	}
 
 	//Does this device pan as libGDX's desktop audio does? It pans a sound by moving it round
 	//the listener, from right behind (pan 0) to one side (pan 1), and OpenAL Soft's stereo mix
 	//makes that sound louder in all (+4.4 dB at pan 0.8) and all but silent in the far ear from
 	//pan 0.7 (-45 dB at 0.8); Android's SoundPool only turns the far side down, to 1 - pan. So
-	//on desktop a pan is halved and its volume eased back by sqrt(1 + pan^2): a placed sound is
-	//as loud in all as the same one centred, and pan 0.8 leaves the far ear 15 dB down, as
-	//Android's does 14. A test may set it.
+	//on desktop a pan is cut to DESKTOP_PAN of itself (half up to strength 2: pan 0.8 leaves the
+	//far ear 15 dB down, as Android's does 14; more above, to the far ear all but silent at the
+	//top) and its volume eased back by sqrt(1 + pan^2), so a placed sound is as loud in all as
+	//the same one centred. A test may set it.
 	static boolean desktop = DeviceCompat.isDesktop();
 
 	/** The pan to hand the device for a sound panned `pan`: as it is while spatial sound is
-	 *  off, and on Android; halved on desktop (see desktop). Every placed sound, effect or
-	 *  ambience, reaches the device through this and deviceVolume. */
+	 *  off, and on Android; cut to DESKTOP_PAN on desktop (see desktop). Every placed sound,
+	 *  effect or ambience, reaches the device through this and deviceVolume. */
 	public static float devicePan( float pan ){
-		return on && desktop ? pan * 0.5f : pan;
+		return on && desktop ? pan * DESKTOP_PAN[strength] : pan;
 	}
 
 	/** The volume to hand the device for a sound at `volume` panned `pan` (see devicePan). */
@@ -159,7 +200,7 @@ public final class SpatialSound {
 	//a sound out of the hero's sight (a fight round the corner, a door opening behind him, a trap
 	//going off down the hall) is heard UNSEEN_LOUD as loud as it is up to UNSEEN_NEAR cells off,
 	//dying away smoothly to nothing at UNSEEN_CELLS, spatial sound on or off: no floor, as what
-	//is in sight has (FLOOR)
+	//is in sight has (floor())
 	public static final float UNSEEN_CELLS = 10f, UNSEEN_NEAR = 2f, UNSEEN_LOUD = 0.8f;
 
 	/** How much of its volume a sound out of sight keeps this many cells off: UNSEEN_LOUD near,
