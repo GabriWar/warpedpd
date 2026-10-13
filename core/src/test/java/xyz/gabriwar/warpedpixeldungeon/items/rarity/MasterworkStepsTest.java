@@ -34,7 +34,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-//three masterwork steps of a core each: a quarter, another quarter, then every line doubled
+//five masterwork steps of a core each: 15% a step for four, then every line doubled
 public class MasterworkStepsTest {
 
 	@BeforeClass
@@ -54,7 +54,7 @@ public class MasterworkStepsTest {
 	}
 
 	@Test
-	public void threeStepsOfOneCoreAndTheLastDoubles(){
+	public void fiveStepsOfOneCoreAndTheLastDoubles(){
 		Longsword sword = new Longsword();
 		Quality.roll( sword, Rarity.LEGENDARY, ItemType.GAMMA, 0 );
 		Quality q = sword.quality;
@@ -63,10 +63,10 @@ public class MasterworkStepsTest {
 		q.lines.add( RarityLine.ACCURACY );
 		q.rolls.add( 0.6f );
 		float base = RarityLine.ACCURACY.max() * 0.6f;
-		float[] scale = { 1f, 1.25f, 1.5f, 2f };
-		for (int step = 0; step <= 3; step++){
+		float[] scale = { 1f, 1.15f, 1.3f, 1.45f, 1.6f, 2f };
+		for (int step = 0; step <= 5; step++){
 			assertEquals( "step " + step, base * scale[step], q.value( RarityLine.ACCURACY ), 1e-5f );
-			if (step < 3){
+			if (step < 5){
 				assertEquals( 1, q.masterworkCost() );
 				q.masterworkStep( sword );
 			}
@@ -78,15 +78,15 @@ public class MasterworkStepsTest {
 	@Test
 	public void theThirdStepTakesALegendaryBase(){
 		Longsword sword = new Longsword();
-		Quality.roll( sword, Rarity.RARE, ItemType.GAMMA, 3 );
-		assertEquals( 2, sword.quality.masterwork );
+		Quality.roll( sword, Rarity.RARE, ItemType.GAMMA, 5 );
+		assertEquals( 4, sword.quality.masterwork );
 		assertFalse( sword.quality.fullyMasterworked() );
 		assertEquals( 0, sword.quality.masterworkCost() );
 	}
 
 	@Test
-	public void aTenStepSaveComesBackInThree(){
-		int[][] cases = { {0, 0}, {1, 1}, {5, 1}, {6, 2}, {9, 2}, {10, 3} };
+	public void anOlderSaveComesBackInFive(){
+		int[][] cases = { {0, 0}, {1, 1}, {2, 1}, {3, 2}, {6, 3}, {7, 4}, {9, 4}, {10, 5} };
 		for (int[] c : cases){
 			Quality q = line( Rarity.LEGENDARY );
 			Bundle old = new Bundle();
@@ -97,6 +97,17 @@ public class MasterworkStepsTest {
 			Quality back = new Quality();
 			back.restoreFromBundle( old );
 			assertEquals( "old step " + c[0], c[1], back.masterwork );
+		}
+		//a save from the three steps: a full piece stays full, the rest keep their step
+		for (int[] c : new int[][]{ {1, 1}, {2, 2}, {3, 5} }){
+			Quality q = line( Rarity.LEGENDARY );
+			Bundle three = new Bundle();
+			q.storeInBundle( three );
+			three.put( "masterwork_steps", 3 );
+			three.put( "masterwork", c[0] );
+			Quality back = new Quality();
+			back.restoreFromBundle( three );
+			assertEquals( "three-step " + c[0], c[1], back.masterwork );
 		}
 		//a save of today keeps its step
 		Quality q = line( Rarity.LEGENDARY );

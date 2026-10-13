@@ -58,10 +58,10 @@ public class Quality implements Bundlable {
 
 	public enum Family { WEAPON, ARMOR, MISSILE, WAND, RING, TRINKET, ARTIFACT }
 
-	//three steps, a core each: the first two lift every bonus line by a quarter, the third doubles them
-	public static final int MASTERWORK_MAX = 3;
+	//five steps, a core each: the first four lift every bonus line by 15% each, the fifth doubles them
+	public static final int MASTERWORK_MAX = 5;
 	//how many masterwork steps a common-to-rare base can take; the last needs legendary or exotic
-	public static final int MASTERWORK_CAP_LOW = 2;
+	public static final int MASTERWORK_CAP_LOW = 4;
 
 	public Rarity rarity = Rarity.COMMON;
 	public ItemType type = ItemType.GAMMA;
@@ -244,10 +244,10 @@ public class Quality implements Bundlable {
 		return rolls.get( i ) * lineScale();
 	}
 
-	/** what masterwork does to every bonus line: x1.25 after one step, x1.5 after two, doubled
-	 *  when full */
+	/** what masterwork does to every bonus line: 15% more a step (x1.15 to x1.6 after four),
+	 *  doubled when full */
 	public float lineScale(){
-		return fullyMasterworked() ? 2f : 1f + 0.25f * masterwork;
+		return fullyMasterworked() ? 2f : 1f + 0.15f * masterwork;
 	}
 
 	public boolean has( RarityLine kind ){
@@ -728,7 +728,7 @@ public class Quality implements Bundlable {
 	private static final String RARITY = "rarity";
 	private static final String TYPE = "type";
 	private static final String MASTERWORK = "masterwork";
-	//written beside the masterwork since it has three steps: a save without it counted ten
+	//how many steps masterwork had when the save was written: a save without it counted ten
 	private static final String MASTERWORK_STEPS = "masterwork_steps";
 	private static final String KILLS = "kills";
 	private static final String GRANTED = "granted";
@@ -758,10 +758,12 @@ public class Quality implements Bundlable {
 		rarity = bundle.getEnum( RARITY, Rarity.class );
 		type = bundle.getEnum( TYPE, ItemType.class );
 		masterwork = bundle.getInt( MASTERWORK );
-		//a save from when masterwork had ten steps: one to five are the first step, six to
-		//nine the second, the tenth the third
-		if (!bundle.contains( MASTERWORK_STEPS ) && masterwork > 0){
-			masterwork = masterwork >= 10 ? 3 : masterwork >= 6 ? 2 : 1;
+		//a save from when masterwork had another number of steps: ten (no mark), where two steps
+		//made one and the tenth the fifth, or three, where a full piece stays full
+		int steps = bundle.contains( MASTERWORK_STEPS ) ? bundle.getInt( MASTERWORK_STEPS ) : 10;
+		if (steps != MASTERWORK_MAX && masterwork > 0){
+			if (masterwork >= steps) masterwork = MASTERWORK_MAX;
+			else if (steps == 10) masterwork = Math.min( MASTERWORK_MAX - 1, (masterwork + 1) / 2 );
 		}
 		masterwork = Math.min( masterwork, MASTERWORK_MAX );
 		kills = bundle.getInt( KILLS );

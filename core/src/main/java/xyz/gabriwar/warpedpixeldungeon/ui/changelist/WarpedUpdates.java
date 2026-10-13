@@ -97,6 +97,9 @@ public final class WarpedUpdates {
 
 	/** Newest first. */
 	public static final Entry[] ALL = {
+		new Entry( 10645, item( ItemSpriteSheet.MASTERWORK_CORE ), "Masterwork in five steps",
+				"Masterwork is 5 steps of a core each; the last doubles every bonus line.",
+				"Masterwork now takes five steps, one core each. Each of the first four lifts every rarity bonus line by 15%, and the fifth, which still needs a legendary or exotic piece, doubles them. A fully masterworked piece stays fully masterworked, and the steps of one partly done keep their place." ),
 		new Entry( 10644, item( ItemSpriteSheet.MASTERWORK_CORE ), "Masterwork in three steps",
 				"Masterwork is 3 steps of a core each; the last doubles every bonus line.",
 				"Masterwork now takes three steps, one core each. The first and the second lift every rarity bonus line by a quarter, and the third, which still needs a legendary or exotic piece, doubles them. Gear masterworked before keeps its place: steps one to five count as the first step, six to nine as the second, and the tenth as the third." ),
