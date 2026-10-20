@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.effects.WhirlHitFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAura;
@@ -123,7 +124,7 @@ public class Rampage extends ActiveSkill3 {
 			hero.heroSkills.deactivateOtherToggles( this );
 			SpatialSound.play( Assets.Sounds.HIT_SLASH, hero, 0.8f, 1.3f );
 			//the blade comes up glinting, and keeps glinting while the stance holds
-			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 5 );
+			if (hero.sprite != null) hero.sprite.emitter().burst( SkillBursts.FLOURISH, 5 );
 		} else if (action.equals(Skill.AC_DEACTIVATE)){
 			SpatialSound.play( Assets.Sounds.HIT_SLASH, hero, 0.4f, 0.7f );
 		}

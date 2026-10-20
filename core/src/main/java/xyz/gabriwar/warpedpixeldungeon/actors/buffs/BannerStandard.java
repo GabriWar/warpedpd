@@ -38,8 +38,10 @@ import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
-import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.BannerFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PulseRingFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 
 /**
  * Banner: the Champion's standard, planted on the tile where an enemy fell. It stands
@@ -62,8 +64,10 @@ public class BannerStandard extends Buff {
 	private int depth;
 	private int branch;
 
-	private ItemSprite pole;
+	private BannerFX standard;
 	private Emitter glow;
+	//planted this moment (it rises out of its cell), rather than restored standing
+	private transient boolean rising;
 
 	public static void plant( Hero hero, int cell, int rank ){
 		BannerStandard banner = hero.buff( BannerStandard.class );
@@ -78,6 +82,7 @@ public class BannerStandard extends Buff {
 		banner.left = 4 + 2 * rank;
 		banner.depth = Dungeon.depth;
 		banner.branch = Dungeon.branch;
+		banner.rising = true;
 		banner.fx( true );
 		SkillFX.pillar( cell, GOLD );
 		SpatialSound.play( Assets.Sounds.CHARGEUP, cell, 0.7f, 1.3f );
@@ -94,6 +99,8 @@ public class BannerStandard extends Buff {
 			detach();
 			return true;
 		}
+		//its beat: the reach it guards pulses out from its foot each turn it stands
+		PulseRingFX.at( cell, BannerFX.LIGHT, 16 * REACH, 0.5f );
 		for (Char ch : Actor.chars()){
 			if (!ch.isAlive() || Dungeon.level.distance( cell, ch.pos ) > REACH
 					|| (ch.pos != cell && !SkillInteractions.clear( cell, ch.pos ))) continue;
@@ -119,12 +126,15 @@ public class BannerStandard extends Buff {
 		return true;
 	}
 
-	//a golden spear-pole planted on the tile with light pouring up from its foot
+	//a standard of light planted on the tile (BannerFX: never a spear lying there), glints of gold
+	//rising from its foot
 	@Override
 	public void fx( boolean on ){
-		if (pole != null){
-			pole.killAndErase();
-			pole = null;
+		boolean fresh = rising;
+		rising = false;
+		if (standard != null){
+			Fx.dispose( standard );
+			standard = null;
 		}
 		if (glow != null){
 			glow.on = false;
@@ -133,12 +143,9 @@ public class BannerStandard extends Buff {
 		if (!on || !onFloor() || target == null || target.sprite == null || target.sprite.parent == null){
 			return;
 		}
-		pole = new ItemSprite( ItemSpriteSheet.SPEAR );
-		pole.hardlight( GOLD );
-		pole.place( cell );
-		target.sprite.parent.add( pole );
+		standard = BannerFX.plant( cell, fresh );
 		glow = CellEmitter.center( cell );
-		glow.pour( Speck.factory( Speck.YELLOW_LIGHT ), 0.4f );
+		glow.pour( SkillBursts.GOLD_GLINT, 0.4f );
 	}
 
 	private static final String CELL   = "banner_cell";

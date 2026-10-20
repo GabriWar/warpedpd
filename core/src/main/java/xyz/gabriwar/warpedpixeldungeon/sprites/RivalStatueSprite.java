@@ -27,7 +27,6 @@ package xyz.gabriwar.warpedpixeldungeon.sprites;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.RivalStatue;
-import xyz.gabriwar.warpedpixeldungeon.items.rarity.WeaponPerk;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.Dart;
 import com.watabou.utils.Callback;
 
@@ -53,7 +52,7 @@ public class RivalStatueSprite extends StatueSprite {
 	@Override
 	public void attack( int cell ){
 		boolean ranged = ch instanceof RivalStatue
-				&& ((RivalStatue) ch).perk() == WeaponPerk.SHOT
+				&& ((RivalStatue) ch).marksman()
 				&& !Dungeon.level.adjacent( cell, ch.pos );
 		if (!ranged){
 			super.attack( cell );

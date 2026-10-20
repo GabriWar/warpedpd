@@ -26,6 +26,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PulseRingFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.MoteFX;
 
 
 import com.watabou.utils.Bundle;
@@ -92,10 +94,15 @@ public class Faith extends PassiveSkillA1 {
 		hero.MP += gain;
 
 		if (hero.sprite != null){
+			//the prayer answered: a star of holy gold, a pulse of mana blue, the game's own mana light
+			//and, when mana comes, motes of it drawn into him
 			new Flare( 6, 32 ).color( 0xFFEE88, true ).show( hero.sprite, 1f );
-			PulseRingFX.around( hero.sprite, 0x8AC0FF, 14, 0.5f );
+			PulseRingFX.around( hero.sprite, SkillPalette.MANA_LIGHT, 14, 0.5f );
 			hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 8 );
-			if (gain > 0) hero.sprite.showStatus( 0x8ac0ff, "+" + gain );
+			if (gain > 0){
+				MoteFX.gather( hero.sprite, 8, SkillPalette.MANA, 18f, 0.4f );
+				hero.sprite.showStatusWithIcon( xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.BlowPresenter.MANA_COLOR, Integer.toString( gain ), xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.MANA );
+			}
 			if (blocks) hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
 		}
 		SpatialSound.play( Assets.Sounds.CHARMS, hero, 1f, 1.3f );

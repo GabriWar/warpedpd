@@ -31,6 +31,9 @@ import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor.Glyph;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite.Glowing;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows;
 import com.watabou.utils.Random;
 
 public class Metabolism extends Glyph {
@@ -56,6 +59,8 @@ public class Metabolism extends Glyph {
 					
 					defender.HP += healing;
 					defender.sprite.showStatusWithIcon( CharSprite.POSITIVE, Integer.toString( healing ), FloatingText.HEALING);
+					//no attacker for the family: nothing is drained from it, his hunger feeds him
+					EnchantFx.ward( EnchantLooks.of( getClass() ), defender, null, 0.45f, level(), EnchantFx.CURSE, ShadowRows.METABOLISM );
 				}
 			}
 

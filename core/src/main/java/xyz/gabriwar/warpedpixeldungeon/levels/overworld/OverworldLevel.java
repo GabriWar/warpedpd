@@ -2648,6 +2648,9 @@ public class OverworldLevel extends Level {
 		v.add( new IceCracks( this ) );
 		//the roof over the hero's head fades (tiles/RoofLayers)
 		v.add( new xyz.gabriwar.warpedpixeldungeon.tiles.RoofLayers.Watcher( this ) );
+		//the clouds' shadows drifting over the land on a fair day, under the surface's own sky (they
+		//lie over the land among the effects, laid there once the scene has made them)
+		if (altitude == 0) v.add( new xyz.gabriwar.warpedpixeldungeon.effects.CloudShadows( this ) );
 		return v;
 	}
 
@@ -2662,6 +2665,15 @@ public class OverworldLevel extends Level {
 	/** A tree with leaves to lose: a standing (unfrozen) forest cell. */
 	public boolean canopyAt( int cell ){
 		return forestAt( cell );
+	}
+
+	/** Whether the crown of an oak on the cell hangs over the cell above it, as the dressing draws it
+	 *  (never over a way in or out, nor off the window's top): where it burns and where a bolt strikes
+	 *  it (effects/fx/fire/BurningTree). Visual only: a mirror's dressing is its own. */
+	public boolean crownAbove( int cell ){
+		int w = width();
+		return dressCanopy != null && cell >= w && cell < length() && map[cell] == Terrain.TREE_OAK
+				&& dressCanopy.get( cell - w ) != -1;
 	}
 
 	/** The aurora shows only over the far north: the hero on a snowfield or the tundra, at night. */

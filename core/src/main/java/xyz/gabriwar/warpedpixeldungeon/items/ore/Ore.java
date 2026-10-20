@@ -109,7 +109,7 @@ public abstract class Ore extends Item {
 			SpatialSound.play( Assets.Sounds.ITEM, hero );
 			int have = before + n;
 			if (before == 0){
-				NetManager.heroLog( hero, Messages.get( Ore.class, n > 1 ? "prised_two" : "prised", name ) );
+				NetManager.heroLog( hero, Messages.get( Ore.class, n == 1 ? "prised" : n == 2 ? "prised_two" : "prised_n", name, n ) );
 			} else if (have / 10 != before / 10){
 				NetManager.heroLog( hero, Messages.get( Ore.class, "you_now_have", have, name ) );
 			}

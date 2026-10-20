@@ -30,8 +30,9 @@ import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PillarRiseFX;
 
 
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -99,15 +100,15 @@ public class Reckoning extends Skill {
 				final float pitch = 0.9f + 0.07f * i;
 				final boolean due = mob.buff( Vulnerable.class ) != null;
 				final boolean pillar = due || level >= MAX_LEVEL;
-				final String word = Messages.get( this, due ? "due" : "judged" );
-				final int colour = due ? CharSprite.NEGATIVE : CharSprite.WARNING;
 				flashes.at( 0.12f * i++, () -> {
-					if (pillar) PillarRiseFX.show( cell, 0xFFEE88, null );
+					if (pillar) PillarRiseFX.show( cell, 0xF1D99C, null );
 					else CellEmitter.get( cell ).burst( Speck.factory( Speck.LIGHT ), 4 );
 					SkillInteractions.flare( cell, 0xFFF1A1 );
 					if (mob.sprite != null && mob.sprite.visible){
 						mob.sprite.flash();
-						mob.sprite.showStatus( colour, word );
+						//judged: the skill's icon; called due: its brand's beside it
+						chipOn( mob );
+						if (due) xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.buffIcon( mob, mob.buff( Vulnerable.class ) );
 					}
 					SpatialSound.play( Assets.Sounds.RAY, mob, 0.8f, pitch );
 				} );
@@ -130,9 +131,10 @@ public class Reckoning extends Skill {
 				}
 			}
 
+			//the judge: holy motes rising off the cleric (never a level-up's stars) and a great star of gold
 			if (hero.sprite != null){
-				hero.sprite.emitter().start( Speck.factory( Speck.STAR ), 0.3f, 10 );
-				new Flare( 10, 32 ).color( 0xFFEE88, true ).show( hero.sprite, 1.2f ).angularSpeed = 90;
+				hero.sprite.emitter().start( SkillBursts.HOLY_MOTE, 0.3f, 10 );
+				PixelFlare.show( SkillVfx.midX( hero.sprite ), SkillVfx.midY( hero.sprite ), 0xF1D99C, PixelFlare.L, 0.8f );
 				Fx.shake( 1, 0.3f );
 			}
 

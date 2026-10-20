@@ -33,7 +33,9 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.DreadFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.ShoutFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
@@ -85,18 +87,23 @@ public class DarkPact extends SubSkill3 {
 				for (int n : PathFinder.NEIGHBOURS8){
 					Char near = Actor.findChar( hero.pos + n );
 					if (near != null && near.isAlive() && near.alignment == Char.Alignment.ENEMY){
-						if (near.sprite != null)
-							near.sprite.emitter().burst( ShadowParticle.CURSE, 6 );
+						if (near.sprite != null){
+							near.sprite.emitter().burst( SkillBursts.DREAD, 6 );
+							ShoutFX.dread( near.sprite, true, 0.1f );
+						}
 						near.damage( Math.max( 1, price / 2 ), this );
 					}
 				}
 			}
 			castTextYell();
-			SpatialSound.play( Assets.Sounds.CURSED, hero, 1f, 0.9f );
-			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.SMOKE ), 6 );
+			SpatialSound.play( Assets.Sounds.DEBUFF, hero, 1f, 0.9f );
+			//the price paid: ink off him, drops of his own blood drawn into his chest, the mana
+			//blooming there (the red and blue lights: health out, mana in)
+			Dungeon.hero.sprite.emitter().burst( SkillBursts.INK_DRIFT, 6 );
 			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.RED_LIGHT ), 4 );
 			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 4 + level );
 			Dungeon.hero.sprite.flash();
+			DreadFX.pact( Dungeon.hero.sprite );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
 			hero.busy();

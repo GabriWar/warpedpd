@@ -32,6 +32,10 @@ import xyz.gabriwar.warpedpixeldungeon.items.Gold;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import com.watabou.utils.Random;
 
 //ported from Unleashed PD: enemies bleed gold
@@ -56,8 +60,9 @@ public class Midas extends Weapon.Enchantment {
 
 		if (goldValue > 0) {
 			Dungeon.level.drop( new Gold( goldValue ), defender.pos ).sprite.drop();
-			defender.sprite.showStatus( CharSprite.NEUTRAL, Integer.toString( goldValue ) );
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.gain( defender, xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.GOLD, goldValue, CharSprite.NEUTRAL );
 			SpatialSound.play( Assets.Sounds.GOLD, defender );
+			EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, Math.min( 1f, goldValue / (1f + 5 * level) ), level(), Quality.isVestige( weapon, this ) ? EnchantFx.ECHO : 0, ShadowRows.midas( damage >= defender.HP ) );
 		}
 
 		return damage;

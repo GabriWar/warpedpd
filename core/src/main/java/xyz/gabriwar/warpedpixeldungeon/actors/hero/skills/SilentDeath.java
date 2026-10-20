@@ -30,12 +30,12 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.DreadFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import com.watabou.utils.Random;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 
@@ -71,11 +71,13 @@ public class SilentDeath extends PassiveSkillB3 {
 		if (level <= 0 || enemy == null) return false;
 		if (enemy.HP + enemy.shielding() - damage > threshold() * enemy.HT) return false;
 		castTextYell();
-		//the kill is quiet; the shadows are not
+		//the kill is quiet; the shadows are not: the sleeper sinks into a pool of ink (never a grim
+		//trap's column rising), ink drifting off the rogue
 		Wound.hit( enemy );
-		CellEmitter.get( enemy.pos ).burst( ShadowParticle.UP, 8 );
+		CellEmitter.get( enemy.pos ).burst( SkillBursts.DREAD, 8 );
+		if (enemy.sprite != null) DreadFX.sink( enemy.sprite );
 		if (Dungeon.hero != null && Dungeon.hero.sprite != null){
-			Dungeon.hero.sprite.emitter().burst( ShadowParticle.UP, 6 );
+			Dungeon.hero.sprite.emitter().burst( SkillBursts.INK_DRIFT, 6 );
 		}
 		SpatialSound.play( Assets.Sounds.HIT_STAB, enemy, 1f, 0.6f );
 		SpatialSound.play( Assets.Sounds.GHOST, enemy, 0.5f, 0.7f );
@@ -95,11 +97,11 @@ public class SilentDeath extends PassiveSkillB3 {
 			hushed.put( m.id(), until );
 			any = true;
 			if (m.sprite != null && m.sprite.visible){
-				CellEmitter.get( m.pos ).burst( xyz.gabriwar.warpedpixeldungeon.effects.Speck.factory( xyz.gabriwar.warpedpixeldungeon.effects.Speck.SMOKE ), 3 );
+				CellEmitter.get( m.pos ).burst( SkillBursts.INK_DRIFT, 3 );
 			}
 		}
 		if (any && Dungeon.hero != null && Dungeon.hero.sprite != null){
-			Dungeon.hero.sprite.showStatus( xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite.NEUTRAL, Messages.get( this, "hush" ) );
+			chipOn( Dungeon.hero );
 			Sample.INSTANCE.play( Assets.Sounds.MELD, 0.6f, 0.8f );
 		}
 	}

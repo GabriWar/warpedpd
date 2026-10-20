@@ -43,7 +43,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 public class RecklessFury extends ActiveSkill {
@@ -118,7 +117,7 @@ public class RecklessFury extends ActiveSkill {
 		fury += gained;
 		if (hero.sprite != null){
 			hero.sprite.emitter().burst( Speck.factory( Speck.RED_LIGHT ), Math.min( 6, 1 + gained / 3 ) );
-			hero.sprite.showStatus( CharSprite.NEGATIVE, Messages.get( this, "fury", fury ) );
+			counterOn( hero, fury, CharSprite.NEGATIVE );
 		}
 	}
 
@@ -153,7 +152,7 @@ public class RecklessFury extends ActiveSkill {
 		spentOn = null;
 		Hero hero = Dungeon.hero;
 		if (hero != null && hero.sprite != null){
-			hero.sprite.showStatus( CharSprite.NEGATIVE, Messages.get( this, "fury", fury ) );
+			counterOn( hero, fury, CharSprite.NEGATIVE );
 		}
 	}
 

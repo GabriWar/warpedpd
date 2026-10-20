@@ -27,6 +27,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 
@@ -46,6 +49,9 @@ public class Camouflage extends Armor.Glyph {
 		if ( Dungeon.level.heroFOV[ch.pos] ) {
 			SpatialSound.play( Assets.Sounds.MELD, ch );
 		}
+		//blades flicking up and leaves closing over him (no blow: the ward faces where he stands), a
+		//middling answer: trampling grass is a step, not a fight, so it never shakes the screen
+		EnchantFx.ward( EnchantLooks.of( Camouflage.class ), ch, null, ElementRows.verdantStrength( level ), level, 0, ElementRows.camouflage() );
 	}
 
 	@Override

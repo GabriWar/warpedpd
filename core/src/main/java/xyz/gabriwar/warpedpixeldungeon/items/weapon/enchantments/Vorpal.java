@@ -27,6 +27,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import com.watabou.utils.Random;
 
 public class Vorpal extends Weapon.Enchantment {
@@ -46,7 +47,9 @@ public class Vorpal extends Weapon.Enchantment {
 			float powerMulti = Math.max(1f, procChance);
 
 			//we use a buff to track so we can know the final dmg
-			Buff.affect(attacker, VorpalTracker.class).powerMulti = powerMulti * power(); //scales with enchantment level
+			VorpalTracker tracker = Buff.affect(attacker, VorpalTracker.class);
+			tracker.powerMulti = powerMulti * power(); //scales with enchantment level
+			tracker.echo = Quality.isVestige( weapon, this );
 		}
 
 		return damage;
@@ -58,6 +61,8 @@ public class Vorpal extends Weapon.Enchantment {
 		}
 
 		public float powerMulti;
+		//its bleed is a vestige's (the picture's echo; never saved: it lives for one blow)
+		public transient boolean echo;
 
 		@Override
 		public boolean act() {

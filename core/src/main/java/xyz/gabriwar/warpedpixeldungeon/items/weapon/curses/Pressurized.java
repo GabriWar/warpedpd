@@ -22,6 +22,9 @@
 package xyz.gabriwar.warpedpixeldungeon.items.weapon.curses;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
 import xyz.gabriwar.warpedpixeldungeon.levels.traps.GeyserTrap;
@@ -51,6 +54,7 @@ public class Pressurized extends Weapon.Enchantment {
 			geyser.source = this;
 
 			geyser.activate();
+			EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, 0.45f, level(), EnchantFx.CURSE, ElementRows.pressurized() );
 
 		}
 

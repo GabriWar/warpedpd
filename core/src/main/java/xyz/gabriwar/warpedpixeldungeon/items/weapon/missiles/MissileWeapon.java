@@ -34,9 +34,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.RevealedArea;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.MagicalHolster;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.WeaponPerk;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfSharpshooting;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.ParchmentScrap;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.ShardOfOblivion;
@@ -45,10 +48,13 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.curses.Explosive;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Projecting;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.Dart;
+import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
+import xyz.gabriwar.warpedpixeldungeon.sprites.MissileSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.InventoryPane;
 import xyz.gabriwar.warpedpixeldungeon.ui.QuickSlotButton;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
@@ -57,6 +63,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.quest.vault.VaultBossElementa
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Crystal;
 import com.watabou.utils.Bundle;
+import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
 
 import java.security.SecureRandom;
@@ -93,6 +100,9 @@ abstract public class MissileWeapon extends Weapon {
 	public MissileWeapon parent;
 	
 	public int tier;
+
+	//Heave (an IMPACT type perk): the throw takes a turn longer and lands harder
+	public static final String AC_HEAVE = "HEAVE";
 
 	protected int usesToID(){
 		return 10; //half of a melee weapon
@@ -178,8 +188,37 @@ abstract public class MissileWeapon extends Weapon {
 	public ArrayList<String> actions( Hero hero ) {
 		ArrayList<String> actions = super.actions( hero );
 		actions.remove( AC_EQUIP );
+		if (WeaponPerk.heaveable( this )) actions.add( AC_HEAVE );
 		return actions;
 	}
+
+	@Override
+	public void execute( Hero hero, String action ) {
+		super.execute( hero, action );
+		if (action.equals( AC_HEAVE ) && WeaponPerk.heaveable( this )
+				&& (hero.belongings.backpack.contains( this ) || isEquipped( hero ))){
+			Buff.affect( hero, WeaponPerk.Heave.class, WeaponPerk.Heave.DURATION );
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.PieceFx.heaveCharge( hero, this );
+			throwWith( hero, heaver );
+		}
+	}
+
+	//picks the cell of a heave, then throws as Item.thrower does; no cell and the heave is off
+	private static final CellSelector.Listener heaver = new CellSelector.Listener() {
+		@Override
+		public void onSelect( Integer target ) {
+			if (target == null){
+				Buff.detach( curUser, WeaponPerk.Heave.class );
+				return;
+			}
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.PieceFx.heaveRelease( curUser, curItem, target );
+			curItem.cast( curUser, target );
+		}
+		@Override
+		public String prompt() {
+			return Messages.get( Item.class, "prompt" );
+		}
+	};
 	
 	@Override
 	public boolean collect(Bag container) {
@@ -211,13 +250,69 @@ abstract public class MissileWeapon extends Weapon {
 			}
 		}
 
+		//alpha Keen: a throw at a character close by reaches it through walls. Three tiles and
+		//never stretched by Arcana, so Projecting stays the better wall-thrower
+		if (WeaponPerk.wallThrow( this ) && Dungeon.level.distance( user.pos, dst ) <= 3
+				&& Actor.findChar( dst ) != null && Actor.findChar( dst ) != user){
+			return dst;
+		}
+
 		if (projecting > 0
 				&& (Dungeon.level.passable[dst] || Dungeon.level.avoid[dst] || Actor.findChar(dst) != null)
 				&& Dungeon.level.distance(user.pos, dst) <= Math.round(projecting * Enchantment.genericProcChanceMultiplier(user))){
 			return dst;
+		} else if (WeaponPerk.arcRank( this ) > 0){
+			return arcLanding( user, dst, new ArrayList<>() );
 		} else {
 			return super.throwPos(user, dst);
 		}
+	}
+
+	//where the last throw was aimed: an Arc throw flies through the enemies on the line to its
+	//aim, which is not the line to where it comes down (Ballistica bends each line its own way)
+	private static int arcAim = -1;
+
+	@Override
+	public void cast( Hero user, int dst ) {
+		arcAim = dst;
+		super.cast( user, dst );
+	}
+
+	/** Arc: where a boomerang thrown from the user at `dst` comes down, the enemies it flies
+	 *  through on the way added to `passed` in order. It flies on through as many enemies as
+	 *  its type rank and comes down on the next. Aimed at the ground it stops there; aimed at
+	 *  an enemy it carries on past it, and with no more enemies behind it comes down on the
+	 *  last one it reached rather than flying on to the wall */
+	protected int arcLanding( Hero user, int dst, ArrayList<Char> passed ){
+		int arc = WeaponPerk.arcRank( this );
+		Char aimed = Actor.findChar( dst );
+		boolean atFoe = aimed != null && aimed != user && aimed.alignment == Char.Alignment.ENEMY;
+		Ballistica line = new Ballistica( user.pos, dst,
+				atFoe ? Ballistica.STOP_SOLID : Ballistica.STOP_TARGET | Ballistica.STOP_SOLID );
+		for (int c : line.subPath( 1, line.dist )){
+			Char ch = Actor.findChar( c );
+			if (ch == null || ch == user || ch.alignment != Char.Alignment.ENEMY) continue;
+			if (passed.size() == arc || c == line.collisionPos) return c;
+			passed.add( ch );
+		}
+		if (atFoe && passed.contains( aimed )){
+			return passed.remove( passed.size() - 1 ).pos;
+		}
+		return line.collisionPos;
+	}
+
+	//Arc: a throw that flies through the enemy it is aimed at is on target wherever it comes
+	//down, so the quickslot's auto-aim still takes the front of a line
+	@Override
+	public int targetingPos( Hero user, int dst ){
+		int pos = super.targetingPos( user, dst );
+		if (pos != dst && WeaponPerk.arcRank( this ) > 0){
+			Char aimed = Actor.findChar( dst );
+			ArrayList<Char> passed = new ArrayList<>();
+			arcLanding( user, dst, passed );
+			if (aimed != null && passed.contains( aimed )) return dst;
+		}
+		return pos;
 	}
 
 	@Override
@@ -243,9 +338,18 @@ abstract public class MissileWeapon extends Weapon {
 
 	@Override
 	public void doThrow(Hero hero) {
+		throwWith( hero, null );
+	}
+
+	//a throw, or with `heave` a heave: the warning before the last of an upgraded set goes,
+	//then the cell. Backing out of the warning takes the heave off again. Only the host's own
+	//hero is asked: a co-op guest's heave comes with its cell, and a window would open on the
+	//host's screen
+	private void throwWith( Hero hero, CellSelector.Listener heave ) {
 		parent = null; //reset parent before throwing, just in case
 		if (((levelKnown && level() > 0) || hasGoodEnchant() || masteryPotionBonus || enchantHardened)
-				&& !extraThrownLeft && quantity() == 1 && durabilityLeft() <= durabilityPerUse()){
+				&& !extraThrownLeft && quantity() == 1 && durabilityLeft() <= durabilityPerUse()
+				&& (heave == null || hero == Dungeon.hero)){
 			GameScene.show(new WndOptions(new ItemSprite(this), Messages.titleCase(title()),
 					Messages.get(MissileWeapon.class, "break_upgraded_warn_desc"),
 					Messages.get(MissileWeapon.class, "break_upgraded_warn_yes"),
@@ -253,8 +357,10 @@ abstract public class MissileWeapon extends Weapon {
 				@Override
 				protected void onSelect(int index) {
 					if (index == 0){
-						MissileWeapon.super.doThrow(hero);
+						if (heave == null) MissileWeapon.super.doThrow(hero);
+						else GameScene.selectCell(heave);
 					} else {
+						Buff.detach(hero, WeaponPerk.Heave.class);
 						QuickSlotButton.cancel();
 						InventoryPane.cancelTargeting();
 					}
@@ -263,20 +369,52 @@ abstract public class MissileWeapon extends Weapon {
 				@Override
 				public void onBackPressed() {
 					super.onBackPressed();
+					Buff.detach(hero, WeaponPerk.Heave.class);
 					QuickSlotButton.cancel();
 					InventoryPane.cancelTargeting();
 				}
 			});
 
-		} else {
+		} else if (heave == null) {
 			super.doThrow(hero);
+		} else {
+			GameScene.selectCell(heave);
 		}
+	}
+
+	/** a heave lands on whoever stands where the throw comes down, and on no one else */
+	protected static void aimHeave( int cell ){
+		WeaponPerk.Heave heave = curUser.buff( WeaponPerk.Heave.class );
+		if (heave != null) heave.cell = cell;
 	}
 
 	@Override
 	protected void onThrow( int cell ) {
+		aimHeave( cell );
+		//Arc: the throw bites every enemy it flies through before it comes down; the ranged
+		//skills are left to the landing, as for any other throw
 		Char enemy = Actor.findChar( cell );
-		if (enemy == null || enemy == curUser) {
+		boolean bit = false;
+		if (WeaponPerk.arcRank( this ) > 0 && arcAim >= 0){
+			ArrayList<Char> passed = new ArrayList<>();
+			arcLanding( curUser, arcAim, passed );
+			//never the one it comes down on, which takes the throw's own shot below
+			passed.remove( enemy );
+			curUser.extraShotAttack = true;
+			for (int i = 0; i < passed.size(); i++){
+				if (curUser.shoot( passed.get( i ), this )){
+					bit = true;
+					xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.PieceFx.bite( curUser, passed.get( i ), i, this );
+				}
+			}
+			curUser.extraShotAttack = false;
+		}
+		arcAim = -1;
+
+		if (bit && (enemy == null || enemy == curUser)) {
+			//nothing where it came down, but it struck on the way: a hit all the same
+			rangedHit( null, cell );
+		} else if (enemy == null || enemy == curUser) {
 			parent = null;
 
 			//metamorphed seer shot logic
@@ -294,13 +432,18 @@ abstract public class MissileWeapon extends Weapon {
 			if (!spawnedForEffect) super.onThrow( cell );
 		} else {
 			if (!curUser.shoot( enemy, this )) {
-				rangedMiss( cell );
+				//a boomerang that struck on the way still counts its throw as a hit
+				if (bit) rangedHit( enemy, cell );
+				else rangedMiss( cell );
 			} else {
 				
 				rangedHit( enemy, cell );
 
 			}
 		}
+
+		//a heave is spent on the throw it armed, landed or not
+		Buff.detach( curUser, WeaponPerk.Heave.class );
 	}
 
 	@Override
@@ -431,15 +574,27 @@ abstract public class MissileWeapon extends Weapon {
 	@Override
 	public float castDelay(Char user, int cell) {
 		if (Actor.findChar(cell) != null && Actor.findChar(cell) != user){
-			return delayFactor( user );
+			return delayFactor( user ) + heaveDelay( user );
 		} else {
-			return super.castDelay(user, cell);
+			return super.castDelay(user, cell) + heaveDelay( user );
 		}
+	}
+
+	/** the turn a heave adds to the throw it is spent on */
+	protected static float heaveDelay( Char user ){
+		return user.buff( WeaponPerk.Heave.class ) != null ? 1f : 0f;
 	}
 	
 	protected void rangedHit( Char enemy, int cell ){
 		decrementDurability();
 		if (durability > 0 && !spawnedForEffect){
+			//a keen throw flies back to the hand that threw it rather than sticking or falling
+			Quality q = Quality.of( this );
+			if (q != null && q.returnNext){
+				q.returnNext = false;
+				flyBack( cell );
+				return;
+			}
 			//ALL projectiles stick to the vault boss elemental, as it has custom logic for it
 			boolean doesStick = sticky || enemy instanceof VaultBossElemental;
 			//attempt to stick the missile weapon to the enemy, just drop it if we can't.
@@ -457,6 +612,34 @@ abstract public class MissileWeapon extends Weapon {
 	protected void rangedMiss( int cell ) {
 		parent = null;
 		if (!spawnedForEffect) super.onThrow(cell);
+	}
+
+	//Keen: the throw comes back from where it struck. It is back in the pack at once, with no
+	//time spent and no turn handed on, so nothing can come between the throw and its return;
+	//the flight home is its picture, and the catch happens when the flight reaches the hand
+	//(at once with no flight to see). A full pack drops it at the thrower's feet
+	private void flyBack( int cell ){
+		final Hero thrower = curUser;
+		final Heap fell = collect( thrower.belongings.backpack ) ? null : Dungeon.level.drop( this, thrower.pos );
+		if (thrower.sprite != null && thrower.sprite.visible && thrower.sprite.parent != null){
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.PieceFx.keenBack( thrower, cell, this );
+			((MissileSprite) thrower.sprite.parent.recycle( MissileSprite.class ))
+					.reset( cell, thrower.sprite, this, new Callback() {
+						@Override
+						public void call() {
+							caught( fell );
+							if (fell == null) xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.PieceFx.caught( thrower );
+						}
+					} );
+		} else {
+			caught( fell );
+		}
+	}
+
+	//the catch of a keen throw come home: the one place it reaches the hand, or, the pack full,
+	//falls at the thrower's feet
+	private static void caught( Heap fell ){
+		if (fell != null && fell.sprite != null) fell.sprite.drop();
 	}
 
 	public float durabilityLeft(){
@@ -577,24 +760,30 @@ abstract public class MissileWeapon extends Weapon {
 	
 	@Override
 	public int damageRoll(Char owner) {
-		int damage = augment.damageFactor(super.damageRoll( owner ));
+		int rolled = super.damageRoll( owner );
+		int damage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollMulRound( xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.AUGMENT, rolled, augment.damageMultiplier(), augment.damageFactor(rolled) );
 		
 		if (owner instanceof Hero) {
 			int exStr = ((Hero)owner).STR() - STRReq();
 			if (exStr > 0) {
+				int before = damage;
 				damage += Hero.heroDamageIntRange( 0, exStr );
+				xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollPart( xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ADD, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.EXCESS_STR, before, damage );
 			}
 			if (owner.buff(Momentum.class) != null && owner.buff(Momentum.class).freerunning()) {
-				damage = Math.round(damage * (1f + 0.15f * ((Hero) owner).pointsInTalent(Talent.PROJECTILE_MOMENTUM)));
+				float run = 1f + 0.15f * ((Hero) owner).pointsInTalent(Talent.PROJECTILE_MOMENTUM);
+				damage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollMulRound( Talent.PROJECTILE_MOMENTUM, damage, run, Math.round(damage * run) );
 			}
 			// Wind: very subtle tail/headwind damage modifier (±8 % max)
 			Char target = ((Hero) owner).attackTarget();
 			if (target != null) {
-				damage = Math.round(damage * ClimateManager.windProjectileFactor(
-						owner.pos, target.pos, true));
+				float wind = ClimateManager.windProjectileFactor( owner.pos, target.pos, true );
+				damage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollMulRound( xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.WIND, damage, wind, Math.round(damage * wind) );
 			}
 		}
+		int thrown = damage;
 		damage = xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.throwRoll( this, owner, damage, augment.damageFactor( max() ) );
+		xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollPart( xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.SET, xyz.gabriwar.warpedpixeldungeon.items.rarity.WeaponPerk.of( this ), thrown, damage );
 		
 		return damage;
 	}

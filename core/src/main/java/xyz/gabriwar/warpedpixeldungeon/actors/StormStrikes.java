@@ -49,8 +49,10 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * ClimateManager.isStorming(), under the open sky only (the overworld's surface and peaks, never
  * indoors, in its caves or on a dungeon floor), a bolt now and then on a cell around a hero
  * (the host's or a guest's) - not aimed at him - that shocks whoever stands there, scorches the
- * ground and lights the grass round about. Once a world turn from DayNightCycle.onHeroTurn: the
- * host's actor thread.
+ * ground and lights the grass round about. The tall trees draw it: with one in reach that it may
+ * set alight, TREE_SHARE of the bolts strike a tree, which catches at its crown and burns down as
+ * fire burns a tree, to embers and charcoal (OverworldLevel.destroy). Once a world turn from
+ * DayNightCycle.onHeroTurn: the host's actor thread.
  *
  * Where it lands it runs on as the wand of lightning's zap does (discharge): to whoever stands
  * near whoever it hit, further through water, and out over the water it falls in or beside.
@@ -66,6 +68,14 @@ public final class StormStrikes {
 
 	//how many steps out a bolt runs over the water it falls in or beside
 	static final int CRAWL = 3;
+
+	//the share of the bolts a tree draws while one stands in reach that a bolt may set alight
+	//(burnable): a lone oak in a meadow draws as many as a wood does, the rest fall on open ground
+	static final float TREE_SHARE = 0.5f;
+
+	//how long a tree a bolt sets alight burns: its fire's volume, a turn each - twice the grass's 4,
+	//and hot enough for the tallest flames (FireBlobFx.TALL_CUR) as it catches
+	static final int TREE_BURN = 8;
 
 	//the blow's source: the sky's bolt is a storm cloud's (what is immune to the cloud's
 	//lightning is immune to it, the cloud's death message tells of it)
@@ -146,10 +156,12 @@ public final class StormStrikes {
 		return at.pos;
 	}
 
-	/** A cell within REACH of `from`, any of them alike, open ground: -1 when a few tries find
-	 *  none. Never the open floor of a room the hero built (homestead/Rooms): only the roof over
-	 *  one, which takes the bolt (strike, Homestead.roofStruck). */
+	/** A cell within REACH of `from`: a tree that draws the bolt (tree), or else any open ground
+	 *  alike, -1 when a few tries find none. Never the open floor of a room the hero built
+	 *  (homestead/Rooms): only the roof over one, which takes the bolt (strike, Homestead.roofStruck). */
 	static int pick( Level level, int from ){
+		int tree = tree( level, from );
+		if (tree != -1) return tree;
 		int w = level.width(), h = level.height();
 		int fx = from % w, fy = from / w;
 		for (int i = 0; i < 10; i++){
@@ -160,6 +172,40 @@ public final class StormStrikes {
 					|| xyz.gabriwar.warpedpixeldungeon.homestead.Rooms.at( level, cell ) == null)) return cell;
 		}
 		return -1;
+	}
+
+	/** The tree within REACH of `from` the bolt goes to: with any standing there that it may set
+	 *  alight (burnable), TREE_SHARE of the time one of them, each alike; -1 for none, and the bolt
+	 *  falls on open ground. The game's Random is drawn only where there is such a tree, so where
+	 *  there is none the bolts fall as they always did. */
+	static int tree( Level level, int from ){
+		int w = level.width(), fx = from % w, fy = from / w;
+		//never on the map's outer ring: a fire's turn reads a cell past it (Blob.translate)
+		int x0 = Math.max( 1, fx - REACH ), x1 = Math.min( w - 2, fx + REACH );
+		int y0 = Math.max( 1, fy - REACH ), y1 = Math.min( level.height() - 2, fy + REACH );
+		int n = 0;
+		for (int y = y0; y <= y1; y++){
+			for (int x = x0; x <= x1; x++) if (burnable( level, x + y * w )) n++;
+		}
+		if (n == 0 || Random.Float() >= TREE_SHARE) return -1;
+		int k = Random.Int( n );
+		for (int y = y0; y <= y1; y++){
+			for (int x = x0; x <= x1; x++){
+				int c = x + y * w;
+				if (burnable( level, c ) && k-- == 0) return c;
+			}
+		}
+		return -1;
+	}
+
+	//a standing tree (an oak or a pine) a bolt may set alight: out of the town, nobody beside it and
+	//no door by it (clear: its fire would reach them)
+	private static boolean burnable( Level level, int cell ){
+		return isTree( level.map[cell] ) && !inTown( level, cell ) && clear( level, cell );
+	}
+
+	private static boolean isTree( int terrain ){
+		return terrain == Terrain.TREE_OAK || terrain == Terrain.TREE_PINE;
 	}
 
 	//open ground: not a wall, a tree, a rock, nor a house's doorway (the villagers come and go
@@ -191,9 +237,9 @@ public final class StormStrikes {
 	 * A bolt on a cell of the level shown: whoever stands there takes a fifth to a third of his
 	 * health and a turn's paralysis, and it runs on to whoever stands near (discharge), the blow
 	 * shared out among them as the wand of lightning's (StormCloud.jolt); the ground it hits is
-	 * burnt to embers at once, and the fire it lights on the grass round about burns on its own
-	 * turns. Nothing burns in the town, and no fire is lit under anyone or where it could reach a
-	 * door.
+	 * burnt to embers at once, a tree it hits catches and burns TREE_BURN turns before it falls to
+	 * embers, and the fire it lights on the grass round about burns on its own turns. Nothing
+	 * burns in the town, and no fire is lit under anyone or where it could reach a door.
 	 */
 	public static void strike( int cell ){
 		Level level = Dungeon.level;
@@ -205,8 +251,12 @@ public final class StormStrikes {
 		}
 		Discharge d = StormCloud.jolt( cell, SKY, StormStrikes::share );
 		if (!inTown( level, cell )){
-			//the scorch is the bolt's own: the heavy rain a storm brings cannot take it back
-			if (level.flamable[cell] && ground( level, cell )){
+			if (isTree( level.map[cell] )){
+				//a tree catches at its crown and burns on as any fire burns one, down to embers and
+				//charcoal (Fire, OverworldLevel.destroy); its crown is seen alight (effects/fx/fire/BurningTree)
+				if (clear( level, cell )) GameScene.add( Blob.seed( cell, TREE_BURN, Fire.class ) );
+			} else if (level.flamable[cell] && ground( level, cell )){
+				//the scorch is the bolt's own: the heavy rain a storm brings cannot take it back
 				boolean blocked = level.losBlocking[cell];
 				level.destroy( cell );
 				GameScene.updateMap( cell );

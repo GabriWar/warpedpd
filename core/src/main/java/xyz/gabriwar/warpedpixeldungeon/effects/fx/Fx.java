@@ -201,6 +201,8 @@ public final class Fx {
 
 	private static boolean openSky;
 	private static float windX;
+	//how far the screen leans on the wind: windX is this many px/s for each m/s of it
+	private static final float LEAN = 1.2f;
 
 	/** Once a frame (GameScene.update): the wind and the sky looked up once for every particle. */
 	public static void frame(){
@@ -208,7 +210,7 @@ public final class Fx {
 		openSky = level != null && StormStrikes.underOpenSky( level );
 		if (openSky){
 			float dir = (float)Math.toRadians( ClimateManager.surfaceWindDir() );
-			windX = (float)Math.sin( dir ) * ClimateManager.localWindSpeed() * 1.2f * (1f + 0.35f * WeatherSprites.gust());
+			windX = (float)Math.sin( dir ) * ClimateManager.localWindSpeed() * LEAN * (1f + 0.35f * WeatherSprites.gust());
 		} else {
 			windX = 0;
 		}
@@ -222,6 +224,16 @@ public final class Fx {
 	/** The wind across the screen under an open sky, px/s (east positive); 0 under a roof. */
 	public static float windX(){
 		return windX;
+	}
+
+	/**
+	 * The wind a drifting speck of the weather rides across the screen (a falling leaf, dust, ash, a
+	 * firefly, a butterfly's patch), in the local wind's own m/s, east positive: under an open sky
+	 * windX without its lean, so they go the way it blows (mirrored when it blows west) and gust with
+	 * it; under a roof, where windX is 0, the local draught they have always drifted east on.
+	 */
+	public static float driftX(){
+		return openSky ? windX / LEAN : ClimateManager.localWindSpeed();
 	}
 
 	// ------------------------------------------------------------------ holders

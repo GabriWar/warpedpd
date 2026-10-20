@@ -261,6 +261,17 @@ public class TaurcenBow extends Weapon {
 			setID = 0;
 		}
 
+		/** the bow that fires it: its magic is the arrow's (the arrow procs through it) */
+		public TaurcenBow launcher() {
+			return TaurcenBow.this;
+		}
+
+		//it shows its bow's glow, as it fires its bow's enchantments
+		@Override
+		public xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite.Glowing glowing() {
+			return TaurcenBow.this.glowing();
+		}
+
 		@Override
 		public ArrayList<String> actions(Hero hero) {
 			return new ArrayList<>();
@@ -294,6 +305,12 @@ public class TaurcenBow extends Weapon {
 		@Override
 		public float delayFactor(Char user) {
 			return TaurcenBow.this.delayFactor(user);
+		}
+
+		//the arrow has no quality of its own: its bow's ACCURACY line lifts it
+		@Override
+		public float accuracyFactor(Char owner, Char target) {
+			return super.accuracyFactor(owner, target) * (1f + xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.value( TaurcenBow.this, xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.ACCURACY ));
 		}
 
 		@Override

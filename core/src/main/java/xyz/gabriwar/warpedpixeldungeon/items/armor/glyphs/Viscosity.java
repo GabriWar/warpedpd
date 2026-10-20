@@ -27,8 +27,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor.Glyph;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
@@ -48,6 +52,7 @@ public class Viscosity extends Glyph {
 		ViscosityTracker tracker = Buff.affect(defender, ViscosityTracker.class);
 		tracker.level = armor.buffedLvl();
 		tracker.glyphPower = power();
+		tracker.echo = Quality.isVestige( armor, this );
 
 		return damage;
 		
@@ -66,6 +71,8 @@ public class Viscosity extends Glyph {
 
 		private int level = 0;
 		private float glyphPower = 1f;
+		//the deferral is a vestige's (the picture's echo; never saved: it lives for one blow)
+		private boolean echo = false;
 
 		public int deferDamage(int dmg){
 			//account for icon stomach (just skip the glyph)
@@ -91,7 +98,10 @@ public class Viscosity extends Glyph {
 				DeferedDamage deferred = Buff.affect( target, DeferedDamage.class );
 				deferred.extend( amount );
 
-				target.sprite.showStatus( CharSprite.WARNING, Messages.get(Viscosity.class, "deferred", amount) );
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.gain( target, xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.DEFERRED, amount, CharSprite.WARNING );
+				//the blow sinking into the tar (an absorb: no attacker is known here)
+				EnchantFx.passive( EnchantLooks.of( Viscosity.class ), target, EnchantFx.ABSORB, Math.min( 1f, amount / (float)Math.max( 1, dmg ) ),
+						echo ? EnchantFx.ECHO : 0, ElementRows.viscosity() );
 			}
 
 			return dmg - amount;
@@ -152,6 +162,7 @@ public class Viscosity extends Glyph {
 
 				int damageThisTick = Math.max(1, (int)(damage*0.1f));
 				target.damage( damageThisTick, this );
+				ElementRows.tarTick( target );
 				if (target == Dungeon.hero && !target.isAlive()) {
 
 					Badges.validateDeathFromFriendlyMagic();

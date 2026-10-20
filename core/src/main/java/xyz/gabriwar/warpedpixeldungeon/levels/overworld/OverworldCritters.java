@@ -1092,6 +1092,9 @@ public final class OverworldCritters {
 			for (float[] o : spots){
 				CritterSprite.Bird b = new CritterSprite.Bird( kindOf( s ), o[0], o[1], 0f );
 				b.land( heading + rf( -0.3f, 0.3f ), delay );
+				//its shadow on the ground under it, gliding in with it (the owl in its crown, a
+				//bird of the night, casts none)
+				b.castShadow();
 				delay += rf( 0.06f, 0.14f );
 				add( b );
 				f.birds.add( b );

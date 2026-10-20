@@ -535,7 +535,7 @@ public class DM300 extends Mob {
 
 		spend(Dungeon.isChallenged(Challenges.STRONGER_BOSSES) ? 2f : 3f);
 		yell(Messages.get(this, "charging"));
-		sprite.showStatus(CharSprite.POSITIVE, Messages.get(this, "invulnerable"));
+		xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.mark( this, xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.IMMUNE );
 		((DM300Sprite)sprite).updateChargeState(true);
 		((DM300Sprite)sprite).charge();
 		chargeAnnounced = false;

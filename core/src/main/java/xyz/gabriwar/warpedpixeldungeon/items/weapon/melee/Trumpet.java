@@ -24,11 +24,14 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.weapon.melee;
 
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.TypeFx;
+import java.util.ArrayList;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bless;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import com.watabou.utils.Callback;
@@ -64,20 +67,27 @@ public class Trumpet extends MeleeWeapon {
 	@Override
 	public void hitSound( float pitch, Char defender ){
 		super.hitSound( pitch, defender );
-		Notes.play( Assets.Sounds.TRUMPET_NOTE, defender );
+		//a typed instrument is a Bard's: its note steps up toward the chord
+		Quality q = Quality.of( this );
+		if (q != null) Notes.step( Assets.Sounds.TRUMPET_NOTE, defender, q.notes );
+		else Notes.play( Assets.Sounds.TRUMPET_NOTE, defender );
 	}
 
 	@Override
 	public int proc(Char attacker, Char defender, int damage) {
 		//resonance: a third of weapon damage to every other char adjacent to the target
+		//the wielder's own side and the neutral are spared: the note strikes only the other side
 		int p = defender.pos;
+		ArrayList<Char> struck = new ArrayList<>();
 		for (int n : PathFinder.NEIGHBOURS8) {
 			Char ch = Actor.findChar(p + n);
-			if (ch != null && ch != defender && ch != attacker && ch.isAlive()) {
+			if (ch != null && ch != defender && ch != attacker && ch.isAlive() && ch.alignment != attacker.alignment && ch.alignment != Char.Alignment.NEUTRAL) {
+				struck.add(ch);
 				int dmg = Math.max(Random.NormalIntRange(min(), max()) - Random.IntRange(0, 1), 0);
 				ch.damage(dmg / 3, this);
 			}
 		}
+		TypeFx.resonance( attacker, defender, this, struck );
 		return super.proc(attacker, defender, damage);
 	}
 
@@ -100,17 +110,19 @@ public class Trumpet extends MeleeWeapon {
 			if (!m.isAlive() || !Dungeon.level.heroFOV[m.pos] || Dungeon.level.distance( hero.pos, m.pos ) > reach) continue;
 			if (m.alignment == Char.Alignment.ENEMY){
 				Buff.affect( m, Paralysis.class, 1f );
-				if (m.sprite != null) m.sprite.emitter().burst( Speck.factory( Speck.SCREAM ), 3 );
+				//held: the stun's amber twinkle over it (never the alarm trap's red brackets)
+				if (m.sprite != null) m.sprite.emitter().burst( SkillBursts.DAZE, 3 );
 				any = true;
 			} else if (m.alignment == Char.Alignment.ALLY){
 				Buff.prolong( m, Bless.class, 3f );
-				if (m.sprite != null) m.sprite.emitter().burst( Speck.factory( Speck.STAR ), 3 );
+				//blessed: holy gold rising, the fanfare's own gold (never the hero's class sparkle)
+				if (m.sprite != null) m.sprite.emitter().burst( SkillBursts.HOLY_MOTE, 3 );
 			}
 		}
 		Buff.prolong( hero, Bless.class, 3f );
 		if (hero.sprite != null){
 			new Flare( 8, 12 + 4 * reach ).color( 0xFFD700, true ).show( hero.sprite, 0.9f ).angularSpeed = 45;
-			hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 6 );
+			hero.sprite.emitter().burst( SkillBursts.HOLY_MOTE, 6 );
 		}
 		Fx.shake( any ? 2 : 1, 0.3f );
 		SpatialSound.play( Assets.Sounds.CHALLENGE, hero, 1f, 1.3f );

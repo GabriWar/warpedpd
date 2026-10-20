@@ -88,6 +88,8 @@ public enum Icons {
 	CATALOG,
 	ALCHEMY,
 	GRASS,
+	//the hero window's Damage tab (tools/damage_tab_icon_gen.py)
+	DAMAGE,
 
 	STAIRS,
 	STAIRS_CHASM,
@@ -319,6 +321,9 @@ public enum Icons {
 				break;
 			case GRASS:
 				icon.frame( icon.texture.uvRectBySize( 112, 48, 16, 16 ) );
+				break;
+			case DAMAGE:
+				icon.frame( icon.texture.uvRectBySize( 224, 112, 16, 16 ) );
 				break;
 
 			case STAIRS:

@@ -36,7 +36,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 import java.util.ArrayList;
 
@@ -79,7 +82,7 @@ public class Fletching extends PassiveSkillA1 {
 
 		ring.empty();
 		castTextYell();
-		if (enemy.sprite != null) enemy.sprite.emitter().burst( Speck.factory( Speck.WOOL ), 6 );
+		if (enemy.sprite != null) burst( enemy.sprite );
 		SpatialSound.play( Assets.Sounds.HIT_ARROW, enemy, 1f, 1.4f );
 
 		int splinter = Math.max( 1, Math.round( damage * SPLINTER_DAMAGE ) );
@@ -88,13 +91,27 @@ public class Fletching extends PassiveSkillA1 {
 			victim.damage( splinter, this );
 			//each splinter lands a note higher than the last
 			final float pitch = 1.2f + 0.1f * order++;
-			SkillFX.streak( enemy.pos, victim.pos, new xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.Dart(), () -> {
+			//a feather dart of light (never a dart, an item), landing when the dart would have
+			SkillFX.streak( enemy.pos, victim.pos, SkillFX.Streak.FEATHER_DART, new xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.Dart(), () -> {
 				SkillFX.flash( victim );
+				if (victim.sprite != null) splintered( victim.sprite );
 				SpatialSound.play( Assets.Sounds.HIT_ARROW, victim, 0.6f, pitch );
 			} );
 			if (!victim.isAlive() && level >= MAX_LEVEL) ring.pluck();
 		}
 		return damage;
+	}
+
+	/** The ring bursting on the struck: its feathers thrown off it (never a flock's wool, a thief's
+	 *  poof) and a nature flare. Any thread (one burst of the sprite's emitter, as the wool's). */
+	public static void burst( CharSprite s ){
+		s.emitter().burst( SkillBursts.FEATHER, 6 );
+		PixelFlare.show( SkillVfx.midX( s ), SkillVfx.midY( s ), xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette.NATURE_LIGHT, PixelFlare.S, 0.35f );
+	}
+
+	/** A splinter landing: a small nature flare where it strikes. Any thread. */
+	public static void splintered( CharSprite s ){
+		PixelFlare.show( SkillVfx.midX( s ), SkillVfx.midY( s ), xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette.NATURE_LIGHT, PixelFlare.S, 0.2f );
 	}
 
 	/** the nearest enemies around the struck one, each with a clear line from it */

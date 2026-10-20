@@ -30,6 +30,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Daze;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hex;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.FerretTuft;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
@@ -93,7 +96,13 @@ public class Stone extends Armor.Glyph {
 		// we clamp in case accuracy or evasion were negative
 		hitChance = GameMath.gate(0.25f, 1f - 0.75f*power()*(1f - hitChance), 1f); //scales with glyph level
 		
+		int unturned = damage;
 		damage = (int)Math.ceil(damage * hitChance);
+		//it turned a point or more of the blow
+		if (damage <= unturned - 1){
+			EnchantFx.ward( EnchantLooks.of( getClass() ), defender, attacker, Math.min( 1f, (unturned - damage) / (float)unturned ), level(), 0,
+					ElementRows.stone() );
+		}
 		
 		return damage;
 	}

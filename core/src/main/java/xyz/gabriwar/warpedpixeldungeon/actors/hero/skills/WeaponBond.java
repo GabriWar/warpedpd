@@ -34,7 +34,15 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.MoteFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.RuneFX;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
@@ -71,10 +79,30 @@ public class WeaponBond extends PassiveSkillB2 {
 		Bonded bond = xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff.affect( hero, Bonded.class );
 		bond.charge( level >= MAX_LEVEL ? 2 : 1, level >= MAX_LEVEL ? 0f : GLOW_TURNS );
 		if (hero.sprite != null){
-			new Flare( 6, 20 ).color( 0xCCEEFF, true ).show( hero.sprite, 0.5f );
+			PixelFlare.show( SkillVfx.midX( hero.sprite ), SkillVfx.midY( hero.sprite ), 0xB9DEEE, PixelFlare.S, 0.5f );
 			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 4 );
+			bonded( hero.sprite );
 		}
 		SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 0.6f, 1.5f );
+	}
+
+	/** The bond (an enchant's, never a blow): BOND steel runes locking round the weapon side (SIDE px
+	 *  toward the way the hero faces), BOND_RX x BOND_RY, GAP s apart and each held HOLD s
+	 *  (RuneFX.lock), then, once they are all in, a glint running up the blade (STAR4_5 E8F0FF for
+	 *  GLINT s). Any thread. */
+	public static final int BOND = 4;
+	public static final float SIDE = 5f, BOND_RX = 4f, BOND_RY = 2f, GAP = 0.08f, HOLD = 0.25f, GLINT = 0.15f;
+
+	public static void bonded( final CharSprite s ){
+		if (s == null) return;
+		Fx.post( () -> {
+			if (s.parent == null || !s.visible) return;
+			final float dir = s.flipHorizontal ? -1f : 1f;
+			final float x = SkillVfx.midX( s ) + dir * SIDE, y = SkillVfx.midY( s ) + 1;
+			RuneFX.lock( x, y, BOND, SkillPalette.RUNE_STEEL, BOND_RX, BOND_RY, GAP, HOLD );
+			FxTimeline.start().at( GAP * BOND, () -> MoteFX.glint( x, y + 3, FxFrames.STAR4_5, SkillPalette.STEEL.stop( 0 ), GLINT,
+					dir * 16f, -32f ) );
+		} );
 	}
 
 	@Override

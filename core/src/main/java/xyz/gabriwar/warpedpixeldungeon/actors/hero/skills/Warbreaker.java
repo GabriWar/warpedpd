@@ -27,11 +27,18 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -54,6 +61,31 @@ public class Warbreaker extends Skill {
 		return true;
 	}
 
+	/** The broken guard: shards of steel light thrown out of it, their colour. */
+	public static final int SHARDS = 4, GUARD = 0xB9DEEE;
+
+	//its guard shatters: a steel flare at its middle and SHARDS shards thrown outward from it,
+	//falling and glinting where they land (matter, P2). Any thread
+	public static void shatter( final CharSprite s ){
+		Fx.post( () -> {
+			if (s.parent == null || !s.visible) return;
+			float x = SkillVfx.midX( s ), y = SkillVfx.midY( s );
+			if (!Fx.seen( x, y )) return;
+			PixelFlare.show( x, y, GUARD, PixelFlare.S, 0.25f );
+			float feet = s.y + s.height() - 1;
+			float a0 = FxRandom.Float( 0.3f );
+			for (int i = 0; i < SHARDS; i++){
+				//outward, and up rather than down
+				float a = (float) Math.PI * (1.1f + 0.8f * (i + a0) / SHARDS);
+				float v = FxRandom.Float( 45f, 70f );
+				FxParticle p = SkillVfx.matter( x, y, FxBudget.P2 );
+				if (p != null) p.look( FxFrames.SHARD_GLASS[i % 2] ).paint( GUARD )
+						.vel( (float) Math.cos( a ) * v, (float) Math.sin( a ) * v ).gravity( 200f ).spin( 0.06f )
+						.ground( feet + FxRandom.Float( 0f, 3f ), FxParticle.BOUNCE, 0.25f ).life( 0.6f ).alpha( 1f, 0, 0.2f ).source( x, y );
+			}
+		} );
+	}
+
 	@Override
 	public int onHitProc( Char enemy, int damage, boolean ranged ){
 		if (!ranged && level > 0 && enemy != null && enemy.isAlive()
@@ -61,7 +93,10 @@ public class Warbreaker extends Skill {
 			Buff.prolong( enemy, Vulnerable.class, 3 + level );
 			castTextYell();
 			Wound.hit( enemy );
-			if (enemy.sprite != null && enemy.sprite.visible) enemy.sprite.emitter().burst( Speck.factory( Speck.STAR ), 5 );
+			if (enemy.sprite != null && enemy.sprite.visible){
+				enemy.sprite.emitter().burst( SkillBursts.METAL_SPARK, 5 );
+				shatter( enemy.sprite );
+			}
 			SpatialSound.play( Assets.Sounds.HIT_CRUSH, enemy, 1f, 0.8f );
 			Fx.shake( 1, 0.15f );
 
@@ -71,7 +106,7 @@ public class Warbreaker extends Skill {
 					Char ch = Actor.findChar( enemy.pos + n );
 					if (ch != null && ch.alignment == Char.Alignment.ENEMY && ch.isAlive()){
 						Buff.prolong( ch, Vulnerable.class, 3 + level );
-						if (ch.sprite != null && ch.sprite.visible) ch.sprite.emitter().burst( Speck.factory( Speck.STAR ), 3 );
+						if (ch.sprite != null && ch.sprite.visible) ch.sprite.emitter().burst( SkillBursts.METAL_SPARK, 3 );
 					}
 				}
 			}

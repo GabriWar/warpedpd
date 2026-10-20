@@ -29,6 +29,8 @@ public class Obfuscation extends Armor.Glyph {
 
 	private static ItemSprite.Glowing GREY = new ItemSprite.Glowing( 0x888888 );
 
+	/** No proc look: its effect is a stealth number mob AI reads, with no moment to show; its
+	 *  smoke is the armour's and the wearer's look. */
 	@Override
 	public int proc(Armor armor, Char attacker, Char defender, int damage) {
 		//no proc effect, triggered in Char.stealth()

@@ -30,6 +30,11 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxOrbit;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillOrbit;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CrabSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MirrorSprite;
@@ -283,6 +288,56 @@ public class SummonedPet extends NPC {
 	@Override
 	public String name(){
 		return name != null ? name : super.name();
+	}
+
+	//the "bound" mark: two motes of its summoner's colour circling over its head, so a summoned rat,
+	//crab, skeleton or shieldbearer never reads as the hostile one it looks like. Put on when its
+	//sprite is linked (updateSpriteState), it goes with that sprite; a view only, never saved
+	private transient BoundMark bound;
+
+	@Override
+	public void updateSpriteState(){
+		super.updateSpriteState();
+		if (bound != null) Fx.dispose( bound );
+		bound = null;
+		final CharSprite s = sprite;
+		if (s == null) return;
+		final BoundMark mark = bound = new BoundMark( this, SkillVfx.classColor() );
+		Fx.post( () -> {
+			if (s.exists && s.parent != null) s.parent.add( mark );
+		} );
+	}
+
+	/** The bound mark: MOTES motes (MOTE_2) in the summoner's colour in the kit's MARK orbit (shared
+	 *  with any skill mark the summon carries), breathing BREATH_LO..BREATH_HI at BREATH_HZ, each
+	 *  trailed by one fainter copy, turning slower than a skill mark's (SPEED rad/s). An ally's
+	 *  only. At most 4 quads (FxOrbit.MOST 6). Holds nothing of the GPU. */
+	public static final class BoundMark extends SkillOrbit {
+
+		public static final int MOTES = 2;
+		public static final float BREATH_LO = 0.6f, BREATH_HI = 0.9f, BREATH_HZ = 0.5f, SPEED = 1.6f;
+
+		private final int color;
+
+		BoundMark( Char pet, int color ){
+			super( pet, FxOrbit.Slot.MARK );
+			this.color = color;
+		}
+
+		@Override
+		protected int count(){
+			return owner.alignment == Alignment.ALLY && owner.isAlive() ? MOTES : 0;
+		}
+
+		@Override
+		protected int tint(){
+			return color;
+		}
+
+		@Override
+		protected void look( FxOrbit.Ring ring, int n ){
+			ring.motes( n, FxFrames.MOTE_2, color, true ).trail( 1 ).breath( BREATH_LO, BREATH_HI, BREATH_HZ ).speed( SPEED );
+		}
 	}
 
 	@Override

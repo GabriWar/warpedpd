@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.audio.WallBreak;
+import xyz.gabriwar.warpedpixeldungeon.effects.BuildDrop;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRecipes;
@@ -502,6 +503,8 @@ public final class Homestead {
 			PointF p = DungeonTilemap.tileCenterToWorld( cell );
 			FxRecipes.dust( p.x, p.y, 4 );
 			SpatialSound.play( stoneWork( piece ) ? Assets.Sounds.STONE_SET : Assets.Sounds.HAMMER, cell );
+			//its picture drops into place onto it
+			BuildDrop.play( piece, cell, ow.width() );
 		}
 		if (piece.listener != null) piece.listener.placed( ow, cell, builder );
 		cellChanged( ow, cell );

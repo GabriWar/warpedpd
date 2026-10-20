@@ -28,6 +28,8 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
 import xyz.gabriwar.warpedpixeldungeon.effects.HearthLight;
 import xyz.gabriwar.warpedpixeldungeon.effects.WeatherSprites;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
@@ -35,7 +37,6 @@ import com.watabou.noosa.Game;
 import com.watabou.noosa.Gizmo;
 import com.watabou.noosa.Visual;
 import com.watabou.noosa.particles.Emitter;
-import com.watabou.utils.Random;
 
 /**
  * Smoke from a chimney or a fire: a thin column of puffs that climb, slow, swell and thin
@@ -46,7 +47,8 @@ import com.watabou.utils.Random;
  * climbing higher and thinning slower. A hot spring of the peaks (MountainSites) breathes STEAM:
  * thin white wisps that die a cell or so up, so a bather in the pool stays in plain sight. Under
  * no sky (a fire of the caves' places, CaveSites) the air is still: no wind, no storm, the column
- * goes straight up whatever the weather does above.
+ * goes straight up whatever the weather does above. Its numbers are the effects' own (FxRandom):
+ * a burning tree's smoke or a homestead's chimney's draws none of the game's.
  */
 public class ChimneySmokeParticle extends WeatherParticle {
 
@@ -114,21 +116,21 @@ public class ChimneySmokeParticle extends WeatherParticle {
 		still = Dungeon.level instanceof OverworldLevel && !((OverworldLevel) Dungeon.level).openSky();
 		storm = !still && ClimateManager.isStorming();
 		//a storm cuts it short
-		left = lifespan = Random.Float( 5f, 6.5f ) * (storm ? 0.55f : 1f) * (soot ? 1.2f : 1f);
-		rise = Random.Float( 9f, 12f ) * (storm ? 0.5f : 1f) * (soot ? 1.3f : 1f);
-		speed.set( Random.Float( -0.6f, 0.6f ), -rise );
+		left = lifespan = FxRandom.Float( 5f, 6.5f ) * (storm ? 0.55f : 1f) * (soot ? 1.2f : 1f);
+		rise = FxRandom.Float( 9f, 12f ) * (storm ? 0.5f : 1f) * (soot ? 1.3f : 1f);
+		speed.set( FxRandom.Float( -0.6f, 0.6f ), -rise );
 		//the slowing climb is worked into the speed itself (update), so no acceleration
 		acc.set( 0, 0 );
 		//rain thins it
 		peak = soot ? 0.7f : ClimateManager.isRaining() ? 0.36f : 0.5f;
 		if (steam){
 			//wisps off warm water: about a cell and a half up, thin enough to see through
-			left = lifespan = Random.Float( 2.4f, 3.2f );
-			rise = Random.Float( 6f, 8f );
-			speed.set( Random.Float( -0.6f, 0.6f ), -rise );
+			left = lifespan = FxRandom.Float( 2.4f, 3.2f );
+			rise = FxRandom.Float( 6f, 8f );
+			speed.set( FxRandom.Float( -0.6f, 0.6f ), -rise );
 			peak = 0.32f;
 		}
-		sway = Random.Float( 6.283f );
+		sway = FxRandom.Float( 6.283f );
 		stage = -1;
 		frame = null;
 		//soot billows out of the fire already a big puff
@@ -210,9 +212,10 @@ public class ChimneySmokeParticle extends WeatherParticle {
 	 * cell (gateDX, gateDY) from the one under the column's own top-left, read off its own
 	 * position, so a window slide never leaves it stale. A gate other than that cell is a
 	 * house front (a camera-facing wall, seen only from outside), and the column also shows
-	 * whenever its own cell is in sight; ungated it always shows.
+	 * whenever its own cell is in sight; ungated it always shows. A kit emitter (FxEmitter): where
+	 * and when it puffs is the effects' own random, never the game's.
 	 */
-	public static class Column extends Emitter {
+	public static class Column extends FxEmitter {
 
 		public int gateDX, gateDY;
 		public boolean gated;
@@ -261,19 +264,19 @@ public class ChimneySmokeParticle extends WeatherParticle {
 	/** A smoke column with its mouth at (x, y, w, h), a puff every `interval` seconds, already
 	 *  smoking. Render thread only; null without a scene. */
 	public static Column column( float x, float y, float w, float h, float interval, int gateDX, int gateDY, boolean gated ){
-		return column( Column.class, x, y, w, h, interval, gateDX, gateDY, gated, false, false );
+		return column( Column.class, x, y, w, h, interval, gateDX, gateDY, gated, false, false, AGED );
 	}
 
 	/** The same pouring SOOT when `soot`: a house on fire. */
 	public static Column column( float x, float y, float w, float h, float interval, int gateDX, int gateDY, boolean gated,
 			boolean soot ){
-		return column( Column.class, x, y, w, h, interval, gateDX, gateDY, gated, soot, false );
+		return column( Column.class, x, y, w, h, interval, gateDX, gateDY, gated, soot, false, AGED );
 	}
 
 	/** The same pouring STEAM when `steam`: a hot spring. */
 	public static Column column( float x, float y, float w, float h, float interval, int gateDX, int gateDY, boolean gated,
 			boolean soot, boolean steam ){
-		return column( Column.class, x, y, w, h, interval, gateDX, gateDY, gated, soot, steam );
+		return column( Column.class, x, y, w, h, interval, gateDX, gateDY, gated, soot, steam, AGED );
 	}
 
 	/** The same, in a column of a kind of its own: the scene hands a dead column back only to its
@@ -281,12 +284,23 @@ public class ChimneySmokeParticle extends WeatherParticle {
 	 *  SettlementAmbience still holds as it fades, nor the other way round (WorldEventDecor). */
 	public static <T extends Column> T column( Class<T> kind, float x, float y, float w, float h, float interval,
 			int gateDX, int gateDY, boolean gated ){
-		return column( kind, x, y, w, h, interval, gateDX, gateDY, gated, false, false );
+		return column( kind, x, y, w, h, interval, gateDX, gateDY, gated, false, false, AGED );
 	}
 
-	//a column recycled by the scene may have been either kind: set to the one asked for
+	/** A column of a kind of its own over a fire only now lit (a homestead's kiln, a tree a bolt
+	 *  struck): no puff on its way up yet, the first one still to come out of its mouth. */
+	public static <T extends Column> T kindle( Class<T> kind, float x, float y, float w, float h, float interval,
+			int gateDX, int gateDY, boolean gated ){
+		return column( kind, x, y, w, h, interval, gateDX, gateDY, gated, false, false, 0 );
+	}
+
+	//the puffs a column made already smoking starts with, each some way up
+	private static final int AGED = 8;
+
+	//a column recycled by the scene may have been either kind: set to the one asked for, with `aged`
+	//puffs already on their way up
 	private static <T extends Column> T column( Class<T> kind, float x, float y, float w, float h, float interval,
-			int gateDX, int gateDY, boolean gated, boolean soot, boolean steam ){
+			int gateDX, int gateDY, boolean gated, boolean soot, boolean steam, int aged ){
 		T made = GameScene.overFogEmitter( kind );
 		if (made == null) return null;
 		Column c = made;
@@ -298,10 +312,10 @@ public class ChimneySmokeParticle extends WeatherParticle {
 		c.pos( x, y, w, h );
 		c.seen = gated ? c.gate() : 1f;
 		c.pour( c.puffs(), interval );
-		for (int i = 0; i < 8; i++){
+		for (int i = 0; i < aged; i++){
 			ChimneySmokeParticle p = (ChimneySmokeParticle) c.recycle( ChimneySmokeParticle.class );
-			p.reset( x + Random.Float( w ), y + Random.Float( h ), soot, steam );
-			p.age( Random.Float( p.lifespan ) );
+			p.reset( x + FxRandom.Float( w ), y + FxRandom.Float( h ), soot, steam );
+			p.age( FxRandom.Float( p.lifespan ) );
 		}
 		return made;
 	}

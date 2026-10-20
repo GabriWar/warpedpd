@@ -36,9 +36,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AccuracyMark;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
 
 public class Accuracy extends PassiveSkillB1 {
 
@@ -49,6 +48,8 @@ public class Accuracy extends PassiveSkillB1 {
 	}
 
 	public static final float BLIND_TURNS = 3f;
+	/** The bullseye's flare: the arrowhead's cold steel, as Precision's mark. */
+	public static final int BULLSEYE = 0xE6EDF5;
 
 	@Override
 	protected boolean upgrade(){
@@ -67,8 +68,9 @@ public class Accuracy extends PassiveSkillB1 {
 
 		Buff.prolong( enemy, Blindness.class, BLIND_TURNS );
 		if (enemy.sprite != null && Dungeon.level.heroFOV[enemy.pos]){
-			new Flare( 4, 16 ).color( 0xFF4444, true ).show( enemy.sprite, 0.5f );
-			enemy.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "bullseye" ) );
+			//the eyes found: a small flare of the point's steel at its head (Precision's E6EDF5; never a fire's peach)
+			PixelFlare.show( SkillVfx.midX( enemy.sprite ), enemy.sprite.y + 3, BULLSEYE, PixelFlare.S, 0.5f );
+			chipOn( enemy );
 		}
 		SpatialSound.play( Assets.Sounds.HIT_ARROW, enemy, 1f, 1.4f );
 		return damage;

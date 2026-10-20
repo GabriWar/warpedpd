@@ -26,6 +26,7 @@ import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
 import xyz.gabriwar.warpedpixeldungeon.items.ArcaneResin;
 import xyz.gabriwar.warpedpixeldungeon.items.BulletBelt;
 import xyz.gabriwar.warpedpixeldungeon.items.BulletItem;
+import xyz.gabriwar.warpedpixeldungeon.items.EmptyBottle;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.GunSmithingTool;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
@@ -304,7 +305,7 @@ public class QuickRecipe extends Component {
 		ArrayList<QuickRecipe> result = new ArrayList<>();
 		switch (pageIdx){
 			case 0: default:
-				result.add(new QuickRecipe( new Potion.SeedToPotion(), new ArrayList<>(Arrays.asList(new Plant.Seed.PlaceHolder().quantity(3))), new WndBag.Placeholder(ItemSpriteSheet.POTION_HOLDER){
+				result.add(new QuickRecipe( new Potion.SeedToPotion(), new ArrayList<>(Arrays.asList(new Plant.Seed.PlaceHolder().quantity(3), new EmptyBottle.AnyBottle())), new WndBag.Placeholder(ItemSpriteSheet.POTION_HOLDER){
 					@Override
 					public String name() {
 						return Messages.get(Potion.SeedToPotion.class, "name");

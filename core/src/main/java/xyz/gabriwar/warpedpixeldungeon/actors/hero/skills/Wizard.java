@@ -34,13 +34,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBolt;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.EnergyParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.Wand;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 /**
  * Mage: a spent wand charge may refuse to die. It ricochets off the enemy the zap struck and
@@ -94,7 +93,7 @@ public class Wizard extends PassiveSkillB1 {
 			Item.updateQuickslot();
 			if (hero.sprite != null){
 				hero.sprite.centerEmitter().burst( EnergyParticle.FACTORY, 8 );
-				hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( Wizard.class, "snap" ) );
+				Skill.chipOn( Wizard.class, hero );
 			}
 			SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 0.7f, 1.5f );
 		}
@@ -117,11 +116,13 @@ public class Wizard extends PassiveSkillB1 {
 
 	private static void ricochet( Hero hero, Wand wand, int from, Char next ){
 		if (hero.sprite != null && hero.sprite.parent != null){
-			((MagicMissile) hero.sprite.parent.recycle( MagicMissile.class )).reset(
-					MagicMissile.MAGIC_MISSILE, from, next.pos, null );
-			hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( Wizard.class, "ricochet" ) );
+			//the zap leaping on as a bolt of arcane runes (never a wand of magic missile's, whatever
+			//the wand), flying as that bolt flew
+			SkillBolt.fly( hero.sprite.parent, from, next.pos, SkillBolt.ARCANE, null );
+			Skill.chipOn( Wizard.class, hero );
 		}
-		if (next.sprite != null) next.sprite.centerEmitter().burst( EnergyParticle.FACTORY, 6 );
+		//the leap arriving: arcane sparks off it, the bolt's own (never a wand's recharge on a monster)
+		if (next.sprite != null) next.sprite.centerEmitter().burst( SkillBursts.ARCANE_SPARK, 6 );
 		SpatialSound.play( Assets.Sounds.ZAP, next, 1f, 1.3f );
 		bouncing = true;
 		try {

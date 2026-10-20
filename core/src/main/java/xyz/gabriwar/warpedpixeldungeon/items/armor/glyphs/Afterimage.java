@@ -32,6 +32,7 @@ public class Afterimage extends Armor.Glyph {
 
 	private static ItemSprite.Glowing BLACK = new ItemSprite.Glowing( 0x888888, 0.5f );
 
+	/** Its picture is on the wearer's dodge (Char.attack's miss: ShadowRows.afterimageDodge). */
 	@Override
 	public int proc(Armor armor, Char attacker, Char defender, int damage) {
 		//no proc effect, see armor.evasionFactor for effect and armor.defenseFactor

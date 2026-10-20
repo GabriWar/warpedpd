@@ -125,6 +125,11 @@ abstract public class Weapon extends KindOfWeapon {
 			return Math.round(dmg * damageFactor);
 		}
 
+		/** the factor itself (the damage ledger shows it) */
+		public float damageMultiplier(){
+			return damageFactor;
+		}
+
 		public float damageFactor(float dmg){
 			return dmg * damageFactor;
 		}
@@ -150,37 +155,49 @@ abstract public class Weapon extends KindOfWeapon {
 	public boolean enchantHardened = false;
 	public boolean curseInfusionBonus = false;
 	public boolean masteryPotionBonus = false;
+
+	/** the weapon whose magic and quality a blow with this one counts: itself, or for a
+	 *  launcher's shot, the launcher that fired it */
+	public Weapon magicSource(){
+		return this;
+	}
 	
 	@Override
 	public int proc( Char attacker, Char defender, int damage ) {
 		damage = xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.weaponHit( this, attacker, defender, damage );
 
+		//a shot fires its launcher's enchantments; each still procs with the shot as its weapon
+		Weapon src = magicSource();
 		if (attacker.buff(MagicImmune.class) == null) {
 			Enchantment trinityEnchant = null;
 			//only when it's the hero or a char that uses the hero's weapon
 			if (Dungeon.hero.buff(BodyForm.BodyFormBuff.class) != null && this instanceof MeleeWeapon
 					&& (attacker == Dungeon.hero || attacker instanceof MirrorImage || attacker instanceof ShadowClone.ShadowAlly)){
 				trinityEnchant = Dungeon.hero.buff(BodyForm.BodyFormBuff.class).enchant();
-				if (enchantment != null && trinityEnchant != null && trinityEnchant.getClass() == enchantment.getClass()){
+				if (src.enchantment != null && trinityEnchant != null && trinityEnchant.getClass() == src.enchantment.getClass()){
 					trinityEnchant = null;
 				}
-				if (enchantment2 != null && trinityEnchant != null && trinityEnchant.getClass() == enchantment2.getClass()){
+				if (src.enchantment2 != null && trinityEnchant != null && trinityEnchant.getClass() == src.enchantment2.getClass()){
 					trinityEnchant = null;
 				}
 			}
 
-			if (attacker instanceof Hero && isEquipped((Hero) attacker)
+			if (attacker instanceof Hero && src.isEquipped((Hero) attacker)
 					&& attacker.buff(HolyWeapon.HolyWepBuff.class) != null){
-				if (enchantment != null &&
-						(((Hero) attacker).subClass == HeroSubClass.PALADIN || enchantment.curse())){
-					damage = enchantment.proc(this, attacker, defender, damage);
+				if (src.enchantment != null &&
+						(((Hero) attacker).subClass == HeroSubClass.PALADIN || src.enchantment.curse())){
+					damage = procEnchant( src.enchantment, attacker, defender, damage );
 				}
-				if (defender.isAlive() && enchantment2 != null &&
-						(((Hero) attacker).subClass == HeroSubClass.PALADIN || enchantment2.curse())){
-					damage = enchantment2.proc(this, attacker, defender, damage);
+				if (defender.isAlive() && src.enchantment2 != null &&
+						(((Hero) attacker).subClass == HeroSubClass.PALADIN || src.enchantment2.curse())){
+					damage = procEnchant( src.enchantment2, attacker, defender, damage );
 				}
 				if (defender.isAlive() && trinityEnchant != null){
-					damage = trinityEnchant.proc(this, attacker, defender, damage);
+					damage = procEnchant( trinityEnchant, attacker, defender, damage );
+				}
+				//the vestige pauses under Holy Weapon as the good slots do, but for a Paladin
+				if (defender.isAlive() && ((Hero) attacker).subClass == HeroSubClass.PALADIN){
+					damage = procVestige( src, trinityEnchant, attacker, defender, damage );
 				}
 				if (defender.isAlive()) {
 					int dmg = ((Hero) attacker).subClass == HeroSubClass.PALADIN ? 6 : 2;
@@ -188,20 +205,25 @@ abstract public class Weapon extends KindOfWeapon {
 				}
 
 			} else {
-				if (enchantment != null) {
-					damage = enchantment.proc(this, attacker, defender, damage);
+				if (src.enchantment != null) {
+					damage = procEnchant( src.enchantment, attacker, defender, damage );
 				}
 
-				if (defender.isAlive() && enchantment2 != null) {
-					damage = enchantment2.proc(this, attacker, defender, damage);
+				if (defender.isAlive() && src.enchantment2 != null) {
+					damage = procEnchant( src.enchantment2, attacker, defender, damage );
 				}
 
 				if (defender.isAlive() && trinityEnchant != null){
-					damage = trinityEnchant.proc(this, attacker, defender, damage);
+					damage = procEnchant( trinityEnchant, attacker, defender, damage );
+				}
+
+				//after the real ones, so the one-shot proc boosts (Runic Blade, Elemental Strike) go to them
+				if (defender.isAlive()){
+					damage = procVestige( src, trinityEnchant, attacker, defender, damage );
 				}
 			}
 
-			if (attacker instanceof Hero && isEquipped((Hero) attacker) &&
+			if (attacker instanceof Hero && src.isEquipped((Hero) attacker) &&
 					attacker.buff(Smite.SmiteTracker.class) != null && defender.isAlive()){
 				defender.damage(Smite.bonusDmg((Hero) attacker, defender), Smite.INSTANCE);
 			}
@@ -234,6 +256,18 @@ abstract public class Weapon extends KindOfWeapon {
 		}
 
 		return damage;
+	}
+
+	//the launcher's (or this weapon's) vestigial enchantment, when its gate opens on this blow
+	private int procVestige( Weapon src, Enchantment trinityEnchant, Char attacker, Char defender, int damage ){
+		Enchantment v = xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.vestigeFor( src, trinityEnchant );
+		return v == null ? damage : procEnchant( v, attacker, defender, damage );
+	}
+
+	//an enchantment's proc, its change to the blow named after it in the damage ledger
+	private int procEnchant( Enchantment e, Char attacker, Char defender, int damage ){
+		xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.push( defender, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.AUTO, e );
+		return xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.pop( e.proc( this, attacker, defender, damage ) );
 	}
 	
 	public void onHeroGainExp( float levelPercent, Hero hero ){
@@ -279,6 +313,9 @@ abstract public class Weapon extends KindOfWeapon {
 		masteryPotionBonus = bundle.getBoolean( MASTERY_POTION_BONUS );
 
 		augment = bundle.getEnum(AUGMENT, Augment.class);
+
+		//after both slots: a legendary weapon from an older save gains its vestige once
+		xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.settleVestige( this );
 	}
 	
 	@Override
@@ -334,7 +371,10 @@ abstract public class Weapon extends KindOfWeapon {
 		}
 
 		if (xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.sureHit( this, owner, target )) return Char.INFINITE_ACCURACY;
-		ACC *= 1f + xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.value( this, xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.ACCURACY );
+		//a MOONLIT line sharpens the aim as it does the blow, by the hour
+		float moon = xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.value( magicSource(), xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.MOONLIT );
+		ACC *= 1f + xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.value( magicSource(), xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.ACCURACY )
+				+ (moon > 0f ? moon * xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.moonFactor() : 0f);
 
 		return encumbrance > 0 ? (float)(ACC / Math.pow( 1.5, encumbrance )) : ACC;
 	}

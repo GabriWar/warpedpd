@@ -477,7 +477,7 @@ public class DwarfKing extends Mob {
 				Viscosity.DeferedDamage deferred = Buff.affect( this, Viscosity.DeferedDamage.class );
 				deferred.extend( dmg );
 
-				sprite.showStatus( CharSprite.WARNING, Messages.get(Viscosity.class, "deferred", dmg) );
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.gain( this, xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.DEFERRED, dmg, CharSprite.WARNING );
 			}
 			return;
 		}
@@ -496,7 +496,7 @@ public class DwarfKing extends Mob {
 			summonCooldown -= dmgTaken/8f;
 			if (HP <= (Dungeon.isChallenged(Challenges.STRONGER_BOSSES) ? 100 : 50)) {
 				HP = (Dungeon.isChallenged(Challenges.STRONGER_BOSSES) ? 100 : 50);
-				sprite.showStatus(CharSprite.POSITIVE, Messages.get(this, "invulnerable"));
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.mark( this, xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.IMMUNE );
 				ScrollOfTeleportation.appear(this, CityBossLevel.throne);
 				properties.add(Property.IMMOVABLE);
 				phase = 2;

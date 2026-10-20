@@ -31,7 +31,6 @@ import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 
 
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -40,7 +39,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SmokeParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.RogueHuntressAuras;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraBuff;
@@ -64,8 +64,9 @@ public class Bombvoyage extends ActiveSkill3 {
 	public void execute( Hero hero, String action ){
 		super.execute(hero, action);
 		if (action.equals(Skill.AC_ACTIVATE)){
+			//the fuse lit: sparks off it (never smoke, as if she burned)
 			SpatialSound.play( Assets.Sounds.PUFF, hero, 1f, 0.8f );
-			hero.sprite.emitter().burst( Speck.factory( Speck.SMOKE ), 5 );
+			hero.sprite.emitter().burst( SkillBursts.FUSE, 5 );
 			AimedShot.switchOff( hero, AimedShot.class );
 			AimedShot.switchOff( hero, DoubleShot.class );
 			StanceAuraBuff.sync( hero, RogueHuntressAuras.Aimed.class, false );
@@ -86,9 +87,10 @@ public class Bombvoyage extends ActiveSkill3 {
 		else {
 			castTextYell();
 			Dungeon.hero.MP -= getManaCost();
-			//the charge lit as it leaves her hand
-			if (Dungeon.hero.sprite != null) Dungeon.hero.sprite.emitter().burst( SmokeParticle.FACTORY, 3 );
-			Sample.INSTANCE.play( Assets.Sounds.BURNING, 0.5f, 1.6f );
+			//the charge lit as it leaves her hand: a fuse's sparks and a soft puff (never the sound of
+			//something burning)
+			if (Dungeon.hero.sprite != null) Dungeon.hero.sprite.emitter().burst( SkillBursts.FUSE, 3 );
+			Sample.INSTANCE.play( Assets.Sounds.PUFF, 0.5f, 1.6f );
 			return true;
 		}
 	}
@@ -109,8 +111,8 @@ public class Bombvoyage extends ActiveSkill3 {
 			xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.center( c0 ).burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.BlastParticle.FACTORY, 30 );
 			Fx.shake( 2, 0.3f );
 			if (hero.sprite != null && hero.sprite.parent != null){
-				new Flare( 6, 20 * mult ).color( 0xFFAA44, true ).show( hero.sprite.parent,
-						xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap.tileCenterToWorld( c0 ), 0.4f );
+				PixelFlare.show( xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx.cx( c0 ),
+						xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx.cy( c0 ), 0xFFAA44, mult < 1f ? PixelFlare.S : PixelFlare.M, 0.4f );
 			}
 		}
 		int killedAt = -1;

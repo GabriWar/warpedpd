@@ -78,11 +78,17 @@ public class Heatstroke extends Buff implements Hero.Doom {
 		return super.attachTo(target);
 	}
 
+	//what the bearer feels: a hero (a co-op guest too) through his own gear and state; anyone
+	//else as it always has (TileTemperature.feelsLikeAt(cell) reads the host)
+	private float feelsLike() {
+		return TileTemperature.feelsLikeAt(target.pos, target instanceof Hero ? target : Dungeon.hero);
+	}
+
 	@Override
 	public boolean act() {
 		if (target.isAlive()) {
 
-			float temp = TileTemperature.feelsLikeAt(target.pos);
+			float temp = feelsLike();
 
 			// Clear once the body itself has cooled, not just the tile. The buff is
 			// applied on bodyTemp > 35, so clearing on bodyTemp < 30 gives proper
@@ -139,7 +145,7 @@ public class Heatstroke extends Buff implements Hero.Doom {
 	 * 35°C: +20%  |  45°C: +25%  |  55°C: +35%  |  65°C: +50%
 	 */
 	public float hungerFactor() {
-		float temp = TileTemperature.feelsLikeAt(target.pos);
+		float temp = feelsLike();
 		if      (temp >= 65f) return 1.5f;
 		else if (temp >= 55f) return 1.35f;
 		else if (temp >= 45f) return 1.25f;
@@ -164,7 +170,7 @@ public class Heatstroke extends Buff implements Hero.Doom {
 
 	@Override
 	public String desc() {
-		float temp = TileTemperature.feelsLikeAt(target.pos);
+		float temp = feelsLike();
 		String tier;
 		if      (temp >= 65f) tier = Messages.get(this, "tier_lethal");
 		else if (temp >= 55f) tier = Messages.get(this, "tier_critical");

@@ -27,11 +27,16 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.WeaponPerk;
+import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MissileSprite;
 import com.watabou.noosa.tweeners.AlphaTweener;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
+
+import java.util.ArrayList;
 
 public class HeavyBoomerang extends MissileWeapon {
 	
@@ -67,18 +72,44 @@ public class HeavyBoomerang extends MissileWeapon {
 		return circlingBack ? 0f : super.pickupDelay();
 	}
 
+	//it comes back to whoever threw it, and strikes on the way back for them
 	@Override
 	protected void rangedHit(Char enemy, int cell) {
 		decrementDurability();
 		if (durability > 0){
-			Buff.append(Dungeon.hero, CircleBack.class).setup(this, cell, Dungeon.hero.pos, Dungeon.depth, Dungeon.branch);
+			Buff.append(curUser, CircleBack.class).setup(this, cell, curUser.pos, Dungeon.depth, Dungeon.branch);
 		}
 	}
 	
 	@Override
 	protected void rangedMiss(int cell) {
 		parent = null;
-		Buff.append(Dungeon.hero, CircleBack.class).setup(this, cell, Dungeon.hero.pos, Dungeon.depth, Dungeon.branch);
+		Buff.append(curUser, CircleBack.class).setup(this, cell, curUser.pos, Dungeon.depth, Dungeon.branch);
+	}
+
+	/** Arc: the strikes on the way back, at every enemy on the line home but the one where it
+	 *  lands (that one takes a full throw), each a share of a hit that wears nothing. The same
+	 *  for Jupiter's Wraith */
+	static void returnStrikes( MissileWeapon boomerang, Char thrower, int thrownPos, int returnPos ){
+		if (WeaponPerk.arcRank( boomerang ) == 0 || !(thrower instanceof Hero) || !thrower.isAlive()) return;
+		Quality q = Quality.of( boomerang );
+		Hero hero = (Hero) thrower;
+		Ballistica line = new Ballistica( thrownPos, returnPos, Ballistica.STOP_TARGET | Ballistica.STOP_SOLID );
+		ArrayList<Char> struck = new ArrayList<>();
+		for (int c : line.subPath( 1, line.dist )){
+			Char ch = Actor.findChar( c );
+			if (c != returnPos && ch != null && ch != hero && ch.alignment == Char.Alignment.ENEMY) struck.add( ch );
+		}
+		q.returnStrike = true;
+		hero.extraShotAttack = true;
+		try {
+			for (Char ch : struck){
+				if (ch.isAlive() && hero.shoot( ch, boomerang )) xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.PieceFx.bite( hero, ch, struck.indexOf( ch ), boomerang );
+			}
+		} finally {
+			q.returnStrike = false;
+			hero.extraShotAttack = false;
+		}
 	}
 	
 	public static class CircleBack extends Buff {
@@ -101,7 +132,8 @@ public class HeavyBoomerang extends MissileWeapon {
 			this.returnPos = returnPos;
 			this.returnDepth = returnDepth;
 			this.returnBranch = returnBranch;
-			left = 5;
+			//alpha Arc: it comes back after 2 turns instead of 5
+			left = WeaponPerk.returnTurns( boomerang );
 		}
 		
 		public int returnPos(){
@@ -133,9 +165,12 @@ public class HeavyBoomerang extends MissileWeapon {
 										public void call() {
 											detach();
 											boomerang.circlingBack = true;
+											returnStrikes( boomerang, target, thrownPos, returnPos );
 											if (returnTarget == target){
 												if (!boomerang.spawnedForEffect) {
-													if (!(target instanceof Hero) || !boomerang.doPickUp((Hero) target)) {
+													boolean caught = target instanceof Hero && boomerang.doPickUp((Hero) target);
+													if (caught) xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.PieceFx.caught( target );
+													if (!caught) {
 														Dungeon.level.drop(boomerang, returnPos).sprite.drop();
 													}
 												}
@@ -156,6 +191,7 @@ public class HeavyBoomerang extends MissileWeapon {
 										}
 									});
 					visual.alpha(0f);
+					xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.PieceFx.telegraph( thrownPos, returnPos, target, boomerang );
 					float duration = Dungeon.level.trueDistance(thrownPos, returnPos) / 20f;
 					target.sprite.parent.add(new AlphaTweener(visual, 1f, duration));
 					return false;

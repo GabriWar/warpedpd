@@ -31,6 +31,8 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.MoteFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -39,7 +41,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SummonedPet;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfMagic;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 public class Meditation extends PassiveSkillA2 {
@@ -95,7 +96,9 @@ public class Meditation extends PassiveSkillA2 {
 			//the pulse: a flare, motes rising, and a second, wider ring of light a breath later
 			new Flare( 5, 18 ).color( 0x66CCFF, true ).show( hero.sprite, 1f );
 			hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 4 + level );
-			hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "pulse", gain ) );
+			//mana drawn in out of the calm, growing and brightening as it reaches him
+			if (gain > 0) MoteFX.gather( hero.sprite, 8, SkillPalette.MANA, 18f, 0.4f );
+			hero.sprite.showStatusWithIcon( xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.BlowPresenter.MANA_COLOR, Integer.toString( gain ), xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.MANA );
 			xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX.after( 0.1f, () -> {
 				if (hero.sprite != null) new Flare( 8, 30 ).color( 0x99DDFF, true ).show( hero.sprite, 0.8f );
 			} );
@@ -111,6 +114,7 @@ public class Meditation extends PassiveSkillA2 {
 			m.HP += mend;
 			if (m.sprite != null){
 				m.sprite.emitter().burst( Speck.factory( Speck.HEALING ), 3 );
+				MoteFX.greens( m.sprite, 2 );
 				m.sprite.showStatusWithIcon( CharSprite.POSITIVE, Integer.toString( mend ), FloatingText.HEALING );
 			}
 		}

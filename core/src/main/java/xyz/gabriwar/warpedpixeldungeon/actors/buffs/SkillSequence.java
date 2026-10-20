@@ -37,6 +37,14 @@ public class SkillSequence extends Buff {
         Char enemy=Actor.findChar(cell);
         if(enemy!=null&&enemy.isAlive()&&enemy.alignment==Char.Alignment.ENEMY)enemy.damage(amount,this);
     }
+    // A spectral lance: a ghost thrust over the cell at chest height, rippling out along the lane
+    // (each cell 0.04 s after the one before it); the damage as hit's.
+    private void lance(int cell,int amount,int index){
+        if(!SkillInteractions.valid(cell))return;
+        SkillSpectacleFX.fly(SkillSpectacleFX.LANCE,center,cell,.04f*index,.3f);
+        Char enemy=Actor.findChar(cell);
+        if(enemy!=null&&enemy.isAlive()&&enemy.alignment==Char.Alignment.ENEMY)enemy.damage(amount,this);
+    }
     @Override public boolean act(){
         if(!sameFloor()||!(target instanceof Hero)||!target.isAlive()){detach();return true;}
         Hero hero=(Hero)target;age++;
@@ -73,7 +81,6 @@ public class SkillSequence extends Buff {
                     enemy.damage(damage,this);
                     if(enemy.isAlive())Buff.prolong(enemy,Cripple.class,2f);
                 }
-                SkillSpectacleFX.show(SkillSpectacleFX.JAW,center);
                 break;
             case BLADESTORM:
                 center=hero.pos;
@@ -89,7 +96,7 @@ public class SkillSequence extends Buff {
             case LANCES:
                 // Alternate odd/even tiles, then finish the entire lane at rank three.
                 for(int i=0;i<cells.length;i++)if(rank==3&&remaining==1||(i%2)==((age-1)%2))
-                    if(SkillInteractions.clear(center,cells[i]))hit(cells[i],damage,SkillSpectacleFX.LANCE);
+                    if(SkillInteractions.clear(center,cells[i]))lance(cells[i],damage,i);
                 break;
             case CROSSCUT:
                 for(int c:cells)if(SkillInteractions.clear(center,c)){
@@ -106,6 +113,8 @@ public class SkillSequence extends Buff {
                     if(ally==null||!ally.isAlive())continue;
                     if(ally.alignment==Char.Alignment.ALLY){
                         int heal=Math.min(1+rank,ally.HT-ally.HP);ally.HP+=heal;
+                        // the dawn's mend seen: the heal's red crosses and green light on whoever it really mended
+                        if(heal>0)mended(ally);
                         int excess=1+rank-heal;
                         if(excess>0){SkillInteractions.Mark shard=SkillInteractions.mark(ally,SkillInteractions.Mark.SHARDS,rank,6);shard.power=Math.min(6+4*rank,shard.power+excess);}
                     }else if(remaining==1&&ally.alignment==Char.Alignment.ENEMY){
@@ -128,11 +137,19 @@ public class SkillSequence extends Buff {
         }
         if(--remaining<=0)detach();else spend(TICK);return true;
     }
+    /** The heal's picture on one the dawn mended (in sight): MENDED_CROSSES red crosses and
+     *  MENDED_GREENS motes of green light (MoteFX, posted; none of the game's Random). */
+    public static final int MENDED_CROSSES=2,MENDED_GREENS=2;
+    public static void mended(Char ally){
+        if(ally.sprite==null||Dungeon.level==null||!Dungeon.level.heroFOV[ally.pos])return;
+        xyz.gabriwar.warpedpixeldungeon.effects.skillfx.MoteFX.crosses(ally.sprite,MENDED_CROSSES);
+        xyz.gabriwar.warpedpixeldungeon.effects.skillfx.MoteFX.greens(ally.sprite,MENDED_GREENS);
+    }
     private volatile int fxRevision;
     @Override public void fx(boolean on){
         final int revision=++fxRevision;
         if(aura==null&&(!on||target==null||target.sprite==null||target.sprite.parent==null))return;
-        com.watabou.noosa.Game.runOnRenderThread(()->{if(revision==fxRevision)updateAura(on);});
+        xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx.post(()->{if(revision==fxRevision)updateAura(on);});
     }
     private void updateAura(boolean on){
         if(aura!=null){xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx.dispose(aura);aura=null;}

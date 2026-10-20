@@ -27,9 +27,8 @@ package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Aegis;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 
 /** The aegis shield reforming after it caught a blow; when it runs out the shield is back up. */
@@ -48,8 +47,8 @@ public class AegisRecharge extends FlavourBuff {
 	public boolean act() {
 		//the shield rings back into place, so the player knows it will catch again
 		if (target.isAlive() && target.sprite != null && target.sprite.parent != null){
-			new Flare( 5, 16 ).color( 0xFFEE88, true ).show( target.sprite, 0.4f );
-			target.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( Aegis.class, "ready" ) );
+			PixelFlare.show( SkillVfx.midX( target.sprite ), SkillVfx.midY( target.sprite ), 0xF1D99C, PixelFlare.M, 0.4f );
+			xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.chipOn( Aegis.class, target );
 			SpatialSound.play( Assets.Sounds.HIT_PARRY, target, 0.4f, 1.4f );
 		}
 		return super.act();

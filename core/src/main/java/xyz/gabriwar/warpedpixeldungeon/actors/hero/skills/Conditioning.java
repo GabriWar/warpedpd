@@ -34,7 +34,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import com.watabou.utils.Bundle;
 
@@ -81,7 +80,8 @@ public class Conditioning extends PassiveSkillA1 {
 		hero.HP = Math.min( hero.HT, hero.HP + heal );
 
 		if (hero.sprite != null){
-			hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "rally", heal ) );
+			hero.sprite.showStatusWithIcon( CharSprite.POSITIVE, Integer.toString( heal ), xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.HEALING );
+			chipOn( hero );
 			hero.sprite.emitter().burst( Speck.factory( Speck.HEALING ), 4 + 2 * level );
 		}
 		SpatialSound.play( Assets.Sounds.DRINK, hero, 1f, 1.2f );

@@ -33,7 +33,9 @@ import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barrier;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.effects.ShieldHalo;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.MoteFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
@@ -75,18 +77,20 @@ public class HealingPrayer extends ActiveSkill2 {
             int healed = Math.min( amount, hero.HT - hero.HP );
 			hero.HP += healed;
 			hero.sprite.emitter().start( Speck.factory( Speck.HEALING ), 0.4f, 4 );
-			hero.sprite.emitter().burst( ShaftParticle.FACTORY, 5 );
-			//the prayer: a soft pulse out from the cleric, a warmer second beat, motes drifting up after it
-			PulseRingFX.around( hero.sprite, 0xBBFFCC, 14, 0.55f );
+			hero.sprite.emitter().burst( SkillBursts.HOLY_MOTE, 5 );
+			//the prayer: a soft pulse of the heal's green out from the cleric, a warmer second beat in gold
+			//with the heal's red crosses and its green light rising, holy motes drifting up after it
+			PulseRingFX.around( hero.sprite, SkillPalette.HEAL_LIGHT, 14, 0.55f );
 			FxTimeline.start()
-					.at( 0.08f, () -> { PulseRingFX.around( hero.sprite, 0xFFF1A1, 10, 0.45f ); hero.sprite.emitter().burst( Speck.factory( Speck.HEALING ), 4 ); } )
-					.at( 0.42f, () -> hero.sprite.emitter().burst( ShaftParticle.FACTORY, 3 ) );
-			hero.sprite.showStatus( xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite.POSITIVE, "+" + healed + "HP" );
+					.at( 0.08f, () -> { PulseRingFX.around( hero.sprite, 0xF1D99C, 10, 0.45f ); hero.sprite.emitter().burst( Speck.factory( Speck.HEALING ), 4 ); MoteFX.greens( hero.sprite, 4 ); } )
+					.at( 0.42f, () -> hero.sprite.emitter().burst( SkillBursts.HOLY_MOTE, 3 ) );
+			hero.sprite.showStatusWithIcon( xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite.POSITIVE, Integer.toString( healed ), xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.HEALING );
 			//at level 3 the healing past full health stays on as a barrier of light, up to MAX_BARRIER
 			if (level >= MAX_LEVEL){
 				Barrier current = hero.buff( Barrier.class );
 				int added = Math.min( amount - healed, SkillInteractions.ofHealth( hero.HT, MAX_BARRIER ) - (current == null ? 0 : current.shielding()) );
 				if (added > 0){
+					//a real barrier: the shield's halo is honest here
 					Buff.affect( hero, Barrier.class ).incShield( added );
 					ShieldHalo halo = new ShieldHalo( hero.sprite );
 					hero.sprite.parent.add( halo );

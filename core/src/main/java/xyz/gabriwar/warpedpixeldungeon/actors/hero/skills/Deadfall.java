@@ -32,6 +32,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
 
 import xyz.gabriwar.warpedpixeldungeon.items.stones.StoneOfBlast;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.WarriorImpactFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -47,6 +49,7 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.PathFinder;
+import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
 
 import java.util.ArrayList;
@@ -154,11 +157,15 @@ public class Deadfall extends Skill {
 		rigged.detach();
 		int cell = rigged.origin;
 		int rank = Math.max( 1, rigged.rank );
-		SpatialSound.play( Assets.Sounds.ROCKS, cell, 1f, 1.0f );
+		//the line snaps (never a rockfall)
+		SpatialSound.play( Assets.Sounds.ROPE, cell, 1f, 1.0f );
 		Fx.shake( 2, 0.4f );
+		//what each cell's fall draws the game's Random as (the rain's four draws an item, as ever);
+		//only the counterweight is drawn, over the middle: the rest of the rigging is its shock
 		StoneOfBlast look = new StoneOfBlast();
 		//the rumble first: dust shaken loose in a ring round the rigging, then the weight comes
-		//down cell after cell, and a last lighter shudder as the dust settles
+		//down on the middle and the ground breaks cell after cell, and a last lighter shudder as
+		//the dust settles
 		FxTimeline t = FxTimeline.start();
 		for (int c : SkillInteractions.area( cell, 2 )){
 			if (Dungeon.level.distance( cell, c ) == 2 && Dungeon.level.heroFOV[c]){
@@ -174,9 +181,25 @@ public class Deadfall extends Skill {
 		for (int c : rigged.cells){
 			if (Dungeon.level.heroFOV[c]){
 				final int at = c;
+				final boolean middle = at == cell;
 				t.at( 0.1f + 0.04f * order++, () -> {
-					SkillFX.rain( at, look, 1 + Random.Int( 2 ), null );
-					CellEmitter.get( at ).burst( Speck.factory( Speck.ROCK ), 4 );
+					int n = 1 + Random.Int( 2 );
+					//as it lands: the counterweight's heavy blow on the middle, the ground breaking
+					//under the rest (the first of a cell's falls calls it)
+					Callback landed = () -> {
+						WarriorImpactFX.show( at, middle );
+						if (middle) SpatialSound.play( Assets.Sounds.HIT_CRUSH, at, 1f, 0.8f );
+					};
+					if (middle){
+						//one weight on its rope; any second fall the cell had is its shock, drawn as
+						//nothing (the same draws in the same order as one rain of n)
+						SkillFX.rain( at, look, SkillFX.Fall.WEIGHT, 1, landed );
+						SkillFX.rain( at, look, SkillFX.Fall.SHOCK, n - 1, null );
+					} else {
+						SkillFX.rain( at, look, SkillFX.Fall.SHOCK, n, landed );
+					}
+					//the ground shuddering under what is coming (its chips fly as it lands: WarriorImpactFX)
+					CellEmitter.get( at ).burst( SkillBursts.TREMBLE, 4 );
 					CellEmitter.bottom( at ).burst( Speck.factory( Speck.DUST ), 3 );
 				} );
 			}

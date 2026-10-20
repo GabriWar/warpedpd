@@ -37,6 +37,17 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxDecal;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRing;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
@@ -77,15 +88,19 @@ public class StoneSkin extends Skill {
 
 		int stopped = Math.min( damage, SkillInteractions.ofHealth( hero.HT, PLATE ) );
 		if (hero.sprite != null){
-			hero.sprite.emitter().burst( Speck.factory( Speck.ROCK ), 6 );
-			hero.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( this, "plates_left", level - plates.broken ) );
+			//a plate breaks off him: chips thrown out and up, a crack where he stands (never rocks falling)
+			hero.sprite.emitter().burst( SkillBursts.STONE_CHIP, 6 );
+			crack( hero.sprite );
+			//the plates left as a count, the skill alone when none is
+			if (level - plates.broken > 0) counterOn( hero, level - plates.broken, CharSprite.NEUTRAL );
+			else chipOn( hero );
 		}
 		SpatialSound.play( Assets.Sounds.ROCKS, hero, 0.7f, 1.3f );
 
 		if (source instanceof Char && source != hero){
 			Char attacker = (Char) source;
 			if (attacker.isAlive() && Dungeon.level.adjacent( hero.pos, attacker.pos )){
-				CellEmitter.center( attacker.pos ).burst( Speck.factory( Speck.ROCK ), 5 );
+				CellEmitter.center( attacker.pos ).burst( SkillBursts.STONE_CHIP, 5 );
 				attacker.damage( SHARD_DAMAGE, this );
 				//+3: a blow the plate stopped whole leaves the attacker reeling
 				if (level >= MAX_LEVEL && stopped >= damage && attacker.isAlive()
@@ -95,6 +110,42 @@ public class StoneSkin extends Skill {
 			}
 		}
 		return stopped;
+	}
+
+	/** How long a regrowing plate's pebbles take to gather into him, s; how many; from how far, px. */
+	public static final float GATHER = 0.25f;
+	public static final int GATHER_PEBBLES = 4;
+	public static final float GATHER_FROM = 11f;
+
+	//a plate breaking off him: a crack opening at his boots and a small ring of dust (its thud).
+	//Any thread
+	public static void crack( final CharSprite s ){
+		Fx.post( () -> {
+			if (s.parent == null || !s.visible) return;
+			float x = SkillVfx.midX( s ), y = s.y + s.height() + 1;
+			if (!Fx.seen( x, y )) return;
+			FxDecal d = FxDecal.at( x, y, FxFrames.CRACK_11[FxRandom.Int( 2 )], Element.EARTH.ramp.stop( 4 ), 0.7f, 1f, 0.8f, FxRandom.chance( 0.5f ) );
+			if (d != null) d.revealCrop( FxDecal.FROM_MIDDLE, 0.08f );
+			FxRing.ground( GameScene.layer( GameScene.Layer.FLOOR ), x, y - 2, 9, 17, 0.25f, Element.EARTH.ramp.stop( 1 ), 0.5f, false );
+		} );
+	}
+
+	//a plate grows back: GATHER_PEBBLES pebbles of stone drawn in from round him into his body over
+	//GATHER s (matter, P2). Any thread
+	public static void regrow( final CharSprite s ){
+		Fx.post( () -> {
+			if (s.parent == null || !s.visible) return;
+			float cx = SkillVfx.midX( s ), cy = SkillVfx.midY( s ) + 2;
+			if (!Fx.seen( cx, cy )) return;
+			float a0 = FxRandom.angle();
+			for (int i = 0; i < GATHER_PEBBLES; i++){
+				float a = a0 + (float) (2 * Math.PI * i / GATHER_PEBBLES);
+				float dx = (float) Math.cos( a ) * GATHER_FROM, dy = (float) Math.sin( a ) * GATHER_FROM * 0.6f;
+				FxParticle p = SkillVfx.matter( cx + dx, cy + dy, FxBudget.P2 );
+				if (p != null) p.look( i % 2 == 0 ? FxFrames.PEBBLE_3 : FxFrames.PEBBLE_2 ).paint( SkillBursts.STONE.step( FxRandom.Float() ) )
+						.vel( -dx / GATHER, -dy / GATHER ).life( GATHER ).alpha( 1f, 0.05f, 0.05f ).source( cx, cy );
+			}
+		} );
 	}
 
 	/** exists only while some plates are broken; regrows them one every REGROW turns */
@@ -123,7 +174,8 @@ public class StoneSkin extends Skill {
 				broken--;
 				regrow = REGROW;
 				if (target.sprite != null){
-					target.sprite.emitter().burst( Speck.factory( Speck.ROCK ), 3 );
+					target.sprite.emitter().burst( SkillBursts.GRIT, 3 );
+					regrow( target.sprite );
 				}
 				SpatialSound.play( Assets.Sounds.ROCKS_LIGHT, target, 0.6f, 1.4f );
 			}

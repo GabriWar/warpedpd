@@ -371,7 +371,7 @@ public abstract class YogFist extends Mob {
 
 			} else {
 
-				enemy.sprite.showStatus( CharSprite.NEUTRAL,  enemy.defenseVerb() );
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.missed( enemy );
 			}
 
 			for (int i : PathFinder.NEIGHBOURS9){
@@ -436,7 +436,7 @@ public abstract class YogFist extends Mob {
 				b.announced = false;
 				b.attachTo(this);
 				b.set(dmg*.6f);
-				sprite.showStatus(CharSprite.WARNING, Messages.titleCase(b.name()) + " " + (int)b.level());
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.counter( this, -(xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator.BLEEDING + 1), (int)b.level(), CharSprite.WARNING );
 			} else{
 				super.damage(dmg, src);
 			}
@@ -486,7 +486,7 @@ public abstract class YogFist extends Mob {
 				dmg = Math.round( dmg * resist( src.getClass() ));
 				if (dmg >= 0) {
 					Buff.affect(this, Viscosity.DeferedDamage.class).extend(dmg);
-					sprite.showStatus(CharSprite.WARNING, Messages.get(Viscosity.class, "deferred", dmg));
+					xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.gain( this, xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.DEFERRED, dmg, CharSprite.WARNING );
 				}
 			} else{
 				super.damage(dmg, src);
@@ -538,7 +538,7 @@ public abstract class YogFist extends Mob {
 
 			} else {
 
-				enemy.sprite.showStatus( CharSprite.NEUTRAL,  enemy.defenseVerb() );
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.missed( enemy );
 			}
 
 		}
@@ -608,7 +608,7 @@ public abstract class YogFist extends Mob {
 
 			} else {
 
-				enemy.sprite.showStatus( CharSprite.NEUTRAL,  enemy.defenseVerb() );
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.missed( enemy );
 			}
 
 		}

@@ -49,7 +49,8 @@ public class IconTitle extends Component {
 	}
 
 	public IconTitle( Item item ) {
-		ItemSprite icon = new ItemSprite();
+		//the info window shows an enchanted item's motes (ItemSprite.Mode.PANEL)
+		ItemSprite icon = new ItemSprite().mode( ItemSprite.Mode.PANEL );
 		icon( icon );
 		label( Messages.titleCase( item.title() ) );
 		icon.view( item );
@@ -57,7 +58,7 @@ public class IconTitle extends Component {
 	}
 	
 	public IconTitle( Heap heap ){
-		ItemSprite icon = new ItemSprite();
+		ItemSprite icon = new ItemSprite().mode( ItemSprite.Mode.PANEL );
 		icon( icon );
 		label( Messages.titleCase( heap.title() ) );
 		icon.view( heap );

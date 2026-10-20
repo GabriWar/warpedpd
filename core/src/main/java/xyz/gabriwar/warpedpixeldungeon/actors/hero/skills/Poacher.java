@@ -34,7 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.PoacherBait;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 
 /**
  * Huntress: a ranged kill leaves the carcass as bait. Its scent draws in the enemies
@@ -65,7 +65,8 @@ public class Poacher extends Skill {
 		Buff.affect( Dungeon.hero, PoacherBait.class ).set( cell, level );
 		castTextYell();
 		if (Dungeon.level.heroFOV[cell]){
-			CellEmitter.get( cell ).burst( Speck.factory( Speck.STENCH ), 6 );
+			//the carcass's scent: warm glints drifting off it (never a stench gas, a hazard)
+			CellEmitter.get( cell ).burst( SkillBursts.SCENT, 6 );
 			SkillInteractions.flare( cell, 0xB5D67A );
 		}
 		SpatialSound.play( Assets.Sounds.PUFF, cell, 0.8f, 0.8f );

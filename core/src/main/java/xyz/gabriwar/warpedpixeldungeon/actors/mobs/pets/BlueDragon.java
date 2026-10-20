@@ -133,7 +133,7 @@ public class BlueDragon extends PET implements Callback {
 
 				Buff.prolong(enemy, Frost.class, Frost.DURATION * Random.Float(1f, 1.5f));
 			} else {
-				enemy.sprite.showStatus(0xFFFFFF, enemy.defenseVerb());
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.missed( enemy );
 			}
 		}
 	}

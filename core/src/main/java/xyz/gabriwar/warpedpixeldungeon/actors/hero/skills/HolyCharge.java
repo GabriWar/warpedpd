@@ -39,16 +39,17 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StreakFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 
 import java.util.ArrayList;
@@ -146,9 +147,11 @@ public class HolyCharge extends SubSkill2 {
 			return;
 		}
 
-		//a flat, fast slide along the ground under a ray of light, not a leap
+		//a flat, fast slide along the ground in a streak of gold (the hero crossing it, his
+		//afterimages along it, a dust of gold light left rising behind him), not a leap and never a
+		//sun's beam
 		if (hero.sprite.parent != null){
-			hero.sprite.parent.add( new Beam.SunRay( hero.sprite.center(), DungeonTilemap.raisedTileCenterToWorld( dest ) ) );
+			StreakFX.dash( from, dest, 0xF1D99C, 0.45f, 0.3f, true, StreakFX.MOTES );
 		}
 		for (int c : path){
 			CellEmitter.center( c ).burst( Speck.factory( Speck.LIGHT ), 3 );
@@ -177,9 +180,10 @@ public class HolyCharge extends SubSkill2 {
 				SkillInteractions.affectAfterHit( victim, Paralysis.class, STUN );
 			}
 			SkillFX.flash( victim );
+			//a star of gold on the struck, holy motes thrown off it (the real stun shows its own stars)
 			if (victim.sprite != null){
-				new Flare( 8, 28 ).color( 0xFFEE88, true ).show( victim.sprite, 0.6f );
-				victim.sprite.emitter().burst( Speck.factory( Speck.STAR ), 8 );
+				PixelFlare.show( SkillVfx.midX( victim.sprite ), SkillVfx.midY( victim.sprite ), 0xF1D99C, PixelFlare.M, 0.6f );
+				victim.sprite.emitter().burst( SkillBursts.HOLY_MOTE, 8 );
 			}
 			SpatialSound.play( Assets.Sounds.HIT_STRONG, victim, 1f, 0.9f );
 			Fx.shake( 3, 0.3f );

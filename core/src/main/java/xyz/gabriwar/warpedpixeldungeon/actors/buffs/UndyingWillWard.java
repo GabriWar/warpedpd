@@ -36,9 +36,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.BloodParticle;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.ShoutFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.BloodParticle;
 
 /**
  * The barrier Undying Will raises. It decays like any Barrier. Every point it soaks feeds the
@@ -82,18 +84,26 @@ public class UndyingWillWard extends Barrier {
 		return left;
 	}
 
+	//a berserker's roar, never an alarm, Rage or Terror: rings of fury rolling out of him, and
+	//every enemy it turns dragged toward him, nearest first
 	private void roar( Char bearer ){
+		CharSprite bs = bearer.sprite;
 		for (Mob mob : Dungeon.level.mobs.toArray( new Mob[0] )){
 			if (mob.alignment == Char.Alignment.ENEMY && mob.isAlive()
 					&& Dungeon.level.distance( bearer.pos, mob.pos ) <= TAUNT_RADIUS){
 				mob.aggro( bearer );
-				if (mob.sprite != null && mob.sprite.visible) mob.sprite.emitter().burst( Speck.factory( Speck.SCREAM ), 2 );
+				if (mob.sprite != null && mob.sprite.visible){
+					mob.sprite.emitter().burst( SkillBursts.TREMBLE, 2 );
+					if (bs != null) ShoutFX.pull( mob.sprite, SkillVfx.midX( bs ), SkillVfx.midY( bs ), ShoutFX.FURY,
+							Math.min( 0.3f, 0.05f + 0.03f * Dungeon.level.distance( bearer.pos, mob.pos ) ) );
+				}
 			}
 		}
 		if (bearer.sprite != null){
 			bearer.sprite.emitter().burst( Speck.factory( Speck.RED_LIGHT ), 10 );
-			bearer.sprite.emitter().burst( Speck.factory( Speck.SCREAM ), 4 );
-			bearer.sprite.showStatus( CharSprite.WARNING, Messages.get( UndyingWill.class, "shatter" ) );
+			bearer.sprite.emitter().burst( SkillBursts.ROAR, 4 );
+			ShoutFX.roar( bearer.sprite, ShoutFX.FURY, 16 * TAUNT_RADIUS );
+			xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.chipOn( UndyingWill.class, bearer );
 		}
 		SpatialSound.play( Assets.Sounds.CHALLENGE, bearer, 1f, 0.6f );
 		Fx.shake( 2, 0.25f );

@@ -53,7 +53,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.keys.GoldenKey;
 import xyz.gabriwar.warpedpixeldungeon.levels.features.LevelTransition;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MobSprite;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
@@ -136,7 +135,7 @@ public class TempleSentry extends NPC {
 					GLog.n(Messages.capitalize(Messages.get(Char.class, "kill", name())));
 				}
 			} else {
-				Dungeon.hero.sprite.showStatus( CharSprite.NEUTRAL,  Dungeon.hero.defenseVerb() );
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.missed( Dungeon.hero );
 			}
 		}
 

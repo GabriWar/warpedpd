@@ -22,6 +22,9 @@
 package xyz.gabriwar.warpedpixeldungeon.items.weapon.curses;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import com.watabou.utils.Random;
@@ -35,8 +38,10 @@ public class Polarized extends Weapon.Enchantment {
 
 		float procChance = 1/2f * procChanceMultiplier(attacker);
 		if (Random.Float() < procChance) {
+			EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, 0.75f, level(), EnchantFx.CURSE, ElementRows.polarized() );
 			return Math.round(1.5f*damage);
 		} else {
+			ElementRows.polarFizzle( attacker, defender );
 			return 0;
 		}
 		

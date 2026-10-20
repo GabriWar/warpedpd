@@ -71,6 +71,7 @@ import xyz.gabriwar.warpedpixeldungeon.ui.RedButton;
 import xyz.gabriwar.warpedpixeldungeon.ui.RenderedTextBlock;
 import xyz.gabriwar.warpedpixeldungeon.ui.ScrollPane;
 import xyz.gabriwar.warpedpixeldungeon.ui.ScrollingGridPane;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.ui.Window;
 import com.watabou.input.KeyBindings;
 import com.watabou.input.KeyEvent;
@@ -804,10 +805,16 @@ public class WndJournal extends WndTabbed {
 					if (inside(x, y)) {
 						Image sprite = new ItemSprite();
 						sprite.copy(icon);
+						//a seen kind with rarity and types shows every tier and type it can have
+						Item kind = seen && Item.class.isAssignableFrom(itemClass)
+								? (Item) Reflection.newInstance(itemClass) : null;
+						Window wnd = kind != null && Quality.eligible(kind)
+								? new WndInfoItem(Quality.sample(kind), sprite, finalTitle, finalDesc)
+								: new WndJournalItem(sprite, finalTitle, finalDesc);
 						if (WarpedPixelDungeon.scene() instanceof GameScene){
-							GameScene.show(new WndJournalItem(sprite, finalTitle, finalDesc));
+							GameScene.show(wnd);
 						} else {
-							WarpedPixelDungeon.scene().addToFront(new WndJournalItem(sprite, finalTitle, finalDesc));
+							WarpedPixelDungeon.scene().addToFront(wnd);
 						}
 						return true;
 					} else {

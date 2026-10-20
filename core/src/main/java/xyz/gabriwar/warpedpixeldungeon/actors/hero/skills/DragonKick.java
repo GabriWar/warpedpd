@@ -40,7 +40,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
@@ -48,7 +50,6 @@ import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 
 import java.util.ArrayList;
@@ -165,7 +166,8 @@ public class DragonKick extends SubSkill3 {
 		Wound.hit( victim );
 		SpatialSound.play( Assets.Sounds.HIT_STRONG, victim, 1f, 0.8f );
 		Fx.shake( 2, 0.3f );
-		new Flare( 6, 26 ).color( 0xFFAA44, true ).show( hero.sprite, 0.5f );
+		//the martial light (never a fire's orange on him: nothing burns)
+		PixelFlare.show( SkillVfx.midX( hero.sprite ), SkillVfx.midY( hero.sprite ), 0xD9AE75, PixelFlare.M, 0.5f );
 
 		int w = Dungeon.level.width();
 		int dx = Integer.signum( victim.pos % w - hero.pos % w ), dy = Integer.signum( victim.pos / w - hero.pos / w );
@@ -207,11 +209,11 @@ public class DragonKick extends SubSkill3 {
 			if (victim.isAlive()){
 				Buff.prolong( victim, Daze.class, 2f );
 				if (victim.sprite != null){
-					victim.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "slam" ) );
-					victim.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
+					chipOn( victim );
+					victim.sprite.emitter().burst( SkillBursts.DAZE, 4 );
 				}
 			}
-			CellEmitter.center( victim.pos ).burst( Speck.factory( Speck.ROCK ), 5 );
+			CellEmitter.center( victim.pos ).burst( SkillBursts.STONE_CHIP, 5 );
 			SpatialSound.play( Assets.Sounds.ROCKS, victim, 0.8f, 1.2f );
 			Fx.shake( 3, 0.3f );
 		}
@@ -222,7 +224,7 @@ public class DragonKick extends SubSkill3 {
 				Char ch = Actor.findChar( victim.pos + n );
 				if (ch == null || ch == hero || ch.alignment != Char.Alignment.ENEMY || !ch.isAlive()) continue;
 				Buff.prolong( ch, Daze.class, 2f );
-				if (ch.sprite != null) ch.sprite.emitter().burst( Speck.factory( Speck.STAR ), 3 );
+				if (ch.sprite != null) ch.sprite.emitter().burst( SkillBursts.DAZE, 3 );
 			}
 		}
 		hero.spendAndNext( TIME_TO_USE );

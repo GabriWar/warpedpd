@@ -25,6 +25,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Chill;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite.Glowing;
@@ -57,6 +61,12 @@ public class Chilling extends Weapon.Enchantment {
 				Buff.affect(defender, Chill.class, durationToAdd);
 			}
 			Splash.at( defender.sprite.center(), 0xFFB2D6FF, 5);
+			//its look, by the chill it holds now against the most it can
+			Chill held = defender.buff(Chill.class);
+			float chill = held != null ? held.cooldown() : 0f;
+			//no chill held (a foe it cannot touch): nothing to show
+			if (held != null) EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, Math.min( 1f, chill / (6f * powerMulti * power()) ),
+					level(), Quality.isVestige( weapon, this ) ? EnchantFx.ECHO : 0, ElementRows.chilling( chill ) );
 
 		}
 

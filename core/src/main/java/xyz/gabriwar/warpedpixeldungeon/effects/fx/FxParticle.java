@@ -259,6 +259,7 @@ public class FxParticle extends PixelParticle {
 	public FxParticle at( float x, float y ){
 		px = x;
 		py = y;
+		place();
 		return this;
 	}
 
@@ -491,6 +492,10 @@ public class FxParticle extends PixelParticle {
 		uv.set( f[0] / tw, f[1] / th, (f[0] + f[2]) / tw, (f[1] + f[3]) / th );
 		frame( uv );
 		origin.set( f[2] / 2f, f[3] / 2f );
+		//placed by its new middle at once: one made after its layer's update (a blow's beat, from
+		//Fx.frame) is drawn before its own first update, and showed its frame's top-left where its
+		//middle belongs, a big crescent half its size down and right
+		place();
 	}
 
 	//lit by c: a white light frame shows c, a grey matter frame keeps its shading in it

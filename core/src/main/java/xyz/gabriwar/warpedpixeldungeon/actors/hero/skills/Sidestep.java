@@ -35,9 +35,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.SkillDecoy;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
@@ -73,13 +72,13 @@ public class Sidestep extends Skill {
 					|| !Dungeon.level.adjacent( from, enemy.pos )) continue;
 			xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff.prolong( enemy, xyz.gabriwar.warpedpixeldungeon.actors.buffs.Daze.class, level );
 			if (level >= MAX_LEVEL) xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff.prolong( enemy, Circled.class, CIRCLED_TURNS );
-			if (enemy.sprite != null) enemy.sprite.emitter().burst( Speck.factory( Speck.STAR ), 2 );
+			if (enemy.sprite != null) enemy.sprite.emitter().burst( SkillBursts.DAZE, 2 );
 			any = true;
 		}
 		if (any){
 			CellEmitter.bottom( from ).burst( Speck.factory( Speck.DUST ), 4 );
 			StreakFX.dash( from, hero.pos, 0xDDEEFF, 0.3f, 0.22f, false );
-			if (hero.sprite != null) hero.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( this, "cast" ) );
+			chipOn( hero );
 			SpatialSound.play( Assets.Sounds.MISS, hero, 1f, 1.5f );
 		}
 	}

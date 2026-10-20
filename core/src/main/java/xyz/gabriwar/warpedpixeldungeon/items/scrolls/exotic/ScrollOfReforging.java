@@ -29,6 +29,8 @@ import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Belongings;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Enchanting;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLook;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.GainFx;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
@@ -96,7 +98,7 @@ public class ScrollOfReforging extends ExoticScroll {
 					@Override
 					protected void onSelect( int index ){
 						wep.enchant( picks[index] );
-						finish( wep );
+						finish( wep, GainFx.of( picks[index] ) );
 					}
 					@Override
 					public void onBackPressed(){ }
@@ -115,7 +117,7 @@ public class ScrollOfReforging extends ExoticScroll {
 					@Override
 					protected void onSelect( int index ){
 						arm.inscribe( picks[index] );
-						finish( arm );
+						finish( arm, GainFx.of( picks[index] ) );
 					}
 					@Override
 					public void onBackPressed(){ }
@@ -124,11 +126,11 @@ public class ScrollOfReforging extends ExoticScroll {
 		}
 	};
 
-	private void finish( Item item ){
+	private void finish( Item item, EnchantLook gained ){
 		GLog.p( Messages.get( ScrollOfReforging.class, "reforged", item.name() ) );
 		Badges.validateItemLevelAquired( item );
 		curUser.sprite.emitter().start( Speck.factory( Speck.UP ), 0.2f, 3 );
-		Enchanting.show( curUser, item );
+		Enchanting.show( curUser, item, gained );
 		SpatialSound.play( Assets.Sounds.READ, curUser );
 		readAnimation();
 	}

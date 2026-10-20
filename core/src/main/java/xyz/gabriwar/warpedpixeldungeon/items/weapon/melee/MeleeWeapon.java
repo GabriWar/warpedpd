@@ -333,12 +333,15 @@ public class MeleeWeapon extends Weapon {
 
 	@Override
 	public int damageRoll(Char owner) {
-		int damage = augment.damageFactor(super.damageRoll( owner ));
+		int rolled = super.damageRoll( owner );
+		int damage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollMulRound( xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.AUGMENT, rolled, augment.damageMultiplier(), augment.damageFactor(rolled) );
 
 		if (owner instanceof Hero) {
 			int exStr = ((Hero)owner).STR() - STRReq();
 			if (exStr > 0) {
+				int before = damage;
 				damage += Hero.heroDamageIntRange( 0, exStr );
+				xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollPart( xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ADD, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.EXCESS_STR, before, damage );
 			}
 		}
 		return damage;

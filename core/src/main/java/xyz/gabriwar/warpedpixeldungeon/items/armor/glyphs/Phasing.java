@@ -29,9 +29,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import com.watabou.utils.Random;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTeleportation;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows;
 
 public class Phasing extends Armor.Glyph {
 
@@ -53,8 +57,10 @@ public class Phasing extends Armor.Glyph {
 		int level = Math.max(0, armor.buffedLvl());
 		float procChance = (0.2f + 0.08f * level) * procChanceMultiplier(defender);
 		if (Random.Float() < procChance) {
+			int from = defender.pos;
 			ScrollOfTeleportation.teleportChar(defender);
 			Buff.affect(defender, Invisibility.class, Invisibility.DURATION * power()); //scales with glyph level
+			EnchantFx.ward( EnchantLooks.of( getClass() ), defender, attacker, 0.7f, level(), Quality.isVestige( armor, this ) ? EnchantFx.ECHO : 0, ShadowRows.phase( from ) );
 		}
 
 		return damage;

@@ -6,6 +6,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.*;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFieldFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.MoteFX;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions;
 
 /** Bounded, saved ground effects. Coordinates are always tied to their originating floor. */
@@ -47,7 +48,11 @@ public class SkillField extends Buff {
             for(int cell:cells){
                 Char ch=Actor.findChar(cell);
                 if(ch==null || !ch.isAlive())continue;
-                if(ch.alignment==Char.Alignment.ALLY)ch.HP=Math.min(ch.HT,ch.HP+1+rank);
+                if(ch.alignment==Char.Alignment.ALLY){
+                    int before=ch.HP;
+                    ch.HP=Math.min(ch.HT,ch.HP+1+rank);
+                    if(ch.HP>before)mended(ch);
+                }
                 else if(ch.alignment==Char.Alignment.ENEMY){
                     SkillInteractions.Mark mark=SkillInteractions.mark(ch,SkillInteractions.Mark.RADIANT,rank,remaining+1);
                     mark.power=Math.min(12,mark.power+1);mark.other=id();
@@ -64,8 +69,18 @@ public class SkillField extends Buff {
         }else spend(TICK);
         return true;
     }
+    /** An ally the sanctuary mended this turn, in sight (the hero too): the heal's MEND_CROSSES red
+     *  cross and MEND_GREENS motes of green light rising off it, as light as Avatar of Light's
+     *  per-turn mend (MoteFX, posted; none of the game's Random). */
+    public static final int MEND_CROSSES=1,MEND_GREENS=2;
+    public static void mended(Char ally){
+        if(ally.sprite==null||Dungeon.level==null||!Dungeon.level.heroFOV[ally.pos])return;
+        MoteFX.crosses(ally.sprite,MEND_CROSSES);
+        MoteFX.greens(ally.sprite,MEND_GREENS);
+    }
     @Override public void fx(boolean on){
-        if(visual!=null){xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx.dispose(visual);visual=null;}
+        //let go of, a sanctuary's seal fades; shown again, the old picture goes at once
+        if(visual!=null){if(!on)visual.fadeAway();else xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx.dispose(visual);visual=null;}
         if(on && kind<RIGGED && target!=null && target.sprite!=null && target.sprite.parent!=null && cells.length>0){
             visual=new SkillFieldFX(this);SkillFieldFX.show(visual);
         }

@@ -26,20 +26,31 @@ package xyz.gabriwar.warpedpixeldungeon.items.potions;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
+import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Fire;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Drenched;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRecipes;
+import xyz.gabriwar.warpedpixeldungeon.items.EmptyBottle;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
+import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
+import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
+import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import com.watabou.utils.PointF;
 
-/**
- * The bottle of water: plain water, always known, in a clear bottle of its own rather than one of
- * the potions' unknown colours. Filled at any water from an empty bottle (EmptyBottle), or brewed
- * from one in the alchemy pot.
- */
+import java.util.ArrayList;
+
 public class PotionOfWater extends Potion {
+
+    public static final String AC_POUR = "POUR";
 
     {
         icon = ItemSpriteSheet.Icons.POTION_WATER;
@@ -59,6 +70,55 @@ public class PotionOfWater extends Potion {
     }
 
     @Override
+    public String defaultAction() {
+        return AC_POUR;
+    }
+
+    //poured, not drunk: pouring it on yourself is the way to get wet
+    @Override
+    public ArrayList<String> actions( Hero hero ) {
+        ArrayList<String> actions = super.actions( hero );
+        actions.remove( AC_DRINK );
+        actions.add( AC_POUR );
+        return actions;
+    }
+
+    @Override
+    public void execute( Hero hero, String action ) {
+        super.execute( hero, action );
+        if (action.equals( AC_POUR )) {
+            GameScene.selectCell( pourer );
+        }
+    }
+
+    private final CellSelector.Listener pourer = new CellSelector.Listener() {
+        @Override
+        public void onSelect( Integer cell ) {
+            if (cell == null) return;
+            Hero hero = Dungeon.hero;
+            if (!Dungeon.level.adjacent( hero.pos, cell ) && cell != hero.pos) {
+                GLog.w( Messages.get( PotionOfWater.class, "too_far" ) );
+                return;
+            }
+
+            detach( hero.belongings.backpack );
+            EmptyBottle.giveBack( hero );
+
+            boolean fire = douse( cell );
+            SpatialSound.play( Assets.Sounds.WATER, cell );
+            GLog.i( Messages.get( PotionOfWater.class, fire ? "doused" : "poured" ) );
+
+            hero.sprite.operate( cell );
+            hero.spendAndNext( 1f );
+        }
+
+        @Override
+        public String prompt() {
+            return Messages.get( PotionOfWater.class, "pour_prompt" );
+        }
+    };
+
+    @Override
     public void apply(Hero hero) {
         identify();
         shatter(hero.pos);
@@ -71,14 +131,49 @@ public class PotionOfWater extends Potion {
             identify();
             SpatialSound.play(Assets.Sounds.SHATTER, cell);
         }
-        for (int offset : PathFinder.NEIGHBOURS9) {
-            int pos = cell + offset;
-            if (!Dungeon.level.solid[pos]) {
-                Level.set(pos, Terrain.WATER);
-                GameScene.updateMap(pos);
+        douse(cell);
+    }
+
+    /**
+     * Water poured or splashed on one cell: puts out its fire, drenches whoever stands there and,
+     * on bare ground, leaves a puddle of water. Farmland, floors laid by hand, doors, stairs and
+     * traps keep their terrain. Returns whether a fire went out.
+     */
+    public static boolean douse( int cell ) {
+        Level level = Dungeon.level;
+        boolean fire = false;
+        for (Blob b : level.blobs.values()) {
+            if (b instanceof Fire && b.cur != null && b.cur[cell] > 0) {
+                b.clear( cell );
+                fire = true;
             }
         }
-        Dungeon.observe();
+        if (fire && level.heroFOV[cell]) {
+            PointF c = DungeonTilemap.tileCenterToWorld( cell );
+            FxRecipes.steam( c.x, c.y, 8 );
+        }
+
+        Char ch = Actor.findChar( cell );
+        if (ch != null && !ch.flying) {
+            Buff.prolong( ch, Drenched.class, Drenched.DURATION );
+        }
+
+        if (puddles( level.map[cell] ) && level.plants.get( cell ) == null) {
+            Level.set( cell, Terrain.WATER );
+            GameScene.updateMap( cell );
+        }
+        return fire;
+    }
+
+    /** The bare ground a splash of water turns into a puddle. */
+    public static boolean puddles( int terrain ) {
+        switch (terrain) {
+            case Terrain.EMPTY: case Terrain.EMPTY_DECO: case Terrain.GRASS: case Terrain.FURROWED_GRASS:
+            case Terrain.EMBERS: case Terrain.SNOW: case Terrain.DIRT_PATH:
+                return true;
+            default:
+                return false;
+        }
     }
 
     @Override

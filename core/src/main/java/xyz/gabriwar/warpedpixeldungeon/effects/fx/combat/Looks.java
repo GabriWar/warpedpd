@@ -38,12 +38,15 @@ import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxOrbit;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRecipes;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Ramp;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.WaterFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantState;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.watabou.gltextures.SmartTexture;
+import com.watabou.noosa.Game;
 import com.watabou.utils.PointF;
 import com.watabou.utils.RectF;
 
@@ -384,10 +387,17 @@ final class Looks {
 
 		//a puff of breath from the front of the head, drifting out and up
 		private void breathe(){
+			breath( s, hypo );
+		}
+
+		/** A puff of breath from the front of a sprite's head, drifting out and up: the chill's, a
+		 *  thicker one in hypothermia, and a hero's in freezing air (ColdBreath). */
+		static void breath( CharSprite s, boolean hypo ){
+			float cx = s.x + s.width() / 2f, cy = s.y + s.height() / 2f;
 			FxEmitter air = Fx.air();
-			if (air == null || !FxBudget.keep( FxBudget.P3, cx(), cy() )) return;
+			if (air == null || !FxBudget.keep( FxBudget.P3, cx, cy )) return;
 			float dir = s.flipHorizontal ? -1f : 1f;
-			float x = cx() + dir * s.width() * 0.3f, y = s.y + s.height() * 0.3f;
+			float x = cx + dir * s.width() * 0.3f, y = s.y + s.height() * 0.3f;
 			CombatFactories.make( air, x, y ).look( FxFrames.EDGE_WISP[FxRandom.Int( FxFrames.EDGE_WISP.length )] )
 					.paint( BREATH ).smooth().life( BREATH_LIFE ).alpha( hypo ? HYPO_BREATH_ALPHA : BREATH_ALPHA, 0.1f, 0.5f )
 					.vel( dir * FxRandom.Float( 6f, 10f ), -FxRandom.Float( 1f, 3f ) ).drag( 1.5f ).priority( FxBudget.P3 );
@@ -1099,6 +1109,204 @@ final class Looks {
 		void release(){
 			stopPour( hearts );
 			hearts = null;
+		}
+	}
+
+	// ================================================================== the enchantments' states
+
+	/** A stun (a Paralysis) put on ch inside the open blow (Blow.announce): its stars hold till the
+	 *  blow's stun beat (a StunPiece, priority A_STUN), then drop in. Stars already circling are left
+	 *  be. Any thread. */
+	static void stunning( Char ch ){
+		CharSprite s = ch.sprite;
+		if (s == null || s.stunStars()) return;
+		if (Blow.offer( new StunPiece( ch ) )) EnchantState.of( s ).stunAt = Game.timeTotal + Stunned.HOLD;
+	}
+
+	/** How far above their orbit the stun stars of s are now, px: DROP falling to 0 over DROP_FOR s
+	 *  from the moment they were let drop (EnchantState.stunAt); -1 while they wait for the beat. */
+	static float stunLift( CharSprite s ){
+		EnchantState st = EnchantState.get( s );
+		if (st == null || st.stunAt < 0) return 0f;
+		float t = Game.timeTotal - st.stunAt;
+		if (t < 0) return -1f;
+		return t >= Stunned.DROP_FOR ? 0f : Stunned.DROP * (1f - t / Stunned.DROP_FOR);
+	}
+
+	/** A stun's beat on its blow: it lets the stars drop (on the lead's frame when it plays on
+	 *  another character). Nothing drawn of its own; host-only (a guest's stars come by name, at once). */
+	static final class StunPiece extends Piece {
+
+		StunPiece( Char ch ){
+			super( -1, Blow.MINOR, Blow.PLACED, ch );
+			priority = Blow.A_STUN;
+		}
+
+		@Override
+		public void lead( boolean mayShake ){
+			drop();
+		}
+
+		@Override
+		public void accent( float x, float y ){
+			drop();
+		}
+
+		private void drop(){
+			EnchantState st = on.sprite != null ? EnchantState.get( on.sprite ) : null;
+			if (st != null && st.stunAt >= 0) st.stunAt = Game.timeTotal;
+		}
+	}
+
+	/** Stunned (PARALYSED by a real stun: a Paralysis buff, StateLooks.stunShown): two amber stun
+	 *  stars (STAR4_5, the METAL ramp drawn toward CCAA44) circling over its head at 0.8 turns a
+	 *  second where the MARK orbit runs, breathing a little, the far one behind the body. Drawn
+	 *  here, not on the MARK orbit itself: that ring is the guiding light's and a skill mark's, and
+	 *  a stun must neither draw over theirs nor take it away as it ends. Hidden while the stun is a
+	 *  frost's, a time freeze's or a duel's pause, or ice holds the body. On the blow that stuns it
+	 *  they wait for its stun beat and drop in from DROP px above in DROP_FOR s (stunLift). 2 quads. */
+	static final class Stunned extends StateLooks.Look {
+
+		static final int STARS = 2;
+		static final int COLOR = Ramp.lerp( Element.METAL.ramp.stop( 1 ), 0xCCAA44, 0.6f );
+		/** Its turns a second, its breath (lowest, highest, Hz). */
+		static final float TURNS = 0.8f, BREATH_LO = 0.8f, BREATH_HI = 1f, BREATH_HZ = 1f;
+		/** The drop in: from how high over the orbit, px, in how long, s; the longest the stars wait
+		 *  for their blow's beat, s (a beat that never comes). */
+		static final float DROP = 4f, DROP_FOR = 0.1f, HOLD = 1f;
+		private final StateLooks owner;
+		private final Quad[] stars = new Quad[STARS];
+		private float phase;
+
+		Stunned( CharSprite s, StateLooks owner ){
+			super( s );
+			this.owner = owner;
+			for (int i = 0; i < STARS; i++) stars[i] = new Quad( false ).show( FxFrames.STAR4_5 );
+		}
+
+		@Override
+		boolean step( float dt ){
+			phase += (float)(2 * Math.PI * TURNS) * dt;
+			return !stopping;
+		}
+
+		@Override
+		void drawBehind(){
+			draw( true );
+		}
+
+		@Override
+		void drawOver(){
+			draw( false );
+		}
+
+		//the stars on the far (behind the body) or the near side of their circle
+		private void draw( boolean far ){
+			if (stopping || !owner.stunShown()) return;
+			float lift = stunLift( s );
+			if (lift < 0) return;
+			FxOrbit.Slot m = FxOrbit.Slot.MARK;
+			float a = BREATH_LO + (BREATH_HI - BREATH_LO) * (0.5f + 0.5f * (float)Math.sin( 2 * Math.PI * BREATH_HZ * age ));
+			for (int i = 0; i < STARS; i++){
+				float t = phase + (float)(2 * Math.PI * i / STARS);
+				float sn = (float)Math.sin( t );
+				if ((sn < 0) != far) continue;
+				stars[i].draw( s, cx() + m.rx * (float)Math.cos( t ), cy() + m.h + m.ry * sn - lift, COLOR, a, true, 1, false );
+			}
+		}
+
+		@Override
+		void release(){
+			for (Quad q : stars) q.release();
+		}
+	}
+
+	/** Seeded (a parasitic seed): one SEED mote at the chest beating as a heart does (1.2 s: a
+	 *  lub, a softer dub, a rest) and two vine wisps curling out of it to either side, NATURE's
+	 *  88CC44, as matter. The wisps are INK_WISP's 3x7 curls painted green, not VINE: a VINE frame
+	 *  is 14x6 (the roots' wrap at the feet), and two of them would cover the whole chest. 3 quads. */
+	static final class Seeded extends StateLooks.Look {
+
+		static final int COLOR = 0x88CC44;
+		static final float BEAT = 1.2f, FPS = 3f;
+		private final Quad seed = new Quad( false ).show( FxFrames.SEED );
+		private final Quad left = new Quad( false ).show( FxFrames.INK_WISP[0] ), right = new Quad( false ).show( FxFrames.INK_WISP[0] );
+
+		Seeded( CharSprite s ){
+			super( s );
+		}
+
+		/** Its beat `t` s in: 1 on the lub, 0.75 on the dub, 0.4 at rest. */
+		static float beat( float t ){
+			float k = t % BEAT;
+			if (k < 0.1f) return 1f;
+			if (k >= 0.25f && k < 0.33f) return 0.75f;
+			return 0.4f;
+		}
+
+		@Override
+		void drawOver(){
+			float b = beat( age );
+			float cx = Math.round( cx() ), cy = Math.round( cy() ) + 1;
+			int[] f = FxFrames.INK_WISP[(int)(age * FPS) % FxFrames.INK_WISP.length];
+			left.show( f );
+			right.show( f );
+			left.draw( s, cx - 3, cy - 3, COLOR, 0.35f + 0.3f * b, false, 1, true );
+			right.draw( s, cx + 3, cy - 3, COLOR, 0.35f + 0.3f * b, false, 1, false );
+			seed.draw( s, cx, cy, Ramp.lerp( COLOR, 0xFFF0A0, b - 0.4f ), 0.6f + 0.4f * b, false, 1, false );
+		}
+
+		@Override
+		void release(){
+			seed.release();
+			left.release();
+			right.release();
+		}
+	}
+
+	/** A surge (Surging): one amber mote for each of its stacks (StateLooks.surge(), read every
+	 *  0.25 s) on the ELEMENTAL orbit, the orbit flaring as each new one comes. At most 5 quads. */
+	static final class Surge extends StateLooks.Look {
+
+		static final int COLOR = 0xFFCC00, MOST = 5;
+		private final StateLooks owner;
+		private FxOrbit.Ring orbit;
+		private int shown;
+
+		Surge( CharSprite s, StateLooks owner ){
+			super( s );
+			this.owner = owner;
+		}
+
+		@Override
+		void start(){
+			shown = Math.min( MOST, owner.surge() );
+			orbit = FxOrbit.attach( s, FxOrbit.Slot.ELEMENTAL ).motes( shown, FxFrames.MOTE_2, COLOR, true ).breath( 0.85f, 1f, 0.8f );
+			orbit.flare( 0.6f, 0.35f, 0 );
+		}
+
+		@Override
+		boolean step( float dt ){
+			if (stopping) return false;
+			int n = Math.min( MOST, owner.surge() );
+			if (n != shown && orbit != null){
+				boolean more = n > shown;
+				shown = n;
+				orbit.motes( n, FxFrames.MOTE_2, COLOR, true );
+				if (more) orbit.flare( 0.6f, 0.35f, 0 );
+			}
+			return true;
+		}
+
+		@Override
+		void again(){
+			if (orbit != null) orbit.flare( 0.6f, 0.35f, 0 );
+		}
+
+		@Override
+		void release(){
+			if (orbit != null) orbit.detach();
+			orbit = null;
 		}
 	}
 }

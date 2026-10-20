@@ -27,7 +27,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.BloodParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import com.watabou.noosa.Camera;
 import com.watabou.noosa.Image;
@@ -75,8 +75,8 @@ public class Toughness extends PassiveSkillA3 {
 
 		Buff.affect( hero, HeldPain.class ).set( damage, 1 + level, ((Char) source).id() );
 		if (hero.sprite != null){
-			hero.sprite.emitter().burst( Speck.factory( Speck.FORGE ), 6 );
-			hero.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "grit" ) );
+			hero.sprite.emitter().burst( SkillBursts.METAL_SPARK, 6 );
+			chipOn( hero );
 		}
 		SpatialSound.play( Assets.Sounds.STURDY, hero, 1f, 0.8f );
 		return damage;
@@ -91,7 +91,9 @@ public class Toughness extends PassiveSkillA3 {
 		if (pain == null || pain.attacker != mob.id()) return;
 		if (hero.sprite != null){
 			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
-			hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "spared", pain.left ) );
+			//the pain spared as a count
+			if (pain.left > 0) counterOn( hero, pain.left, CharSprite.POSITIVE );
+			else chipOn( hero );
 		}
 		SpatialSound.play( Assets.Sounds.HIT_PARRY, hero, 1f, 1.3f );
 		pain.detach();
@@ -125,7 +127,8 @@ public class Toughness extends PassiveSkillA3 {
 			left -= tick;
 			turns--;
 			if (target.sprite != null && target.sprite.visible){
-				target.sprite.emitter().burst( BloodParticle.FACTORY, 3 );
+				//the held pain landing: a dull throb, not a bleed
+				target.sprite.emitter().burst( SkillBursts.HEARTBEAT, 3 );
 			}
 			target.damage( tick, this );
 			if (target == Dungeon.hero && !target.isAlive()){

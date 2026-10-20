@@ -247,6 +247,12 @@ public class MegaCannon extends Weapon {
 			setID = 0;
 		}
 
+		//the shot fires the cannon's magic and counts its rarity
+		@Override
+		public Weapon magicSource() {
+			return MegaCannon.this;
+		}
+
 		@Override
 		public ArrayList<String> actions(Hero hero) {
 			return new ArrayList<>();

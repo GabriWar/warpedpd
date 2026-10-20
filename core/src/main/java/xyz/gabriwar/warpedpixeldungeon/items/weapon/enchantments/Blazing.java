@@ -25,7 +25,11 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite.Glowing;
@@ -47,20 +51,30 @@ public class Blazing extends Weapon.Enchantment {
 
 			float powerMulti = Math.max(1f, procChance);
 
-			if (defender.buff(Burning.class) == null){
+			boolean ignite = defender.buff(Burning.class) == null;
+			if (ignite){
 				Buff.affect(defender, Burning.class).reignite(defender, 8f * power()); //scales with enchantment level
 				powerMulti -= 1;
 			}
 
+			int burnt = 0;
 			if (powerMulti > 0){
 				int burnDamage = Random.NormalIntRange( 1, 3 + Dungeon.scalingDepth()/4 );
 				burnDamage = Math.round(burnDamage * 0.67f * powerMulti * power()); //scales with enchantment level
 				if (burnDamage > 0) {
 					defender.damage(burnDamage, this);
 				}
+				burnt = burnDamage;
 			}
 			
 			defender.sprite.emitter().burst( FlameParticle.FACTORY, level + 1 );
+			//its look: a fire caught by its chance, a flare-up by its burn
+			boolean caught = ignite && defender.buff(Burning.class) != null;
+			//nothing caught and nothing burnt (a foe fire cannot touch): nothing to show
+			if (caught || burnt > 0) EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender,
+					Math.max( caught ? ElementRows.igniteStrength( level(), Math.max( 1f, procChance ) ) : 0f,
+							burnt > 0 ? EnchantFx.strength( level(), burnt, defender.HT, 1f ) : 0f ),
+					level(), Quality.isVestige( weapon, this ) ? EnchantFx.ECHO : 0, ElementRows.blazing( caught, burnt > 0 ) );
 			
 		}
 

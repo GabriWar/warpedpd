@@ -25,11 +25,14 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
-import com.watabou.utils.PointF;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StreakFX;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
-import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
-import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.Dart;
+import com.watabou.utils.PointF;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ChargedShotDraw;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
@@ -42,10 +45,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vulnerable;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.SpiritBow;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.Dart;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
@@ -129,7 +132,7 @@ public class ChargedShot extends Skill {
 			//she stands and draws: the turns pass, the light gathers, the lance goes on the last
 			int turns = chargeTurns();
 			Buff.append( hero, ChargedShotDraw.class ).set( target, level, turns );
-			new Flare( 6, 16 ).color( 0xFFE9A0, true ).show( hero.sprite, 1f ).angularSpeed = 90;
+			PixelFlare.show( SkillVfx.midX( hero.sprite ), SkillVfx.midY( hero.sprite ), LIGHT, PixelFlare.M, 0.6f );
 			SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 1f, 1.1f );
 			hero.sprite.zap( target );
 			hero.spendAndNext(TIME_TO_USE);
@@ -163,12 +166,13 @@ public class ChargedShot extends Skill {
 		}
 		SpatialSound.play( Assets.Sounds.ATK_SPIRITBOW, hero, 1f, 0.8f );
 		hero.sprite.zap( far );
-		//the arrow, with the beam of its passage drawn behind it along the whole line
-		PointF from = hero.sprite.center();
-		PointF to = DungeonTilemap.raisedTileCenterToWorld( far );
-		hero.sprite.parent.add( new Beam.LightRay( from, to ) );
+		//the arrow, with the streak of its passage drawn behind it along the whole line (a stroke of
+		//nature light from her, never a mob's ray)
+		release( hero.sprite, far );
         SpiritBow bow = hero.belongings.getItem( SpiritBow.class );
-		SkillFX.streak( hero.sprite, far, bow != null ? bow.knockArrow() : new Dart(), null );
+		//without a bow a spirit arrow of light, flying as the dart did (and sent to guests as it was)
+		if (bow != null) SkillFX.streak( hero.sprite, far, bow.knockArrow(), null );
+		else SkillFX.streak( hero.sprite, far, SkillFX.Streak.SPIRIT_ARROW, new Dart(), null );
 
 		int base = bow != null ? bow.knockArrow().damageRoll( hero ) : hero.damageRoll();
 		int dmg = Math.round( base * (1.25f + 0.25f * level) );
@@ -192,6 +196,21 @@ public class ChargedShot extends Skill {
 				}
 			}
 		}
+	}
+
+	/** The draw's light: the huntress's leaf green (SkillPalette.NATURE), never a heal's mint or a
+	 *  cream. */
+	public static final int LIGHT = SkillPalette.NATURE_LIGHT;
+	/** The release's stroke: f0783eacd's thin streak of nature white with its bright head, back on
+	 *  the owner's word (the second pass's thick SkillRay was worse). */
+	public static final int STROKE = 0xDDEFD0;
+
+	/** The release: the light she gathered flaring at her hands, and its stroke from them down the
+	 *  line to `far`, along the arrow's own path. Any thread. */
+	public static void release( CharSprite hero, int far ){
+		PointF hand = hero.center();
+		PixelFlare.show( hand.x, hand.y, LIGHT, PixelFlare.M, 0.3f );
+		StreakFX.show( hand, DungeonTilemap.raisedTileCenterToWorld( far ), STROKE, 0.5f, 0.3f );
 	}
 
 	//the shout swaps between the draw and the release

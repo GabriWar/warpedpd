@@ -12,7 +12,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.effects.*;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.MoteFX;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTeleportation;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -168,6 +170,13 @@ public final class SkillInteractions {
     }
     public static boolean clear(int from,int to){return valid(from)&&valid(to)&&!Dungeon.level.solid[to]
             && new Ballistica(from,to,Ballistica.STOP_TARGET|Ballistica.STOP_SOLID).collisionPos==to;}
+    /** An ally mended by a skill with no heal of the game's own (HP set straight): the heal's own
+     *  picture, red crosses and green light rising off it, when it is in sight. Any thread. */
+    static void mended(Char ally){
+        if(ally.sprite==null||!valid(ally.pos)||Dungeon.level==null||!Dungeon.level.heroFOV[ally.pos])return;
+        MoteFX.crosses(ally.sprite,2);
+        MoteFX.greens(ally.sprite,2);
+    }
     public static void flare(int cell,int color){
         if(!valid(cell)||Dungeon.hero==null||Dungeon.hero.sprite==null||Dungeon.hero.sprite.parent==null||!Dungeon.level.heroFOV[cell])return;
         PixelFlare.show(SkillVfx.cx(cell),SkillVfx.cy(cell),color,PixelFlare.S,.2f);
@@ -271,7 +280,7 @@ public final class SkillInteractions {
             if(f.kind==SkillField.ICE && ch.pos!=previous && ch.alignment==Char.Alignment.ENEMY)
                 iceRank=Math.max(iceRank,f.rank);
             if(f.kind==SkillField.ARROWS && ch.alignment==Char.Alignment.ENEMY){hurt(ch,2+f.rank);Buff.prolong(ch,Cripple.class,2f);f.removeCell(ch.pos);}
-            if(f.kind==SkillField.SOUL && ch==hero){hero.MP=Math.min(hero.MT+xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfMagic.manaBonus(hero),hero.MP+Math.min(20,Math.round(hero.MT*.04f)));f.detach();flare(ch.pos,0xBCA9FF);}
+            if(f.kind==SkillField.SOUL && ch==hero){hero.MP=Math.min(hero.MT+xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfMagic.manaBonus(hero),hero.MP+Math.min(20,Math.round(hero.MT*.04f)));f.detach();flare(ch.pos,SkillPalette.MANA_LIGHT);}
         }
         // Overlapping novas use the strongest spikes, once per entered tile.
         if(iceRank>0&&ch.isAlive()){
@@ -327,7 +336,8 @@ public final class SkillInteractions {
         Char other=(Char)actor;Mark reciprocal=get(other,Mark.CUT);
         if(!other.isAlive()||other.alignment!=Char.Alignment.ENEMY||reciprocal==null||reciprocal.other!=victim.id())return;
         int shared=Math.round(damage*(other==victim?DoubleStab.focusedPercent(link.rank):DoubleStab.sharePercent(link.rank))/100f);
-        if(shared>0){other.damage(shared,new LinkedDamage());flare(other.pos,0xD66AAB);}
+        //the shared cut: a crimson flare (a wound, never pink)
+        if(shared>0){other.damage(shared,new LinkedDamage());flare(other.pos,SkillPalette.BLOOD_LIGHT);}
     }
     public static class Mark extends Buff {
         public static final int STAGGER=0,FROST=1,RADIANT=2,SHARDS=3,CUT=4,CHAIN=5,GUARD=6,LEAP=7,LUNGE=8,DEFLECT=9,RETREAT=10;
@@ -345,7 +355,7 @@ public final class SkillInteractions {
             if(kind==SHARDS&&rank>=2&&power>0){
                 for(Char ally:Actor.chars())if(ally!=target&&ally.alignment==Char.Alignment.ALLY&&ally.HP<ally.HT
                         && Dungeon.level.distance(target.pos,ally.pos)<=2 && SkillInteractions.clear(target.pos,ally.pos)){
-                    int heal=Math.min(ally.HT-ally.HP,Math.min(power,rank));ally.HP+=heal;power-=heal;flare(ally.pos,0xFFF1AB);break;
+                    int heal=Math.min(ally.HT-ally.HP,Math.min(power,rank));ally.HP+=heal;power-=heal;mended(ally);break;
                 }
             }
             spend(TICK);return true;

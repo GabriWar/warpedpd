@@ -32,19 +32,24 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
-import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.ClosingRing;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.RuneFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.ShoutFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBolt;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vulnerable;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
+
+import com.watabou.utils.Callback;
 
 import java.util.ArrayList;
 
@@ -96,14 +101,26 @@ public class Hex extends SubSkill2 {
 			if (level >= MAX_LEVEL) Buff.prolong( ch, Cripple.class, 2 + level );
 			hero.MP -= getManaCost();
 			castTextYell();
-			SpatialSound.play( Assets.Sounds.CURSED, ch, 1f, 1.1f );
+			SpatialSound.play( Assets.Sounds.DEBUFF, ch, 1f, 1.1f );
 			hero.sprite.zap( cell );
-			MagicMissile.boltFromChar( hero.sprite.parent, MagicMissile.SHADOW, hero.sprite, cell, () -> {
+			//a hex of void eating the light round it on its way (never a wand's or a warlock's bolt),
+			//imploding as it lands: ink sinking into the body, a ring closing on its feet and the curse's
+			//words shutting on it. Flown as MagicMissile.boltFromChar flew its bolt: the same points,
+			//the same frame, its one draw
+			Char at = Actor.findChar( cell );
+			Callback landed = () -> {
 				if (ch.sprite != null){
-					ch.sprite.emitter().burst( ShadowParticle.CURSE, 6 );
+					ch.sprite.emitter().burst( SkillBursts.DREAD, 6 );
 					ch.sprite.flash();
+					ClosingRing.on( ch.sprite, 23, 5, 0.25f, ShoutFX.DREAD[3] );
+					spoken( ch.sprite );
 				}
-			} );
+			};
+			if (at != null){
+				SkillBolt.fly( hero.sprite.parent, hero.sprite.center(), at.sprite.destinationCenter(), SkillBolt.HEX, landed );
+			} else {
+				SkillBolt.fly( hero.sprite.parent, hero.sprite, cell, SkillBolt.HEX, landed );
+			}
 			Dungeon.hero.heroSkills.lastUsed = Hex.this;
 			hero.spendAndNext( TIME_TO_USE );
 		}
@@ -112,6 +129,16 @@ public class Hex extends SubSkill2 {
 		public String prompt(){
 			return Messages.get(Hex.class, "prompt");
 		}
+	}
+
+	/** The curse's words: WORDS runes of the void on a WORDS_RX x WORDS_RY ring shutting on the body's
+	 *  middle in WORDS_FOR s, riding in with the closing ring (RuneFX.shut). Never a rune held over
+	 *  the head. Any thread. */
+	public static final int WORDS = 4;
+	public static final float WORDS_RX = 9f, WORDS_RY = 4.5f, WORDS_FOR = 0.2f;
+
+	public static void spoken( com.watabou.noosa.Visual body ){
+		if (body != null) RuneFX.shut( body, WORDS, SkillPalette.RUNE_VOID, WORDS_RX, WORDS_RY, WORDS_FOR );
 	}
 
 	@Override

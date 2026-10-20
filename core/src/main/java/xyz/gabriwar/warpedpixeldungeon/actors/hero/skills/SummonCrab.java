@@ -34,6 +34,15 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SummonedPet;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
+import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.WaterFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.tweeners.AlphaTweener;
@@ -86,6 +95,8 @@ public class SummonCrab extends ActiveSkill2 {
 				Actor.addDelayed(new Pushing(pet, hero.pos, newPos), -1);
 				pet.sprite.alpha(0);
 				pet.sprite.parent.add(new AlphaTweener(pet.sprite, 1, 0.15f));
+				//it digs itself out where it lands: a ring of dust and sand thrown aside (a splash on water)
+				arrival( newPos );
 
 				hero.MP -= getManaCost();
 				castTextYell();
@@ -96,6 +107,29 @@ public class SummonCrab extends ActiveSkill2 {
 			}
 			Dungeon.hero.heroSkills.lastUsed = this;
 		}
+	}
+
+	/** Sand grit a crab throws aside as it digs out on dry ground. */
+	public static final int SAND = 4;
+
+	//the ground's answer to the crab's arrival (SkillFX.landing: its dust ring, or its splash on
+	//water) and, on dry ground, SAND grains of sand kicked out to either side. Any thread
+	public static void arrival( final int cell ){
+		SkillFX.landing( cell );
+		if (!SkillVfx.seen( cell )) return;
+		Fx.post( () -> {
+			if (!SkillVfx.valid( cell )) return;
+			float x = SkillVfx.cx( cell ), y = SkillVfx.cy( cell ) + 5;
+			if (WaterFX.onWater( x, y )) return;
+			for (int i = 0; i < SAND; i++){
+				float side = i % 2 == 0 ? -1f : 1f;
+				FxParticle p = SkillVfx.matter( x + side * FxRandom.Float( 1f, 4f ), y - 1, FxBudget.P3 );
+				if (p != null) p.look( FxRandom.chance( 0.5f ) ? FxFrames.PEBBLE_2 : FxFrames.EMBER_1 )
+						.paint( Element.EARTH.ramp.stop( FxRandom.Int( 2 ) ) )
+						.vel( side * FxRandom.Float( 20f, 40f ), FxRandom.Float( -45f, -25f ) ).gravity( 220f )
+						.ground( y + 2, FxParticle.SETTLE, 0 ).life( 0.6f ).alpha( 1f, 0, 0.25f );
+			}
+		} );
 	}
 
 	@Override

@@ -33,9 +33,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillSequence;
 
 
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
-import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.MoteFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillRay;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -47,6 +50,10 @@ import java.util.ArrayList;
 public class MassHeal extends SubSkill2 {
 
 	private static final float MEND = 0.04f;
+	/** The mend's green light (SkillPalette.HEAL's body; its flare the heal's palest green). */
+	private static final int HEAL = SkillPalette.HEAL_LIGHT;
+	/** How long a mend flows to an ally, s. */
+	public static final float FLOW = 0.6f;
 	private static final int REACH = 2;
 	private static final int FADE_DAMAGE = 13;
 
@@ -75,14 +82,16 @@ public class MassHeal extends SubSkill2 {
 		if (action.equals(Skill.AC_CAST) && level > 0 && canPayMana( hero, getManaCost() )){
 			if (!payMana( hero, getManaCost() )) return;
 			Buff.affect( hero, Wings.class ).set( level, 2 + level );
-			SkillSpectacleFX.show( SkillSpectacleFX.WINGS, hero.pos );
-			new Flare( 8, 28 ).color( 0xAAFFAA, true ).show( hero.sprite, 1f );
-			hero.sprite.emitter().burst( ShaftParticle.FACTORY, 6 );
-			//the wings settle: one wide green pulse out to the reach of the mend, a warm second beat, motes after
-			PulseRingFX.around( hero.sprite, 0xAAFFAA, 40, 0.7f );
+			//the wings of light open in the heal's green (WINGS in HEAL), a star of its palest green, holy motes rising
+			SkillSpectacleFX.fly( SkillSpectacleFX.WINGS, hero.pos, hero.pos, 0, .65f, HEAL );
+			PixelFlare.show( SkillVfx.midX( hero.sprite ), SkillVfx.midY( hero.sprite ), SkillPalette.HEAL.stop( 0 ), PixelFlare.M, 1f );
+			hero.sprite.emitter().burst( SkillBursts.HOLY_MOTE, 6 );
+			//the wings settle: one wide green pulse out to the reach of the mend, a warm second beat, then
+			//the heal's red crosses with its green light rising beside them
+			PulseRingFX.around( hero.sprite, HEAL, 40, 0.7f );
 			FxTimeline.start()
-					.at( 0.1f, () -> PulseRingFX.around( hero.sprite, 0xFFF1A1, 24, 0.55f ) )
-					.at( 0.45f, () -> hero.sprite.emitter().burst( Speck.factory( Speck.HEALING ), 5 ) );
+					.at( 0.1f, () -> PulseRingFX.around( hero.sprite, 0xF1D99C, 24, 0.55f ) )
+					.at( 0.45f, () -> { hero.sprite.emitter().burst( Speck.factory( Speck.HEALING ), 5 ); MoteFX.greens( hero.sprite, 4 ); } );
 			castTextYell();
 			SpatialSound.play( Assets.Sounds.CHARMS, hero, 1f, 1.0f );
 			Dungeon.hero.heroSkills.lastUsed = this;
@@ -162,9 +171,12 @@ public class MassHeal extends SubSkill2 {
 			}
 			if (ch.sprite == null) return;
 			ch.sprite.emitter().burst( xyz.gabriwar.warpedpixeldungeon.effects.Speck.factory( xyz.gabriwar.warpedpixeldungeon.effects.Speck.HEALING ), 2 );
-			if (got > 0) ch.sprite.showStatus( CharSprite.POSITIVE, "+" + got );
-			if (ch != hero && hero.sprite != null && hero.sprite.parent != null)
-				hero.sprite.parent.add( new Beam.HealthRay( hero.sprite.center(), ch.sprite.center() ) );
+			if (got > 0) ch.sprite.showStatusWithIcon( CharSprite.POSITIVE, Integer.toString( got ), xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.HEALING );
+			//the mend flows to an ally it mends: a green bead, a band of the heal's light, pulses and
+			//motes running down it, landing in the heal's red crosses (posted; nothing waits on it).
+			//None to an ally already whole: a heal's picture only where HP rose
+			if (got > 0 && ch != hero && hero.sprite != null && hero.sprite.parent != null)
+				SkillRay.show( hero.sprite, ch.sprite, SkillRay.HEAL, FLOW );
 		}
 
 		@Override

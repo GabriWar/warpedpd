@@ -24,6 +24,9 @@ package xyz.gabriwar.warpedpixeldungeon.items.armor.curses;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
@@ -40,6 +43,7 @@ public class Stench extends Armor.Glyph {
 		if ( Random.Float() < procChance ) {
 
 			GameScene.add( Blob.seed( defender.pos, 250, ToxicGas.class ) );
+			EnchantFx.ward( EnchantLooks.of( getClass() ), defender, attacker, 0.45f, level(), EnchantFx.CURSE, ElementRows.stench() );
 
 		}
 

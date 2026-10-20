@@ -161,6 +161,11 @@ public abstract class Actor implements Bundlable {
 	public static float now(){
 		return now;
 	}
+
+	/** The actor whose turn it is (it stays set while it waits for its animation), null between turns. */
+	public static Actor current(){
+		return current;
+	}
 	
 	public static synchronized void clear() {
 		

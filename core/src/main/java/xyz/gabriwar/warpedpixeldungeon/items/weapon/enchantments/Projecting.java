@@ -29,6 +29,8 @@ public class Projecting extends Weapon.Enchantment {
 
 	private static ItemSprite.Glowing PURPLE = new ItemSprite.Glowing( 0x8844CC );
 
+	/** No proc look: its reach blow's thrust is the swing's (EnchantFx.swing) and a through-wall
+	 *  throw's flight the item's own; nothing happens here to show. */
 	@Override
 	public int proc(Weapon weapon, Char attacker, Char defender, int damage) {
 		//Does nothing as a proc, instead increases weapon range.

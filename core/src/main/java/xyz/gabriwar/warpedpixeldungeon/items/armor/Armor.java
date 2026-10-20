@@ -159,7 +159,7 @@ public class Armor extends EquipableItem {
 		if (brim != null) {
 			base += 2.0f * brim.power();
 		}
-		base += xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.value( this, xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.WARMTH );
+		//a WARMTH line is not here: it only ever fights the cold (TileTemperature.feelsLikeAt)
 		return base;
 	}
 
@@ -223,6 +223,9 @@ public class Armor extends EquipableItem {
 		seal = (BrokenSeal)bundle.get(SEAL);
 		
 		augment = bundle.getEnum(AUGMENT, Augment.class);
+
+		//after both slots: a legendary armor from an older save gains its vestige once
+		xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.settleVestige( this );
 	}
 
 	@Override
@@ -572,38 +575,44 @@ public class Armor extends EquipableItem {
 				//holy ward suppresses glyphs unless the wearer is a paladin, but curses always proc
 				if (glyph != null &&
 						(((Hero) defender).subClass == HeroSubClass.PALADIN || glyph.curse())){
-					damage = glyph.proc( this, attacker, defender, damage );
+					damage = procGlyph( glyph, attacker, defender, damage );
 				}
 				if (glyph2 != null &&
 						(((Hero) defender).subClass == HeroSubClass.PALADIN || glyph2.curse())){
-					damage = glyph2.proc( this, attacker, defender, damage );
+					damage = procGlyph( glyph2, attacker, defender, damage );
 				}
 				if (trinityGlyph != null){
-					damage = trinityGlyph.proc( this, attacker, defender, damage );
+					damage = procGlyph( trinityGlyph, attacker, defender, damage );
+				}
+				//the vestige pauses under Holy Ward as the good slots do, but for a Paladin
+				if (((Hero) defender).subClass == HeroSubClass.PALADIN){
+					damage = procVestige( trinityGlyph, attacker, defender, damage );
 				}
 				int blocking = ((Hero) defender).subClass == HeroSubClass.PALADIN ? 3 : 1;
-				damage -= Math.round(blocking * Glyph.genericProcChanceMultiplier(defender));
+				damage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.to( defender, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ADD, defender.buff(HolyWard.HolyArmBuff.class), damage, damage - Math.round(blocking * Glyph.genericProcChanceMultiplier(defender)) );
 
 			} else {
 				if (glyph != null) {
-					damage = glyph.proc(this, attacker, defender, damage);
+					damage = procGlyph( glyph, attacker, defender, damage );
 				}
 				if (glyph2 != null) {
-					damage = glyph2.proc(this, attacker, defender, damage);
+					damage = procGlyph( glyph2, attacker, defender, damage );
 				}
 				if (trinityGlyph != null){
-					damage = trinityGlyph.proc( this, attacker, defender, damage );
+					damage = procGlyph( trinityGlyph, attacker, defender, damage );
 				}
+				//after the real ones, as a weapon's vestige comes after its enchantments
+				damage = procVestige( trinityGlyph, attacker, defender, damage );
 				//so that this effect procs for allies using this armor via aura of protection
 				if (defender.alignment == Dungeon.hero.alignment
 						&& Dungeon.hero.buff(AuraOfProtection.AuraBuff.class) != null
 						&& (Dungeon.level.distance(defender.pos, Dungeon.hero.pos) <= 2 || defender.buff(LifeLinkSpell.LifeLinkSpellBuff.class) != null)
 						&& Dungeon.hero.buff(HolyWard.HolyArmBuff.class) != null) {
 					int blocking = Dungeon.hero.subClass == HeroSubClass.PALADIN ? 3 : 1;
-					damage -= Math.round(blocking * Glyph.genericProcChanceMultiplier(defender));
+					damage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.to( defender, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ADD, Dungeon.hero.buff(HolyWard.HolyArmBuff.class), damage, damage - Math.round(blocking * Glyph.genericProcChanceMultiplier(defender)) );
 				}
 			}
-			damage = Math.max(damage, 0);
+			damage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.to( defender, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.SET, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.NO_NEGATIVE, damage, Math.max(damage, 0) );
 		}
 		
 		if (!levelKnown && defender == Dungeon.hero) {
@@ -626,7 +635,19 @@ public class Armor extends EquipableItem {
 		
 		return damage;
 	}
-	
+
+	//this armor's vestigial glyph, when its gate opens on this blow
+	private int procVestige( Glyph trinityGlyph, Char attacker, Char defender, int damage ){
+		Glyph v = xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.vestigeFor( this, trinityGlyph );
+		return v == null ? damage : procGlyph( v, attacker, defender, damage );
+	}
+
+	//a glyph's proc, its change to the blow named after it in the damage ledger
+	private int procGlyph( Glyph g, Char attacker, Char defender, int damage ){
+		xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.push( defender, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.AUTO, g );
+		return xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.pop( g.proc( this, attacker, defender, damage ) );
+	}
+
 	@Override
 	public void onHeroGainExp(float levelPercent, Hero hero) {
 		levelPercent *= Talent.itemIDSpeedFactor(hero, this);

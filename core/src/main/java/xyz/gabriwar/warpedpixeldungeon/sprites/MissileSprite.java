@@ -94,11 +94,16 @@ public class MissileSprite extends ItemSprite implements Tweener.Listener {
 				item,
 				listener );
 
+		//its flight's look: an enchanted one's trail, a throw through a wall, a boomerang's path
+		flight( rawFx, rawFy, rawTx, rawTy );
+
 		// Record for spectator sync
 		xyz.gabriwar.warpedpixeldungeon.net.NetVisuals.recordMissile(
 				rawFx, rawFy, rawTx, rawTy,
 				item != null ? item.image : 0,
-				angularSpeed, angle);
+				angularSpeed, angle,
+				xyz.gabriwar.warpedpixeldungeon.net.NetManager.isHost()
+						? xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.ItemLooks.sig( item ) : null);
 	}
 	
 	private static final int DEFAULT_ANGULAR_SPEED = 720;
@@ -213,6 +218,7 @@ public class MissileSprite extends ItemSprite implements Tweener.Listener {
 
 	@Override
 	public void onComplete( Tweener tweener ) {
+		endFlight();
 		kill();
 		if (callback != null) {
 			callback.call();

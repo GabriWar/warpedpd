@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.WindParticle;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
@@ -178,7 +179,8 @@ public class SlipstreamWind extends Buff {
 
 	@Override
 	public void fx( boolean on ) {
-		for (WindParticle.Wind w : swirls) w.killAndErase();
+		//let go of on the render thread, their buffers freed (never left erased with them held)
+		for (WindParticle.Wind w : swirls) Fx.dispose( w );
 		swirls.clear();
 		if (on && target != null && target.sprite != null && target.sprite.parent != null && sameFloor()){
 			for (int c : cells){

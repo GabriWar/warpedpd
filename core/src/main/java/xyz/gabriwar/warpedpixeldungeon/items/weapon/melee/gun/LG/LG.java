@@ -37,6 +37,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LaserParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.gun.Gun;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -68,6 +69,12 @@ public class LG extends Gun {
         return Math.max(0, (maxRound()-round)*3);
     }
 
+    //the beam's own reach, before a RANGE line stretches it
+    @Override
+    public int baseRange() {
+        return 2*(tier+1);
+    }
+
     @Override
     public Bullet knockBullet(){
         return new LGBullet();
@@ -84,7 +91,7 @@ public class LG extends Gun {
             if (cell != curUser.pos) {
                 Ballistica aim = new Ballistica(curUser.pos, cell, Ballistica.WONT_STOP);
                 ArrayList<Char> chars = new ArrayList<>();
-                int maxDist = 2*(LG.this.tier+1);
+                int maxDist = LG.this.baseRange() + Quality.rangeBonus(LG.this, LG.this.baseRange());
                 int dist = Math.min(aim.dist, maxDist);
                 int cells = aim.path.get(Math.min(aim.dist, dist));
                 boolean terrainAffected = false;
@@ -121,6 +128,7 @@ public class LG extends Gun {
                         break;
                 }
                 curUser.sprite.parent.add(new Beam.SuperNovaRay(curUser.sprite.center(), DungeonTilemap.raisedTileCenterToWorld( cells ), multi));
+                xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.PieceFx.reach(curUser, LG.this, aim, LG.this.baseRange(), maxDist);
 
                 for (Char ch : chars) {
                     for (int i=0; i<shotPerShoot(); i++) {

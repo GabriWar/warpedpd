@@ -36,7 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
@@ -71,7 +71,7 @@ public class RiposteStance extends ActiveSkill2 {
 			//the blade comes up: a ring of steel and a glint along the edge
 			if (hero.sprite != null){
 				new Flare( 4, 12 ).color( 0xFFFFFF, true ).show( hero.sprite, 0.35f );
-				hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 3 );
+				hero.sprite.emitter().burst( SkillBursts.STEEL_GLINT, 3 );
 			}
 			SpatialSound.play( Assets.Sounds.HIT_PARRY, hero, 0.8f, 1.6f );
 		} else if (action.equals(Skill.AC_DEACTIVATE)){
@@ -121,7 +121,7 @@ public class RiposteStance extends ActiveSkill2 {
 		ArcSpinFX.slash( hero.sprite, 0xFFFFFF, attacker.pos % Dungeon.level.width() >= hero.pos % Dungeon.level.width() );
 		StreakFX.show( hero.pos, attacker.pos, 0xFFFFFF, 0.4f, 0.25f );
 		if (attacker.sprite != null) attacker.sprite.flash();
-		if (hero.sprite != null) hero.sprite.emitter().burst( xyz.gabriwar.warpedpixeldungeon.effects.Speck.factory( xyz.gabriwar.warpedpixeldungeon.effects.Speck.STAR ), 4 );
+		if (hero.sprite != null) hero.sprite.emitter().burst( SkillBursts.STEEL_GLINT, 4 );
 		SpatialSound.play( Assets.Sounds.HIT_PARRY, hero, 1f, 1.2f );
 		Fx.shake( 1, 0.15f );
 		//+3: the answered enemy is left open

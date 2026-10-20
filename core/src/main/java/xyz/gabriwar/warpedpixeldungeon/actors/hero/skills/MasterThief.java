@@ -38,7 +38,10 @@ import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.items.Gold;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.DreadFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 
 public class MasterThief extends Skill {
 
@@ -91,8 +94,9 @@ public class MasterThief extends Skill {
 
 		Buff.prolong( enemy, Blindness.class, BLIND_TURNS );
 		SpatialSound.play( Assets.Sounds.GOLD, hero, 1f, 1.7f );
+		//a coin flicked spinning into its eyes (a coin of the orbit, never a pile of gold thrown)
 		if (hero.sprite != null){
-			SkillFX.streak( hero.sprite, enemy.pos, new Gold(), () -> struck( enemy ) );
+			SkillFX.streak( hero.sprite, enemy.pos, SkillFX.Streak.COIN, () -> struck( enemy ) );
 		} else {
 			struck( enemy );
 		}
@@ -105,7 +109,7 @@ public class MasterThief extends Skill {
 						&& SkillInteractions.clear( enemy.pos, other.pos )){
 					Buff.prolong( other, Blindness.class, BLIND_TURNS );
 					final Char second = other;
-					SkillFX.streak( enemy.pos, other.pos, new Gold(), () -> struck( second ) );
+					SkillFX.streak( enemy.pos, other.pos, SkillFX.Streak.COIN, () -> struck( second ) );
 					break;
 				}
 			}
@@ -113,8 +117,13 @@ public class MasterThief extends Skill {
 		return damage;
 	}
 
+	//the coin in its eyes: a star of gold light there for a frame, glints of gold (no coins spilt:
+	//nothing drops)
 	private static void struck( Char ch ){
-		if (ch.sprite != null) ch.sprite.emitter().burst( Speck.factory( Speck.COIN ), 4 );
+		if (ch.sprite != null){
+			ch.sprite.emitter().burst( SkillBursts.GOLD_GLINT, 4 );
+			DreadFX.star( SkillVfx.midX( ch.sprite ), ch.sprite.y + 4, Element.GOLD.light );
+		}
 		SpatialSound.play( Assets.Sounds.HIT, ch, 0.7f, 1.6f );
 	}
 }

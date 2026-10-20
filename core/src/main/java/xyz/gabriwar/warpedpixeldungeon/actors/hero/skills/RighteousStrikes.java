@@ -37,6 +37,15 @@ import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.MoteFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillRay;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 import java.util.HashSet;
 
@@ -80,7 +89,12 @@ public class RighteousStrikes extends PassiveSkillB1 {
 		blows = 0;
 
 		if (enemy.sprite != null){
-			new Flare( 6, 20 ).color( 0xFFEE88, true ).show( enemy.sprite, 0.6f );
+			//the gathered light released: its star bursting on the struck (the legacy Flare, kept on the
+			//owner's word), on the render thread
+			Fx.post( () -> {
+				CharSprite s = enemy.sprite;
+				if (s != null && s.parent != null) new Flare( 6, 20 ).color( 0xFFEE88, true ).show( s, 0.6f );
+			} );
 			enemy.sprite.emitter().burst( Speck.factory( Speck.YELLOW_LIGHT ), 6 );
 		}
 		SpatialSound.play( Assets.Sounds.HIT_MAGIC, enemy, 0.8f, 1.2f );
@@ -102,7 +116,7 @@ public class RighteousStrikes extends PassiveSkillB1 {
 			if (next == null) break;
 			final Char a = from, b = next;
 			final float pitch = 1.2f + 0.1f * i;
-			chain.at( 0.1f * (i + 1), () -> { ray( a, b ); SpatialSound.play( Assets.Sounds.RAY, b, 0.5f, pitch ); } );
+			chain.at( 0.1f * (i + 1), () -> { ray( a, b, false ); SpatialSound.play( Assets.Sounds.RAY, b, 0.5f, pitch ); } );
 			struck.add( next );
 			next.damage( holy( next ), this );
 			from = next;
@@ -111,16 +125,33 @@ public class RighteousStrikes extends PassiveSkillB1 {
 		//at mastery the light comes home and mends the cleric for every enemy it touched
 		if (level >= MAX_LEVEL && hero != null && hero.sprite != null){
 			final Char last = from;
-			chain.at( 0.1f * (struck.size() + 1), () -> ray( last, hero ) );
+			chain.at( 0.1f * (struck.size() + 1), () -> ray( last, hero, true ) );
 			hero.heal( SkillInteractions.ofHealth( hero.HT, 0.01f ) * struck.size() );
 		}
 
 		return damage + holy( enemy );
 	}
 
-	private static void ray( Char a, Char b ){
+	//a leap of the light (render thread, the chain's step): a ray of holy light from one enemy to the
+	//next (the game's own LightRay, kept on the owner's word) with gold motes streaming along it, and
+	//the light bursting on the struck. Home (+3): the ray from the last enemy into the cleric, with no
+	//burst on him (one there would draw the game's Random), the light rising off him as it lands
+	private static void ray( Char a, Char b, boolean home ){
 		if (a.sprite == null || b.sprite == null || a.sprite.parent == null) return;
 		a.sprite.parent.add( new Beam.LightRay( a.sprite.center(), b.sprite.center() ) );
-		b.sprite.emitter().burst( Speck.factory( Speck.YELLOW_LIGHT ), 4 );
+		SkillRay.stream( a.sprite, b.sprite, SkillRay.STREAM_HOLY, 0.5f );
+		if (!home){
+			b.sprite.emitter().burst( Speck.factory( Speck.YELLOW_LIGHT ), 4 );
+			return;
+		}
+		if (!b.sprite.visible) return;
+		float x = SkillVfx.midX( b.sprite ), y = SkillVfx.midY( b.sprite );
+		for (int i = 0; i < HOME_MOTES; i++){
+			MoteFX.flick( x + FxRandom.Float( -4f, 4f ), y + FxRandom.Float( -3f, 4f ), 1, FxFrames.MOTE_2, SkillPalette.HOLY,
+					(float) -Math.PI / 2, 0.8f, 6f, 10f, 0f, 0f, 0.6f, 12f, FxBudget.P2 );
+		}
 	}
+
+	//the holy motes rising off the cleric as the light comes home
+	private static final int HOME_MOTES = 4;
 }

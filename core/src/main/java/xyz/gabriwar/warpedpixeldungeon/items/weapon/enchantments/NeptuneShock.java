@@ -32,6 +32,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.lightning.Crackle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
@@ -64,6 +66,7 @@ public class NeptuneShock extends Weapon.Enchantment {
 		int distance = 1 + level * 2 + level()/2; //scales with enchantment level
 
 		ArrayList<Lightning.Arc> arcs = new ArrayList<>();
+		ArrayList<Char> struck = new ArrayList<>();
 		boolean procced = false;
 
 		for (Mob mob : Dungeon.level.mobs.toArray(new Mob[0])) {
@@ -94,6 +97,7 @@ public class NeptuneShock extends Weapon.Enchantment {
 				}
 
 				procced = true;
+				struck.add(mob);
 			}
 		}
 
@@ -102,6 +106,7 @@ public class NeptuneShock extends Weapon.Enchantment {
 			SpatialSound.play(Assets.Sounds.LIGHTNING, defender);
 			Crackle.weapon(attacker.sprite);
 			Fx.shake(2, 0.3f);
+			ElementRows.neptune( EnchantLooks.of( getClass() ), attacker, struck, ElementRows.shockStrength( struck.size(), level() ), level(), distance );
 		}
 
 		return damage;

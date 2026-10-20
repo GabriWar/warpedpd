@@ -37,6 +37,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.arcane.ItemFx;
+import xyz.gabriwar.warpedpixeldungeon.items.EmptyBottle;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.ItemStatusHandler;
@@ -439,6 +440,8 @@ public class Potion extends Item {
 		hero.spend( TIME_TO_DRINK );
 		hero.busy();
 		apply( hero );
+		//a potion drunk leaves its bottle; one that only shatters on the drinker breaks it
+		if (!mustThrowPots.contains( getClass() )) EmptyBottle.giveBack( hero );
 		
 		SpatialSound.play( Assets.Sounds.DRINK, hero );
 		
@@ -725,6 +728,9 @@ public class Potion extends Item {
 		@Override
 		public Item brew(ArrayList<Item> ingredients) {
 			if (!testIngredients(ingredients)) return null;
+			Item bottle = EmptyBottle.forBrewing( Dungeon.hero );
+			if (bottle == null) return null;
+			bottle.detach( Dungeon.hero.belongings.backpack );
 			
 			for (Item ingredient : ingredients){
 				ingredient.quantity(ingredient.quantity() - 1);
@@ -777,7 +783,7 @@ public class Potion extends Item {
 				
 				@Override
 				public String info() {
-					return "";
+					return Messages.get(Potion.SeedToPotion.class, "bottle");
 				}
 			};
 		}

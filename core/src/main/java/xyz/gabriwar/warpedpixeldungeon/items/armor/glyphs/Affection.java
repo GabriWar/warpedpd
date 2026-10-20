@@ -27,8 +27,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Charm;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor.Glyph;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite.Glowing;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
 import com.watabou.utils.Random;
 
 public class Affection extends Glyph {
@@ -50,6 +53,7 @@ public class Affection extends Glyph {
 
 			Buff.affect( attacker, Charm.class, Math.round(Charm.DURATION*powerMulti*power()) ).object = defender.id(); //scales with glyph level
 			attacker.sprite.centerEmitter().start( Speck.factory( Speck.HEART ), 0.2f, 5 );
+			EnchantFx.ward( EnchantLooks.of( getClass() ), defender, attacker, 0.45f, level(), Quality.isVestige( armor, this ) ? EnchantFx.ECHO : 0 );
 
 		}
 		

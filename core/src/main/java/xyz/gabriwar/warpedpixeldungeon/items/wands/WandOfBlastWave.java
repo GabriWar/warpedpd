@@ -119,6 +119,12 @@ public class WandOfBlastWave extends DamageWand {
 
 	public static void throwChar(final Char ch, final Ballistica trajectory, int power,
 	                             boolean closeDoors, boolean collideDmg, Object cause){
+		throwChar(ch, trajectory, power, closeDoors, collideDmg, cause, Pushing.PLAIN);
+	}
+
+	//the same, the push's ghosts tinted (an enchantment's or a glyph's throw: Elastic, Bounce, Repulsion)
+	public static void throwChar(final Char ch, final Ballistica trajectory, int power,
+	                             boolean closeDoors, boolean collideDmg, Object cause, int tint){
 		if (ch.properties().contains(Char.Property.BOSS)) {
 			power = (power+1)/2;
 		}
@@ -189,7 +195,7 @@ public class WandOfBlastWave extends DamageWand {
 					Dungeon.observe();
 				}
 			}
-		}));
+		}, tint));
 	}
 
 	public static class Knockback{}

@@ -39,7 +39,8 @@ import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.DreadFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import com.watabou.utils.PathFinder;
 
@@ -95,8 +96,10 @@ public class Ambush extends SubSkill1 {
 		Buff.prolong( ch, Roots.class, 1 + level );
 		//flyers shrug the stake off, and nothing is shown
 		if (ch.buff( Roots.class ) == null) return;
-		CellEmitter.get( ch.pos ).burst( ShadowParticle.UP, 8 );
+		//a stake of dread light driven down into its shadow, ink sinking, dust kicked up
+		CellEmitter.get( ch.pos ).burst( SkillBursts.DREAD, 8 );
 		CellEmitter.bottom( ch.pos ).burst( Speck.factory( Speck.DUST ), 4 );
+		if (ch.sprite != null) DreadFX.stake( ch.sprite );
 	}
 
 	/** this enemy has already been opened on */

@@ -16,6 +16,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRecipes;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.FxPic;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 
@@ -26,13 +27,20 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
  * shed an ember every EMBER_EVERY s, ice shells glint and drop frost motes; orbs on the far side
  * dimmer. A launched orb flies with a trail of its element and lands in a flash, a scorch or
  * rime, and sparks; its impact callback (the game waits on it) fires on the same frame as ever:
- * clamp(distance / 160, 0.15, 0.5) s after its first frame. Nothing allocated per spark: every
- * particle comes from the kit's pools. At most 5 orbs x 6 quads.
+ * clamp(distance / 160, 0.15, 0.5) s after its first frame. Its trail: fire's little tongues
+ * every TONGUE_EVERY s (TONGUE_LIFE s, rising TONGUE_RISE px/s, the skills' FIRE ramp, P2) and an
+ * ember every EMBER_TRAIL s; frost's flakes of ice (matter) every FLAKE_EVERY s sinking, a frost
+ * glint with every other one; both a POOL_15 of its light following FLOOR px under it at POOL_LEVEL
+ * (one light an orb in flight). About 20 particles an orb in flight. Nothing allocated per spark:
+ * every particle comes from the kit's pools. At most 5 orbs x 6 quads.
  */
 public class ElementalOrbitFX extends Group {
     public static final float FLICKER=.1f, EMBER_EVERY=.15f, FROST_EVERY=.3f, GLINT_EVERY=.8f;
     /** Far-side orbs at this share of their brightness. */
     public static final float FAR=.6f;
+    /** A launched orb's trail (see the class's note). */
+    public static final float TONGUE_EVERY=.015f, TONGUE_LIFE=.2f, TONGUE_RISE=6f, EMBER_TRAIL=.05f, FLAKE_EVERY=.02f,
+            POOL_LEVEL=.2f, FLOOR=6f;
     private static final int[] ORBS_SHEET={0,0,12,12};
     private final Char owner;
     private final ElementalOrbit state;
@@ -157,6 +165,7 @@ public class ElementalOrbitFX extends Group {
         final Launch shot=new Launch(fx,fy,tx,ty,element,heat,duration,impact);
         Fx.post(()->{
             if(GameScene.layer(GameScene.Layer.LIGHTS)==null){ impact.call(); return; }
+            shot.lightFloor();
             GameScene.light(shot);
         });
     }
@@ -166,23 +175,79 @@ public class ElementalOrbitFX extends Group {
         final float fx,fy,tx,ty,duration;
         final int element,heat;
         final Callback impact;
-        float elapsed, trail;
+        float elapsed, tongue, ember, flake, lx, ly;
+        int flakes;
+        FxLight pool;
+        int poolSetups;
         Launch(float fx,float fy,float tx,float ty,int element,int heat,float duration,Callback impact){
             this.fx=fx;this.fy=fy;this.tx=tx;this.ty=ty;this.element=element;this.heat=heat;this.duration=duration;this.impact=impact;
+            lx=fx;ly=fy;
             add(orb);
         }
+        //its pool of light on the floor under it, made as it is put on the light layer and never in its
+        //own update (a pool goes to the layer's back: made mid-update it would shift the members being
+        //updated and this flight would count its first frame twice)
+        void lightFloor(){
+            if(!Fx.seen(fx,fy)&&!Fx.seen(tx,ty))return;
+            orb.place(fx,fy,element,heat,0,1f);
+            pool=FxLight.pool(fx,fy+FLOOR,15,element==0?SkillPalette.FIRE_LIGHT:SkillPalette.FROST_LIGHT,POOL_LEVEL).follow(orb.core,0,FLOOR);
+            poolSetups=pool.setups();
+        }
         @Override public void update(){
-            super.update(); elapsed+=Game.elapsed; trail+=Game.elapsed;
+            super.update();
+            float dt=Game.elapsed;
+            elapsed+=dt;
             float t=Math.min(1,elapsed/duration), x=fx+(tx-fx)*t, y=fy+(ty-fy)*t;
             orb.place(x,y,element,heat,elapsed,1f);
-            if(trail>.025f){
-                trail=0;
-                FxParticle p=SkillVfx.glow(x+FxRandom.Float(-1.5f,1.5f),y+FxRandom.Float(-1.5f,1.5f),FxBudget.P2);
-                if(p!=null)p.look(element==0?FxFrames.EMBER_2:FxFrames.MOTE_2)
-                        .ramp(element==0?Element.FIRE.ember:Element.FROST.ember,true).vel(FxRandom.Float(-6f,6f),FxRandom.Float(-6f,6f))
-                        .drag(3f).life(.25f).alpha(.9f,0,.15f);
+            trail(x,y,dt);
+            lx=x;ly=y;
+            if(t>=1){ arrive(); letPool(); Fx.dispose(this); impact.call(); }
+        }
+        //its trail since the last frame, each bit where the orb was at its moment
+        private void trail(float x,float y,float dt){
+            boolean seen=Fx.seen(x,y);
+            if(element==0){
+                tongue-=dt;
+                int n=0;
+                while(tongue<=0){tongue+=TONGUE_EVERY;n++;}
+                for(int k=0;k<n&&seen;k++){
+                    float u=(k+1f)/n;
+                    FxParticle p=SkillVfx.glow(lx+(x-lx)*u+FxRandom.Float(-1f,1f),ly+(y-ly)*u+FxRandom.Float(-1f,1f),FxBudget.P2);
+                    if(p!=null)p.look(FxFrames.TONGUE_S,12).ramp(SkillPalette.FIRE,true).vel(FxRandom.Float(-2f,2f),-TONGUE_RISE)
+                            .life(TONGUE_LIFE*FxRandom.Float(.85f,1f)).alpha(.9f,0,TONGUE_LIFE*.5f);
+                }
+                ember-=dt;
+                while(ember<=0){
+                    ember+=EMBER_TRAIL;
+                    if(!seen)continue;
+                    FxParticle p=SkillVfx.glow(x+FxRandom.Float(-2f,2f),y+FxRandom.Float(-1f,1f),FxBudget.P2);
+                    if(p!=null)p.look(FxFrames.EMBER_2).ramp(Element.FIRE.ember,true).vel(FxRandom.Float(-5f,5f),FxRandom.Float(-16f,-10f))
+                            .sway(2f,6f).life(.4f).alpha(1f,0,.2f);
+                }
+            }else{
+                flake-=dt;
+                int n=0;
+                while(flake<=0){flake+=FLAKE_EVERY;n++;}
+                for(int k=0;k<n&&seen;k++){
+                    float u=(k+1f)/n, px=lx+(x-lx)*u, py=ly+(y-ly)*u;
+                    FxParticle p=SkillVfx.matter(px+FxRandom.Float(-1.5f,1.5f),py+FxRandom.Float(-1f,1f),FxBudget.P2);
+                    if(p!=null)p.look(FxFrames.SHARD_ICE[FxRandom.Int(FxFrames.SHARD_ICE.length)]).paint(SkillPalette.FROST.stop(1))
+                            .vel(FxRandom.Float(-3f,3f),FxRandom.Float(6f,10f)).drag(1f).life(.3f).alpha(.9f,0,.15f).snap();
+                    if((flakes++&1)==0){
+                        FxParticle g=SkillVfx.glow(px+FxRandom.Float(-2f,2f),py+FxRandom.Float(-1.5f,1.5f),FxBudget.P3);
+                        if(g!=null)g.look(FxFrames.MOTE_1).ramp(SkillPalette.FROST,true).vel(0,FxRandom.Float(4f,8f))
+                                .life(.25f).alpha(1f,0,.12f).snap();
+                    }
+                }
             }
-            if(t>=1){ arrive(); Fx.dispose(this); impact.call(); }
+        }
+        private void letPool(){
+            if(pool!=null&&pool.setups()==poolSetups)pool.putOut(.1f);
+            pool=null;
+        }
+        @Override public void destroy(){
+            letPool();
+            super.destroy();
         }
         //the landing: a flash of the orb's light, a scorch or rime, sparks
         void arrive(){

@@ -32,7 +32,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.HeartseekerArrow;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 
 /**
  * Huntress: a ranged hit that leaves an enemy under half its health lodges an arrow in
@@ -71,7 +70,8 @@ public class Heartseeker extends Skill {
 
 		Buff.affect( enemy, HeartseekerArrow.class ).set( level );
 		castTextYell();
-		if (enemy.sprite != null) enemy.sprite.emitter().burst( Speck.factory( Speck.HEART ), 3 );
+		//the arrow lodges: the heart's first throb (a crimson beat, never a charm's hearts)
+		if (enemy.sprite != null) HeartseekerArrow.lodged( enemy.sprite, 3 );
 		SpatialSound.play( Assets.Sounds.HIT_ARROW, enemy, 1f, 0.8f );
 		return damage;
 	}

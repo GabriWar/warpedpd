@@ -27,7 +27,11 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PulseRingFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
@@ -77,8 +81,11 @@ public class SecondWind extends SubSkill2 {
 			charger.charges = Math.min( cap, charger.charges + level );
 			xyz.gabriwar.warpedpixeldungeon.items.Item.updateQuickslot();
 			hero.sprite.showStatus( xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite.POSITIVE, "+" + (charger.charges - before) );
-			new Flare( 6, 24 ).color( 0x88FF88, true ).show( hero.sprite, 0.6f );
-			hero.sprite.emitter().burst( xyz.gabriwar.warpedpixeldungeon.effects.Speck.factory( xyz.gabriwar.warpedpixeldungeon.effects.Speck.UP ), 5 );
+			//a breath caught: the blade's charges back, so a star and a ring of steel (never a heal's green:
+			//no health comes back), breath rising (never an upgrade's arrows)
+			PixelFlare.show( SkillVfx.midX( hero.sprite ), SkillVfx.midY( hero.sprite ), SkillPalette.STEEL_LIGHT, PixelFlare.M, 0.6f );
+			PulseRingFX.around( hero.sprite, SkillPalette.STEEL_LIGHT, 16, 0.4f );
+			hero.sprite.emitter().burst( SkillBursts.BREATH, 5 );
 			hero.MP -= getManaCost();
 			castTextYell();
 			SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 1f, 0.8f );

@@ -35,9 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ParryRiposte;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import com.watabou.utils.Random;
 
 public class ParryStance extends PassiveSkillA3 {
@@ -67,8 +65,10 @@ public class ParryStance extends PassiveSkillA3 {
 			return damage;
 		}
 		if (hero.sprite != null){
-			hero.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( this, "parry" ) );
-			hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 6 );
+			//the parry and the stance's own icon on the hero's card
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.icon( hero, xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.PARRY, 0 );
+			chipOn( hero );
+			hero.sprite.emitter().burst( SkillBursts.STEEL_GLINT, 6 );
 			new Flare( 5, 16 ).color( 0xFFFFFF, true ).show( hero.sprite, 0.4f );
 			//the blade turns the blow: a quick arc snapped toward the attacker
 			ArcSpinFX.slash( hero.sprite, 0xFFFFFF, enemy.pos % Dungeon.level.width() >= hero.pos % Dungeon.level.width() );

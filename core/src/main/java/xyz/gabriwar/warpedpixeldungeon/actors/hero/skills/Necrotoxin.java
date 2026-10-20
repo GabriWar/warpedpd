@@ -29,8 +29,10 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.PoisonParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -77,7 +79,7 @@ public class Necrotoxin extends Skill {
 
 		int gain = Math.min( MANA_PER_TICK, cap - hero.MP );
 		hero.MP += gain;
-		if (hero.sprite != null) hero.sprite.showStatus( 0x44CCFF, "+" + gain + " MP" );
+		if (hero.sprite != null) hero.sprite.showStatusWithIcon( 0x44CCFF, Integer.toString( gain ), xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.MANA );
 	}
 
 	//a hit can rupture the poison in an enemy: what was left of it lands at once, and half again
@@ -90,11 +92,14 @@ public class Necrotoxin extends Skill {
 		int burst = Math.round( poison.totalIncomingDMG() * 1.5f );
 		poison.detach();
 
+		//the poison in it ruptures: a splash of it (real poison), drops of ichor thrown out and
+		//falling, a star of the poison's light; a wet rip, never a cloud of gas going off
 		castTextYell();
 		CellEmitter.center( enemy.pos ).burst( PoisonParticle.SPLASH, 10 );
-		CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.TOXIC ), 6 );
-		if (enemy.sprite != null) new Flare( 6, 20 ).color( 0x66DD44, true ).show( enemy.sprite, 0.6f );
-		SpatialSound.play( Assets.Sounds.GAS, enemy, 0.9f, 0.8f );
+		CellEmitter.get( enemy.pos ).burst( SkillBursts.ICHOR, 6 );
+		if (enemy.sprite != null) PixelFlare.show( SkillVfx.midX( enemy.sprite ), SkillVfx.midY( enemy.sprite ), Element.POISON.light, PixelFlare.M, 0.6f );
+		SpatialSound.play( Assets.Sounds.HIT_SLASH, enemy, 0.9f, 0.7f );
+		SpatialSound.play( Assets.Sounds.PUFF, enemy, 0.6f, 1.2f );
 
 		//at mastery the rupture sprays onto every enemy next to it
 		if (level >= MAX_LEVEL){

@@ -29,6 +29,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.items.food.MysteryMeat;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import com.watabou.utils.Random;
 
 //ported from Unleashed PD: a butchering weapon.
@@ -55,12 +59,14 @@ public class Hunting extends Weapon.Enchantment {
 
 		int bonus = Math.round( Random.NormalIntRange( 0, level + 3 ) * power() );
 		defender.damage( bonus, this );
+		if (bonus * 2 >= Math.round( (level + 3) * power() ) && bonus > 0) EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, EnchantFx.strength( level(), bonus, defender.HT, power() ), level(), Quality.isVestige( weapon, this ) ? EnchantFx.ECHO : 0, ShadowRows.HUNTING );
 
 		//butchering a kill sometimes yields meat
 		if (damage + bonus >= defender.HP) {
 			float meatChance = (1f / (4f * (level + 5f))) * procChanceMultiplier( attacker );
 			if (Random.Float() < meatChance) {
 				Dungeon.level.drop( new MysteryMeat(), defender.pos ).sprite.drop();
+				ShadowRows.huntMeat( defender.pos );
 			}
 		}
 

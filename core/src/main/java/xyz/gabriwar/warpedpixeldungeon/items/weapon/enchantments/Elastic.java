@@ -22,6 +22,10 @@
 package xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.SpiritBow;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
@@ -56,7 +60,10 @@ public class Elastic extends Weapon.Enchantment {
 					Math.round(2 * powerMulti) + level()/2, //scales with enchantment level
 					!(weapon instanceof MissileWeapon || weapon instanceof SpiritBow),
 					true,
-					this);
+					this,
+					EnchantLooks.of( getClass() ).glow);
+			EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, Math.min( 1f, (Math.round(2 * powerMulti) + level()/2) / 4f ), level(),
+					Quality.isVestige( weapon, this ) ? EnchantFx.ECHO : 0, ElementRows.elastic() );
 		}
 		
 		return damage;

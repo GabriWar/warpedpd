@@ -32,9 +32,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.MoteFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfMagic;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 public class InnerPeace extends SubSkill2 {
 
@@ -70,8 +71,10 @@ public class InnerPeace extends SubSkill2 {
 				|| buff instanceof xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror)) return false;
 		if (com.watabou.utils.Random.Int( 100 ) >= 5 + 10 * level) return false;
 		if (hero.sprite != null){
-			hero.sprite.emitter().burst( Speck.factory( Speck.STEAM ), 5 );
-			hero.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( this, "breathe" ) );
+			//the harm breathed out: breath rising off the cleric (never steam)
+			hero.sprite.emitter().burst( SkillBursts.BREATH, 5 );
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.resisted( hero, buff );
+			chipOn( hero );
 		}
 		SpatialSound.play( Assets.Sounds.CHARMS, hero, 0.5f, 1.4f );
 		//+3: each breath out restores 2 mana
@@ -80,7 +83,11 @@ public class InnerPeace extends SubSkill2 {
 			int mana = Math.max( 0, Math.min( 2, maxMana - hero.MP ) );
 			if (mana > 0){
 				hero.MP += mana;
-				if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 3 );
+				if (hero.sprite != null){
+					hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 3 );
+					//mana drawn in on the breath (the breath itself stays air, never a heal)
+					MoteFX.gather( hero.sprite, 8, SkillPalette.MANA, 18f, 0.4f );
+				}
 			}
 		}
 		return true;

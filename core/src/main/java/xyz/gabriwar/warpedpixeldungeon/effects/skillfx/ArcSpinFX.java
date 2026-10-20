@@ -77,14 +77,14 @@ public class ArcSpinFX extends Group {
 	private int shownStep = -1, sparksLeft, steps;
 	private boolean struck, kicked;
 
-	private ArcSpinFX( Visual follow, float ax, float ay, int color, float radius, float startAngle, float spin,
+	private ArcSpinFX( Visual follow, float ax, float ay, int color, int headTint, float radius, float startAngle, float spin,
 			float duration, boolean kick, boolean strike ){
 		this.follow = follow;
 		anchor = new Visual( ax, ay, 0, 0 );
 		add( anchor );
 		this.color = color;
 		int ghost = ghostColor( color );
-		headColor = Ramp.lerp( color, 0xFFFFFF, 0.6f );
+		headColor = headTint >= 0 ? headTint : Ramp.lerp( color, 0xFFFFFF, 0.6f );
 		sign = spin < 0 ? -1 : 1;
 		dir0 = Math.round( startAngle / 45f );
 		stepEvery = stepEvery( spin );
@@ -97,7 +97,7 @@ public class ArcSpinFX extends Group {
 		this.kick = kick;
 		this.strike = strike;
 		sparksLeft = FxRandom.IntRange( 2, kick ? 2 : 4 );
-		sparkRamp = new Ramp( 0xFFFFFF, headColor, ghost );
+		sparkRamp = headTint >= 0 ? new Ramp( headColor, ghost ) : new Ramp( 0xFFFFFF, headColor, ghost );
 		ghost2 = pic( ghost );
 		ghost1 = pic( ghost );
 		head = pic( headColor );
@@ -156,7 +156,18 @@ public class ArcSpinFX extends Group {
 	public static ArcSpinFX around( Visual sprite, int color, float radius, float sweep, float startAngle, float spin,
 			float duration, boolean kick ){
 		if (sprite == null) return null;
-		ArcSpinFX fx = new ArcSpinFX( sprite, 0, 0, color, radius, startAngle, spin, duration, kick, false );
+		ArcSpinFX fx = new ArcSpinFX( sprite, 0, 0, color, -1, radius, startAngle, spin, duration, kick, false );
+		fx.launch();
+		return fx;
+	}
+
+	/** An arc riding a sprite whose head is `head` (a colour's own pale stop, SkillPalette's) instead
+	 *  of the colour paled toward white, its flecks running head to colour with no white: a colour
+	 *  whose white-paled head would change its meaning (blood's red pales to pink). */
+	public static ArcSpinFX around( Visual sprite, int color, int head, float radius, float sweep, float startAngle,
+			float spin, float duration ){
+		if (sprite == null) return null;
+		ArcSpinFX fx = new ArcSpinFX( sprite, 0, 0, color, head & 0xFFFFFF, radius, startAngle, spin, duration, false, false );
 		fx.launch();
 		return fx;
 	}
@@ -164,7 +175,7 @@ public class ArcSpinFX extends Group {
 	/** An arc over a cell, its first step striking what stands there. */
 	public static ArcSpinFX at( int cell, int color, float radius, float sweep, float startAngle, float spin, float duration ){
 		if (Dungeon.hero == null || Dungeon.hero.sprite == null || !SkillVfx.valid( cell )) return null;
-		ArcSpinFX fx = new ArcSpinFX( null, SkillVfx.cx( cell ), SkillVfx.raisedY( cell ) + 6, color, radius, startAngle,
+		ArcSpinFX fx = new ArcSpinFX( null, SkillVfx.cx( cell ), SkillVfx.raisedY( cell ) + 6, color, -1, radius, startAngle,
 				spin, duration, false, true );
 		fx.launch();
 		return fx;
@@ -174,7 +185,7 @@ public class ArcSpinFX extends Group {
 	 *  striking at its middle. */
 	public static void slash( Visual sprite, int color, boolean clockwise ){
 		if (sprite == null) return;
-		ArcSpinFX fx = new ArcSpinFX( sprite, 0, 0, color, 11, clockwise ? -60 : 240, clockwise ? 900 : -900, 0.22f, false, true );
+		ArcSpinFX fx = new ArcSpinFX( sprite, 0, 0, color, -1, 11, clockwise ? -60 : 240, clockwise ? 900 : -900, 0.22f, false, true );
 		fx.launch();
 	}
 

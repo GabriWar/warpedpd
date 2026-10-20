@@ -27,8 +27,8 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.DreadFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -37,6 +37,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
+import com.watabou.utils.Random;
 
 import java.util.ArrayList;
 
@@ -69,7 +70,9 @@ public class Vanish extends SubSkill3 {
 			hero.MP -= getManaCost();
 			castTextYell();
 			SpatialSound.play( Assets.Sounds.MELD, hero, 1f, 1.1f );
-			hero.sprite.emitter().burst( ShadowParticle.UP, 10 );
+			//a step into shadow: ink drifting off him, his shape left behind where he stood in a pool of ink
+			hero.sprite.emitter().burst( SkillBursts.INK_DRIFT, 10 );
+			DreadFX.vanish( hero.sprite );
 			loseTrail( hero );
 			Buff.affect( hero, Invisibility.class, level >= Skill.MAX_LEVEL ? 3f : 1f );
 			hero.heroSkills.lastUsed = this;
@@ -88,7 +91,16 @@ public class Vanish extends SubSkill3 {
 			} else if (Dungeon.level.distance( hero.pos, mob.pos ) > range) continue;
 			mob.clearEnemy();
 			mob.state = mob.WANDERING;
-			if (mob.sprite != null) mob.sprite.emitter().burst( Speck.factory( Speck.QUESTION ), 1 );
+			//it has lost the trail: the game's own sign of it over its head (a hunter that loses its
+			//prey shows the same), shown fresh so it always makes its icon's one draw of the game's
+			//Random; with the two after it, the three this mark's burst always made (its start, and
+			//its one particle's spawn point on the next frame)
+			if (mob.sprite != null){
+				mob.sprite.hideLost();
+				mob.sprite.showLost();
+				Random.Float();
+				Random.Float();
+			}
 		}
 	}
 

@@ -29,6 +29,7 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -85,7 +86,9 @@ public class Thorns extends SubSkill1 {
 		enemy.damage( 2 * level, this );
 		boolean seen = enemy.sprite != null && Dungeon.level.heroFOV[enemy.pos];
 		if (seen){
+			//the barbed vines lashing out of the ground round it (the kit's vines snaking over the floor)
 			enemy.sprite.emitter().burst( LeafParticle.GENERAL, 5 );
+			SkillSpectacleFX.show( SkillSpectacleFX.THORN, enemy.pos );
 			SpatialSound.play( Assets.Sounds.HIT_STAB, enemy, 0.6f, 1.4f );
 		}
 		if (level >= MAX_LEVEL && enemy.isAlive() && !enemy.properties().contains( Char.Property.BOSS )){

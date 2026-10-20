@@ -30,7 +30,9 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -107,7 +109,7 @@ public class Shieldbearer extends Skill {
 				bearer.sprite.alpha(0);
 				bearer.sprite.parent.add(new AlphaTweener(bearer.sprite, 1, 0.35f));
 				SkillFX.pillar( newPos, 0xFFDD88 );
-				new Flare( 6, 18 ).color( 0xFFDD88, true ).show( bearer.sprite, 0.7f );
+				PixelFlare.show( SkillVfx.midX( bearer.sprite ), SkillVfx.midY( bearer.sprite ), 0xFFDD88, PixelFlare.M, 0.7f );
 				final int stand = newPos;
 				StaggerFX.after( 0.3f, () -> SkillFX.land( stand ) );
 
@@ -124,7 +126,7 @@ public class Shieldbearer extends Skill {
 					for (int n : PathFinder.NEIGHBOURS8){
 						Char ch = Actor.findChar( newPos + n );
 						if (ch != null && ch.alignment == Char.Alignment.ENEMY && ch.isAlive()){
-							CellEmitter.get( ch.pos ).burst( Speck.factory( Speck.ROCK ), 3 );
+							CellEmitter.get( ch.pos ).burst( SkillBursts.STONE_CHIP, 3 );
 							SkillInteractions.push( ch, newPos, 1, 0 );
 						}
 					}

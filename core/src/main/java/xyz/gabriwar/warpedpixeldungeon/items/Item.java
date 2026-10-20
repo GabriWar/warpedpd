@@ -317,6 +317,7 @@ public class Item implements Bundlable {
 				if (isSimilar( item )) {
 					item.merge( this );
 					item.updateQuickslot();
+					xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.GainFx.collected( container.owner, item );
 					if (Dungeon.hero != null && Dungeon.hero.isAlive()) {
 						Badges.validateItemLevelAquired( this );
 						Talent.onItemCollected(Dungeon.hero, item);
@@ -358,6 +359,7 @@ public class Item implements Bundlable {
 		Dungeon.quickslot.replacePlaceholder(this);
 		Collections.sort( items, itemComparator );
 		updateQuickslot();
+		xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.GainFx.collected( container.owner, this );
 		return true;
 
 	}
@@ -557,6 +559,9 @@ public class Item implements Bundlable {
 
 	public Item identify( boolean byHero ) {
 
+		//what was known before, so a curse or a vestige it reveals is shown (visual only)
+		boolean knewCurse = cursedKnown, knewAll = isIdentified();
+
 		if (byHero && Dungeon.hero != null && Dungeon.hero.isAlive()){
 			Catalog.setSeen(getClass());
 			Statistics.itemTypesDiscovered.add(getClass());
@@ -565,6 +570,7 @@ public class Item implements Bundlable {
 		levelKnown = true;
 		cursedKnown = true;
 		Item.updateQuickslot();
+		xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.GainFx.identified( this, knewCurse, knewAll );
 		
 		return this;
 	}

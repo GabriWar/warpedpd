@@ -33,8 +33,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import com.watabou.utils.Random;
 
 public class PressurePoint extends SubSkill1 {
@@ -78,7 +76,7 @@ public class PressurePoint extends SubSkill1 {
 			SkillInteractions.affectAfterHit( enemy, Paralysis.class, 1f );
 			if (enemy.sprite != null){
 				enemy.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 4 );
-				enemy.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "cast" ) );
+				chipOn( enemy );
 			}
 			SpatialSound.play( Assets.Sounds.HIT_CRUSH, enemy, 1f, 1.5f );
 		}

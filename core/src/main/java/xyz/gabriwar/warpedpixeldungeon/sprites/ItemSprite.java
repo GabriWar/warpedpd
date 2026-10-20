@@ -26,6 +26,12 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLook;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantTrail;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.HeapLook;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.ItemAura;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.ItemLooks;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.water.WaterDrops;
 import xyz.gabriwar.warpedpixeldungeon.items.Gold;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
@@ -46,6 +52,7 @@ import com.watabou.noosa.NoosaScript;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.PointF;
 import com.watabou.utils.Random;
+import com.watabou.utils.RectF;
 
 import java.nio.Buffer;
 
@@ -75,6 +82,46 @@ public class ItemSprite extends MovieClip {
 	protected float shadowWidth     = 1f;
 	protected float shadowHeight    = 0.25f;
 	protected float shadowOffset    = 0.5f;
+
+	/**
+	 * Where it is drawn, which says how much of an enchanted item's magic it shows (docs/fx/enchant.md,
+	 * "The item itself"): ICON (the default: a catalog, a guide chip, an icon) its glow's profile only,
+	 * found from the Glowing it is given; the rest from the item it views (ItemLooks): SLOT (a bag's,
+	 * a quickslot's, a pedestal's slot) and PANEL (the info window) with a backlight and motes round
+	 * it, HEAP (on the floor) with its motes and light in the world, FLIGHT (thrown or shot) with its
+	 * trail.
+	 */
+	public enum Mode { ICON, SLOT, PANEL, HEAP, FLIGHT }
+
+	private Mode mode = Mode.ICON;
+	//the item it views (null for a bare image), what it shows of its magic, where its own clock starts
+	private Item item;
+	private final ItemLooks.Set looks = new ItemLooks.Set();
+	//what an icon shows: the look of the very Glowing it was given
+	private final ItemLooks.Set iconLooks = new ItemLooks.Set();
+	private float lookPhase;
+	//whether a look tints it now; the tint worked out (rm..ba, the backlight's colour, the second look's)
+	private boolean profiled;
+	private final float[] tint = new float[13];
+	private float backlight;
+	private int backColor;
+	//how far a look's item twitches off its place now, whole px
+	private final float[] twitch = new float[2];
+	//a slot's or the info window's motes (made once it first shows a look), whether its slot shows
+	//them now and whether it is served first from their pool
+	private ItemAura aura;
+	private boolean auraOn = true, auraFirst;
+	//a heap's motes, backlight, light and first sight, in the light layer; the last item it showed
+	//the hero as itself (in a slot, the info window, a throw), whose landing is then no discovery
+	private HeapLook heapLook;
+	private Item knownItem;
+	//a flight's trail: wanted from where to where, made on the render thread, which flight it is;
+	//the item's alpha inside a wall
+	private EnchantTrail trail;
+	private boolean trailWanted;
+	private float flyFx, flyFy, flyTx, flyTy;
+	private int flights;
+	private float phased = 1f;
 	
 	public ItemSprite() {
 		this( ItemSpriteSheet.SOMETHING, null );
@@ -106,6 +153,7 @@ public class ItemSprite extends MovieClip {
 	
 	public void link( Heap heap ) {
 		this.heap = heap;
+		mode = Mode.HEAP;
 		view(heap);
 		renderShadow = true;
 		visible = heap.seen;
@@ -121,6 +169,8 @@ public class ItemSprite extends MovieClip {
 		dropInterval = 0;
 		
 		heap = null;
+		mode = Mode.ICON;
+		phased = 1f;
 		if (emitter != null) {
 			emitter.killAndErase();
 			emitter = null;
@@ -200,7 +250,13 @@ public class ItemSprite extends MovieClip {
 	}
 
 	public ItemSprite view( Item item ){
-		view(item.image(), item.glowing());
+		Glowing g = item.glowing();
+		show(item.image(), g);
+		synchronized (this) {
+			this.item = item;
+			ItemLooks.into( item, g, looks );
+			lookPhase = ItemLooks.phase( item );
+		}
 		Emitter emitter = item.emitter();
 		if (emitter != null && parent != null) {
 			emitter.pos( this );
@@ -240,11 +296,120 @@ public class ItemSprite extends MovieClip {
 	}
 	
 	public ItemSprite view( int image, Glowing glowing ) {
+		show( image, glowing );
+		synchronized (this) {
+			item = null;
+			looks.clear();
+		}
+		return this;
+	}
+
+	private void show( int image, Glowing glowing ) {
 		if (this.emitter != null) this.emitter.killAndErase();
 		emitter = null;
 		frame( image );
 		glow( glowing );
+	}
+
+	/** Where it is drawn (ICON unless told): see Mode. */
+	public synchronized ItemSprite mode( Mode mode ){
+		this.mode = mode;
 		return this;
+	}
+
+	public Mode mode(){
+		return mode;
+	}
+
+	/** The item it views, null for a bare image. */
+	public Item item(){
+		return item;
+	}
+
+	/** What it shows of its magic as it is drawn now (the icon's look in ICON). Render thread. */
+	public ItemLooks.Set looks(){
+		return mode == Mode.ICON ? iconLooks : looks;
+	}
+
+	/** Its own clock: the time, its item's phase on. */
+	public float lookTime(){
+		return Game.timeTotal + lookPhase;
+	}
+
+	/** Its slot's say over its motes, each frame before it updates (ItemSlot): whether they show
+	 *  (the slot visible and active) and whether they are served first (equipped, quickslotted,
+	 *  selected). An info window's show and are served first unless told. */
+	public void auraGate( boolean on, boolean first ){
+		auraOn = on;
+		auraFirst = first;
+	}
+
+	/** Its motes in a slot or the info window, null until it first shows a look there. */
+	public ItemAura aura(){
+		return aura;
+	}
+
+	/** A flight starting from (fx, fy) to (tx, ty), world px (MissileSprite.reset, any thread):
+	 *  FLIGHT mode, and its trail made as it next updates. */
+	public synchronized void flight( float fx, float fy, float tx, float ty ){
+		mode = Mode.FLIGHT;
+		flyFx = fx;
+		flyFy = fy;
+		flyTx = tx;
+		flyTy = ty;
+		flights++;
+		trailWanted = true;
+	}
+
+	/** The flight landed (MissileSprite.onComplete): its trail ends with it. */
+	public synchronized void endFlight(){
+		trailWanted = false;
+		if (trail != null) trail.end();
+		trail = null;
+		phased = 1f;
+	}
+
+	/** How many flights it has flown (a trail knows its own by it). */
+	public int flights(){
+		return flights;
+	}
+
+	/** Its alpha's share while it passes through a wall (EnchantTrail), 1 otherwise. */
+	public void phased( float share ){
+		phased = share;
+	}
+
+	public float phased(){
+		return phased;
+	}
+
+	/** Its flight's trail, null for none (tests). */
+	public EnchantTrail trail(){
+		return trail;
+	}
+
+	/** Whether it is still falling from a drop (it lands, then sounds). */
+	public boolean falling(){
+		return dropInterval > 0;
+	}
+
+	/** A heap's look in the world, null for none (tests). */
+	public HeapLook heapLook(){
+		return heapLook;
+	}
+
+	/** The frame it shows now, not a copy: read it, never change it. */
+	public RectF frameRect(){
+		return frame;
+	}
+
+	/** The backlight's level (ItemLooks.TROUGH..PEAK) and colour as its looks set them this frame. */
+	public float backlight(){
+		return backlight;
+	}
+
+	public int backColor(){
+		return backColor;
 	}
 
 	public void frame( int image ){
@@ -259,6 +424,13 @@ public class ItemSprite extends MovieClip {
 	
 	public synchronized void glow( Glowing glowing ){
 		this.glowing = glowing;
+		iconLooks.clear();
+		EnchantLook l = EnchantLooks.forGlowing( glowing );
+		if (l != null){
+			iconLooks.a = l;
+			iconLooks.level = 0;
+			iconLooks.periodA = glowing.period;
+		}
 		if (glowing == null) resetColor();
 	}
 
@@ -285,9 +457,39 @@ public class ItemSprite extends MovieClip {
 	}
 
 	@Override
+	public void destroy() {
+		super.destroy();
+		//its motes' quads lie outside the scene graph: their GPU buffers go with it
+		if (aura != null) aura.destroy();
+		aura = null;
+	}
+
+	//whether it and every group it lies in are shown (a closed bag's slots are not)
+	private boolean shownUp(){
+		for (com.watabou.noosa.Gizmo g = this; g != null; g = g.parent){
+			if (!g.visible || !g.exists) return false;
+		}
+		return true;
+	}
+
+	private boolean auraShown(){
+		return aura != null && (mode == Mode.SLOT || mode == Mode.PANEL);
+	}
+
+	@Override
 	public void draw() {
 		if (texture == null || (!dirty && buffer == null))
 			return;
+
+		boolean motes = auraShown();
+		if (motes) aura.drawBack( this );
+
+		//a look's twitch (Horror's shiver, Elastic's bob): drawn off its place this frame; faint
+		//inside a wall
+		float tx = twitch[0], ty = twitch[1], a0 = am;
+		x += tx;
+		y += ty;
+		am *= phased;
 
 		if (renderShadow) {
 			if (dirty) {
@@ -318,6 +520,11 @@ public class ItemSprite extends MovieClip {
 
 		super.draw();
 
+		x -= tx;
+		y -= ty;
+		am = a0;
+
+		if (motes) aura.drawFront( this );
 	}
 
 	@Override
@@ -365,7 +572,52 @@ public class ItemSprite extends MovieClip {
 			}
 		}
 
-		if (visible && glowing != null) {
+		ItemLooks.Set shown = looks();
+		if (visible && shown.any()) {
+			//an enchantment's, a glyph's or a curse's look: its profile, two of them crossfading
+			float t = lookTime();
+			backlight = ItemLooks.tint( shown, t, tint );
+			backColor = (int)tint[6];
+			rm = tint[0];
+			gm = tint[1];
+			bm = tint[2];
+			ra = tint[3];
+			ga = tint[4];
+			ba = tint[5];
+			profiled = true;
+			ItemLooks.twitch( shown.b != null && ItemLooks.crossB( t ) > 0.5f ? shown.b : shown.a, t, twitch );
+		} else if (profiled) {
+			profiled = false;
+			twitch[0] = twitch[1] = 0;
+			if (glowing == null) resetColor();
+		}
+
+		//an enchanted item seen as itself is no discovery where it lands
+		if (mode != Mode.ICON && mode != Mode.HEAP && item != knownItem && looks.a != null){
+			knownItem = item;
+			HeapLook.known( item );
+		}
+
+		//a slot's or the info window's motes
+		if (mode == Mode.SLOT || mode == Mode.PANEL){
+			//a plain item's rarity line hint shows there too (ItemAura.hintOf)
+			if (aura == null && (looks.any() || (item != null && ItemAura.hintOf( item ) >= 0
+					&& ItemAura.hinted( item, mode == Mode.PANEL )))) aura = new ItemAura( mode == Mode.PANEL );
+			if (aura != null) aura.update( this, auraOn && shownUp(), auraFirst || mode == Mode.PANEL );
+		} else if (aura != null){
+			aura.update( this, false, false );
+		}
+		//a flight's trail (it steers itself from here on)
+		if (mode == Mode.FLIGHT && trailWanted){
+			trailWanted = false;
+			trail = EnchantTrail.attach( this, flyFx, flyFy, flyTx, flyTy );
+		}
+		//a heap's look in the world (it steers itself from here on)
+		if (mode == Mode.HEAP && looks.a != null && (heapLook == null || !heapLook.owns( this ))){
+			heapLook = HeapLook.attach( this );
+		}
+
+		if (visible && glowing != null && !profiled) {
 			if (glowUp && (phase += Game.elapsed) > glowing.period) {
 				
 				glowUp = false;

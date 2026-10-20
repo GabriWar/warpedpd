@@ -76,6 +76,10 @@ import java.util.function.Supplier;
  * It is put together without the GPU (it may be on the actor thread) and its constructors draw
  * the game's Random as they always did; once it runs (render thread) every random number it
  * draws is the effects' own (FxRandom). visual() makes one that never draws the game's.
+ *
+ * A skill's own lightning is tinted (tint, STORM, ARCANE): its cores, halos, glows, pools and
+ * afterglow in the skill's colours, never the Shocking enchantment's or a wand's blue-white. A
+ * tint changes colours only: its draws, its shape and its time are the same.
  */
 public class Lightning extends Group {
 
@@ -119,6 +123,13 @@ public class Lightning extends Group {
 	static final int JOINT_POOLS = 4, POOLS = 6, JOINT_POOLS_ALL = 8;
 	/** How bright its crackle where it lands. */
 	static final float CRACKLE_LEVEL = 0.9f;
+	/** A skill's tints (tint(int[])): its cores at the strike and at the end, its halos at the
+	 *  strike and at the end, its pools. STORM the game's own white-blue (Spark, Blink, Storm Call;
+	 *  SkillPalette.LIGHTNING), ARCANE the arcane blue-violet (Arcane Echo, Sorcerer; SkillPalette.ARCANE). */
+	public static final int[] STORM = { 0xFFFFFF, 0xE4F0FF, 0x7FA6FF, 0x6A90FF, 0xA8C8FF };
+	public static final int[] ARCANE = { 0xFFFFFF, 0xE0D4FF, 0x9070F0, 0x5A38C0, 0xB8A0FF };
+	/** A tint's glow where it strikes and where it sets off: its hot halo this far toward white. */
+	static final float BLOOM_WHITE = 0.6f, SOURCE_WHITE = 0.45f;
 
 	//the weather's layer of the game's scene, none off it. A test may hand its own
 	static Supplier<WeatherOverlay> layer = GameScene::getWeatherOverlay;
@@ -160,6 +171,10 @@ public class Lightning extends Group {
 	private FxLight[] pools;
 	private float[] poolShare, poolX, poolY;
 	private int poolCount;
+	//its colours: the storm's blue-white (the static ones) unless tinted
+	private int coreHot = CORE_HOT, coreDip = CORE_DIP, coreCool = CORE_COOL, haloHot = HALO_HOT, haloCool = HALO_COOL,
+			poolColor = POOL_COLOR;
+	private boolean tinted;
 
 	public Lightning(int from, int to, Callback callback){
 		this(Arrays.asList(new Arc(from, to)), callback);
@@ -217,6 +232,65 @@ public class Lightning extends Group {
 
 	public boolean isMajor(){
 		return major;
+	}
+
+	/**
+	 * In a skill's own colours: its cores white-hot `coreHot` at the strike and the re-strike, at
+	 * `coreCool` in the dip and cooling to it at the end, its halos from `haloHot` to `haloCool`,
+	 * its pools on the ground `pool`; its glows where it strikes and sets off its hot halo toward
+	 * white, its afterglow its cool halo. Colours only: the same draws, shape and time. Before it
+	 * is first drawn; any thread.
+	 */
+	public Lightning tint( int coreHot, int coreCool, int haloHot, int haloCool, int pool ){
+		tinted = true;
+		this.coreHot = coreHot;
+		this.coreDip = coreCool;
+		this.coreCool = coreCool;
+		this.haloHot = haloHot;
+		this.haloCool = haloCool;
+		this.poolColor = pool;
+		int bloom = Ramp.lerp( haloHot, 0xFFFFFF, BLOOM_WHITE ), source = Ramp.lerp( haloHot, 0xFFFFFF, SOURCE_WHITE );
+		for (Arc arc : arcs) {
+			arc.bloomColor = bloom;
+			arc.sourceColor = source;
+			arc.tinted = true;
+			arc.tint( coreHot, haloHot );
+		}
+		return this;
+	}
+
+	/** The stroke's painted rim (effects.png's lightning frame: white in its middle, 4488FF at
+	 *  0.6 on its edges), which a plain multiply (hardlight) cannot turn from blue. */
+	static final float RIM_R = 0x44 / 255f, RIM_G = 0x88 / 255f, RIM_B = 0xFF / 255f;
+
+	/**
+	 * A stroke lit so its white middle shows `core` and its blue rim `rim`: per channel a multiply
+	 * and an offset (noosa's colour, texel x m + a) through those two texels; a channel the rim
+	 * already has at full keeps the core's multiply. No allocation.
+	 */
+	static void edgeTint( Image img, int core, int rim ){
+		img.rm = edgeM( RIM_R, (core >> 16) & 0xFF, (rim >> 16) & 0xFF );
+		img.gm = edgeM( RIM_G, (core >> 8) & 0xFF, (rim >> 8) & 0xFF );
+		img.bm = edgeM( RIM_B, core & 0xFF, rim & 0xFF );
+		img.ra = ((core >> 16) & 0xFF) / 255f - img.rm;
+		img.ga = ((core >> 8) & 0xFF) / 255f - img.gm;
+		img.ba = (core & 0xFF) / 255f - img.bm;
+	}
+
+	private static float edgeM( float texel, int core, int rim ){
+		float c = core / 255f, e = rim / 255f;
+		if (texel >= 0.999f) return c;
+		return Math.max( 0f, Math.min( c, (c - e) / (1f - texel) ) );
+	}
+
+	/** tint( STORM ) or tint( ARCANE ): { coreHot, coreCool, haloHot, haloCool, pool }. */
+	public Lightning tint( int[] t ){
+		return tint( t[0], t[1], t[2], t[3], t[4] );
+	}
+
+	/** Whether a skill tinted it. */
+	public boolean tinted(){
+		return tinted;
 	}
 
 	/** A new scene: no rich majors alive. */
@@ -285,7 +359,7 @@ public class Lightning extends Group {
 				}
 			}
 			float b = flicker( t ), h = halo( t );
-			int core = coreColor( t ), halo = haloColor( t );
+			int core = coreColor( t, coreHot, coreDip, coreCool ), halo = haloColor( t, haloHot, haloCool );
 			boolean twigs = t < TWIGS_OFF || (again && t >= REFORM_AGAIN && t < REFORM_AGAIN + TWIGS_BACK);
 			for (int i = 0; i < arcs.size(); i++) {
 				Arc arc = arcs.get( i );
@@ -421,15 +495,25 @@ public class Lightning extends Group {
 	/** Its cores' colour `t` seconds in: white at the strike, CORE_DIP at the bottom of the dip
 	 *  (0.08 s), white at the re-strike, cooling to CORE_COOL from COOL_FROM. */
 	static int coreColor( float t ){
-		if (t >= COOL_FROM) return Ramp.lerp( CORE_HOT, CORE_COOL, Math.min( 1f, (t - COOL_FROM) / (DURATION - COOL_FROM) ) );
-		float dip = 1f - Math.abs( t - REFORM ) / 0.04f;
-		return dip > 0 ? Ramp.lerp( CORE_HOT, CORE_DIP, dip ) : CORE_HOT;
+		return coreColor( t, CORE_HOT, CORE_DIP, CORE_COOL );
+	}
+
+	/** The same in a tint's colours. */
+	static int coreColor( float t, int hot, int dip, int cool ){
+		if (t >= COOL_FROM) return Ramp.lerp( hot, cool, Math.min( 1f, (t - COOL_FROM) / (DURATION - COOL_FROM) ) );
+		float d = 1f - Math.abs( t - REFORM ) / 0.04f;
+		return d > 0 ? Ramp.lerp( hot, dip, d ) : hot;
 	}
 
 	/** Its halos' colour `t` seconds in: HALO_HOT, cooling to HALO_COOL from COOL_FROM. */
 	static int haloColor( float t ){
-		if (t < COOL_FROM) return HALO_HOT;
-		return Ramp.lerp( HALO_HOT, HALO_COOL, Math.min( 1f, (t - COOL_FROM) / (DURATION - COOL_FROM) ) );
+		return haloColor( t, HALO_HOT, HALO_COOL );
+	}
+
+	/** The same in a tint's colours. */
+	static int haloColor( float t, int hot, int cool ){
+		if (t < COOL_FROM) return hot;
+		return Ramp.lerp( hot, cool, Math.min( 1f, (t - COOL_FROM) / (DURATION - COOL_FROM) ) );
 	}
 
 	//its first frame, on the render thread: from here its randomness is the effects' own; whether
@@ -494,9 +578,9 @@ public class Lightning extends Group {
 				FxLight p;
 				float share = POOL_LEVEL;
 				if (major) {
-					p = StrikeLights.pool( this, x, gy, arc.storm ? POOL_STORM : POOL_MAJOR, POOL_COLOR, share * h, DURATION, 0.06f );
+					p = StrikeLights.pool( this, x, gy, arc.storm ? POOL_STORM : POOL_MAJOR, poolColor, share * h, DURATION, 0.06f );
 				} else {
-					p = StrikeLights.minor( this, x, gy, POOL_MINOR, POOL_COLOR, share * h, DURATION, 0.06f );
+					p = StrikeLights.minor( this, x, gy, POOL_MINOR, poolColor, share * h, DURATION, 0.06f );
 					if (StrikeLights.relit( this )) share *= StrikeLights.AGAIN;
 				}
 				if (p != null) {
@@ -508,7 +592,7 @@ public class Lightning extends Group {
 				for (int j = 2, n = 0; j < arc.path.length - 1 && n < JOINT_POOLS && joints < JOINT_POOLS_ALL; j += 2, n++) {
 					if (FxLight.live() >= FxBudget.lightCap()) break;
 					PointF at = arc.path[j];
-					FxLight p = StrikeLights.pool( this, at.x, at.y + StrikeGround.GROUND, POOL_JOINT, POOL_COLOR, JOINT_LEVEL * h, DURATION, 0.06f );
+					FxLight p = StrikeLights.pool( this, at.x, at.y + StrikeGround.GROUND, POOL_JOINT, poolColor, JOINT_LEVEL * h, DURATION, 0.06f );
 					if (p == null) break;
 					keep( p, JOINT_LEVEL );
 					joints++;
@@ -544,7 +628,13 @@ public class Lightning extends Group {
 				glow = Afterglow.begin( sky );
 				if (glow == null) return;
 			}
-			if (!arc.afterglow( glow )) return;
+			if (!arc.afterglow( glow )) break;
+		}
+		//a tinted one leaves its own cool halo on the eye
+		if (tinted && glow != null) {
+			for (Gizmo g : glow.membersView()) {
+				if (g instanceof Image) edgeTint( (Image) g, haloCool, haloCool );
+			}
 		}
 	}
 
@@ -694,6 +784,9 @@ public class Lightning extends Group {
 		boolean fx;
 		//a run over the water's faint step
 		boolean faint;
+		//its glows' colours where it strikes and where it sets off (a tint's own); in a skill's colours
+		int bloomColor = BLOOM_COLOR, sourceColor = SOURCE_COLOR;
+		boolean tinted;
 
 		private final float k;
 		private final boolean forked, fitted;
@@ -1057,6 +1150,17 @@ public class Lightning extends Group {
 
 		/** Its cores' and twigs' colour, and its halos'. */
 		void tint( int core, int halo ){
+			if (tinted) {
+				//a skill's colours: its stroke's painted blue rim in the halo's colour too (edgeTint)
+				for (Image c : cores) edgeTint( c, core, halo );
+				if (twigLines != null) {
+					for (Image t : twigLines) edgeTint( t, core, halo );
+				}
+				if (halos != null) {
+					for (Image hl : halos) hl.hardlight( halo );
+				}
+				return;
+			}
 			float r = ((core >> 16) & 0xFF) / 255f, g = ((core >> 8) & 0xFF) / 255f, bl = (core & 0xFF) / 255f;
 			for (Image c : cores) c.hardlight( r, g, bl );
 			if (twigLines != null) {
@@ -1088,12 +1192,12 @@ public class Lightning extends Group {
 		//on its first frame, on the render thread. A glow of the light sheet where it strikes, wider
 		//from FULL px on
 		void bloom(){
-			glow = glowAt( to, k >= 1f ? GLOW_WIDE : GLOW, BLOOM_COLOR );
+			glow = glowAt( to, k >= 1f ? GLOW_WIDE : GLOW, bloomColor );
 		}
 
 		//and a smaller one where it sets off
 		void source(){
-			source = glowAt( from, SOURCE, SOURCE_COLOR );
+			source = glowAt( from, SOURCE, sourceColor );
 		}
 
 		//a painted glow of the light sheet at its own size, on whole pixels, its middle on the point

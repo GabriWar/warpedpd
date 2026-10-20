@@ -28,7 +28,6 @@ import com.watabou.utils.RectF;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
 import xyz.gabriwar.warpedpixeldungeon.effects.WeatherSprites;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
@@ -171,7 +170,8 @@ public class FireflyParticle extends WeatherParticle {
 					run = 9f;
 				}
 			}
-			float wind = ClimateManager.localWindSpeed() * 0.25f;
+			//leaning into the wind the way it blows (under a roof the draught east it always had)
+			float wind = Fx.driftX() * 0.25f;
 			speed.set((float) Math.cos(heading) * run + wind, (float) Math.sin(heading) * run * 0.6f + (float) Math.sin(bobPhase) * 2.5f);
 		}
 

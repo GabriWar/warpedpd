@@ -26,6 +26,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows;
 import com.watabou.utils.Random;
 
 public class Sacrificial extends Weapon.Enchantment {
@@ -41,6 +44,8 @@ public class Sacrificial extends Weapon.Enchantment {
 			float bleedAmt = (float)(Math.pow(missingPercent, 2) * attacker.HT)/8f;
 			if (Random.Float() < bleedAmt) {
 				Buff.affect(attacker, Bleeding.class).set(Math.max(1, bleedAmt), getClass());
+				//on the wielder (no one else in it): his own blood drawn into the blade
+				EnchantFx.proc( EnchantLooks.of( getClass() ), null, attacker, EnchantFx.strength( level(), Math.max( 1, bleedAmt ), attacker.HT, 1f ), level(), EnchantFx.CURSE, ShadowRows.SACRIFICIAL );
 			}
 		}
 

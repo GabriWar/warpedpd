@@ -39,10 +39,14 @@ import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRing;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Ramp;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLook;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantState;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.TypeFx;
 import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import com.badlogic.gdx.utils.IntMap;
+import com.watabou.noosa.Game;
 import com.watabou.noosa.particles.Emitter;
 
 /**
@@ -71,6 +75,18 @@ import com.watabou.noosa.particles.Emitter;
  * recoils a pixel (two, heavy) away from the blow for 0.08 s, on the screen only. A blow that does
  * nothing (blocked) strikes metal sparks and a glint of a shield's arc on the side it came from;
  * a miss whooshes past the defender with a puff at its feet. At most a star and 8 quads a blow.
+ *
+ * An enchantment's colours (effects/fx/enchant): while a proc's stamp holds on the defender
+ * (CharSprite.blowLook, till blowUntil) the star goes white to the element's light, the bloom is
+ * half white, half that light, the crescent takes the element's ramp and a stab's blade and the
+ * sparks the element (EnchantLook.strike: a curse's are VOID's, its bloom VOID's dim violet, no
+ * white: the hex eats the light); a blow of an enchanted weapon that procs nothing (EnchantState.swingLook,
+ * left by EnchantFx.swing) draws its star, crescent and blade EnchantLook.TINT of the way toward
+ * the look. Only colours: not a quad more, nothing of either random.
+ *
+ * Inside a blow (effects/fx/combat/Blow) the star is the blow's piece (StarPiece): it leads a
+ * plain blow and is drawn whole with any other lead, on the blow's frame, as it always was (a
+ * crit's or a kill's lead lands it STRONG).
  */
 public final class HitFx {
 
@@ -88,8 +104,8 @@ public final class HitFx {
 	/** The light a landed blow throws: its glow (heavy), its level, held and fading, s. */
 	static final int BLOOM = 11, BLOOM_HEAVY = 15;
 	static final float BLOOM_LEVEL = 0.7f, BLOOM_HOLD = 0.03f, BLOOM_FADE = 0.12f, BLOOM_FADE_HEAVY = 0.18f;
-	/** How much of the blood the bloom takes (white the rest). */
-	static final float BLOOM_BLOOD = 0.35f;
+	/** How much of the blood the bloom takes (white the rest); of a stamp's light. */
+	static final float BLOOM_BLOOD = 0.35f, STAMP_BLOOM = 0.5f;
 	/** The most quads a blow makes beside its star. */
 	public static final int MOST = 8;
 
@@ -176,7 +192,18 @@ public final class HitFx {
 			Fx.post( () -> hit( d, fromX, fromY, damage, style, heroInvolved ) );
 			return;
 		}
-		if (!d.visible || d.parent == null) return;
+		draw( d, fromX, fromY, damage, style, heroInvolved, true, false );
+	}
+
+	/**
+	 * The blow's star, whole: its bloom, its style's piece and sparks; its shake only when
+	 * `mayShake` (and its own rule); landing STRONG whatever its weight when `forceStrong` (a crit's
+	 * or a finisher's lead: the bigger star and light, the weapon's own piece still drawn). Render
+	 * thread.
+	 */
+	public static void draw( CharSprite d, float fromX, float fromY, int damage, int style, boolean heroInvolved,
+			boolean mayShake, boolean forceStrong ){
+		if (d == null || !d.visible || d.parent == null) return;
 		float cx = d.x + d.width() / 2f, cy = d.y + d.height() / 2f;
 		float dx = cx - fromX, dy = cy - fromY;
 		float len = (float)Math.sqrt( dx * dx + dy * dy );
@@ -193,13 +220,25 @@ public final class HitFx {
 		}
 		int ht = d.ch != null ? d.ch.HT : 0;
 		boolean heavy = heavy( damage, ht );
-		boolean strong = style == STRONG || heavy;
+		boolean strong = style == STRONG || heavy || forceStrong;
 		float sx = cx - dx * STAR_OFF, sy = cy - dy * STAR_OFF;
-		star( sx, sy, d.blood(), strong );
-		bloom( sx, sy, d.blood(), strong );
+		//an enchantment's stamp on the blow, else the tint of an enchanted weapon's plain blow
+		float now = Game.timeTotal;
+		EnchantLook stamp = now < d.blowUntil ? d.blowLook : null, tint = null;
+		if (stamp == null){
+			EnchantState st = EnchantState.get( d );
+			if (st != null && now < st.swingUntil) tint = st.swingLook;
+		}
+		int blood = tint != null ? Ramp.lerp( d.blood() & 0xFFFFFF, tint.strike.light, EnchantLook.TINT ) : d.blood();
+		star( sx, sy, stamp != null ? stamp.star : starRamp( blood ), strong );
+		bloom( sx, sy, stamp == null ? bloomColor( blood )
+				: stamp.curse ? stamp.strike.light : Ramp.lerp( 0xFFFFFF, stamp.strike.light, STAMP_BLOOM ), strong );
+		Ramp steel = stamp != null ? stamp.strike.ramp : tint != null ? tint.tint : Element.STEEL.ramp;
+		Element sparks = stamp != null ? stamp.strike : Element.STEEL;
+		int blade = stamp != null ? stamp.strike.light : tint != null ? Ramp.lerp( 0xFFFFFF, tint.strike.light, EnchantLook.TINT ) : 0xFFFFFF;
 		switch (style){
-			case SLASH:  slash( d, cx, cy, sx, sy, dx, dy, strong ); break;
-			case STAB:   stab( sx, sy, dx, dy ); break;
+			case SLASH:  slash( d, cx, cy, sx, sy, dx, dy, strong, steel, sparks ); break;
+			case STAB:   stab( sx, sy, dx, dy, blade, sparks ); break;
 			case CRUSH:  crush( d, cx, sx, sy ); break;
 			case ARROW:  splinters( d, sx, sy, dx, dy ); break;
 			case MAGIC:  sparkles( sx, sy ); break;
@@ -207,9 +246,61 @@ public final class HitFx {
 			case STRONG: break;
 			default:     streaks( sx, sy, dx, dy ); break;
 		}
-		if (shakes( style, heavy, heroInvolved, d.ch != null && d.ch == Dungeon.hero )) Fx.shake( 1f, 0.1f );
+		if (mayShake && shakes( style, heavy, heroInvolved, d.ch != null && d.ch == Dungeon.hero )) Fx.shake( 1f, 0.1f );
 		int m = strong ? 2 : 1;
 		d.nudge( Math.round( dx * m ), Math.round( dy * m ), RECOIL_FOR );
+	}
+
+	/** A kill with no proc to finish it (a finisher lead): a puff of the body's blood colour and a
+	 *  ring at its feet. Render thread. */
+	public static void killPuff( CharSprite d ){
+		if (d == null || !d.visible || d.parent == null) return;
+		float cx = d.x + d.width() / 2f, feet = d.y + d.height() - 2f;
+		FxEmitter air = Fx.air();
+		if (air != null && FxBudget.keep( FxBudget.P1 )){
+			CombatFactories.make( air, cx, feet - 3f ).look( FxFrames.PUFF_S[FxRandom.Int( FxFrames.PUFF_S.length )] )
+					.ramp( new Ramp( d.blood() & 0xFFFFFF, Ramp.lerp( d.blood() & 0xFFFFFF, 0, 0.5f ) ), false ).smooth()
+					.life( 0.4f ).alpha( 0.6f, 0, 0.25f ).vel( 0, -6f ).drag( 3f ).priority( FxBudget.P1 );
+		}
+		FxRing.ground( GameScene.layer( GameScene.Layer.FLOOR ), cx, feet, 9, 17, DUST_FOR, d.blood() & 0xFFFFFF, 0.5f, false );
+	}
+
+	/**
+	 * The hit star as a blow's piece (CharSprite.hitFx inside an open blow): it leads a plain blow,
+	 * and draws whole with the lead of any other (a proc's stamped colours, a crit's STRONG style, a
+	 * finisher's STRONG style and kill puff). A host-only picture: a guest draws its star from the
+	 * blood burst it is sent.
+	 */
+	public static final class StarPiece extends Piece {
+
+		final CharSprite ds;
+		final float fromX, fromY;
+		final int damage, style;
+		final boolean hero;
+		/** STRONG style (a crit or a finisher leads); a kill puff (a finisher with no proc). */
+		public boolean strong, puff;
+
+		public StarPiece( Char on, float fromX, float fromY, int damage, int style, boolean hero ){
+			super( -1, Blow.PLAIN, Blow.TARGET, on );
+			this.ds = on.sprite;
+			this.fromX = fromX;
+			this.fromY = fromY;
+			this.damage = damage;
+			this.style = style;
+			this.hero = hero;
+		}
+
+		@Override
+		public void lead( boolean mayShake ){
+			draw( ds, fromX, fromY, damage, style, hero, mayShake, strong );
+			if (puff) killPuff( ds );
+		}
+
+		//the presenter draws the star with the lead; on a beat it would be the same whole star
+		@Override
+		public void accent( float x, float y ){
+			lead( false );
+		}
 	}
 
 	/** A blow that missed `d`: a whoosh past it and a puff at its feet. Any thread. */
@@ -251,15 +342,15 @@ public final class HitFx {
 
 	// ------------------------------------------------------------------ the pieces
 
-	//the hit star: two frames, white to the blood, the brightest on the blow's frame
-	private static void star( float x, float y, int blood, boolean strong ){
+	//the hit star: two frames, white to the blood (or a stamp's light), the brightest on the blow's frame
+	private static void star( float x, float y, Ramp ramp, boolean strong ){
 		FxEmitter glow = Fx.glowAir();
 		if (glow == null) return;
 		FxBudget.keep( FxBudget.P0 );
 		FxParticle p = CombatFactories.make( glow, x, y );
 		if (strong) p.look( FxFrames.STAR4_7 );
 		else p.look( FxFrames.IMPACT_STAR, 0 );
-		p.ramp( starRamp( blood ), true ).life( strong ? STAR_FOR * 1.25f : STAR_FOR ).alpha( 1f, 0, STAR_FOR * 0.4f )
+		p.ramp( ramp, true ).life( strong ? STAR_FOR * 1.25f : STAR_FOR ).alpha( 1f, 0, STAR_FOR * 0.4f )
 				.snap().priority( FxBudget.P0 );
 	}
 
@@ -270,30 +361,31 @@ public final class HitFx {
 
 	//the light the blow throws: a glow at the star, gone in a few frames (shown only where the hero
 	//sees it, fuller at night: the kit's transient light)
-	private static void bloom( float x, float y, int blood, boolean strong ){
+	private static void bloom( float x, float y, int color, boolean strong ){
 		if (FxLight.live() >= FxBudget.lightCap()) return;
-		FxLight.glow( Math.round( x ), Math.round( y ), strong ? BLOOM_HEAVY : BLOOM, bloomColor( blood ), BLOOM_LEVEL )
+		FxLight.glow( Math.round( x ), Math.round( y ), strong ? BLOOM_HEAVY : BLOOM, color, BLOOM_LEVEL )
 				.life( 0f, BLOOM_HOLD, strong ? BLOOM_FADE_HEAVY : BLOOM_FADE );
 	}
 
-	private static void slash( CharSprite d, float cx, float cy, float sx, float sy, float dx, float dy, boolean strong ){
+	private static void slash( CharSprite d, float cx, float cy, float sx, float sy, float dx, float dy, boolean strong,
+			Ramp steel, Element sparks ){
 		FxEmitter glow = Fx.glowAir();
 		if (glow != null && FxBudget.keep( FxBudget.P1 )){
 			int[][] sweep = strong ? (d.flipHorizontal ? WIDE_CCW : WIDE_CW)[octant( dx, dy )]
 					: (d.flipHorizontal ? SWEEP_CCW : SWEEP_CW)[octant( dx, dy )];
-			CombatFactories.make( glow, cx, cy ).look( sweep, 0 ).ramp( Element.STEEL.ramp, true )
+			CombatFactories.make( glow, cx, cy ).look( sweep, 0 ).ramp( steel, true )
 					.life( SLASH_FOR ).alpha( 0.9f, 0, SLASH_FOR * 0.5f ).snap().priority( FxBudget.P1 );
 		}
-		sparks( sx, sy, Element.STEEL, 2 );
+		sparks( sx, sy, sparks, 2 );
 	}
 
-	private static void stab( float sx, float sy, float dx, float dy ){
+	private static void stab( float sx, float sy, float dx, float dy, int blade, Element sparks ){
 		FxEmitter glow = Fx.glowAir();
 		if (glow != null && FxBudget.keep( FxBudget.P1 )){
-			CombatFactories.make( glow, sx, sy ).look( FxFrames.BLADE_5 ).paint( 0xFFFFFF ).light( true ).orient()
+			CombatFactories.make( glow, sx, sy ).look( FxFrames.BLADE_5 ).paint( blade ).light( true ).orient()
 					.vel( dx * 40f, dy * 40f ).drag( 10f ).life( STAB_FOR ).alpha( 0.9f, 0, STAB_FOR * 0.5f ).priority( FxBudget.P1 );
 		}
-		sparks( sx, sy, Element.STEEL, 2 );
+		sparks( sx, sy, sparks, 2 );
 	}
 
 	private static void crush( CharSprite d, float cx, float sx, float sy ){
@@ -306,15 +398,13 @@ public final class HitFx {
 		}
 	}
 
-	private static final int WOOD = 0xB89C6C, WOOD_DARK = 0x8A6B4A;
-
 	private static void splinters( CharSprite d, float sx, float sy, float dx, float dy ){
 		FxEmitter air = Fx.air();
 		if (air == null) return;
 		int n = FxBudget.allow( FxRandom.IntRange( 2, 3 ), FxBudget.P2 );
 		float back = (float)Math.atan2( -dy, -dx );
 		for (int i = 0; i < n; i++){
-			CombatFactories.make( air, sx, sy ).look( FxFrames.SPARK_2 ).paint( FxRandom.chance( 0.5f ) ? WOOD : WOOD_DARK ).orient()
+			CombatFactories.make( air, sx, sy ).look( FxFrames.SPARK_2 ).paint( FxRandom.chance( 0.5f ) ? TypeFx.WOOD : TypeFx.WOOD_DARK ).orient()
 					.polar( back + FxRandom.Float( -0.6f, 0.6f ) - 0.4f, FxRandom.Float( 30f, 60f ) ).gravity( 160f )
 					.ground( d.y + d.height() - FxRandom.Float( 1f, 3f ), FxParticle.BOUNCE, 0.3f )
 					.life( FxRandom.Float( 0.4f, 0.6f ) ).alpha( 1f, 0, 0.2f ).priority( FxBudget.P2 );

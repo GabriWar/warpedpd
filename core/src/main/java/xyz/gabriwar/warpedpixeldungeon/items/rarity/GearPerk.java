@@ -50,7 +50,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.rings.Ring;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.Trinket;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.Wand;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import com.watabou.utils.Random;
 
 import java.util.Arrays;
@@ -267,7 +266,10 @@ public enum GearPerk {
 			GearPerk p = of( i );
 			if (q != null && p != null) total += p.bonus( i, q, hero, stat );
 			//the rolled lines of rings, trinkets and artifacts (unknown ones work all the same)
-			if (q != null) for (RarityLine l : q.lines) if (l.feeds( stat )) total += q.value( l );
+			//(a FLEET line on armor is capped on its own, so the summed speed stays as uncapped as before)
+			if (q != null) for (RarityLine l : q.lines){
+				if (l.feeds( stat )) total += l == RarityLine.FLEET ? Math.min( RarityLine.FLEET_CAP, q.value( l ) ) : q.value( l );
+			}
 		}
 		return total;
 	}
@@ -414,6 +416,7 @@ public enum GearPerk {
 		if (aq != null && aq.bankedBlock > 0 && of( armor ) == BULWARK){
 			banked = aq.bankedBlock;
 			aq.bankedBlock = 0;
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.TypeFx.bulwark( hero, enemy );
 		}
 		//an alpha Assault keeps count of the turns you press the attack
 		for (Item i : new Item[]{ hero.belongings.artifact(), hero.belongings.misc() }){
@@ -423,7 +426,8 @@ public enum GearPerk {
 			q.assaultStacks = Math.min( 3, q.assaultStacks + 1 );
 			q.assaultUntil = Actor.now() + 2f;
 		}
-		return Math.round( damage * mult ) + banked;
+		int geared = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mulRound( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.GEAR, damage, mult, Math.round( damage * mult ) );
+		return xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.to( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ADD, BULWARK, geared, geared + banked );
 	}
 
 	/** an alpha Insight promises the blow after a miss */
@@ -465,7 +469,7 @@ public enum GearPerk {
 				break;
 			}
 		}
-		if (ch.sprite != null) ch.sprite.showStatus( CharSprite.POSITIVE, Messages.get( GearPerk.class, "resisted" ) );
+		xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.resisted( ch, buff );
 		return true;
 	}
 

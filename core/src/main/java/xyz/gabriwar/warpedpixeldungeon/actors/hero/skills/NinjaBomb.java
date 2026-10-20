@@ -32,7 +32,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillSequence;
 
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
-import xyz.gabriwar.warpedpixeldungeon.items.bombs.Bomb;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -51,7 +50,6 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SmokeParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 import java.util.ArrayList;
 
@@ -95,11 +93,12 @@ public class NinjaBomb extends ActiveSkill2 {
 			skill.castTextYell();
 			Dungeon.hero.heroSkills.lastUsed = skill;
 			Invisibility.dispel();
-			//the bomb is seen flying, and the gas goes off where it lands
+			//a pellet of ink is seen lobbed (never a bomb: no bomb goes off), and the smoke pours out
+			//where it lands
 			curUser.busy();
 			curUser.sprite.zap( cell );
 			SpatialSound.play( Assets.Sounds.MISS, curUser, 1f, 1.3f );
-			SkillFX.streak( curUser.sprite, cell, new Bomb(), () -> {
+			SkillFX.streak( curUser.sprite, cell, SkillFX.Streak.PELLET, () -> {
 				SpatialSound.play( Assets.Sounds.PUFF, cell, 1f, 1.0f );
                 for(int c:SkillInteractions.area(cell,skill.level)) GameScene.add(
                         xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob.seed(c,4+skill.level,
@@ -107,7 +106,7 @@ public class NinjaBomb extends ActiveSkill2 {
                 //at mastery the smoke leaves a clone behind to draw enemies off
                 if(skill.level>=MAX_LEVEL) for(int c:SkillInteractions.area(cell,1)) if(Dungeon.level.passable[c]&&xyz.gabriwar.warpedpixeldungeon.actors.Actor.findChar(c)==null){
                     xyz.gabriwar.warpedpixeldungeon.actors.mobs.SkillDecoy decoy=new xyz.gabriwar.warpedpixeldungeon.actors.mobs.SkillDecoy();
-                    decoy.pos=c;decoy.rank=skill.level;decoy.left=2+skill.level;decoy.blinding=false;GameScene.add(decoy);decoy.sprite.alpha(.55f);
+                    decoy.pos=c;decoy.rank=skill.level;decoy.left=2+skill.level;decoy.blinding=false;GameScene.add(decoy);
                     SkillSpectacleFX.show(SkillSpectacleFX.SHADOW,c);break;
                 }
 				//the plume: a thick column that keeps pouring for a second and drifts, and the smoke
@@ -135,7 +134,7 @@ public class NinjaBomb extends ActiveSkill2 {
 						final Char sleeper = enemy;
 						t.at( 0.12f + 0.09f * Dungeon.level.distance( cell, c ), () -> {
 							if (sleeper.sprite != null && sleeper.isAlive() && Dungeon.level.heroFOV[sleeper.pos]){
-								sleeper.sprite.showStatus( CharSprite.NEUTRAL, "Zzz" );
+								xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.buffIcon( sleeper, sleeper.buff( MagicalSleep.class ) );
 							}
 						} );
 					}

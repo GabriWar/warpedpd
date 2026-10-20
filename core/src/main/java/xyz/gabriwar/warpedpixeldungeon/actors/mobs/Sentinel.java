@@ -72,6 +72,10 @@ public class Sentinel extends Mob {
 		weapon.identify();
 	}
 
+	public MeleeWeapon weapon() {
+		return weapon;
+	}
+
 	@Override
 	public int damageRoll() {
 		if (weapon != null) {

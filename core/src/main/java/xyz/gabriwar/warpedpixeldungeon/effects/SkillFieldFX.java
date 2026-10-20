@@ -12,15 +12,18 @@ import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.FxPic;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.Sanctum;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 
 /**
  * A skill's field on the floor, under everyone: its painted mark on every cell, breathing gently,
  * and the life of its kind rising off it, at most one particle a cell every EVERY s and CAP for
  * every field at once: embers and a pool of heat (a fragment field's first POOLS cells), glints
- * and mist (ice), an arrow now and then twitching a pixel (arrows), the glyph turning a quarter
- * at a time and motes (sanctuary), streaks of wind, soul wisps, slow smoke, a trickle of dust off
- * a crack. Placed at world positions once (the floor slides with the overworld's window); it
+ * and mist (ice), a spirit shaft of light now and then twitching a pixel (arrows), a seal of
+ * consecrated light, still, its runes read in turn by a slow light, and motes (sanctuary: Sanctum,
+ * opening when freshly consecrated and fading when let go of), streaks of wind, the soul well of light
+ * turning and its motes (soul), ink curling off an ink pool (smoke), a trickle of dust off a crack. Placed at world positions once (the floor slides with the overworld's window); it
  * reads the cell under each mark when it needs one.
  */
 public class SkillFieldFX extends Group {
@@ -32,6 +35,10 @@ public class SkillFieldFX extends Group {
     public static final int POOLS=8;
     /** The marks breathe about this alpha, this far. */
     public static final float ALPHA=.7f, BREATH=.08f;
+    /** The spirit shafts' light, the soul well's, the ink pool's rim; the well turns a half (its
+     *  2:1 glyph keeping to the ground) this often, s. */
+    public static final int ARROWS_LIT=xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette.NATURE_LIGHT, SOUL_LIT=xyz.gabriwar.warpedpixeldungeon.effects.skillfx.DreadFX.SOUL[2], INK_LIT=0x6B4F94;
+    public static final float SOUL_TURN=.6f;
 
     //when each of the CAP particles any field threw dies (game seconds): a free one has passed
     private static final float[] DIES=new float[CAP];
@@ -40,18 +47,38 @@ public class SkillFieldFX extends Group {
     private final FxPic[] marks;
     private final float[] next;
     private final FxLight[] heat;
-    private float time;
+    //a sanctuary's seal (null for the other kinds); its fade left once let go of (-1: none)
+    private final Sanctum sanctum;
+    private float time,fadeLeft=-1;
 
     public SkillFieldFX(SkillField field){
         this.field=field;
         int n=field.cells.length;
         marks=new FxPic[n];
         next=new float[n];
+        sanctum=field.kind==SkillField.SANCTUARY?new Sanctum(field.cells,field.origin,field.age==0):null;
+        if(sanctum!=null){
+            //the seal's cut a cell (none past its reach), its runes over it
+            for(int i=0;i<n;i++){
+                marks[i]=sanctum.cut(i);
+                if(marks[i]!=null)add(marks[i]);
+                next[i]=FxRandom.Float(EVERY);
+            }
+            for(FxPic r:sanctum.runes())add(r);
+            heat=null;
+            return;
+        }
         for(int i=0;i<n;i++){
             FxPic mark=new FxPic("effects/skill_fields.png");
             mark.crop(new int[]{field.kind*16,0,16,16},0,0,16,16);
             mark.origin.set(8,8);
             mark.place(SkillVfx.cx(field.cells[i]),SkillVfx.cy(field.cells[i]));
+            //spirit shafts and the soul well are light, the ink pool matter
+            if(field.kind==SkillField.ARROWS||field.kind==SkillField.SOUL){
+                mark.additive=true;mark.lit(field.kind==SkillField.ARROWS?ARROWS_LIT:SOUL_LIT);
+            }else if(field.kind==SkillField.SMOKE){
+                mark.lit(INK_LIT);
+            }
             marks[i]=mark;add(mark);
             next[i]=FxRandom.Float(EVERY);
         }
@@ -63,6 +90,16 @@ public class SkillFieldFX extends Group {
         Fx.post(()->{
             Group floor=GameScene.layer(GameScene.Layer.FLOOR);
             if(floor!=null)floor.add(fx);
+        });
+    }
+
+    /** Let go of: a sanctuary's seal fades over Sanctum.FADE s and then goes; any other at once (any
+     *  thread). */
+    public void fadeAway(){
+        if(sanctum==null){Fx.dispose(this);return;}
+        Fx.post(()->{
+            if(parent==null){Fx.dispose(this);return;}
+            if(fadeLeft<0)fadeLeft=Sanctum.FADE;
         });
     }
 
@@ -88,24 +125,35 @@ public class SkillFieldFX extends Group {
         super.update();
         float dt=Game.elapsed;
         time+=dt;
+        if(fadeLeft>=0){
+            fadeLeft-=dt;
+            if(fadeLeft<=0){fadeLeft=0;Fx.dispose(this);return;}
+        }
         if(!field.sameFloor()){visible=false;return;}
         visible=true;
+        //a sanctuary's seal: still, breathing, its runes read in turn (the scene's clock: a seal
+        //shown again keeps its breath and its reading)
+        if(sanctum!=null)sanctum.pose(time,Game.timeTotal,fadeLeft<0?1f:fadeLeft/Sanctum.FADE,field.cells);
         for(int i=0;i<marks.length;i++){
             FxPic m=marks[i];
+            if(m==null)continue;
             m.takeSlide();
             float x=m.midX(),y=m.midY();
             int cell=Fx.cellAt(x,y);
             boolean seen=SkillVfx.seen(cell);
-            m.visible=seen;
-            m.am=ALPHA+BREATH*(float)Math.sin(time*2.4f+i*.6f);
-            if(field.kind==SkillField.SANCTUARY){
-                //the glyph turns a quarter every half second
-                m.angle=90*((int)((time+i*.13f)/.5f)%4);
-            }else if(field.kind==SkillField.ARROWS){
-                //now and then an arrow twitches a pixel, for a frame or two
-                float beat=(time+i*1.37f)%(2f+(i%3));
-                m.place(x,y);
-                if(beat<.08f)m.nudge(0,1);
+            //(a sanctuary's seal is posed by its Sanctum)
+            if(sanctum==null){
+                m.visible=seen;
+                m.am=ALPHA+BREATH*(float)Math.sin(time*2.4f+i*.6f);
+                if(field.kind==SkillField.SOUL){
+                    //the well turns, a half every SOUL_TURN s (a three-armed spiral: it reads as turning)
+                    m.angle=180*((int)((time+i*.13f)/SOUL_TURN)%2);
+                }else if(field.kind==SkillField.ARROWS){
+                    //now and then an arrow twitches a pixel, for a frame or two
+                    float beat=(time+i*1.37f)%(2f+(i%3));
+                    m.place(x,y);
+                    if(beat<.08f)m.nudge(0,1);
+                }
             }
             if(heat!=null&&i<heat.length){
                 if(seen&&heat[i]==null){
@@ -117,7 +165,7 @@ public class SkillFieldFX extends Group {
             next[i]-=dt;
             if(next[i]>0)continue;
             next[i]=EVERY*FxRandom.Float(1f,1.6f);
-            if(seen)emit(x,y);
+            if(seen&&fadeLeft<0)emit(x,y);
         }
     }
 
@@ -159,14 +207,16 @@ public class SkillFieldFX extends Group {
             case SkillField.SOUL:
                 if(!take(now,1.1f))return;
                 p=SkillVfx.glow(x+FxRandom.Float(-5f,5f),y+FxRandom.Float(-2f,4f),FxBudget.P3);
-                if(p!=null)p.look(FxRandom.chance(.5f)?FxFrames.MOTE_1:FxFrames.MOTE_2).ramp(Element.SACRIFICIAL.ember,true)
+                if(p!=null)p.look(FxRandom.chance(.5f)?FxFrames.MOTE_1:FxFrames.MOTE_2).ramp(SkillBursts.SOUL,true)
                         .vel(0,FxRandom.Float(-10f,-6f)).sway(3f,3f).life(1.1f).alpha(.8f,.2f,.5f);
                 break;
             case SkillField.SMOKE:
                 if(!take(now,1.2f))return;
-                p=SkillVfx.matter(x+FxRandom.Float(-4f,4f),y,FxBudget.P3);
-                if(p!=null)p.look(FxFrames.PUFF_M[FxRandom.Int(2)]).paint(Element.SMOKE.ramp.step(.2f))
-                        .vel(FxRandom.Float(-2f,2f),FxRandom.Float(-5f,-3f)).life(1.2f).alpha(.45f,.3f,.6f).smooth();
+                //ink curling off the pool, sinking back (never a grey gas)
+                p=SkillVfx.matter(x+FxRandom.Float(-5f,5f),y+FxRandom.Float(-1f,2f),FxBudget.P3);
+                if(p!=null)p.look(FxFrames.INK_WISP,5).paint(Element.SHADOW.ramp.step(FxRandom.Float(.2f,.45f)))
+                        .vel(FxRandom.sign()*FxRandom.Float(3f,6f),FxRandom.Float(-3f,1f)).turbulence(1.5f,3f).life(1.2f)
+                        .alpha(.55f,.3f,.6f).smooth();
                 break;
             case SkillField.CRACK:
                 if(!take(now,.6f))return;

@@ -37,6 +37,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.ArrowItem;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfSharpshooting;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
@@ -86,27 +88,31 @@ public class BowWeapon extends MeleeWeapon {
         return arrowMin(this.buffedLvl());
     }
 
+    //the arrow's damage with the bow's rarity worked in, as the window prints it
     public int arrowMin(int lvl) {
+        int damage;
         if (Dungeon.hero != null) {
-            return tier()
+            damage = tier()
                     + lvl
                     + RingOfSharpshooting.levelDamageBonus(Dungeon.hero);
         } else {
-            return tier()
+            damage = tier()
                     + lvl;
         }
-
+        return Quality.scale(this, RarityLine.DAMAGE_MIN, damage);
     }
 
     public int arrowMax(int lvl) {
+        int damage;
         if (Dungeon.hero != null) {
-            return 4*(tier()+1)
+            damage = 4*(tier()+1)
                     + lvl*(tier()+1)
                     + RingOfSharpshooting.levelDamageBonus(Dungeon.hero);
         } else {
-            return 4*(tier()+1) +
+            damage = 4*(tier()+1) +
                     lvl*(tier()+1);
         }
+        return Quality.scale(this, RarityLine.DAMAGE_MAX, damage);
     }
 
     public int arrowMax() {
@@ -239,6 +245,12 @@ public class BowWeapon extends MeleeWeapon {
 
         private BowWeapon arrowFrom;
         public boolean useBullet = true;
+
+        //the arrow fires both of the bow's enchantments and counts its rarity
+        @Override
+        public Weapon magicSource() {
+            return arrowFrom;
+        }
         public boolean isBurst = false;
 
         private static final String ARROW_FROM = "arrowFrom";
@@ -381,7 +393,8 @@ public class BowWeapon extends MeleeWeapon {
         }
 
         public void onShoot() {
-            if (useBullet) Dungeon.bullet--;
+            //an AMMO line's spared arrow
+            if (useBullet && !Quality.rollSpareAmmo(arrowFrom, curUser)) Dungeon.bullet--;
 
             if (Dungeon.hero.buff(PenetrationShotBuff.class) != null) {
                 Dungeon.hero.buff(PenetrationShotBuff.class).detach();

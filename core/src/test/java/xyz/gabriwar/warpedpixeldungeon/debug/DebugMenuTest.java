@@ -199,6 +199,7 @@ public class DebugMenuTest {
 			"Journal and account|ACTION|Reset tutorial",
 			"Journal and account|HEADER|Account",
 			"Journal and account|ACTION|Relay dev token",
+			"Journal and account|ACTION|Unlock all classes",
 			"Journal and account|HEADER|Supporter thanks",
 			"Journal and account|ACTION|Thanks T1",
 			"Journal and account|ACTION|Thanks T2",

@@ -29,8 +29,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor.Glyph;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfArcana;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite.Glowing;
 import com.watabou.utils.Random;
@@ -52,6 +56,8 @@ public class Satisfying extends Glyph {
 
 			Buff.affect(Dungeon.hero, Hunger.class).affectHunger(Math.max(1, Math.round(damage*0.1*level)*powerMulti));
 			Dungeon.hero.sprite.emitter().burst(Speck.factory(Speck.HUNGER), 1);
+			//a weak answer: a meal's worth of warmth, never a blow's
+			EnchantFx.ward( EnchantLooks.of( getClass() ), defender, attacker, ElementRows.SATISFYING, level(), Quality.isVestige( armor, this ) ? EnchantFx.ECHO : 0, ElementRows.satisfying() );
 
 		}
 		

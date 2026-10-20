@@ -63,10 +63,21 @@ import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.School;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.StanceOrbit;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.ArcSpinFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.LanceFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.ShoutFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBolt;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PillarRiseFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PulseRingFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StreakFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.LinkFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.MoteFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.RuneFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillRay;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Gizmo;
@@ -98,7 +109,14 @@ public class SkillsFx implements FxModule {
 	public void sceneCreated( GameScene scene ){
 		//the statics a scene's pictures counted themselves in: none of the last scene's are left
 		PixelFlare.reset();
+		LanceFX.reset();
+		SkillSpectacleFX.reset();
+		ShoutFX.reset();
 		SkillFieldFX.clearCap();
+		SkillBolt.reset();
+		RuneFX.reset();
+		LinkFX.reset();
+		SkillRay.reset();
 	}
 
 	@Override
@@ -186,17 +204,20 @@ public class SkillsFx implements FxModule {
 				s.after( 3.9f, () -> Fx.dispose( fx ) );
 			}
 		} );
-		page.add( "spectacles: hammer, shuriken, thorn, wings, jaw, slash, shadow", 5f, s -> {
-			int[] kinds = { SkillSpectacleFX.HAMMER, SkillSpectacleFX.SHURIKEN, SkillSpectacleFX.THORN,
-					SkillSpectacleFX.WINGS, SkillSpectacleFX.JAW, SkillSpectacleFX.SLASH, SkillSpectacleFX.SHADOW };
+		page.add( "spectacles: a smite, a spire, a sabre, a shade, a raptor, a bite, wings, thorns, a lance, a slash", 7.4f, s -> {
+			int[] kinds = { SkillSpectacleFX.HAMMER, SkillSpectacleFX.SPIRE, SkillSpectacleFX.SABER, SkillSpectacleFX.SHADOW,
+					SkillSpectacleFX.RAPTOR, SkillSpectacleFX.JAW, SkillSpectacleFX.WINGS, SkillSpectacleFX.THORN,
+					SkillSpectacleFX.LANCE, SkillSpectacleFX.SLASH };
 			for (int i = 0; i < kinds.length; i++){
 				final int kind = kinds[i];
 				s.after( 0.7f * i, () -> {
-					if (kind == SkillSpectacleFX.SHURIKEN) SkillSpectacleFX.fly( kind, s.cell( -3, 1 ), s.dryRat.pos, 0, 0.4f );
-					else SkillSpectacleFX.show( kind, s.dryRat.pos );
+					if (kind == SkillSpectacleFX.WINGS) SkillSpectacleFX.show( kind, Dungeon.hero.pos );
+					else SkillSpectacleFX.fly( kind, s.cell( -3, 1 ), s.dryRat.pos, 0, 0.45f );
 				} );
 			}
 		} );
+		kit( page );
+		rfxKit( page );
 		page.add( "Earthshatter: a ring of impacts on the floor and over the pool, then a hammer", 2.6f, s -> {
 			StaggerFX.ring( s.cell( 2, 0 ), 2, 0.12f, ( c, r ) -> WarriorImpactFX.show( c ) );
 			s.after( 1.2f, () -> WarriorImpactFX.show( s.cell( -1, -1 ), true ) );
@@ -241,6 +262,163 @@ public class SkillsFx implements FxModule {
 			}
 		} );
 		classCasts( page );
+	}
+
+	//the skills' own kit (docs/fx/skills.md): the lance, the shout and dread, the flights, the falls
+	//and throws that are not items, the bursts
+	private static void kit( FxGallery.Page page ){
+		page.add( "Impaling Thrust's lance of light through two, then the +3's spectral lances rippling down a lane", 2.6f, s -> {
+			FxStage.Puppet a = s.puppet( Rat.class, s.cell( 1, 0 ) ), b = s.puppet( Rat.class, s.cell( 3, 0 ) );
+			LanceFX.thrust( Dungeon.hero.pos, s.cell( 3, 0 ), 3, LanceFX.STEEL, Dungeon.hero.sprite );
+			if (a != null) s.after( LanceFX.STEP * 0, () -> LanceFX.pierce( a.sprite, 0, LanceFX.STEEL ) );
+			if (b != null) s.after( LanceFX.STEP * 2, () -> LanceFX.pierce( b.sprite, 0, LanceFX.STEEL ) );
+			s.after( 1.2f, () -> {
+				for (int i = 0; i < 5; i++) LanceFX.spectral( Dungeon.hero.pos, s.cell( 1 + i, 1 ), 0.04f * i );
+			} );
+		} );
+		page.add( "War Cry's roar, its flinches; dread creeping in and spilling; a howl; a taunt's pull", 4.2f, s -> {
+			FxStage.Puppet[] p = { s.puppet( Rat.class, s.cell( 1, -1 ) ), s.puppet( Rat.class, s.cell( 2, 1 ) ),
+					s.puppet( Rat.class, s.cell( 3, 0 ) ) };
+			if (Dungeon.hero.sprite == null) return;
+			float hx = SkillVfx.midX( Dungeon.hero.sprite ), hy = SkillVfx.midY( Dungeon.hero.sprite );
+			ShoutFX.roar( Dungeon.hero.sprite, ShoutFX.MARTIAL, 72 );
+			for (int i = 0; i < p.length; i++) if (p[i] != null) ShoutFX.flinch( p[i].sprite, hx, hy, ShoutFX.MARTIAL, 0.05f + 0.03f * (i + 1) );
+			s.after( 1.2f, () -> {
+				if (p[1] == null || p[2] == null) return;
+				ShoutFX.dread( p[1].sprite, false, 0 );
+				ShoutFX.creep( p[1].ch.pos, p[2].ch.pos, 0.1f );
+				ShoutFX.dread( p[2].sprite, true, 0.18f );
+			} );
+			s.after( 2.3f, () -> ShoutFX.howl( Dungeon.hero.sprite, ShoutFX.WOLF, 3, 0.08f ) );
+			s.after( 3.2f, () -> {
+				for (FxStage.Puppet q : p) if (q != null) ShoutFX.pull( q.sprite, hx, hy, ShoutFX.FURY, 0 );
+			} );
+		} );
+		page.add( "the skills' flights: soul, mana, hex, ember, holy, heal, spark, arcane, spirit, the ward's runes", 5.4f, s -> {
+			for (int l = 0; l < SkillBolt.LOOKS; l++){
+				final int look = l;
+				s.after( 0.5f * l, () -> {
+					if (look == SkillBolt.HEAL){
+						SkillBolt.mote( Dungeon.hero.pos, s.dryRat.pos, look, null );
+						return;
+					}
+					//a bolt's one draw of the game's Random from a generator of the gallery's own
+					Random.pushGenerator( 7 + look );
+					try {
+						SkillBolt.fly( Dungeon.hero.sprite.parent, Dungeon.hero.pos, s.dryRat.pos, look, null );
+					} finally {
+						Random.popGenerator();
+					}
+				} );
+			}
+		} );
+		page.add( "falls that are no items: a meteor, spirit arrows, a holy blade, a counterweight; throws: a coin, "
+				+ "a feather dart, a pellet of ink, a snare", 5.4f, s -> {
+			int[] falls = { SkillFX.Fall.METEOR, SkillFX.Fall.SPIRIT_ARROW, SkillFX.Fall.HOLY_BLADE, SkillFX.Fall.WEIGHT };
+			for (int i = 0; i < falls.length; i++){
+				final int fall = falls[i];
+				s.after( 0.7f * i, () -> {
+					Random.pushGenerator( 11 + fall );
+					try {
+						SkillFX.rain( s.cell( -2 + 2 * fall, -1 ), new xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.Dart(),
+								fall, fall == SkillFX.Fall.SPIRIT_ARROW ? 3 : 1, null );
+					} finally {
+						Random.popGenerator();
+					}
+				} );
+			}
+			int[] throws_ = { SkillFX.Streak.COIN, SkillFX.Streak.FEATHER_DART, SkillFX.Streak.PELLET, SkillFX.Streak.SNARE };
+			for (int i = 0; i < throws_.length; i++){
+				final int look = throws_[i];
+				s.after( 3f + 0.6f * i, () -> SkillFX.streak( Dungeon.hero.pos, s.dryRat.pos, look, null ) );
+			}
+		} );
+		page.add( "the skills' bursts, every one", 3f, s -> {
+			for (int i = 0; i < SkillBursts.ALL.length; i++){
+				final int k = i;
+				s.after( 0.1f * i, () -> s.burstCenter( s.cell( -5 + k % 6 * 2, -2 + k / 6 * 2 ),
+						(com.watabou.noosa.particles.Emitter.Factory) SkillBursts.ALL[k][1], 4 ) );
+			}
+		} );
+	}
+
+	//the second pass's kit (docs/fx/skills.md): a ward volley, every RuneFX verb, the links pulled from
+	//both ends, the rays, the motes and a daze
+	private static void rfxKit( FxGallery.Page page ){
+		page.add( "Spirit Volley's ward bolts, four at once; a soul bolt peeling off its source", 2.4f, s -> {
+			FxStage.Puppet[] p = { s.puppet( Rat.class, s.cell( 3, -2 ) ), s.puppet( Rat.class, s.cell( 4, 0 ) ),
+					s.puppet( Rat.class, s.cell( 3, 2 ) ), s.puppet( Rat.class, s.cell( 1, 2 ) ) };
+			Random.pushGenerator( 31 );
+			try {
+				for (FxStage.Puppet q : p){
+					if (q != null) SkillBolt.fly( Dungeon.hero.sprite.parent, Dungeon.hero.sprite.center(), q.sprite.destinationCenter(), SkillBolt.RUNE, null );
+				}
+			} finally {
+				Random.popGenerator();
+			}
+			s.after( 1.2f, () -> {
+				if (p[1] != null) SkillBolt.mote( p[1].sprite, Dungeon.hero.sprite, SkillBolt.SOUL, null ).peel( p[1].sprite, 6 );
+			} );
+		} );
+		page.add( "runes: a ring, spun up and released; a ward locking on, whole and on one side; shut; scattered; rising; a stamp", 3f, s -> {
+			FxStage.Puppet a = s.puppet( Rat.class, s.cell( 2, -1 ) ), b = s.puppet( Rat.class, s.cell( 2, 1 ) );
+			if (Dungeon.hero.sprite == null) return;
+			RuneFX.Runes ring = RuneFX.ring( Dungeon.hero.sprite, 6, SkillPalette.RUNE_ARCANE, 6, 2.5f, RuneFX.RING_TURN, 1.4f ).spin( 8f, 0.3f );
+			s.after( 0.9f, () -> ring.release( 40f, 0.25f ) );
+			if (a != null) RuneFX.lock( a.sprite, 6, SkillPalette.RUNE_MANA, RuneFX.LOCK_RX, RuneFX.LOCK_RY, RuneFX.LOCK_GAP, RuneFX.LOCK_HOLD );
+			if (b != null) RuneFX.lock( b.sprite, 3, SkillPalette.RUNE_MANA, RuneFX.LOCK_RX, RuneFX.LOCK_RY, RuneFX.LOCK_GAP, RuneFX.LOCK_HOLD, 0f, 1.2f );
+			s.after( 1.2f, () -> {
+				if (a != null) RuneFX.shut( a.sprite, 5, SkillPalette.RUNE_VOID, RuneFX.SHUT_RX, RuneFX.SHUT_RY, RuneFX.SHUT_FOR );
+				if (b != null) RuneFX.scatter( b.sprite, 6, SkillPalette.RUNE_MANA, RuneFX.SCATTER_DIST, RuneFX.SCATTER_LIFE );
+			} );
+			s.after( 1.8f, () -> {
+				RuneFX.rise( Dungeon.hero.sprite, 6, SkillPalette.RUNE_HOLY, RuneFX.RISE_RX, RuneFX.RISE_RY, RuneFX.RISE_SPEED, RuneFX.RISE_LIFE );
+				if (a != null) RuneFX.stamp( a.sprite, FxFrames.RUNE_5[2], 0xF1D99C, 0.4f );
+			} );
+		} );
+		page.add( "links: a shadow bond pulled from both ends to its bite, a steel one between neighbours, a held one, a drain", 3.4f, s -> {
+			FxStage.Puppet a = s.puppet( Rat.class, s.cell( 1, -1 ) ), b = s.puppet( Rat.class, s.cell( 4, 0 ) ), c = s.puppet( Rat.class, s.cell( 2, 2 ) );
+			if (a == null || b == null || c == null || Dungeon.hero.sprite == null) return;
+			LinkFX.bind( Dungeon.hero.sprite.parent, a.sprite.center(), b.sprite.center(), LinkFX.SHADOW, null );
+			s.after( 0.6f, () -> LinkFX.bind( Dungeon.hero.sprite.parent, Dungeon.hero.sprite.center(), a.sprite.center(), LinkFX.STEEL, null ) );
+			s.after( 1.0f, () -> {
+				final Gizmo held = LinkFX.held( b.sprite, c.sprite, LinkFX.SHADOW );
+				s.after( 1.6f, () -> Fx.dispose( held ) );
+			} );
+			s.after( 2.6f, () -> LinkFX.drain( c.sprite, Dungeon.hero.sprite, LinkFX.SOUL_HEAL, 0.3f ) );
+		} );
+		page.add( "rays: holy and a heal flowing; a stream riding the cleric's light ray", 2.0f, s -> {
+			FxStage.Puppet a = s.puppet( Rat.class, s.cell( 4, -1 ) ), b = s.puppet( Rat.class, s.cell( 4, 1 ) );
+			if (a == null || b == null || Dungeon.hero.sprite == null) return;
+			SkillRay.show( Dungeon.hero.sprite, a.sprite, SkillRay.HOLY, 0.5f );
+			s.after( 0.6f, () -> SkillRay.show( Dungeon.hero.sprite, b.sprite, SkillRay.HEAL, 0.6f ) );
+			s.after( 1.3f, () -> {
+				a.sprite.parent.add( new xyz.gabriwar.warpedpixeldungeon.effects.Beam.LightRay( a.sprite.center(), b.sprite.center() ) );
+				SkillRay.stream( a.sprite, b.sprite, SkillRay.STREAM_HOLY, 0.5f );
+			} );
+		} );
+		page.add( "motes: the heal's crosses and greens, mana gathered, sparks and shards flicked, a glint; a daze over a head", 2.4f, s -> {
+			if (Dungeon.hero.sprite == null) return;
+			MoteFX.crosses( Dungeon.hero.sprite, 3 );
+			MoteFX.greens( Dungeon.hero.sprite, 4 );
+			float x = SkillVfx.cx( s.cell( 2, 0 ) ), y = SkillVfx.cy( s.cell( 2, 0 ) );
+			MoteFX.gather( x, y, 8, SkillPalette.MANA, 18, 0.4f );
+			s.after( 0.6f, () -> {
+				MoteFX.flick( x, y, 6, FxFrames.SPARK_2, SkillPalette.STEEL, 30f, 50f, 4f, 0f, 0.2f, 10f, FxBudget.P2 );
+				MoteFX.flick( x + 16, y, 3, FxFrames.SHARD_GLASS, 0x66CCFF, 20f, 34f, 3f, 0f, 0.35f, 10f, FxBudget.P2 );
+				MoteFX.glint( x - 8, y - 6, FxFrames.STAR4_5, 0xE8F0FF, 0.3f, 40f, 0f );
+			} );
+			s.after( 1.2f, () -> {
+				if (s.dryRat == null || s.dryRat.sprite == null) return;
+				//a burst's draws of the game's Random from a generator of the gallery's own
+				Random.pushGenerator( 41 );
+				try {
+					s.dryRat.sprite.emitter().burst( SkillBursts.DAZE, 4 );
+				} finally {
+					Random.popGenerator();
+				}
+			} );
+		} );
 	}
 
 	//a few casts per class, as the classes' skills show them

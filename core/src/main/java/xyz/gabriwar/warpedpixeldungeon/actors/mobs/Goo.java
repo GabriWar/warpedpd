@@ -281,7 +281,7 @@ public class Goo extends Mob {
 		super.damage(dmg, src);
 		if ((HP*2 <= HT) && !bleeding){
 			BossHealthBar.bleed(true);
-			sprite.showStatus(CharSprite.WARNING, Messages.get(this, "enraged"));
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.icon( this, xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.RAGE, 0 );
 			((GooSprite)sprite).spray(true);
 			yell(Messages.get(this, "gluuurp"));
 		}

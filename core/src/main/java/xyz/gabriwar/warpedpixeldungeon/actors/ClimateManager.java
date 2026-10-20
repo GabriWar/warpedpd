@@ -529,6 +529,11 @@ public class ClimateManager {
 				if (!isNight && localTemp > 28f && isClearish) {
 					return WeatherOverlayAmbient.DUST;
 				}
+				// Sunlit motes over the grass take only the air nothing above has: every flavour
+				// before them keeps its own (heat rays, mist, fireflies, the spring's petals, the
+				// hot day's dust), so on their own they are a clear or fair summer's day under 28 C.
+				// In spring they fly among the petals, the petals' second layer (WeatherOverlay)
+				if (sunlitMotes()) return WeatherOverlayAmbient.MOTES;
 				break;
 			case AUTUMN:
 				if (surfaceWindSpeed > 5f && localPrecipRate < 0.2f) {
@@ -543,11 +548,26 @@ public class ClimateManager {
 	}
 
 	/**
+	 * Sunlit motes' air: a clear or fair day of spring or summer, out on the surface itself (the
+	 * overworld's own slice; not its peaks, its caves or the dungeon). The weather overlay's MOTES
+	 * where no other flavour has the air (ambientType), and among the spring's petals.
+	 */
+	public static boolean sunlitMotes() {
+		if (!(Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel)
+				|| ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).altitude() != 0) {
+			return false;
+		}
+		if (DayNightCycle.phase() != DayNightCycle.Phase.DAY || !isClear()) return false;
+		GameCalendar.Season season = GameCalendar.season();
+		return season == GameCalendar.Season.SPRING || season == GameCalendar.Season.SUMMER;
+	}
+
+	/**
 	 * Mirror of WeatherOverlay.AmbientType to avoid circular dependency.
 	 * GameScene maps this to the overlay's enum.
 	 */
 	public enum WeatherOverlayAmbient {
-		NONE, FIREFLIES, AUTUMN_LEAVES, SPRING_PETALS, MIST, DUST, ASH, STEAM, AURORA, CORONA, DRIP, RAINBOW, HEAT_RAYS
+		NONE, FIREFLIES, AUTUMN_LEAVES, SPRING_PETALS, MIST, DUST, ASH, STEAM, AURORA, CORONA, DRIP, RAINBOW, HEAT_RAYS, MOTES
 	}
 
 	// =====================================================================

@@ -27,6 +27,9 @@ package xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows;
 
 public class CromLuck extends Weapon.Enchantment {
 
@@ -41,6 +44,8 @@ public class CromLuck extends Weapon.Enchantment {
 			dmg = Math.max(dmg, attacker.damageRoll());
 		}
 
+		float gain = damage > 0 ? (dmg - damage) / (float)damage : 0f;
+		if (gain >= 0.1f) EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, Math.min( 1f, gain ), level(), 0, ShadowRows.CROM );
 		return dmg;
 	}
 

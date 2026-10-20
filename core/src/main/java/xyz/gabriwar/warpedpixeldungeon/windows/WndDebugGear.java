@@ -32,6 +32,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.rarity.ItemType;
 import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.rarity.Rarity;
 import xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.SlayerFamily;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.AresLeech;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.BuzzSaw;
@@ -51,6 +52,7 @@ import xyz.gabriwar.warpedpixeldungeon.ui.ScrollPane;
 import xyz.gabriwar.warpedpixeldungeon.ui.Window;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.ui.Component;
+import com.watabou.utils.Bundlable;
 import com.watabou.utils.Reflection;
 
 import java.util.ArrayList;
@@ -263,6 +265,10 @@ public class WndDebugGear extends Window {
 			q.rerollRarity( item, q.rarity );
 			reopen();
 		} );
+		if (item instanceof Weapon || item instanceof Armor){
+			Bundlable v = Quality.vestigeMagic( item );
+			button( "Vestige: " + (v == null ? "none" : Messages.titleCase( Quality.vestigeName( v ) )), this::chooseVestige );
+		}
 
 		for (int i = 0; i < q.lines.size(); i++){
 			final int at = i;
@@ -299,6 +305,12 @@ public class WndDebugGear extends Window {
 		ArrayList<String> labels = new ArrayList<>();
 		ArrayList<Runnable> actions = new ArrayList<>();
 		for (RarityLine l : unusedLines( at )){
+			if (l == RarityLine.SLAYER){
+				//its family is picked before it goes in
+				labels.add( "+" + Math.round( l.max() * 100f ) + "% damage against a family you pick (at max)" );
+				actions.add( () -> chooseSlayer( at ) );
+				continue;
+			}
 			labels.add( l.describe( item, 1f ) + " (at max)" );
 			actions.add( () -> {
 				if (at < 0){
@@ -322,6 +334,59 @@ public class WndDebugGear extends Window {
 		}
 		GameScene.show( WndDebugPicker.forChoices( at < 0 ? "ADD A LINE" : "LINE " + (at + 1),
 				labels.toArray( new String[0] ), actions.toArray( new Runnable[0] ) ) );
+	}
+
+	//the family a SLAYER line is sharpened against: the line goes in with it (added at its maximum
+	//roll, or swapped in at `at`), or takes the new family where it already is
+	private void chooseSlayer( int at ){
+		Quality q = item.quality;
+		ArrayList<String> labels = new ArrayList<>();
+		ArrayList<Runnable> actions = new ArrayList<>();
+		for (SlayerFamily f : SlayerFamily.values()){
+			labels.add( Messages.titleCase( f.title() ) );
+			actions.add( () -> {
+				q.slayer = f;
+				if (at < 0){
+					q.lines.add( RarityLine.SLAYER );
+					q.rolls.add( 1f );
+				} else {
+					q.lines.set( at, RarityLine.SLAYER );
+				}
+				changed();
+				reopen();
+			} );
+		}
+		GameScene.show( WndDebugPicker.forChoices( "SLAYER FAMILY", labels.toArray( new String[0] ), actions.toArray( new Runnable[0] ) ) );
+	}
+
+	//any enchantment (a weapon's) or glyph (an armor's) a vestige can be, or none: the line at
+	//index 0 (at its maximum roll) and the magic are set or cleared together
+	private void chooseVestige(){
+		Quality q = item.quality;
+		ArrayList<String> labels = new ArrayList<>();
+		ArrayList<Runnable> actions = new ArrayList<>();
+		for (Class<?> cls : item instanceof Armor ? Quality.glyphVestigePool() : Quality.vestigePool()){
+			labels.add( Messages.titleCase( Quality.vestigeName( (Bundlable) Reflection.newInstance( cls ) ) ) );
+			actions.add( () -> setVestige( q, (Bundlable) Reflection.newInstance( cls ) ) );
+		}
+		labels.add( "- none -" );
+		actions.add( () -> setVestige( q, null ) );
+		GameScene.show( WndDebugPicker.forChoices( "VESTIGE", labels.toArray( new String[0] ), actions.toArray( new Runnable[0] ) ) );
+	}
+
+	private void setVestige( Quality q, Bundlable v ){
+		int at = q.lines.indexOf( RarityLine.VESTIGE );
+		if (at >= 0){
+			q.lines.remove( at );
+			q.rolls.remove( at );
+		}
+		q.vestige = v;
+		if (v != null){
+			q.lines.add( 0, RarityLine.VESTIGE );
+			q.rolls.add( 0, 1f );
+		}
+		changed();
+		reopen();
 	}
 
 	private void changed(){

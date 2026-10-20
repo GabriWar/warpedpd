@@ -25,6 +25,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
@@ -54,7 +56,8 @@ public class Overgrowth extends Armor.Glyph {
 			}
 			
 			
-			CellEmitter.get( defender.pos ).burst( LeafParticle.LEVEL_SPECIFIC, 10 );
+			CellEmitter.get( defender.pos ).burst( LeafParticle.GENERAL, 10 );
+			EnchantFx.ward( EnchantLooks.of( getClass() ), defender, attacker, 0.45f, level(), EnchantFx.CURSE );
 			
 		}
 		

@@ -34,6 +34,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
 import xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle;
 import xyz.gabriwar.warpedpixeldungeon.actors.TileTemperature;
+import xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger;
+import xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLog;
+import xyz.gabriwar.warpedpixeldungeon.actors.ledger.HitRecord;
+import xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.SacrificialFire;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AdrenalineSurge;
@@ -299,6 +303,9 @@ public class Hero extends Char {
 	public boolean resting = false;
 	
 	public Belongings belongings;
+
+	/** the hero's last hits dealt and taken, step by step (the hero window's Damage tab) */
+	public final DamageLog damageLog = new DamageLog();
 	
 	public int STR;
 
@@ -493,6 +500,7 @@ public class Hero extends Char {
 	private static final String NET_TOKEN    = "netSessionToken";
 	private static final String TURNS_TAKEN  = "turnsTaken";
 	private static final String SMELT_DAY    = "smeltDay";
+	public static final String DAMAGE_LOG    = "damage_log";
 
 	@Override
 	public void storeInBundle( Bundle bundle ) {
@@ -543,6 +551,10 @@ public class Hero extends Char {
 		bundle.put(COLD_GRACE, coldGrace);
 
 		belongings.storeInBundle( bundle );
+
+		Bundle log = new Bundle();
+		damageLog.storeInBundle( log );
+		bundle.put( DAMAGE_LOG, log );
 	}
 	
 	@Override
@@ -613,6 +625,9 @@ public class Hero extends Char {
 		coldGrace = bundle.getInt(COLD_GRACE);
 
 		belongings.restoreFromBundle( bundle );
+
+		//a save from before the damage ledger starts with both lists empty
+		if (bundle.contains( DAMAGE_LOG )) damageLog.restoreFromBundle( bundle.getBundle( DAMAGE_LOG ) );
 	}
 	
 	public static void preview( GamesInProgress.Info info, Bundle bundle ) {
@@ -804,16 +819,18 @@ public class Hero extends Char {
 	@Override
 	public int attackSkill( Char target ) {
 		KindOfWeapon wep = belongings.attackingWeapon();
+		//the damage ledger's roll to hit: what made this accuracy (only while Char.hit reads it)
+		DamageLedger.statBase( this, null, attackSkill );
 		
 		float accuracy = 1;
-		accuracy *= RingOfAccuracy.accuracyMultiplier( this );
-		accuracy *= 1f + xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.heroBonus( this, xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.Stat.ACCURACY );
+		accuracy *= DamageLedger.statFactor( this, RingOfAccuracy.class, RingOfAccuracy.accuracyMultiplier( this ) );
+		accuracy *= DamageLedger.statFactor( this, DamageLedger.GEAR, 1f + xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.heroBonus( this, xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.Stat.ACCURACY ) );
 
 		// Ambient weather accuracy bonuses
-		if (buff(AuroraBless.class) != null) accuracy *= AuroraBless.ACCURACY_MULT;
-		if (buff(RainbowBlessing.class) != null) accuracy *= RainbowBlessing.ACCURACY_MULT;
-		if (buff(SolarEclipseBuff.class) != null) accuracy *= SolarEclipseBuff.ACCURACY_MULT;
-		if (buff(HuntersFocus.class) != null) accuracy *= HuntersFocus.ACCURACY_MULT;
+		if (buff(AuroraBless.class) != null) accuracy *= DamageLedger.statFactor( this, buff(AuroraBless.class), AuroraBless.ACCURACY_MULT );
+		if (buff(RainbowBlessing.class) != null) accuracy *= DamageLedger.statFactor( this, buff(RainbowBlessing.class), RainbowBlessing.ACCURACY_MULT );
+		if (buff(SolarEclipseBuff.class) != null) accuracy *= DamageLedger.statFactor( this, buff(SolarEclipseBuff.class), SolarEclipseBuff.ACCURACY_MULT );
+		if (buff(HuntersFocus.class) != null) accuracy *= DamageLedger.statFactor( this, buff(HuntersFocus.class), HuntersFocus.ACCURACY_MULT );
 
 		//precise assault and liquid agility
 		if (!(wep instanceof MissileWeapon)) {
@@ -824,7 +841,7 @@ public class Hero extends Char {
 				//non-duelist benefit for precise assault, can stack with liquid agility
 				if (heroClass != HeroClass.DUELIST) {
 					//persistent +10%/20%/30% ACC for other heroes
-					accuracy *= 1f + 0.1f * pointsInTalent(Talent.PRECISE_ASSAULT);
+					accuracy *= DamageLedger.statFactor( this, Talent.PRECISE_ASSAULT, 1f + 0.1f * pointsInTalent(Talent.PRECISE_ASSAULT) );
 				}
 
 				if (wep instanceof Flail && buff(Flail.SpinAbilityTracker.class) != null){
@@ -835,68 +852,77 @@ public class Hero extends Char {
 					// 2x/5x/inf. ACC for duelist if she just used a weapon ability
 					switch (pointsInTalent(Talent.PRECISE_ASSAULT)){
 						default: case 1:
-							accuracy *= 2; break;
+							accuracy *= DamageLedger.statFactor( this, Talent.PRECISE_ASSAULT, 2 ); break;
 						case 2:
-							accuracy *= 5; break;
+							accuracy *= DamageLedger.statFactor( this, Talent.PRECISE_ASSAULT, 5 ); break;
 						case 3:
-							accuracy *= Float.POSITIVE_INFINITY; break;
+							accuracy *= DamageLedger.statFactor( this, Talent.PRECISE_ASSAULT, Float.POSITIVE_INFINITY ); break;
 					}
 				} else if (buff(Talent.LiquidAgilACCTracker.class) != null){
 					// 3x/inf. ACC, depending on talent level
-					accuracy *= pointsInTalent(Talent.LIQUID_AGILITY) >= 2 ? Float.POSITIVE_INFINITY : 3f;
+					accuracy *= DamageLedger.statFactor( this, Talent.LIQUID_AGILITY, pointsInTalent(Talent.LIQUID_AGILITY) >= 2 ? Float.POSITIVE_INFINITY : 3f );
 					Talent.LiquidAgilACCTracker buff = buff(Talent.LiquidAgilACCTracker.class);
 					buff.uses--;
 				}
 			}
 		} else {
 			if (buff(Momentum.class) != null && buff(Momentum.class).freerunning()){
-				accuracy *= 1f + pointsInTalent(Talent.PROJECTILE_MOMENTUM)/2f;
+				accuracy *= DamageLedger.statFactor( this, Talent.PROJECTILE_MOMENTUM, 1f + pointsInTalent(Talent.PROJECTILE_MOMENTUM)/2f );
 			}
+			// a STEADY line on the shot's weapon (its launcher's for a shot) undoes a share of what
+			// the wind takes off; a tailwind's help is left alone
+			float steady = wep instanceof xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon
+					? xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.value(
+							xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.source( (xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon) wep, this ),
+							xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.STEADY )
+					: 0f;
 			// Wind reduces ranged accuracy (Windswept buff)
 			Windswept windBuff = buff(Windswept.class);
 			if (windBuff != null) {
-				accuracy *= windBuff.rangedAccuracyFactor();
+				float w = windBuff.rangedAccuracyFactor();
+				accuracy *= DamageLedger.statFactor( this, windBuff, steady > 0f ? 1f - (1f - w) * (1f - steady) : w );
 			}
 			// Wind direction: very subtle head/tailwind accuracy modifier (±5 % max)
 			if (target != null) {
-				accuracy *= ClimateManager.windProjectileFactor(pos, target.pos, false);
+				float f = ClimateManager.windProjectileFactor(pos, target.pos, false);
+				accuracy *= DamageLedger.statFactor( this, DamageLedger.WIND, steady > 0f && f < 1f ? 1f - (1f - f) * (1f - steady) : f );
 			}
 		}
 
 		if (buff(Scimitar.SwordDance.class) != null){
-			accuracy *= 1.50f;
+			accuracy *= DamageLedger.statFactor( this, buff(Scimitar.SwordDance.class), 1.50f );
 		}
 
 		if (buff(LargeSword.LargeSwordBuff.class) != null) {
-			accuracy *= buff(LargeSword.LargeSwordBuff.class).getAccuracyFactor();
+			accuracy *= DamageLedger.statFactor( this, buff(LargeSword.LargeSwordBuff.class), buff(LargeSword.LargeSwordBuff.class).getAccuracyFactor() );
 		}
 
 		if (buff(UnholyBible.Demon.class) != null) {
-			return INFINITE_ACCURACY;
+			return DamageLedger.statSet( this, buff(UnholyBible.Demon.class), INFINITE_ACCURACY );
 		}
 
 		//skill tree: blows that can't miss this target
 		if (target != null && heroSkills.anySureHit(target)){
-			return INFINITE_ACCURACY;
+			return DamageLedger.statSet( this, heroSkills.cause, INFINITE_ACCURACY );
 		}
 
 		//skill tree: Firm Hand flat bonus (melee), Accuracy multiplier and
 		//Aimed Shot's no-miss shot (ranged)
 		int atkBase = attackSkill;
 		if (wep instanceof MissileWeapon){
-			accuracy *= heroSkills.allToHitModifier();
+			accuracy *= DamageLedger.statFactor( this, DamageLedger.SKILLS, heroSkills.allToHitModifier() );
 			//extraShotAttack: a multi-target shot must not re-roll (and re-charge) the skill per victim
 			if (!extraShotAttack && heroSkills.anyAimedShot()){
-				return INFINITE_ACCURACY;
+				return DamageLedger.statSet( this, heroSkills.cause, INFINITE_ACCURACY );
 			}
-			atkBase += heroSkills.subToHitBonus();
+			atkBase += DamageLedger.statAdd( this, DamageLedger.SKILLS, heroSkills.subToHitBonus() );
 		} else {
 			//allToHitBonus() already covers the subclass branch
-			atkBase += heroSkills.allToHitBonus();
+			atkBase += DamageLedger.statAdd( this, DamageLedger.SKILLS, heroSkills.allToHitBonus() );
 		}
 
 		if (!RingOfForce.fightingUnarmed(this)) {
-			return Math.max(1, Math.round(atkBase * accuracy * wep.accuracyFactor( this, target )));
+			return Math.max(1, Math.round(atkBase * accuracy * DamageLedger.statFactor( this, DamageLedger.ACCURACY.of( wep ), wep.accuracyFactor( this, target ) )));
 		} else {
 			return Math.max(1, Math.round(atkBase * accuracy));
 		}
@@ -905,61 +931,65 @@ public class Hero extends Char {
 	@Override
 	public int defenseSkill( Char enemy ) {
 
+		//the damage ledger's roll to hit: what made this evasion (only while Char.hit reads it); first,
+		//so a dodge, a parry or a guard below is a named step on it
+		DamageLedger.statBase( this, null, defenseSkill );
+
 		//skill tree: dodges rolled per attacker (each skill decides which attackers it answers)
 		if (enemy != null && heroSkills.anyDodge(enemy)){
-			return INFINITE_EVASION;
+			return DamageLedger.statSet( this, heroSkills.cause, INFINITE_EVASION );
 		}
 
 		if (buff(Combo.ParryTracker.class) != null){
 			if (canAttack(enemy) && !isCharmedBy(enemy)){
 				Buff.affect(this, Combo.RiposteTracker.class).enemy = enemy;
 			}
-			return INFINITE_EVASION;
+			return DamageLedger.statSet( this, buff(Combo.ParryTracker.class), INFINITE_EVASION );
 		}
 
 		if (buff(RoundShield.GuardTracker.class) != null){
-			return INFINITE_EVASION;
+			return DamageLedger.statSet( this, buff(RoundShield.GuardTracker.class), INFINITE_EVASION );
 		}
 		
 		float evasion = defenseSkill;
 		
-		evasion *= RingOfEvasion.evasionMultiplier( this );
-		evasion *= 1f + xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.heroBonus( this, xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.Stat.EVASION );
+		evasion *= DamageLedger.statFactor( this, RingOfEvasion.class, RingOfEvasion.evasionMultiplier( this ) );
+		evasion *= DamageLedger.statFactor( this, DamageLedger.GEAR, 1f + xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.heroBonus( this, xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.Stat.EVASION ) );
 
 		// Firefly glow evasion bonus
-		if (buff(FireflyGlow.class) != null) evasion *= FireflyGlow.EVASION_MULT;
-		if (buff(SolarEclipseBuff.class) != null) evasion *= SolarEclipseBuff.EVASION_MULT;
+		if (buff(FireflyGlow.class) != null) evasion *= DamageLedger.statFactor( this, buff(FireflyGlow.class), FireflyGlow.EVASION_MULT );
+		if (buff(SolarEclipseBuff.class) != null) evasion *= DamageLedger.statFactor( this, buff(SolarEclipseBuff.class), SolarEclipseBuff.EVASION_MULT );
 
 		if (buff(Talent.LiquidAgilEVATracker.class) != null){
 			if (pointsInTalent(Talent.LIQUID_AGILITY) == 1){
-				evasion *= 3f;
+				evasion *= DamageLedger.statFactor( this, Talent.LIQUID_AGILITY, 3f );
 			} else if (pointsInTalent(Talent.LIQUID_AGILITY) >= 2){
-				return INFINITE_EVASION;
+				return DamageLedger.statSet( this, Talent.LIQUID_AGILITY, INFINITE_EVASION );
 			}
 		}
 
 		if (buff(Quarterstaff.DefensiveStance.class) != null){
-			evasion *= 3;
+			evasion *= DamageLedger.statFactor( this, buff(Quarterstaff.DefensiveStance.class), 3 );
 		}
 
 		if (buff(UnholyBible.Demon.class) != null) {
-			evasion /= 2;
+			evasion *= DamageLedger.statFactor( this, buff(UnholyBible.Demon.class), 0.5f );
 		}
 
 		if (paralysed > 0) {
-			evasion /= 2;
+			evasion *= DamageLedger.statFactor( this, Paralysis.class, 0.5f );
 		}
 
 		if (belongings.armor() != null) {
-			evasion = belongings.armor().evasionFactor(this, evasion);
+			evasion = DamageLedger.statTo( this, DamageLedger.EVASION.of( belongings.armor() ), belongings.armor().evasionFactor(this, evasion) );
 
 			//stone specifically overrides to 0 always, guaranteed hit
 			if (belongings.armor().hasGlyph(Stone.class, this) && !Stone.testingEvasion()){
-				return 0;
+				return DamageLedger.statSet( this, belongings.armor(), 0 );
 			}
 		}
 
-		evasion *= sleepPenaltyFactor();
+		evasion *= DamageLedger.statFactor( this, buff(Sleepiness.class), sleepPenaltyFactor() );
 
 		return Math.max(1, Math.round(evasion));
 	}
@@ -1023,25 +1053,35 @@ public class Hero extends Char {
 	
 	@Override
 	public int damageRoll() {
+		//the damage ledger: a roll of the open blow's base begins (nothing outside one)
+		DamageLedger.rollStart( this );
 		KindOfWeapon wep = belongings.attackingWeapon();
 		int dmg;
 
 		if (!RingOfForce.fightingUnarmed(this)) {
 			dmg = wep.damageRoll( this );
+			DamageLedger.rollMark( wep, dmg );
 
 			if (!(wep instanceof MissileWeapon)){
+				int rolled = dmg;
 				dmg += RingOfForce.armedDamageBonus(this);
+				DamageLedger.rollPart( Step.ADD, RingOfForce.class, rolled, dmg );
+				rolled = dmg;
 				dmg += weaponSkillLevelDamage(wep);
+				DamageLedger.rollPart( Step.ADD, DamageLedger.SKILL_LEVELS, rolled, dmg );
 			}
 		} else {
 			dmg = RingOfForce.damageRoll(this);
+			DamageLedger.rollMark( DamageLedger.UNARMED, dmg );
 			if (RingOfForce.unarmedGetsWeaponAugment(this)){
-				dmg = ((Weapon)belongings.attackingWeapon()).augment.damageFactor(dmg);
+				Weapon.Augment aug = ((Weapon)belongings.attackingWeapon()).augment;
+				dmg = DamageLedger.rollMulRound( DamageLedger.AUGMENT, dmg, aug.damageMultiplier(), aug.damageFactor(dmg) );
 			}
 		}
 
 		PhysicalEmpower emp = buff(PhysicalEmpower.class);
 		if (emp != null){
+			DamageLedger.rollPart( Step.ADD, emp, dmg, dmg + emp.dmgBoost );
 			dmg += emp.dmgBoost;
 			emp.left--;
 			if (emp.left <= 0) {
@@ -1053,22 +1093,29 @@ public class Hero extends Char {
 		if (heroClass != HeroClass.DUELIST
 				&& hasTalent(Talent.WEAPON_RECHARGING)
 				&& (buff(Recharging.class) != null || buff(ArtifactRecharge.class) != null)){
-			dmg = Math.round(dmg * (1.025f + .025f*pointsInTalent(Talent.WEAPON_RECHARGING)));
+			float recharging = 1.025f + .025f*pointsInTalent(Talent.WEAPON_RECHARGING);
+			dmg = DamageLedger.rollMulRound( Talent.WEAPON_RECHARGING, dmg, recharging, Math.round(dmg * recharging) );
 		}
 
 		//moon fury, from the moonberries. Detaching through Buff.detach routes into
 		//Strength.detach(), which is what lets FullMoonStrength eat the hit instead.
 		if (buff(Strength.class) != null) {
-			dmg = Math.round(dmg * 4f);
+			dmg = DamageLedger.rollMulRound( buff(Strength.class), dmg, 4f, Math.round(dmg * 4f) );
 			Buff.detach(this, Strength.class);
 		}
 
-		dmg = Math.round(dmg * sleepPenaltyFactor());
+		float tired = sleepPenaltyFactor();
+		dmg = DamageLedger.rollMulRound( buff(Sleepiness.class), dmg, tired, Math.round(dmg * tired) );
 
 		//skill tree damage hooks: actives spend mana inside their modifiers
-		dmg = Math.round(dmg * skillDamageModifier(wep instanceof MissileWeapon));
+		float skills = skillDamageModifier(wep instanceof MissileWeapon);
+		dmg = DamageLedger.rollMulRound( DamageLedger.SKILLS, dmg, skills, Math.round(dmg * skills) );
 
-		if (dmg < 0) dmg = 0;
+		if (dmg < 0){
+			DamageLedger.rollPart( Step.SET, DamageLedger.NO_NEGATIVE, dmg, 0 );
+			dmg = 0;
+		}
+		DamageLedger.rollEnd( this, dmg );
 		return dmg;
 	}
 
@@ -1811,6 +1858,10 @@ public class Hero extends Char {
 	public int coldGrace = 0;
 	private static final String COLD_GRACE = "coldGrace";
 
+	//turns in a row the rain has fallen on the hero (under thatch, the drops that got through), for a
+	//RAINPROOF armor line that holds the soak off for a while; not saved, a load starts the count again
+	public int rainTurns = 0;
+
 	//which thermal danger band the hero was last warned about:
 	//-1 cold (feels-like below Hypothermia.WARN_TEMP), 1 hot (above Heatstroke.WARN_TEMP), 0 neither.
 	//one warning per crossing, with a 2°C hysteresis so a border-line reading does not spam
@@ -1869,7 +1920,8 @@ public class Hero extends Char {
 		if (Dungeon.level == null || !isAlive()) return;
 
 		//feels-like already includes the worn armor's thermalOffset (TileTemperature.feelsLikeAt)
-		float feelsLike = TileTemperature.feelsLikeAt(pos);
+		//this hero's own (a co-op guest's gear and state too, not the host's)
+		float feelsLike = TileTemperature.feelsLikeAt(pos, this);
 
 		//a room the hero built keeps the wind and the weather off him, a roof the weather
 		//(homestead/Shelter: a thatch roof lets a drop in five through)
@@ -1931,9 +1983,19 @@ public class Hero extends Char {
 			GLog.w(Messages.get(Heatstroke.class, "onset"));
 		}
 
-		// --- Rain → Drenched ---
-		if (wetHere && ClimateManager.localPrecipRate() > 0.3f && ClimateManager.isRaining()) {
-			Buff.prolong(this, Drenched.class, Drenched.DURATION);
+		// --- Rain → Drenched --- (a RAINPROOF armor line takes some turns of rain first)
+		boolean raining = ClimateManager.localPrecipRate() > 0.3f && ClimateManager.isRaining();
+		if (wetHere && raining) {
+			if (buff(Drenched.class) != null || ++rainTurns >= xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.rainTurns(
+					xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.value(belongings.armor(), xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.RAINPROOF))) {
+				Buff.prolong(this, Drenched.class, Drenched.DURATION);
+			}
+		} else if (!raining
+				|| xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.roofAt(Dungeon.level, pos) != xyz.gabriwar.warpedpixeldungeon.tiles.RoofTiles.THATCH
+				|| xyz.gabriwar.warpedpixeldungeon.homestead.Rooms.at(Dungeon.level, pos) != null) {
+			//a drop that misses under a thatch roof (Shelter.precipitationReaches) keeps the count:
+			//only a dry spell or a tight roof starts it again
+			rainTurns = 0;
 		}
 
 		// --- Wind → Windswept ---
@@ -1968,6 +2030,9 @@ public class Hero extends Char {
 		if (ClimateManager.isLunarEclipse()) {
 			Buff.prolong(this, BloodMoonBuff.class, BloodMoonBuff.DURATION);
 		}
+
+		//which of his rarity lines act now, for their looks (draws nothing of the game's Random)
+		xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.LineLooks.onWeather(this, feelsLike, wetHere && raining, windHere, wind);
 	}
 	
 	private boolean actMove( HeroAction.Move action ) {
@@ -2485,12 +2550,16 @@ public class Hero extends Char {
 							//asked before the rock is gone, and it takes no time of its own
 							xyz.gabriwar.warpedpixeldungeon.items.ore.Ore ore = Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
 									? ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).oreFrom( action.dst ) : null;
-							if (ore != null) ore.struck( Hero.this, action.dst );
+							if (ore != null){
+								//a typed Quarry's tool now and then breaks out one more
+								xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Gathering.extraOre( Hero.this, ore, action.dst );
+								ore.struck( Hero.this, action.dst );
+							}
 							Level.set( action.dst, Terrain.EMPTY_DECO );
 							//and rough stone for building, out of the land's own rock (homestead/gathering)
 							if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel){
 								xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Gathering.wallStone(
-										(xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level, action.dst );
+										(xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level, action.dst, Hero.this );
 							}
 
 						//1 hunger spent total
@@ -2803,17 +2872,24 @@ public class Hero extends Char {
 
 		damage = Talent.onAttackProc( this, enemy, damage );
 		damage = xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.heroHit( this, enemy, damage );
+		//a shot whose aim a STEADY line kept from the wind: its gold chip on the struck one's card
+		if (xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.steadied( this, enemy )){
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.chip( enemy,
+					xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.LineLooks.chipOf( xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.STEADY, null ), 0 );
+		}
 
 		if (buff(WeaponEnhance.class) != null) {
 			buff(WeaponEnhance.class).attackProc();
 		}
 
 		if (wep != null) {
-			damage = wep.proc( this, enemy, damage );
+			DamageLedger.push( enemy, Step.ATTACKER, DamageLedger.AUTO, DamageLedger.WEAPON_EFFECT.of( wep ) );
+			damage = DamageLedger.pop( wep.proc( this, enemy, damage ) );
 		} else {
 
 			if (buff(BodyForm.BodyFormBuff.class) != null && buff(BodyForm.BodyFormBuff.class).enchant() != null){
-				damage = buff(BodyForm.BodyFormBuff.class).enchant().proc(new WornShortsword(), this, enemy, damage);
+				DamageLedger.push( enemy, Step.ATTACKER, DamageLedger.AUTO, buff(BodyForm.BodyFormBuff.class).enchant() );
+				damage = DamageLedger.pop( buff(BodyForm.BodyFormBuff.class).enchant().proc(new WornShortsword(), this, enemy, damage) );
 			}
 			if (enemy.isAlive() && buff(HolyWeapon.HolyWepBuff.class) != null) {
 				int dmg = subClass == HeroSubClass.PALADIN ? 6 : 2;
@@ -2858,6 +2934,7 @@ public class Hero extends Char {
 			if (enemy instanceof Mob && ((Mob) enemy).wasAsleepBeforeBlow() && enemy.isAlive()
 					&& !Char.hasProp(enemy, Property.BOSS) && !Char.hasProp(enemy, Property.MINIBOSS)
 					&& heroSkills.anyInstantKill(enemy, damage)){
+				DamageLedger.execute( enemy, heroSkills.cause, enemy.HP );
 				enemy.die(this);
 			}
 			//Rogue: Double Strike - the second cut goes into a different enemy in reach
@@ -2993,21 +3070,24 @@ public class Hero extends Char {
 		}
 
 		if (belongings.armor() != null) {
-			damage = belongings.armor().proc( enemy, this, damage );
+			DamageLedger.push( this, Step.DEFENDER, DamageLedger.AUTO, belongings.armor() );
+			damage = DamageLedger.pop( belongings.armor().proc( enemy, this, damage ) );
 		} else {
 			if (buff(BodyForm.BodyFormBuff.class) != null
 				&& buff(BodyForm.BodyFormBuff.class).glyph() != null){
-				damage = buff(BodyForm.BodyFormBuff.class).glyph().proc(new ClothArmor(), enemy, this, damage);
+				DamageLedger.push( this, Step.DEFENDER, DamageLedger.AUTO, buff(BodyForm.BodyFormBuff.class).glyph() );
+				damage = DamageLedger.pop( buff(BodyForm.BodyFormBuff.class).glyph().proc(new ClothArmor(), enemy, this, damage) );
 			}
 			if (buff(HolyWard.HolyArmBuff.class) != null){
 				int blocking = subClass == HeroSubClass.PALADIN ? 3 : 1;
-				damage -= Math.round(blocking * Armor.Glyph.genericProcChanceMultiplier(enemy));
+				damage = DamageLedger.to( this, Step.DEFENDER, Step.ADD, buff(HolyWard.HolyArmBuff.class), damage,
+						damage - Math.round(blocking * Armor.Glyph.genericProcChanceMultiplier(enemy)) );
 			}
 		}
 
 		WandOfLivingEarth.RockArmor rockArmor = buff(WandOfLivingEarth.RockArmor.class);
 		if (rockArmor != null) {
-			damage = rockArmor.absorb(damage);
+			damage = DamageLedger.to( this, Step.DEFENDER, Step.ADD, rockArmor, damage, rockArmor.absorb(damage) );
 		}
 		
 		return super.defenseProc( enemy, damage );
@@ -3050,6 +3130,16 @@ public class Hero extends Char {
 
 	@Override
 	public void damage( int dmg, Object src ) {
+		//the damage ledger keeps every rule this damage meets; Char.damage joins the same frame
+		boolean opened = DamageLedger.enterDamage( this, dmg, src );
+		try {
+			heroDamageInLedger( dmg, src );
+		} finally {
+			if (opened) DamageLedger.exitDamage( this );
+		}
+	}
+
+	private void heroDamageInLedger( int dmg, Object src ) {
 
 		//skill tree: incoming damage passes through every learned skill.
 		//Starvation is the exception: it ticks for one point at a time, so any flat
@@ -3063,6 +3153,7 @@ public class Hero extends Char {
 
 		if (buff(TimekeepersHourglass.timeStasis.class) != null
 				|| buff(TimeStasis.class) != null) {
+			DamageLedger.outcome( this, HitRecord.STASIS, 0 );
 			return;
 		}
 
@@ -3095,37 +3186,39 @@ public class Hero extends Char {
 		if (!(src instanceof Char)){
 			//reduce damage here if it isn't coming from a character (if it is we already reduced it)
 			if (endure != null){
-				damage = endure.adjustDamageTaken(dmg);
+				damage = DamageLedger.to( this, Step.DEFENDER, Step.MUL, endure, damage, endure.adjustDamageTaken(dmg) );
 			}
 			//the same also applies to challenge scroll damage reduction
 			if (buff(ScrollOfChallenge.ChallengeArena.class) != null){
-				damage *= 0.67f;
+				damage = DamageLedger.mul( this, Step.DEFENDER, buff(ScrollOfChallenge.ChallengeArena.class), damage, 0.67f );
 			}
 			//and to monk meditate damage reduction
 			if (buff(MonkEnergy.MonkAbility.Meditate.MeditateResistance.class) != null){
-				damage *= 0.2f;
+				damage = DamageLedger.mul( this, Step.DEFENDER, buff(MonkEnergy.MonkAbility.Meditate.MeditateResistance.class), damage, 0.2f );
 			}
 		}
 
 		CapeOfThorns.Thorns thorns = buff( CapeOfThorns.Thorns.class );
 		if (thorns != null) {
-			damage = thorns.proc((int)damage, (src instanceof Char ? (Char)src : null),  this);
+			damage = DamageLedger.to( this, Step.DEFENDER, Step.ADD, thorns, damage, thorns.proc((int)damage, (src instanceof Char ? (Char)src : null),  this) );
 		}
 
 		if (buff(Talent.WarriorFoodImmunity.class) != null){
-			if (pointsInTalent(Talent.IRON_STOMACH) == 1)       damage /= 4f;
-			else if (pointsInTalent(Talent.IRON_STOMACH) >= 2)  damage = 0;
+			if (pointsInTalent(Talent.IRON_STOMACH) == 1)       damage = DamageLedger.mul( this, Step.DEFENDER, Talent.IRON_STOMACH, damage, 0.25f );
+			else if (pointsInTalent(Talent.IRON_STOMACH) >= 2)  damage = DamageLedger.to( this, Step.DEFENDER, Step.SET, Talent.IRON_STOMACH, damage, 0f );
 		}
 
-		dmg = Math.round(damage);
+		dmg = DamageLedger.round( this, damage );
 
 		LargeSword.LargeSwordBuff largeSwordBuff = buff(LargeSword.LargeSwordBuff.class);
 		if (largeSwordBuff != null) {
-			dmg = (int)Math.ceil(dmg * largeSwordBuff.getDefenseFactor());
+			float guard = largeSwordBuff.getDefenseFactor();
+			dmg = DamageLedger.mulRound( this, Step.DEFENDER, largeSwordBuff, dmg, guard, (int)Math.ceil(dmg * guard) );
 		}
 
 		//we ceil this one to avoid letting the player easily take 0 dmg from tenacity early
-		dmg = (int)Math.ceil(dmg * RingOfTenacity.damageMultiplier( this ));
+		float tenacity = RingOfTenacity.damageMultiplier( this );
+		dmg = DamageLedger.mulRound( this, Step.DEFENDER, RingOfTenacity.class, dmg, tenacity, (int)Math.ceil(dmg * tenacity) );
 
 		int preHP = HP + shielding();
 		if (src instanceof Hunger) preHP -= shielding();
@@ -3529,7 +3622,10 @@ public class Hero extends Char {
 				&& belongings.getItem( xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MasonsHammer.class ) != null
 				&& (Dungeon.level.map[cell] == Terrain.WALL || Dungeon.level.map[cell] == Terrain.WALL_DECO)) {
 
-			curAction = new HeroAction.Mine( cell, xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Gathering.HAMMER_WALL_TURNS );
+			//a typed Quarry hammer breaks it in fewer
+			curAction = new HeroAction.Mine( cell, xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.workStrokes(
+					belongings.getItem( xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MasonsHammer.class ),
+					xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Gathering.HAMMER_WALL_TURNS ) );
 
 		} else if (heap != null
 				//moving to an item doesn't auto-pickup when enemies are near...
@@ -3960,7 +4056,8 @@ public class Hero extends Char {
 				SoakedShoes soaked = buff(SoakedShoes.class);
 				if (soaked != null) {
 					soaked.add(SoakedShoes.STEP_REFRESH);
-				} else if (Random.Float() < 0.02f) {
+				} else if (Random.Float() < 0.02f * (1f - xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.value(belongings.armor(), xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.RAINPROOF))) {
+					//a RAINPROOF armor line: as many draws, fewer soakings
 					Buff.affect(this, SoakedShoes.class).add(SoakedShoes.STEP_DURATION);
 					GLog.w(Messages.get(SoakedShoes.class, "onset"));
 				}

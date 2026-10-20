@@ -190,6 +190,18 @@ public class FxRuntimeTest {
 	}
 
 	@Test
+	public void aParticleSitsByItsMiddleBeforeItsFirstUpdate(){
+		//one made after its layer's update (a blow's beat) is drawn before it updates: a big frame
+		//given after reset, or a new spot, must already be centred where it was asked for
+		FxParticle p = new FxParticle().reset( 40, 40 ).look( new int[][]{ FxFrames.SLASH_24[0], FxFrames.SLASH_24[1] }, 0 );
+		assertEquals( 40f, p.x + FxFrames.SLASH_24[0][2] / 2f, 0.51f );
+		assertEquals( 40f, p.y + FxFrames.SLASH_24[0][3] / 2f, 0.51f );
+		p.at( 70, 20 );
+		assertEquals( 70f, p.x + FxFrames.SLASH_24[0][2] / 2f, 0.51f );
+		assertEquals( 20f, p.y + FxFrames.SLASH_24[0][3] / 2f, 0.51f );
+	}
+
+	@Test
 	public void nothingTouchesTheGpuWhileItIsMade(){
 		failOnGl();
 		FxEmitter e = new FxEmitter();

@@ -28,6 +28,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.HoldFast;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ShieldBuff;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -58,6 +61,9 @@ public class Blocking extends Weapon.Enchantment {
 			b.setShield(shield);
 			attacker.sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(shield), FloatingText.SHIELDING);
 			attacker.sprite.emitter().burst(Speck.factory(Speck.LIGHT), 5);
+			//a ward on the wielder, toward the defender
+			ElementRows.blocking( EnchantLooks.of( getClass() ), attacker, defender, Math.min( 1f, shield / (0.1f * Math.max( 1, attacker.HT )) ),
+					level(), Quality.isVestige( weapon, this ) );
 		}
 		
 		return damage;

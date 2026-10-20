@@ -29,9 +29,13 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.BlowPresenter;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.ShoutFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBolt;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -42,9 +46,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import com.watabou.utils.PathFinder;
-import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 
 public class PanicHarvest extends Skill {
 
@@ -58,7 +60,8 @@ public class PanicHarvest extends Skill {
 	/** the turn the last harvest was taken; not bundled, it only gates within a turn */
 	private float lastHarvest = -1f;
 
-	private static final int MANA_COLOR = 0x44AAFF;
+	/** Motes of fear peeled out of the victim into the mana flying home. */
+	public static final int PEEL = 4;
 
 	@Override
 	protected boolean upgrade(){ return true; }
@@ -72,21 +75,21 @@ public class PanicHarvest extends Skill {
 
 		int gain = Math.min( level, 2 );
 		hero.MP = Math.min( hero.MT, hero.MP + gain );
-		CellEmitter.get( enemy.pos ).burst( ShadowParticle.UP, 5 );
+		//the fear harvested rises out of it as wisps of soul
+		CellEmitter.get( enemy.pos ).burst( SkillBursts.SOUL_WISP, 5 );
 		SpatialSound.play( Assets.Sounds.GHOST, enemy, 0.5f, 1.4f );
 		if (hero.sprite != null){
-			//the fear is seen leaving the victim and streaking into the rogue, where it lands as mana
-			final String words = Messages.get( this, "harvest", gain );
+			//the fear is seen peeling out of the victim and flying home into the rogue as a mote of
+			//mana that blooms on him (a pickup coming home, never a bolt striking him)
 			if (hero.sprite.parent != null && enemy.sprite != null && Dungeon.level.heroFOV[enemy.pos]){
-				((MagicMissile) hero.sprite.parent.recycle( MagicMissile.class )).reset(
-						MagicMissile.SHADOW, enemy.sprite.center(), hero.sprite.center(), () -> {
+				SkillBolt.fly( hero.sprite.parent, enemy.sprite.center(), hero.sprite.center(), SkillBolt.MANA, () -> {
 							hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 4 );
-							hero.sprite.showStatus( MANA_COLOR, words );
+							hero.sprite.showStatusWithIcon( BlowPresenter.MANA_COLOR, Integer.toString( gain ), xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.MANA );
 							SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 0.4f, 1.7f );
-						} );
+						} ).peel( enemy.sprite, PEEL );
 			} else {
 				hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 3 );
-				hero.sprite.showStatus( MANA_COLOR, words );
+				hero.sprite.showStatusWithIcon( BlowPresenter.MANA_COLOR, Integer.toString( gain ), xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.MANA );
 			}
 		}
 		return damage;
@@ -98,17 +101,22 @@ public class PanicHarvest extends Skill {
 		Hero hero = Dungeon.hero;
 		if (level < MAX_LEVEL || hero == null || !isPanicked( mob )) return;
 		boolean spread = false;
+		int spreadTo = 0;
 		for (int n : PathFinder.NEIGHBOURS8){
 			Char ch = Actor.findChar( mob.pos + n );
 			if (ch instanceof Mob && ch.isAlive() && ch.alignment == Char.Alignment.ENEMY){
 				Buff.affect( ch, Terror.class, 3f ).object = hero.id();
-				CellEmitter.get( ch.pos ).burst( ShadowParticle.CURSE, 4 );
+				CellEmitter.get( ch.pos ).burst( SkillBursts.DREAD, 4 );
+				//its fear crawls over the floor into each neighbour, one after another
+				ShoutFX.creep( mob.pos, ch.pos, 0.05f * spreadTo );
+				if (ch.sprite != null) ShoutFX.dread( ch.sprite, true, 0.05f * spreadTo + 0.15f );
+				spreadTo++;
 				spread = true;
 			}
 		}
 		if (!spread) return;
-		CellEmitter.get( mob.pos ).burst( Speck.factory( Speck.SCREAM ), 3 );
-		if (mob.sprite != null) new Flare( 5, 24 ).color( 0x663399, true ).show( mob.sprite, 0.6f );
+		CellEmitter.get( mob.pos ).burst( SkillBursts.DREAD, 3 );
+		if (mob.sprite != null) PixelFlare.show( SkillVfx.cx( mob.pos ), SkillVfx.cy( mob.pos ), ShoutFX.DREAD[2], PixelFlare.M, 0.5f );
 		SpatialSound.play( Assets.Sounds.GHOST, mob, 1f, 0.6f );
 	}
 

@@ -26,6 +26,7 @@ package xyz.gabriwar.warpedpixeldungeon.effects.fx.skills;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxEmitter;
@@ -150,8 +151,14 @@ public final class SkillVfx {
 
 	/** The colour of the hero's class (his afterimages', his casts' when they have none). */
 	public static int classColor(){
-		if (Dungeon.hero == null) return 0xB9DEEE;
-		switch (Dungeon.hero.heroClass){
+		return classColor( Dungeon.hero );
+	}
+
+	/** A caster's class colour, its school's: the warrior's earth, the mage's arcane, the rogue's
+	 *  shadow, the huntress's leaf green, the cleric's holy gold, the duelist's (and no one's) steel. */
+	public static int classColor( Hero caster ){
+		if (caster == null || caster.heroClass == null) return School.STEEL.color;
+		switch (caster.heroClass){
 			case WARRIOR:  return School.MARTIAL.color;
 			case MAGE:     return School.ARCANE.color;
 			case ROGUE:    return School.SHADOW.color;

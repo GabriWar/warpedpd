@@ -28,9 +28,13 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.RuneFX;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ManaShieldWard;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
@@ -67,6 +71,7 @@ public class ManaShield extends SubSkill2 {
 			castTextYell();
 			SpatialSound.play( Assets.Sounds.MELD, hero, 1f, 1.2f );
 			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 6 );
+			raised( Dungeon.hero.sprite );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
 			hero.busy();
@@ -78,8 +83,22 @@ public class ManaShield extends SubSkill2 {
 	 *  Skills are asked before shields in Hero.damage, so this runs just ahead of the ward's absorbDamage */
 	@Override
 	public int incomingDamageReduction( int damage, Object source ){
-		if (level > 0 && !Skill.isTickDamage( source )) ManaShieldWard.blowAt = Actor.now();
+		if (level > 0 && !Skill.isTickDamage( source )){
+			ManaShieldWard.blowAt = Actor.now();
+			//where it comes from: the side the ward takes it on
+			ManaShieldWard.blowFrom = source instanceof Char ? ((Char) source).pos : -1;
+		}
 		return 0;
+	}
+
+	/** The ward's runes, mana blue: RAISED runes on an RX x RY ring round the middle, snapping in
+	 *  GAP s apart and each held HOLD s before it fades (RuneFX.lock, WardFx's ward). */
+	public static final int RAISED = 4;
+	public static final float RX = 8f, RY = 4f, GAP = 0.08f, HOLD = 0.3f;
+
+	/** The ward raised round a body: its runes locking in, one by one. Nothing held after. Any thread. */
+	public static void raised( CharSprite s ){
+		if (s != null) RuneFX.lock( s, RAISED, SkillPalette.RUNE_MANA, RX, RY, GAP, HOLD );
 	}
 
 	//a broken ward's shards sit in the weapon: each melee hit spends one as extra magic damage

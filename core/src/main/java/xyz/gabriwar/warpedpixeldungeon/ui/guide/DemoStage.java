@@ -314,7 +314,7 @@ public class DemoStage extends Component {
 				if (p != null && p.sprite != null && p.shown) p.sprite.flash();
 				if (p != null) ((Rising) m).start( p );
 				break;
-			case HEAL: case STATUS:
+			case HEAL: case STATUS: case CHIP:
 				if (p != null) ((Rising) m).start( p );
 				break;
 			case SURPRISE:
@@ -394,6 +394,8 @@ public class DemoStage extends Component {
 				return new Rising( "" + s.n, CharSprite.POSITIVE, FloatingText.HEALING );
 			case STATUS:
 				return new Rising( demo.words( s.text ), s.n, FloatingText.NO_ICON );
+			case CHIP:
+				return new Rising( s.n );
 			case SURPRISE: {
 				Surprise sur = new Surprise();
 				sur.kill();
@@ -1016,6 +1018,15 @@ public class DemoStage extends Component {
 			} else {
 				icon = null;
 			}
+		}
+
+		//a hit card's icon alone (a chip code: a text cell, a buff's icon, a skill's)
+		Rising( int code ){
+			text = null;
+			icon = new Image();
+			xyz.gabriwar.warpedpixeldungeon.effects.HitCard.picture( icon, code );
+			icon.visible = false;
+			texts.add( icon );
 		}
 
 		void start( Puppet p ){

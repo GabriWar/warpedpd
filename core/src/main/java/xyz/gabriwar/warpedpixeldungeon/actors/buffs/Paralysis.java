@@ -23,7 +23,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import com.watabou.utils.Bundle;
@@ -59,7 +58,7 @@ public class Paralysis extends FlavourBuff {
 		resist.damage += damage;
 		if (Random.NormalIntRange(0, resist.damage) >= Random.NormalIntRange(0, target.HP)){
 			if (Dungeon.level.heroFOV[target.pos]) {
-				target.sprite.showStatus(CharSprite.NEUTRAL, Messages.get(this, "out"));
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.resisted( target, this );
 			}
 			detach();
 		}

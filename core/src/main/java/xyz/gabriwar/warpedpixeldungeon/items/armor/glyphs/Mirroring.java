@@ -30,9 +30,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.MirrorImage;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTeleportation;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows;
+import java.util.Set;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
@@ -59,6 +63,7 @@ public class Mirroring extends Armor.Glyph {
 			}
 
 			ArrayList<Integer> spawnPoints = new ArrayList<>();
+			Set<Mob> had = ShadowRows.images();
 
 			for (int i = 0; i < PathFinder.NEIGHBOURS8.length; i++) {
 				int p = defender.pos + PathFinder.NEIGHBOURS8[i];
@@ -76,6 +81,7 @@ public class Mirroring extends Armor.Glyph {
 				ScrollOfTeleportation.appear(mob, mob.pos);
 				images--;
 			}
+			ShadowRows.mirroring( defender, attacker, level(), ShadowRows.echo( Quality.isVestige( armor, this ) ), had );
 		}
 
 		return damage;

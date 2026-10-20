@@ -31,12 +31,14 @@ import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Belongings;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
+import xyz.gabriwar.warpedpixeldungeon.items.EmptyBottle;
 import xyz.gabriwar.warpedpixeldungeon.items.EnergyCrystal;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.LiquidMetal;
 import xyz.gabriwar.warpedpixeldungeon.items.Recipe;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.AlchemistsToolkit;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
+import xyz.gabriwar.warpedpixeldungeon.items.potions.Potion;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.TrinketCatalyst;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.MissileWeapon;
 import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
@@ -658,7 +660,9 @@ public class AlchemyScene extends PixelScene {
 
 			combines[i].visible = true;
 			combines[i].setRect(combines[0].left(), outputs[i].top()+5, 30, 20);
-			combines[i].enable(cost <= availableEnergy, cost);
+			//a potion from seeds also takes a bottle from the pack
+			boolean bottled = !(recipe instanceof Potion.SeedToPotion) || EmptyBottle.forBrewing( Dungeon.hero ) != null;
+			combines[i].enable(cost <= availableEnergy && bottled, cost);
 
 			if (cost > availableEnergy && recipe instanceof TrinketCatalyst.Recipe){
 				promptToAddEnergy = true;
@@ -688,6 +692,7 @@ public class AlchemyScene extends PixelScene {
 		if (recipes.size() <= slot) return;
 
 		Recipe recipe = recipes.get(slot);
+		if (recipe instanceof Potion.SeedToPotion && EmptyBottle.forBrewing( Dungeon.hero ) == null) return;
 		
 		Item result = null;
 		
@@ -799,7 +804,8 @@ public class AlchemyScene extends PixelScene {
 		for (Item finding : toFind){
 			int needed = finding.quantity();
 			ArrayList<Item> found = inventory.getAllSimilar(finding);
-			while (!found.isEmpty() && needed > 0){
+			//a recipe card can list what the pot takes from the pack (a potion's bottle): no slot for it
+			while (!found.isEmpty() && needed > 0 && curslot < inputs.length){
 				Item detached;
 				if (finding instanceof LiquidMetal || finding instanceof MissileWeapon) {
 					detached = found.get(0).detachAll(inventory.backpack);

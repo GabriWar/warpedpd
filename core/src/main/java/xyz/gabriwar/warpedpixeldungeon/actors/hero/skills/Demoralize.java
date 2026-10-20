@@ -32,9 +32,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FlavourBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.DreadFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.ShoutFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import com.watabou.utils.Bundle;
 
 public class Demoralize extends Skill {
@@ -60,9 +62,10 @@ public class Demoralize extends Skill {
 		debuff.factor = 1f - (level == 1 ? .05f : level == 2 ? .10f : .20f);
 		debuff.hits++;
 		Buff.prolong(enemy, Demoralized.class, 20f);
+		//every blow: quiet - a tremor, a small violet star at its head, a wisp of ink sinking off it
 		if (enemy.sprite != null){
-			enemy.sprite.emitter().burst(Speck.factory(Speck.SCREAM), 1);
-			new Flare(4 + level, 10 + 3 * level).color(0x664488, true).show(enemy.sprite, .45f);
+			enemy.sprite.emitter().burst(SkillBursts.TREMBLE, 1);
+			DreadFX.nerve(enemy.sprite);
 		}
 		if (level >= MAX_LEVEL && debuff.hits >= 5){
 			// onHitProc runs just before Char.attack applies damage; Terror recovers
@@ -72,10 +75,13 @@ public class Demoralize extends Skill {
 			terror.object = Dungeon.hero.id();
 			debuff.hits = 0;
 			if (enemy.buff(Terror.class) != null){
+				//its nerve breaks: a crimson star at its head, the shudder, dread closing on its feet
 				if (enemy.sprite != null){
-					enemy.sprite.showStatus(CharSprite.NEGATIVE, "TERRIFIED");
-					enemy.sprite.emitter().burst(Speck.factory(Speck.SCREAM), 1);
-					new Flare(10, 24).color(0xCC3355, true).show(enemy.sprite, .8f);
+					chipOn(enemy);
+					//one tick, as the one bracket it replaces (each emit draws the game's Random)
+					enemy.sprite.emitter().burst(SkillBursts.TREMBLE, 1);
+					PixelFlare.show(SkillVfx.midX(enemy.sprite), enemy.sprite.y + 2, DreadFX.MADNESS, PixelFlare.M, .4f);
+					ShoutFX.dread(enemy.sprite, false, 0);
 				}
 			}
 		}
@@ -94,5 +100,16 @@ public class Demoralize extends Skill {
 		public int hits;
 		@Override public void storeInBundle(Bundle b){ super.storeInBundle(b); b.put("factor", factor); b.put("hits", hits); }
 		@Override public void restoreFromBundle(Bundle b){ super.restoreFromBundle(b); factor=b.getFloat("factor"); hits=b.getInt("hits"); }
+
+		@Override
+		public int icon(){ return xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator.DEMORALIZED; }
+
+		@Override
+		public float iconFadePercent(){ return Math.max( 0f, (20f - visualcooldown()) / 20f ); }
+
+		@Override
+		public String desc(){
+			return xyz.gabriwar.warpedpixeldungeon.messages.Messages.get( this, "desc", Math.round( (1f - factor) * 100f ), dispTurns() );
+		}
 	}
 }

@@ -137,7 +137,8 @@ public class FallingLeafParticle extends WeatherParticle {
 		//it comes down one to three cells below where it fell from
 		groundY = y + DungeonTilemap.SIZE * FxRandom.IntRange(LAND_MIN, LAND_MAX) + FxRandom.Float(-4f, 4f);
 
-		windBias = ClimateManager.localWindSpeed() * 1.0f;
+		//it rides the wind the way it blows (under a roof the draught east it always had: Fx.driftX)
+		windBias = Fx.driftX();
 		speed.set(FxRandom.Float(-6, 6) + windBias, petal ? FxRandom.Float(5, 10) : FxRandom.Float(8, 16));
 		acc.set(0, FxRandom.Float(4, 8));
 		wobblePhase = FxRandom.Float((float)(Math.PI * 2));
@@ -166,8 +167,10 @@ public class FallingLeafParticle extends WeatherParticle {
 		if (state == FALL) {
 			wobblePhase += dt * 3f;
 			float gust = WeatherSprites.gust();
-			//half its own swing, half the gust every falling leaf shares
-			speed.x = (0.5f * (float) Math.sin(wobblePhase) + 0.5f * gust) * 10f + windBias * (1f + 0.4f * gust);
+			//half its own swing, half the gust every falling leaf shares, which pushes it on the way
+			//the wind blows (mirrored in a west wind)
+			float side = windBias < 0 ? -1f : 1f;
+			speed.x = (0.5f * (float) Math.sin(wobblePhase) + 0.5f * gust * side) * 10f + windBias * (1f + 0.4f * gust);
 			//it turns over as it swings: another face, or the same one mirrored
 			tumble -= dt;
 			if (tumble <= 0) {

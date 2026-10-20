@@ -39,10 +39,9 @@ import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAura;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 public class IronStance extends ActiveSkill {
 
@@ -117,14 +116,14 @@ public class IronStance extends ActiveSkill {
 			//steel meets steel: a hard white flash off the guard and a jolt of the screen
 			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
 			new Flare( 6, 16 ).color( 0xEEF4FF, true ).show( hero.sprite, 0.3f );
-			hero.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( this, "blocked" ) );
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.icon( hero, xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.PARRY, 0 );
 			if (attacker != null) hero.sprite.turnTo( hero.pos, attacker.pos );
 		}
 		Fx.shake( 1, 0.1f );
 		//+3: the attacker reels back from the steel it hit, dizzy
 		if (level >= MAX_LEVEL && attacker != null && !attacker.properties().contains( Char.Property.BOSS )){
 			SkillInteractions.affectAfterHit( attacker, Vertigo.class, DIZZY );
-			if (attacker.sprite != null) attacker.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
+			if (attacker.sprite != null) attacker.sprite.emitter().burst( SkillBursts.DAZE, 4 );
 		}
 	}
 }

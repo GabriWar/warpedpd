@@ -23,6 +23,9 @@ package xyz.gabriwar.warpedpixeldungeon.items.weapon.curses;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.BlastParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SmokeParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
@@ -30,7 +33,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.bombs.Bomb;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.MissileWeapon;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Bundle;
@@ -58,14 +60,18 @@ public class Explosive extends Weapon.Enchantment {
 		durability -= durToReduce;
 
 		if (currentDurability > 50 && durability <= 50){
-			attacker.sprite.showStatus(CharSprite.WARNING, Messages.get(this, "warm"));
+			//the fuse on the wielder's card: amber while warm
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.icon( attacker, xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.FUSE, 0xFFAA33 );
 			GLog.w(Messages.get(this, "desc_warm"));
 			attacker.sprite.emitter().burst(SmokeParticle.FACTORY, 4);
+			EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, 0.45f, level(), EnchantFx.CURSE, ElementRows.explosive( false ) );
 			Item.updateQuickslot();
 		} else if (currentDurability > 10 && durability <= 10){
-			attacker.sprite.showStatus(CharSprite.WARNING, Messages.get(this, "hot"));
+			//red once hot
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.icon( attacker, xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.FUSE, 0xFF3A3A );
 			GLog.n(Messages.get(this, "desc_hot"));
 			attacker.sprite.emitter().burst(BlastParticle.FACTORY, 5);
+			EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, 0.75f, level(), EnchantFx.CURSE, ElementRows.explosive( true ) );
 			Item.updateQuickslot();
 		} else if (durability <= 0) {
 			//explosion position is the closest adjacent cell to the defender

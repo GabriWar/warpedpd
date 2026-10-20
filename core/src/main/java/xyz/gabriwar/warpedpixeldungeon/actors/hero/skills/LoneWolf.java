@@ -35,6 +35,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SummonedPet;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.DreadFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.ShoutFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
@@ -82,7 +86,8 @@ public class LoneWolf extends Skill {
 			wasAlone = alone;
 			castText = Messages.get( this, alone ? "cast_alone" : "cast_company" );
 			castTextYell();
-			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( alone ? Speck.STAR : Speck.DUST ), 4 );
+			//alone: her own sparkle (never a level-up's stars); company: the dust she settles
+			if (hero.sprite != null) hero.sprite.emitter().burst( alone ? SkillBursts.FLOURISH : Speck.factory( Speck.DUST ), 4 );
 			SpatialSound.play( Assets.Sounds.MISS, hero, 0.7f, alone ? 1.3f : 0.8f );
 		}
 		return alone;
@@ -107,15 +112,28 @@ public class LoneWolf extends Skill {
 		if (hero == null || mob == null || !alone()) return;
 
 		boolean howled = false;
+		java.util.ArrayList<Mob> struck = new java.util.ArrayList<>();
 		for (Mob m : Dungeon.level.mobs){
 			if (m == mob || !m.isAlive() || m.alignment != Char.Alignment.ENEMY) continue;
 			if (Dungeon.level.distance( hero.pos, m.pos ) > HOWL_RADIUS) continue;
 			Buff.prolong( m, Terror.class, 1 + level ).object = hero.id();
-			if (m.sprite != null) m.sprite.showStatus( CharSprite.NEGATIVE, Messages.get( this, "fear" ) );
 			howled = true;
+			struck.add( m );
 		}
 		if (howled){
-			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.SCREAM ), 3 );
+			//the howl: three grey rings rolling out from her feet, motes of her breath, and each enemy
+			//it reaches jolting back from her (never an alarm's brackets, never Rage)
+			if (hero.sprite != null){
+				hero.sprite.emitter().burst( SkillBursts.ROAR, 3 );
+				ShoutFX.howl( hero.sprite, ShoutFX.WOLF, 3, 0.08f );
+				float hx = SkillVfx.midX( hero.sprite ), hy = SkillVfx.midY( hero.sprite );
+				for (Mob m : struck){
+					if (m.sprite != null && Dungeon.level.heroFOV[m.pos]){
+						ShoutFX.flinch( m.sprite, hx, hy, DreadFX.WOLF_FLINCH, 0.06f + 0.04f * Dungeon.level.distance( hero.pos, m.pos ) );
+					}
+				}
+			}
+			//her challenge (the wolves' own howl is theirs: a siege, a hunt)
 			SpatialSound.play( Assets.Sounds.CHALLENGE, hero, 0.8f, 1.3f );
 		}
 
@@ -124,7 +142,7 @@ public class LoneWolf extends Skill {
 		int heal = Math.min( hero.HT - hero.HP, Math.max( 1, Math.round( hero.HT * 0.05f ) ) );
 		hero.HP += heal;
 		if (hero.sprite != null){
-			hero.sprite.showStatus( CharSprite.POSITIVE, Integer.toString( heal ) );
+			hero.sprite.showStatusWithIcon( CharSprite.POSITIVE, Integer.toString( heal ), xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.HEALING );
 			hero.sprite.emitter().burst( Speck.factory( Speck.HEALING ), 3 );
 		}
 		SpatialSound.play( Assets.Sounds.HIT_STRONG, hero, 0.6f, 0.7f );

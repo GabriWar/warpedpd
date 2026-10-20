@@ -32,6 +32,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.NPC;
+import xyz.gabriwar.warpedpixeldungeon.items.Heap;
+import xyz.gabriwar.warpedpixeldungeon.items.Item;
+import xyz.gabriwar.warpedpixeldungeon.items.materials.Charcoal;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.TownChurchLevel;
@@ -70,8 +73,10 @@ import static org.junit.Assert.assertTrue;
  * runs on as the wand of lightning's zap does (StormStrikes.discharge: a cell from whoever it hit,
  * two from one in water, a hero only from beside, the blow shared as the wand's, whole only in
  * standing water; out over the water a splash), the ground it strikes is burnt at once and the
- * grass round it burns on through the storm's heavy rain; each bolt is handed to the overlay to
- * draw with where it ran, the host's to a guest's through NetVisuals.
+ * grass round it burns on through the storm's heavy rain; a tree in reach draws half the bolts
+ * (none beside anyone, none in the town, and no Random drawn where there is none), catches and
+ * burns down to charcoal; each bolt is handed to the overlay to draw with where it ran, the host's
+ * to a guest's through NetVisuals.
  */
 public class StormStrikesTest {
 
@@ -187,7 +192,9 @@ public class StormStrikesTest {
 	@Test
 	public void aBoltLandsAroundTheHeroAndRarelyOnHim(){
 		OverworldLevel l = grass( new OverworldLevel( 0 ) );
-		//a tree beside him and a house's doorway: never struck, the ground is
+		Actor.add( Dungeon.hero );
+		//a tree beside him (no tree is set alight beside anyone) and a house's doorway: never
+		//struck, the ground is
 		Level.set( CENTER + 1, Terrain.TREE_OAK, l );
 		Level.set( CENTER - 1, Terrain.OPEN_DOOR, l );
 		int onHim = 0, tries = 20000;
@@ -199,6 +206,96 @@ public class StormStrikesTest {
 			if (c == CENTER) onHim++;
 		}
 		assertTrue( "on the hero " + onHim + " times in " + tries, onHim < tries / 200 );
+	}
+
+	@Test
+	public void tallTreesDrawHalfTheBolts(){
+		OverworldLevel l = grass( new OverworldLevel( 0 ) );
+		Actor.add( Dungeon.hero );
+		//an oak in reach; a pine past it; a pine a deer stands beside
+		int oak = at( 20, 15 ), far = at( 15 + StormStrikes.REACH + 2, 15 ), watched = at( 15, 9 );
+		Level.set( oak, Terrain.TREE_OAK, l );
+		Level.set( far, Terrain.TREE_PINE, l );
+		Level.set( watched, Terrain.TREE_PINE, l );
+		Char deer = target( false );
+		deer.pos = watched - 1;
+		int onOak = 0, tries = 20000;
+		for (int i = 0; i < tries; i++){
+			int c = StormStrikes.pick( l, CENTER );
+			assertTrue( c != far && c != watched );
+			if (c == oak) onOak++;
+			else assertTrue( "else open ground", c != -1 && !l.solid[c] );
+		}
+		assertTrue( "half of them on the oak: " + onOak, onOak > tries * 0.46f && onOak < tries * 0.54f );
+
+		//none in the town
+		Actor.clear();
+		l = grass( new OverworldLevel( 0 ) );
+		l.worldX = WorldStructures.townWorldX( 0 ) + 1;
+		l.worldY = WorldStructures.townWorldY( 0 ) + 1;
+		assertTrue( l.inTown( oak ) );
+		Level.set( oak, Terrain.TREE_OAK, l );
+		for (int i = 0; i < 2000; i++) assertTrue( StormStrikes.pick( l, CENTER ) != oak );
+	}
+
+	@Test
+	public void withNoTreeInReachTheBoltsFallAsTheyAlwaysDid(){
+		//the same seed, a level of bare grass and one with a tree out of reach: the tree draws none
+		//of the game's Random, so the bolts fall alike
+		int[] bare = new int[200], treed = new int[200];
+		Random.pushGenerator( 77 );
+		OverworldLevel l = grass( new OverworldLevel( 0 ) );
+		for (int i = 0; i < bare.length; i++) bare[i] = StormStrikes.pick( l, CENTER );
+		Random.popGenerator();
+		Random.pushGenerator( 77 );
+		l = grass( new OverworldLevel( 0 ) );
+		Level.set( at( 15 + StormStrikes.REACH + 2, 15 ), Terrain.TREE_OAK, l );
+		for (int i = 0; i < treed.length; i++) treed[i] = StormStrikes.pick( l, CENTER );
+		Random.popGenerator();
+		assertTrue( Arrays.equals( bare, treed ) );
+	}
+
+	@Test
+	public void aStruckTreeCatchesAndBurnsDownToCharcoal(){
+		ClimateManager.debugForceStorm = true;
+		OverworldLevel l = grass( new OverworldLevel( 0 ) );
+		int tree = at( 20, 15 );
+		Level.set( tree, Terrain.TREE_OAK, l );
+		StormStrikes.strike( tree );
+		assertEquals( "it stands, alight", Terrain.TREE_OAK, l.map[tree] );
+		Fire fire = (Fire) l.blobs.get( Fire.class );
+		assertNotNull( fire );
+		assertEquals( StormStrikes.TREE_BURN, fire.cur[tree] );
+		for (int n : PathFinder.NEIGHBOURS4) assertTrue( "the grass round its foot catches", fire.cur[tree + n] > 0 );
+		//handed to the overlay to draw, as any bolt
+		StormStrikes.Bolt b = StormStrikes.next();
+		assertNotNull( b );
+		assertEquals( tree, b.cell );
+		assertNull( StormStrikes.next() );
+
+		//its turns go by in the storm's rain: it burns them all, then falls to embers and charcoal
+		for (int t = 0; t < StormStrikes.TREE_BURN - 1; t++){
+			fire.act();
+			assertEquals( Terrain.TREE_OAK, l.map[tree] );
+		}
+		fire.act();
+		assertEquals( Terrain.EMBERS, l.map[tree] );
+		boolean charcoal = false;
+		for (Heap h : l.heaps.valueList()) for (Item i : h.items) charcoal |= i instanceof Charcoal;
+		assertTrue( "its charcoal", charcoal );
+	}
+
+	@Test
+	public void aTreeBesideSomeoneIsNotSetAlight(){
+		OverworldLevel l = grass( new OverworldLevel( 0 ) );
+		int tree = at( 20, 15 );
+		Level.set( tree, Terrain.TREE_PINE, l );
+		Char near = target( false );
+		near.pos = tree + W;
+		StormStrikes.strike( tree );
+		Fire fire = (Fire) l.blobs.get( Fire.class );
+		if (fire != null) assertEquals( 0, fire.cur[tree] );
+		assertEquals( Terrain.TREE_PINE, l.map[tree] );
 	}
 
 	private static Char target( final boolean immune ){

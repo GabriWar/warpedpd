@@ -29,13 +29,13 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.MoteFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfMagic;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 public class Spirituality extends PassiveSkillA1 {
 
@@ -64,7 +64,9 @@ public class Spirituality extends PassiveSkillA1 {
 			hero.MP += gain;
 			if (hero.sprite != null){
 				hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 2 + gain );
-				hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "jolt", gain ) );
+				//the mana jolted loose drawn back into him
+				MoteFX.gather( hero.sprite, 8, SkillPalette.MANA, 18f, 0.4f );
+				hero.sprite.showStatusWithIcon( xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.BlowPresenter.MANA_COLOR, Integer.toString( gain ), xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.MANA );
 			}
 			SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 0.5f, 1.4f );
 

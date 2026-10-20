@@ -26,21 +26,49 @@ package xyz.gabriwar.warpedpixeldungeon.effects.fx;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Fire;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.ToxicGas;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Rat;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.HitFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.WeaponLight;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLook;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantTrail;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.LineLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.PieceFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.TypeFx;
+import xyz.gabriwar.warpedpixeldungeon.items.Heap;
+import xyz.gabriwar.warpedpixeldungeon.items.Item;
+import xyz.gabriwar.warpedpixeldungeon.items.armor.ClothArmor;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.ItemType;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Rarity;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Chilling;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Blazing;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Shocking;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Flute;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Sword;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.ThrowingKnife;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.WarpedRoomsTest;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.sprites.MissileSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.RatSprite;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import com.badlogic.gdx.Gdx;
@@ -52,6 +80,7 @@ import com.watabou.noosa.Group;
 import com.watabou.noosa.Visual;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.PointF;
+import com.watabou.utils.Random;
 import com.watabou.utils.SparseArray;
 import org.junit.After;
 import org.junit.Before;
@@ -61,6 +90,7 @@ import org.junit.Test;
 import java.lang.reflect.Proxy;
 import java.nio.IntBuffer;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -68,9 +98,17 @@ import static org.junit.Assert.assertTrue;
 
 /**
  * Every area's effects at once, as the kit's busy fight: 15 cells of fire, 20 of toxic gas, two
- * burning rats taking four blows a second, a fire bolt every 1.5 s, a wand's lightning every 2 s
- * and rain on a pond. At each of the governor's tiers the kit's particles stay under its hard cap,
- * the lights under theirs, and the pictures drawn come down tier by tier.
+ * burning rats taking four blows a second, a fire bolt every 1.5 s, a wand's lightning every 2 s,
+ * rain on a pond, and two rats of enchanted weapons (blazing, shocking) striking them in turn, a
+ * proc on every blow of theirs (its swing's trail with it), the hero wielding a sword of two
+ * enchantments (its sheds and its light), three enchanted heaps on the floor and an enchanted
+ * knife thrown across the room every second, and the hero's own busy blow (a proc, a vestige's
+ * echo, a crit, a lifesteal, its numbers, blood and flashes: one card) twice a second, a Bard's
+ * blow between each two of them (its note, every fourth a chord), and the lines on the hero's gear
+ * acting on him (a warm grip in the cold, rainproof armor in the rain: their idles). At each of
+ * the governor's tiers the
+ * kit's particles stay under its hard cap, the lights under theirs, and the pictures drawn come
+ * down tier by tier.
  */
 public class BusyFightTest {
 
@@ -124,6 +162,8 @@ public class BusyFightTest {
 		FxRing.reset();
 		Afterimage.reset();
 		WaterFX.sceneCreated();
+		EnchantTrail.reset();
+		WeaponLight.out( 0f );
 	}
 
 	//a fresh scene: the kit's counts, the areas' statics, the layers, the floor and the hero
@@ -134,7 +174,7 @@ public class BusyFightTest {
 		for (int i = 0; i < layers.length; i++) layers[i] = new Group();
 		GameScene.useLayersForTests( layers );
 		Fx.sceneCreated();
-		for (int k : new int[]{ FxModules.LIGHTNING, FxModules.FIRE_HEAT, FxModules.GASES_COLD, FxModules.SKILLS }){
+		for (int k : new int[]{ FxModules.LIGHTNING, FxModules.FIRE_HEAT, FxModules.GASES_COLD, FxModules.SKILLS, FxModules.ENCHANT }){
 			FxModules.ALL[k].sceneCreated( null );
 		}
 		gases = new Group();
@@ -207,6 +247,12 @@ public class BusyFightTest {
 	}
 
 	private CharSprite rat( int cell ){
+		CharSprite s = plain( cell );
+		s.add( CharSprite.State.BURNING );
+		return s;
+	}
+
+	private CharSprite plain( int cell ){
 		Rat ch = new Rat();
 		ch.state = ch.PASSIVE;
 		ch.pos = cell;
@@ -216,8 +262,59 @@ public class BusyFightTest {
 		world.add( s );
 		s.place( cell );
 		s.visible = true;
-		s.add( CharSprite.State.BURNING );
 		return s;
+	}
+
+	//the hero's sprite, his weapon of these enchantments in hand (a plain sprite: a mob's would
+	//read him as a mob)
+	private CharSprite wielder( Weapon.Enchantment a, Weapon.Enchantment b ){
+		Sword w = lined( new Sword(), RarityLine.WARM_GRIP );
+		w.enchant( a );
+		w.addEnchant( b );
+		Hero h = Dungeon.hero;
+		h.belongings.weapon = w;
+		CharSprite s = new CharSprite(){};
+		s.ch = h;
+		h.sprite = s;
+		world.add( s );
+		s.place( h.pos );
+		s.visible = true;
+		return s;
+	}
+
+	//an item with exactly these lines at a full roll (the game's Random held apart)
+	private static <T extends Item> T lined( T item, RarityLine... lines ){
+		Random.pushGenerator( 5 );
+		try {
+			item.quality = null;
+			Quality.roll( item, Rarity.RARE, ItemType.GAMMA, 0 );
+		} finally {
+			Random.popGenerator();
+		}
+		Quality q = item.quality;
+		q.lines.clear();
+		q.rolls.clear();
+		for (RarityLine l : lines){
+			q.lines.add( l );
+			q.rolls.add( 1f );
+		}
+		item.levelKnown = item.cursedKnown = true;
+		return item;
+	}
+
+	//a heap on the floor, seen, of a sword of this enchantment
+	private void heap( int cell, Weapon.Enchantment e ){
+		Sword w = new Sword();
+		w.enchant( e );
+		w.cursedKnown = true;
+		Heap h = new Heap();
+		h.pos = cell;
+		h.drop( w );
+		h.seen = true;
+		Dungeon.level.heaps.put( cell, h );
+		ItemSprite s = new ItemSprite();
+		world.add( s );
+		s.link( h );
 	}
 
 	//pictures that would be drawn now: every visible Visual on the layers and the world
@@ -259,6 +356,28 @@ public class BusyFightTest {
 		blob( ToxicGas.class, 300, 6, 2, 5, 4 );
 		CharSprite[] rats = { rat( at( 6, 9 ) ), rat( at( 9, 9 ) ) };
 		PointF hero = DungeonTilemap.tileCenterToWorld( Dungeon.hero.pos );
+		//the enchanted: a blazing rat and a shocking one, a proc on every blow, its tier going round
+		CharSprite[] enchanted = { plain( at( 6, 10 ) ), plain( at( 9, 10 ) ) };
+		EnchantLook[] looks = { EnchantLooks.of( Blazing.class ), EnchantLooks.of( Shocking.class ) };
+		float nextProc = 0.1f;
+		int procs = 0;
+		//the item itself: the hero wielding a blazing and chilling sword, enchanted heaps by the
+		//west wall, a blazing knife thrown across the room every second
+		CharSprite wielder = wielder( new Blazing(), new Chilling() );
+		heap( at( 2, 12 ), new Blazing() );
+		heap( at( 3, 13 ), new Shocking() );
+		heap( at( 2, 14 ), new Chilling() );
+		float nextThrow = 0.5f;
+		//and the hero's own busy blow (docs/fx/hit-card.md's worked one) on a rat twice a second
+		float nextBusy = 0.2f;
+		int busy = 0;
+		//a Bard's blows between the hero's own, and the gear's lines told acting once a hero turn
+		//(LineLooks.onWeather), their idles drawn by the area's afterDraw below
+		Flute flute = new Flute();
+		float nextBard = 0.45f, nextTurn = 0;
+		int notes = 0;
+		Dungeon.hero.belongings.armor = lined( new ClothArmor(), RarityLine.RAINPROOF );
+		Dungeon.hero.rainTurns = 1;
 
 		Peaks p = new Peaks();
 		int frames = Math.round( seconds * 60 );
@@ -273,6 +392,37 @@ public class BusyFightTest {
 				CharSprite r = rats[blows++ % 2];
 				r.hitFx( hero.x, hero.y, 6, (blows & 1) == 0 ? HitFx.SLASH : HitFx.STRONG, true );
 				nextHit += 0.25f;
+			}
+			if (t >= nextProc){
+				int k = procs++ % 2;
+				CharSprite a = enchanted[k], d = rats[(procs / 2) % 2];
+				EnchantFx.stageSwing( looks[k], a, d, true, 1, 1, false );
+				EnchantFx.stage( looks[k], a, d, procs % 3, 1, 0 );
+				d.hitFx( a.x + 8, a.y + 8, 4, HitFx.SLASH, false );
+				nextProc += 0.25f;
+			}
+			if (t >= nextTurn){
+				LineLooks.onWeather( Dungeon.hero, 5f, true, false, 0f );
+				assertTrue( "the lines act", LineLooks.acting( Dungeon.hero, LineLooks.WARM_GRIP )
+						&& LineLooks.acting( Dungeon.hero, LineLooks.RAINPROOF ) );
+				nextTurn += 1f;
+			}
+			FxModules.ALL[FxModules.ENCHANT].afterDraw( wielder );
+			if (t >= nextBusy){
+				busyBlow( Dungeon.hero, rats[busy++ % 2] );
+				nextBusy += 0.5f;
+			}
+			if (t >= nextBard){
+				bardBlow( Dungeon.hero, rats[notes % 2], flute, ++notes );
+				nextBard += 0.5f;
+			}
+			if (t >= nextThrow){
+				ThrowingKnife k = new ThrowingKnife();
+				k.enchantment = new Blazing();
+				MissileSprite ms = new MissileSprite();
+				world.add( ms );
+				ms.reset( at( 1, 5 ), at( 14, 5 ), k, null );
+				nextThrow += 1f;
 			}
 			if (t >= nextBolt){
 				MagicMissile m = (MagicMissile) world.recycle( MagicMissile.class );
@@ -303,7 +453,49 @@ public class BusyFightTest {
 			p.drawnSum += d;
 			p.frames++;
 		}
+		//the lines let go of, so no later test finds them acting
+		LineLooks.onWeather( Dungeon.hero, 30f, false, false, 0f );
 		return p;
+	}
+
+	//a Bard's landed blow, as WeaponPerk plays it: every fourth note a chord first (a rally, then a
+	//dread), then the note; its number and its star
+	private static void bardBlow( Char a, CharSprite d, Item instrument, int note ){
+		boolean chord = note % 4 == 0, dread = note % 8 == 0;
+		Blow.begin( a, d.ch );
+		if (chord) TypeFx.chord( a, d.ch, instrument, dread, dread ? Collections.<Char>emptyList() : Collections.singletonList( a ),
+				dread ? Collections.singletonList( d.ch ) : Collections.<Char>emptyList(), null );
+		TypeFx.note( a, chord != dread );
+		d.showStatusWithIcon( CharSprite.NEGATIVE, "5", FloatingText.PHYS_DMG );
+		d.hitFx( a.sprite.x + 8, a.sprite.y + 8, 5, HitFx.SLASH, false );
+		Blow.end();
+	}
+
+	/** The worked busy blow (docs/fx/hit-card.md): a Blazing proc, a Shocking vestige's echo, a
+	 *  crit, a lifesteal, the burn's and the blow's numbers, Burning announced, the blood, two
+	 *  flashes, the swing and the star - one blow, handed to its presenter. */
+	public static void busyBlow( Char a, CharSprite d ){
+		Blow.begin( a, d.ch );
+		busyCalls( a, d );
+		Blow.end();
+	}
+
+	/** The busy blow's calls with no blow open around them: the pictures as they were before the
+	 *  ledger (master's), to hold a blow's up against. */
+	public static void busyCalls( Char a, CharSprite d ){
+		EnchantFx.proc( EnchantLooks.of( Blazing.class ), a, d.ch, EnchantFx.strengthOf( EnchantFx.MID ), 0, 0 );
+		EnchantFx.proc( EnchantLooks.of( Shocking.class ), a, d.ch, EnchantFx.strengthOf( EnchantFx.MID ), 0, EnchantFx.ECHO );
+		PieceFx.crit( a, d.ch );
+		a.sprite.showStatusWithIcon( CharSprite.POSITIVE, "4", FloatingText.HEALING );
+		PieceFx.lifesteal( a, d.ch );
+		d.showStatusWithIcon( CharSprite.NEGATIVE, "3", FloatingText.MAGIC_DMG );
+		Blow.announce( d.ch, new Burning() );
+		d.showStatusWithIcon( CharSprite.NEGATIVE, "27", FloatingText.PHYS_DMG );
+		d.bloodBurstA( a.sprite.center(), 27 );
+		d.flash();
+		d.flash();
+		EnchantFx.swing( a, d.ch, true );
+		d.hitFx( a.sprite.x + 8, a.sprite.y + 8, 27, HitFx.SLASH, true );
 	}
 
 	//the governor at `tier`, by the frame times a phone that slow reports

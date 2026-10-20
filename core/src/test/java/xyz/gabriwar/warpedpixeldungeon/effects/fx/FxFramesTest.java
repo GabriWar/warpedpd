@@ -59,8 +59,8 @@ public class FxFramesTest {
 		List<Named> out = new ArrayList<>();
 		for (Field f : c.getDeclaredFields()){
 			if (!Modifier.isStatic( f.getModifiers() ) || !Modifier.isPublic( f.getModifiers() )) continue;
-			//lookup tables, not frames
-			if (f.getName().endsWith( "_WIDTHS" ) || f.getName().endsWith( "_SIZES" )
+			//lookup tables, not frames (the cores' steps, STEP_4 and STEP_3, are frames of the sheet's own)
+			if (f.getName().endsWith( "_WIDTHS" ) || f.getName().endsWith( "_SIZES" ) || f.getName().startsWith( "STEP_" )
 					|| f.getName().equals( "RINGS" ) || f.getName().equals( "GLOWS" ) || f.getName().equals( "POOLS" )) continue;
 			Object v = f.get( null );
 			if (v instanceof int[]){
@@ -139,6 +139,37 @@ public class FxFramesTest {
 			int[] g = FxFrames.Light.GLOWS[i];
 			assertEquals( FxFrames.Light.GLOW_SIZES[i], g[2] );
 			assertEquals( 255, sheet.getRGB( g[0] + g[2] / 2, g[1] + g[3] / 2 ) >>> 24 );
+		}
+	}
+
+	@Test
+	public void theCoresStepDownInWholePixelsAndTheRunesAreOneAlphabet() throws Exception {
+		//a stepped core: solid squares 4, 3 then the motes 2, 1
+		assertEquals( 4, FxFrames.STEP_4.length );
+		int[] sizes = { 4, 3, 2, 1 };
+		for (int i = 0; i < 4; i++){
+			assertEquals( sizes[i], FxFrames.STEP_4[i][2] );
+			assertEquals( sizes[i], FxFrames.STEP_4[i][3] );
+		}
+		assertTrue( FxFrames.STEP_3[0] == FxFrames.SQ_3 && FxFrames.STEP_3[1] == FxFrames.MOTE_2 && FxFrames.STEP_3[2] == FxFrames.MOTE_1 );
+		BufferedImage sheet = sheet( Assets.Effects.FX_SHEET );
+		for (int[] sq : new int[][]{ FxFrames.SQ_3, FxFrames.SQ_4 }){
+			for (int y = sq[1]; y < sq[1] + sq[3]; y++) for (int x = sq[0]; x < sq[0] + sq[2]; x++){
+				assertEquals( 0xFFFFFFFF, sheet.getRGB( x, y ) );
+			}
+		}
+		//RUNE_5: the same four glyphs at 5 px, two alphas (strokes 255, joins 185), none blank
+		assertEquals( FxFrames.RUNE_3.length, FxFrames.RUNE_5.length );
+		for (int[] r : FxFrames.RUNE_5){
+			assertEquals( 5, r[2] );
+			assertEquals( 5, r[3] );
+			int strokes = 0;
+			for (int y = r[1]; y < r[1] + 5; y++) for (int x = r[0]; x < r[0] + 5; x++){
+				int a = sheet.getRGB( x, y ) >>> 24;
+				assertTrue( a == 0 || a == 255 || a == 185 );
+				if (a == 255) strokes++;
+			}
+			assertTrue( strokes >= 5 );
 		}
 	}
 

@@ -200,12 +200,17 @@ public class Chasm implements Hero.Doom {
 		PixelScene.shake( 4, 1f );
 
 		Dungeon.level.occupyCell(hero );
-		Buff.prolong( hero, Cripple.class, Cripple.DURATION );
+		//a SUREFOOT line on the armor takes its share off the limp, the bleed and the blow alike
+		float sure = xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.value( hero.belongings.armor(),
+				xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.SUREFOOT );
+		Buff.prolong( hero, Cripple.class, Cripple.DURATION * (1f - sure) );
 
 		//The lower the hero's HP, the more bleed and the less upfront damage.
 		//Hero has a 50% chance to bleed out at 66% HP, and begins to risk instant-death at 25%
-		Buff.affect( hero, Bleeding.class).set( Math.round(hero.HT / (6f + (6f*(hero.HP/(float)hero.HT)))), Chasm.class);
-		hero.damage( Math.max( hero.HP / 2, Random.NormalIntRange( hero.HP / 2, hero.HT / 4 )), new Chasm() );
+		Buff.affect( hero, Bleeding.class).set( Math.round(hero.HT / (6f + (6f*(hero.HP/(float)hero.HT))) * (1f - sure)), Chasm.class);
+		hero.damage( Math.round( Math.max( hero.HP / 2, Random.NormalIntRange( hero.HP / 2, hero.HT / 4 )) * (1f - sure) ), new Chasm() );
+		//a SUREFOOT line's landing: a ring and a glint at his feet
+		xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.LineLooks.landed( hero, sure );
 	}
 
 	//a monster with more than this share of its health always lives through the fall, and the landing

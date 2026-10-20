@@ -215,6 +215,17 @@ public class ElfBow extends Weapon {
 			setID = 0;
 		}
 
+		/** the bow that fires it: its magic is the arrow's (the arrow procs through it) */
+		public ElfBow launcher() {
+			return ElfBow.this;
+		}
+
+		//it shows its bow's glow, as it fires its bow's enchantments
+		@Override
+		public xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite.Glowing glowing() {
+			return ElfBow.this.glowing();
+		}
+
 		@Override
 		public ArrayList<String> actions(Hero hero) {
 			return new ArrayList<>();
@@ -253,6 +264,12 @@ public class ElfBow extends Weapon {
 		@Override
 		public float delayFactor(Char user) {
 			return ElfBow.this.delayFactor(user);
+		}
+
+		//the arrow has no quality of its own: its bow's ACCURACY line lifts it
+		@Override
+		public float accuracyFactor(Char owner, Char target) {
+			return super.accuracyFactor(owner, target) * (1f + xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.value( ElfBow.this, xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.ACCURACY ));
 		}
 
 		@Override

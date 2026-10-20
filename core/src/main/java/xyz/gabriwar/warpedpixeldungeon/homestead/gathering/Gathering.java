@@ -31,9 +31,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroAction;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.PieceFx;
 import xyz.gabriwar.warpedpixeldungeon.homestead.BuiltTerrain;
 import xyz.gabriwar.warpedpixeldungeon.homestead.Homestead;
 import xyz.gabriwar.warpedpixeldungeon.homestead.StoreSection;
+import xyz.gabriwar.warpedpixeldungeon.homestead.farming.Farming;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
@@ -45,17 +47,22 @@ import xyz.gabriwar.warpedpixeldungeon.items.materials.Resin;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.RoughStone;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.Sand;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.Thatch;
+import xyz.gabriwar.warpedpixeldungeon.items.ore.Ore;
 import xyz.gabriwar.warpedpixeldungeon.items.quest.Pickaxe;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Axe;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.BattleAxe;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Greataxe;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.HandAxe;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MasonsHammer;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MinersTool;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Shovel;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.WarHammer;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.alchemy.MeisterHammer;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.relic.CromCruachAxe;
 import xyz.gabriwar.warpedpixeldungeon.items.treeseeds.Acorn;
 import xyz.gabriwar.warpedpixeldungeon.items.treeseeds.BushSeed;
 import xyz.gabriwar.warpedpixeldungeon.items.treeseeds.PineCone;
-import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Sickle;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.WoodcuttersAxe;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
@@ -79,10 +86,12 @@ import java.util.HashSet;
 /**
  * The hero working the land of the world's slices for building materials: FELLING a tree with an
  * axe (logs, a pine's resin; a stump left to grow back, GatheringSlice), QUARRYING a boulder with
- * a pick or a mason's hammer (rough stone), DIGGING with a shovel (tilling grass into farmland,
+ * a pick, a hammer or a mining tool (rough stone), DIGGING with a shovel (tilling grass into farmland,
  * clay from a swamp's or a river's bank, sand from a beach or a desert, a stump or a sapling dug
  * out) and REAPING tall grass with a sickle (thatch). The rock walls the pick already breaks give
  * rough stone too (wallStone), and the mason's hammer breaks them, slower (Hero.actMine).
+ * A typed Woodsman's axe or Quarry's tool works in fewer strokes and sometimes brings out one
+ * more log, stone or ore (Quality.workStrokes, Quality.extraYield).
  *
  * A job is a HeroAction.Work: one stroke a turn (Hero.actWork), each its sound and its chips, the
  * work done on the last. The hero's own tap on a tree or a boulder beside him starts one (tapJob;
@@ -110,7 +119,7 @@ public final class Gathering {
 	/** The turns each axe takes to fell a tree. */
 	public static final int HAND_AXE_TURNS = 8, AXE_TURNS = 6, BATTLE_AXE_TURNS = 5,
 			GREATAXE_TURNS = 4, WOODCUTTERS_AXE_TURNS = 3;
-	/** The turns a boulder takes: the pick, the mason's hammer. */
+	/** The turns a boulder takes: the pick (and every tool but the mason's hammer), the mason's hammer. */
 	public static final int PICK_QUARRY_TURNS = 3, HAMMER_QUARRY_TURNS = 2;
 	/** The turns the mason's hammer takes on a rock wall (the pick's blow is one). */
 	public static final int HAMMER_WALL_TURNS = 3;
@@ -130,12 +139,14 @@ public final class Gathering {
 
 	// ----------------------------------------------------------------- the tools
 
-	/** The turns an item takes to fell a tree, 0 when it is no axe. */
+	/** The turns an item takes to fell a tree, 0 when it is no axe. A typed Woodsman's axe takes
+	 *  fewer (turns: Quality.workStrokes). */
 	public static int axeTurns( Item item ){
 		if (item == null) return 0;
 		Class<?> c = item.getClass();
 		if (c == WoodcuttersAxe.class) return WOODCUTTERS_AXE_TURNS;
-		if (c == Greataxe.class) return GREATAXE_TURNS;
+		//Crom Cruach's axe fells as the greataxe does
+		if (c == Greataxe.class || c == CromCruachAxe.class) return GREATAXE_TURNS;
 		if (c == BattleAxe.class) return BATTLE_AXE_TURNS;
 		if (c == Axe.class) return AXE_TURNS;
 		if (c == HandAxe.class) return HAND_AXE_TURNS;
@@ -143,27 +154,63 @@ public final class Gathering {
 	}
 
 	/** The axe the hero fells with: the weapon in his hand when it is an axe, else the quickest
-	 *  he carries; null when he has none. */
+	 *  he carries (a typed Woodsman's axe takes fewer strokes); null when he has none. */
 	public static Item axe( Hero hero ){
 		Item held = hero.belongings.weapon();
 		if (axeTurns( held ) > 0) return held;
 		Item best = null;
 		for (Item i : hero.belongings.getAllItems( Item.class )){
-			int t = axeTurns( i );
-			if (t > 0 && (best == null || t < axeTurns( best ))) best = i;
+			if (axeTurns( i ) > 0 && (best == null || axeStrokes( i ) < axeStrokes( best ))) best = i;
 		}
 		return best;
 	}
 
-	/** What the hero breaks a boulder with: the mason's hammer, else the pick; null for neither. */
-	public static Item quarryTool( Hero hero ){
-		Item hammer = hero.belongings.getItem( MasonsHammer.class );
-		return hammer != null ? hammer : hero.belongings.getItem( Pickaxe.class );
+	//the strokes a tree takes with an axe, its type counted
+	private static int axeStrokes( Item axe ){
+		return Quality.workStrokes( axe, axeTurns( axe ) );
 	}
 
-	/** The turns a boulder takes with a tool (quarryTool). */
+	//whether an item breaks a boulder: a mason's hammer, a pick, a war hammer, a meister hammer or
+	//a miner's tool
+	private static boolean quarries( Item item ){
+		return item instanceof MasonsHammer || item instanceof Pickaxe || item instanceof WarHammer
+				|| item instanceof MeisterHammer || item instanceof MinersTool;
+	}
+
+	/** What the hero breaks a boulder with: the quickest of the tools that break one he carries,
+	 *  held or in the pack (a typed Quarry tool takes fewer strokes), the one in his hand on a
+	 *  tie; null for none. */
+	public static Item quarryTool( Hero hero ){
+		Item held = hero.belongings.weapon();
+		Item best = quarries( held ) ? held : null;
+		for (Item i : hero.belongings.getAllItems( Item.class )){
+			if (quarries( i ) && (best == null || quarryStrokes( i ) < quarryStrokes( best ))) best = i;
+		}
+		return best;
+	}
+
+	/** The turns a boulder takes with a tool (quarryTool) before its type: the mason's hammer two,
+	 *  every other three. */
 	public static int quarryTurns( Item tool ){
 		return tool instanceof MasonsHammer ? HAMMER_QUARRY_TURNS : PICK_QUARRY_TURNS;
+	}
+
+	//the strokes a boulder takes with a tool, its type counted
+	private static int quarryStrokes( Item tool ){
+		return Quality.workStrokes( tool, quarryTurns( tool ) );
+	}
+
+	/** What the hero breaks the world's rock with (Hero.actMine): the pick, else the mason's
+	 *  hammer, as the hero's handling picks between them; null for neither. */
+	public static Item wallTool( Hero hero ){
+		Item pick = hero.belongings.getItem( Pickaxe.class );
+		return pick != null ? pick : hero.belongings.getItem( MasonsHammer.class );
+	}
+
+	//the shovel the hero digs with: the one in his hand, else the first he carries; null for none
+	private static Item shovel( Hero hero ){
+		Item held = hero.belongings.weapon();
+		return held instanceof Shovel ? held : hero.belongings.getItem( Shovel.class );
 	}
 
 	public static boolean tree( int t ){
@@ -184,7 +231,7 @@ public final class Gathering {
 
 	/**
 	 * What tapping a cell beside the hero puts him to, null for nothing: a tree with an axe to
-	 * hand, a boulder with a pick or a mason's hammer. Only beside him: a tap on one farther off
+	 * hand, a boulder with a tool that breaks one (quarryTool). Only beside him: a tap on one farther off
 	 * is still a walk (Hero.handle).
 	 */
 	public static Job tapJob( Hero hero, int cell ){
@@ -272,12 +319,18 @@ public final class Gathering {
 		return p.depth == Dungeon.depth && p.key == key && p.job == job ? p.strokes : 0;
 	}
 
-	/** The turns a job takes the hero on a cell, with the tools he carries now. */
+	/** The turns a job takes the hero on a cell, with the tools he carries now: fewer with a typed
+	 *  Woodsman's or Quarry's tool (Quality.workStrokes). */
 	public static int turns( Hero hero, int cell, Job job ){
 		switch (job){
-			case CHOP:   return tree( Dungeon.level.map[cell] ) ? axeTurns( axe( hero ) ) : lightChop( axeTurns( axe( hero ) ) );
-			case QUARRY: return quarryTurns( quarryTool( hero ) );
-			case DIG:    return dig( (OverworldLevel) Dungeon.level, cell ) == Dig.STUMP ? STUMP_TURNS : DIG_TURNS;
+			case CHOP: {
+				Item a = axe( hero );
+				int t = axeTurns( a );
+				return Quality.workStrokes( a, tree( Dungeon.level.map[cell] ) ? t : lightChop( t ) );
+			}
+			case QUARRY: return quarryStrokes( quarryTool( hero ) );
+			case DIG:    return Quality.workStrokes( shovel( hero ),
+					dig( (OverworldLevel) Dungeon.level, cell ) == Dig.STUMP ? STUMP_TURNS : DIG_TURNS );
 			case REAP: default:
 				return REAP_TURNS;
 		}
@@ -353,7 +406,7 @@ public final class Gathering {
 				return null;
 			}
 			case REAP: default:
-				if (hero.belongings.getItem( Sickle.class ) == null) return Messages.get( Gathering.class, "no_sickle" );
+				if (!Farming.hasSickle( hero )) return Messages.get( Gathering.class, "no_sickle" );
 				if (t != Terrain.HIGH_GRASS && t != Terrain.FURROWED_GRASS) return Messages.get( Gathering.class, "nothing_to_reap" );
 				if (ow.protectedForBuilding( cell )) return Messages.get( Gathering.class, "protected_reap" );
 				return null;
@@ -409,18 +462,20 @@ public final class Gathering {
 
 	// ----------------------------------------------------------------- each stroke
 
-	//the stroke landing: its sound and its chips (on every screen: GatheringFx), and an axe's noise
+	//the stroke landing: its sound and its chips (on every screen: GatheringFx), a typed tool's
+	//piece more, and an axe's noise
 	private static void struck( Hero hero, OverworldLevel ow, int cell, Job job ){
 		if (job == Job.CHOP) noise( ow, cell );
 		int kind;
+		Item tool;
 		switch (job){
-			case CHOP:   kind = GatheringFx.CHOP; break;
-			case QUARRY: kind = GatheringFx.QUARRY; break;
-			case DIG:    kind = GatheringFx.DIG; break;
+			case CHOP:   kind = GatheringFx.CHOP; tool = axe( hero ); break;
+			case QUARRY: kind = GatheringFx.QUARRY; tool = quarryTool( hero ); break;
+			case DIG:    kind = GatheringFx.DIG; tool = shovel( hero ); break;
 			case REAP: default:
-				kind = GatheringFx.REAP;
+				kind = GatheringFx.REAP; tool = null;
 		}
-		GatheringFx.show( ow, kind, cell, 0, 0 );
+		GatheringFx.show( ow, kind, cell, Quality.of( tool ) != null ? GatheringFx.TYPED : 0, 0 );
 	}
 
 	/** An axe ringing on a trunk: every monster within NOISE_RANGE wakes and comes to see. */
@@ -446,14 +501,15 @@ public final class Gathering {
 			}
 			case QUARRY: quarry( hero, ow, cell ); break;
 			case DIG:    dug( ow, cell ); break;
-			case REAP:   reap( ow, cell ); break;
+			case REAP:   reap( hero, ow, cell ); break;
 		}
 	}
 
 	/**
 	 * The tree comes down, away from the hero: its stump left on the cell to grow back
-	 * (GatheringSlice), whoever stood where it fell hurt (TreeFall), the logs - oak 3-4, pine 2-3
-	 * and resin one time in three or so - in a heap at the stump. Hungry work.
+	 * (GatheringSlice), whoever stood where it fell hurt (TreeFall), the logs - oak 3-4, pine 2-3,
+	 * one more now and then from a typed Woodsman's axe, and resin one time in three or so - in a
+	 * heap at the stump. Hungry work.
 	 */
 	static void fell( Hero hero, OverworldLevel ow, int cell ){
 		int tree = ow.map[cell];
@@ -464,13 +520,22 @@ public final class Gathering {
 		TreeFall.fall( ow, cell, cell + (cell - hero.pos) );
 		if (tree == Terrain.TREE_OAK){
 			give( ow, cell, new Log().quantity( Random.IntRange( 3, 4 ) ) );
+			extraLog( hero, ow, cell, new Log() );
 			if (Random.Float() < TREE_SEED_CHANCE) give( ow, cell, new Acorn() );
 		} else {
 			give( ow, cell, new PineLog().quantity( Random.IntRange( 2, 3 ) ) );
+			extraLog( hero, ow, cell, new PineLog() );
 			if (Random.Float() < RESIN_CHANCE) give( ow, cell, new Resin() );
 			if (Random.Float() < TREE_SEED_CHANCE) give( ow, cell, new PineCone() );
 		}
 		hunger( hero, CHOP_HUNGER );
+	}
+
+	//the one more log a typed Woodsman's axe sometimes brings down (Quality.extraYield)
+	private static void extraLog( Hero hero, OverworldLevel ow, int cell, Item log ){
+		if (!Quality.extraYield( axe( hero ) )) return;
+		give( ow, cell, log );
+		PieceFx.extra( cell, log, 1.3f );
 	}
 
 	/** A bush cut down to the ground: grass where it stood, and its seed one time in two. */
@@ -494,14 +559,16 @@ public final class Gathering {
 		if (BuiltTerrain.stump( t )) give( ow, cell, t == Terrain.STUMP_OAK ? new Log() : new PineLog() );
 	}
 
-	/** The boulder breaks into 2-3 rough stone, the ground broken where it stood; in a cave the
-	 *  blow may bring the roof down, as the pick's on the rock does (HazardWatch). */
+	/** The boulder breaks into 2-3 rough stone (one more now and then from a typed Quarry's tool),
+	 *  the ground broken where it stood; in a cave the blow may bring the roof down, as the pick's
+	 *  on the rock does (HazardWatch). */
 	static void quarry( Hero hero, OverworldLevel ow, int cell ){
 		Level.set( cell, Terrain.EMPTY_DECO, ow );
 		changed( ow, cell );
 		ow.hazards().mined( hero, cell, Terrain.BOULDER );
 		GatheringFx.show( ow, GatheringFx.BOULDER_BREAKS, cell, 0, 0 );
 		give( ow, cell, new RoughStone().quantity( Random.IntRange( 2, 3 ) ) );
+		extraStone( ow, cell, quarryTool( hero ) );
 		hunger( hero, QUARRY_HUNGER );
 	}
 
@@ -540,18 +607,48 @@ public final class Gathering {
 		give( ow, cell, new Charcoal().quantity( Random.IntRange( 1, 2 ) ) );
 	}
 
-	/** The tall grass is cut: 1-2 thatch, and whatever the grass gives up when it is trampled. */
-	static void reap( OverworldLevel ow, int cell ){
-		HighGrass.trample( ow, cell );
+	/** The tall grass is cut: 1-2 thatch, and whatever the grass gives up when it is trampled,
+	 *  a seed it shakes loose maybe doubled by the reaper's scythe. */
+	static void reap( Hero hero, OverworldLevel ow, int cell ){
+		HighGrass.reaper = hero;
+		try {
+			HighGrass.trample( ow, cell );
+		} finally {
+			HighGrass.reaper = null;
+		}
 		give( ow, cell, new Thatch().quantity( Random.IntRange( 1, 2 ) ) );
 	}
 
-	/** The rough stone a rock wall gives up as the pick or the hammer breaks it on a slice: 1-2,
-	 *  on the broken ground. Not from the walls of a village or a place of the world, which are
-	 *  their masonry and not the land's rock. Called by Hero.actMine once the wall is down. */
-	public static void wallStone( OverworldLevel ow, int cell ){
-		if (ow.isMirror() || ow.protectedForBuilding( cell )) return;
+	/** The rough stone a rock wall gives up as the hero's pick or hammer (wallTool) breaks it on a
+	 *  slice: 1-2, one more now and then from a typed Quarry's tool, on the broken ground, and that
+	 *  tool's spark (GatheringFx.WALL_SPARK). No stone from the walls of a village or a place of the
+	 *  world, which are their masonry and not the land's rock. Called by Hero.actMine once the wall
+	 *  is down. */
+	public static void wallStone( OverworldLevel ow, int cell, Hero hero ){
+		if (ow.isMirror()) return;
+		Item tool = wallTool( hero );
+		//a typed tool's spark over the wall's own break, whosever the wall
+		if (Quality.of( tool ) != null) GatheringFx.show( ow, GatheringFx.WALL_SPARK, cell, 0, 0 );
+		if (ow.protectedForBuilding( cell )) return;
 		give( ow, cell, new RoughStone().quantity( Random.IntRange( 1, 2 ) ) );
+		extraStone( ow, cell, tool );
+	}
+
+	/** One more lump in the ore of a vein the hero strikes, now and then, when his pick or hammer
+	 *  (wallTool) is a typed Quarry's tool (Quality.extraYield). Called by Hero.actMine before the
+	 *  vein gives its ore up; the Blacksmith's dark gold is no vein's ore and never comes here. */
+	public static void extraOre( Hero hero, Ore ore, int cell ){
+		if (!Quality.extraYield( wallTool( hero ) )) return;
+		ore.quantity( ore.quantity() + 1 );
+		PieceFx.extra( cell, ore, 1.2f );
+	}
+
+	//the one more rough stone a typed Quarry's tool sometimes breaks out (Quality.extraYield)
+	private static void extraStone( OverworldLevel ow, int cell, Item tool ){
+		if (!Quality.extraYield( tool )) return;
+		Item stone = new RoughStone();
+		give( ow, cell, stone );
+		PieceFx.extra( cell, stone, 1.2f );
 	}
 
 	//a heap of what the work gave on the cell (the nearest free one when a shop's ware lies there)

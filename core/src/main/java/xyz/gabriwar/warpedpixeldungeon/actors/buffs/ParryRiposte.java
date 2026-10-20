@@ -35,8 +35,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.ParryStance;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 /**
  * Parry Stance: the blade that just turned a blow comes straight back at the attacker.
@@ -88,9 +86,13 @@ public class ParryRiposte extends Buff {
 	private static void strike( Hero hero, Char foe ){
 		if (!foe.isAlive()) return;
 		if (foe.sprite != null){
-			foe.sprite.showStatus( CharSprite.WARNING, Messages.get( ParryStance.class, "riposte" ) );
 			Wound.hit( foe );
 		}
+		//the riposte called out on the blow's own card: the parry and the stance's icon
+		xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.nextBlow( foe, xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.PARRY, 0 );
+		ParryStance stance = hero.heroSkills != null ? hero.heroSkills.get( ParryStance.class ) : null;
+		if (stance == null) stance = new ParryStance();
+		xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.nextBlow( foe, xyz.gabriwar.warpedpixeldungeon.effects.HitCard.SKILL_BASE + stance.image(), 0 );
 		SpatialSound.play( Assets.Sounds.HIT_SLASH, foe, 1f, 1.2f );
 		hero.attack( foe, DAMAGE, 0f, 1f );
 	}

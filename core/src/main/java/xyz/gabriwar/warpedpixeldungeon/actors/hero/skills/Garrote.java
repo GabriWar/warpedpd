@@ -66,7 +66,7 @@ public class Garrote extends SubSkill2 {
 		}
 		xyz.gabriwar.warpedpixeldungeon.effects.Splash.at( enemy.pos, 0xCC1111, 6 );
 		if (enemy.sprite != null){
-			enemy.sprite.showStatus( xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite.NEGATIVE, xyz.gabriwar.warpedpixeldungeon.messages.Messages.get( this, "choke" ) );
+			chipOn( enemy );
 		}
 		SpatialSound.play( xyz.gabriwar.warpedpixeldungeon.Assets.Sounds.HIT_STAB, enemy, 1f, 0.8f );
 		return damage;

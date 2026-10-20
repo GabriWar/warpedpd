@@ -37,12 +37,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
-import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBolt;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
 
@@ -102,18 +103,17 @@ public class Spark extends ActiveSkill2 {
 			curUser.spend( TIME_TO_USE );
 			curUser.busy();
 			SpatialSound.play( Assets.Sounds.ZAP, curUser );
-			curUser.sprite.centerEmitter().burst( SparkParticle.FACTORY, 4 );
-			MagicMissile.boltFromChar( curUser.sprite.parent,
-					MagicMissile.MAGIC_MISSILE,
-					curUser.sprite,
-					cell,
+			//static gathering in her hands, then a spark of the storm's own (never a wand of magic
+			//missile's bolt), landing when that bolt would have
+			curUser.sprite.centerEmitter().burst( SkillBursts.STORM_SPARK, 4 );
+			bolt( curUser.sprite, cell,
 					new Callback() {
 						@Override
 						public void call(){
 							Spark sk = Dungeon.hero.heroSkills.get( Spark.class );
 							//taken away (debug) while the bolt flew: the one that was cast still lands
 							if (sk == null) sk = skill;
-							CellEmitter.center( cell ).burst( SparkParticle.FACTORY, 4 + 2 * sk.level );
+							CellEmitter.center( cell ).burst( SkillBursts.STORM_SPARK, 4 + 2 * sk.level );
 							//damage lands now, in bolt order; the arcs then show it body by body
 							ArrayList<Integer> struck = new ArrayList<>();
 							if (pierce){
@@ -143,6 +143,18 @@ public class Spark extends ActiveSkill2 {
 		}
 	};
 
+	/** The spark from the caster to a cell, as MagicMissile.boltFromChar flew (to the middle of
+	 *  whoever stands there, else the cell): one draw of the game's Random, the callback on that
+	 *  bolt's frame. */
+	public static void bolt( CharSprite caster, int cell, Callback cb ){
+		Char at = Actor.findChar( cell );
+		if (at != null && at.sprite != null){
+			SkillBolt.fly( caster.parent, caster.center(), at.sprite.destinationCenter(), SkillBolt.SPARK, cb );
+		} else {
+			SkillBolt.fly( caster.parent, caster, cell, SkillBolt.SPARK, cb );
+		}
+	}
+
 	private static int roll( Skill sk ){
 		return Random.IntRange( sk.level, 3 * sk.level );
 	}
@@ -163,7 +175,7 @@ public class Spark extends ActiveSkill2 {
 		if (i >= struck.size()){
 			//nothing (more) to hit: a first arc still grounds itself where the bolt broke
 			if (i == 0 && from != end){
-				hero.sprite.parent.add( new Lightning( from, end, hero::next ) );
+				hero.sprite.parent.add( new Lightning( from, end, hero::next ).tint( Lightning.STORM ) );
 			} else {
 				hero.next();
 			}
@@ -171,10 +183,11 @@ public class Spark extends ActiveSkill2 {
 		}
 		final int to = struck.get( i );
 		SpatialSound.play( Assets.Sounds.LIGHTNING, to, 0.7f, 1.1f + 0.1f * i );
-		CellEmitter.center( to ).burst( SparkParticle.FACTORY, 6 );
+		CellEmitter.center( to ).burst( SkillBursts.STORM_SPARK, 6 );
 		Char ch = Actor.findChar( to );
 		if (ch != null && ch.sprite != null) ch.sprite.flash();
-		hero.sprite.parent.add( new Lightning( from, to, () -> arc( hero, to, struck, i + 1, end ) ) );
+		//the storm's own lightning, pale cyan (never a wand's or the Shocking enchantment's blue-white)
+		hero.sprite.parent.add( new Lightning( from, to, () -> arc( hero, to, struck, i + 1, end ) ).tint( Lightning.STORM ) );
 	}
 
 	@Override

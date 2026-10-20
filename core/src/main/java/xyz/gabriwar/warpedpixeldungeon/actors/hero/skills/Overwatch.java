@@ -76,7 +76,8 @@ public class Overwatch extends SubSkill1 {
 			//nowhere to go: the full force lands at once
 			enemy.damage( Random.NormalIntRange( power + 1, 2 * power + 2 ), this );
 			if (enemy.sprite != null) enemy.sprite.flash();
-			xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.ROCK ), 4 );
+			xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.get( enemy.pos ).burst( xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.STONE_CHIP, 4 );
+			xyz.gabriwar.warpedpixeldungeon.effects.WarriorImpactFX.show( enemy.pos );
 			if (slam && enemy.isAlive() && !Char.hasProp( enemy, Char.Property.BOSS )){
 				SkillInteractions.affectAfterHit( enemy, xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis.class, 1f );
 			}

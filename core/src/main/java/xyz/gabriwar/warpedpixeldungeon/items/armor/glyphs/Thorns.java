@@ -25,7 +25,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows;
 import com.watabou.utils.Random;
 
 public class Thorns extends Armor.Glyph {
@@ -46,6 +50,8 @@ public class Thorns extends Armor.Glyph {
 			float powerMulti = Math.max(1f, procChance);
 
 			Buff.affect( attacker, Bleeding.class).set( Math.round((4 + level)*powerMulti*power()) ); //scales with glyph level
+			//drawn from the wearer onto the attacker (the thorns cut it, not him): the arc is the twist's
+			EnchantFx.proc( EnchantLooks.of( getClass() ), defender, attacker, EnchantFx.strength( level(), (4 + level)*powerMulti*power(), attacker.HT, powerMulti ), level(), Quality.isVestige( armor, this ) ? EnchantFx.ECHO : 0, ShadowRows.THORNS );
 
 		}
 

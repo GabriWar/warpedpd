@@ -32,16 +32,19 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.EmberArrows;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.FrostArrows;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.SmokeParticle;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.SnowParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
 
 /**
  * The ambient auras of the Rogue's and the Huntress's stances: two slow motes in the stance's
- * colour, and one accent particle every second or so that says which stance it is (shadow
- * seeping up, a mote of light, a star, fuse smoke, a snowflake, a lick of flame). Each is a
- * bundled StanceAuraBuff, so it survives save/load and lets go when its stance is lowered.
+ * colour, and one accent particle every second or so that says which stance it is, in the skills'
+ * own words (SkillBursts) and never as a state the hero is not in: ink drifting off him (Shadow
+ * Link; never a curse's shadow rising), a mote of light (Aimed Shot), her own sparkle (Double Shot;
+ * never a level-up's stars), a fuse's sparks (Bombvoyage; never smoke, as if she burned), a frost
+ * glint standing still (Frost Arrows; never snow falling on her, a chill), an ember mote rising
+ * (Ember Arrows; never a flame's tongue, Burning). Their motes take the colours by meaning
+ * (SkillPalette): the huntress's leaf green for her bow (never the old sage that read cream), a
+ * lit fuse's hot gold, fire's orange for the pitch (never peach). Each keeps its old rate. Each is a bundled
+ * StanceAuraBuff, so it survives save/load and lets go when its stance is lowered.
  */
 public final class RogueHuntressAuras {
 
@@ -49,31 +52,31 @@ public final class RogueHuntressAuras {
 
 	public static class ShadowLink extends StanceAuraBuff {
 		@Override protected Class<? extends Skill> stance(){ return DoubleStab.class; }
-		@Override protected StanceAuraFX build(){ return new StanceAuraFX( target, 0xB89CE4, ShadowParticle.UP, 0.7f ); }
+		@Override protected StanceAuraFX build(){ return new StanceAuraFX( target, 0xB89CE4, SkillBursts.INK_DRIFT, 0.7f ); }
 	}
 
 	public static class Aimed extends StanceAuraBuff {
 		@Override protected Class<? extends Skill> stance(){ return AimedShot.class; }
-		@Override protected StanceAuraFX build(){ return new StanceAuraFX( target, 0xB3D699, Speck.factory( Speck.LIGHT ), 0.8f ); }
+		@Override protected StanceAuraFX build(){ return new StanceAuraFX( target, SkillPalette.NATURE_LIGHT, Speck.factory( Speck.LIGHT ), 0.8f ); }
 	}
 
 	public static class Double extends StanceAuraBuff {
 		@Override protected Class<? extends Skill> stance(){ return DoubleShot.class; }
-		@Override protected StanceAuraFX build(){ return new StanceAuraFX( target, 0xB3D699, Speck.factory( Speck.STAR ), 0.9f ); }
+		@Override protected StanceAuraFX build(){ return new StanceAuraFX( target, SkillPalette.NATURE_LIGHT, SkillBursts.FLOURISH, 0.9f ); }
 	}
 
 	public static class Fuse extends StanceAuraBuff {
 		@Override protected Class<? extends Skill> stance(){ return Bombvoyage.class; }
-		@Override protected StanceAuraFX build(){ return new StanceAuraFX( target, 0xDF9979, SmokeParticle.FACTORY, 0.4f ); }
+		@Override protected StanceAuraFX build(){ return new StanceAuraFX( target, SkillPalette.EMBER_HOT, SkillBursts.FUSE, 0.4f ); }
 	}
 
 	public static class Frost extends StanceAuraBuff {
 		@Override protected Class<? extends Skill> stance(){ return FrostArrows.class; }
-		@Override protected StanceAuraFX build(){ return new StanceAuraFX( target, 0xA4E9FF, SnowParticle.FACTORY, 0.5f ); }
+		@Override protected StanceAuraFX build(){ return new StanceAuraFX( target, 0xA4E9FF, SkillBursts.FROST_GLINT, 0.5f ); }
 	}
 
 	public static class Ember extends StanceAuraBuff {
 		@Override protected Class<? extends Skill> stance(){ return EmberArrows.class; }
-		@Override protected StanceAuraFX build(){ return new StanceAuraFX( target, 0xFF9A4A, FlameParticle.FACTORY, 0.7f ); }
+		@Override protected StanceAuraFX build(){ return new StanceAuraFX( target, SkillPalette.FIRE.stop( 1 ), SkillBursts.EMBER_MOTE, 0.7f ); }
 	}
 }

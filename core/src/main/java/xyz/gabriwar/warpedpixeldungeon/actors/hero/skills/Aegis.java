@@ -30,13 +30,15 @@ import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PulseRingFX;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AegisRecharge;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
-import xyz.gabriwar.warpedpixeldungeon.effects.ShieldHalo;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.AegisArcFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.RuneFX;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -76,6 +78,21 @@ public class Aegis extends SubSkill1 {
 	}
 
 
+	/** The arc's words: WARD holy runes snapping onto the arc's side (its painted direction toward
+	 *  `from`), WARD_RX x WARD_RY round the middle on an arc SPREAD rad wide, GAP s apart, each held
+	 *  HOLD s (RuneFX.lock). Any thread. */
+	public static final int WARD = 2;
+	public static final float WARD_RX = 9f, WARD_RY = 6f, SPREAD = 0.9f, GAP = 0.08f, HOLD = 0.2f;
+
+	public static void warded( final CharSprite s, final int from ){
+		if (s == null) return;
+		Fx.post( () -> {
+			if (s.parent == null || !s.visible) return;
+			float angle = (float) (AegisArcFX.facing( s, from ) * Math.PI / 4);
+			RuneFX.lock( s, WARD, SkillPalette.RUNE_HOLY, WARD_RX, WARD_RY, GAP, HOLD, angle, SPREAD );
+		} );
+	}
+
 	@Override
 	public int onDefendProc( Char enemy, int damage ){
 		Hero hero = Dungeon.hero;
@@ -90,13 +107,14 @@ public class Aegis extends SubSkill1 {
 		damage -= caught;
 		Buff.affect( hero, AegisRecharge.class, REFORM );
 
+		//the aegis: an arc of gold light standing on the side the blow came from (never the
+		//SHIELDED state's bubble), a star and a beat of light
 		if (hero.sprite != null && hero.sprite.parent != null){
-			ShieldHalo halo = new ShieldHalo( hero.sprite );
-			hero.sprite.parent.add( halo );
-			halo.putOut();
-			new Flare( 6, 24 ).color( 0xFFEE88, true ).show( hero.sprite, 0.5f );
-			PulseRingFX.around( hero.sprite, 0xFFEE88, 12, 0.35f );
-			hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "caught" ) );
+			AegisArcFX.flash( hero.sprite, enemy.pos, AegisArcFX.GOLD, 0.3f );
+			warded( hero.sprite, enemy.pos );
+			PixelFlare.show( SkillVfx.midX( hero.sprite ), SkillVfx.midY( hero.sprite ), 0xF1D99C, PixelFlare.M, 0.5f );
+			PulseRingFX.around( hero.sprite, 0xF1D99C, 12, 0.35f );
+			chipOn( hero );
 		}
 		SpatialSound.play( Assets.Sounds.HIT_PARRY, hero, 1f, 0.8f );
 		SpatialSound.play( Assets.Sounds.HIT_STRONG, hero, 0.8f, 1.1f );

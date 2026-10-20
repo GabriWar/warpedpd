@@ -35,7 +35,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.CityKey;
 import xyz.gabriwar.warpedpixeldungeon.items.Gold;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.Shuriken;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.GoldThiefSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Bundle;
@@ -166,7 +165,7 @@ public class GoldThief extends Mob {
 		@Override
 		protected void nowhereToRun() {
 			if (buff( Terror.class ) == null) {
-				sprite.showStatus( CharSprite.NEGATIVE, Messages.get(Mob.class, "rage") );
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.icon( GoldThief.this, xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.RAGE, 0 );
 				state = HUNTING;
 			} else {
 				super.nowhereToRun();

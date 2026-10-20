@@ -27,8 +27,6 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -36,6 +34,14 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vulnerable;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.RuneFX;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import com.watabou.utils.Random;
 
 public class Condemn extends Skill {
@@ -65,14 +71,33 @@ public class Condemn extends Skill {
 		Buff.prolong( enemy, Vulnerable.class, 3 + level );
 		CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.LIGHT ), 3 );
 		if (enemy.sprite != null){
-			enemy.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "branded" ) );
-			new xyz.gabriwar.warpedpixeldungeon.effects.Flare( 4, 10 ).color( 0xFFEE88, true ).show( enemy.sprite, 0.35f );
+			chipOn( enemy );
+			PixelFlare.show( SkillVfx.midX( enemy.sprite ), SkillVfx.midY( enemy.sprite ), 0xF1D99C, PixelFlare.M, 0.35f );
+			branded( enemy.sprite );
 			if (holy) enemy.sprite.emitter().burst( Speck.factory( Speck.YELLOW_LIGHT ), 4 );
 		}
-		SpatialSound.play( Assets.Sounds.CURSED, enemy, 0.6f, holy ? 1.1f : 1.4f );
+		//a judgement charging, never a curse's sound
+		SpatialSound.play( Assets.Sounds.CHARGEUP, enemy, 0.6f, holy ? 1.1f : 1.4f );
 		if (holy)
 			enemy.damage( 6, this );
 
 		return damage;
+	}
+
+	/** The brand (it is Vulnerable): SEAL holy runes on a SEAL_RX x SEAL_RY ring shutting on the body's
+	 *  middle in SEAL_FOR s (RuneFX.shut), then the seal stamped there, RUNE_5's ring lit F1D99C for
+	 *  STAMP s. On the body, never over the head; no reticle ring. Any thread. */
+	public static final int SEAL = 4;
+	public static final float SEAL_RX = 9f, SEAL_RY = 4.5f, SEAL_FOR = 0.2f, STAMP = 0.4f;
+
+	public static void branded( final CharSprite s ){
+		if (s == null) return;
+		Fx.post( () -> {
+			if (s.parent == null || !s.visible) return;
+			RuneFX.shut( s, SEAL, SkillPalette.RUNE_HOLY, SEAL_RX, SEAL_RY, SEAL_FOR );
+			FxTimeline.start().at( SEAL_FOR, () -> {
+				if (s.parent != null && s.visible) RuneFX.stamp( s, FxFrames.RUNE_5[2], SkillPalette.mid( SkillPalette.RUNE_HOLY ), STAMP );
+			} );
+		} );
 	}
 }

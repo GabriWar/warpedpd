@@ -25,6 +25,9 @@
 package xyz.gabriwar.warpedpixeldungeon.tiles;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import com.watabou.noosa.Image;
+import com.watabou.noosa.NoosaScript;
+import com.watabou.noosa.TextureFilm;
 import com.watabou.noosa.Tilemap;
 
 /**
@@ -168,6 +171,15 @@ public class OverworldDress {
 
 	private OverworldDress(){}
 
+	//the dressing's tiles the wind sways (WindSway): how many of a tile's top rows move - a pine's top
+	//nine, an oak's crown whole (its trunk, on the cell below, stands)
+	static final int[] SWAY_ROWS = new int[OAK_WINTER_TOP + 1];
+	static {
+		for (int t : WINTER_PINES) SWAY_ROWS[t] = 9;
+		for (int t : SUMMER_PINES) SWAY_ROWS[t] = 9;
+		SWAY_ROWS[OAK_SUMMER_TOP] = SWAY_ROWS[OAK_AUTUMN_TOP] = SWAY_ROWS[OAK_WINTER_TOP] = DungeonTilemap.SIZE;
+	}
+
 	public static class Layer extends CustomTilemap {
 
 		{
@@ -205,6 +217,62 @@ public class OverworldDress {
 			//the overworld rebuilds its dressing on every window slide: refill
 			//the tilemap already on screen rather than mint a new vertex buffer
 			return create( data != null ? data : new int[tileW * tileH], tileW );
+		}
+
+		@Override
+		protected Tilemap tilemap(){
+			WindSway.Batch sway = WindSway.batch( SWAY_ROWS );
+			return sway == null ? super.tilemap() : new Swaying( texture, sway );
+		}
+	}
+
+	//a dressing layer's tilemap under the open sky: CustomTilemap's own, but for the tiles the wind
+	//sways, which are left out of its chunks and drawn right after them
+	private static class Swaying extends Tilemap {
+
+		private final WindSway.Batch sway;
+
+		Swaying( Object texture, WindSway.Batch sway ){
+			super( texture, new TextureFilm( texture, DungeonTilemap.SIZE, DungeonTilemap.SIZE ) );
+			this.sway = sway;
+		}
+
+		@Override
+		protected NoosaScript script(){
+			//lit, as every custom tilemap is
+			return NoosaScript.get();
+		}
+
+		@Override
+		public synchronized void updateMapCell( int cell ){
+			//as CustomTilemap's does for a dressing layer: it changes through Layer.setCell only
+		}
+
+		@Override
+		protected boolean needsRender( int pos ){
+			return super.needsRender( pos ) && !sway.moves( data[pos] );
+		}
+
+		@Override
+		public Image image( int x, int y ){
+			//a swaying tile is still the layer's picture of its cell (WndInfoCell)
+			int t = data[x + mapWidth * y];
+			if (!sway.moves( t )) return super.image( x, y );
+			Image img = new Image( texture );
+			img.frame( tileset.get( t ) );
+			return img;
+		}
+
+		@Override
+		public void draw(){
+			super.draw();
+			sway.draw( this, matrix, script(), texture, tileset, data, mapWidth, mapHeight );
+		}
+
+		@Override
+		public void destroy(){
+			super.destroy();
+			sway.destroy();
 		}
 	}
 }

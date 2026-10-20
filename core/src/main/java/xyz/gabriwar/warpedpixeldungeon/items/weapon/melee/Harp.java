@@ -24,6 +24,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.weapon.melee;
 
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.TypeFx;
 import java.util.ArrayList;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -64,20 +66,27 @@ public class Harp extends MeleeWeapon {
 	@Override
 	public void hitSound( float pitch, Char defender ){
 		super.hitSound( pitch, defender );
-		Notes.play( Assets.Sounds.HARP_NOTE, defender );
+		//a typed instrument is a Bard's: its note steps up toward the chord
+		Quality q = Quality.of( this );
+		if (q != null) Notes.step( Assets.Sounds.HARP_NOTE, defender, q.notes );
+		else Notes.play( Assets.Sounds.HARP_NOTE, defender );
 	}
 
 	@Override
 	public int proc(Char attacker, Char defender, int damage) {
 		//the harp's resonance strikes everyone else adjacent to the target
 		//for a quarter of a regular damage roll
+		//the wielder's own side and the neutral are spared: the note strikes only the other side
 		int p = defender.pos;
+		ArrayList<Char> struck = new ArrayList<>();
 		for (int n : PathFinder.NEIGHBOURS8) {
 			Char ch = Actor.findChar(p + n);
-			if (ch != null && ch != attacker && ch != defender && ch.isAlive()) {
+			if (ch != null && ch != attacker && ch != defender && ch.isAlive() && ch.alignment != attacker.alignment && ch.alignment != Char.Alignment.NEUTRAL) {
+				struck.add(ch);
 				ch.damage(augment.damageFactor(Random.NormalIntRange(min(), max())) / 4, this);
 			}
 		}
+		TypeFx.resonance( attacker, defender, this, struck );
 
 		return super.proc(attacker, defender, damage);
 	}
@@ -145,7 +154,7 @@ public class Harp extends MeleeWeapon {
 			ch.HP += healed;
 			if (ch.sprite != null){
 				ch.sprite.emitter().burst(Speck.factory(Speck.HEALING), 3);
-				ch.sprite.showStatus(CharSprite.POSITIVE, "+" + healed);
+				ch.sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(healed), xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.HEALING);
 			}
 		}
 

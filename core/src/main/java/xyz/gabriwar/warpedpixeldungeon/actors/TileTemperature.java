@@ -72,6 +72,8 @@ public final class TileTemperature {
     // carry: it takes the edge off the cold wherever you walk.
     public static final float TORCH_WARMTH     = 6f;
     public static final float WALL_TORCH_MIN_TEMP = 5f;
+    // A COOLING line takes the edge off the heat, never cooling the hero below this.
+    public static final float COOLING_FLOOR = 25f;
 
     // Reusable diffusion buffer — avoids GC pressure from per-turn allocation.
     // Lazily sized to match level.length().
@@ -338,7 +340,12 @@ public final class TileTemperature {
         float wind = ClimateManager.localWindSpeed();
         if (t < 10f && wind > 3f
                 && xyz.gabriwar.warpedpixeldungeon.homestead.Shelter.windReaches(Dungeon.level, cell)) {
-            t -= wind * 0.5f;
+            // a WINDBREAK line on the hero's armor blocks its share of the chill where he stands
+            float windbreak = ch instanceof Hero && cell == ch.pos
+                    ? xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.value(((Hero) ch).belongings.armor(),
+                            xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.WINDBREAK)
+                    : 0f;
+            t -= wind * 0.5f * (1f - windbreak);
         }
         // the embers cell itself already carries EMBERS_BONUS via tileTemp()
         if (Dungeon.level != null && Dungeon.level.map[cell] != Terrain.EMBERS && nearFire(cell)) {
@@ -356,10 +363,28 @@ public final class TileTemperature {
         if (ch instanceof Hero && cell == ch.pos && ((Hero) ch).belongings.armor != null) {
             t += ((Hero) ch).belongings.armor.thermalOffset();
         }
+        // the armor's WARMTH line and the WARM_GRIP line on the weapon in hand only ever fight the
+        // cold, as a spring's soak does (the armor's own make keeps its two-sided offset above)
+        if (ch instanceof Hero && cell == ch.pos) {
+            Hero hero = (Hero) ch;
+            float w = xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.value(hero.belongings.armor(),
+                    xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.WARMTH)
+                    + xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.value(hero.belongings.weapon(),
+                    xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.WARM_GRIP);
+            if (w > 0f && t < xyz.gabriwar.warpedpixeldungeon.actors.buffs.SpringSoak.COMFORT) {
+                t = Math.min(xyz.gabriwar.warpedpixeldungeon.actors.buffs.SpringSoak.COMFORT, t + w);
+            }
+        }
         // the flame you carry warms the cell you stand in - a magical glow does not
         if (ch != null && cell == ch.pos) {
             Light light = ch.buff(Light.class);
             if (light != null && light.flame) t += TORCH_WARMTH;
+        }
+        // a COOLING line on the armor only ever fights the heat, and never past 25°C
+        if (ch instanceof Hero && cell == ch.pos) {
+            float c = xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.value(((Hero) ch).belongings.armor(),
+                    xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.COOLING);
+            if (c > 0f && t > COOLING_FLOOR) t = Math.max(COOLING_FLOOR, t - c);
         }
         //The fixture provides a small refuge even with wind chill or wet clothes.
         if (nearWallTorch(cell)) t = Math.max(t, WALL_TORCH_MIN_TEMP);

@@ -26,6 +26,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Ooze;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import com.watabou.utils.PathFinder;
@@ -46,6 +49,7 @@ public class Corrosion extends Armor.Glyph {
 				if (Actor.findChar(pos+i) != null)
 					Buff.affect(Actor.findChar(pos+i), Ooze.class).set( Ooze.DURATION/2 );
 			}
+			EnchantFx.ward( EnchantLooks.of( getClass() ), defender, attacker, 0.45f, level(), EnchantFx.CURSE, ElementRows.corrosion( pos ) );
 		}
 
 		return damage;

@@ -30,6 +30,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
+import java.util.ArrayList;
 import com.watabou.utils.Random;
 
 public class Eldritch extends Weapon.Enchantment {
@@ -48,6 +53,7 @@ public class Eldritch extends Weapon.Enchantment {
 
 			float powerMulti = Math.max(1f, procChance);
 
+			ArrayList<Char> terrified = new ArrayList<>();
 			for (Char ch : Actor.chars()){
 				if (ch == attacker || ch == defender || ch.alignment == attacker.alignment){
 					continue;
@@ -57,11 +63,13 @@ public class Eldritch extends Weapon.Enchantment {
 						Buff.affect( defender, Vertigo.class, 5f );
 					} else {
 						Buff.affect(ch, Terror.class, powerMulti * 5f * power()).object = attacker.id(); //scales with enchantment level
+						terrified.add( ch );
 					}
 				}
 			}
 
 			new Flare( 5, 24 ).color( 0xFF0000, true ).show( attacker.sprite, 1f );
+			EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, terrified.size() / 3f, level(), Quality.isVestige( weapon, this ) ? EnchantFx.ECHO : 0, ShadowRows.eldritch( terrified ) );
 		}
 
 		return damage;

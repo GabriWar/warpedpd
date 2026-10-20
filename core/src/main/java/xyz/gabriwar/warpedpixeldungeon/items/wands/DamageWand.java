@@ -59,11 +59,19 @@ public abstract class DamageWand extends Wand{
 	}
 
 	public int damageRoll(int lvl){
-		int dmg = Hero.heroDamageIntRange(minAt(lvl), maxAt(lvl));
+		int lo = minAt(lvl), hi = maxAt(lvl);
+		int dmg = Hero.heroDamageIntRange(lo, hi);
+		//the damage ledger: this roll is the base of the damage this wand deals next
+		xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.pendingStart( this, this, lo, hi, dmg );
 		//skill tree: Mage's Sorcerer - wands hit harder
-		dmg = Math.round(dmg * Dungeon.hero.heroSkills.allWandDamage());
+		float sorcery = Dungeon.hero.heroSkills.allWandDamage();
+		int sorcered = Math.round(dmg * sorcery);
+		xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.pendingStep( xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.MUL, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.SKILLS, dmg, dmg * sorcery );
+		xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.pendingStep( xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ROUND, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.ROUNDED, dmg * sorcery, sorcered );
+		dmg = sorcered;
 		WandEmpower emp = Dungeon.hero.buff(WandEmpower.class);
 		if (emp != null){
+			xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.pendingStep( xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ADD, emp, dmg, dmg + emp.dmgBoost );
 			dmg += emp.dmgBoost;
 			emp.left--;
 			if (emp.left <= 0) {
@@ -71,6 +79,7 @@ public abstract class DamageWand extends Wand{
 			}
 			SpatialSound.play(Assets.Sounds.HIT_STRONG, curUser, 0.75f, 1.2f);
 		}
+		xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.pendingRoll( this, dmg );
 		return dmg;
 	}
 

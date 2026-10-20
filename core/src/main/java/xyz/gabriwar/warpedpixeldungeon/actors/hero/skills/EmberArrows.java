@@ -41,7 +41,16 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
-import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxLight;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRing;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import com.watabou.noosa.Group;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBolt;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.RogueHuntressAuras;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraBuff;
 
@@ -62,7 +71,9 @@ public class EmberArrows extends ActiveSkill {
 		if (action.equals(Skill.AC_ACTIVATE)){
 			SpatialSound.play( Assets.Sounds.BURNING, hero, 1f, 1.3f );
 			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 3 );
-			hero.sprite.emitter().burst( FlameParticle.FACTORY, 6 );
+			//the pitch catches: embers lift off her (never flames on the hero, a Burning)
+			hero.sprite.emitter().burst( SkillBursts.EMBER_MOTE, 6 );
+			kindled( hero.sprite, HEAT, FLARE );
 			//mutually exclusive with its fork partner
 			for (Skill s : hero.heroSkills.toggleGroup()){
 				if (s instanceof FrostArrows) s.active = false;
@@ -116,11 +127,10 @@ public class EmberArrows extends ActiveSkill {
 				if (ch != null && ch != Dungeon.hero && ch.alignment == Char.Alignment.ENEMY
 						&& ch.isAlive() && ch.buff( Burning.class ) == null){
 					Buff.affect( ch, Burning.class ).reignite( ch );
-					//the leap is seen: a tongue of fire jumps across and catches on arrival
+					//the leap is seen: a cinder hops across and catches on arrival (never a firebolt)
 					if (enemy.sprite != null && enemy.sprite.parent != null && ch.sprite != null && Dungeon.level.heroFOV[ch.pos]){
 						final Char next = ch;
-						((MagicMissile) enemy.sprite.parent.recycle( MagicMissile.class )).reset(
-								MagicMissile.FIRE, enemy.sprite.center(), ch.sprite.center(), () -> {
+						SkillBolt.fly( enemy.sprite.parent, enemy.sprite.center(), ch.sprite.center(), SkillBolt.EMBER, () -> {
 									flames( next );
 									SpatialSound.play( Assets.Sounds.BURNING, next, 0.5f, 1.6f );
 								} );
@@ -140,16 +150,18 @@ public class EmberArrows extends ActiveSkill {
 	@Override
 	public void onKill( Mob mob, boolean ranged ){
 		if (!ranged || !active || level < 3 || mob.buff( Burning.class ) == null) return;
-		//the body goes up: a flash at the centre, then fire rolling outward tile by tile
+		//the body goes up: a flash at the centre, then a ring of heat rolling outward and embers
+		//thrown off tile by tile (fire only where it truly catches: the burning bodies)
 		if (Dungeon.level.heroFOV[mob.pos]){
 			CellEmitter.center( mob.pos ).burst( FlameParticle.FACTORY, 10 );
 			Fx.shake( 1, 0.2f );
+			heatRing( mob.pos );
 		}
 		int ring = 0;
 		for (int n : PathFinder.NEIGHBOURS8){
 			int c = mob.pos + n;
 			if (c < 0 || c >= Dungeon.level.length() || Dungeon.level.solid[c]) continue;
-			if (Dungeon.level.heroFOV[c]) CellEmitter.get( c ).startDelayed( FlameParticle.FACTORY, 0, 5, 0.05f + 0.03f * ring++ );
+			if (Dungeon.level.heroFOV[c]) CellEmitter.get( c ).startDelayed( SkillBursts.EMBER_MOTE, 0, 5, 0.05f + 0.03f * ring++ );
 			Char ch = Actor.findChar( c );
 			if (ch != null && ch.alignment == Char.Alignment.ENEMY && ch.isAlive()){
 				Buff.affect( ch, Burning.class ).reignite( ch );
@@ -157,4 +169,35 @@ public class EmberArrows extends ActiveSkill {
 		}
 		SpatialSound.play( Assets.Sounds.BURNING, mob, 1f, 0.9f );
 	}
+
+	/** The +3 burst's heat rolling out over the floor from a cell: a flare where the body goes up,
+	 *  a pool of its heat (fire's light), and two rings, the fire's orange spreading 13 to 41 px and
+	 *  its pale gold 9 to 31 px a beat after. Any thread. */
+	public static void heatRing( final int cell ){
+		Fx.post( () -> {
+			if (!SkillVfx.valid( cell ) || !SkillVfx.seen( cell )) return;
+			float x = SkillVfx.cx( cell ), y = SkillVfx.cy( cell ) + 4;
+			PixelFlare.show( x, y - 6, FLARE, PixelFlare.M, 0.35f );
+			FxLight.pool( x, y, 47, SkillPalette.FIRE_LIGHT, 0.6f ).life( 0, 0.05f, 0.45f );
+			Group floor = GameScene.layer( GameScene.Layer.FLOOR );
+			FxRing.ground( floor, x, y, 13, 41, 0.45f, HEAT, 0.75f, true );
+			FxRing r = FxRing.ground( floor, x, y, 9, 31, 0.4f, FLARE, 0.5f, true );
+			if (r != null) r.delay( 0.08f );
+		} );
+	}
+
+	/** An arrow stance taken up (Ember or Frost Arrows): a ring of its colour spreading at her
+	 *  feet and a small flare of it at her hands. Any thread. */
+	public static void kindled( final CharSprite s, final int ring, final int flare ){
+		PixelFlare.show( SkillVfx.midX( s ), SkillVfx.midY( s ) + 1, flare, PixelFlare.S, 0.3f );
+		Fx.post( () -> {
+			if (s.parent == null) return;
+			FxRing.ground( GameScene.layer( GameScene.Layer.FLOOR ), SkillVfx.midX( s ), s.y + s.height() - 3,
+					9, 23, 0.35f, ring, 0.6f, true );
+		} );
+	}
+
+	/** The skill's fire on the ground (SkillPalette.FIRE's body, orange, never peach) and its flares
+	 *  (FIRE's pale gold). */
+	public static final int HEAT = SkillPalette.FIRE.stop( 1 ), FLARE = SkillPalette.FIRE.stop( 0 );
 }

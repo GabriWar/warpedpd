@@ -31,7 +31,7 @@ import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
@@ -94,7 +94,7 @@ public class Aggression extends PassiveSkillB2 {
 				Wound.hit( ch );
 				if (ch.sprite != null && ch.sprite.visible){
 					ch.sprite.flash();
-					ch.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
+					ch.sprite.emitter().burst( SkillBursts.METAL_SPARK, 4 );
 				}
 				SpatialSound.play( Assets.Sounds.HIT_SLASH, ch, 1f, 0.9f );
 				ch.damage( dmg, hero );

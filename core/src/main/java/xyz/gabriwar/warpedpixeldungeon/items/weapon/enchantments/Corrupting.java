@@ -31,6 +31,8 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.curses.Multiplicity;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import com.watabou.utils.Random;
 
 public class Corrupting extends Weapon.Enchantment {
@@ -56,6 +58,8 @@ public class Corrupting extends Weapon.Enchantment {
 			CorruptingTracker tracker = Buff.affect(defender, CorruptingTracker.class);
 			tracker.powerMulti = Math.max(1f, procChance);
 			tracker.power = power(); //scales with enchantment level
+			tracker.echo = Quality.isVestige( weapon, this );
+			ShadowRows.corruptMark( defender, tracker.echo );
 
 		}
 		
@@ -70,6 +74,8 @@ public class Corrupting extends Weapon.Enchantment {
 
 		float powerMulti = 1f;
 		float power = 1f;
+		//a vestige's (the picture's echo; never saved: it lives for one blow)
+		transient boolean echo;
 
 		@Override
 		public boolean act() {
@@ -84,11 +90,13 @@ public class Corrupting extends Weapon.Enchantment {
 				Mob corrupted = Multiplicity.duplicate((Mob)target);
 
 				if (corrupted != null) {
+					ShadowRows.corruptCollapse( target.sprite, echo );
 					target.sprite.killAndErase();
 
 					corrupted.timeToNow();
 					corrupted.pos = target.pos;
 					GameScene.add(corrupted);
+					ShadowRows.corruptRise( corrupted, echo );
 
 					Corruption.corruptionHeal(corrupted);
 					Buff.affect(corrupted, Corruption.class);

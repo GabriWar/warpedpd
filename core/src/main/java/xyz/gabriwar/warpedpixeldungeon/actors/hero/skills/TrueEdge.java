@@ -35,12 +35,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StreakFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Piece;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.PieceFx;
 import com.watabou.utils.Random;
 
 public class TrueEdge extends Skill {
@@ -74,14 +73,20 @@ public class TrueEdge extends Skill {
 			return damage;
 		}
 		int crit = Math.round( damage * CRIT_MULTIPLIER );
+		xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.crit( enemy );
+		xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mulRound( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, this, damage, CRIT_MULTIPLIER, crit );
+		boolean twist = false;
 		if (enemy.sprite != null){
-			enemy.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "crit" ) );
-			enemy.sprite.emitter().burst( Speck.factory( Speck.STAR ), 6 );
-			Wound.hit( enemy );
+			//no word: the red X over it and on its card. The star burst it threw once drew the game's
+			//Random once as it started: that one draw stays
+			Random.Float();
+			PieceFx.crit( hero, enemy );
+			//its wound and its spin are the blow's twist (they lead it, or the wound is an accent)
+			twist = Blow.offer( new Slash( enemy ) );
+			if (!twist) Slash.draw( enemy );
 			enemy.sprite.flash();
-			ArcSpinFX.at( enemy.pos, 0xFFFFFF, 10, 0.3f, 220, 1100, 0.22f );
 		}
-		SpatialSound.play( Assets.Sounds.HIT_STRONG, enemy, 1f, 1.4f );
+		if (!twist) SpatialSound.play( Assets.Sounds.HIT_STRONG, enemy, 1f, 1.4f );
 		if (level >= MAX_LEVEL){
 			Buff.affect( enemy, Bleeding.class ).set( crit / 4f );
 		}
@@ -89,6 +94,36 @@ public class TrueEdge extends Skill {
 			slashThrough( hero, enemy, crit / 2 );
 		}
 		return crit;
+	}
+
+	/** True Edge's crit as a blow's twist: its wound and its spin, leading or on its accent's beat
+	 *  (its sound with them either way). */
+	static final class Slash extends Piece {
+
+		Slash( Char enemy ){
+			super( -1, Blow.TWIST, Blow.TARGET, enemy );
+		}
+
+		static void draw( Char enemy ){
+			Wound.hit( enemy );
+			ArcSpinFX.at( enemy.pos, 0xFFFFFF, 10, 0.3f, 220, 1100, 0.22f );
+		}
+
+		@Override
+		public void lead( boolean mayShake ){
+			draw( on );
+		}
+
+		@Override
+		public void accent( float x, float y ){
+			sting();
+			draw( on );
+		}
+
+		@Override
+		public void sting(){
+			SpatialSound.play( Assets.Sounds.HIT_STRONG, on, 1f, 1.4f );
+		}
 	}
 
 	//the cut is plain damage dealt by the hero, not another swing, so it can never proc skills again
@@ -111,8 +146,9 @@ public class TrueEdge extends Skill {
 			if (damage > 0) behind.damage( damage, hero );
 		}
 		if (end != enemy.pos && hero.sprite != null && hero.sprite.parent != null){
-			hero.sprite.parent.add( new Beam.LightRay(
-					DungeonTilemap.tileCenterToWorld( hero.pos ), DungeonTilemap.tileCenterToWorld( end ) ) );
+			//the edge running on through them: a stroke of steel from her to where it ends (never a beam),
+			//sparks of metal scraping off it as it runs
+			StreakFX.show( hero.pos, end, 0xB9DEEE, 0.45f, 0.25f, StreakFX.SPARKS );
 			SpatialSound.play( Assets.Sounds.HIT_SLASH, hero, 1f, 0.8f );
 		}
 	}

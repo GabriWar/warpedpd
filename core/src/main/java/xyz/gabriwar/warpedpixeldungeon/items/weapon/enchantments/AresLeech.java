@@ -27,6 +27,7 @@ package xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.relic.RelicMeleeWeapon;
@@ -34,6 +35,10 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows;
+import java.util.ArrayList;
 import com.watabou.utils.Random;
 
 public class AresLeech extends Weapon.Enchantment {
@@ -54,6 +59,7 @@ public class AresLeech extends Weapon.Enchantment {
 		int effValue = Math.min(Random.IntRange(0, maxValue), attacker.HT - attacker.HP);
 
 		int drains = 0;
+		ArrayList<Char> drained = new ArrayList<>();
 
 		for (Mob mob : Dungeon.level.mobs.toArray(new Mob[0])) {
 			if (Dungeon.level.distance(attacker.pos, mob.pos) < distance
@@ -63,6 +69,7 @@ public class AresLeech extends Weapon.Enchantment {
 					mob.damage(effValue, weapon);
 					relic.charge++;
 					drains++;
+					drained.add( mob );
 				}
 			}
 		}
@@ -74,8 +81,9 @@ public class AresLeech extends Weapon.Enchantment {
 		if (effValue > 0) {
 			attacker.HP += effValue;
 			attacker.sprite.emitter().start(Speck.factory(Speck.HEALING), 0.4f, 1);
-			attacker.sprite.showStatus(CharSprite.POSITIVE, Integer.toString(effValue));
+			attacker.sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(effValue), FloatingText.HEALING);
 		}
+		if (effValue > 0) ShadowRows.aresLeech( EnchantLooks.of( getClass() ), attacker, drained, EnchantFx.strength( level(), effValue * drains, attacker.HT, power() ), level() );
 
 		return damage;
 	}

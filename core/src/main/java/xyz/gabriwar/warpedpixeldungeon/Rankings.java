@@ -306,6 +306,9 @@ public enum Rankings {
 		}
 
 		rec.gameData.put( HERO, Dungeon.hero );
+		//the Damage tab's history stays with the game: every ranking would carry 200 hits otherwise
+		Bundle rankedHero = rec.gameData.getBundle( HERO );
+		if (!rankedHero.isNull()) rankedHero.remove( Hero.DAMAGE_LOG );
 
 		//save stats
 		Bundle stats = new Bundle();

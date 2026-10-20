@@ -38,7 +38,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.InactiveMrDestructo2;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MrDestructo2dot0Sprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Random;
@@ -167,7 +166,7 @@ public class MrDestructo2dot0 extends Mob {
 					GLog.n( Messages.get(this, "deathray_kill") );
 				}
 			} else {
-				ch.sprite.showStatus( CharSprite.NEUTRAL, ch.defenseVerb() );
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.missed( ch );
 			}
 		}
 	}

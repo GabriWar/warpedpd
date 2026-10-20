@@ -33,7 +33,10 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barrier;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.ShoutFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 
@@ -74,6 +77,9 @@ public class Challenge extends SubSkill3 {
 					if (mob.sprite != null){
 						mob.sprite.showStatus( xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite.WARNING, "!" );
 						mob.sprite.emitter().burst( Speck.factory( Speck.RED_LIGHT ), 3 );
+						//it answers: it leans toward the hero, motes pulled off it to him
+						if (hero.sprite != null) ShoutFX.pull( mob.sprite, SkillVfx.midX( hero.sprite ), SkillVfx.midY( hero.sprite ), ShoutFX.MARTIAL,
+								Math.min( 0.3f, 0.05f + 0.03f * Dungeon.level.distance( hero.pos, mob.pos ) ) );
 					}
 					answered++;
 				}
@@ -83,7 +89,7 @@ public class Challenge extends SubSkill3 {
 				Buff.affect( hero, Barrier.class ).incShield( shield );
 				hero.sprite.showStatusWithIcon( xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite.POSITIVE, Integer.toString( shield ),
 						xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.SHIELDING );
-				new Flare( 6, 22 ).color( 0xFF6644, true ).show( hero.sprite, 0.5f );
+				PixelFlare.show( SkillVfx.midX( hero.sprite ), SkillVfx.midY( hero.sprite ), SkillVfx.classColor(), PixelFlare.M, 0.5f );
 			}
 			//+3: kills among the challengers in the next 5 turns give mana back
 			if (level >= MAX_LEVEL) Buff.prolong( hero, Answered.class, REFUND_TURNS );
@@ -91,7 +97,7 @@ public class Challenge extends SubSkill3 {
 			castTextYell();
 			SpatialSound.play( Assets.Sounds.CHALLENGE, hero, 1f, 1.0f );
 			Fx.shake( 1, 0.3f );
-			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 6 );
+			Dungeon.hero.sprite.emitter().burst( SkillBursts.FLOURISH, 6 );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
 			hero.busy();

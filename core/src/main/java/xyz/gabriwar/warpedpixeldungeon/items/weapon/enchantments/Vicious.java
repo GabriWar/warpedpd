@@ -32,6 +32,10 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import com.watabou.utils.Random;
 
 //ported from Unleashed PD: heavy bonus damage, but the spikes cut the wielder too
@@ -45,6 +49,7 @@ public class Vicious extends Weapon.Enchantment {
 
 		int bonus = Math.round( Random.NormalIntRange( weapon.min(), weapon.max() ) * 0.5f * power() );
 		defender.damage( bonus, this );
+		if (bonus >= 0.05f * defender.HT && bonus > 0) EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, 0.2f, level(), Quality.isVestige( weapon, this ) ? EnchantFx.ECHO : 0, ShadowRows.VICIOUS );
 
 		//self-injury chance drops as the weapon is mastered, and empowering reduces it further
 		float backfireChance = 1f / ((level / 2f) + 5f + enchLevelSafety());
@@ -57,6 +62,7 @@ public class Vicious extends Weapon.Enchantment {
 			if (attacker == xyz.gabriwar.warpedpixeldungeon.Dungeon.hero) {
 				GLog.w( Messages.get( this, "backfire" ) );
 			}
+			ShadowRows.viciousBackfire( attacker, level(), Quality.isVestige( weapon, this ) ? EnchantFx.ECHO : 0 );
 		}
 
 		return damage;

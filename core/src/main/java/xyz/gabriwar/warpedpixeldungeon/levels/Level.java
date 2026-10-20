@@ -1967,7 +1967,9 @@ public abstract class Level implements Bundlable {
 						mindVisRange = 1 + 2 * ((Hero) c).pointsInTalent(Talent.DIVINE_SENSE);
 					}
 				}
-				mindVisRange = Math.max(mindVisRange, EyeOfNewt.mindVisionRange());
+				//and a held Ambush blade senses enemies close by
+				mindVisRange = Math.max(mindVisRange, Math.max(EyeOfNewt.mindVisionRange(),
+						xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.senseRange((Hero) c)));
 			}
 
 			if (mindVisRange >= 1) {

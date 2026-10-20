@@ -25,15 +25,14 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
-import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
-import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StreakFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.LanceFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillSequence;
 
 
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -120,8 +119,13 @@ public class ImpalingThrust extends Skill {
 			return;
 		}
 
-		//the damage lands at once; the point is drawn running the lane tile by tile, sparks first,
-		//then each body it goes through, one after the other, the stab climbing in pitch
+		//the damage lands at once; the lance of light is drawn shooting down the lane from his hand
+		//tile by tile (LanceFX: its tip on cell k at LanceFX.STEP x (k - 1), with this timeline),
+		//dust pushed up in the lane, each body it runs through flashing, bleeding and sparking out
+		//of its back one after the other, the stab climbing in pitch; then it is pulled back
+		final int end = traj.path.get( reach );
+		final float angle = (float) Math.toDegrees( Math.atan2( end / Dungeon.level.width() - hero.pos / Dungeon.level.width(),
+				end % Dungeon.level.width() - hero.pos % Dungeon.level.width() ) );
 		FxTimeline lane = FxTimeline.start();
 		int i = 0, pierced = 0;
 		for (int cell : traj.subPath( 1, reach )){
@@ -129,12 +133,13 @@ public class ImpalingThrust extends Skill {
 			final Char ch = Actor.findChar( cell );
 			final boolean body = ch != null && ch.alignment == Char.Alignment.ENEMY;
 			final float pitch = 1.0f + 0.1f * pierced;
-			lane.at( 0.035f * i++, () -> {
-				if (Dungeon.level.heroFOV[c] && !Dungeon.level.solid[c]) CellEmitter.center( c ).burst( Speck.factory( Speck.STAR ), 2 );
+			lane.at( LanceFX.STEP * i++, () -> {
+				if (Dungeon.level.heroFOV[c] && !Dungeon.level.solid[c]) CellEmitter.center( c ).burst( SkillBursts.GRIT, 2 );
 				if (body && ch.sprite != null){
 					ch.sprite.flash();
 					Wound.hit( ch );
 					SpatialSound.play( Assets.Sounds.HIT_STAB, ch, 0.9f, pitch );
+					LanceFX.pierce( ch.sprite, angle, LanceFX.STEEL );
 				}
 			} );
 			if (!body) continue;
@@ -144,16 +149,15 @@ public class ImpalingThrust extends Skill {
 				Buff.affect( ch, Bleeding.class ).set( 2 + level );
 			}
 		}
-		StreakFX.show( hero.pos, traj.path.get( reach ), 0xFFFFFF, 0.45f, 0.3f + 0.03f * reach );
+		LanceFX.thrust( hero.pos, end, reach, LanceFX.STEEL, hero.sprite );
 
 		if (level >= MAX_LEVEL){
 			SkillSequence.start(hero, SkillSequence.LANCES, 1, hero.pos, Math.max(1, roll/3), 2, traj.subPath(1, reach));
 		}
-		SkillSpectacleFX.fly(SkillSpectacleFX.LANCE, hero.pos, traj.path.get(reach), 0, .4f);
 		hero.MP -= getManaCost();
 		castTextYell();
 		SpatialSound.play( Assets.Sounds.HIT_STAB, hero, 1f, 1.0f );
-		Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 3 );
+		Dungeon.hero.sprite.emitter().burst( SkillBursts.FLOURISH, 3 );
 		Dungeon.hero.heroSkills.lastUsed = this;
 		hero.spend( TIME_TO_USE );
 		hero.busy();

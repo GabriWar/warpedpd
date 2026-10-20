@@ -59,11 +59,13 @@ public final class FxRecipes {
 					.life( CORE_FOR * 2 ).alpha( 1f, 0, CORE_FOR ).snap().priority( FxBudget.P0 );
 		}
 		FxRing.ground( floor(), x, y + 2, RING_FROM, Math.round( RING_TO * scale ), RING_LIFE, e.light, 0.6f, true );
-		Emitter burst = e.emissive ? GameScene.lightEmitter() : GameScene.fxEmitter();
+		//none allowed (the budget full): no burst at all, since an emitter started with no interval
+		//and no quantity would emit forever and hang the frame
+		int sparks = FxBudget.allow( Math.round( BURST * Math.min( 1f, scale ) ), FxBudget.P2 );
+		Emitter burst = sparks <= 0 ? null : e.emissive ? GameScene.lightEmitter() : GameScene.fxEmitter();
 		if (burst != null){
 			burst.pos( x, y );
-			burst.burst( e.emissive ? FxFactories.spark( e ) : FxFactories.mote( e.glint, false ),
-					FxBudget.allow( Math.round( BURST * Math.min( 1f, scale ) ), FxBudget.P2 ) );
+			burst.burst( e.emissive ? FxFactories.spark( e ) : FxFactories.mote( e.glint, false ), sparks );
 		}
 		FxLight.pool( x, y + 4, 23, e.light, 1f ).life( 0, 0, POOL_FOR );
 		linger( x, y, e, FxRandom.IntRange( 2, 4 ) );

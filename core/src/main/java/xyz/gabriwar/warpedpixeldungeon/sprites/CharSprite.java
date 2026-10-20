@@ -37,6 +37,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxModules;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.HitFx;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.StateLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLook;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
@@ -86,11 +87,13 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 
 	public boolean visibleOutOfFFOV = false;
 
-	//the last eight came with the effects kit: the characters area draws them, any area may add them
-	//(replicated to co-op guests by name, as every state)
+	//the eight from TORCHLIT came with the effects kit: the characters area draws them, any area may
+	//add them (replicated to co-op guests by name, as every state); SEEDED and SURGING came with the
+	//enchantments' effects (a parasitic seed, a surge's stacks). Saved by name: append only
 	public enum State {
 		BURNING, LEVITATING, INVISIBLE, PARALYSED, FROZEN, ILLUMINATED, CHILLED, DARKENED, MARKED, HEALING, SHIELDED, HEARTS, GLOWING, AURA, ELECTRIC, BUTTER, HALOMETHANEBURNING, HEATSTROKE, HYPOTHERMIA,
-		TORCHLIT, ROOTED, BARKED, VERDANT, HERB, POISONED, CORRODED, OOZED
+		TORCHLIT, ROOTED, BARKED, VERDANT, HERB, POISONED, CORRODED, OOZED,
+		SEEDED, SURGING
 	}
 	
 	protected Animation idle;
@@ -140,6 +143,20 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 
 	/** Each effects area's own state for this sprite, at its index (FxModules), the kit's last. */
 	public final Object[] fxSlots = new Object[FxModules.COUNT + 1];
+
+	/** The blow stamp: the look of the enchantment that stamped the blow landing on this sprite, and
+	 *  until when (Game.timeTotal) it holds; HitFx's star, bloom and crescent take its element
+	 *  while it does (effects/fx/enchant/EnchantFx). Written only on the render thread. */
+	public EnchantLook blowLook;
+	public float blowUntil;
+
+	//an element's afterglow on the body once a blow's white flash ends (afterglow): its colour,
+	//how long, how long left, and whether it holds the sprite's colour now
+	private int glowColor;
+	private float glowFor, glowLeft;
+	private boolean glowTinted;
+	/** How far an afterglow tints the body toward its colour at its height. */
+	public static final float AFTERGLOW_PEAK = 0.5f;
 	
 	public CharSprite() {
 		super();
@@ -311,11 +328,14 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 			if (args.length > 0) {
 				text = Messages.format( text, args );
 			}
+			//inside a blow its numbers go on the blow's card (effects/fx/combat/Blow): nothing drawn
+			//or sent here
+			if (ch != null && xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.claim( ch, text, color, icon )) return;
 			float x = destinationCenter().x;
 			float y = destinationCenter().y - height()/2f;
 			int pos = DungeonTilemap.worldToTile(x, y + height(), Dungeon.level.width());
 			if (ch != null) {
-				FloatingText.show( x, y, pos, text, color, icon, true );
+				FloatingText.show( x, y, pos, text, color, icon, true, this );
 				xyz.gabriwar.warpedpixeldungeon.net.NetVisuals.recordFloatingText(ch, text, color, icon);
 			} else {
 				FloatingText.show( x, y, -1, text, color, icon, true );
@@ -491,6 +511,10 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 
 	public void die() {
 		sleeping = false;
+		//a stun still written down (added this frame) must not pause the death or star the corpse
+		synchronized (State.class) {
+			stateAdditions.remove( State.PARALYSED );
+		}
 		processStateRemoval( State.PARALYSED );
 		play( die );
 
@@ -560,6 +584,9 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 	 * own random numbers.
 	 */
 	public void hitFx( float fromX, float fromY, int damage, int style, boolean heroInvolved ) {
+		//inside a blow: its star, drawn with the blow's lead (effects/fx/combat/BlowPresenter)
+		if (ch != null && xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.offer(
+				new HitFx.StarPiece( ch, fromX, fromY, damage, style, heroInvolved ) )) return;
 		HitFx.hit( this, fromX, fromY, damage, style, heroInvolved );
 	}
 
@@ -569,6 +596,8 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 	}
 
 	public void flash() {
+		//one white flash a sprite a blow
+		if (!xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.mayFlash( this )) return;
 		ra = ba = ga = 1f;
 		flashTime = FLASH_INTERVAL;
 		xyz.gabriwar.warpedpixeldungeon.net.NetVisuals.recordFlash(ch);
@@ -594,6 +623,43 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 		if (glowBlock != null && glowBlock.alive) return block == glowBlock;
 		if (butter != null && butter.alive) return block == butter;
 		return true;
+	}
+
+	/**
+	 * An element's afterglow on the body (an enchantment's proc, effects/fx/enchant): once the
+	 * blow's white flash is over, the sprite's colour is drawn toward `color`, up to
+	 * AFTERGLOW_PEAK and back, over `seconds` (0.10-0.25), only while its colour is free
+	 * (tintFree(null): no ice, dark, glow or butter holds it). Render thread. Not Visual.tint,
+	 * which sets a tint at once and keeps it.
+	 */
+	public void afterglow( int color, float seconds ) {
+		glowColor = color & 0xFFFFFF;
+		glowFor = glowLeft = Math.max( 0.05f, seconds );
+	}
+
+	//a frame of the afterglow: up over its first 30%, down over the rest, held while the flash is
+	private void stepAfterglow() {
+		if (flashTime > 0) return;
+		glowLeft -= Game.elapsed;
+		if (glowLeft <= 0) {
+			glowLeft = 0;
+			if (glowTinted && tintFree( null )) resetColor();
+			glowTinted = false;
+			return;
+		}
+		float p = 1f - glowLeft / glowFor;
+		float k = AFTERGLOW_PEAK * (p < 0.3f ? p / 0.3f : (1f - p) / 0.7f);
+		if (tintFree( null )) {
+			tint( glowColor, k );
+			glowTinted = true;
+		}
+	}
+
+	/** The afterglow's share of its colour on the body now, 0 for none (tests, guests' checks). */
+	public float afterglowNow() {
+		if (glowLeft <= 0 || glowFor <= 0) return 0f;
+		float p = 1f - glowLeft / glowFor;
+		return AFTERGLOW_PEAK * (p < 0.3f ? p / 0.3f : (1f - p) / 0.7f);
 	}
 
 	/** The frame on show now, in its texture's uv (the sprite's own: read it, never change it). */
@@ -633,6 +699,18 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 		return l == null ? 0 : l.count();
 	}
 
+	/** Whether its stun stars show now: a stun's look is on, the stun is a real one (Paralysis:
+	 *  not a frost's, a time freeze's or a duel's pause) and no ice holds the body. */
+	public boolean stunStars() {
+		StateLooks l = looks;
+		return l != null && l.stunStars();
+	}
+
+	/** A co-op guest's: the stacks of the surge the host's character holds (EnchantNet). */
+	public synchronized void surgeStacks( int stacks ) {
+		looks().surgeSent( stacks );
+	}
+
 	/** Its offset on the screen now, px (x then y), into out. */
 	public void screenOffset( int[] out ) {
 		boolean n = nudgeLeft > 0;
@@ -643,14 +721,14 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 	private final HashSet<State> stateAdditions = new HashSet<>();
 
 	public void add( State state ) {
-		//instant as it just changes an animation property that will get read later
+		//instant as it just changes an animation property that will get read later; it is still
+		//written down, so its look (the stun stars) starts as every state's does
 		if (state == State.PARALYSED){
 			paused = true;
-		} else {
-			synchronized (State.class) {
-				stateRemovals.remove(state);
-				stateAdditions.add(state);
-			}
+		}
+		synchronized (State.class) {
+			stateRemovals.remove(state);
+			stateAdditions.add(state);
 		}
 		xyz.gabriwar.warpedpixeldungeon.net.NetVisuals.recordSpriteState(ch, state, true);
 	}
@@ -697,6 +775,8 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 			case POISONED:
 			case CORRODED:
 			case OOZED:
+			case SEEDED:
+			case SURGING:
 				looks().add( state );
 				break;
 			case INVISIBLE:
@@ -708,7 +788,10 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 					alpha(0.4f);
 				break;
 			case PARALYSED:
+				//a stun written down in the frame its body fell (die() came first): no pause, no stars
+				if (ch != null && !ch.isAlive()) break;
 				paused = true;
+				looks().add( state );
 				break;
 			case FROZEN:
 				if (iceBlock != null) iceBlock.killAndErase();
@@ -755,14 +838,14 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 	private final HashSet<State> stateRemovals = new HashSet<>();
 
 	public void remove( State state ) {
-		//instant as it just changes an animation property that will get read later
+		//instant as it just changes an animation property that will get read later; its look goes
+		//as every state's does
 		if (state == State.PARALYSED){
 			paused = false;
-		} else {
-			synchronized (State.class) {
-				stateAdditions.remove(state);
-				stateRemovals.add(state);
-			}
+		}
+		synchronized (State.class) {
+			stateAdditions.remove(state);
+			stateRemovals.add(state);
 		}
 		xyz.gabriwar.warpedpixeldungeon.net.NetVisuals.recordSpriteState(ch, state, false);
 	}
@@ -782,6 +865,7 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 				break;
 			case PARALYSED:
 				paused = false;
+				if (looks != null) looks.remove( state );
 				break;
 			case FROZEN:
 				if (iceBlock != null) {
@@ -866,6 +950,9 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 
 		if (looks != null) {
 			looks.update();
+		}
+		if (glowLeft > 0) {
+			stepAfterglow();
 		}
 
 		if (iceBlock != null) {

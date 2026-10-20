@@ -46,7 +46,9 @@ import xyz.gabriwar.warpedpixeldungeon.homestead.RoomTraits;
 import xyz.gabriwar.warpedpixeldungeon.homestead.Rooms;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Sickle;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.WarScythe;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
@@ -376,6 +378,8 @@ public final class Farming {
 		Level level = Dungeon.level;
 		int cell = m.pos;
 		for (Item i : FarmRules.harvest( c.plant(), c.seed )){
+			//a Reaper's scythe may cut a second seed loose; food crops give no seed to double
+			if (i instanceof Plant.Seed && Quality.secondSeed( hero, cell )) i.quantity( i.quantity() * 2 );
 			Heap h = level.drop( i, cell );
 			if (h.sprite != null) h.sprite.drop();
 		}
@@ -391,9 +395,9 @@ public final class Farming {
 		hero.spendAndNext( 1f );
 	}
 
-	/** Does the hero carry a sickle to cut a ripe crop with. */
+	/** Does the hero carry a sickle or a war scythe to cut a ripe crop (or tall grass) with. */
 	public static boolean hasSickle( Hero hero ){
-		return hero.belongings.getItem( Sickle.class ) != null;
+		return hero.belongings.getItem( Sickle.class ) != null || hero.belongings.getItem( WarScythe.class ) != null;
 	}
 
 	// ----------------------------------------------------------------- watering

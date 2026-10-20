@@ -117,7 +117,7 @@ public class ShadowDragon extends PET implements Callback {
 				int dmg = damageRoll() * 3;
 				enemy.damage(dmg, this);
 			} else {
-				enemy.sprite.showStatus(0xFFFFFF, enemy.defenseVerb());
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.missed( enemy );
 			}
 		}
 	}

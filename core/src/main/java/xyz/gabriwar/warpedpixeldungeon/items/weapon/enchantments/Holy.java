@@ -25,6 +25,10 @@
 package xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import com.watabou.utils.Random;
@@ -43,11 +47,16 @@ public class Holy extends Weapon.Enchantment {
 			if (Random.Float() < ((level + 1f) / (level + 4f)) * multi) {
 				int bonus = Math.round( Random.NormalIntRange( 0, damage + level ) * power() );
 				defender.damage( bonus, this );
+				if (bonus > 0) EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, EnchantFx.strength( level(), bonus, defender.HT, 1f ),
+						level(), Quality.isVestige( weapon, this ) ? EnchantFx.ECHO : 0 );
 			}
 		} else if (defender.properties().contains( Char.Property.DEMONIC )) {
 			if (Random.Float() < (1f / (level + 4f)) * multi) {
 				int bonus = Math.round( Random.NormalIntRange( 0, (damage + level) / 2 ) * power() );
 				defender.damage( bonus, this );
+				//the demonic burn less: a weak look, hell smoke burnt off
+				if (bonus > 0) EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, 0.2f, level(), Quality.isVestige( weapon, this ) ? EnchantFx.ECHO : 0,
+						ElementRows.holy( true ) );
 			}
 		}
 

@@ -35,8 +35,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.HolyFlameParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 
 public class ZealPassive extends PassiveSkillB2 {
 
@@ -67,9 +69,10 @@ public class ZealPassive extends PassiveSkillB2 {
 			return;
 		kindledUntil = Actor.now() + KINDLED_TURNS;
 		Hero hero = Dungeon.hero;
+		//kindled: holy motes rising off the cleric (never a flame on him: that is Burning)
 		if (hero != null && hero.sprite != null)
-			hero.sprite.emitter().burst( FlameParticle.FACTORY, 10 );
-		SpatialSound.play( Assets.Sounds.BURNING, hero, 0.6f, 1.4f );
+			hero.sprite.emitter().burst( SkillBursts.HOLY_MOTE, 10 );
+		SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 0.6f, 1.4f );
 	}
 
 	//the kill that kindles the flame has already passed through here, so it never spends its own flame;
@@ -84,17 +87,18 @@ public class ZealPassive extends PassiveSkillB2 {
 			return damage;
 
 		int burst = eruption();
+		//the eruption: the cleric's own white fire on the enemy (Scouring Flame's), a star of gold
 		if (enemy.sprite != null){
-			enemy.sprite.emitter().burst( FlameParticle.FACTORY, 12 );
-			new Flare( 6, 24 ).color( 0xFFAA33, true ).show( enemy.sprite, 0.6f );
+			enemy.sprite.emitter().burst( HolyFlameParticle.FACTORY, 12 );
+			PixelFlare.show( SkillVfx.midX( enemy.sprite ), SkillVfx.midY( enemy.sprite ), 0xF1D99C, PixelFlare.M, 0.6f );
 		}
-		SpatialSound.play( Assets.Sounds.BLAST, enemy, 0.8f, 1.2f );
+		SpatialSound.play( Assets.Sounds.HIT_MAGIC, enemy, 0.8f, 1.2f );
 
 		if (level >= MAX_LEVEL){
 			for (int offset : PathFinder.NEIGHBOURS8){
 				Char ch = Actor.findChar( enemy.pos + offset );
 				if (ch != null && ch != enemy && ch.alignment == Char.Alignment.ENEMY && ch.isAlive()){
-					if (ch.sprite != null) ch.sprite.emitter().burst( FlameParticle.FACTORY, 6 );
+					if (ch.sprite != null) ch.sprite.emitter().burst( HolyFlameParticle.FACTORY, 6 );
 					ch.damage( burst, this );
 				}
 			}

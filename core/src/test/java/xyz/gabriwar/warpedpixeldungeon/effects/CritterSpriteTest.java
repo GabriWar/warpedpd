@@ -30,11 +30,13 @@ import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.WaterFX;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.WarpedRoomsTest;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Gizmo;
 import com.watabou.noosa.Group;
+import com.watabou.noosa.Image;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.SparseArray;
 import org.junit.After;
@@ -48,6 +50,8 @@ import java.util.HashSet;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -56,6 +60,8 @@ import static org.junit.Assert.assertTrue;
  * to its patch, and - the rebase contract - a picture slid with the effects group stays
  * exactly where the slide put it, however many times follow() is called before its update. A
  * leaping fish gives itself away under the water first, then arcs, and falls back ringing it.
+ * A flock's bird casts its shadow on the ground under it, fading as it climbs and with the light,
+ * and the wind carries a butterfly's patch the way it blows.
  */
 public class CritterSpriteTest {
 
@@ -268,6 +274,98 @@ public class CritterSpriteTest {
 			assertTrue( "gone after " + t + "s", t >= 18f && t <= 36f + 2 * DT );
 			assertTrue( "strayed " + far + "px from its patch", far <= 64f );
 		}
+	}
+
+	@Test
+	public void theWindCarriesAButterflysPatchItsWay(){
+		Level was = Dungeon.level;
+		float dir = ClimateManager.debugWindDirOverride, time = Game.timeTotal;
+		try {
+			//under the surface's open sky, a wind of 8 m/s, gusting as at the clock's start
+			Game.timeTotal = 0f;
+			Dungeon.level = new OverworldLevel();
+			ClimateManager.debugWindOverride = 8f;
+			for (float toward : new float[]{ 90f, 270f }){
+				ClimateManager.debugWindDirOverride = toward;
+				Fx.frame();
+				CritterSprite.Butterfly b = new CritterSprite.Butterfly( 300f, 300f );
+				for (int i = 0; i < 120; i++) frame( b, DT );
+				//two seconds of a quarter of the wind's drift: four or five pixels its way
+				float moved = b.ax - 300f;
+				if (toward == 90f) assertTrue( "east: " + moved, moved > 3f );
+				else assertTrue( "west: " + moved, moved < -3f );
+			}
+		} finally {
+			Dungeon.level = was;
+			ClimateManager.debugWindDirOverride = dir;
+			Game.timeTotal = time;
+			Fx.frame();
+		}
+	}
+
+	@Test
+	public void aFlocksBirdCastsItsShadowUnderItFadingAsItClimbs(){
+		Level was = Dungeon.level;
+		//off a level: the hero sees everywhere
+		Dungeon.level = null;
+		try {
+			castsItsShadow();
+		} finally {
+			Dungeon.level = was;
+		}
+	}
+
+	private static void castsItsShadow(){
+		CritterSprite.Bird b = new CritterSprite.Bird( CritterSprite.Bird.Kind.CROW, 200f, 200f, 0f );
+		assertNull( "a bird casts none of its own (the dungeon's)", b.shadow() );
+		b.castShadow();
+		Image s = b.shadow();
+		assertNotNull( s );
+		b.land( 2f, 0f );
+		//gliding in: on the ground under it (as far below it as it is high), growing as it comes down
+		float last = 0f;
+		while (b.landing()){
+			frame( b, DT );
+			assertGroundUnder( b, s );
+			assertTrue( "it grows as the bird comes down", s.alpha() >= last - 0.0001f );
+			last = s.alpha();
+		}
+		//down: SHADOW strong by day, under its feet, and so it stays while it pecks and hops about
+		assertEquals( CritterSprite.Bird.SHADOW, s.alpha(), 0.001f );
+		for (int i = 0; i < 120; i++){
+			frame( b, DT );
+			assertGroundUnder( b, s );
+			assertEquals( CritterSprite.Bird.SHADOW * (1f - b.z / CritterSprite.Bird.SHADOW_GONE), s.alpha(), 0.001f );
+			assertTrue( s.visible );
+		}
+		//off it goes: the shadow stays on the ground as it climbs, fading, and is gone with it
+		b.takeOff( 0f, 0f );
+		last = s.alpha();
+		while (b.exists){
+			frame( b, DT );
+			if (!b.exists) break;
+			assertGroundUnder( b, s );
+			assertTrue( "it fades as the bird climbs", s.alpha() <= last + 0.0001f );
+			last = s.alpha();
+			if (b.z >= CritterSprite.Bird.SHADOW_GONE) assertFalse( s.visible );
+		}
+		assertNull( b.shadow() );
+		assertFalse( s.exists );
+	}
+
+	//the shadow straight under the bird's ground point, a pixel over its feet, on whole pixels
+	private static void assertGroundUnder( CritterSprite.Bird b, Image s ){
+		assertEquals( Math.round( b.gx() - 4.5f ), s.x, 0f );
+		assertEquals( Math.round( b.gy() - 3.5f ), s.y, 0f );
+	}
+
+	@Test
+	public void aBirdsShadowGoesWithTheLight(){
+		assertEquals( 1f, CritterSprite.Bird.shadowLight( 0f ), 0f );
+		assertEquals( "a broken sky's day", 1f, CritterSprite.Bird.shadowLight( 0.12f ), 0f );
+		float grey = CritterSprite.Bird.shadowLight( 0.3f );
+		assertTrue( "a grey day's: " + grey, grey > 0f && grey < 1f );
+		assertEquals( "none by night", 0f, CritterSprite.Bird.shadowLight( 0.5f ), 0f );
 	}
 
 	@Test

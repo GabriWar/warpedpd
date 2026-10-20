@@ -25,9 +25,14 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.PlantFx;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.EarthParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor.Glyph;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.plants.Earthroot;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
@@ -51,6 +56,9 @@ public class Entanglement extends Glyph {
 			Buff.affect( defender, Earthroot.Armor.class ).level( Math.round((5 + 2 * level)*powerMulti*power()) ); //scales with glyph level
 			CellEmitter.bottom( defender.pos ).start( EarthParticle.FACTORY, 0.05f, 8 );
 			if (defender == Dungeon.hero) PixelScene.shake( 1, 0.4f );
+			//the Earthroot's bark rising round the feet, and vines creeping up the legs
+			PlantFx.bark( defender.pos );
+			EnchantFx.ward( EnchantLooks.of( getClass() ), defender, attacker, 0.45f, level(), Quality.isVestige( armor, this ) ? EnchantFx.ECHO : 0, ElementRows.entanglement() );
 			
 		}
 

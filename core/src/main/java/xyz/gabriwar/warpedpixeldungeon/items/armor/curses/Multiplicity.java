@@ -39,6 +39,9 @@ import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTeleportation;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
@@ -103,6 +106,7 @@ public class Multiplicity extends Armor.Glyph {
 						m.pos = Random.element(spawnPoints);
 						GameScene.add(m);
 						ScrollOfTeleportation.appear(m, m.pos);
+						EnchantFx.ward( EnchantLooks.of( getClass() ), defender, attacker, 0.45f, level(), EnchantFx.CURSE, ShadowRows.multiplied( m.pos ) );
 					}
 				}
 

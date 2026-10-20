@@ -30,6 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
+import xyz.gabriwar.warpedpixeldungeon.items.ore.CopperOre;
 import xyz.gabriwar.warpedpixeldungeon.items.ore.Gem;
 import xyz.gabriwar.warpedpixeldungeon.items.ore.GoldOre;
 import xyz.gabriwar.warpedpixeldungeon.items.ore.IronOre;
@@ -220,6 +221,11 @@ public class OreMiningTest {
 		ArrayList<String> two = logged( () -> ((Ore) new GoldOre().quantity( 2 )).mined( hero, floor ) );
 		assertEquals( Messages.get( Ore.class, "prised_two", new GoldOre().name() ), two.get( 0 ) );
 		assertEquals( 2, hero.belongings.getItem( GoldOre.class ).quantity() );
+		//three from a rich vein and a typed tool's one more (Gathering.extraOre)
+		ArrayList<String> three = logged( () -> ((Ore) new CopperOre().quantity( 3 )).mined( hero, floor ) );
+		assertEquals( Messages.get( Ore.class, "prised_n", new CopperOre().name(), 3 ), three.get( 0 ) );
+		assertEquals( "You prise 3 lumps of " + new CopperOre().name() + " from the rock.", three.get( 0 ) );
+		assertEquals( 3, hero.belongings.getItem( CopperOre.class ).quantity() );
 
 		//a full pack: the lump of a metal not carried yet lies at the miner's feet
 		while (new Pickaxe().collect( hero.belongings.backpack )){

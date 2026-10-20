@@ -32,6 +32,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StreakFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -46,7 +47,6 @@ import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.PathFinder;
 
@@ -180,7 +180,7 @@ public class Fleche extends Skill {
 
 		//level 3: a finishing Fleche is free
 		if (level >= MAX_LEVEL && !ch.isAlive()){
-			hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get(this, "free") );
+			chipOn( hero );
 			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
 		} else {
 			hero.MP -= getManaCost();
@@ -188,7 +188,7 @@ public class Fleche extends Skill {
 		castTextYell();
 		//where the blow landed, wherever the run took her after
 		SpatialSound.play( Assets.Sounds.HIT_SLASH, strikeCell, 1f, 1.1f );
-		Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
+		Dungeon.hero.sprite.emitter().burst( SkillBursts.FLOURISH, 4 );
 		Dungeon.hero.heroSkills.lastUsed = this;
 		hero.spend( TIME_TO_USE );
 		hero.busy();

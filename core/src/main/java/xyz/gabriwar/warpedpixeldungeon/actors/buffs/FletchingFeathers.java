@@ -30,11 +30,11 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.CurrentSkills;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Fletching;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxOrbit;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillOrbit;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 
 /** Fletching's ring: the feathers plucked by ranged hits, circling the hero until they burst. */
 public class FletchingFeathers extends Buff {
@@ -56,7 +56,8 @@ public class FletchingFeathers extends Buff {
 		if (full()) return;
 		count++;
 		if (target != null && target.sprite != null){
-			target.sprite.emitter().burst( Speck.factory( Speck.WOOL ), 2 );
+			//a feather caught into the ring (never a flock's wool)
+			target.sprite.emitter().burst( SkillBursts.FEATHER, 2 );
 		}
 		SpatialSound.play( Assets.Sounds.MISS, target, 0.5f, 1.8f );
 	}

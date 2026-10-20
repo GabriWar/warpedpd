@@ -28,9 +28,13 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import com.watabou.utils.Random;
+
+import java.util.ArrayList;
 
 public class LokisPoison extends Weapon.Enchantment {
 
@@ -46,6 +50,7 @@ public class LokisPoison extends Weapon.Enchantment {
 		// lvl 2 - 60%
 		float procChance = (level + 1f) / (level + 3f) * procChanceMultiplier(attacker);
 
+		ArrayList<Char> poisoned = new ArrayList<>();
 		for (Mob mob : Dungeon.level.mobs) {
 			if (Dungeon.level.distance(attacker.pos, mob.pos) < distance
 					&& mob != defender
@@ -53,6 +58,7 @@ public class LokisPoison extends Weapon.Enchantment {
 				Buff.affect(mob,
 						xyz.gabriwar.warpedpixeldungeon.actors.buffs.LokisPoison.class)
 						.set(Math.round((level + 1) * power())); //scales with enchantment level
+				poisoned.add(mob);
 			}
 		}
 
@@ -60,6 +66,11 @@ public class LokisPoison extends Weapon.Enchantment {
 			Buff.affect(defender,
 					xyz.gabriwar.warpedpixeldungeon.actors.buffs.LokisPoison.class)
 					.set(Math.round((level + 1) * power())); //scales with enchantment level
+			poisoned.add(0, defender);
+		}
+		//its look on everyone it poisoned, the defender first (allies too: it poisons them)
+		if (!poisoned.isEmpty()){
+			ElementRows.lokis( EnchantLooks.of( getClass() ), attacker, poisoned, Math.min( 1f, poisoned.size() / 4f ), level(), distance );
 		}
 
 		return damage;

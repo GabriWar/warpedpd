@@ -179,6 +179,17 @@ public class BuffIndicator extends Component {
 	public static final int ARROW_ATTACHED  = 113;
 	//thin air on the world's high slices (actors/buffs/Breathless)
 	public static final int BREATHLESS      = 114;
+	//a broken blade: the next attack is weakened (a weapon type's alpha)
+	public static final int DISARMED        = 115;
+	//skill marks that only floated a word before: Precision's gap, Blade Mastery's read, Bandit's
+	//empty pocket, Demoralize's broken nerve, Accuracy's spent first shot
+	public static final int GAP             = 116;
+	public static final int FORM_READ       = 117;
+	public static final int PICKPOCKETED    = 118;
+	public static final int DEMORALIZED     = 119;
+	public static final int ACCURACY_MARK   = 120;
+	//Crusader's Zeal's flames: a gold cross pattee (it wore Burning's flame tinted gold before)
+	public static final int ZEAL            = 121;
 
 	public static final int SIZE_SMALL  = 7;
 	public static final int SIZE_LARGE  = 16;

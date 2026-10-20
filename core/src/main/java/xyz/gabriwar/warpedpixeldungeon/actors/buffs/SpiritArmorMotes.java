@@ -33,7 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.CurrentSkills;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SpiritArmor;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBolt;
 import xyz.gabriwar.warpedpixeldungeon.effects.SpiritArmorFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
@@ -77,7 +77,7 @@ public class SpiritArmorMotes extends Buff {
 		}
 		if (motes >= capacity( rank )) stored = 0;
 		if (formed > 0 && target != null && target.sprite != null){
-			target.sprite.showStatus( CharSprite.NEUTRAL, motes + "/" + capacity( rank ) );
+			xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.counterOn( SpiritArmor.class, target, motes, CharSprite.NEUTRAL );
 			SpatialSound.play( Assets.Sounds.CHARGEUP, target, 0.4f, 1.6f );
 		}
 		if (motes >= capacity( rank )) volley();
@@ -104,8 +104,9 @@ public class SpiritArmorMotes extends Buff {
 			motes--;
 			fired++;
 			if (target.sprite != null && target.sprite.parent != null && aim.sprite != null){
-				((MagicMissile) target.sprite.parent.recycle( MagicMissile.class )).reset(
-						MagicMissile.WARD, target.sprite.center(), aim.sprite.destinationCenter(), null );
+				//the ward's runes thrown (SkillBolt.RUNE: the violet ribbon of squares, the rune head and the
+				//runes rising off it, as the volley flew at 72b40617b), flying as that bolt did
+				SkillBolt.fly( target.sprite.parent, target.sprite.center(), aim.sprite.destinationCenter(), SkillBolt.RUNE, null );
 				SpiritArmorFX.spend( target, aim );
 			}
 			aim.damage( Random.NormalIntRange( 2 + rank, 4 + 2 * rank ), this );

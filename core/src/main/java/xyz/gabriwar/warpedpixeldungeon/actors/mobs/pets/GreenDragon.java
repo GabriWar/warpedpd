@@ -124,7 +124,7 @@ public class GreenDragon extends PET implements Callback {
 
 					CellEmitter.center(enemy.pos).burst(SparkParticle.FACTORY, 3);
 				} else {
-					enemy.sprite.showStatus(0xFFFFFF, enemy.defenseVerb());
+					xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.missed( enemy );
 				}
 			}
 

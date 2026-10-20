@@ -43,6 +43,7 @@ import com.watabou.utils.Callback;
 import com.watabou.noosa.tweeners.Tweener;
 import com.watabou.noosa.tweeners.Delayer;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfSharpshooting;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
@@ -112,7 +113,8 @@ public class ShootGun extends Weapon {
 			if (charge < 1){
 				charge = fullcharge;
 				hero.sprite.showStatus(CharSprite.DEFAULT, Messages.get(this, "reloading"));
-				hero.spendAndNext(1.5f);
+				if (Quality.rollFreeReload(this, hero)) hero.next();
+				else hero.spendAndNext(1.5f);
 			} else {
 				curUser = hero;
 				curItem = this;
@@ -122,7 +124,8 @@ public class ShootGun extends Weapon {
 			if (charge < 1){
 				charge = fullcharge;
 				hero.sprite.showStatus(CharSprite.DEFAULT, Messages.get(this, "reloading"));
-				hero.spendAndNext(1.5f);
+				if (Quality.rollFreeReload(this, hero)) hero.next();
+				else hero.spendAndNext(1.5f);
 			} else {
 				curUser = hero;
 				curItem = this;
@@ -133,7 +136,9 @@ public class ShootGun extends Weapon {
 				GLog.n(Messages.get(this, "full"));
 			} else {
 				float reloadtime = (fullcharge - charge)/2;
-				hero.spendAndNext(reloadtime*1f);
+				//a reload that already takes no time has nothing to spare
+				if (reloadtime > 0 && Quality.rollFreeReload(this, hero)) hero.next();
+				else hero.spendAndNext(reloadtime*1f);
 				hero.sprite.showStatus(CharSprite.DEFAULT, Messages.get(this, "reloading"));
 				charge = fullcharge;
 			}
@@ -251,6 +256,12 @@ public class ShootGun extends Weapon {
 			setID = 0;
 		}
 
+		//the shot fires the gun's magic and counts its rarity (the end shot too)
+		@Override
+		public Weapon magicSource() {
+			return ShootGun.this;
+		}
+
 		@Override
 		public ArrayList<String> actions(Hero hero) {
 			return new ArrayList<>();
@@ -313,7 +324,7 @@ public class ShootGun extends Weapon {
 
 		@Override
 		public void cast(final Hero user, final int dst) {
-			useAmmo();
+			useAmmo( user );
 			updateQuickslot();
 			fired( user );
 			super.cast(user, dst);
@@ -326,8 +337,9 @@ public class ShootGun extends Weapon {
 			PixelScene.shake( 1f, 0.15f );
 		}
 
-		protected void useAmmo(){
-			charge--;
+		protected void useAmmo( Hero user ){
+			//an AMMO line's spared round
+			if (!Quality.rollSpareAmmo(ShootGun.this, user)) charge--;
 		}
 	}
 
@@ -369,7 +381,7 @@ public class ShootGun extends Weapon {
 
 		//the whole magazine is dumped at once
 		@Override
-		protected void useAmmo(){
+		protected void useAmmo( Hero user ){
 			charge = 0;
 		}
 

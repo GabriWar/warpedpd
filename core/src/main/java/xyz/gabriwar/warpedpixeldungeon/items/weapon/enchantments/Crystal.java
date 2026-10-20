@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Regeneration;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.DriedRose;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
@@ -93,6 +94,7 @@ public class Crystal extends Weapon.Enchantment {
 				} else if (visualDurability <= 0) {
 					SpatialSound.play( Assets.Sounds.SHATTER, attacker );
 					Splash.at(attacker.pos, 0x0088FF, 15);
+					ElementRows.crystalShatter( attacker );
 					if (attacker instanceof Hero) {
 						if (weapon.isEquipped((Hero) attacker)) {
 							weapon.doUnequip((Hero) attacker, false);
@@ -116,6 +118,7 @@ public class Crystal extends Weapon.Enchantment {
 
 		int magicDmg = (int)Math.ceil(damage * 0.33f * genericProcChanceMultiplier(attacker));
 		defender.damage(magicDmg, this);
+		ElementRows.crystalHit( attacker, defender );
 
 		return damage;
 	}

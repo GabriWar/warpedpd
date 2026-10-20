@@ -115,7 +115,7 @@ public final class Demo {
 	public enum Op {
 		MOVE, KNOCK, JUMP, ATTACK, ZAP, OPERATE, SHOOT, ANIM, IDLE, FACE,
 		HURT, HEAL, STATUS, SURPRISE, DIE, ICON, BUFF, CLEAR, FREEZE, THAW, LOOK, SHOW, HIDE,
-		BURST, POUR, STOP, MARK, UNMARK, ARROW, UNARROW, TERRAIN, CAPTION
+		BURST, POUR, STOP, MARK, UNMARK, ARROW, UNARROW, TERRAIN, CAPTION, CHIP
 	}
 
 	/** One thing that happens, at a time of the demo's clock. */
@@ -511,6 +511,13 @@ public final class Demo {
 	public Demo status( String id, String key, int color ){
 		if (key == null || key.trim().isEmpty()) throw wrong( id + ": status() needs a key" );
 		return add( new Step( Op.STATUS, clock, actor( id ), new int[0], color, false, key, null, null, null, null, null ) );
+	}
+
+	/** A hit card's icon rises over it, as the game shows one where a word used to float: a miss's
+	 *  dodge (FloatingText.MISS_DODGE), a parry (PARRY), immunity (IMMUNE), a buff taking hold
+	 *  (-(BuffIndicator icon + 1)), a skill (HitCard.SKILL_BASE + its image). */
+	public Demo chip( String id, int code ){
+		return add( new Step( Op.CHIP, clock, actor( id ), new int[0], code, false, null, null, null, null, null, null ) );
 	}
 
 	/** Struck by surprise: the game's own exclamation over it. */

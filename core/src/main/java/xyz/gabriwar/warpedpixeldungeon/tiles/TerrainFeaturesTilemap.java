@@ -41,6 +41,15 @@ public class TerrainFeaturesTilemap extends DungeonTilemap {
 	private SparseArray<Plant> plants;
 	private SparseArray<Trap> traps;
 
+	//under the open sky the wind sways the bush and the tall grass's blades, their top half
+	//(WindSway): the world's grass is the first stage's (featureVisual)
+	private static final int[] SWAY_ROWS = new int[196];
+	static {
+		SWAY_ROWS[15] = 8;
+		for (int t = 192; t < 196; t++) SWAY_ROWS[t] = 8;
+	}
+	private final WindSway.Batch sway = WindSway.batch( SWAY_ROWS );
+
 	static boolean usesSeparateDecoration(String texture) {
 		return Assets.Environment.TILES_SEWERS.equals(texture)
 				|| Assets.Environment.TILES_PRISON.equals(texture)
@@ -79,6 +88,23 @@ public class TerrainFeaturesTilemap extends DungeonTilemap {
 	@Override
 	protected int getTileVisual(int pos, int tile, boolean flat){
 		return featureVisual( pos, tile, flat );
+	}
+
+	@Override
+	protected boolean needsRender(int pos) {
+		return super.needsRender(pos) && (sway == null || !sway.moves(data[pos]));
+	}
+
+	@Override
+	public void draw() {
+		super.draw();
+		if (sway != null) sway.draw(this, matrix, script(), texture, tileset, data, mapWidth, mapHeight);
+	}
+
+	@Override
+	public void destroy() {
+		super.destroy();
+		if (sway != null) sway.destroy();
 	}
 
 	//what the map shows at a cell, nothing held

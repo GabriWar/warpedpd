@@ -24,6 +24,9 @@ package xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
@@ -45,6 +48,11 @@ public class Kinetic extends Weapon.Enchantment {
 
 		//use a tracker so that we can know the true final damage
 		Buff.affect(attacker, KineticTracker.class).conservedDamage = conservedDamage;
+		//the stored force let go on this blow: its look, sized by the force against the foe
+		if (conservedDamage > 0){
+			EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, EnchantFx.strength( level(), conservedDamage, defender.HT, 1f ),
+					level(), 0, ElementRows.kinetic( conservedDamage / (float)Math.max( 1, defender.HT ) ) );
+		}
 		
 		return damage + conservedDamage;
 	}

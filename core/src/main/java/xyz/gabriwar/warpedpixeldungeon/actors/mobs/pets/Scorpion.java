@@ -79,12 +79,12 @@ public class Scorpion extends PET {
 
 			// Heal self
 			HP = Math.min(HP + damage, HT);
-			sprite.showStatus(0x00FF00, Integer.toString(damage));
+			sprite.showStatusWithIcon(0x00FF00, Integer.toString(damage), xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.HEALING);
 			sprite.emitter().start(Speck.factory(Speck.HEALING), 0.4f, 1);
 
 			// Heal hero
 			Dungeon.hero.HP = Math.min(Dungeon.hero.HP + damage, Dungeon.hero.HT);
-			Dungeon.hero.sprite.showStatus(0x00FF00, Integer.toString(damage));
+			Dungeon.hero.sprite.showStatusWithIcon(0x00FF00, Integer.toString(damage), xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.HEALING);
 			Dungeon.hero.sprite.emitter().start(Speck.factory(Speck.HEALING), 0.4f, 1);
 
 			damage *= 2;

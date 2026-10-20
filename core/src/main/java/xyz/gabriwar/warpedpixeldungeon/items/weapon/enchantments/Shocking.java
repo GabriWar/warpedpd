@@ -27,8 +27,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.lightning.Crackle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import com.watabou.utils.BArray;
@@ -69,6 +73,9 @@ public class Shocking extends Weapon.Enchantment {
 			Crackle.on( defender.sprite );
 			for (Char ch : affected) Crackle.on( ch.sprite );
 			Crackle.weapon( attacker.sprite );
+			//its look on the defender and on everyone the lightning struck
+			ElementRows.shocking( EnchantLooks.of( getClass() ), attacker, defender, affected,
+					ElementRows.shockStrength( affected.size() + 1, level() ), level(), Quality.isVestige( weapon, this ) ? EnchantFx.ECHO : 0 );
 			
 		}
 

@@ -24,6 +24,9 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.weapon.melee;
 
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.TypeFx;
+import java.util.ArrayList;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Drowsy;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Slow;
 import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
@@ -61,20 +64,27 @@ public class Flute extends MeleeWeapon {
 	@Override
 	public void hitSound( float pitch, Char defender ){
 		super.hitSound( pitch, defender );
-		Notes.play( Assets.Sounds.FLUTE_NOTE, defender );
+		//a typed instrument is a Bard's: its note steps up toward the chord
+		Quality q = Quality.of( this );
+		if (q != null) Notes.step( Assets.Sounds.FLUTE_NOTE, defender, q.notes );
+		else Notes.play( Assets.Sounds.FLUTE_NOTE, defender );
 	}
 
 	@Override
 	public int proc(Char attacker, Char defender, int damage) {
 		//resonance: half weapon damage to every other char adjacent to the target
+		//the wielder's own side and the neutral are spared: the note strikes only the other side
 		int p = defender.pos;
+		ArrayList<Char> struck = new ArrayList<>();
 		for (int n : PathFinder.NEIGHBOURS8) {
 			Char ch = Actor.findChar(p + n);
-			if (ch != null && ch != defender && ch != attacker && ch.isAlive()) {
+			if (ch != null && ch != defender && ch != attacker && ch.isAlive() && ch.alignment != attacker.alignment && ch.alignment != Char.Alignment.NEUTRAL) {
+				struck.add(ch);
 				int dmg = Math.max(Random.NormalIntRange(min(), max()) - Random.IntRange(0, 1), 0);
 				ch.damage(dmg / 2, this);
 			}
 		}
+		TypeFx.resonance( attacker, defender, this, struck );
 		return super.proc(attacker, defender, damage);
 	}
 

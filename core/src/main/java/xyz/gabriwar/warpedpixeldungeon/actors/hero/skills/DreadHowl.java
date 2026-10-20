@@ -28,7 +28,10 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.DreadFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.ShoutFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -40,13 +43,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 
 import java.util.ArrayList;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 public class DreadHowl extends Skill {
 
@@ -96,20 +97,26 @@ public class DreadHowl extends Skill {
 				return;
 			}
 
+			//those it frightens at mastery: ink sinking in, and each jolting away from the rogue as the
+			//howl reaches it
+			float hx = SkillVfx.midX( hero.sprite ), hy = SkillVfx.midY( hero.sprite );
 			for (Char ch : unafraid){
 				Buff.affect( ch, Terror.class, 3 ).object = hero.id();
-				CellEmitter.get( ch.pos ).burst( ShadowParticle.CURSE, 4 );
+				CellEmitter.get( ch.pos ).burst( SkillBursts.DREAD, 4 );
+				if (ch.sprite != null) ShoutFX.flinch( ch.sprite, hx, hy, DreadFX.DREAD_FLINCH, 0.06f * Dungeon.level.distance( hero.pos, ch.pos ) );
 			}
 
-			//the howl rolls out from the rogue ring by ring; each mind it reaches snaps as it passes
+			//the howl rolls out from the rogue ring by ring - violet rings on the floor shedding ink, a
+			//wisp of ink on every other cell it crosses - and each mind it reaches snaps as it passes
 			FxTimeline t = FxTimeline.start();
 			int w = Dungeon.level.width();
+			t.at( 0.06f, () -> ShoutFX.howl( hero.sprite, ShoutFX.DREAD, 5, 0.06f ) );
 			for (int r = 1; r <= 5; r++){
 				final int ring = r;
 				t.at( 0.06f * r, () -> {
 					for (int c : SkillInteractions.area( hero.pos, ring )){
 						if (Dungeon.level.distance( hero.pos, c ) != ring || !Dungeon.level.heroFOV[c]) continue;
-						if (((c % w) + (c / w) + ring) % 2 == 0) CellEmitter.get( c ).burst( ShadowParticle.MISSILE, 1 );
+						if (((c % w) + (c / w) + ring) % 2 == 0) CellEmitter.get( c ).burst( SkillBursts.DREAD, 1 );
 					}
 				} );
 			}
@@ -118,16 +125,17 @@ public class DreadHowl extends Skill {
 				Buff.detach( ch, Terror.class );
 				Buff.prolong( ch, Amok.class, 3 + level );
 				final Char mad = ch;
+				//fear turned to madness: a crimson ring closing, a shudder, runes circling its head
 				t.at( 0.06f * Dungeon.level.distance( hero.pos, ch.pos ), () -> {
 					if (mad.sprite == null || !mad.isAlive()) return;
-					CellEmitter.get( mad.pos ).burst( Speck.factory( Speck.SCREAM ), 2 );
-					CellEmitter.get( mad.pos ).burst( ShadowParticle.UP, 3 );
+					CellEmitter.get( mad.pos ).burst( SkillBursts.TREMBLE, 2 );
+					CellEmitter.get( mad.pos ).burst( SkillBursts.DREAD, 3 );
 					mad.sprite.flash();
-					mad.sprite.showStatus( CharSprite.NEGATIVE, "Mad" );
+					DreadFX.madness( mad.sprite );
 				} );
 			}
 			Fx.shake( 1, 0.3f );
-			hero.sprite.emitter().burst( ShadowParticle.UP, 8 );
+			hero.sprite.emitter().burst( SkillBursts.INK_DRIFT, 8 );
 
 			hero.MP -= getManaCost();
 			castTextYell();

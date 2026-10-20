@@ -112,6 +112,7 @@ import xyz.gabriwar.warpedpixeldungeon.tiles.GridTileMap;
 import xyz.gabriwar.warpedpixeldungeon.tiles.RaisedTerrainTilemap;
 import xyz.gabriwar.warpedpixeldungeon.tiles.TerrainFeaturesTilemap;
 import xyz.gabriwar.warpedpixeldungeon.tiles.WallBlockingTilemap;
+import xyz.gabriwar.warpedpixeldungeon.tiles.WindSway;
 import xyz.gabriwar.warpedpixeldungeon.ui.ActionIndicator;
 import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
 import xyz.gabriwar.warpedpixeldungeon.ui.CrouchIndicator;
@@ -1271,6 +1272,7 @@ public class GameScene extends PixelScene {
 		FxBudget.frame( lastFrameNanos == 0 ? 0f : (nanos - lastFrameNanos) / 1e9f );
 		lastFrameNanos = nanos;
 		Fx.frame();
+		WindSway.frame();
 		WaterFX.frame();
 		TerrainWatch.drain();
 
@@ -1848,7 +1850,9 @@ public class GameScene extends PixelScene {
 		/** Matter in the air, over everyone (the emitters). */
 		EFFECTS,
 		/** Light, over the night's tint. */
-		LIGHTS
+		LIGHTS,
+		/** The floating texts and the hit cards (effects/HitCard), over everything in the world. */
+		STATUSES
 	}
 
 	//stand-ins for the layers off any scene: a test's
@@ -1869,6 +1873,7 @@ public class GameScene extends PixelScene {
 			case SUBSURFACE: return scene.subsurface;
 			case SHEEN:      return scene.sheen;
 			case EFFECTS:    return scene.emitters;
+			case STATUSES:   return scene.statuses;
 			default:         return scene.lights;
 		}
 	}
@@ -2529,6 +2534,7 @@ public class GameScene extends PixelScene {
 			case CORONA:        ambient = WeatherOverlay.AmbientType.CORONA;        break;
 			case DRIP:          ambient = WeatherOverlay.AmbientType.DRIP;          break;
 			case HEAT_RAYS:     ambient = WeatherOverlay.AmbientType.HEAT_RAYS;     break;
+			case MOTES:         ambient = WeatherOverlay.AmbientType.MOTES;         break;
 			case AURORA:        // handled by AuroraOverlay below
 			case RAINBOW:       // handled by RainbowOverlay below
 			default:            ambient = WeatherOverlay.AmbientType.NONE;           break;

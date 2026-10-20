@@ -34,7 +34,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.TargetedCell;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.RipperSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Bundle;
@@ -200,7 +199,7 @@ public class RipperDemon extends Mob {
 								leapVictim.sprite.flash();
 								SpatialSound.play(Assets.Sounds.HIT, leapVictim);
 							} else {
-								leapVictim.sprite.showStatus( CharSprite.NEUTRAL, leapVictim.defenseVerb() );
+								xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.missed( leapVictim );
 								SpatialSound.play(Assets.Sounds.MISS, leapVictim);
 							}
 						}

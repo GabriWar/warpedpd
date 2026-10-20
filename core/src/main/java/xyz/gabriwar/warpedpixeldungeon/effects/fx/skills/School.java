@@ -28,7 +28,10 @@ import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
 
 /**
  * The skill tree's schools, each with the colour its casts glow in (the cast silhouettes'
- * colours, SkillCastFX.color) and the element whose palette its particles take.
+ * colours, SkillCastFX.color) and the element whose palette its particles take. The colours follow
+ * meaning (SkillPalette): fire orange FF8418, a storm's white-blue 7FA6FF, the arcane blue-violet
+ * 9070F0 (never the rogue's lilac B89CE4), the huntress leaf green A8D880 (never a cream sage);
+ * SkillVfx.classColor follows them.
  */
 public enum School {
 
@@ -37,19 +40,19 @@ public enum School {
 	/** stealth, curses, the dead */
 	SHADOW( 0xB89CE4, Element.SHADOW ),
 	/** the huntress's bow, traps, beasts */
-	NATURE( 0xB3D699, Element.NATURE ),
+	NATURE( 0xA8D880, Element.NATURE ),
 	/** bombs, embers, blood and fury */
-	FIRE( 0xDF9979, Element.FIRE ),
+	FIRE( 0xFF8418, Element.FIRE ),
 	/** frost novas and arrows */
 	FROST( 0xA4E9FF, Element.FROST ),
 	/** sparks, storms, the slipstream */
-	STORM( 0xB9DEEE, Element.ELECTRIC ),
+	STORM( 0x7FA6FF, Element.ELECTRIC ),
 	/** the warrior's earth and shouts */
 	MARTIAL( 0xD9AE75, Element.EARTH ),
 	/** blades: the duelist's steel */
 	STEEL( 0xB9DEEE, Element.STEEL ),
 	/** wards, meteors, the rest of magic */
-	ARCANE( 0xB89CE4, Element.ARCANE );
+	ARCANE( 0x9070F0, Element.ARCANE );
 
 	/** The colour its casts glow in. */
 	public final int color;

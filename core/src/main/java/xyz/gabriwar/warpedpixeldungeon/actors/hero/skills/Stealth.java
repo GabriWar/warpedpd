@@ -34,8 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.SkillDecoy;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -62,8 +61,8 @@ public class Stealth extends PassiveSkillA2 {
 		return level;
 	}
 
-	//the moment you spot a new enemy, a smoky double rises beside you: an awake enemy hunts that
-	//first, a sleeping one sleeps on. Once per enemy
+	//the moment you spot a new enemy, a shade of shadow rises beside you (a dark double shedding ink,
+	//never a Mirror Image): an awake enemy hunts that first, a sleeping one sleeps on. Once per enemy
 	@Override
 	public void onEnemySpotted( Mob mob ){
 		Hero hero = Dungeon.hero;
@@ -81,11 +80,11 @@ public class Stealth extends PassiveSkillA2 {
 		//strikes it
 		decoy.left = level + 1;
 		decoy.blinding = level >= Skill.MAX_LEVEL;
+		//its colour and alpha are its sprite's own (DecoySprite), so a co-op guest sees it the same
 		GameScene.add( decoy );
-		if (decoy.sprite != null) decoy.sprite.alpha( 0.55f );
-		CellEmitter.get( cell ).burst( Speck.factory( Speck.SMOKE ), 8 );
+		CellEmitter.get( cell ).burst( SkillBursts.INK_DRIFT, 8 );
 		SkillSpectacleFX.show( SkillSpectacleFX.SHADOW, cell );
-		if (hero.sprite != null) hero.sprite.emitter().burst( ShadowParticle.UP, 6 );
+		if (hero.sprite != null) hero.sprite.emitter().burst( SkillBursts.INK_DRIFT, 6 );
 		SpatialSound.play( Assets.Sounds.MELD, cell, 1f, 1.3f );
 		if (mob.state != mob.SLEEPING && mob.state != mob.PASSIVE) mob.aggro( decoy );
 	}

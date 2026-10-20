@@ -31,8 +31,6 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.BannerStandard;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 public class Banner extends SubSkill1 {
 
@@ -62,7 +60,7 @@ public class Banner extends SubSkill1 {
 		if (level <= 0 || ranged || hero == null || mob == null) return;
 		BannerStandard.plant( hero, mob.pos, level );
 		if (hero.sprite != null){
-			hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "planted" ) );
+			chipOn( hero );
 		}
 	}
 }

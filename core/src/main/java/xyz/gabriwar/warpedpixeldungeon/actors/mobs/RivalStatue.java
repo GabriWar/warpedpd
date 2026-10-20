@@ -29,27 +29,36 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barrier;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bless;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Daze;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Disarmed;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vulnerable;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.PieceFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.TypeFx;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.rarity.ItemType;
 import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.rarity.Rarity;
 import xyz.gabriwar.warpedpixeldungeon.items.rarity.WeaponPerk;
+import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
 import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.WarpedRooms;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.RivalStatueSprite;
 import com.watabou.utils.Bundle;
+import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
 /**
@@ -61,15 +70,23 @@ import com.watabou.utils.Random;
  *
  * What each group does here follows WeaponPerk.onHit and its _twist line:
  *
- *   Marksman  fights from up to six tiles, hits harder the further off, cannot miss from three
+ *   Marksman  fights from up to six tiles, hits harder the further off (45% from five tiles),
+ *             cannot miss from three (a Gunner, armed with a gun, fights the same way)
  *   Guard     sheds 15% of every blow; two turns unmoved and the next one is thrown back
- *   Reach     strikes one tile further than the weapon is long, harder with every tile
+ *   Reach     strikes one tile further than the weapon is long, 30% harder from two tiles off
  *   Flurry    swings faster the longer its blows keep landing; every fifth costs no time
  *   Crush     hits 15% harder and leaves armor sundered on the third blow in a row
  *   Wild      three blows in ten come out wild, nearly double, and open a bleed
  *   Ambush    its first blow, and any blow on a hero who cannot act, lands 45% harder
  *   Siphon    every hit drains mana, and what it drains becomes its own shielding
- *   Momentum  each blow in a row is 12% heavier than the last, five deep
+ *   Momentum  each blow in a row is 15% heavier than the last, from the first, four deep
+ *   Reaper    every blow sweeps the hero's side beside it for 45% of the blow
+ *   Woodsman  every third blow in a row is a felling blow that throws the hero two tiles back
+ *   Quarry    every third blow in a row cracks the floor: the hero is dazed and crippled
+ *   Bard      every fourth blow in a row is a chord that blesses it
+ *   Lash      18% harder from two tiles off; every fourth blow in a row disarms the hero
+ *
+ * None of these draws the game's Random: the counts are on its landed blows in a row.
  */
 public class RivalStatue extends Statue {
 
@@ -100,9 +117,11 @@ public class RivalStatue extends Statue {
 	public void armAgainst( Hero hero ){
 		Item held = hero == null ? null : hero.belongings.weapon();
 		WeaponPerk wanted = held instanceof Weapon ? WeaponPerk.of( held ) : WeaponPerk.MOMENTUM;
-		//a bow cannot be put in stone hands: its rival is whatever reaches furthest
-		if (wanted == WeaponPerk.SHOT || wanted == WeaponPerk.DART
-				|| wanted == WeaponPerk.THROW || wanted == WeaponPerk.IMPACT){
+		//a bow cannot be put in stone hands: its rival is whatever reaches furthest. A whip's rival
+		//may be any long weapon too, as the whip is the only one the generator makes, and a hammer's
+		//or a pick's any crushing weapon, as the generator makes none of them on the first floors
+		if (wanted == WeaponPerk.SHOT || wanted == WeaponPerk.DART || wanted == WeaponPerk.THROW
+				|| wanted == WeaponPerk.IMPACT || wanted == WeaponPerk.GUN || wanted == WeaponPerk.BOOMERANG){
 			wanted = WeaponPerk.SHOT;
 		}
 
@@ -112,7 +131,10 @@ public class RivalStatue extends Statue {
 		for (int tries = 0; tries < 120 && found == null; tries++){
 			MeleeWeapon w = Generator.randomWeapon( floorSet, true );
 			WeaponPerk group = WeaponPerk.of( w );
-			if (group == wanted || (wanted == WeaponPerk.SHOT && group == WeaponPerk.REACH)){
+			if (group == wanted || (wanted == WeaponPerk.SHOT
+					&& (group == WeaponPerk.REACH || group == WeaponPerk.GUN))
+					|| (wanted == WeaponPerk.LASH && group == WeaponPerk.REACH)
+					|| (wanted == WeaponPerk.QUARRY && group == WeaponPerk.CRUSH)){
 				found = w;
 			}
 		}
@@ -134,13 +156,18 @@ public class RivalStatue extends Statue {
 		return perk;
 	}
 
+	/** whether it fights from range: a Marksman's launcher or a Gunner's gun */
+	public boolean marksman(){
+		return perk == WeaponPerk.SHOT || perk == WeaponPerk.GUN;
+	}
+
 	// ---------------------------------------------------------------- reach and range
 
 	@Override
 	protected boolean canAttack( Char enemy ){
 		if (super.canAttack( enemy )) return true;
 		int dist = Dungeon.level.distance( pos, enemy.pos );
-		if (perk == WeaponPerk.SHOT){
+		if (marksman()){
 			return dist <= 6
 					&& new Ballistica( pos, enemy.pos, Ballistica.PROJECTILE ).collisionPos == enemy.pos;
 		}
@@ -154,7 +181,7 @@ public class RivalStatue extends Statue {
 
 	@Override
 	public int attackSkill( Char target ){
-		if (perk == WeaponPerk.SHOT && target != null
+		if (marksman() && target != null
 				&& Dungeon.level.distance( pos, target.pos ) >= 6 - RANK){
 			return INFINITE_ACCURACY;
 		}
@@ -204,30 +231,31 @@ public class RivalStatue extends Statue {
 		int dist = Dungeon.level.distance( pos, enemy.pos );
 		float mult = 1f;
 		switch (perk){
-			case SHOT:
-				if (dist >= 3) mult += Math.min( 0.15f * RANK, 0.06f * RANK + 0.02f * RANK * (dist - 2) );
+			case SHOT: case GUN:
+				if (dist >= 3) mult += Math.min( 0.15f * RANK, 0.06f * RANK + 0.03f * RANK * (dist - 2) );
 				break;
 			case REACH:
-				if (dist >= 2) mult += Math.min( 0.18f * RANK, 0.06f * RANK * (dist - 1) );
+				if (dist >= 2) mult += 0.10f * RANK;
 				break;
 			case CRUSH:
 				mult += 0.05f * RANK;
 				if (streak >= 2){
 					Buff.prolong( enemy, Vulnerable.class, 3f );
-					say( enemy, "sunder" );
+					Blow.chip( enemy, FloatingText.SHRED, 0 );
 				}
 				break;
 			case WILD:
 				if (Random.Float() < 0.10f * RANK){
 					mult += 0.3f + 0.2f * RANK;
 					Buff.affect( enemy, Bleeding.class ).set( Math.max( 1, damage / 4 ) );
-					say( enemy, "wild" );
+					Blow.chip( enemy, FloatingText.CRIT, 0 );
 				}
 				break;
 			case KEEN:
 				if (!opened || helpless( enemy )){
 					mult += 0.15f * RANK;
-					say( enemy, "ambush" );
+					//the ambush as an icon on the struck one's card (its reason icon says so only for some)
+					Blow.chip( enemy, FloatingText.HIT_SUPR, 0 );
 				}
 				break;
 			case SIPHON:
@@ -237,13 +265,57 @@ public class RivalStatue extends Statue {
 					if (drained > 0){
 						h.MP -= drained;
 						Buff.affect( this, Barrier.class ).incShield( drained * 2 );
-						say( enemy, "siphon" );
+						Blow.chip( enemy, FloatingText.MANA, 0 );
 					}
 				}
 				break;
 			case MOMENTUM:
-				mult += 0.04f * RANK * Math.min( 5, streak );
+				mult += 0.05f * RANK * Math.min( 4, streak + 1 );
 				break;
+			case WOODSMAN:
+				//the felling blow, on every third in a row
+				if ((streak + 1) % 3 == 0){
+					TypeFx.fell( this, enemy );
+					WandOfBlastWave.throwChar( enemy, new Ballistica( enemy.pos, enemy.pos + (enemy.pos - pos),
+							Ballistica.MAGIC_BOLT ), 2, true, false, this, TypeFx.WOOD );
+				}
+				break;
+			case QUARRY:
+				//the cracked floor, on every third in a row
+				if ((streak + 1) % 3 == 0){
+					Buff.prolong( enemy, Daze.class, 2f );
+					Buff.prolong( enemy, Cripple.class, 3f );
+					TypeFx.crack( this, enemy, null );
+				}
+				break;
+			case BARD:
+				//a rally for itself, on every fourth in a row
+				if ((streak + 1) % 4 == 0){
+					Buff.prolong( this, Bless.class, 4f );
+					TypeFx.chord( this, enemy, weapon, false, java.util.Collections.singletonList( (Char) this ), null, null );
+				}
+				break;
+			case LASH:
+				if (dist >= 2) mult += 0.06f * RANK;
+				if ((streak + 1) % 4 == 0){
+					Buff.prolong( enemy, Disarmed.class, Disarmed.DURATION );
+					TypeFx.unarm( this, enemy );
+				}
+				break;
+			case SCYTHE: {
+				//the sweep: everyone of the hero's side beside it but the one it struck takes 45% of the blow
+				java.util.ArrayList<Char> swept = new java.util.ArrayList<>();
+				for (int n : PathFinder.NEIGHBOURS8){
+					Char ch = Actor.findChar( pos + n );
+					if (ch == null || ch == enemy || ch.alignment != Alignment.ALLY || !ch.isAlive()) continue;
+					Quality.splash( this, ch, Math.round( damage * 0.15f * RANK ) );
+					swept.add( ch );
+					if (ch == Dungeon.hero && !ch.isAlive()) Dungeon.fail( this );
+				}
+				//the sweep's own look round it (nothing when it swept no one)
+				PieceFx.sweep( this, enemy, weapon, swept );
+				break;
+			}
 			default:
 				break;
 		}
@@ -258,12 +330,6 @@ public class RivalStatue extends Statue {
 	private static boolean helpless( Char ch ){
 		return ch.paralysed > 0 || ch.buff( Paralysis.class ) != null
 				|| ch.buff( Blindness.class ) != null || ch.buff( Roots.class ) != null;
-	}
-
-	private void say( Char over, String key ){
-		if (over.sprite != null && Dungeon.level.heroFOV[over.pos]){
-			over.sprite.showStatus( CharSprite.WARNING, Messages.get( RivalStatue.class, key ) );
-		}
 	}
 
 	//a blow that did not land breaks whatever was building
@@ -287,7 +353,8 @@ public class RivalStatue extends Statue {
 				if (enemy != null && enemy.isAlive() && back > 0
 						&& Dungeon.level.adjacent( pos, enemy.pos )){
 					enemy.damage( back, this );
-					say( enemy, "riposte" );
+					//inside the blow it turned aside: PARRY on its own card, the answer's number on the striker's
+					Blow.chip( this, FloatingText.PARRY, 0 );
 					if (enemy == Dungeon.hero && !enemy.isAlive()){
 						Dungeon.fail( this );
 					}

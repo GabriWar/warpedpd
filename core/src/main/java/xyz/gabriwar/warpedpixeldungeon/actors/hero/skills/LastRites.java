@@ -29,11 +29,10 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import com.watabou.utils.PathFinder;
-import com.watabou.utils.PointF;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle;
-import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PillarRiseFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -107,13 +106,13 @@ public class LastRites extends Skill {
 			}
 		}
 
+		//the rites: light rising out of the ground round the cleric (never a ray coming down), holy
+		//motes going up with it, a great star of gold
 		if (hero.sprite != null){
 			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 12 );
-			hero.sprite.emitter().burst( ShaftParticle.FACTORY, 6 );
-			new Flare( 8, 36 ).color( 0xFFEE88, true ).show( hero.sprite, 1.2f ).angularSpeed = 120;
-			hero.sprite.parent.add( new Beam.LightRay(
-					new PointF( hero.sprite.center().x, hero.sprite.center().y - DungeonTilemap.SIZE * 6 ),
-					hero.sprite.center() ) );
+			hero.sprite.emitter().burst( SkillBursts.HOLY_MOTE, 6 );
+			PixelFlare.show( SkillVfx.midX( hero.sprite ), SkillVfx.midY( hero.sprite ), 0xF1D99C, PixelFlare.L, 1.2f );
+			PillarRiseFX.show( hero.pos, 0xF1D99C, null );
 			Fx.shake( 2, 0.4f );
 		}
 		castText = Messages.get( this, "cast" );

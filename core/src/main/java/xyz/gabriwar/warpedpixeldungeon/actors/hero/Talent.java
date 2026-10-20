@@ -914,7 +914,7 @@ public enum Talent {
 		if (hero.hasTalent(Talent.PROVOKED_ANGER)
 			&& hero.buff(ProvokedAngerTracker.class) != null){
 			//3/5/7, +1/2/3 per 6 hero levels
-			dmg += 1 + hero.pointsInTalent(Talent.PROVOKED_ANGER) * (2 + hero.lvl/6);
+			dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.to( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ADD, PROVOKED_ANGER, dmg, dmg + 1 + hero.pointsInTalent(Talent.PROVOKED_ANGER) * (2 + hero.lvl/6) );
 			hero.buff(ProvokedAngerTracker.class).detach();
 		}
 
@@ -923,7 +923,7 @@ public enum Talent {
 			//1-2/2/3, +1/2/3 per 10 hero levels
 			int p = hero.pointsInTalent(Talent.LINGERING_MAGIC);
 			int b = p + (hero.lvl*p)/10;
-			dmg += Random.IntRange(b, Math.max(2, b));
+			dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.to( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ADD, LINGERING_MAGIC, dmg, dmg + Random.IntRange(b, Math.max(2, b)) );
 			hero.buff(LingeringMagicTracker.class).detach();
 		}
 
@@ -932,7 +932,7 @@ public enum Talent {
 				&& enemy.buff(SuckerPunchTracker.class) == null){
 			//15/30/45% of the hit, at least 1-2/2/3
 			int p = hero.pointsInTalent(Talent.SUCKER_PUNCH);
-			dmg += Math.max(Random.IntRange(p, Math.max(2, p)), Math.round(dmg * 0.15f * p));
+			dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.to( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ADD, SUCKER_PUNCH, dmg, dmg + Math.max(Random.IntRange(p, Math.max(2, p)), Math.round(dmg * 0.15f * p)) );
 			Buff.affect(enemy, SuckerPunchTracker.class);
 		}
 
@@ -942,7 +942,7 @@ public enum Talent {
 			} else if (hero.buff(FollowupStrikeTracker.class) != null
 					&& hero.buff(FollowupStrikeTracker.class).object == enemy.id()){
 				//2/3/4, growing with the hero's level
-				dmg += Math.round((1 + hero.pointsInTalent(FOLLOWUP_STRIKE)) * levelScale(hero));
+				dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.to( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ADD, FOLLOWUP_STRIKE, dmg, dmg + Math.round((1 + hero.pointsInTalent(FOLLOWUP_STRIKE)) * levelScale(hero)) );
 				hero.buff(FollowupStrikeTracker.class).detach();
 			}
 		}
@@ -950,7 +950,10 @@ public enum Talent {
 		if (hero.buff(Talent.SpiritBladesTracker.class) != null
 				&& Random.Int(10) < 3*hero.pointsInTalent(Talent.SPIRIT_BLADES)){
 			SpiritBow bow = hero.belongings.getItem(SpiritBow.class);
-			if (bow != null) dmg = bow.proc( hero, enemy, dmg );
+			if (bow != null){
+				xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.push( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.AUTO, SPIRIT_BLADES );
+				dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.pop( bow.proc( hero, enemy, dmg ) );
+			}
 			hero.buff(Talent.SpiritBladesTracker.class).detach();
 		}
 
@@ -960,7 +963,7 @@ public enum Talent {
 				hero.buff(PatientStrikeTracker.class).detach();
 				//10/20/30% of the hit, at least 1-2/2/3
 				int p = hero.pointsInTalent(Talent.PATIENT_STRIKE);
-				dmg += Math.max(Random.IntRange(p, Math.max(2, p)), Math.round(dmg * 0.10f * p));
+				dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.to( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ADD, PATIENT_STRIKE, dmg, dmg + Math.max(Random.IntRange(p, Math.max(2, p)), Math.round(dmg * 0.10f * p)) );
 			}
 		}
 
@@ -970,7 +973,7 @@ public enum Talent {
 		}
 
 		if (hero.buff(UnholyBible.Demon.class) != null) {
-			dmg = Math.round(dmg * 1.33f);
+			dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mulRound( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, hero.buff(UnholyBible.Demon.class), dmg, 1.33f, Math.round(dmg * 1.33f) );
 		}
 
 		if (hero.hasTalent(DEADLY_FOLLOWUP) && enemy.alignment == Char.Alignment.ENEMY) {
@@ -980,7 +983,8 @@ public enum Talent {
 				}
 			} else if (hero.buff(DeadlyFollowupTracker.class) != null
 					&& hero.buff(DeadlyFollowupTracker.class).object == enemy.id()){
-				dmg = Math.round(dmg * (1.0f + .1f*hero.pointsInTalent(DEADLY_FOLLOWUP)));
+				float followup = 1.0f + .1f*hero.pointsInTalent(DEADLY_FOLLOWUP);
+				dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mulRound( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, DEADLY_FOLLOWUP, dmg, followup, Math.round(dmg * followup) );
 			}
 		}
 

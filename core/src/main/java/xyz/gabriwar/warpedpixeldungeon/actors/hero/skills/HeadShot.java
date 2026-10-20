@@ -38,10 +38,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 /**
  * Sniper: now and then a ranged hit cracks the skull. The target takes half again
@@ -83,8 +81,8 @@ public class HeadShot extends SubSkill2 {
 		final boolean boss = Char.hasProp( enemy, Char.Property.BOSS ) || Char.hasProp( enemy, Char.Property.MINIBOSS );
 		if (enemy.sprite != null && Dungeon.level.heroFOV[enemy.pos]){
 			Wound.hit( enemy );
-			enemy.sprite.emitter().burst( Speck.factory( Speck.STAR ), 6 );
-			if (!boss) enemy.sprite.showStatus( CharSprite.NEGATIVE, Messages.get( HeadShot.class, "down" ) );
+			enemy.sprite.emitter().burst( SkillBursts.METAL_SPARK, 6 );
+			if (!boss) chipOn( enemy );
 			Fx.shake( 1.5f, 0.2f );
 		}
 		SpatialSound.play( Assets.Sounds.HIT_STRONG, enemy, 1f, 0.8f );
@@ -113,7 +111,7 @@ public class HeadShot extends SubSkill2 {
 			Char ch = Actor.findChar( c );
 			if (ch == null || ch.alignment != Char.Alignment.ENEMY || !ch.isAlive()) continue;
 			Buff.prolong( ch, Vertigo.class, STAGGER );
-			if (ch.sprite != null && Dungeon.level.heroFOV[c]) ch.sprite.emitter().burst( Speck.factory( Speck.STAR ), 3 );
+			if (ch.sprite != null && Dungeon.level.heroFOV[c]) ch.sprite.emitter().burst( SkillBursts.DAZE, 3 );
 		}
 	}
 }

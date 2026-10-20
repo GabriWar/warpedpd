@@ -28,9 +28,8 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StreakFX;
 
 
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -40,7 +39,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfForce;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import com.watabou.utils.Random;
 
 public class CounterTime extends Skill {
@@ -86,8 +84,8 @@ public class CounterTime extends Skill {
 		}
 		SpatialSound.play( Assets.Sounds.HIT_PARRY, enemy, 1f, 1.0f );
 		if (hero.sprite != null){
-			hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "cast" ) );
-			hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
+			chipOn( hero );
+			hero.sprite.emitter().burst( SkillBursts.STEEL_GLINT, 4 );
 		}
 	}
 

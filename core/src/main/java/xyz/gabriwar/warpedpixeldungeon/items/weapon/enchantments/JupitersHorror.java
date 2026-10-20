@@ -31,6 +31,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows;
 import com.watabou.utils.Random;
 
 public class JupitersHorror extends Weapon.Enchantment {
@@ -51,6 +54,7 @@ public class JupitersHorror extends Weapon.Enchantment {
 			} else {
 				Buff.affect(defender, Terror.class, Terror.DURATION * power()).object = attacker.id(); //scales with enchantment level
 			}
+			EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, 0.45f + 0.12f * level(), level(), 0, ShadowRows.JUPITERS );
 		}
 
 		return damage;

@@ -31,7 +31,6 @@ import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.food.MysteryMeat;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.Wand;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.GreatCrabSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Bundle;
@@ -88,7 +87,7 @@ public class GreatCrab extends Crab {
 				&& enemy == Dungeon.hero
 				&& enemy.invisible == 0){
 			GLog.n( Messages.get(this, "noticed") );
-			sprite.showStatus( CharSprite.NEUTRAL, Messages.get(this, "def_verb") );
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.miss( this, xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.MISS_BLOCK, -1 );
 			SpatialSound.play( Assets.Sounds.HIT_PARRY, pos, 1, Random.Float(0.96f, 1.05f));
 			Statistics.questScores[0] -= 50;
 		} else {

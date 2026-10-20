@@ -30,7 +30,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.VioletDewdrop;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.VaultProtectorSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
@@ -111,7 +110,7 @@ public class VaultProtector extends Mob implements Callback {
 					}
 				}
 			} else {
-				enemy.sprite.showStatus(CharSprite.NEUTRAL, enemy.defenseVerb());
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.missed( enemy );
 			}
 			return !visible;
 		}

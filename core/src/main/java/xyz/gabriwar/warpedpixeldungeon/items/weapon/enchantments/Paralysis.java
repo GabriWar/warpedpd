@@ -26,6 +26,10 @@ package xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import com.watabou.utils.Random;
@@ -43,9 +47,12 @@ public class Paralysis extends Weapon.Enchantment {
 		// lvl 2 - 30%
 		float procChance = (level + 1f) / (level + 8f) * procChanceMultiplier(attacker);
 		if (Random.Float() < procChance) {
+			float turns = Random.Float(1, 1.5f + level) * power(); //scales with enchantment level
 			Buff.prolong(defender,
 					xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis.class,
-					Random.Float(1, 1.5f + level) * power()); //scales with enchantment level
+					turns);
+			EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, Math.min( 1f, turns / (1.5f + level) ), level(),
+					Quality.isVestige( weapon, this ) ? EnchantFx.ECHO : 0, ElementRows.paralysis( turns ) );
 		}
 
 		return damage;

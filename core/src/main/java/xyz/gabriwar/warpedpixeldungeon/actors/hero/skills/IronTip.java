@@ -35,8 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 
 public class IronTip extends PassiveSkillB3 {
 
@@ -67,8 +66,8 @@ public class IronTip extends PassiveSkillB3 {
 			Buff.prolong( enemy, Vulnerable.class, 3f );
 			//the tip punching through the plate: sparks off the armour, called out the first time
 			if (enemy.sprite != null && Dungeon.level.heroFOV[enemy.pos]){
-				CellEmitter.center( enemy.pos ).burst( SparkParticle.FACTORY, 4 );
-				if (fresh) enemy.sprite.showStatus( CharSprite.WARNING, "Pierced" );
+				CellEmitter.center( enemy.pos ).burst( SkillBursts.METAL_SPARK, 4 );
+				if (fresh) chipOn( enemy );
 				SpatialSound.play( Assets.Sounds.HIT_STRONG, enemy, 0.5f, 1.4f );
 			}
 		}

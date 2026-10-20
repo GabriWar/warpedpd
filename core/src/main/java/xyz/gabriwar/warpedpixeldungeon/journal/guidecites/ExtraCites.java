@@ -702,8 +702,9 @@ public final class ExtraCites {
 				.item( KingsCrown.class, "Dwarf King's crown" );
 
 		book.page( "topic_rarity" )
-				//shown as the colour of a piece's name and the letter in its corner: no picture of their own
-				.plain( "rarity", "type" )
+				//shown as the colour of a piece's name and the letter in its corner, and a line of its
+				//rarity tab: no picture of their own
+				.plain( "rarity", "type", "vestige", "trait" )
 				.sprite( ItemSpriteSheet.WEAPON_HOLDER, "weapon" )
 				.sprite( ItemSpriteSheet.ARMOR_HOLDER, "armor" )
 				.sprite( ItemSpriteSheet.MISSILE_HOLDER, "thrown weapon" )

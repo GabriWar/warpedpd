@@ -31,6 +31,9 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite.Glowing;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows;
 import com.watabou.utils.Random;
 
 public class Osmose extends Weapon.Enchantment {
@@ -53,6 +56,8 @@ public class Osmose extends Weapon.Enchantment {
 			hero.MP += effValue;
 			attacker.sprite.showStatusWithIcon(CharSprite.POSITIVE,
 					Integer.toString(effValue), FloatingText.HEALING);
+			//no wielder for the family: its lifeline would be the foe's blood; the twist draws the mana
+			EnchantFx.proc( EnchantLooks.of( getClass() ), null, defender, EnchantFx.strength( level(), effValue, Math.max( 1, hero.MT ), power() ), level(), 0, ShadowRows.osmose( hero ) );
 		}
 
 		return damage;

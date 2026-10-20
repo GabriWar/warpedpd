@@ -38,8 +38,10 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.DreadFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.RogueHuntressAuras;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraBuff;
 
 public class AimedShot extends ActiveSkill1 {
@@ -88,12 +90,14 @@ public class AimedShot extends ActiveSkill1 {
 		castTextYell();
 		Buff.prolong( enemy, Roots.class, 1 + level );
 		if (Dungeon.level.heroFOV[enemy.pos]){
-			//the arrow drives it into the ground: dust kicks up, then settles in a second puff
-			CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.ROCK ), 4 );
+			//the arrow pins it to the ground: an arrow of light driven into the floor at its feet, the
+			//floor cracking, grit kicked up, then dust settling in a second puff (never a rockfall)
+			CellEmitter.get( enemy.pos ).burst( SkillBursts.GRIT, 4 );
 			CellEmitter.bottom( enemy.pos ).startDelayed( Speck.factory( Speck.DUST ), 0, 4, 0.15f );
 			if (enemy.sprite != null){
 				enemy.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 2 );
-				enemy.sprite.showStatus( CharSprite.NEGATIVE, "Pinned" );
+				chipOn( enemy );
+				if (hero.sprite != null) DreadFX.pin( enemy.sprite, SkillVfx.midX( hero.sprite ) );
 			}
 		}
 		SpatialSound.play( Assets.Sounds.HIT_ARROW, enemy, 1f, 0.7f );
@@ -109,7 +113,7 @@ public class AimedShot extends ActiveSkill1 {
 		hero.MP = Math.min( hero.MT, hero.MP + getManaCost() );
 		if (hero.sprite != null){
 			hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 4 );
-			hero.sprite.showStatus( CharSprite.POSITIVE, "+" + getManaCost() );
+			hero.sprite.showStatusWithIcon( xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.BlowPresenter.MANA_COLOR, Integer.toString( getManaCost() ), xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.MANA );
 		}
 		SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 0.6f, 2f );
 	}

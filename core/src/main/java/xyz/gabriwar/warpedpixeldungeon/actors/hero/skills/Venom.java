@@ -31,6 +31,9 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.PoisonParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.DreadFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -52,9 +55,11 @@ public class Venom extends PassiveSkillB1 {
 	public boolean venomousAttack(){
 		if (Random.Int(100) < 10 * level){
 			castTextYell();
-			//venom seen running off the blade
+			//her flourish, and venom seen on the blade: its sheen running down, drops dripping off it
+			//(no poison of her own, no puddle)
 			if (Dungeon.hero != null && Dungeon.hero.sprite != null){
-				Dungeon.hero.sprite.emitter().burst( PoisonParticle.MISSILE, 4 );
+				Dungeon.hero.sprite.emitter().burst( SkillBursts.FLOURISH, 4 );
+				DreadFX.coat( Dungeon.hero.sprite, SkillPalette.POISON.stop( 0 ) );
 			}
 			Sample.INSTANCE.play( Assets.Sounds.DEBUFF, 0.8f, 1.2f );
 			return true;

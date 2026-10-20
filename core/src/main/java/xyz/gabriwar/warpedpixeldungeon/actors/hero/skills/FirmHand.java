@@ -34,9 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 
 public class FirmHand extends PassiveSkillB1 {
 
@@ -65,8 +63,8 @@ public class FirmHand extends PassiveSkillB1 {
 
 		SkillInteractions.mark( enemy, SkillInteractions.Mark.STAGGER, level, staggerTurns() );
 		if (enemy.sprite != null && enemy.sprite.visible){
-			enemy.sprite.emitter().burst( Speck.factory( Speck.FORGE ), 3 + level );
-			enemy.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "stagger" ) );
+			enemy.sprite.emitter().burst( SkillBursts.METAL_SPARK, 3 + level );
+			chipOn( enemy );
 			Fx.shake( 1, 0.15f );
 		}
 		SpatialSound.play( Assets.Sounds.HIT_CRUSH, enemy, 0.8f, 0.9f );
@@ -83,7 +81,7 @@ public class FirmHand extends PassiveSkillB1 {
 			if (ch == null || ch == mob || ch.alignment != Char.Alignment.ENEMY || !ch.isAlive()
 					|| ch.properties().contains( Char.Property.IMMOVABLE )) continue;
 			SkillInteractions.mark( ch, SkillInteractions.Mark.STAGGER, level, staggerTurns() );
-			if (ch.sprite != null && ch.sprite.visible) ch.sprite.emitter().burst( Speck.factory( Speck.FORGE ), 4 );
+			if (ch.sprite != null && ch.sprite.visible) ch.sprite.emitter().burst( SkillBursts.METAL_SPARK, 4 );
 			spread = true;
 		}
 		if (spread){

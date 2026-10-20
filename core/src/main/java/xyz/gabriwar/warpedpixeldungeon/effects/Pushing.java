@@ -28,11 +28,13 @@ import xyz.gabriwar.warpedpixeldungeon.effects.fx.Afterimage;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxDecal;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFactories;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRing;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -54,6 +56,13 @@ public class Pushing extends Actor {
 	//a creature thrown from where it stands (a knockback, a shove, a pull), not one put down beside
 	//its maker (a split, a summon: already on its cell): only a throw can slam into a wall
 	private final boolean thrown;
+	//its ghosts' colour: white, or an enchantment's or a glyph's that threw it (Elastic's magenta,
+	//Bounce's blue, Repulsion's white-blue), which also rings where it lands and cracks the wall it
+	//slams into
+	private int tint = PLAIN;
+
+	/** The ghosts' colour of a plain push. */
+	public static final int PLAIN = 0xFFFFFF;
 
 	private Callback callback;
 
@@ -77,6 +86,12 @@ public class Pushing extends Actor {
 	public Pushing( Char ch, int from, int to, Callback callback ) {
 		this(ch, from, to);
 		this.callback = callback;
+	}
+
+	/** A push whose ghosts take a colour (PLAIN: as any push). */
+	public Pushing( Char ch, int from, int to, Callback callback, int tint ) {
+		this(ch, from, to, callback);
+		this.tint = tint & 0xFFFFFF;
 	}
 
 	@Override
@@ -134,6 +149,9 @@ public class Pushing extends Actor {
 		static final float GHOST_1 = 0.05f, GHOST_2 = 0.1f, GHOST_ALPHA_1 = 0.3f, GHOST_ALPHA_2 = 0.15f,
 				GHOST_LAG_1 = 2f, GHOST_LAG_2 = 4f, GHOST_FOR = 0.15f, SQUASH_FOR = 0.06f;
 		static final int KICKED = 3, LANDED = 2, PEBBLES = 4;
+		/** A tinted push's rebound ring (from, to px, life s) and its wall crack's colour. */
+		static final int REBOUND_FROM = 5, REBOUND_TO = 9, CRACK = 0x3A2C1C;
+		static final float REBOUND_FOR = 0.3f;
 
 		private PointF end;
 
@@ -200,7 +218,7 @@ public class Pushing extends Actor {
 
 		//a ghost of the creature as it is now, trailing it `lag` px
 		private void ghost( float alpha, float lag ){
-			if (sprite.visible) Afterimage.of( sprite, 0xFFFFFF, alpha, GHOST_FOR, -ux * lag, -uy * lag );
+			if (sprite.visible) Afterimage.of( sprite, tint, alpha, GHOST_FOR, -ux * lag, -uy * lag );
 		}
 
 		//dust kicked up at a cell's feet
@@ -218,12 +236,20 @@ public class Pushing extends Actor {
 			}
 		}
 
-		//where it lands: dust, or, thrown and stopped by a wall, pebbles off it and a squash into it
+		//where it lands: dust, or, thrown and stopped by a wall, pebbles off it and a squash into it;
+		//a tinted push's rebound ring at its feet and its crack at the wall's foot
 		private void landed(){
 			if (!sprite.visible) return;
 			dust( to, LANDED );
+			if (tint != PLAIN){
+				FxRing.ground( GameScene.layer( GameScene.Layer.FLOOR ), end.x + sprite.width() / 2f, end.y + sprite.height() - 2f,
+						REBOUND_FROM, REBOUND_TO, REBOUND_FOR, tint, 0.7f, true );
+			}
 			if (!thrown || !stopped( Dungeon.level, from, to )) return;
 			float wx = end.x + sprite.width() / 2f + ux * 7f, wy = end.y + sprite.height() / 2f + uy * 5f;
+			if (tint != PLAIN){
+				FxDecal.at( Math.round( wx ), end.y + sprite.height() - 1f, FxFrames.CRACK_11[ux >= 0 ? 0 : 1], CRACK, 0.55f, 2f, 1f, ux < 0 );
+			}
 			Emitter grit = GameScene.fxEmitter();
 			if (grit != null){
 				grit.pos( wx, wy );

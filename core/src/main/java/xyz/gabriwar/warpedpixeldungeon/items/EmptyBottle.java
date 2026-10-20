@@ -68,6 +68,21 @@ public class EmptyBottle extends Item {
 		return false;
 	}
 
+	/** A drunk or poured bottle comes back empty, into the pack or at the hero's feet. */
+	public static void giveBack( Hero hero ){
+		Item bottle = new EmptyBottle();
+		if (!bottle.collect( hero.belongings.backpack )){
+			Dungeon.level.drop( bottle, hero.pos ).sprite.drop();
+		}
+	}
+
+	/** The bottle a potion brewed from seeds goes into: an empty one first, else a bottle of water. Null when the pack has neither. */
+	public static Item forBrewing( Hero hero ){
+		if (hero == null) return null;
+		Item bottle = hero.belongings.getItem( EmptyBottle.class );
+		return bottle != null ? bottle : hero.belongings.getItem( PotionOfWater.class );
+	}
+
 	@Override
 	public void execute( Hero hero, String action ) {
 
@@ -107,6 +122,25 @@ public class EmptyBottle extends Item {
 	@Override
 	public int value() {
 		return 5 * quantity;
+	}
+
+	/** The recipe book's bottle for a potion from seeds: an empty bottle or a bottle of water will do. */
+	public static class AnyBottle extends EmptyBottle {
+
+		@Override
+		public boolean isSimilar( Item item ) {
+			return item instanceof EmptyBottle || item instanceof PotionOfWater;
+		}
+
+		@Override
+		public String name() {
+			return Messages.get( EmptyBottle.class, "any_name" );
+		}
+
+		@Override
+		public String desc() {
+			return Messages.get( EmptyBottle.class, "any_desc" );
+		}
 	}
 
 	/** The alchemy pot's water fills an empty bottle, at no energy. */

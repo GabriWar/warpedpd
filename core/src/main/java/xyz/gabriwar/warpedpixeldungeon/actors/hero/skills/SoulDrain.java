@@ -27,7 +27,11 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.ClosingRing;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.DreadFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.MoteFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBolt;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 
@@ -52,6 +56,9 @@ public class SoulDrain extends SubSkill1 {
 	@Override
 	protected boolean upgrade(){ return true; }
 
+	/** Motes of soul peeled out of the dead body into the flying soul. */
+	public static final int PEEL = 6;
+
 	//a soul-marked enemy's soul does not rest: it flies to the nearest enemy in reach and marks it too.
 	//at mastery it passes through the Warlock on the way and mends him
 	@Override
@@ -73,19 +80,31 @@ public class SoulDrain extends SubSkill1 {
 		final boolean mend = level >= MAX_LEVEL;
 		if (target == null && !mend) return;
 		SkillInteractions.defer( () -> {
+			//the Warlock is mended below (he is hurt and alive): its picture waits for the soul to reach him
+			final boolean mends = mend && hero.isAlive() && hero.HP < hero.HT;
+			//the soul flies on, swaying, a mote of soul light (never a shadow bolt), peeled out of the
+			//body it leaves: to the next it marks, closing a ring on its feet as it lands, or home
+			//through the Warlock
 			if (hero.sprite != null && hero.sprite.parent != null){
-				xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile bolt = (xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile)
-						hero.sprite.parent.recycle( xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile.class );
-				bolt.reset( xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile.SHADOW, from,
-						mend ? hero.pos : target.pos, null );
+				SkillBolt.fly( hero.sprite.parent, from, mend ? hero.pos : target.pos, SkillBolt.SOUL, () -> {
+					if (!mend && target.sprite != null && target.isAlive()){
+						ClosingRing.on( target.sprite, 23, 9, 0.3f, DreadFX.SOUL[2] );
+					} else if (mends && hero.sprite != null && hero.sprite.parent != null && hero.sprite.visible){
+						//the soul home: the heal's red crosses and green light as it reaches him
+						MoteFX.crosses( hero.sprite, 2 );
+						MoteFX.greens( hero.sprite, 3 );
+					}
+				} ).peel( mob.sprite, PEEL );
 			}
 			if (mend && hero.isAlive()){
 				int heal = Math.min( SkillInteractions.ofHealth( hero.HT, 0.03f ), hero.HT - hero.HP );
 				if (heal > 0){
 					hero.HP += heal;
 					if (hero.sprite != null){
-						hero.sprite.emitter().burst( ShadowParticle.UP, 4 );
-						hero.sprite.showStatus( CharSprite.POSITIVE, "+" + heal );
+						//HP gained with no heal of the game's own: the soul's wisps now, the heal's red
+						//crosses and green light when the soul arrives (the bolt's callback above)
+						hero.sprite.emitter().burst( SkillBursts.SOUL_WISP, 4 );
+						hero.sprite.showStatusWithIcon( CharSprite.POSITIVE, Integer.toString( heal ), xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.HEALING );
 					}
 				}
 			}
@@ -93,7 +112,11 @@ public class SoulDrain extends SubSkill1 {
 				xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff.prolong( target,
 						xyz.gabriwar.warpedpixeldungeon.actors.buffs.SoulMark.class,
 						xyz.gabriwar.warpedpixeldungeon.actors.buffs.SoulMark.DURATION );
-				if (target.sprite != null) target.sprite.emitter().burst( ShadowParticle.CURSE, 6 );
+				if (target.sprite != null){
+					target.sprite.emitter().burst( SkillBursts.SOUL_WISP, 6 );
+					//the soul went home through the Warlock: the mark's ring closes at once
+					if (mend) ClosingRing.on( target.sprite, 23, 9, 0.3f, DreadFX.SOUL[2] );
+				}
 			}
 			SpatialSound.play( Assets.Sounds.GHOST, mob, 0.6f, 1.3f );
 		} );

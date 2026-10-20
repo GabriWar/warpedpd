@@ -30,6 +30,14 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.BloodParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -53,6 +61,20 @@ public class Hamstring extends Skill {
 		return true;
 	}
 
+	/** The strike at the legs: its colour, how far over the sprite's bottom, px. */
+	public static final int LEGS = 0xFFF4D8, LEGS_UP = 2;
+
+	//a one-frame impact star at its legs. Any thread
+	public static void legs( final CharSprite s ){
+		Fx.post( () -> {
+			if (s.parent == null || !s.visible) return;
+			float x = SkillVfx.midX( s ), y = s.y + s.height() - LEGS_UP;
+			if (!Fx.seen( x, y )) return;
+			FxParticle p = SkillVfx.glow( x, y, FxBudget.P0 );
+			if (p != null) p.look( FxFrames.IMPACT_STAR[FxRandom.Int( 2 )] ).paint( LEGS ).life( 0.04f ).alpha( 1f, 0, 0.01f ).snap();
+		} );
+	}
+
 	// the engine's cripple() hook only rolls on the ranged attack path, so this
 	// proc goes through onHitProc to actually fire on melee swings
 	@Override
@@ -63,7 +85,9 @@ public class Hamstring extends Skill {
 				&& !enemy.properties().contains( Char.Property.BOSS )){
 			Buff.prolong( enemy, Roots.class, 2f );
 			if (enemy.sprite != null && enemy.sprite.visible){
-				CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.BONE ), 3 );
+				//its legs give way: grit kicked up, a strike at its legs (never a skeleton's bones)
+				CellEmitter.get( enemy.pos ).burst( SkillBursts.GRIT, 3 );
+				legs( enemy.sprite );
 				CellEmitter.bottom( enemy.pos ).burst( Speck.factory( Speck.DUST ), 3 );
 				enemy.sprite.flash();
 			}

@@ -30,7 +30,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Bundle;
 
@@ -221,11 +220,43 @@ public class Skill implements SkillInteractions.HeroDamageSource {
 
 	public int getManaCost(){ return mana; }
 
+	/** The skill's cast look, and its shout as its own icon on a hit card (castText stays the
+	 *  skill's line: the Damage tab quotes it): on the open blow's struck one, else on the hero. */
 	public void castTextYell(){
         xyz.gabriwar.warpedpixeldungeon.effects.SkillCastFX.play(this,Dungeon.hero);
-		if (!castText().equals("") && Dungeon.hero.sprite != null){
-			Dungeon.hero.sprite.showStatus( CharSprite.NEUTRAL, castText() );
-		}
+		if (!castText().equals("") && Dungeon.hero != null) chipOn( null );
+	}
+
+	/** A skill's icon on ch's card by its class (its buff or ward speaking for it): the hero's copy's,
+	 *  else a fresh one's (the same picture). */
+	public static void chipOn( Class<? extends Skill> cls, xyz.gabriwar.warpedpixeldungeon.actors.Char ch ){
+		xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero h = Dungeon.hero;
+		Skill s = h != null && h.heroSkills != null ? h.heroSkills.get( cls ) : null;
+		if (s == null) s = com.watabou.utils.Reflection.newInstance( cls );
+		if (s != null) s.chipOn( ch );
+	}
+
+	/** A skill's count over ch by its class (its buff or ward speaking for it). */
+	public static void counterOn( Class<? extends Skill> cls, xyz.gabriwar.warpedpixeldungeon.actors.Char ch, int amount, int color ){
+		xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero h = Dungeon.hero;
+		Skill s = h != null && h.heroSkills != null ? h.heroSkills.get( cls ) : null;
+		if (s == null) s = com.watabou.utils.Reflection.newInstance( cls );
+		if (s != null) s.counterOn( ch, amount, color );
+	}
+
+	/** This skill's count over ch where a word with a number floated ("Fury 3", a chain's "x3"): its
+	 *  icon and the number. */
+	public void counterOn( xyz.gabriwar.warpedpixeldungeon.actors.Char ch, int amount, int color ){
+		xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.counter( ch,
+				xyz.gabriwar.warpedpixeldungeon.effects.HitCard.SKILL_BASE + image(), amount, color );
+	}
+
+	/** This skill's icon on ch's card where a word of it used to float: a chip in the open blow
+	 *  (on its struck one when ch is null), else a late chip on ch (the hero when null). */
+	public void chipOn( xyz.gabriwar.warpedpixeldungeon.actors.Char ch ){
+		int code = xyz.gabriwar.warpedpixeldungeon.effects.HitCard.SKILL_BASE + image();
+		if (ch == null) xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.skillChip( Dungeon.hero, code );
+		else xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.icon( ch, code, 0 );
 	}
 
 	public float wandRechargeSpeedReduction(){ return 1f; }

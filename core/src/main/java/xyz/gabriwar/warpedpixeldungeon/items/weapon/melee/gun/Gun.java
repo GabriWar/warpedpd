@@ -46,8 +46,11 @@ import xyz.gabriwar.warpedpixeldungeon.effects.particles.BlastParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SmokeParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.GunSmithingTool;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.DriedRose;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfSharpshooting;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.SpiritBow;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.DisposableMissileWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.MissileWeapon;
@@ -339,7 +342,12 @@ public class Gun extends MeleeWeapon {
 		hero.busy();
 		hero.sprite.operate(hero.pos);
 		SpatialSound.play(Assets.Sounds.UNLOCK, hero);
-		hero.spendAndNext(reloadTime(hero));
+		//a RELOAD line's quick reload: the rounds are still spent, the time is not
+		if (Quality.rollFreeReload(this, hero)) {
+			hero.next();
+		} else {
+			hero.spendAndNext(reloadTime(hero));
+		}
 		GLog.i(Messages.get(this, "reload"));
 	}
 
@@ -450,16 +458,18 @@ public class Gun extends MeleeWeapon {
 
 	}
 
+	//the shot's damage with the gun's rarity worked in, as the window prints it
 	public int bulletMin(int lvl) {
+		int damage;
 		if (Dungeon.hero != null) {
-			return tier() +
+			damage = tier() +
 					lvl +
 					RingOfSharpshooting.levelDamageBonus(hero);
 		} else {
-			return tier() +
+			damage = tier() +
 					lvl;
 		}
-
+		return Quality.scale(this, RarityLine.DAMAGE_MIN, damage);
 	}
 
 	public int bulletMin() {
@@ -472,16 +482,24 @@ public class Gun extends MeleeWeapon {
 	}
 
 	public int bulletMax(int lvl) {
+		int damage;
 		if (Dungeon.hero != null) {
-			return baseBulletMax(lvl) +
+			damage = baseBulletMax(lvl) +
 					RingOfSharpshooting.levelDamageBonus(hero);
 		} else {
-			return baseBulletMax(lvl);
+			damage = baseBulletMax(lvl);
 		}
+		return Quality.scale(this, RarityLine.DAMAGE_MAX, damage);
 	}
 
 	public int bulletMax() {
 		return bulletMax(this.buffedLvl());
+	}
+
+	//how far the gun's own shot reaches in tiles, which a RANGE line stretches; a plain gun's
+	//bullet flies as far as any throw, with no reach of its own
+	public int baseRange() {
+		return 0;
 	}
 
 	protected int bulletDamage() {
@@ -624,6 +642,12 @@ public class Gun extends MeleeWeapon {
 		}
 
 		public boolean isBurst = false;
+
+		//the shot fires the gun's magic and counts its rarity
+		@Override
+		public Weapon magicSource() {
+			return Gun.this;
+		}
 
 		@Override
 		public int min() {
@@ -812,7 +836,8 @@ public class Gun extends MeleeWeapon {
 		}
 
 		public void onShoot() {
-			round --;
+			//an AMMO line's spared round
+			if (!Quality.rollSpareAmmo(Gun.this, curUser)) round --;
 
 			aggro();
 

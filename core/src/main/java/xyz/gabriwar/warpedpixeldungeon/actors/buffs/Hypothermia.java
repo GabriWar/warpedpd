@@ -61,13 +61,19 @@ public class Hypothermia extends Buff implements Hero.Doom {
 		return super.attachTo(target);
 	}
 
+	//what the bearer feels: a hero (a co-op guest too) through his own gear and state; anyone
+	//else as it always has (TileTemperature.feelsLikeAt(cell) reads the host)
+	private float feelsLike() {
+		return TileTemperature.feelsLikeAt(target.pos, target instanceof Hero ? target : Dungeon.hero);
+	}
+
 	@Override
 	public boolean act() {
 		if (target.isAlive()) {
 
 			// Clear if warmed up — uses bodyTemp (gradual convergence) for all chars
 			float temp = Float.isNaN(target.bodyTemp)
-					? TileTemperature.feelsLikeAt(target.pos)
+					? feelsLike()
 					: target.bodyTemp;
 			boolean nearFire = target.buff(Burning.class) != null
 					|| target.buff(FireImbue.class) != null
@@ -143,7 +149,7 @@ public class Hypothermia extends Buff implements Hero.Doom {
 	@Override
 	public String desc() {
 		float displayTemp = Float.isNaN(target.bodyTemp)
-				? TileTemperature.feelsLikeAt(target.pos)
+				? feelsLike()
 				: target.bodyTemp;
 		return Messages.get(this, "desc", Messages.decimalFormat("#.#", displayTemp));
 	}

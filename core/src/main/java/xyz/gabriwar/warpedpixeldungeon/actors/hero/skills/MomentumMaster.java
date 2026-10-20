@@ -39,9 +39,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.Surprise;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 /**
  * A melee kill that leaves no enemy beside you launches you in an arc to land beside
@@ -112,7 +110,7 @@ public class MomentumMaster extends SubSkill3 {
 		CellEmitter.bottom( from ).burst( Speck.factory( Speck.DUST ), 6 );
 		//the hero's own leap: heard on him
 		SpatialSound.play( Assets.Sounds.MISS, hero, 1f, 1.4f );
-		hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "leap" ) );
+		chipOn( hero );
 		hero.sprite.jump( from, dest, () -> {
 			hero.sprite.place( hero.pos );
 			CellEmitter.bottom( hero.pos ).burst( Speck.factory( Speck.DUST ), 6 );

@@ -75,11 +75,11 @@ public class GuardianSpirit extends ActiveSkill3 {
                     spirit=new SummonedPet(xyz.gabriwar.warpedpixeldungeon.sprites.SeraphGuardianSprite.class);spirit.name=Messages.get(GuardianSpirit.class,"name");
                     spirit.setLevel(level*2);spirit.setStats(2+level,5+3*level,level);spirit.setHealthShare(new float[]{1f,1.5f,2f}[Math.max(0,Math.min(2,level-1))]);spirit.setDamageShare(new float[]{.6f,.8f,1f}[Math.max(0,Math.min(2,level-1))]);spirit.pos=cell;
                     GameScene.add(spirit);
-                    //the guardian fades in under a pillar of pale light, shafts rising round it
+                    //the guardian fades in under a pillar of pale light, holy motes rising round it (the swap keeps the start's interval and count)
                     if(spirit.sprite!=null&&spirit.sprite.parent!=null){
                         spirit.sprite.alpha(0);
                         spirit.sprite.parent.add(new com.watabou.noosa.tweeners.AlphaTweener(spirit.sprite,1f,0.8f));
-                        spirit.sprite.emitter().start(xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle.FACTORY,0.12f,5);
+                        spirit.sprite.emitter().start(xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.HOLY_MOTE,0.12f,5);
                     }
                     PillarRiseFX.show(cell,0xDAE9FF,()->SpatialSound.play(Assets.Sounds.CHARMS,cell,1f,0.8f));
                     SpatialSound.play(Assets.Sounds.CHARGEUP,cell,0.7f,0.9f);

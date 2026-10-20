@@ -26,6 +26,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows;
 import com.watabou.utils.Random;
 
 public class Flow extends Armor.Glyph {
@@ -45,6 +46,7 @@ public class Flow extends Armor.Glyph {
 			if (owner.sprite != null && owner.sprite.visible){
 				int particles = 2 + (int) Random.Float(1+level/2f);
 				owner.sprite.emitter().startDelayed(Speck.factory(Speck.BLUE_LIGHT), 0.02f, particles, 0.05f);
+				ShadowRows.flowStep( owner );
 			}
 			//only the bonus above 1x scales with glyph level
 			return (1f + (1f + 0.5f*level) * owner.glyphPower(Flow.class)) * genericProcChanceMultiplier(owner);

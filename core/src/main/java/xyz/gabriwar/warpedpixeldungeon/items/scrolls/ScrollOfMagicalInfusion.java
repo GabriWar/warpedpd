@@ -25,7 +25,9 @@
 package xyz.gabriwar.warpedpixeldungeon.items.scrolls;
 
 import xyz.gabriwar.warpedpixeldungeon.Badges;
+import xyz.gabriwar.warpedpixeldungeon.effects.Enchanting;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.GainFx;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
@@ -54,6 +56,9 @@ public class ScrollOfMagicalInfusion extends InventoryScroll {
 
 		ScrollOfRemoveCurse.uncurse(curUser, item);
 
+		//an item infused with its first enchantment (or glyph) is shown taking it
+		boolean hadMagic = item instanceof Weapon ? ((Weapon) item).enchantment != null : ((Armor) item).glyph != null;
+
 		if (item instanceof Weapon) {
 			((Weapon) item).upgrade(true);
 		} else {
@@ -65,6 +70,8 @@ public class ScrollOfMagicalInfusion extends InventoryScroll {
 		Badges.validateItemLevelAquired(item);
 
 		curUser.sprite.emitter().start(Speck.factory(Speck.UP), 0.2f, 3);
+		Object gained = item instanceof Weapon ? ((Weapon) item).enchantment : ((Armor) item).glyph;
+		if (!hadMagic && gained != null) Enchanting.show(curUser, item, GainFx.of(gained));
 	}
 
 	@Override

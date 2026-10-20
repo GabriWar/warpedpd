@@ -26,13 +26,18 @@ package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
 /**
  * Huntress Accuracy: this enemy has already taken the huntress's first ranged hit.
- * It carries no timer and no icon; it only remembers, so the guaranteed bullseye is
- * spent once per enemy.
+ * It carries no timer; it only remembers, so the guaranteed bullseye is spent once per
+ * enemy. Its crosshair shows it in the creature's window.
  */
 public class AccuracyMark extends Buff {
 
 	{
 		type = buffType.NEUTRAL;
 		announced = false;
+	}
+
+	@Override
+	public int icon(){
+		return xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator.ACCURACY_MARK;
 	}
 }

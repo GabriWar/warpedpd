@@ -53,11 +53,8 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Bundle;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
-import xyz.gabriwar.warpedpixeldungeon.items.Item;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
-import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 
 import java.util.ArrayList;
 
@@ -120,13 +117,13 @@ public class BearTrap extends Skill {
 					JAWS_TURNS, java.util.Collections.singletonList( cell ) ).origin = cell;
 			curUser.MP -= getManaCost();
 			castTextYell();
-			//the mechanism is seen tossed to its spot; it clicks open as it settles in the dust
+			//the snare is seen tossed to its spot, two steel crescents tumbling (never the trap
+			//mechanism, an item); its jaws of light click open as it settles in the dust
 			final int at = cell;
-			Item look = new Item(){{ image = ItemSpriteSheet.TRAP_MECHANISM; }};
 			SpatialSound.play( Assets.Sounds.MISS, curUser, 0.8f, 1.2f );
-			SkillFX.streak( curUser.sprite, cell, look, () -> {
+			SkillFX.streak( curUser.sprite, cell, SkillFX.Streak.SNARE, () -> {
 				CellEmitter.get( at ).burst( Speck.factory( Speck.DUST ), 4 );
-				CellEmitter.center( at ).burst( SparkParticle.FACTORY, 3 );
+				CellEmitter.center( at ).burst( SkillBursts.METAL_SPARK, 3 );
 				SkillSpectacleFX.show( SkillSpectacleFX.JAW, at );
 				SpatialSound.play( Assets.Sounds.STURDY, at, 1f, 1.3f );
 			} );
@@ -163,19 +160,20 @@ public class BearTrap extends Skill {
 	}
 
 	private static void spring( Char c, int pos, int rank ){
-		//the jaws snap shut, sparks flying off the teeth, and bite down once more as they settle
+		//the jaws of light snap shut, steel sparks flying off the teeth (no stars: it bleeds and
+		//cripples, it does not stun), and bite down once more as they settle
 		SkillSpectacleFX.show(SkillSpectacleFX.JAW,pos);
 		SpatialSound.play( Assets.Sounds.TRAP, pos, 1f, 0.8f );
 		Fx.shake( 1, 0.2f );
-		CellEmitter.center( pos ).burst( Speck.factory( Speck.STAR ), 4 );
-		CellEmitter.center( pos ).burst( SparkParticle.FACTORY, 8 );
+		CellEmitter.center( pos ).burst( SkillBursts.METAL_SPARK, 4 );
+		CellEmitter.center( pos ).burst( SkillBursts.METAL_SPARK, 8 );
 		FxTimeline.start().at( 0.14f, () -> {
 			SkillSpectacleFX.show( SkillSpectacleFX.JAW, pos );
-			CellEmitter.center( pos ).burst( SparkParticle.FACTORY, 4 );
+			CellEmitter.center( pos ).burst( SkillBursts.METAL_SPARK, 4 );
 			SpatialSound.play( Assets.Sounds.TRAP, pos, 0.6f, 1.2f );
 		} );
 		if (c != null && c.isAlive() && c.pos == pos){
-			if (c.sprite != null) c.sprite.showStatus( CharSprite.NEGATIVE, "Caught" );
+			Skill.chipOn( BearTrap.class, c );
 			SkillInteractions.Mark chain = SkillInteractions.mark( c, SkillInteractions.Mark.CHAIN, 1, 5 + 2 * rank );
 			chain.cell = pos;
 			chain.power = 0;

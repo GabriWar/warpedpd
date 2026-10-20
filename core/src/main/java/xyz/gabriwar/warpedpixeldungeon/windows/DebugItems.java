@@ -47,6 +47,7 @@ final class DebugItems {
         xyz.gabriwar.warpedpixeldungeon.items.EasterEgg.class,
         xyz.gabriwar.warpedpixeldungeon.items.Egg.class,
         xyz.gabriwar.warpedpixeldungeon.items.EmptyBottle.class,
+        xyz.gabriwar.warpedpixeldungeon.items.EmptyBottle.AnyBottle.class,
         xyz.gabriwar.warpedpixeldungeon.items.EnergyCrystal.class,
         xyz.gabriwar.warpedpixeldungeon.items.Fertilizer.class,
         xyz.gabriwar.warpedpixeldungeon.items.Gold.class,

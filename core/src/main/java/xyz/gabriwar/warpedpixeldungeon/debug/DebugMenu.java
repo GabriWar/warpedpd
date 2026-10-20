@@ -818,6 +818,10 @@ public final class DebugMenu {
 				GLog.p( text.trim().isEmpty() ? "Relay dev token cleared." : "Relay dev token set." );
 			}
 		} ) ).icon( icon( Icons.DATA ) );
+		t.action( "Unlock all classes", () -> {
+			xyz.gabriwar.warpedpixeldungeon.Badges.unlockAllClasses();
+			GLog.p( "Every class unlocked: pick any of them on the hero select." );
+		} ).icon( icon( Icons.TALENT ) );
 
 		t.header( "Supporter thanks", small( BuffIndicator.BLESS ) );
 		t.action( "Thanks T1", () -> GameScene.show( new WndSupporterThanks( 1, "Tier 1" ) ) ).half();

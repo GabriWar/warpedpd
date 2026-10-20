@@ -27,6 +27,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FlavourBuff;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows;
 import com.watabou.noosa.Image;
 import com.watabou.utils.Random;
 
@@ -42,6 +45,7 @@ public class Wayward extends Weapon.Enchantment {
 			Buff.detach(attacker, WaywardBuff.class);
 		} else if (Random.Float() < procChance){
 			Buff.prolong(attacker, WaywardBuff.class, WaywardBuff.DURATION);
+			EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, 0.2f, level(), EnchantFx.CURSE, ShadowRows.WAYWARD );
 		}
 
 		return damage;

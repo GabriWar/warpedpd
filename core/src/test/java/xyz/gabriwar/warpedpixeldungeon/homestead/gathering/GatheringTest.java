@@ -59,17 +59,29 @@ import xyz.gabriwar.warpedpixeldungeon.items.materials.Rope;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.RoughStone;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.Sand;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.Thatch;
+import xyz.gabriwar.warpedpixeldungeon.items.ore.IronOre;
+import xyz.gabriwar.warpedpixeldungeon.items.ore.Ore;
+import xyz.gabriwar.warpedpixeldungeon.items.quest.DarkGold;
 import xyz.gabriwar.warpedpixeldungeon.items.quest.Pickaxe;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.ItemType;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Rarity;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Axe;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.BattleAxe;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Greataxe;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.HandAxe;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MasonsHammer;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MinersTool;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Shovel;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Sickle;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Spade;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.WarHammer;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.WoodcuttersAxe;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.alchemy.MeisterHammer;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.relic.CromCruachAxe;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
+import xyz.gabriwar.warpedpixeldungeon.levels.MiningLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.TownShopLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldFauna;
@@ -80,9 +92,14 @@ import xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldEventsTest;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldModel;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldStructures;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.net.NetVisuals;
+import xyz.gabriwar.warpedpixeldungeon.net.TestParty;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
+import com.watabou.utils.Reflection;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -274,9 +291,20 @@ public class GatheringTest {
 		if (!Actor.all().contains( hero )) Actor.add( hero );
 	}
 
+	//into the pack. A tool handed over bare stays bare, as the starting kit's are: the hand-over
+	//rolls it a type (Quality.roll), and a typed axe or pick works faster (typed)
 	private void give( Item item ){
+		boolean bare = item.quality == null;
 		item.identify( false );
 		assertTrue( item.collect( hero.belongings.backpack ) );
+		if (bare) item.quality = null;
+	}
+
+	//a tool of a type: a Woodsman's axe or a Quarry's hammer, pick or shovel works in fewer strokes
+	private static <T extends Item> T typed( T item, ItemType type ){
+		Quality.roll( item, Rarity.COMMON, type, 0 );
+		assertEquals( type, Quality.of( item ).type );
+		return item;
 	}
 
 	//every stroke of a job to its end; how many it took
@@ -557,7 +585,7 @@ public class GatheringTest {
 		int rock = find( ow, c -> ow.map[c] == Terrain.WALL && !ow.protectedForBuilding( c ) && ow.heaps.get( c ) == null );
 		assertNotEquals( "rock on the mountain", -1, rock );
 		Level.set( rock, Terrain.EMPTY_DECO, ow );
-		Gathering.wallStone( ow, rock );
+		Gathering.wallStone( ow, rock, hero );
 		int stone = count( ow.heaps.get( rock ), RoughStone.class );
 		assertTrue( "1-2 rough stone: " + stone, stone >= 1 && stone <= 2 );
 
@@ -566,7 +594,7 @@ public class GatheringTest {
 		OverworldLevel vw = windowAt( s.cx, s.cy );
 		int wall = find( vw, c -> vw.map[c] == Terrain.WALL && vw.protectedForBuilding( c ) && vw.heaps.get( c ) == null );
 		assertNotEquals( "a house wall in the village", -1, wall );
-		Gathering.wallStone( vw, wall );
+		Gathering.wallStone( vw, wall, hero );
 		assertNull( "a house's wall is masonry, not the land's rock", vw.heaps.get( wall ) );
 	}
 
@@ -1273,8 +1301,12 @@ public class GatheringTest {
 		}
 		Random.pushGenerator( 99 );
 		try {
-			for (int kind = GatheringFx.CHOP; kind <= GatheringFx.TREE_FALLS; kind++){
+			for (int kind = GatheringFx.CHOP; kind <= GatheringFx.WALL_SPARK; kind++){
 				GatheringFx.play( kind, 10, GatheringFx.direction( 1, 0, true ), GatheringFx.picture( 58, 57 ) );
+			}
+			//a typed tool's strokes, their piece more
+			for (int kind : new int[]{ GatheringFx.CHOP, GatheringFx.QUARRY, GatheringFx.DIG }){
+				GatheringFx.play( kind, 10, GatheringFx.TYPED, 0 );
 			}
 			assertEquals( "no scene: nothing drawn, nothing drawn from the game's Random", expected, Random.Long() );
 		} finally {
@@ -1304,6 +1336,368 @@ public class GatheringTest {
 		assertFalse( Messages.get( Sickle.class, "reap_prompt" ).contains( "NO TEXT" ) );
 		assertFalse( Messages.get( Sickle.class, "ac_reap" ).contains( "NO TEXT" ) );
 		assertFalse( OverworldShopkeeper.of( OverworldShopkeeper.CARPENTER, 0 ).name().contains( "NO TEXT" ) );
+	}
+
+	// ------------------------------------------------------------------ typed tools
+
+	@Test
+	public void woodsmanFellsInFewerStrokes(){
+		OverworldLevel ow = windowIn( WorldModel.Biome.FOREST );
+		int oak = tree( ow, Terrain.TREE_OAK );
+		stand( ow, standBeside( ow, oak ) );
+		//untyped, gamma, beta, alpha: 20% fewer strokes a type rank, never under one
+		Class<?>[] axes = { HandAxe.class, Axe.class, BattleAxe.class, Greataxe.class, CromCruachAxe.class, WoodcuttersAxe.class };
+		int[][] trees = { { 8, 6, 5, 3 }, { 6, 5, 4, 2 }, { 5, 4, 3, 2 }, { 4, 3, 2, 2 }, { 4, 3, 2, 2 }, { 3, 2, 2, 1 } };
+		ItemType[] types = { null, ItemType.GAMMA, ItemType.BETA, ItemType.ALPHA };
+		for (int i = 0; i < axes.length; i++){
+			for (int j = 0; j < types.length; j++){
+				Item a = (Item) Reflection.newInstance( axes[i] );
+				if (types[j] != null) typed( a, types[j] );
+				hero.belongings.weapon = (MeleeWeapon) a;
+				String what = axes[i].getSimpleName() + " " + types[j];
+				assertEquals( what, trees[i][j], Gathering.turns( hero, oak, Gathering.Job.CHOP ) );
+				//a bush or a stump: half a tree's, then the same share fewer
+				assertEquals( what, Quality.workStrokes( a, Gathering.lightChop( trees[i][0] ) ),
+						lightChopTurns( ow, oak ) );
+			}
+		}
+		assertEquals( "an alpha hand axe's bush: 4 strokes, 2", 2, Quality.workStrokes( typed( new HandAxe(), ItemType.ALPHA ), 4 ) );
+
+		//the strokes are counted as they are struck: an alpha hand axe fells in three
+		hero.belongings.weapon = typed( new HandAxe(), ItemType.ALPHA );
+		assertEquals( 3, work( oak, Gathering.Job.CHOP ) );
+		assertEquals( Terrain.STUMP_OAK, ow.map[oak] );
+
+		//a typed weapon of another kind changes nothing
+		assertEquals( 7, Quality.workStrokes( typed( new Sickle(), ItemType.ALPHA ), 7 ) );
+		assertEquals( 7, Quality.workStrokes( null, 7 ) );
+	}
+
+	//the strokes a bush beside the hero takes (and gone again: the oak's cell is put back as it was)
+	private int lightChopTurns( OverworldLevel ow, int oak ){
+		Level.set( oak, Terrain.SHRUB, ow );
+		int t = Gathering.turns( hero, oak, Gathering.Job.CHOP );
+		Level.set( oak, Terrain.TREE_OAK, ow );
+		return t;
+	}
+
+	@Test
+	public void cromCruachAxeFells(){
+		assertEquals( Gathering.GREATAXE_TURNS, Gathering.axeTurns( new CromCruachAxe() ) );
+		OverworldLevel ow = windowIn( WorldModel.Biome.FOREST );
+		int oak = tree( ow, Terrain.TREE_OAK );
+		stand( ow, standBeside( ow, oak ) );
+		CromCruachAxe relic = new CromCruachAxe();
+		hero.belongings.weapon = relic;
+		assertEquals( relic, Gathering.axe( hero ) );
+		assertEquals( Gathering.Job.CHOP, Gathering.tapJob( hero, oak ) );
+		assertEquals( Gathering.GREATAXE_TURNS, work( oak, Gathering.Job.CHOP ) );
+		assertEquals( Terrain.STUMP_OAK, ow.map[oak] );
+	}
+
+	@Test
+	public void theQuickestAxeCarriedCountsItsType(){
+		OverworldLevel ow = windowIn( WorldModel.Biome.FOREST );
+		int oak = tree( ow, Terrain.TREE_OAK );
+		stand( ow, standBeside( ow, oak ) );
+		hero.belongings.weapon = new Sickle();
+		//a gamma battle axe's 5 strokes come down to 4, an alpha axe's 6 to 2
+		BattleAxe battle = typed( new BattleAxe(), ItemType.GAMMA );
+		give( battle );
+		Axe alpha = typed( new Axe(), ItemType.ALPHA );
+		give( alpha );
+		assertEquals( "the alpha axe in the pack, quicker for its type", alpha, Gathering.axe( hero ) );
+		assertEquals( 2, Gathering.turns( hero, oak, Gathering.Job.CHOP ) );
+		//the axe in his hand still comes first, however slow
+		HandAxe held = new HandAxe();
+		hero.belongings.weapon = held;
+		assertEquals( held, Gathering.axe( hero ) );
+		assertEquals( Gathering.HAND_AXE_TURNS, Gathering.turns( hero, oak, Gathering.Job.CHOP ) );
+	}
+
+	@Test
+	public void aTypedToolsStrokeGoesToTheGuestsTyped() throws Exception {
+		OverworldLevel ow = windowIn( WorldModel.Biome.FOREST );
+		int oak = tree( ow, Terrain.TREE_OAK );
+		stand( ow, standBeside( ow, oak ) );
+		int at = find( ow, c -> ground( ow, c ) && ground( ow, c + 1 ) && c != oak && c + 1 != oak );
+		int rock = at + 1;
+		Level.set( rock, Terrain.BOULDER, ow );
+		TestParty.join( new Hero() );
+		try {
+			NetVisuals.clear();
+			hero.belongings.weapon = new HandAxe();
+			assertTrue( Gathering.stroke( hero, oak, Gathering.Job.CHOP, d -> {} ) );
+			assertEquals( "a bare axe's stroke", 0, sentN( GatheringFx.CHOP ) );
+			hero.belongings.weapon = typed( new HandAxe(), ItemType.GAMMA );
+			assertTrue( Gathering.stroke( hero, oak, Gathering.Job.CHOP, d -> {} ) );
+			assertEquals( "a typed axe's stroke", GatheringFx.TYPED, sentN( GatheringFx.CHOP ) );
+
+			stand( ow, at );
+			hero.belongings.weapon = new Pickaxe();
+			assertTrue( Gathering.stroke( hero, rock, Gathering.Job.QUARRY, d -> {} ) );
+			assertEquals( "a bare pick's stroke", 0, sentN( GatheringFx.QUARRY ) );
+			hero.belongings.weapon = typed( new Pickaxe(), ItemType.GAMMA );
+			assertTrue( Gathering.stroke( hero, rock, Gathering.Job.QUARRY, d -> {} ) );
+			assertEquals( "a typed pick's stroke", GatheringFx.TYPED, sentN( GatheringFx.QUARRY ) );
+		} finally {
+			TestParty.leave();
+			NetVisuals.clear();
+		}
+	}
+
+	//the n the host sent with the one gathering event of a kind drained now (0 when none was put)
+	private static int sentN( int kind ) throws Exception {
+		JSONArray sent = NetVisuals.drainEvents();
+		assertNotNull( "something sent", sent );
+		int found = 0, n = 0;
+		for (int i = 0; i < sent.length(); i++){
+			JSONObject e = sent.getJSONObject( i );
+			if (!"gw".equals( e.getString( "t" ) ) || e.getInt( "k" ) != kind) continue;
+			found++;
+			n = e.optInt( "n", 0 );
+		}
+		assertEquals( "one stroke sent", 1, found );
+		return n;
+	}
+
+	@Test
+	public void theQuickestQuarryToolIsUsedHeldFirstOnATie(){
+		assertNull( Gathering.quarryTool( hero ) );
+		WarHammer war = new WarHammer();
+		hero.belongings.weapon = war;
+		Pickaxe pick = new Pickaxe();
+		give( pick );
+		assertEquals( "three strokes each: the one in his hand", war, Gathering.quarryTool( hero ) );
+		MasonsHammer mason = new MasonsHammer();
+		give( mason );
+		assertEquals( "the mason's hammer's two beat the held three: never slower than before", mason, Gathering.quarryTool( hero ) );
+		hero.belongings.weapon = typed( new WarHammer(), ItemType.ALPHA );
+		assertEquals( "an alpha war hammer's one", hero.belongings.weapon, Gathering.quarryTool( hero ) );
+		hero.belongings.weapon = typed( new Pickaxe(), ItemType.BETA );
+		assertEquals( 2, Quality.workStrokes( hero.belongings.weapon, Gathering.PICK_QUARRY_TURNS ) );
+		assertEquals( "a beta pick's two tie the mason's hammer's: the held one", hero.belongings.weapon, Gathering.quarryTool( hero ) );
+		hero.belongings.weapon = new Sickle();
+		assertEquals( "a held weapon that breaks no stone is passed over", mason, Gathering.quarryTool( hero ) );
+		//a typed tool in the pack counts as much as one in hand
+		MasonsHammer alpha = typed( new MasonsHammer(), ItemType.ALPHA );
+		give( alpha );
+		assertEquals( alpha, Gathering.quarryTool( hero ) );
+	}
+
+	@Test
+	public void aHeldWarHammerBreaksABoulder(){
+		OverworldLevel ow = windowIn( WorldModel.Biome.FOREST );
+		int at = find( ow, c -> ground( ow, c ) && ground( ow, c + 1 ) );
+		stand( ow, at );
+		int rock = at + 1;
+		Level.set( rock, Terrain.BOULDER, ow );
+		hero.belongings.weapon = new Spade();
+		assertNull( "a spade breaks no boulder", Gathering.tapJob( hero, rock ) );
+		assertEquals( Messages.get( Gathering.class, "no_pick" ), Gathering.refusal( hero, rock, Gathering.Job.QUARRY ) );
+		for (MeleeWeapon tool : new MeleeWeapon[]{ new WarHammer(), new MeisterHammer(), new MinersTool() }){
+			hero.belongings.weapon = tool;
+			clear( ow, rock );
+			Level.set( rock, Terrain.BOULDER, ow );
+			String what = tool.getClass().getSimpleName();
+			assertEquals( what, tool, Gathering.quarryTool( hero ) );
+			assertEquals( what, Gathering.Job.QUARRY, Gathering.tapJob( hero, rock ) );
+			assertNull( what, Gathering.refusal( hero, rock, Gathering.Job.QUARRY ) );
+			assertEquals( what, Gathering.PICK_QUARRY_TURNS, work( rock, Gathering.Job.QUARRY ) );
+			assertEquals( what, Terrain.EMPTY_DECO, ow.map[rock] );
+			int stone = count( ow.heaps.get( rock ), RoughStone.class );
+			assertTrue( what + ": 2-3 rough stone: " + stone, stone >= 2 && stone <= 3 );
+		}
+	}
+
+	@Test
+	public void digAndStumpTakeFewerStrokesWithAQuarryShovel(){
+		OverworldLevel ow = windowIn( WorldModel.Biome.FOREST );
+		int grass = find( ow, c -> ow.map[c] == Terrain.GRASS && ground( ow, c ) );
+		stand( ow, grass );
+		int[] dig = { 2, 2, 1, 1 }, stump = { 3, 2, 2, 1 };
+		ItemType[] types = { null, ItemType.GAMMA, ItemType.BETA, ItemType.ALPHA };
+		for (int j = 0; j < types.length; j++){
+			Shovel s = new Shovel();
+			if (types[j] != null) typed( s, types[j] );
+			hero.belongings.weapon = s;
+			assertEquals( String.valueOf( types[j] ), dig[j], Gathering.turns( hero, grass, Gathering.Job.DIG ) );
+			Level.set( grass, Terrain.STUMP_OAK, ow );
+			assertEquals( String.valueOf( types[j] ), stump[j], Gathering.turns( hero, grass, Gathering.Job.DIG ) );
+			Level.set( grass, Terrain.GRASS, ow );
+		}
+		//the shovel in his hand first, else the one in the pack
+		hero.belongings.weapon = new Shovel();
+		give( typed( new Shovel(), ItemType.ALPHA ) );
+		assertEquals( "the bare one in his hand", 2, Gathering.turns( hero, grass, Gathering.Job.DIG ) );
+		hero.belongings.weapon = new Sickle();
+		assertEquals( "the alpha one in the pack", 1, Gathering.turns( hero, grass, Gathering.Job.DIG ) );
+		assertEquals( "one spadeful", 1, work( grass, Gathering.Job.DIG ) );
+		assertEquals( Terrain.FARMLAND, ow.map[grass] );
+	}
+
+	@Test
+	public void aTypedMasonsHammerBreaksTheWorldsRockInFewerStrokes(){
+		OverworldLevel mt = windowIn( WorldModel.Biome.MOUNTAIN );
+		int rock = find( mt, c -> mt.map[c] == Terrain.WALL && !mt.protectedForBuilding( c ) && !mt.unbreakable( c )
+				&& standBeside( mt, c ) != -1 );
+		assertNotEquals( "rock on the mountain", -1, rock );
+		stand( mt, standBeside( mt, rock ) );
+		give( typed( new MasonsHammer(), ItemType.ALPHA ) );
+		hero.handle( rock );
+		assertTrue( String.valueOf( hero.curAction ), hero.curAction instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroAction.Mine );
+		assertEquals( "three turns, 60% fewer", 1f, ((xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroAction.Mine) hero.curAction).turns, 0f );
+		assertEquals( "the hammer when there is no pick", Quality.of( hero.belongings.getItem( MasonsHammer.class ) ),
+				Quality.of( Gathering.wallTool( hero ) ) );
+		Pickaxe pick = new Pickaxe();
+		give( pick );
+		assertEquals( "the pick first, as the hero's handling picks it", pick, Gathering.wallTool( hero ) );
+	}
+
+	@Test
+	public void extraLogStoneAndOreDrawOnlyFromATypedTool(){
+		OverworldLevel ow = windowIn( WorldModel.Biome.FOREST );
+		int oak = tree( ow, Terrain.TREE_OAK );
+		stand( ow, standBeside( ow, oak ) );
+
+		//an untyped axe draws from the game's Random exactly what felling drew before typed tools
+		//(as with no axe at all: nothing asked); a typed one draws once more
+		long none = afterFelling( ow, oak, null );
+		assertEquals( "a bare axe draws nothing more", none, afterFelling( ow, oak, new HandAxe() ) );
+		assertNotEquals( "a typed axe rolls its extra log", none, afterFelling( ow, oak, typed( new HandAxe(), ItemType.GAMMA ) ) );
+
+		//an alpha axe: one more log 45% of the time, never two more; a bare one never
+		hero.belongings.weapon = typed( new HandAxe(), ItemType.ALPHA );
+		int more = 0, trials = 400;
+		for (int i = 0; i < trials; i++){
+			Level.set( oak, Terrain.TREE_OAK, ow );
+			clear( ow, oak );
+			Gathering.fell( hero, ow, oak );
+			int logs = count( ow.heaps.get( oak ), Log.class );
+			assertTrue( "3-4 logs and maybe one more: " + logs, logs >= 3 && logs <= 5 );
+			if (logs == 5) more++;
+		}
+		//a fifth log only when the 3-4 came up 4 (half the time) and the extra came too
+		assertEquals( "a fifth log about 0.45 x 0.5 of the time: " + more, 0.225f, more / (float) trials, 0.07f );
+		//a stump chopped out gives its one log, typed axe or not
+		for (int i = 0; i < 50; i++){
+			Level.set( oak, Terrain.STUMP_OAK, ow );
+			clear( ow, oak );
+			Gathering.uproot( ow, oak );
+			assertEquals( 1, count( ow.heaps.get( oak ), Log.class ) );
+		}
+
+		//a boulder: a bare pick draws what it did, a typed one once more; an alpha pick's 2-3 stone sometimes 4
+		int at = find( ow, c -> ground( ow, c ) && ground( ow, c + 1 ) );
+		stand( ow, at );
+		int rock = at + 1;
+		long noTool = afterQuarrying( ow, rock, null );
+		assertEquals( noTool, afterQuarrying( ow, rock, new Pickaxe() ) );
+		assertNotEquals( noTool, afterQuarrying( ow, rock, typed( new Pickaxe(), ItemType.GAMMA ) ) );
+		hero.belongings.weapon = typed( new Pickaxe(), ItemType.ALPHA );
+		boolean four = false;
+		for (int i = 0; i < 200; i++){
+			Level.set( rock, Terrain.BOULDER, ow );
+			clear( ow, rock );
+			Gathering.quarry( hero, ow, rock );
+			int stone = count( ow.heaps.get( rock ), RoughStone.class );
+			assertTrue( "2-3 stone and maybe one more: " + stone, stone >= 2 && stone <= 4 );
+			four |= stone == 4;
+		}
+		assertTrue( "an alpha pick brings out a fourth stone", four );
+
+		//the world's rock: the pick or the hammer the hero breaks it with (wallTool)
+		OverworldLevel mt = windowIn( WorldModel.Biome.MOUNTAIN );
+		int wall = find( mt, c -> mt.map[c] == Terrain.WALL && !mt.protectedForBuilding( c ) && mt.heaps.get( c ) == null );
+		assertNotEquals( "rock on the mountain", -1, wall );
+		hero.belongings.weapon = null;
+		long bareWall = afterWallStone( mt, wall );
+		Pickaxe pick = new Pickaxe();
+		give( pick );
+		assertEquals( "a bare pick draws what it did", bareWall, afterWallStone( mt, wall ) );
+		pick.quality = typed( new Pickaxe(), ItemType.ALPHA ).quality;
+		assertNotEquals( "a typed pick draws once more", bareWall, afterWallStone( mt, wall ) );
+		boolean three = false;
+		for (int i = 0; i < 200; i++){
+			clear( mt, wall );
+			Gathering.wallStone( mt, wall, hero );
+			int stone = count( mt.heaps.get( wall ), RoughStone.class );
+			assertTrue( "1-2 stone and maybe one more: " + stone, stone >= 1 && stone <= 3 );
+			three |= stone == 3;
+		}
+		assertTrue( "an alpha pick brings out a third stone", three );
+
+		//a vein's ore: one more lump now and then, never from a bare pick
+		pick.quality = null;
+		for (int i = 0; i < 50; i++){
+			Ore ore = (Ore) new IronOre().quantity( 2 );
+			Gathering.extraOre( hero, ore, wall );
+			assertEquals( "a bare pick's ore as it was", 2, ore.quantity() );
+		}
+		pick.quality = typed( new Pickaxe(), ItemType.ALPHA ).quality;
+		int lumps = 0;
+		for (int i = 0; i < trials; i++){
+			Ore ore = (Ore) new IronOre().quantity( 2 );
+			Gathering.extraOre( hero, ore, wall );
+			assertTrue( ore.quantity() == 2 || ore.quantity() == 3 );
+			lumps += ore.quantity() - 2;
+		}
+		assertEquals( "one more lump about 45% of the time: " + lumps, 0.45f, lumps / (float) trials, 0.08f );
+	}
+
+	//the next long the game's Random gives after a tree is felled with this axe in hand (a fixed seed)
+	private long afterFelling( OverworldLevel ow, int oak, Item axe ){
+		hero.belongings.weapon = (MeleeWeapon) axe;
+		Level.set( oak, Terrain.TREE_OAK, ow );
+		clear( ow, oak );
+		Random.pushGenerator( 77 );
+		try {
+			Gathering.fell( hero, ow, oak );
+			return Random.Long();
+		} finally {
+			Random.popGenerator();
+		}
+	}
+
+	//the same for a boulder broken with this tool in hand
+	private long afterQuarrying( OverworldLevel ow, int rock, Item tool ){
+		hero.belongings.weapon = (MeleeWeapon) tool;
+		Level.set( rock, Terrain.BOULDER, ow );
+		clear( ow, rock );
+		Random.pushGenerator( 78 );
+		try {
+			Gathering.quarry( hero, ow, rock );
+			return Random.Long();
+		} finally {
+			Random.popGenerator();
+		}
+	}
+
+	//the same for the rough stone of the world's rock, with the tools the hero carries now
+	private long afterWallStone( OverworldLevel ow, int wall ){
+		clear( ow, wall );
+		Random.pushGenerator( 79 );
+		try {
+			Gathering.wallStone( ow, wall, hero );
+			return Random.Long();
+		} finally {
+			Random.popGenerator();
+		}
+	}
+
+	@Test
+	public void darkGoldIsNeverDoubled(){
+		//the Blacksmith's dark gold is mined from the mines' decorated rock (Hero.actMine): no
+		//vein's ore, so Gathering.extraOre can never be handed it, and the mines are no world slice
+		assertFalse( Ore.class.isAssignableFrom( DarkGold.class ) );
+		assertFalse( OverworldLevel.class.isAssignableFrom( MiningLevel.class ) );
+		assertFalse( MiningLevel.class.isAssignableFrom( OverworldLevel.class ) );
+		//on a slice only a vein in plain rock gives ore: decorated rock gives none to double
+		OverworldLevel mt = windowIn( WorldModel.Biome.MOUNTAIN );
+		int rock = find( mt, c -> mt.map[c] == Terrain.WALL );
+		assertNotEquals( -1, rock );
+		Level.set( rock, Terrain.WALL_DECO, mt );
+		assertNull( mt.oreFrom( rock ) );
 	}
 
 	//what a held press on the cell puts the hero to (CellSelector.heldTap)

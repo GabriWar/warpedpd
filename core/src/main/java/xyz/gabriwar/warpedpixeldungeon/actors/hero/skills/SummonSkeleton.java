@@ -27,9 +27,9 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.DreadFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -106,14 +106,17 @@ public class SummonSkeleton extends ActiveSkill3 {
 				pet.pos = newPos;
 				GameScene.add(pet);
 				Actor.addDelayed(new Pushing(pet, hero.pos, newPos), -1);
-				//grave-mist first: shadow seeps up out of the floor for half a second, then the bones
-				//knit together inside it with a rattle
+				//grave-mist first: ink seeping out over the floor for half a second, then the bones
+				//knit together inside it with a rattle - chips of bone drawn into the body, never a
+				//skeleton breaking apart
 				pet.sprite.alpha(0);
 				pet.sprite.parent.add(new AlphaTweener(pet.sprite, 1, 0.6f));
-				CellEmitter.bottom( newPos ).start( ShadowParticle.UP, 0.06f, 10 );
+				CellEmitter.bottom( newPos ).start( SkillBursts.INK_DRIFT, 0.06f, 10 );
 				final int grave = newPos;
+				final xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite body = pet.sprite;
 				StaggerFX.after( 0.35f, () -> {
-					CellEmitter.get( grave ).burst( Speck.factory( Speck.BONE ), 6 );
+					CellEmitter.get( grave ).burst( SkillBursts.GRIT, 6 );
+					DreadFX.knit( body );
 					SpatialSound.play( Assets.Sounds.BONES, grave, 1f, 1.1f );
 				} );
 

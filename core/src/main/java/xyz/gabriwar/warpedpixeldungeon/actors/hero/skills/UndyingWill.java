@@ -28,16 +28,17 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PulseRingFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.ShoutFX;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.UndyingWillWard;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 import java.util.ArrayList;
 
@@ -75,7 +76,9 @@ public class UndyingWill extends SubSkill3 {
 			castTextYell();
 			SpatialSound.play( Assets.Sounds.CHALLENGE, hero, 1f, 0.7f );
 			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.RED_LIGHT ), 5 );
-			new Flare( 6, 22 ).color( 0xFF5544, true ).show( hero.sprite, 0.8f );
+			//the ward rising: a flare of fury and a ring beating out round him (never Terror's red)
+			PixelFlare.show( SkillVfx.midX( hero.sprite ), SkillVfx.midY( hero.sprite ), ShoutFX.FURY[2], PixelFlare.M, 0.8f );
+			PulseRingFX.around( hero.sprite, ShoutFX.FURY[2], 20, 0.45f );
 			Fx.shake( 1, 0.2f );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
@@ -98,8 +101,10 @@ public class UndyingWill extends SubSkill3 {
 
 		if (hero.sprite != null){
 			hero.sprite.flash();
-			new Flare( 8, 26 ).color( 0xFF2222, true ).show( hero.sprite, 1f );
-			hero.sprite.showStatus( CharSprite.NEGATIVE, Messages.get( this, "hold" ) );
+			//death refused: his own white flash, then a flare of fury and a roar rolling out of him
+			PixelFlare.show( SkillVfx.midX( hero.sprite ), SkillVfx.midY( hero.sprite ), ShoutFX.FURY[2], PixelFlare.L, 0.6f );
+			ShoutFX.roar( hero.sprite, ShoutFX.FURY, 40 );
+			chipOn( hero );
 		}
 		SpatialSound.play( Assets.Sounds.CHALLENGE, hero, 1f, 0.5f );
 		Fx.shake( 2, 0.3f );

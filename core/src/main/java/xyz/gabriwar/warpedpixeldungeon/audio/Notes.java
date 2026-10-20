@@ -24,14 +24,14 @@
 
 package xyz.gabriwar.warpedpixeldungeon.audio;
 
-import com.watabou.utils.Random;
-
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
 
 /**
  * An instrument played as it is used: each note is its one sample (tools/effect_sound_gen.py)
  * pitched to a random step of a major pentatonic scale, up to an octave above, never the
- * same step twice running, so whatever comes out sounds like a tune.
+ * same step twice running, so whatever comes out sounds like a tune. The steps come from the
+ * effects' own random numbers (FxRandom), never the game's: a note is heard, it changes nothing.
  */
 public final class Notes {
 
@@ -46,10 +46,19 @@ public final class Notes {
 	public static float next(){
 		int step;
 		do {
-			step = Random.Int( SCALE.length );
+			step = FxRandom.Int( SCALE.length );
 		} while (step == last);
 		last = step;
 		return (float)Math.pow( 2, SCALE[step] / 12.0 );
+	}
+
+	/** A Bard's note by its place toward the chord (the instrument's Quality.notes after the hit: 1,
+	 *  2, 3, and 0 for the chord itself): a fixed step up a major scale, so the chord is heard coming. */
+	public static final float[] STEPS = { 1.5f, 1f, 1.125f, 1.25f };
+
+	/** one note at its fixed step toward the chord (STEPS), from where `ch` stands: nothing random */
+	public static void step( String note, Char ch, int step ){
+		SpatialSound.play( note, ch, 1f, STEPS[Math.max( 0, Math.min( STEPS.length - 1, step ) )] );
 	}
 
 	/** one note, from where `ch` stands */

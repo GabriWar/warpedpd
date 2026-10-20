@@ -41,7 +41,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import com.watabou.noosa.tweeners.AlphaTweener;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
 
 /** Keeps the old class/tag so purchased Phantom Strike levels remain valid. */
@@ -80,7 +80,7 @@ public class PhantomStrike extends Skill {
                     hero.sprite.place(hero.pos);shadow.sprite.place(shadow.pos);
                     SkillSpectacleFX.fly(SkillSpectacleFX.SHADOW,old,cell,0,.4f);
                     SkillSpectacleFX.fly(SkillSpectacleFX.SHADOW,cell,old,0,.4f);
-                    CellEmitter.get(old).burst(ShadowParticle.UP,5);CellEmitter.get(cell).burst(ShadowParticle.UP,5);
+                    CellEmitter.get(old).burst(SkillBursts.INK_DRIFT,5);CellEmitter.get(cell).burst(SkillBursts.INK_DRIFT,5);
                     SpatialSound.play(Assets.Sounds.MELD,hero,1f,1.2f);
                     Dungeon.level.occupyCell(shadow);Dungeon.level.occupyCell(hero);
                 }else{
@@ -88,8 +88,8 @@ public class PhantomStrike extends Skill {
                             ||hero.MP<getManaCost()||allies.size()>=level+1)return;
                     int slots=Math.min(level+1-allies.size(),Math.max(3+hero.heroSkills.allSummonLimit(),level+1)-SummonedPet.activeCount());
                     int created=0;
-                    //the company steps out of the dark one at a time: the shadow flies from the rogue's
-                    //own shadow to its place, then the figure fades in where it lands
+                    //the company steps out of the dark one at a time: the shade flies from the rogue's
+                    //own shadow to its place, then the figure fades in where it lands, ink drifting off it
                     FxTimeline rise=FxTimeline.start();
                     for(int dest:SkillInteractions.area(cell,1)){
                         if(created>=slots)break;
@@ -104,14 +104,14 @@ public class PhantomStrike extends Skill {
                             rise.at(0.15f*order+0.3f,()->{
                                 if(shadow.sprite==null||!shadow.sprite.exists)return;
                                 shadow.sprite.parent.add(new AlphaTweener(shadow.sprite,shown,0.35f));
-                                CellEmitter.get(at).burst(ShadowParticle.UP,6);
+                                CellEmitter.get(at).burst(SkillBursts.INK_DRIFT,6);
                                 SpatialSound.play(Assets.Sounds.MELD,at,0.8f,1.1f+0.1f*order);
                             });
                         }
                         created++;
                     }
                     if(created==0)return;
-                    hero.sprite.emitter().burst(ShadowParticle.UP,6);
+                    hero.sprite.emitter().burst(SkillBursts.INK_DRIFT,6);
                     hero.MP-=getManaCost();castTextYell();
                 }
                 Invisibility.dispel();Dungeon.observe();GameScene.updateFog();

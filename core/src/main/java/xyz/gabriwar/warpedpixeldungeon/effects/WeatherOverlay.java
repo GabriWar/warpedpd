@@ -39,8 +39,11 @@ import xyz.gabriwar.warpedpixeldungeon.effects.particles.RainParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SleetParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SteamParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.SunMoteParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.BurningTree;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientPlayer;
 import xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientSound;
@@ -158,7 +161,8 @@ public class WeatherOverlay extends Group {
 		STEAM,
 		CORONA,
 		DRIP,
-		HEAT_RAYS
+		HEAT_RAYS,
+		MOTES
 	}
 
 	public WeatherOverlay() {
@@ -273,7 +277,8 @@ public class WeatherOverlay extends Group {
 			return;
 		}
 
-		ambientEmitter = type == AmbientType.FIREFLIES ? createGrassEmitter() : createViewportEmitter(null, 0f);
+		ambientEmitter = type == AmbientType.FIREFLIES ? createGrassEmitter()
+				: type == AmbientType.MOTES ? createMoteEmitter() : createViewportEmitter(null, 0f);
 		switch (type) {
 			case FIREFLIES:
 				ambientEmitter.pour(FireflyParticle.FACTORY, 0.5f);
@@ -283,6 +288,14 @@ public class WeatherOverlay extends Group {
 				break;
 			case SPRING_PETALS:
 				ambientEmitter.pour(FallingLeafParticle.SPRING, 0.5f);
+				//a clear spring day's sunlit motes drift among the petals, under them (their emitter
+				//keeps to their own air and ground, which the petals' does not)
+				ambientEmitter2 = createMoteEmitter();
+				ambientEmitter2.pour(SunMoteParticle.FACTORY, MOTE_POUR);
+				add(ambientEmitter2);
+				break;
+			case MOTES:
+				ambientEmitter.pour(SunMoteParticle.FACTORY, MOTE_POUR);
 				break;
 			case MIST:
 				ambientEmitter.pour(MistParticle.FACTORY, 0.25f);
@@ -648,7 +661,8 @@ public class WeatherOverlay extends Group {
 	 * A turn's bolt (StormStrikes, StormCloud: `cloud`) on its cell: where the hero can see it, it
 	 * comes down from the top of the view leaning with the wind, or, a storm cloud's where the sky
 	 * is not open overhead, out of the cloud deck it draws two cells up (not through the walls),
-	 * as short in its zigzag and fork; whether it did. Where it ran (StormStrikes.discharge) is
+	 * as short in its zigzag and fork; whether it did. A tree it struck takes it on its crown, not
+	 * at its foot (BurningTree.struck). Where it ran (StormStrikes.discharge) is
 	 * drawn with it, or alone, wherever the hero sees it, its crawl over the water as a faint
 	 * crackle (Lightning.Arc.crawl). The flash and the thunder are update()'s, and the sparks are
 	 * the overlay's own: its Lightning makes none of the three (stormsOwn).
@@ -661,6 +675,7 @@ public class WeatherOverlay extends Group {
 		ArrayList<Lightning.Arc> arcs = new ArrayList<>();
 		boolean seen = fov[bolt.cell];
 		PointF to = DungeonTilemap.tileCenterToWorld(bolt.cell);
+		BurningTree.struck(Dungeon.level, bolt.cell, to);
 		if (seen) {
 			boolean low = bolt.cloud && !StormStrikes.underOpenSky(Dungeon.level);
 			float k = low ? CLOUD_BOLT : 1f;
@@ -941,6 +956,10 @@ public class WeatherOverlay extends Group {
 	private static final float RAIN_FALL = 48f;
 	private static final float SNOW_FALL = 24f;
 
+	// The sunlit motes: a spawn tried this often (s) over the view, kept over the grass and by the
+	// budget (P3, thinned away from the hero): about two dozen alive over a phone's meadow
+	static final float MOTE_POUR = 0.12f;
+
 	/**
 	 * A viewport emitter that, on the surface, only spawns over the ground
 	 * its kind belongs to: frozen (snow) or not (rain). Null = anywhere.
@@ -1017,6 +1036,35 @@ public class WeatherOverlay extends Group {
 		int t = Dungeon.level.map[cell];
 		return t == Terrain.GRASS || t == Terrain.HIGH_GRASS || t == Terrain.FURROWED_GRASS
 				|| (Dungeon.level.water != null && Dungeon.level.water[cell]);
+	}
+
+	/** A viewport emitter for the sunlit motes: they rise only off the surface's grass and only in
+	 *  their own air (ClimateManager.sunlitMotes), which the spring's petals they may fly among do
+	 *  not always share; its spawn points are the effects' own dice (FxEmitter). */
+	private Emitter createMoteEmitter() {
+		Emitter e = new FxEmitter() {
+			@Override
+			protected void emit(int index) {
+				float px = x + FxRandom.Float(width), py = y + FxRandom.Float(height);
+				if (!moteGround(px, py) || !ClimateManager.sunlitMotes()) return;
+				factory.emit(this, index, px, py);
+			}
+		};
+		e.autoKill = false;
+		repositionToViewport(e);
+		return e;
+	}
+
+	//the surface's grass, flowers and green floor, thawed: never sand, snow, water or rock
+	static boolean moteGround(float px, float py) {
+		if (!(Dungeon.level instanceof OverworldLevel) || px < 0 || py < 0) return false;
+		OverworldLevel ow = (OverworldLevel) Dungeon.level;
+		int cx = (int)(px / DungeonTilemap.SIZE), cy = (int)(py / DungeonTilemap.SIZE);
+		if (cx >= ow.width() || cy >= ow.height()) return false;
+		int cell = cx + cy * ow.width();
+		int t = ow.map[cell];
+		return (t == Terrain.GRASS || t == Terrain.HIGH_GRASS || t == Terrain.FURROWED_GRASS
+				|| t == Terrain.FLOWER_PATCH || t == Terrain.EMPTY) && !ow.frozenAt(cell);
 	}
 
 	/** Reposition an emitter to cover the camera viewport + margin. */

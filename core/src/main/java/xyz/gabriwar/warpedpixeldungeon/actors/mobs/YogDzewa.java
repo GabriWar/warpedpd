@@ -45,7 +45,6 @@ import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.LarvaSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.YogSprite;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
@@ -240,7 +239,7 @@ public class YogDzewa extends Mob {
 							GLog.n(Messages.get(Char.class, "kill", name()));
 						}
 					} else {
-						ch.sprite.showStatus( CharSprite.NEUTRAL,  ch.defenseVerb() );
+						xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.missed( ch );
 					}
 				}
 				targetedCells.clear();
@@ -417,7 +416,7 @@ public class YogDzewa extends Mob {
 
 			updateVisibility(Dungeon.level);
 			GLog.n(Messages.get(this, "darkness"));
-			sprite.showStatus(CharSprite.POSITIVE, Messages.get(this, "invulnerable"));
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.mark( this, xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.IMMUNE );
 
 			addFist((YogFist)Reflection.newInstance(fistSummons.remove(0)));
 

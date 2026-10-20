@@ -26,6 +26,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.HeroDisguise;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.ColdBreath;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import com.watabou.gltextures.SmartTexture;
 import com.watabou.gltextures.TextureCache;
@@ -48,6 +49,9 @@ public class HeroSprite extends CharSprite {
 	
 	private Animation fly;
 	private Animation read;
+
+	//its breath in the cold air (effects/fx/combat/ColdBreath)
+	private final ColdBreath breath = new ColdBreath( this );
 
 	public HeroSprite() {
 		super();
@@ -186,6 +190,8 @@ public class HeroSprite extends CharSprite {
 		sleeping = ch != null && ch.isAlive() && ((Hero)ch).resting;
 		
 		super.update();
+		//none while a chill's or hypothermia's look breathes for it already
+		breath.update( looks != null && (looks.has( State.CHILLED ) || looks.has( State.HYPOTHERMIA )) );
 	}
 	
 	public void sprint( float speed ) {

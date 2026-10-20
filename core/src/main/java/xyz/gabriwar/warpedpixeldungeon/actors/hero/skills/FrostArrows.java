@@ -36,12 +36,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Frost;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import com.watabou.utils.Random;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SnowParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.RogueHuntressAuras;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraBuff;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 public class FrostArrows extends ActiveSkill {
 
@@ -59,8 +58,11 @@ public class FrostArrows extends ActiveSkill {
 		super.execute(hero, action);
 		if (action.equals(Skill.AC_ACTIVATE)){
 			SpatialSound.play( Assets.Sounds.DEGRADE, hero, 1f, 1.6f );
-			hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 4 );
-			hero.sprite.emitter().burst( SnowParticle.FACTORY, 6 );
+			//the tips rime over: frost glints catching on her, still (never snow falling on the hero, a chill,
+			//nor the mana-gain sparkle of the game's BLUE_LIGHT)
+			hero.sprite.emitter().burst( SkillBursts.FROST_GLINT, 4 );
+			hero.sprite.emitter().burst( SkillBursts.FROST_GLINT, 6 );
+			EmberArrows.kindled( hero.sprite, 0x5FB8D8, 0xA4E9FF );
 			//mutually exclusive with its fork partner
 			for (Skill s : hero.heroSkills.toggleGroup()){
 				if (s instanceof EmberArrows) s.active = false;
@@ -70,7 +72,7 @@ public class FrostArrows extends ActiveSkill {
 		} else if (action.equals(Skill.AC_DEACTIVATE)){
 			//the rime thaws off the tips
 			SpatialSound.play( Assets.Sounds.DEGRADE, hero, 0.6f, 1.1f );
-			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 2 );
+			if (hero.sprite != null) hero.sprite.emitter().burst( SkillBursts.FROST_GLINT, 2 );
 			StanceAuraBuff.sync( hero, RogueHuntressAuras.Frost.class, false );
 		}
 	}
@@ -106,11 +108,12 @@ public class FrostArrows extends ActiveSkill {
 			Buff.affect( enemy, Chill.class, 2 + level );
 		}
 		if (Dungeon.level.heroFOV[enemy.pos] && enemy.sprite != null){
-			//hoarfrost creeping up the body: feet, then chest, then a crown of flakes over the head
-			enemy.sprite.bottomEmitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 3 );
-			enemy.sprite.centerEmitter().startDelayed( Speck.factory( Speck.BLUE_LIGHT ), 0, 3, 0.12f );
+			//hoarfrost creeping up the body: feet, then chest, then a crown of flakes over the head (frost's
+			//glints, never the mana-gain sparkle)
+			enemy.sprite.bottomEmitter().burst( SkillBursts.FROST_GLINT, 3 );
+			enemy.sprite.centerEmitter().startDelayed( SkillBursts.FROST_GLINT, 0, 3, 0.12f );
 			enemy.sprite.emitter().startDelayed( SnowParticle.FACTORY, 0, froze ? 8 : 4, 0.24f );
-			enemy.sprite.showStatus( froze ? CharSprite.NEGATIVE : CharSprite.WARNING, froze ? "Frozen" : "Chilled" );
+			chipOn( enemy );
 			SpatialSound.play( froze ? Assets.Sounds.SHATTER : Assets.Sounds.DEGRADE, enemy, 0.7f, froze ? 1.2f : 1.5f );
 			if (froze) enemy.sprite.flash();
 		}

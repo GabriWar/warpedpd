@@ -26,7 +26,6 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bless;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -60,7 +59,7 @@ public class AsceticVow extends Skill {
 		if (hero.sprite != null){
 			hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), Math.min( 6, back ) );
 			if (lvl >= MAX_LEVEL) hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 4 );
-			hero.sprite.showStatus( CharSprite.NEUTRAL, "+" + back + " MP" );
+			hero.sprite.showStatusWithIcon( xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.BlowPresenter.MANA_COLOR, Integer.toString( back ), xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.MANA );
 		}
 	}
 }

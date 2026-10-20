@@ -33,8 +33,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MeteorFall;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
@@ -150,17 +152,13 @@ public class MeteorCall extends Skill {
 			castTextYell();
 			Invisibility.dispel();
 
-			//the mark: the ground starts to glow, the sky goes red over it, and a ring of embers
-			//spreads a beat later over the cells the stone will cover
+			//the mark: the ground starts to glow, heat gathering on it (MeteorFall's), and a ring of
+			//embers spreads a beat later over the cells the stone will cover (never a red alarm)
 			hero.sprite.zap( cell );
-			new Flare( 5, 14 ).color( 0xFF6622, true ).show( hero.sprite, 0.6f );
-			if (hero.sprite.parent != null){
-				new Flare( 6, 16 ).color( 0xFF6622, true ).show( hero.sprite.parent,
-						xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap.tileCenterToWorld( cell ), 0.7f );
-			}
-			CellEmitter.center( cell ).burst( Speck.factory( Speck.RED_LIGHT ), 6 );
+			marked( hero.sprite, cell );
+			CellEmitter.center( cell ).burst( SkillBursts.EMBER_MOTE, 6 );
 			xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX.ring( cell, 1, 0.15f,
-					( c, r ) -> CellEmitter.get( c ).burst( Speck.factory( Speck.RED_LIGHT ), 2 ) );
+					( c, r ) -> CellEmitter.get( c ).burst( SkillBursts.EMBER_MOTE, 2 ) );
 			SpatialSound.play( Assets.Sounds.CHARGEUP, cell, 1f, 0.7f );
 			Buff.append( hero, MeteorFall.class ).set( cell, level );
 
@@ -172,6 +170,13 @@ public class MeteorCall extends Skill {
 		public String prompt(){
 			return Messages.get(MeteorCall.class, "prompt");
 		}
+	}
+
+	/** The call: a flare of the meteor's heat at the caster's hands and one on the marked cell.
+	 *  Any thread. */
+	public static void marked( CharSprite caster, int cell ){
+		PixelFlare.show( SkillVfx.midX( caster ), SkillVfx.midY( caster ), MeteorFall.HEAT, PixelFlare.S, 0.5f );
+		if (SkillVfx.valid( cell )) PixelFlare.show( SkillVfx.cx( cell ), SkillVfx.cy( cell ), MeteorFall.HEAT, PixelFlare.M, 0.6f );
 	}
 
 	@Override

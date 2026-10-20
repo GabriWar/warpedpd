@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.WeaponPerk;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MissileSprite;
@@ -156,16 +157,17 @@ public class JupitersWraith extends MissileWeapon {
 		return circlingBack ? 0f : super.pickupDelay();
 	}
 
+	//it comes back to whoever threw it, and strikes on the way back for them
 	@Override
 	protected void rangedHit(Char enemy, int cell) {
 		// Don't decrement durability — infinite uses
-		Buff.append(Dungeon.hero, CircleBack.class).setup(this, cell, Dungeon.hero.pos, Dungeon.depth, Dungeon.branch);
+		Buff.append(curUser, CircleBack.class).setup(this, cell, curUser.pos, Dungeon.depth, Dungeon.branch);
 	}
 
 	@Override
 	protected void rangedMiss(int cell) {
 		parent = null;
-		Buff.append(Dungeon.hero, CircleBack.class).setup(this, cell, Dungeon.hero.pos, Dungeon.depth, Dungeon.branch);
+		Buff.append(curUser, CircleBack.class).setup(this, cell, curUser.pos, Dungeon.depth, Dungeon.branch);
 	}
 
 	// ── Charge buff ──────────────────────────────────────────────────
@@ -244,7 +246,8 @@ public class JupitersWraith extends MissileWeapon {
 			this.returnPos = returnPos;
 			this.returnDepth = returnDepth;
 			this.returnBranch = returnBranch;
-			left = 5;
+			//alpha Arc: it comes back after 2 turns instead of 5
+			left = WeaponPerk.returnTurns( wraith );
 		}
 
 		@Override
@@ -260,8 +263,11 @@ public class JupitersWraith extends MissileWeapon {
 						public void call() {
 							detach();
 							wraith.circlingBack = true;
+							HeavyBoomerang.returnStrikes(wraith, target, thrownPos, returnPos);
 							if (returnTarget == target) {
-								if (!(target instanceof Hero) || !wraith.doPickUp((Hero) target)) {
+								boolean caught = target instanceof Hero && wraith.doPickUp((Hero) target);
+								if (caught) xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.PieceFx.caught( target );
+								if (!caught) {
 									Dungeon.level.drop(wraith, returnPos).sprite.drop();
 								}
 							} else if (returnTarget != null) {
@@ -277,6 +283,7 @@ public class JupitersWraith extends MissileWeapon {
 						}
 					});
 					visual.alpha(0f);
+					xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.PieceFx.telegraph( thrownPos, returnPos, target, wraith );
 					float duration = Dungeon.level.trueDistance(thrownPos, returnPos) / 20f;
 					target.sprite.parent.add(new AlphaTweener(visual, 1f, duration));
 					return false;

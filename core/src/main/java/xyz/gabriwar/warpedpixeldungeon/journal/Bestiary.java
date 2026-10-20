@@ -573,6 +573,9 @@ public enum Bestiary {
 			//the homesteads' furniture: a compost bin, a tie post (homestead/farming, homestead/animals)
 			xyz.gabriwar.warpedpixeldungeon.homestead.farming.CompostBin.class,
 			xyz.gabriwar.warpedpixeldungeon.homestead.animals.TiePost.class,
+			//the enchantment exhibits' armed statues (effects/fx/enchant/ItemExhibits)
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.ItemExhibits.Shown.class,
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.ItemExhibits.ShownArmored.class,
 			//the homesteads' defences
 			xyz.gabriwar.warpedpixeldungeon.homestead.threats.Watchtower.class,
 			xyz.gabriwar.warpedpixeldungeon.homestead.threats.AlarmBell.class,

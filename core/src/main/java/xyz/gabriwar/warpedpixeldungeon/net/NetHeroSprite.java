@@ -28,6 +28,7 @@ import com.watabou.noosa.MovieClip;
 import com.watabou.noosa.TextureFilm;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.ColdBreath;
 import xyz.gabriwar.warpedpixeldungeon.net.NetManager;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.HeroSprite;
@@ -47,8 +48,17 @@ public class NetHeroSprite extends CharSprite {
 	private static final int FRAME_HEIGHT = 15;
 	private static final int RUN_FRAMERATE = 20;
 
+	//its breath in the cold air, as the hero's own sprite shows it (effects/fx/combat/ColdBreath)
+	private final ColdBreath breath = new ColdBreath(this);
+
 	public NetHeroSprite() {
 		super();
+	}
+
+	@Override
+	public void update() {
+		super.update();
+		breath.update(looks != null && (looks.has(State.CHILLED) || looks.has(State.HYPOTHERMIA)));
 	}
 
 	@Override

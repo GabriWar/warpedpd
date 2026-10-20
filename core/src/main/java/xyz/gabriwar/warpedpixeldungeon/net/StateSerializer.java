@@ -856,6 +856,10 @@ public class StateSerializer {
 		obj.put("cursed", item.cursed);
 		obj.put("cursedK", item.cursedKnown);
 		obj.put("id", item.isIdentified());
+		// What it shows of its magic (effects/fx/enchant/ItemLooks), for a guest's slots and a
+		// remote hero's look; optional, an older guest ignores it
+		int[] sig = xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.ItemLooks.sig(item);
+		if (sig != null) obj.put("sig", ints(sig));
 		// Description for client item examine — base Messages.get(this, "desc") doesn't
 		// resolve on the deserialized anon Item subclass, so ship it from the host.
 		try {
@@ -918,7 +922,16 @@ public class StateSerializer {
 	private static String netHeroSig(xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero h) {
 		return h.pos + "|" + h.HP + "|" + h.HT + "|" + h.queuedSteps
 				+ "|" + h.turnsTaken + "|" + (h.atExit ? "X" : "_")
-				+ "|" + buffHash(h);
+				+ "|" + buffHash(h)
+				+ "|" + wornLooks(h);
+	}
+
+	// what the hero's weapon and armour show of their magic (effects/fx/enchant/ItemLooks): an
+	// enchanting or a curse found sends his inventory again even when nothing else changed
+	private static int wornLooks(xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero h) {
+		if (h.belongings == null) return 0;
+		return java.util.Arrays.hashCode(xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.ItemLooks.sig(h.belongings.weapon())) * 31
+				+ java.util.Arrays.hashCode(xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.ItemLooks.sig(h.belongings.armor()));
 	}
 
 	private static JSONArray serializeNetHeroesIfChanged() throws JSONException {
@@ -1017,6 +1030,8 @@ public class StateSerializer {
 				slot.put("img", item.image());
 				slot.put("name", item.name());
 				slot.put("qty", item.quantity());
+				int[] sig = xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.ItemLooks.sig(item);
+				if (sig != null) slot.put("sig", ints(sig));
 				arr.put(slot);
 			}
 		}
@@ -1030,8 +1045,22 @@ public class StateSerializer {
 			hash = hash * 31 + heap.type.ordinal();
 			hash = hash * 31 + (heap.peek() != null ? heap.peek().image : -1);
 			hash = hash * 31 + (heap.items != null ? heap.items.size() : 0);
+			// a heap enchanted (or its curse found) in place sends its looks again
+			hash = hash * 31 + java.util.Arrays.hashCode(heapLooks(heap));
 		}
 		return hash;
+	}
+
+	// what a heap's top item shows of its magic (its "g"): only a heap that shows its item
+	private static int[] heapLooks(Heap heap) {
+		if (heap.type != Heap.Type.HEAP && heap.type != Heap.Type.FOR_SALE) return null;
+		return xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.ItemLooks.sig(heap.peek());
+	}
+
+	private static JSONArray ints(int[] a) {
+		JSONArray out = new JSONArray();
+		for (int v : a) out.put(v);
+		return out;
 	}
 
 	// --- Heap Serialization ---
@@ -1044,6 +1073,9 @@ public class StateSerializer {
 			heapObj.put("type", heap.type.ordinal());
 			if (heap.peek() != null) {
 				heapObj.put("sprite", heap.peek().image);
+				// its looks (effects/fx/enchant/ItemLooks): optional, an older guest ignores it
+				int[] g = heapLooks(heap);
+				if (g != null) heapObj.put("g", ints(g));
 			}
 			heapsArr.put(heapObj);
 		}

@@ -306,6 +306,8 @@ final class MobRegistry {
         xyz.gabriwar.warpedpixeldungeon.actors.mobs.quest.vault.VaultRat.class,
         xyz.gabriwar.warpedpixeldungeon.actors.mobs.quest.vault.VaultShaman.class,
         xyz.gabriwar.warpedpixeldungeon.actors.mobs.quest.vault.VaultSkeleton.class,
+        xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.ItemExhibits.Shown.class,
+        xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.ItemExhibits.ShownArmored.class,
         xyz.gabriwar.warpedpixeldungeon.homestead.animals.TiePost.class,
         xyz.gabriwar.warpedpixeldungeon.homestead.farming.CompostBin.class,
         xyz.gabriwar.warpedpixeldungeon.homestead.rooms.HomeBed.class,

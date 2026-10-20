@@ -26,7 +26,11 @@ package xyz.gabriwar.warpedpixeldungeon.items.armor.glyphs;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
@@ -54,7 +58,9 @@ public class Bounce extends Armor.Glyph {
 					Math.round(1 * power()), //scales with glyph level
 					true,
 					true,
-					this);
+					this,
+					EnchantLooks.of( getClass() ).glow);
+			EnchantFx.ward( EnchantLooks.of( getClass() ), defender, attacker, Math.min( 1f, Math.round(1 * power()) / 3f ), level(), Quality.isVestige( armor, this ) ? EnchantFx.ECHO : 0, ElementRows.bounce() );
 		}
 
 		return damage;

@@ -25,7 +25,11 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Regeneration;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
@@ -59,38 +63,54 @@ public class Blooming extends Weapon.Enchantment {
 				plants = (float)Math.floor(plants);
 			}
 			
-			if (plantGrass(defender.pos)){
-				plants--;
-				if (plants <= 0){
-					return damage;
-				}
-			}
-			
-			ArrayList<Integer> positions = new ArrayList<>();
-			for (int i : PathFinder.NEIGHBOURS8){
-				if (defender.pos + i != attacker.pos) {
-					positions.add(defender.pos + i);
-				}
-			}
-			Random.shuffle( positions );
-
-			//The attacker's position is always lowest priority
-			if (Dungeon.level.adjacent(attacker.pos, defender.pos)){
-				positions.add(attacker.pos);
-			}
-
-			for (int i : positions){
-				if (plantGrass(i)){
-					plants--;
-					if (plants <= 0) {
-						return damage;
-					}
-				}
+			ArrayList<Integer> grown = new ArrayList<>();
+			grow( attacker, defender, plants, grown );
+			//its look on every cell it grew
+			if (!grown.isEmpty()){
+				int[] cells = new int[grown.size()];
+				for (int i = 0; i < cells.length; i++) cells[i] = grown.get( i );
+				EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, ElementRows.bloomStrength( cells.length, level(), powerMulti ),
+						level(), Quality.isVestige( weapon, this ) ? EnchantFx.ECHO : 0, ElementRows.blooming( cells, defender.pos ) );
 			}
 			
 		}
 		
 		return damage;
+	}
+
+	//grass grown on up to `plants` cells round the defender, its own first, the attacker's last;
+	//each one grown noted in `grown`
+	private void grow( Char attacker, Char defender, float plants, ArrayList<Integer> grown ){
+		if (plantGrass(defender.pos)){
+			grown.add(defender.pos);
+			plants--;
+			if (plants <= 0){
+				return;
+			}
+		}
+		
+		ArrayList<Integer> positions = new ArrayList<>();
+		for (int i : PathFinder.NEIGHBOURS8){
+			if (defender.pos + i != attacker.pos) {
+				positions.add(defender.pos + i);
+			}
+		}
+		Random.shuffle( positions );
+
+		//The attacker's position is always lowest priority
+		if (Dungeon.level.adjacent(attacker.pos, defender.pos)){
+			positions.add(attacker.pos);
+		}
+
+		for (int i : positions){
+			if (plantGrass(i)){
+				grown.add(i);
+				plants--;
+				if (plants <= 0) {
+					return;
+				}
+			}
+		}
 	}
 	
 	private boolean plantGrass(int cell){

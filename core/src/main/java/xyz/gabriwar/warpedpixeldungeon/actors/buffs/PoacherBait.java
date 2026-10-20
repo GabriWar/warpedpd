@@ -36,10 +36,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.ClosingRing;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
 
 /** Poacher's carcass, held by the hero: a tile on one floor whose scent lures enemies for a few turns. */
 public class PoacherBait extends Buff {
@@ -80,7 +80,7 @@ public class PoacherBait extends Buff {
 
 		SkillInteractions.lure( cell, rank );
 		if (Dungeon.level.heroFOV[cell]){
-			CellEmitter.get( cell ).burst( Speck.factory( Speck.STENCH ), 2 );
+			CellEmitter.get( cell ).burst( SkillBursts.SCENT, 2 );
 		}
 
 		if (--left <= 0){
@@ -94,14 +94,22 @@ public class PoacherBait extends Buff {
 	private void snare( Char prey ){
 		Buff.prolong( prey, Roots.class, SNARE_TURNS );
 		SkillFX.flash( prey );
+		//the snare in the carcass jerks tight: leaves and grit kicked up, a noose of nature light
+		//closing on the prey's feet, the rope's creak (never a hidden trap going off, nor rockfall)
 		if (Dungeon.level.heroFOV[cell]){
 			CellEmitter.get( cell ).burst( LeafParticle.GENERAL, 10 );
-			CellEmitter.get( cell ).burst( Speck.factory( Speck.ROCK ), 4 );
+			CellEmitter.get( cell ).burst( SkillBursts.GRIT, 4 );
 			if (prey.sprite != null){
-				prey.sprite.showStatus( CharSprite.NEGATIVE, Messages.get( Poacher.class, "snared" ) );
+				xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.chipOn( Poacher.class, prey );
+				noose( prey.sprite );
 			}
 		}
-		SpatialSound.play( Assets.Sounds.TRAP, cell, 1f, 1.2f );
+		SpatialSound.play( Assets.Sounds.ROPE, cell, 1f, 1.2f );
+	}
+
+	/** The snare's noose: a ring of nature light closing tight on the prey's feet. Any thread. */
+	public static void noose( CharSprite prey ){
+		ClosingRing.on( prey, 23, 5, 0.25f, xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette.NATURE_LIGHT );
 	}
 
 	private static final String CELL = "cell";

@@ -1341,6 +1341,8 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 			item.quantity(data.optInt("qty", 1));
 			item.cursed = data.optBoolean("cursed", false);
 			item.cursedKnown = data.optBoolean("cursedK", false);
+			// what the host's item shows of its magic (an older host sends none)
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.ItemLooks.sign(item, data.optJSONArray("sig"));
 			return item;
 		} catch (Exception e) {
 			return null;
@@ -1365,6 +1367,7 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 					@Override public String name() { return itemName; }
 				};
 				item.quantity(qty);
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.ItemLooks.sign(item, slot.optJSONArray("sig"));
 				Dungeon.quickslot.setSlot(slotIdx, item);
 			}
 			xyz.gabriwar.warpedpixeldungeon.ui.QuickSlotButton.refresh();
@@ -1436,6 +1439,8 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 					? heapTypes[heapTypeOrd] : Heap.Type.HEAP;
 				Item placeholder = new Item();
 				placeholder.image = heapData.optInt("sprite", 0);
+				// what the host's item shows of its magic (an older host sends none)
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.ItemLooks.sign(placeholder, heapData.optJSONArray("g"));
 				heap.drop(placeholder);
 				heap.seen = true;
 				level.heaps.put(heap.pos, heap);
@@ -1588,6 +1593,7 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 						case "STEAM":          ambient = WeatherOverlay.AmbientType.STEAM; break;
 						case "CORONA":         ambient = WeatherOverlay.AmbientType.CORONA; break;
 						case "DRIP":           ambient = WeatherOverlay.AmbientType.DRIP; break;
+						case "MOTES":          ambient = WeatherOverlay.AmbientType.MOTES; break;
 						default:               ambient = WeatherOverlay.AmbientType.NONE; break;
 					}
 					overlay.setAmbient(ambient);

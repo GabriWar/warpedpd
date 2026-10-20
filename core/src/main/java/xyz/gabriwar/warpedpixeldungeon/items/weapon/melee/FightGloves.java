@@ -28,7 +28,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
 import com.watabou.utils.Callback;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -121,7 +121,7 @@ public class FightGloves extends MeleeWeapon {
 					if (hero.attack(enemy, share, 0, Char.INFINITE_ACCURACY)){
 						landed++;
 						SpatialSound.play(Assets.Sounds.HIT_CRUSH, enemy, 1f, 1.1f + 0.2f * i);
-						if (enemy.sprite != null) enemy.sprite.emitter().burst(Speck.factory(Speck.STAR), 2);
+						if (enemy.sprite != null) enemy.sprite.emitter().burst(SkillBursts.METAL_SPARK, 2);
 					}
 				}
 				if (landed == 3 && enemy.isAlive()){

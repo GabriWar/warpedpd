@@ -38,8 +38,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import com.watabou.utils.Random;
 
 public class BrutalGrip extends Skill {
@@ -82,7 +80,7 @@ public class BrutalGrip extends Skill {
 		Buff.prolong( enemy, Cripple.class, 2 + level );
 		Wound.hit( enemy );
 		if (enemy.sprite != null){
-			enemy.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "crush" ) );
+			chipOn( enemy );
 		}
 		Fx.shake( 1, 0.2f );
 		SpatialSound.play( Assets.Sounds.HIT_CRUSH, enemy, 1f, 0.8f );

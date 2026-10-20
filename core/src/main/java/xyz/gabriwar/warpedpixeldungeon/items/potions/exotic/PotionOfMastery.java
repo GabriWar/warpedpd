@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.potions.exotic;
 
+import xyz.gabriwar.warpedpixeldungeon.items.EmptyBottle;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
@@ -121,6 +122,7 @@ public class PotionOfMastery extends ExoticPotion {
 					curItem.detach(curUser.belongings.backpack);
 				}
 				identifiedByUse = false;
+				EmptyBottle.giveBack(curUser);
 
 				if (!anonymous) {
 					Catalog.countUse(PotionOfMastery.class);

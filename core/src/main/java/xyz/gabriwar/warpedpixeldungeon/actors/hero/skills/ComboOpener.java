@@ -36,12 +36,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Daze;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 import java.util.ArrayList;
 
@@ -75,11 +74,11 @@ public class ComboOpener extends SubSkill1 {
 			return damage;
 		Buff.prolong( enemy, Daze.class, 1 + level );
 		if (enemy.sprite != null){
-			enemy.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "stagger" ) );
-			new Flare( 8, 20 ).color( 0xFFB060, true ).show( enemy.sprite, 0.5f );
+			chipOn( enemy );
+			PixelFlare.show( SkillVfx.midX( enemy.sprite ), SkillVfx.midY( enemy.sprite ), 0xD9AE75, PixelFlare.M, 0.5f );
 		}
 		SkillFX.land( enemy.pos );
-		SpatialSound.play( Assets.Sounds.BLAST, enemy, 0.8f, 1.2f );
+		SpatialSound.play( Assets.Sounds.HIT_CRUSH, enemy, 0.8f, 1.2f );
 
 		if (Dungeon.level.adjacent( hero.pos, enemy.pos )){
 			shove( hero, enemy, level >= 2 ? 2 : 1 );

@@ -27,8 +27,13 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.ClosingRing;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StreakFX;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
@@ -47,6 +52,10 @@ public class WildCall extends SubSkill3 {
 	}
 
 	public static final float HUNT_TURNS = 10f;
+	/** The spirit wolf's grey (ShoutFX.WOLF's), its lunge's length and its bite's: the jaws shut a
+	 *  beat after it lands. */
+	public static final int WOLF = 0x9EA4B0;
+	public static final float LUNGE = 0.2f, BITE_AT = 0.12f, BITE_FOR = 0.35f;
 
 	@Override
 	public boolean toggleable(){ return false; }
@@ -86,8 +95,11 @@ public class WildCall extends SubSkill3 {
 			castTextYell();
 			SpatialSound.play( Assets.Sounds.TRAMPLE, prey, 1f, 0.9f );
 			SpatialSound.playDelayed( Assets.Sounds.GRASS, 0.2f, prey, 1f, 1.1f );
-			hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
+			//her call (her own sparkle, never the level-up's stars), the brush parting round the prey
+			//and the hunt's grey ring closing on it
+			hero.sprite.emitter().burst( SkillBursts.FLOURISH, 4 );
 			xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.get( prey.pos ).burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle.GENERAL, 10 );
+			marked( prey.sprite );
 			hero.spend( TIME_TO_USE );
 			hero.busy();
 			hero.sprite.operate( hero.pos );
@@ -121,6 +133,32 @@ public class WildCall extends SubSkill3 {
 			xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.get( prey.pos ).burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle.GENERAL, 8 );
 			SpatialSound.play( Assets.Sounds.TRAMPLE, prey, 0.8f, 1.2f );
 		} );
+	}
+
+	/** The prey marked for the hunt: a ring of the wolf's grey closing on its feet. Any thread. */
+	public static void marked( CharSprite prey ){
+		ClosingRing.on( prey, 31, 9, 0.35f, WOLF );
+	}
+
+	/** The spirit wolf biting its prey at `prey`, the hero at `hero`: it lunges in from beyond the
+	 *  prey (two cells out where the level has them, else one: a grey streak with speed lines), and
+	 *  its jaws of light shut on it. Nothing of the game's Random. Any thread. */
+	public static void bite( int prey, int hero ){
+		if (!SkillVfx.valid( prey )) return;
+		int near = beyond( prey, hero ), far = SkillVfx.valid( near ) ? beyond( near, hero ) : -1;
+		if (!SkillVfx.valid( far ) || Dungeon.level.solid[far]) far = near;
+		if (SkillVfx.valid( far )) StreakFX.dash( far, prey, WOLF, 0.5f, LUNGE, true );
+		SkillSpectacleFX.fly( SkillSpectacleFX.JAW, prey, prey, BITE_AT, BITE_FOR, WOLF );
+	}
+
+	//the cell beside the prey on its far side from the hero (straight on from him through it)
+	static int beyond( int prey, int hero ){
+		int w = Dungeon.level.width();
+		int dx = Integer.signum( prey % w - hero % w ), dy = Integer.signum( prey / w - hero / w );
+		if (dx == 0 && dy == 0) dx = 1;
+		int x = prey % w + dx, y = prey / w + dy;
+		if (x < 0 || y < 0 || x >= w || y >= Dungeon.level.height()) return -1;
+		return x + y * w;
 	}
 
 	@Override
@@ -160,6 +198,7 @@ public class WildCall extends SubSkill3 {
 			xyz.gabriwar.warpedpixeldungeon.effects.Wound.hit( target );
 			if (target.sprite != null && Dungeon.level.heroFOV[target.pos]){
 				target.sprite.emitter().burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle.GENERAL, 4 );
+				if (Dungeon.hero != null) bite( target.pos, Dungeon.hero.pos );
 				SpatialSound.play( Assets.Sounds.HIT_SLASH, target, 0.7f, 0.8f );
 			}
 			left -= TICK;

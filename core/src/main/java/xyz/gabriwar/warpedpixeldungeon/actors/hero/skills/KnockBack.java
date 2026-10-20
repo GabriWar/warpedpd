@@ -36,6 +36,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.WarriorImpactFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAura;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
@@ -56,8 +58,8 @@ public class KnockBack extends ActiveSkill2 {
 		if (action.equals(Skill.AC_ACTIVATE)){
 			hero.heroSkills.deactivateOtherToggles( this );
 			SpatialSound.play( Assets.Sounds.STURDY, hero, 0.8f, 1.3f );
-			//the arm sets: a shower of forge sparks, then a slow trickle of them while the stance holds
-			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.FORGE ), 6 );
+			//the arm sets: a shower of steel sparks, then a slow trickle of them while the stance holds
+			if (hero.sprite != null) hero.sprite.emitter().burst( SkillBursts.METAL_SPARK, 6 );
 		} else if (action.equals(Skill.AC_DEACTIVATE)){
 			SpatialSound.play( Assets.Sounds.STURDY, hero, 0.5f, 0.8f );
 		}
@@ -108,7 +110,8 @@ public class KnockBack extends ActiveSkill2 {
 		}
 		//+3: nowhere to fly, so the target is crushed against what stands behind it
 		if (enemy.sprite != null && enemy.sprite.visible){
-			CellEmitter.get( enemy.pos ).burst( Speck.factory( Speck.ROCK ), 4 );
+			CellEmitter.get( enemy.pos ).burst( SkillBursts.STONE_CHIP, 4 );
+			WarriorImpactFX.show( enemy.pos );
 			Fx.shake( 2, 0.2f );
 		}
 		SpatialSound.play( Assets.Sounds.HIT_CRUSH, enemy, 1f, 0.8f );

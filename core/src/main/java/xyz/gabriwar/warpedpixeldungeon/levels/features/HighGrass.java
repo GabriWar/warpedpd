@@ -35,11 +35,13 @@ import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Dewdrop;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
+import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.food.Nut;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.glyphs.Camouflage;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.SandalsOfNature;
 import xyz.gabriwar.warpedpixeldungeon.items.food.Berry;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.PetrifiedSeed;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.MiningLevel;
@@ -54,6 +56,17 @@ public class HighGrass {
 	//prevents items dropped from grass, from trampling that same grass.
 	//yes this is a bit ugly, oh well.
 	private static boolean freezeTrample = false;
+
+	//the hero cutting this grass with a sickle or a war scythe (Gathering.reap), for the
+	//length of that one trample: a Reaper's scythe may double the seed it gives up.
+	//Walking through grass is not a harvest and leaves it null
+	public static Hero reaper = null;
+
+	//what the grass gives up, in a heap on its cell; a heap no scene draws (a test's) has no sprite
+	private static void drop( Level level, Item item, int pos ){
+		Heap heap = level.drop( item, pos );
+		if (heap.sprite != null) heap.sprite.drop();
+	}
 
 	public static void trample( Level level, int pos ) {
 		
@@ -113,7 +126,7 @@ public class HighGrass {
 
 						if (droppingBerry && Random.Int(4) == 0) {
 							dropped.countUp(1);
-							level.drop(new Berry(), pos).sprite.drop();
+							drop(level, new Berry(), pos);
 						}
 					}
 
@@ -141,7 +154,7 @@ public class HighGrass {
 
 				if (Random.Float() < lootChance) {
 					if (Random.Float() < PetrifiedSeed.stoneInsteadOfSeedChance()) {
-						level.drop(Generator.randomUsingDefaults(Generator.Category.STONE), pos).sprite.drop();
+						drop(level, Generator.randomUsingDefaults(Generator.Category.STONE), pos);
 					} else if (Random.Float() < 0.22f) {
 						//Sprouted kept the Nut inside the seed pool at weight 48 of ~214, making
 						//it the most common thing grass ever dropped. It can't go back in that
@@ -149,13 +162,15 @@ public class HighGrass {
 						//hard-cast the result, so a Nut (a Food) would throw - so take its share
 						//of the same roll instead.
 						if (Random.Int(4) == 0) {
-							level.drop(new Nut(), pos).sprite.drop();
+							drop(level, new Nut(), pos);
 						}
 					} else {
 						Item seed = Generator.random(Generator.Category.SEED);
 						//elixir of bloom doubles the seeds trampled grass gives up
 						if (ch != null && ch.buff(BloomBuff.class) != null) seed.quantity(seed.quantity() * 2);
-						level.drop(seed, pos).sprite.drop();
+						//and a Reaper's scythe may cut a second one loose
+						if (reaper != null && Quality.secondSeed(reaper, pos)) seed.quantity(seed.quantity() * 2);
+						drop(level, seed, pos);
 					}
 				}
 				
@@ -163,7 +178,7 @@ public class HighGrass {
 				if (Random.Int(40) - Dungeon.LimitedDrops.BERRIES.count >= 0
 						&& Random.Int(160) == 0) {
 					Dungeon.LimitedDrops.BERRIES.count++;
-					level.drop(new Berry(), pos).sprite.drop();
+					drop(level, new Berry(), pos);
 				}
 
 				// Dew, scales from 1/6 to 1/4
@@ -175,7 +190,7 @@ public class HighGrass {
 				}
 
 				if (Random.Float() < lootChance) {
-					level.drop(new Dewdrop(), pos).sprite.drop();
+					drop(level, new Dewdrop(), pos);
 				}
 			}
 

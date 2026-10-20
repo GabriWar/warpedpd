@@ -25,6 +25,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Belongings;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Enchanting;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.GainFx;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
@@ -188,7 +189,7 @@ public class ScrollOfEnchantment extends ExoticScroll {
 				((ScrollOfEnchantment)curItem).readAnimation();
 
 				SpatialSound.play( Assets.Sounds.READ, curUser );
-				Enchanting.show(curUser, wep);
+				Enchanting.show(curUser, wep, GainFx.of(enchantments[index]));
 			} else {
 				GameScene.show(new WndConfirmCancel());
 			}
@@ -250,7 +251,7 @@ public class ScrollOfEnchantment extends ExoticScroll {
 				((ScrollOfEnchantment) curItem).readAnimation();
 
 				SpatialSound.play(Assets.Sounds.READ, curUser);
-				Enchanting.show(curUser, arm);
+				Enchanting.show(curUser, arm, GainFx.of(glyphs[index]));
 			} else {
 				GameScene.show(new WndConfirmCancel());
 			}

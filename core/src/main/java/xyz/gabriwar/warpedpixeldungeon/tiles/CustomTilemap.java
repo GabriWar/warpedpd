@@ -138,7 +138,16 @@ public abstract class CustomTilemap implements Bundlable {
 			vis.destroy();
 		}
 		visCols = visLen = -1;
-		vis = new Tilemap(texture, new TextureFilm( texture, SIZE, SIZE )){
+		vis = tilemap();
+		vis.x = tileX*SIZE;
+		vis.y = tileY*SIZE;
+		return vis;
+	}
+
+	/** The tilemap this layer is drawn by: a layer that draws more than its grid of tiles makes its
+	 *  own (OverworldDress.Layer, whose trees sway in the wind). */
+	protected Tilemap tilemap(){
+		return new Tilemap(texture, new TextureFilm( texture, SIZE, SIZE )){
 			@Override
 			protected NoosaScript script() {
 				//allow lighting for custom tilemaps
@@ -163,9 +172,6 @@ public abstract class CustomTilemap implements Bundlable {
 				}
 			}
 		};
-		vis.x = tileX*SIZE;
-		vis.y = tileY*SIZE;
-		return vis;
 	}
 
 	protected boolean updateCell(int cell, int[] data){

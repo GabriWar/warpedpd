@@ -22,6 +22,7 @@
 package xyz.gabriwar.warpedpixeldungeon.effects.particles;
 
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
@@ -30,7 +31,6 @@ import com.watabou.noosa.Game;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.utils.Random;
 
-import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
 import xyz.gabriwar.warpedpixeldungeon.effects.WeatherSprites;
 
 /**
@@ -89,7 +89,8 @@ public class AshParticle extends WeatherParticle {
 			color(Random.Float() < 0.5f ? 0x666068 : 0x4E4A50);
 		}
 
-		windBias = ClimateManager.localWindSpeed() * 0.7f;
+		//drifting the way the wind blows (under a roof the draught east it always had: Fx.driftX)
+		windBias = Fx.driftX() * 0.7f;
 		speed.set(Random.Float(-4, 4) + windBias, Random.Float(4, 10));
 		acc.set(0, Random.Float(1f, 3f));
 		wobblePhase = Random.Float((float)(Math.PI * 2));

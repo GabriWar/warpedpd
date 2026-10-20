@@ -29,7 +29,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
@@ -39,6 +43,8 @@ import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
+
+import java.util.ArrayList;
 
 //ported from SPS-PD's earth enchantment: plants a parasitic seed on the
 //target which saps its health, healing adjacent enemies of the target
@@ -64,6 +70,8 @@ public class Parasitic extends Weapon.Enchantment {
 
 			Buff.affect( defender, ParasiticSeed.class ).set( ParasiticSeed.DURATION, seedDmg );
 			defender.sprite.emitter().burst( LeafParticle.GENERAL, 5 );
+			EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, Math.min( 1f, seedDmg * 5f / Math.max( 1, defender.HT ) ), level(),
+					Quality.isVestige( weapon, this ) ? EnchantFx.ECHO : 0, ElementRows.parasitic() );
 
 		}
 
@@ -87,6 +95,13 @@ public class Parasitic extends Weapon.Enchantment {
 		private float left;
 		private int dmg;
 
+		//the seed beating on the host's chest while it lasts
+		@Override
+		public void fx( boolean on ) {
+			if (on) target.sprite.add( CharSprite.State.SEEDED );
+			else target.sprite.remove( CharSprite.State.SEEDED );
+		}
+
 		public void set( float duration, int dmg ) {
 			left = Math.max( left, duration );
 			this.dmg = Math.max( this.dmg, dmg );
@@ -99,6 +114,7 @@ public class Parasitic extends Weapon.Enchantment {
 				target.damage( dmg, this );
 
 				//the seed feeds the target's enemies around it
+				ArrayList<Char> fed = new ArrayList<>();
 				for (int i : PathFinder.NEIGHBOURS8) {
 					Char ch = Actor.findChar( target.pos + i );
 					if (ch != null && ch.isAlive()
@@ -107,8 +123,10 @@ public class Parasitic extends Weapon.Enchantment {
 						int heal = Math.min( dmg, ch.HT - ch.HP );
 						ch.HP += heal;
 						ch.sprite.showStatusWithIcon( CharSprite.POSITIVE, Integer.toString( heal ), FloatingText.HEALING );
+						fed.add( ch );
 					}
 				}
+				ElementRows.seedTick( target, fed );
 
 				spend( TICK );
 				left -= TICK;

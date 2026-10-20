@@ -29,7 +29,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.PlateArmor;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.ScaleArmor;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ShieldedSprite;
 import com.watabou.utils.Random;
@@ -61,7 +60,7 @@ public class ArmoredBrute extends Brute {
 		Buff.affect(this, ArmoredRage.class).setShield(HT/2 + 1);
 		sprite.showStatusWithIcon( CharSprite.POSITIVE, Integer.toString(HT/2), FloatingText.SHIELDING );
 		if (Dungeon.level.heroFOV[pos]) {
-			sprite.showStatus( CharSprite.WARNING, Messages.get(this, "enraged") );
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.icon( this, xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.RAGE, 0 );
 		}
 		spend( TICK );
 		hasRaged = true;

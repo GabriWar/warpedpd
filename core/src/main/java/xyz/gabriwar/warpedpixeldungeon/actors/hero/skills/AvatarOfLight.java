@@ -31,9 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PillarRiseFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PulseRingFX;
 
 
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle;
-import xyz.gabriwar.warpedpixeldungeon.effects.ShieldHalo;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -75,18 +73,17 @@ public class AvatarOfLight extends Skill {
 			Buff.prolong( hero, Bless.class, duration );
 			Buff.affect( hero, AvatarOfLightHalo.class ).set( level, duration );
 			if (hero.sprite != null){
-				hero.sprite.emitter().start( Speck.factory( Speck.LIGHT ), 0.3f, 12 );
-				hero.sprite.emitter().burst( ShaftParticle.FACTORY, 8 );
-				new Flare( 12, 44 ).color( 0xFFEE88, true ).show( hero.sprite, 1.2f ).angularSpeed = 60;
-				ShieldHalo halo = new ShieldHalo( hero.sprite );
-				hero.sprite.parent.add( halo );
-				halo.putOut();
+				//holy motes rising off the cleric for as long as the old stream of light ran (its start
+				//kept), never a shield's bubble or a great fan of rays: the column, the pulses and the
+				//halo (AvatarOfLightHalo) carry it
+				hero.sprite.emitter().start( SkillBursts.HOLY_MOTE, 0.3f, 12 );
+				hero.sprite.emitter().burst( SkillBursts.HOLY_MOTE, 8 );
 				Fx.shake( 2, 0.5f );
-				//the light comes down on the cleric, a golden halo beats out, shafts rise in two waves
-				PillarRiseFX.show( hero.pos, 0xFFEE88, () -> SpatialSound.play( Assets.Sounds.RAY, hero, 0.8f, 1.2f ) );
-				PulseRingFX.around( hero.sprite, 0xFFEE88, 18, 0.6f );
+				//the light rises out of the ground round the cleric, a golden halo beats out, motes rise in two waves
+				PillarRiseFX.show( hero.pos, 0xF1D99C, () -> SpatialSound.play( Assets.Sounds.RAY, hero, 0.8f, 1.2f ) );
+				PulseRingFX.around( hero.sprite, 0xF1D99C, 18, 0.6f );
 				FxTimeline.start()
-						.at( 0.25f, () -> { hero.sprite.emitter().burst( ShaftParticle.FACTORY, 5 ); PulseRingFX.around( hero.sprite, 0xFFF6C8, 12, 0.45f ); } )
+						.at( 0.25f, () -> { hero.sprite.emitter().burst( SkillBursts.HOLY_MOTE, 5 ); PulseRingFX.around( hero.sprite, 0xFFF4D0, 12, 0.45f ); } )
 						.at( 0.6f, () -> hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 ) );
 			}
 

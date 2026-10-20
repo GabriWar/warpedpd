@@ -36,9 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 /**
  * A moving target is hard to hit: a melee blow that comes while the hero is still on the
@@ -105,7 +103,7 @@ public class Parkour extends SubSkill2 {
 			if (safe( hero, away ) && Dungeon.level.adjacent( hero.pos, away )) land = away;
 		}
 		if (land < 0){
-			if (hero.sprite != null) hero.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( this, "roll" ) );
+			chipOn( hero );
 			return;
 		}
 
@@ -115,7 +113,7 @@ public class Parkour extends SubSkill2 {
 		GameScene.updateFog();
 		if (hero.sprite != null && hero.sprite.parent != null){
 			hero.sprite.jump( from, land, 8f, 0.2f, () -> hero.sprite.place( hero.pos ) );
-			hero.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( this, vault ? "vault" : "roll" ) );
+			chipOn( hero );
 		}
 		CellEmitter.bottom( from ).burst( Speck.factory( Speck.DUST ), 8 );
 		SpatialSound.play( Assets.Sounds.MISS, hero, 1f, 0.8f );

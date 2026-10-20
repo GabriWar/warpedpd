@@ -31,7 +31,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.DM100Sprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Callback;
@@ -118,7 +117,7 @@ public class DM100 extends Mob {
 					}
 				}
 			} else {
-				enemy.sprite.showStatus( CharSprite.NEUTRAL,  enemy.defenseVerb() );
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.missed( enemy );
 			}
 			
 			if (sprite != null && (sprite.visible || enemy.sprite.visible)) {

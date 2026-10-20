@@ -27,6 +27,9 @@ package xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 
 public class Luck extends Weapon.Enchantment {
 
@@ -41,7 +44,10 @@ public class Luck extends Weapon.Enchantment {
 			dmg = Math.max(dmg, attacker.damageRoll() - i);
 		}
 
-		return damage + Math.round((dmg - damage) * power()); //scales with enchantment level
+		int rolled = damage + Math.round((dmg - damage) * power()); //scales with enchantment level
+		float gain = damage > 0 ? (rolled - damage) / (float)damage : 0f;
+		if (gain >= 0.25f) EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, Math.min( 1f, gain ), level(), Quality.isVestige( weapon, this ) ? EnchantFx.ECHO : 0 );
+		return rolled;
 	}
 
 	@Override

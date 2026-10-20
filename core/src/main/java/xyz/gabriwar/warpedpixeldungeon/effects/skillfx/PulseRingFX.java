@@ -45,8 +45,10 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 /**
  * A prayer's pulse, a purge, a halo's beat: two rings of light spreading on the ground about a
- * point or a sprite (the painted 2:1 rings, the second 0.08 s behind and a size smaller), white
- * at first and turning the school's colour as they go; a white core for their first 0.08 s, a
+ * point or a sprite (the painted 2:1 rings, the second 0.08 s behind and a size smaller), a pale
+ * of the school's colour at first (never pure white: a pulse is no white sonar ping before its
+ * colour arrives; FIRST_PALE of the way to white) turning its colour as they go; a pale core
+ * (CORE_PALE of the way to white) for their first 0.08 s, a
  * pool of the colour under them, three to six motes lifting off the rim, and on the water inside
  * the reach a small ring where the pulse passes (at most WATER_RINGS). On the floor, under
  * everyone; its light in the light layer. 2 rings + at most 6 motes.
@@ -54,6 +56,8 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 public class PulseRingFX extends Gizmo {
 
 	public static final float STAGGER = 0.08f, CORE_FOR = 0.08f;
+	/** How far toward white the first ring starts and the core shows: never pure white. */
+	public static final float FIRST_PALE = 0.3f, CORE_PALE = 0.5f;
 	public static final int FROM_W = 9, WATER_RINGS = 8, MOTES_MIN = 3, MOTES_MAX = 6;
 
 	private final Visual follow;
@@ -79,7 +83,7 @@ public class PulseRingFX extends Gizmo {
 		toW = ringWidth( radius );
 		motes = moteCount( radius );
 		motesLeft = motes;
-		tone = new Ramp( 0xFFFFFF, color );
+		tone = new Ramp( Ramp.lerp( color, 0xFFFFFF, FIRST_PALE ), color );
 	}
 
 	/** The widest painted ring a pulse of this radius spreads to (the ground's 2:1 ellipse as wide
@@ -117,11 +121,11 @@ public class PulseRingFX extends Gizmo {
 		started = true;
 		floor.add( this );
 		if (!Fx.seen( x, y )) return;
-		first = FxRing.ground( floor, x, y, FROM_W, toW, duration, 0xFFFFFF, 0.85f, true );
+		first = FxRing.ground( floor, x, y, FROM_W, toW, duration, tone.stop( 0 ), 0.85f, true );
 		int secondW = FxFrames.RING_WIDTHS[Math.max( 0, FxFrames.ringIndex( toW ) - 1 )];
 		second = FxRing.ground( floor, x, y, FROM_W, secondW, duration, color, 0.6f, true );
 		if (second != null) second.delay( STAGGER );
-		FxLight.glow( x, y - 4, 11, 0xFFFFFF, 1f ).core().life( 0, CORE_FOR * 0.5f, CORE_FOR * 0.5f );
+		FxLight.glow( x, y - 4, 11, Ramp.lerp( color, 0xFFFFFF, CORE_PALE ), 1f ).core().life( 0, CORE_FOR * 0.5f, CORE_FOR * 0.5f );
 		FxLight.pool( x, y, 31, color, 0.57f ).life( 0.04f, duration * 0.3f, duration * 0.7f );
 		findWater();
 	}
@@ -191,7 +195,7 @@ public class PulseRingFX extends Gizmo {
 			}
 		}
 		float p = Math.min( 1f, time / duration );
-		//white at first, the school's colour by its middle
+		//pale at first, the school's colour by its middle
 		if (first != null) SkillVfx.lit( first, tone.at( Math.min( 1f, p * 2.2f ) ) );
 		//the rim's motes lift off as it passes them, between a sixth and a half of its life
 		float reachNow = toW / 2f * (1f - (1f - p) * (1f - p));

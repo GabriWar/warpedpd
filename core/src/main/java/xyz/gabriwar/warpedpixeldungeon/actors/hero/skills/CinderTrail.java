@@ -39,7 +39,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.ElementalOrbitFX;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SnowParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX;
@@ -48,6 +50,7 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 /** Class/tag retained so existing saves keep their purchased skill levels. */
 public class CinderTrail extends Skill {
@@ -95,12 +98,11 @@ public class CinderTrail extends Skill {
         Buff.affect(hero,ElementalOrbit.class).set(level);
         hero.MP-=getManaCost();hero.heroSkills.lastUsed=this;
         castTextYell();SpatialSound.play(Assets.Sounds.CHARGEUP, hero);
-        // The gathering: heat and frost pulled in from either side, a flare of each as they settle into orbit.
+        // The gathering: heat and frost pulled in from either side, a flare of each as they settle into orbit
+        // (embers and frost glints: never the mage catching fire or chilled).
         if(hero.sprite!=null){
-            hero.sprite.centerEmitter().burst(FlameParticle.FACTORY,3+level);
-            hero.sprite.centerEmitter().burst(SnowParticle.RISING_FACTORY,3+level);
-            new Flare(6,14).color(0xFFAA66,true).show(hero.sprite,0.5f);
-            StaggerFX.after(0.15f,()->{if(hero.sprite!=null)new Flare(6,14).color(0x88DDFF,true).show(hero.sprite,0.5f);});
+            gather(hero.sprite,3+level);
+            StaggerFX.after(0.15f,()->{if(hero.sprite!=null)PixelFlare.show(SkillVfx.midX(hero.sprite)+SIDE,SkillVfx.midY(hero.sprite),FROST,PixelFlare.S,0.4f);});
         }
         hero.spendAndNext(TIME_TO_USE);
     }
@@ -126,13 +128,24 @@ public class CinderTrail extends Skill {
             }
         });
     }
+    /** The orbit's two lights: the skill's ember and frost. */
+    public static final int EMBER=0xFFC070, FROST=0xA4E9FF;
+    /** How far either side of the caster each flare of the gathering shows, px. */
+    public static final float SIDE=6f;
+    /** The gathering on the caster: n embers and n frost glints off his middle and the ember's
+     *  flare at his one side (the frost's follows 0.15 s later at the other: heat and frost pulled
+     *  in from either side, never one flare washing him white). Any thread (two bursts, as before). */
+    public static void gather(CharSprite s,int n){
+        s.centerEmitter().burst(SkillBursts.EMBER_MOTE,n);
+        s.centerEmitter().burst(SkillBursts.FROST_GLINT,n);
+        PixelFlare.show(SkillVfx.midX(s)-SIDE,SkillVfx.midY(s),EMBER,PixelFlare.S,0.4f);
+    }
     public static int damage(int level,int heat){ return (4+3*level)*(3+heat)/3; }
     public static void explode(Hero hero,int cell,int element,int heat,int level){
         SpatialSound.play(element==0?Assets.Sounds.BURNING:Assets.Sounds.SHATTER, cell);
         // The burst: a flare at the impact, then flame or frost racing over the ring around it a beat later.
         if(hero.sprite!=null&&hero.sprite.parent!=null&&Dungeon.level.heroFOV[cell]){
-            new Flare(6,14).color(element==0?0xFF8418:0xA4E9FF,true).show(hero.sprite.parent,
-                    xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap.tileCenterToWorld(cell),0.5f);
+            PixelFlare.show(SkillVfx.cx(cell),SkillVfx.cy(cell),element==0?EMBER:FROST,PixelFlare.M,0.5f);
             CellEmitter.center(cell).burst(element==0?FlameParticle.FACTORY:SnowParticle.FACTORY,4+heat);
         }
         Fx.shake(1,0.2f);

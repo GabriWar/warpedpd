@@ -33,10 +33,19 @@ import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Belongings;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.EnchantingStation;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Ramp;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLook;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.Family;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.PedestalFx;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph;
 import xyz.gabriwar.warpedpixeldungeon.journal.Journal;
@@ -72,6 +81,9 @@ import com.watabou.noosa.SkinnedBlock;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.ui.Component;
+import com.watabou.utils.Bundlable;
+import com.watabou.utils.Point;
+import com.watabou.utils.PointF;
 import com.watabou.utils.RectF;
 import com.watabou.utils.Random;
 
@@ -108,6 +120,9 @@ public class EnchantingScene extends PixelScene {
 	private static final int HALO_R = 30;
 	//a cursed piece's red, the pedestal's violet, and the faded text of an empty socket
 	private static final int CURSE_RED = 0xCC3344, VIOLET = 0x9966FF, FADED = 0x8A7FA0;
+	//the vestige's echo ring under the piece, every so often; the three weaves' gems igniting one
+	//after another; a rerolled gem's shuffle; a taken weave's sting; an unwoven ring's refilling
+	private static final float ECHO_EVERY = 3f, IGNITE_GAP = 0.12f, GEM_CYCLE = 0.3f, STING_VOL = 0.3f, REFILL = 0.5f;
 
 	private Emitter bubbleEmitter;
 	private Emitter lowerBubbles;
@@ -123,6 +138,15 @@ public class EnchantingScene extends PixelScene {
 	private WeaponButton weaponSlot;
 	private RenderedTextBlock itemName;
 	private RenderedTextBlock itemSub;
+	//the piece's vestige, read only, under its name
+	private RenderedTextBlock itemVestige;
+	private boolean vestigeShown;
+	private float echoIn;
+	//the pedestal's own effects (over the cards), and the socket cards as last built
+	private PedestalFx fx;
+	private final Card[] socketCards = new Card[SOCKETS];
+	//comets of weaves still flying to the pedestal
+	private int comets;
 	private final ArrayList<Component> stateElems = new ArrayList<>();
 
 	//the pedestal's centre, and the box the socket cards stack in
@@ -135,6 +159,14 @@ public class EnchantingScene extends PixelScene {
 
 	{
 		inGameScene = true;
+	}
+
+	/** Opens the pedestal with a weapon or an armour already on it (a debug scene's). Any thread. */
+	public static void open( Item item ){
+		Game.runOnRenderThread( () -> {
+			target = item;
+			Game.switchScene( EnchantingScene.class );
+		} );
 	}
 
 	@Override
@@ -292,6 +324,9 @@ public class EnchantingScene extends PixelScene {
 		add( itemName );
 		itemSub = PixelScene.renderTextBlock( 6 );
 		add( itemSub );
+		itemVestige = PixelScene.renderTextBlock( 6 );
+		itemVestige.visible = false;
+		add( itemVestige );
 		underItemY = py + HALO_R + 4;
 
 		bubbleEmitter = new Emitter();
@@ -303,6 +338,9 @@ public class EnchantingScene extends PixelScene {
 		sparkEmitter.pos( px - SLOT_SIZE / 2f, py - SLOT_SIZE / 2f, SLOT_SIZE, SLOT_SIZE );
 		sparkEmitter.autoKill = false;
 		add( sparkEmitter );
+
+		fx = new PedestalFx();
+		add( fx );
 
 		updateState();
 
@@ -321,6 +359,12 @@ public class EnchantingScene extends PixelScene {
 		if (glyphTimer <= 0){
 			glyphTimer = 0.25f;
 			lowerBubbles.burst( Random.element( EnchantingStationSprite.GLYPH_FX ), 1 );
+		}
+
+		//the vestige's sign: its doubled ring under the piece, once in a while
+		if (vestigeShown && (echoIn -= Game.elapsed) <= 0){
+			echoIn = ECHO_EVERY;
+			fx.echoRing( px, py + SLOT_SIZE / 2f + 2, 2f );
 		}
 	}
 
@@ -346,9 +390,12 @@ public class EnchantingScene extends PixelScene {
 
 		weaponSlot.item( target );
 		updateEnergyText();
+		for (int s = 0; s < SOCKETS; s++) socketCards[s] = null;
 
 		Piece<?> p = piece();
-		halo.colors( p == null ? null : p.colors() );
+		if (p == null) halo.colors( null, null, null );
+		else halo.colors( p.colors(), p.families(), p.levels() );
+		vestige();
 
 		if (p == null){
 			itemName.text( Messages.get( EnchantingScene.class, "text" ) );
@@ -411,6 +458,26 @@ public class EnchantingScene extends PixelScene {
 			addState( c );
 			cy = c.bottom() + GAP;
 		}
+		for (int s = 0; s < SOCKETS; s++) socketCards[s] = cards[s];
+		//the pedestal's effects over the cards
+		bringToFront( fx );
+	}
+
+	//the piece's vestige, once it is identified: a line under its name, three faint motes on the
+	//ring, its echo ring now and then
+	private void vestige(){
+		Bundlable v = target != null && target.isIdentified() ? Quality.vestigeMagic( target ) : null;
+		vestigeShown = v != null;
+		halo.vestige( vestigeShown );
+		if (v == null){
+			itemVestige.visible = false;
+			return;
+		}
+		itemVestige.text( Messages.get( EnchantingScene.class, "vestige", Quality.vestigeName( v ),
+				Math.round( Quality.value( target, RarityLine.VESTIGE ) * 100 ) ) );
+		itemVestige.hardlight( EnchantLook.GHOST );
+		itemVestige.alpha( 0.5f );
+		itemVestige.visible = true;
 	}
 
 	private void centerCards( float height ){
@@ -428,8 +495,15 @@ public class EnchantingScene extends PixelScene {
 		itemName.maxWidth( (int)nameW );
 		itemName.setPos( px - itemName.width() / 2f, underItemY );
 		align( itemName );
+		float under = itemName.bottom();
+		if (itemVestige.visible){
+			itemVestige.maxWidth( (int)nameW );
+			itemVestige.setPos( px - itemVestige.width() / 2f, under + 1 );
+			align( itemVestige );
+			under = itemVestige.bottom();
+		}
 		itemSub.maxWidth( (int)nameW );
-		itemSub.setPos( px - itemSub.width() / 2f, itemName.bottom() + 1 );
+		itemSub.setPos( px - itemSub.width() / 2f, under + 1 );
 		align( itemSub );
 	}
 
@@ -484,6 +558,7 @@ public class EnchantingScene extends PixelScene {
 					Dungeon.energy -= cost;
 					p.level( e, level + 1 );
 					onWeave();
+					empowered( slot, level, color );
 				}
 			};
 			empower.enable( Dungeon.energy >= cost );
@@ -529,7 +604,7 @@ public class EnchantingScene extends PixelScene {
 
 	//one of the three taken: free, the reveal paid for it. The piece may have changed under the
 	//window (a weave elsewhere): three that no longer fit it are refused
-	private <E> void take( Piece<E> p, int slot, E[] opts, int index ){
+	private <E> void take( Piece<E> p, int slot, E[] opts, int index, PointF from ){
 		if (!p.usable() || !p.valid( opts )){
 			updateState();
 			return;
@@ -550,7 +625,47 @@ public class EnchantingScene extends PixelScene {
 			p.level( chosen, p.level( old ) );
 			p.replace( slot, chosen );
 		}
-		onWeave();
+		EnchantLook l = p.look( chosen );
+		if (l != null) landing( l, from, p.slotOf( chosen ), slot >= 0 );
+		onWeave( l == null );
+	}
+
+	//a weave taken: its gem bursts, a comet of it flies to the pedestal; as it lands the ring takes
+	//its colour and motion and flares, its sting plays, the piece's slot runs its aura faster and a
+	//rerolled socket's gem shuffles through the prism before it settles
+	private void landing( final EnchantLook l, PointF from, final int socket, final boolean rerolled ){
+		float fx0 = from != null ? from.x : px, fy0 = from != null ? from.y : py - HALO_R - 12;
+		fx.burst( fx0, fy0, l, PedestalFx.TAKEN, 30f );
+		comets++;
+		halo.hold( true );
+		fx.comet( fx0, fy0, px, py, l, () -> {
+			comets = Math.max( 0, comets - 1 );
+			if (comets == 0) halo.hold( false );
+			halo.flare();
+			if (l.sound != null) Sample.INSTANCE.play( l.sound, STING_VOL, l.pitch );
+			if (target != null){
+				EnchantFx.markGained( target );
+				weaponSlot.item( target );
+			}
+			if (rerolled && socket >= 0 && socket < SOCKETS && socketCards[socket] != null){
+				socketCards[socket].shuffle( GEM_CYCLE );
+			}
+		} );
+	}
+
+	//an empowered socket: its motes on the ring run a lap, brighter now; its new pip glints
+	private void empowered( int slot, int pip, int color ){
+		halo.lap( slot );
+		Card c = slot >= 0 && slot < SOCKETS ? socketCards[slot] : null;
+		PointF at = c != null ? c.pipCenter( pip ) : null;
+		if (at != null) fx.glint( at.x, at.y, color );
+	}
+
+	//a point of a window's (a card's gem) where it shows on this scene
+	private static PointF onScene( Component c, PointF at ){
+		if (c == null || at == null || c.camera() == null || Camera.main == null) return null;
+		Point s = c.camera().cameraToScreen( at.x, at.y );
+		return Camera.main.screenToCamera( s.x, s.y );
 	}
 
 	private void confirmUnweave( final Piece<?> p ){
@@ -561,9 +676,12 @@ public class EnchantingScene extends PixelScene {
 			@Override
 			protected void onSelect( int index ) {
 				if (index != 0 || !p.usable() || !p.hasGood()) return;
+				//every socket's motes leak out of the ring and fall, greying; it fills again in violet
+				halo.leak( fx );
 				p.unweave();
 				Dungeon.energy += DISENCHANT_ENERGY;
 				createEnergy();
+				halo.refill( REFILL );
 				Item.updateQuickslot();
 			}
 		} );
@@ -571,9 +689,14 @@ public class EnchantingScene extends PixelScene {
 
 	//shared success path: vfx, sound, and a state refresh
 	private void onWeave(){
+		onWeave( true );
+	}
+
+	//the same, the ring's flare now or (a weave's comet still flying) when it lands
+	private void onWeave( boolean flareNow ){
 		bubbleEmitter.start( Speck.factory( Speck.BUBBLE ), 0.01f, 100 );
 		sparkEmitter.burst( SparkParticle.FACTORY, 20 );
-		halo.flare();
+		if (flareNow) halo.flare();
 		Sample.INSTANCE.play( Assets.Sounds.READ );
 		Item.updateQuickslot();
 		saveNeeded = true;
@@ -690,6 +813,34 @@ public class EnchantingScene extends PixelScene {
 			int[] c = new int[out.size()];
 			for (int i = 0; i < c.length; i++) c[i] = out.get( i );
 			return c;
+		}
+
+		//the filled sockets' families and levels, in the order colors() gives their colours
+		Family[] families(){
+			Family[] f = new Family[filled()];
+			int i = 0;
+			for (int s = 0; s < SOCKETS; s++){
+				EnchantLook l = at( s ) != null ? look( at( s ) ) : null;
+				if (at( s ) != null) f[i++] = l != null ? l.fam : null;
+			}
+			return f;
+		}
+
+		int[] levels(){
+			int[] v = new int[filled()];
+			int i = 0;
+			for (int s = 0; s < SOCKETS; s++) if (at( s ) != null) v[i++] = level( at( s ) );
+			return v;
+		}
+
+		//a weave's look, and the socket it sits in (-1: none)
+		EnchantLook look( E e ){
+			return e == null ? null : EnchantLooks.of( e.getClass() );
+		}
+
+		int slotOf( E e ){
+			for (int s = 0; s < SOCKETS; s++) if (at( s ) == e) return s;
+			return -1;
 		}
 
 		boolean usable(){
@@ -859,8 +1010,10 @@ public class EnchantingScene extends PixelScene {
 				RedButton takeIt = new RedButton( Messages.get( EnchantingScene.class, "take" ), 6 ){
 					@Override
 					protected void onClick() {
+						//where its gem shows, read before the window goes
+						PointF from = onScene( c, c.gemCenter() );
 						hide();
-						take( p, slot, opts, index );
+						take( p, slot, opts, index, from );
 					}
 				};
 				takeIt.textColor( color );
@@ -890,6 +1043,11 @@ public class EnchantingScene extends PixelScene {
 				add( c );
 			}
 			float bottom = row ? top + tallest : y - MARGIN;
+
+			//the gems ignite one after another, each then keeping its magic alive
+			PedestalFx gems = new PedestalFx();
+			add( gems );
+			for (int i = 0; i < cards.length; i++) cards[i].live( gems, p.look( opts[i] ), IGNITE_GAP * i );
 
 			resize( width, (int)Math.ceil( bottom ) );
 		}
@@ -932,6 +1090,16 @@ public class EnchantingScene extends PixelScene {
 		private RenderedTextBlock text;
 		private Component[] buttons;
 		private float minHeight = 0;
+		//a revealed weave's live magic: the pedestal's effects, its look, its gem's ignition and its
+		//motes (at most MOTIF_LIVE of its own at once), a glint sweeping its stripe
+		private PedestalFx fx;
+		private EnchantLook look;
+		private float igniteIn, motifIn, sweep = -1;
+		private boolean igniting;
+		private ColorBlock sweeper;
+		private final PedestalFx.Mote[] motes = new PedestalFx.Mote[MOTIF_LIVE];
+		private static final int MOTIF_LIVE = 3;
+		private static final float MOTIF_EVERY = 0.8f, SWEEP_FOR = 0.15f;
 
 		Card( int color ){
 			super();
@@ -972,6 +1140,37 @@ public class EnchantingScene extends PixelScene {
 		void text( String s ){
 			text = PixelScene.renderTextBlock( s, 6 );
 			add( text );
+		}
+
+		//its gem ignites `delay` s from now with a burst of its look, its stripe glints, and then
+		//its magic stays alive: a mote of its motif every MOTIF_EVERY s
+		void live( PedestalFx fx, EnchantLook look, float delay ){
+			if (fx == null || look == null || gem == null) return;
+			this.fx = fx;
+			this.look = look;
+			igniteIn = delay;
+			igniting = true;
+			motifIn = MOTIF_EVERY * 0.5f;
+			gem.ignite( delay );
+			sweeper = new ColorBlock( 2, 3, 0xFFFFFFFF );
+			sweeper.visible = false;
+			add( sweeper );
+		}
+
+		//its gem's middle (null with none)
+		PointF gemCenter(){
+			return gem == null ? null : new PointF( gem.left() + Gem.SIZE / 2f, gem.top() + Gem.SIZE / 2f );
+		}
+
+		//a pip's middle (null with none)
+		PointF pipCenter( int i ){
+			if (pips == null || i < 0 || i >= pips.length) return null;
+			return new PointF( pips[i].x + pips[i].width() / 2f, pips[i].y + pips[i].height() / 2f );
+		}
+
+		//its gem shuffles through the prism, then settles on its colour
+		void shuffle( float seconds ){
+			if (gem != null) gem.shuffle( seconds );
 		}
 
 		void buttons( Component... b ){
@@ -1070,6 +1269,34 @@ public class EnchantingScene extends PixelScene {
 				pulse += Game.elapsed;
 				pips[pipsOn - 1].alpha( 0.65f + 0.35f * (float)Math.abs( Math.sin( pulse * 2.4f ) ) );
 			}
+			if (fx == null) return;
+			float dt = Game.elapsed;
+			if (igniting){
+				if ((igniteIn -= dt) > 0) return;
+				igniting = false;
+				PointF g = gemCenter();
+				fx.burst( g.x, g.y, look, PedestalFx.IGNITE, 18f );
+				sweep = 0;
+			}
+			if (sweep >= 0){
+				sweep += dt;
+				float k = Math.min( 1f, sweep / SWEEP_FOR );
+				sweeper.visible = sweep < SWEEP_FOR;
+				sweeper.x = stripe.x;
+				sweeper.y = stripe.y + (stripe.height() - 3) * k;
+				sweeper.alpha( 0.9f * (1f - k) );
+				if (!sweeper.visible) sweep = -1;
+			}
+			if ((motifIn -= dt) <= 0){
+				motifIn = MOTIF_EVERY;
+				for (int i = 0; i < motes.length; i++){
+					PedestalFx.Mote m = motes[i];
+					if (m != null && m.alive && m.owner == this) continue;
+					PointF g = gemCenter();
+					motes[i] = fx.motif( look, g.x, g.y, this );
+					break;
+				}
+			}
 		}
 	}
 
@@ -1080,14 +1307,22 @@ public class EnchantingScene extends PixelScene {
 
 		private final ColorBlock rim, face, glint;
 		private final boolean hollow;
+		private final int color;
 		private float t = Random.Float( 6f );
+		//dark until it ignites, bright a moment as it does; shuffling through the prism's colours
+		private float igniteIn, lit, shuffleLeft, shuffleFor;
+		private boolean igniting;
+		private static final float LIT_FOR = 0.15f;
 
 		Gem( int color, boolean hollow ){
 			super();
 			this.hollow = hollow;
+			this.color = color;
 			rim = new ColorBlock( SIZE, SIZE, 0xFF140A22 );
 			add( rim );
-			face = new ColorBlock( SIZE - 2, SIZE - 2, 0xFF000000 | color );
+			//white, lit in its colour: so it can shuffle through others
+			face = new ColorBlock( SIZE - 2, SIZE - 2, 0xFFFFFFFF );
+			face.hardlight( color );
 			add( face );
 			glint = new ColorBlock( 2, 2, 0xFFFFFFFF );
 			glint.alpha( hollow ? 0f : 0.7f );
@@ -1105,23 +1340,70 @@ public class EnchantingScene extends PixelScene {
 			glint.y = y + 2;
 		}
 
+		void ignite( float delay ){
+			igniteIn = delay;
+			igniting = true;
+			face.alpha( 0.25f );
+			glint.alpha( 0f );
+		}
+
+		void shuffle( float seconds ){
+			shuffleFor = shuffleLeft = seconds;
+		}
+
 		@Override
 		public void update() {
 			super.update();
 			if (hollow) return;
-			t += Game.elapsed;
+			float dt = Game.elapsed;
+			if (igniting){
+				if ((igniteIn -= dt) > 0) return;
+				igniting = false;
+				lit = LIT_FOR;
+			}
+			if (shuffleLeft > 0){
+				shuffleLeft -= dt;
+				int n = Element.PRISM.ramp.size();
+				int i = Math.min( n - 1, (int)((1f - Math.max( 0f, shuffleLeft ) / shuffleFor) * n) );
+				face.hardlight( shuffleLeft > 0 ? Element.PRISM.ramp.stop( i ) : color );
+			}
+			if (lit > 0){
+				lit -= dt;
+				face.alpha( 1f );
+				glint.alpha( 1f );
+				if (lit <= 0) glint.alpha( 0.7f );
+				return;
+			}
+			t += dt;
 			face.alpha( 0.8f + 0.2f * (float)Math.sin( t * 2f ) );
 		}
 	}
 
-	/** the pedestal's ring: two circles of motes in the piece's colours, turning opposite ways */
+	/**
+	 * the pedestal's ring: two circles of motes in the piece's colours, turning opposite ways, each
+	 * moving as its weave's family does (PedestalFx.motion: embers rise, frost drifts down, static
+	 * jumps...) and a tenth brighter for each level of it; an empowered socket's motes run a lap; held
+	 * as it was while a weave's comet flies, taking the new weave as it lands; three faint ghost motes
+	 * on the outer circle for a vestige
+	 */
 	private static class Halo extends Component {
 
-		private static final int OUTER = 16, INNER = 10;
+		private static final int OUTER = 16, INNER = 10, ECHOES = 3;
+		private static final float LAP_FOR = 1f, ECHO_ALPHA = 0.3f;
 
 		private final ColorBlock[] outer = new ColorBlock[OUTER];
 		private final ColorBlock[] inner = new ColorBlock[INNER];
-		private float cx, cy, angle, flare;
+		private final ColorBlock[] echoes = new ColorBlock[ECHOES];
+		private float cx, cy, angle, flare, time, refill, refillFor;
+		//each filled socket's colour (brightened by its level) and family; a lap it runs
+		private int[] shown = { VIOLET };
+		private Family[] fams = new Family[0];
+		private final float[] lap = new float[SOCKETS];
+		private final float[] move = new float[4];
+		//while a weave's comet flies: what the ring is told waits for it to land
+		private boolean held, pending;
+		private int[] heldColors, heldLevels;
+		private Family[] heldFams;
 
 		Halo(){
 			super();
@@ -1133,7 +1415,13 @@ public class EnchantingScene extends PixelScene {
 				inner[i] = new ColorBlock( 1, 1, 0xFFFFFFFF );
 				add( inner[i] );
 			}
-			colors( null );
+			for (int i = 0; i < ECHOES; i++){
+				echoes[i] = new ColorBlock( 1, 1, 0xFFFFFFFF );
+				echoes[i].hardlight( EnchantLook.GHOST );
+				echoes[i].visible = false;
+				add( echoes[i] );
+			}
+			colors( null, null, null );
 		}
 
 		void center( float x, float y ){
@@ -1141,11 +1429,37 @@ public class EnchantingScene extends PixelScene {
 			cy = y;
 		}
 
-		//the piece's weaves, or the pedestal's violet with none
-		void colors( int[] colors ){
-			if (colors == null || colors.length == 0) colors = new int[]{ VIOLET };
-			for (int i = 0; i < OUTER; i++) outer[i].hardlight( colors[i % colors.length] );
-			for (int i = 0; i < INNER; i++) inner[i].hardlight( colors[(i + 1) % colors.length] );
+		//the piece's weaves (their colours, families and levels), or the pedestal's violet with none
+		void colors( int[] colors, Family[] families, int[] levels ){
+			if (held){
+				pending = true;
+				heldColors = colors;
+				heldFams = families;
+				heldLevels = levels;
+				return;
+			}
+			if (colors == null || colors.length == 0){
+				shown = new int[]{ VIOLET };
+				fams = new Family[0];
+			} else {
+				shown = new int[colors.length];
+				for (int i = 0; i < colors.length; i++){
+					int level = levels != null && i < levels.length ? Math.max( 0, Math.min( 5, levels[i] ) ) : 0;
+					shown[i] = Ramp.lerp( colors[i] & 0xFFFFFF, 0xFFFFFF, 0.1f * level );
+				}
+				fams = families != null ? families : new Family[0];
+			}
+			for (int i = 0; i < OUTER; i++) outer[i].hardlight( shown[i % shown.length] );
+			for (int i = 0; i < INNER; i++) inner[i].hardlight( shown[(i + 1) % shown.length] );
+		}
+
+		//held as it is (a comet flying), or let go, taking what it was told meanwhile
+		void hold( boolean on ){
+			held = on;
+			if (!on && pending){
+				pending = false;
+				colors( heldColors, heldFams, heldLevels );
+			}
 		}
 
 		//a weave lands: the ring swells and brightens, then settles
@@ -1153,24 +1467,85 @@ public class EnchantingScene extends PixelScene {
 			flare = 1f;
 		}
 
+		//an empowered socket: its motes run a lap ahead of the rest, brighter as they go
+		void lap( int socket ){
+			if (socket >= 0 && socket < SOCKETS) lap[socket] = LAP_FOR;
+		}
+
+		//the ring emptied: it fills again over `seconds`
+		void refill( float seconds ){
+			refill = refillFor = seconds;
+		}
+
+		void vestige( boolean on ){
+			for (ColorBlock e : echoes) e.visible = on;
+		}
+
+		//every mote leaks out of the ring, falling and greying (an unweave)
+		void leak( PedestalFx fx ){
+			for (int i = 0; i < OUTER; i++) leak( fx, outer[i], shown[i % shown.length], 1f );
+			for (int i = 0; i < INNER; i++) leak( fx, inner[i], shown[(i + 1) % shown.length], 0.5f );
+		}
+
+		private void leak( PedestalFx fx, ColorBlock m, int color, float half ){
+			float x = m.x + half, y = m.y + half, dx = x - cx, dy = y - cy;
+			float len = Math.max( 0.01f, (float)Math.sqrt( dx * dx + dy * dy ) );
+			fx.leak( x, y, color, dx / len, dy / len );
+		}
+
+		private Family fam( int i ){
+			return i < fams.length ? fams[i] : null;
+		}
+
+		//how far ahead a socket's lap has its motes, and how much brighter
+		private float ahead( int socket ){
+			if (socket >= SOCKETS || lap[socket] <= 0) return 0f;
+			float p = 1f - lap[socket] / LAP_FOR;
+			return (float)(2 * Math.PI) * p * p * (3f - 2f * p);
+		}
+
+		private float bright( int socket ){
+			if (socket >= SOCKETS || lap[socket] <= 0) return 0f;
+			return 0.3f * (float)Math.sin( Math.PI * (1f - lap[socket] / LAP_FOR) );
+		}
+
 		@Override
 		public void update() {
 			super.update();
-			angle += Game.elapsed * 0.5f;
-			if (flare > 0) flare = Math.max( 0, flare - Game.elapsed * 1.5f );
+			float dt = Game.elapsed;
+			time += dt;
+			angle += dt * 0.5f;
+			if (flare > 0) flare = Math.max( 0, flare - dt * 1.5f );
+			for (int s = 0; s < SOCKETS; s++) if (lap[s] > 0) lap[s] = Math.max( 0, lap[s] - dt );
+			if (refill > 0) refill = Math.max( 0, refill - dt );
+			float fill = refillFor > 0 ? 1f - refill / refillFor : 1f;
+			int n = shown.length;
 			float r = HALO_R + 4 * flare;
 			for (int i = 0; i < OUTER; i++){
-				double a = angle + i * Math.PI * 2 / OUTER;
-				outer[i].x = cx + (float)Math.cos( a ) * r - 1;
-				outer[i].y = cy + (float)Math.sin( a ) * r - 1;
-				outer[i].alpha( Math.min( 1f, 0.35f + 0.45f * (float)Math.abs( Math.sin( angle * 2 + i ) ) + flare ) );
+				int s = i % n;
+				double a = angle + i * Math.PI * 2 / OUTER + ahead( s );
+				PedestalFx.motion( fam( s ), time, i, move );
+				float rr = r + move[2];
+				outer[i].x = cx + (float)Math.cos( a ) * rr - 1 + move[0];
+				outer[i].y = cy + (float)Math.sin( a ) * rr - 1 + move[1];
+				outer[i].alpha( fill * Math.min( 1f, (0.35f + 0.45f * (float)Math.abs( Math.sin( angle * 2 + i ) ) + flare + bright( s )) * move[3] ) );
 			}
 			float ri = r - 7;
 			for (int i = 0; i < INNER; i++){
-				double a = -angle * 1.6f + i * Math.PI * 2 / INNER;
-				inner[i].x = cx + (float)Math.cos( a ) * ri;
-				inner[i].y = cy + (float)Math.sin( a ) * ri;
-				inner[i].alpha( Math.min( 1f, 0.3f + 0.3f * (float)Math.abs( Math.cos( angle * 3 + i ) ) + flare ) );
+				int s = (i + 1) % n;
+				double a = -angle * 1.6f + i * Math.PI * 2 / INNER - ahead( s );
+				PedestalFx.motion( fam( s ), time, i + OUTER, move );
+				float rr = ri + move[2] * 0.5f;
+				inner[i].x = cx + (float)Math.cos( a ) * rr + move[0] * 0.5f;
+				inner[i].y = cy + (float)Math.sin( a ) * rr + move[1] * 0.5f;
+				inner[i].alpha( fill * Math.min( 1f, (0.3f + 0.3f * (float)Math.abs( Math.cos( angle * 3 + i ) ) + flare + bright( s )) * move[3] ) );
+			}
+			//a vestige's: faint, at half the outer circle's speed, just outside it
+			for (int i = 0; i < ECHOES; i++){
+				double a = angle * 0.5f + i * Math.PI * 2 / ECHOES + 0.45f;
+				echoes[i].x = cx + (float)Math.cos( a ) * (r + 2);
+				echoes[i].y = cy + (float)Math.sin( a ) * (r + 2);
+				echoes[i].alpha( ECHO_ALPHA * fill );
 			}
 		}
 	}

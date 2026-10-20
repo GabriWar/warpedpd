@@ -35,8 +35,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
-import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBolt;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FlameParticle;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import com.watabou.utils.PathFinder;
@@ -65,7 +66,7 @@ public class PyreAffinity extends Skill {
 		if (target.sprite != null){
 			//it catches: flames up the body and a hot flare off it
 			target.sprite.emitter().burst( FlameParticle.FACTORY, 3 + level );
-			new Flare( 5, 12 ).color( 0xFF8418, true ).show( target.sprite, 0.4f );
+			PixelFlare.show( SkillVfx.midX( target.sprite ), SkillVfx.midY( target.sprite ), 0xFFC070, PixelFlare.S, 0.35f );
 		}
 		SpatialSound.play( Assets.Sounds.BURNING, target, 0.6f, 1.2f );
 		//at mastery the flames leap to one enemy standing next to the target
@@ -81,14 +82,14 @@ public class PyreAffinity extends Skill {
 		}
 	}
 
-	//an ember trail from one body to the next, bursting into flame when it arrives
+	//a cinder hopping from one body to the next (never a firebolt), bursting into flame when it arrives
 	private static void leap( int from, final Char to ){
 		Hero hero = Dungeon.hero;
 		if (hero == null || hero.sprite == null || hero.sprite.parent == null || to.sprite == null || !to.sprite.visible){
 			if (to.sprite != null) to.sprite.emitter().burst( FlameParticle.FACTORY, 6 );
 			return;
 		}
-		((MagicMissile) hero.sprite.parent.recycle( MagicMissile.class )).reset( MagicMissile.FIRE, from, to.pos, () -> {
+		SkillBolt.fly( hero.sprite.parent, from, to.pos, SkillBolt.EMBER, () -> {
 			if (to.sprite != null){
 				to.sprite.emitter().burst( FlameParticle.FACTORY, 6 );
 				to.sprite.flash();

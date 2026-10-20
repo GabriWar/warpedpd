@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -76,7 +77,8 @@ public class Bandit extends PassiveSkillA1 {
 
 		if (mark.sprite != null){
 			mark.sprite.emitter().burst( Speck.factory( Speck.COIN ), 5 );
-			mark.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( Bandit.class, "pickpocket" ) );
+			chipOn( mark );
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.buffIcon( mark, mark.buff( Pickpocketed.class ) );
 		}
 		SpatialSound.play( Assets.Sounds.MISS, mark, 1f, 1.5f );
 
@@ -100,7 +102,7 @@ public class Bandit extends PassiveSkillA1 {
 			final int cell = hero.pos;
 			SkillFX.streak( mark.pos, cell, loot, () -> {
 				Dungeon.level.drop( loot, cell ).sprite.drop();
-				if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
+				if (hero.sprite != null) hero.sprite.emitter().burst( SkillBursts.FLOURISH, 4 );
 				SpatialSound.play( Assets.Sounds.ITEM, cell, 1f, 1.1f );
 			} );
 		}
@@ -124,6 +126,6 @@ public class Bandit extends PassiveSkillA1 {
 	/** this enemy's pocket is already empty */
 	public static class Pickpocketed extends Buff {
 		@Override
-		public int icon(){ return BuffIndicator.NONE; }
+		public int icon(){ return BuffIndicator.PICKPOCKETED; }
 	}
 }

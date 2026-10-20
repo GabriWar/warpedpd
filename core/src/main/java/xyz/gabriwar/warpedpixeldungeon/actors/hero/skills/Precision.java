@@ -37,10 +37,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.ThrowingSpear;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import com.watabou.utils.Callback;
 
 public class Precision extends PassiveSkillB1 {
@@ -99,8 +97,9 @@ public class Precision extends PassiveSkillB1 {
 		Buff.prolong( enemy, Gap.class, markTurns() );
 		if (enemy.sprite != null){
 			new xyz.gabriwar.warpedpixeldungeon.effects.Flare( 4, 14 ).color( 0xE6EDF5, true ).show( enemy.sprite, 0.5f );
-			enemy.sprite.emitter().burst( Speck.factory( Speck.STAR ), 3 );
-			enemy.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "pinned" ) );
+			enemy.sprite.emitter().burst( SkillBursts.STEEL_GLINT, 3 );
+			chipOn( enemy );
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.buffIcon( enemy, enemy.buff( Gap.class ) );
 		}
 		if (from >= 0) SkillInteractions.flare( from, 0xE6EDF5 );
 		SpatialSound.play( Assets.Sounds.HIT_PARRY, enemy, 0.8f, 1.5f );
@@ -113,6 +112,6 @@ public class Precision extends PassiveSkillB1 {
 		}
 
 		@Override
-		public int icon(){ return xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator.NONE; }
+		public int icon(){ return xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator.GAP; }
 	}
 }

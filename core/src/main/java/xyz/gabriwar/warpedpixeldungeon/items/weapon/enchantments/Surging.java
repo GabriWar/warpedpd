@@ -28,7 +28,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FlavourBuff;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite.Glowing;
 import com.watabou.utils.Bundle;
@@ -64,6 +69,8 @@ public class Surging extends Weapon.Enchantment {
 			if (surge.stacks < SurgeTracker.MAX_STACKS){
 				surge.stacks++;
 			}
+			EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, surge.stacks / (float)SurgeTracker.MAX_STACKS, level(),
+					Quality.isVestige( weapon, this ) ? EnchantFx.ECHO : 0, ElementRows.surging( surge.stacks, bonus ) );
 
 		}
 
@@ -85,6 +92,13 @@ public class Surging extends Weapon.Enchantment {
 		}
 
 		public int stacks = 1;
+
+		//its stacks circling the wielder (one mote each) while it lasts
+		@Override
+		public void fx( boolean on ) {
+			if (on) target.sprite.add( CharSprite.State.SURGING );
+			else target.sprite.remove( CharSprite.State.SURGING );
+		}
 
 		private static final String STACKS = "stacks";
 

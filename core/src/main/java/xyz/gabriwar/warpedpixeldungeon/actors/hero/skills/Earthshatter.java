@@ -41,6 +41,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.effects.WarriorImpactFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.EarthParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX;
@@ -114,7 +115,7 @@ public class Earthshatter extends Skill {
 			CellEmitter.bottom( c ).burst( EarthParticle.FACTORY, 2 );
 			CellEmitter.bottom( c ).burst( Speck.factory( Speck.DUST ), 2 );
 			if (struck.contains( c )){
-				CellEmitter.get( c ).burst( Speck.factory( Speck.ROCK ), 3 );
+				CellEmitter.get( c ).burst( SkillBursts.STONE_CHIP, 3 );
 				Wound.hit( c );
 				Char ch = xyz.gabriwar.warpedpixeldungeon.actors.Actor.findChar( c );
 				if (ch != null && ch.sprite != null) ch.sprite.flash();

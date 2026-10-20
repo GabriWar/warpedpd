@@ -28,7 +28,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Barrier;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import com.watabou.utils.Random;
@@ -60,6 +64,8 @@ public class Crystal extends Armor.Glyph {
 			int shield = Math.max( 1, Math.round( damage/4f * powerMulti * power() )); //scales with glyph level
 			Buff.affect( defender, Barrier.class ).setShield( shield );
 			defender.sprite.showStatusWithIcon( CharSprite.POSITIVE, Integer.toString( shield ), FloatingText.SHIELDING );
+			EnchantFx.ward( EnchantLooks.of( getClass() ), defender, attacker, Math.min( 1f, shield * 4f / Math.max( 1, defender.HT ) ), level(), Quality.isVestige( armor, this ) ? EnchantFx.ECHO : 0,
+					ElementRows.crystalWard() );
 
 		}
 

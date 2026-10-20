@@ -1,6 +1,5 @@
 package xyz.gabriwar.warpedpixeldungeon.effects;
 
-import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
@@ -8,11 +7,11 @@ import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxDecal;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxLight;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRing;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.WaterFX;
-import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.FxPic;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 
@@ -21,22 +20,21 @@ import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
  * everyone: the ground cracks open (CRACK_17 revealed from its middle over OPEN s), a ring of
  * dust spreads 13 to 31 px over RING_FOR s, puffs of dust, pebbles bouncing once, a one-frame
  * star of the blow; on water a splash (a crown, droplets and its ring) instead of the crack. A
- * hammer's own silhouette fades over it. A ring of them (Earthshatter) draws every layer on its
- * first RICH cells a frame and only the crack and the ring (on water the ring alone) past them.
+ * heavy blow (hammer: a leap's, a slam's landing) adds a second, wider ring a moment after, a warm
+ * white core of light under it and holds its star two frames (no picture of a hammer standing in
+ * the crack: nothing lies there). A ring of them (Earthshatter) draws every layer on its first RICH
+ * cells a frame and only the crack and the ring (on water the ring alone) past them.
  */
-public class WarriorImpactFX extends FxPic {
+public final class WarriorImpactFX {
 
-    public static final float OPEN=.1f, RING_FOR=.2f, LIFE=.45f;
+    public static final float OPEN=.1f, RING_FOR=.2f;
     public static final int RICH=8, PEBBLES_MIN=2, PEBBLES_MAX=4, PUFFS=3;
+    /** A heavy blow's second ring: from 9 to HEAVY_RING px, HEAVY_AFTER s after the first; its core. */
+    public static final int HEAVY_RING=41, HEAVY_CORE=0xFFF4D8;
+    public static final float HEAVY_AFTER=.05f;
 
-    private float left=LIFE;
-    private final int depth=Dungeon.depth, branch=Dungeon.branch;
+    private WarriorImpactFX(){}
 
-    private WarriorImpactFX(int cell){
-        super("effects/warrior_impact.png");
-        show(new int[]{16,0,16,16});
-        place(SkillVfx.cx(cell),SkillVfx.cy(cell));
-    }
     public static void show(int cell){show(cell,false);}
     public static void show(int cell,boolean hammer){
         if(Dungeon.hero==null||Dungeon.hero.sprite==null||Dungeon.hero.sprite.parent==null)return;
@@ -65,11 +63,20 @@ public class WarriorImpactFX extends FxPic {
             if(crack!=null)crack.revealCrop(FxDecal.FROM_MIDDLE,OPEN);
             FxRing.ground(floor,x,y,13,31,RING_FOR,Element.EARTH.ramp.stop(1),.5f,false);
         }
-        if(hammer)floor.add(new WarriorImpactFX(cell));
+        if(hammer){
+            //a heavier blow: a second, wider ring a moment after, a warm white core under it
+            if(water){
+                WaterFX.ring(x,y,WaterFX.L);
+            }else{
+                FxRing second=FxRing.ground(floor,x,y,9,HEAVY_RING,RING_FOR*1.6f,Element.EARTH.ramp.stop(0),.55f,false);
+                if(second!=null)second.delay(HEAVY_AFTER);
+            }
+            FxLight.pool(x,y,31,HEAVY_CORE,1f).core().life(0,.05f,.05f);
+        }
         if(!rich)return;
-        //the blow's star, one frame
+        //the blow's star, one frame (a heavy blow's two)
         FxParticle star=SkillVfx.glow(x,y-4,FxBudget.P0);
-        if(star!=null)star.look(FxFrames.IMPACT_STAR[FxRandom.Int(2)]).paint(0xFFF4D8).life(.04f).alpha(1f,0,.01f).snap();
+        if(star!=null)star.look(FxFrames.IMPACT_STAR[FxRandom.Int(2)]).paint(HEAVY_CORE).life(hammer?.07f:.04f).alpha(1f,0,.01f).snap();
         if(water)return;
         for(int i=0;i<PUFFS;i++){
             float side=i-1;
@@ -86,10 +93,4 @@ public class WarriorImpactFX extends FxPic {
         }
     }
 
-    @Override public void update(){
-        super.update();left-=Game.elapsed;
-        if(left<=0||depth!=Dungeon.depth||branch!=Dungeon.branch){Fx.dispose(this);return;}
-        takeSlide();
-        visible=SkillVfx.seen(Fx.cellAt(midX(),midY()));am=Math.min(1,left/.25f);
-    }
 }

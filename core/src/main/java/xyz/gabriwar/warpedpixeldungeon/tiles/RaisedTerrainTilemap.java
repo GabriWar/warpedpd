@@ -31,6 +31,13 @@ import java.util.HashSet;
 
 public class RaisedTerrainTilemap extends DungeonTilemap {
 	
+	//under the open sky the wind sways every tuft, its top half (WindSway)
+	private static final int[] SWAY_ROWS = new int[32];
+	static {
+		java.util.Arrays.fill( SWAY_ROWS, 8 );
+	}
+	private final WindSway.Batch sway = WindSway.batch( SWAY_ROWS );
+
 	public RaisedTerrainTilemap() {
 		super(textureForRegion());
 		skipCells.clear();
@@ -108,5 +115,22 @@ public class RaisedTerrainTilemap extends DungeonTilemap {
 		}
 		
 		return -1;
+	}
+
+	@Override
+	protected boolean needsRender(int pos) {
+		return super.needsRender(pos) && (sway == null || !sway.moves(data[pos]));
+	}
+
+	@Override
+	public void draw() {
+		super.draw();
+		if (sway != null) sway.draw(this, matrix, script(), texture, tileset, data, mapWidth, mapHeight);
+	}
+
+	@Override
+	public void destroy() {
+		super.destroy();
+		if (sway != null) sway.destroy();
 	}
 }

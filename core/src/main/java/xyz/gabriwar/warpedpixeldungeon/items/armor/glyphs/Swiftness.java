@@ -27,6 +27,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
@@ -60,6 +61,7 @@ public class Swiftness extends Armor.Glyph {
 			if (owner.sprite != null && owner.sprite.visible){
 				int particles = 1 + (int)Random.Float(1+level/5f);
 				owner.sprite.emitter().startDelayed(Speck.factory(Speck.YELLOW_LIGHT), 0.02f, particles, 0.05f);
+				ShadowRows.swiftStep( owner );
 			}
 			//only the bonus above 1x scales with glyph level
 			return (1f + (0.2f + 0.04f * level) * owner.glyphPower(Swiftness.class)) * genericProcChanceMultiplier(owner);

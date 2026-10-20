@@ -32,7 +32,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FireImbue;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Haste;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Recharging;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import com.watabou.utils.Random;
@@ -58,23 +62,34 @@ public class Adaptation extends Armor.Glyph {
 
 			float duration = Math.round( 5f * powerMulti * power() ); //scales with glyph level
 
+			int answer = -1;
 			switch (Dungeon.level.map[defender.pos]) {
 				case Terrain.GRASS:
 					Buff.prolong( defender, EarthImbue.class, duration );
+					answer = ElementRows.GRASS;
 					break;
 				case Terrain.WATER:
 					Buff.prolong( defender, Haste.class, duration );
+					answer = ElementRows.WATER;
 					break;
 				case Terrain.HIGH_GRASS:
 				case Terrain.FURROWED_GRASS:
 					Buff.prolong( defender, Invisibility.class, duration );
+					answer = ElementRows.TALL_GRASS;
 					break;
 				case Terrain.EMBERS:
 					Buff.affect( defender, FireImbue.class ).set( duration );
+					answer = ElementRows.EMBERS;
 					break;
 				case Terrain.INACTIVE_TRAP:
 					Buff.prolong( defender, Recharging.class, duration );
+					answer = ElementRows.TRAP;
 					break;
+			}
+			//plain floor gives nothing, so nothing shows
+			if (answer >= 0){
+				EnchantFx.ward( EnchantLooks.of( getClass() ), defender, attacker, ElementRows.verdantStrength( level() ), level(), Quality.isVestige( armor, this ) ? EnchantFx.ECHO : 0,
+						ElementRows.adaptation( answer ) );
 			}
 
 		}

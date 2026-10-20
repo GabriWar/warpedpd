@@ -39,12 +39,10 @@ import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Chains;
-import xyz.gabriwar.warpedpixeldungeon.effects.Effects;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.DreadFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.RogueHuntressAuras;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraBuff;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 /** Keeps the A1 tag and class for old saves; replaces the layered double-hit toggle. */
 public class DoubleStab extends ActiveSkill1 {
@@ -61,11 +59,11 @@ public class DoubleStab extends ActiveSkill1 {
         if(AC_ACTIVATE.equals(action)&&active){
             //the shadows gather round him and stay: the aura holds while the stance does
             SpatialSound.play(Assets.Sounds.MELD,hero,1f,1.3f);
-            hero.sprite.emitter().burst(ShadowParticle.UP,8);
+            hero.sprite.emitter().burst(SkillBursts.INK_DRIFT,8);
             StanceAuraBuff.sync( hero, RogueHuntressAuras.ShadowLink.class, true );
         }else if(AC_DEACTIVATE.equals(action)){
             SpatialSound.play(Assets.Sounds.MELD,hero,0.6f,0.8f);
-            hero.sprite.emitter().burst(ShadowParticle.MISSILE,5);
+            hero.sprite.emitter().burst(SkillBursts.INK_DRIFT,5);
             StanceAuraBuff.sync( hero, RogueHuntressAuras.ShadowLink.class, false );
         }
     }
@@ -89,26 +87,28 @@ public class DoubleStab extends ActiveSkill1 {
         bind(enemy,partner);
         return damage;
     }
-    /** the bond, seen: a spectral chain shoots from the struck enemy to its partner, shadow bursts
-     *  where it bites at each end, and both are called out. Cosmetic only; the marks are already set */
+    /** the bond, seen: drawn out of both enemies (DreadFX.tether: motes of shadow peeling off the
+     *  struck one and its partner, pulled along the sag into a knot that snaps on the bite; never the
+     *  ethereal chain, an artifact's), dread sinking in where it bites at each end, and both are
+     *  called out; the bite on the frame that chain bit. Cosmetic only; the marks are already set */
     private static void bind(Char first,Char second){
         if(first.sprite==null||first.sprite.parent==null||!Dungeon.level.heroFOV[first.pos])return;
         SpatialSound.play(Assets.Sounds.CHAINS,first,0.8f,1.4f);
-        CellEmitter.center(first.pos).burst(ShadowParticle.CURSE,4);
+        CellEmitter.center(first.pos).burst(SkillBursts.DREAD,4);
         if(second==first||second.sprite==null){
-            first.sprite.showStatus(CharSprite.NEGATIVE,"Bound");
+            Skill.chipOn(DoubleStab.class,first);
             return;
         }
         final Char a=first,b=second;
-        first.sprite.parent.add(new Chains(first.sprite.center(),second.sprite.destinationCenter(),Effects.Type.ETHEREAL_CHAIN,()->{
+        DreadFX.tether(first.sprite.parent,first.sprite.center(),second.sprite.destinationCenter(),()->{
             if(b.sprite!=null&&b.isAlive()){
                 b.sprite.flash();
-                b.sprite.emitter().burst(ShadowParticle.CURSE,4);
-                b.sprite.showStatus(CharSprite.NEGATIVE,"Bound");
+                b.sprite.emitter().burst(SkillBursts.DREAD,4);
+                Skill.chipOn(DoubleStab.class,b);
             }
-            if(a.sprite!=null&&a.isAlive())a.sprite.showStatus(CharSprite.NEGATIVE,"Bound");
+            if(a.sprite!=null&&a.isAlive())Skill.chipOn(DoubleStab.class,a);
             SpatialSound.play(Assets.Sounds.CHAINS,b,0.6f,1.7f);
-        }));
+        });
     }
     public static void clearLinks(){
         for(Char ch:Actor.chars())for(SkillInteractions.Mark mark:ch.buffs(SkillInteractions.Mark.class))

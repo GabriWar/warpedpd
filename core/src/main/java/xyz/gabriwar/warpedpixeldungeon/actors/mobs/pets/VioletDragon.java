@@ -126,7 +126,7 @@ public class VioletDragon extends PET implements Callback {
 
 				Buff.affect(enemy, Poison.class).set(level + 1);
 			} else {
-				enemy.sprite.showStatus(0xFFFFFF, enemy.defenseVerb());
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.missed( enemy );
 			}
 		}
 	}

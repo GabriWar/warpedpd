@@ -100,12 +100,12 @@ public class StanceAura extends Buff {
 
 	private static Emitter.Factory factory( int kind ){
 		switch (kind){
-			case RAMPAGE: return Speck.factory( Speck.STAR );
+			case RAMPAGE: return SkillBursts.FLOURISH;
 			case IRON:    return EquipmentSparkle.factory( STEEL );
 			case FURY:    return Speck.factory( Speck.RED_LIGHT );
 			case SPIRIT:  return Speck.factory( Speck.BLUE_LIGHT );
 			case LIGHT:   return Speck.factory( Speck.LIGHT );
-			default:      return Speck.factory( Speck.FORGE );
+			default:      return SkillBursts.METAL_SPARK;
 		}
 	}
 

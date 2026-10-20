@@ -67,7 +67,7 @@ public class Predation extends Skill {
 			Wound.hit( enemy );
 			if (enemy.sprite != null){
 				enemy.sprite.flash();
-				enemy.sprite.showStatus( CharSprite.WARNING, name() );
+				chipOn( enemy );
 			}
 			SpatialSound.play( Assets.Sounds.HIT_SLASH, enemy, 0.8f, 0.7f );
 		}
@@ -86,7 +86,7 @@ public class Predation extends Skill {
 			hero.sprite.emitter().burst( Speck.factory( Speck.HEALING ), 3 );
 			hero.sprite.emitter().burst( BloodParticle.FACTORY, 4 );
 			new Flare( 4, 12 ).color( 0xCC1111, true ).show( hero.sprite, 0.4f );
-			hero.sprite.showStatus( CharSprite.POSITIVE, Integer.toString( heal ) );
+			hero.sprite.showStatusWithIcon( CharSprite.POSITIVE, Integer.toString( heal ), xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.HEALING );
 		}
 		SpatialSound.play( Assets.Sounds.DRINK, hero, 0.7f, 0.8f );
 	}

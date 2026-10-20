@@ -36,11 +36,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
-import xyz.gabriwar.warpedpixeldungeon.effects.ShieldHalo;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PulseRingFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.RuneFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -80,12 +82,11 @@ public class Sanctuary extends PassiveSkillA3 {
 			active = true;
 			xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff.affect( hero, Watch.class );
 			xyz.gabriwar.warpedpixeldungeon.effects.SkillCastFX.play(this,hero);
-			//the ward is raised: a halo settles over the cleric
+			//the ward is raised: a ring of light spreads from the cleric (never the SHIELDED state's bubble)
 			if (hero.sprite != null){
-				ShieldHalo halo = new ShieldHalo( hero.sprite );
-				hero.sprite.parent.add( halo );
-				halo.putOut();
+				PulseRingFX.around( hero.sprite, 0xF1D99C, 24, 0.5f );
 				hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
+				raised( hero.sprite );
 			}
 			SpatialSound.play( Assets.Sounds.CHARMS, hero, 1f, 1.1f );
 		} else if (action.equals(Skill.AC_DEACTIVATE)){
@@ -95,6 +96,16 @@ public class Sanctuary extends PassiveSkillA3 {
 			//at mastery lowering the ward sets off every circle it has drawn
 			if (level >= MAX_LEVEL) release( hero );
 		}
+	}
+
+	/** The ward raised: RISE holy runes rising from the feet (RISE_RX x RISE_RY, RISE_SPEED px/s
+	 *  for RISE_FOR s: WardFx's finale, RuneFX.rise), each keeping its glyph (steady: Sanctuary's
+	 *  runes never flicker). Any thread. */
+	public static final int RISE = 6;
+	public static final float RISE_RX = 9f, RISE_RY = 3.5f, RISE_SPEED = 18f, RISE_FOR = 0.6f;
+
+	public static void raised( com.watabou.noosa.Visual s ){
+		if (s != null) RuneFX.rise( s, RISE, SkillPalette.RUNE_HOLY, RISE_RX, RISE_RY, RISE_SPEED, RISE_FOR ).steady();
 	}
 
 	private static int reach( int rank ){
@@ -115,8 +126,8 @@ public class Sanctuary extends PassiveSkillA3 {
 		SkillField.place( hero, SkillField.SANCTUARY, level, CIRCLE_TURNS, cells );
 		for (int c : cells) SkillInteractions.flare( c, 0xFFF1A1 );
 		if (hero.sprite != null){
-			new Flare( 8, 32 ).color( 0xFFEE88, true ).show( hero.sprite, 0.8f );
-			hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "circle" ) );
+			PixelFlare.show( SkillVfx.midX( hero.sprite ), SkillVfx.midY( hero.sprite ), 0xF1D99C, PixelFlare.L, 0.8f );
+			chipOn( hero );
 		}
 		SpatialSound.play( Assets.Sounds.CHARMS, hero, 1f, 0.9f );
 	}
@@ -174,7 +185,7 @@ public class Sanctuary extends PassiveSkillA3 {
 		@Override
 		public int icon(){ return xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator.NONE; }
 
-		//the ward held: two pale motes round the cleric and a slow shaft of light now and then.
+		//the ward held: two pale motes round the cleric and a holy mote rising now and then.
 		//Rebuilt whenever the sprite links, so it comes back after a save or a stairway
 		private xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraFX aura;
 
@@ -185,8 +196,7 @@ public class Sanctuary extends PassiveSkillA3 {
 				aura = null;
 			}
 			if (on && target.sprite != null && target.sprite.parent != null){
-				aura = new xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraFX( target, 0xFFF1A1,
-						xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle.FACTORY, 1.6f );
+				aura = new xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraFX( target, 0xFFF1A1, SkillBursts.HOLY_MOTE, 1.6f );
 				target.sprite.parent.add( aura );
 			}
 		}

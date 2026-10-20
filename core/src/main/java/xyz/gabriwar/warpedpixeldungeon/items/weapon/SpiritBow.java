@@ -305,6 +305,17 @@ public class SpiritBow extends Weapon {
 			setID = 0;
 		}
 
+		/** the bow that fires it: its magic is the arrow's (the arrow procs through it) */
+		public SpiritBow launcher() {
+			return SpiritBow.this;
+		}
+
+		//it shows its bow's glow, as it fires its bow's enchantments
+		@Override
+		public xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite.Glowing glowing() {
+			return SpiritBow.this.glowing();
+		}
+
 		@Override
 		public ArrayList<String> actions(Hero hero) {
 			return new ArrayList<>();
@@ -364,7 +375,8 @@ public class SpiritBow extends Weapon {
 			if (sniperSpecial && SpiritBow.this.augment == Augment.DAMAGE){
 				return Float.POSITIVE_INFINITY;
 			} else {
-				return super.accuracyFactor(owner, target);
+				//the arrow has no quality of its own: its bow's ACCURACY line lifts it
+				return super.accuracyFactor(owner, target) * (1f + xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.value( SpiritBow.this, xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.ACCURACY ));
 			}
 		}
 		

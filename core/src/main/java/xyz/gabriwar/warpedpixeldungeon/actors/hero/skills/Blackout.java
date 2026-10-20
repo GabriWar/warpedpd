@@ -29,7 +29,10 @@ import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
 
 
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.ShoutFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -41,15 +44,14 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 
 import java.util.ArrayList;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 
 public class Blackout extends Skill {
 
@@ -78,6 +80,19 @@ public class Blackout extends Skill {
 		}
 	}
 
+	/** When the shade of ink flying to a fed shadow lands on it, s. */
+	public static final float FED_AT = 0.45f;
+
+	/** The dark feeding a shadow (mastery): a shade of ink flies to it from where the dark fell, and
+	 *  where its HP rose the heal's red crosses and green light show on it as the shade lands (FED_AT
+	 *  s on). Kit only: it draws nothing of the game's Random (FxRandom alone). */
+	public static void fed( final Char shadow, int cell, boolean mended ){
+		SkillSpectacleFX.fly( SkillSpectacleFX.SHADOW, cell, shadow.pos, 0, FED_AT );
+		if (mended) Fx.post( () -> StaggerFX.after( FED_AT, () -> {
+			if (shadow.isAlive()) SkillInteractions.mended( shadow );
+		} ) );
+	}
+
 	private final CellSelector.Listener thrower = new CellSelector.Listener() {
 		@Override
 		public void onSelect( Integer target ){
@@ -93,8 +108,9 @@ public class Blackout extends Skill {
             //at mastery the dark feeds your shadows
             if(level>=MAX_LEVEL)for(xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.RogueShadow shadow:PhantomStrike.shadows()){
                 if(Dungeon.level.distance(shadow.pos,cell)<=4+level){
+                    int before=shadow.HP;
                     shadow.HP=Math.min(shadow.HT,shadow.HP+SkillInteractions.ofHealth(shadow.HT,0.02f+0.02f*level));
-                    SkillSpectacleFX.fly(SkillSpectacleFX.SHADOW,cell,shadow.pos,0,.45f);
+                    fed(shadow,cell,shadow.HP>before);
                 }
             }
             xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillField.place(curUser,
@@ -106,11 +122,12 @@ public class Blackout extends Skill {
 			castTextYell();
 			SpatialSound.play( Assets.Sounds.PUFF, cell, 1f, 0.8f );
 
-			CellEmitter.get( cell ).burst( Speck.factory( Speck.SMOKE ), 6 );
+			CellEmitter.get( cell ).burst( SkillBursts.INK_DRIFT, 6 );
 			SpatialSound.play( Assets.Sounds.MELD, cell, 0.7f, 0.6f );
-			//lights out: a dark flare blooms where it lands and the darkness rolls out ring by ring
+			//lights out: a dark violet star where it lands and the darkness rolls out ring by ring, ink
+			//sinking in over every cell it reaches (the smoke itself is the real SmokeScreen's)
 			if (curUser.sprite.parent != null && Dungeon.level.heroFOV[cell]){
-				new Flare( 8, 36 ).color( 0x1A0A2A, false ).show( curUser.sprite.parent, DungeonTilemap.tileCenterToWorld( cell ), 0.6f );
+				PixelFlare.show( SkillVfx.cx( cell ), SkillVfx.cy( cell ), ShoutFX.DREAD[3], PixelFlare.M, 0.6f );
 			}
 			FxTimeline t = FxTimeline.start();
 			for (int r = 0; r <= 2; r++){
@@ -118,7 +135,7 @@ public class Blackout extends Skill {
 				t.at( 0.09f * r, () -> {
 					for (int c : SkillInteractions.area( cell, ring )){
 						if (Dungeon.level.distance( cell, c ) == ring && Dungeon.level.heroFOV[c]){
-							CellEmitter.get( c ).burst( ShadowParticle.MISSILE, 3 );
+							CellEmitter.get( c ).burst( SkillBursts.DREAD, 3 );
 						}
 					}
 				} );
@@ -129,7 +146,7 @@ public class Blackout extends Skill {
 				Buff.prolong( ch, Blindness.class, 4 + 2 * level );
 				Buff.affect( ch, Terror.class, 2 + level ).object = curUser.id();
 				if (Dungeon.level.heroFOV[ch.pos]){
-					CellEmitter.get( ch.pos ).burst( Speck.factory( Speck.SMOKE ), 4 );
+					CellEmitter.get( ch.pos ).burst( SkillBursts.INK_DRIFT, 4 );
 				}
 			}
 

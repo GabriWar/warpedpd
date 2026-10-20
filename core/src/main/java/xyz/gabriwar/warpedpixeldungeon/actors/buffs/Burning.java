@@ -28,6 +28,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Fire;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Thief;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRecipes;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ElmoParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
@@ -45,6 +47,7 @@ import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Bundle;
+import com.watabou.utils.PointF;
 import com.watabou.utils.Random;
 
 import java.util.ArrayList;
@@ -88,6 +91,17 @@ public class Burning extends Buff implements Hero.Doom, Buff.DOTbuff {
 
 	@Override
 	public boolean attachTo(Char target) {
+		//soaked through, the first flame only dries the wet off
+		Drenched wet = target.buff( Drenched.class );
+		if (wet != null){
+			wet.detach();
+			if (target.sprite != null && Dungeon.level.heroFOV[target.pos]){
+				PointF c = target.sprite.center();
+				FxRecipes.steam( c.x, c.y, 6 );
+			}
+			return false;
+		}
+
 		Buff.detach( target, Chill.class);
 
 		return super.attachTo(target);
@@ -213,6 +227,8 @@ public class Burning extends Buff implements Hero.Doom, Buff.DOTbuff {
 						barrier.incShield(Math.min(shieldGain, shieldCap - barrier.shielding()));
 					}
 				}
+				//the fire refused: licking up the wearer and dying into embers
+				ElementRows.brimstone( ch );
 			}
 		}
 		if (left < duration) {

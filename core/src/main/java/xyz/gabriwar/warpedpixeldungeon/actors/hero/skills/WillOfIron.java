@@ -39,8 +39,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 /**
  * Mage: the will braces against heavy blows, paying for part of them with mana. A blow braced
@@ -83,7 +81,7 @@ public class WillOfIron extends Skill {
 		if (hero.sprite != null){
 			hero.sprite.emitter().burst( Speck.factory( Speck.BLUE_LIGHT ), 2 + absorbed );
 			new Flare( 6, 20 ).color( 0x88AAFF, true ).show( hero.sprite, 0.5f );
-			hero.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( this, "brace" ) );
+			chipOn( hero );
 		}
 		SpatialSound.play( Assets.Sounds.MELD, hero, 0.8f, 1.3f );
 		return absorbed;

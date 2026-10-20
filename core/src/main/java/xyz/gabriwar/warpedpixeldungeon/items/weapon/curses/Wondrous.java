@@ -28,6 +28,9 @@ import xyz.gabriwar.warpedpixeldungeon.items.wands.CursedWand;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows;
 import com.watabou.utils.Random;
 
 public class Wondrous extends Weapon.Enchantment {
@@ -44,6 +47,7 @@ public class Wondrous extends Weapon.Enchantment {
 
 			Ballistica aim = new Ballistica(attacker.pos, defender.pos, Ballistica.STOP_TARGET);
 			defender.sprite.emitter().burst(RainbowParticle.BURST, 25);
+			EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, 0.45f, level(), EnchantFx.CURSE, ShadowRows.WONDROUS );
 			CursedWand.randomValidEffect(weapon, attacker, aim, positiveOnly).effect(weapon, attacker, aim, positiveOnly);
 		}
 

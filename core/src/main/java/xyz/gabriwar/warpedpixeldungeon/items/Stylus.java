@@ -26,6 +26,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Belongings;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Enchanting;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.GainFx;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.PurpleParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
@@ -103,7 +104,7 @@ public class Stylus extends Item {
 		
 		curUser.sprite.operate(curUser.pos);
 		curUser.sprite.centerEmitter().start(PurpleParticle.BURST, 0.05f, 10);
-		Enchanting.show(curUser, armor);
+		Enchanting.show(curUser, armor, GainFx.of(armor.glyph));
 		SpatialSound.play(Assets.Sounds.BURNING, curUser);
 		
 		curUser.spend(TIME_TO_INSCRIBE);

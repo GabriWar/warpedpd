@@ -25,6 +25,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
 import com.watabou.utils.Bundle;
+import com.watabou.utils.Callback;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
@@ -35,6 +36,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRing;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.Dart;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 
@@ -85,18 +91,21 @@ public class ArrowRain extends Buff {
 	private void volley(){
 		Hero hero = (Hero) target;
 		Dart look = new Dart();
+		final int at = center;
+		Callback heart = () -> stormLands( at );
         java.util.ArrayList<Integer> impact=new java.util.ArrayList<>(xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.area(center,1));
         //+2: the four cross tips two tiles out
         if(level>=2)for(int c:xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.area(center,2)){
             int w=Dungeon.level.width();
             if((c/w==center/w||c%w==center%w)&&!impact.contains(c))impact.add(c);
         }
-        xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX.show(xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX.RAPTOR,center);
 		boolean struck = false;
 		for (int c : impact){
 			if (c < 0 || c >= Dungeon.level.length() || Dungeon.level.solid[c]) continue;
 			if (Dungeon.level.heroFOV[c]){
-				SkillFX.rain( c, look, 1 + Random.Int( 2 ), null );
+				//spirit arrows of light (never darts, an item), falling and landing as the darts did;
+				//the first on the centre lights the storm's heart
+				SkillFX.rain( c, look, SkillFX.Fall.SPIRIT_ARROW, 1 + Random.Int( 2 ), c == center ? heart : null );
 			}
 			Char ch = Actor.findChar( c );
 			if (ch != null && ch != hero && ch.alignment == Char.Alignment.ENEMY && ch.isAlive()){
@@ -111,6 +120,20 @@ public class ArrowRain extends Buff {
         //+3: the arrows stay in the ground and bite whatever steps on them (rank 1: no bow-hit relaunch)
         if(level>=3)SkillField.place(hero,SkillField.ARROWS,1,4,impact);
 		SpatialSound.play( struck ? Assets.Sounds.HIT_ARROW : Assets.Sounds.ATK_SPIRITBOW, center, 1f, Random.Float( 0.9f, 1.1f ) );
+	}
+
+	/** The storm's colour (nature light: the huntress's leaf green). */
+	public static final int NATURE = xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette.NATURE_LIGHT;
+
+	/** The volley's heart as its first arrow lands on `cell`: a nature flare there and a ring of
+	 *  light spreading over the storm's cells. Any thread. */
+	public static void stormLands( final int cell ){
+		Fx.post( () -> {
+			if (!SkillVfx.valid( cell )) return;
+			float x = SkillVfx.cx( cell ), y = SkillVfx.cy( cell );
+			PixelFlare.show( x, y - 2, NATURE, PixelFlare.M, 0.4f );
+			FxRing.ground( GameScene.layer( GameScene.Layer.FLOOR ), x, y + 4, 9, 41, 0.5f, NATURE, 0.5f, true );
+		} );
 	}
 
 	@Override

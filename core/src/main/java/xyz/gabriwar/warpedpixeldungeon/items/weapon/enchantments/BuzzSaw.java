@@ -32,6 +32,9 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Chainsaw;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows;
 import com.watabou.utils.Random;
 
 public class BuzzSaw extends Weapon.Enchantment {
@@ -65,6 +68,7 @@ public class BuzzSaw extends Weapon.Enchantment {
 				int dmg = Math.max(1, Math.round((attacker.damageRoll() - i) * 2 * power())); //scales with enchantment level
 				defender.damage(dmg, this);
 				GLog.h(Messages.get(this, "vrr"));
+				EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, Math.min( 1f, (hits + 1) / 5f ), level(), 0, ShadowRows.buzz( i - 1 ) );
 			} else if (vial.getVolume() == 0) {
 				GLog.n(Messages.get(this, "no_fuel"));
 				break;

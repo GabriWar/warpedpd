@@ -24,7 +24,6 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PillarRiseFX;
-import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SkillSequence;
 
 import com.watabou.utils.PathFinder;
@@ -105,14 +104,14 @@ public class PillarOfLight extends Skill {
 			Invisibility.dispel();
 
 			hero.sprite.zap( cell );
-			//the pillar rises from the ground, flashes at full height, and rains sparks as it fades
+			//the pillar rises from the ground, flashes at full height, and rains sparks as it fades (one
+			//column: no second spire dropped in it)
 			final Char struck = ch;
 			PillarRiseFX.show( cell, 0xFFEE88, () -> {
 				SkillInteractions.flare( cell, 0xFFF1A1 );
 				SkillFX.flash( struck );
 				SpatialSound.play( Assets.Sounds.HIT_MAGIC, cell, 0.8f, 0.9f );
 			} );
-            SkillSpectacleFX.show(SkillSpectacleFX.SPIRE,cell);
             if (level >= MAX_LEVEL)
                 SkillSequence.start(hero,SkillSequence.CATHEDRAL,2,cell,SPIRE_DAMAGE,2,java.util.Collections.emptyList());
 			SpatialSound.play( Assets.Sounds.RAY, cell, 1f, 1.1f );

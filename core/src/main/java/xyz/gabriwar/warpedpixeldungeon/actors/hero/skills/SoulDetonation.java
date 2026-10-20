@@ -28,7 +28,11 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.DreadFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBolt;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -50,6 +54,8 @@ import java.util.ArrayList;
 public class SoulDetonation extends Skill {
 
 	private static final int MAX_DETONATIONS = 3;
+	/** Motes of soul peeled out of each sacrifice into the soul flying home. */
+	public static final int PEEL = 6;
 
 	{
 		tag = "A4";
@@ -90,17 +96,18 @@ public class SoulDetonation extends Skill {
                     int origin=pet.pos;final int order=beat++;
                     boolean rat=pet.sprite instanceof xyz.gabriwar.warpedpixeldungeon.sprites.RatSprite;
                     boolean skeleton=pet.sprite instanceof xyz.gabriwar.warpedpixeldungeon.sprites.SkeletonSprite;
-                    if(pet.sprite!=null)pet.sprite.parent.add(new xyz.gabriwar.warpedpixeldungeon.effects.Beam.HealthRay(pet.sprite.center(),hero.sprite.center()));
-                    CellEmitter.bottom(origin).burst(ShadowParticle.UP,12);
-                    SkillInteractions.blast(origin,skeleton?2:1,4+3*level,0xBBA7EE);
+                    //its soul flies home to the mage, peeled out of its body into a swaying mote of soul
+                    //light (never a healing beam, never a heal's green or crosses: he gains no health)
+                    if(pet.sprite!=null&&hero.sprite!=null)SkillBolt.mote(pet.sprite,hero.sprite,SkillBolt.SOUL,null).peel(pet.sprite,PEEL);
+                    CellEmitter.bottom(origin).burst(SkillBursts.SOUL_WISP,12);
+                    SkillInteractions.blast(origin,skeleton?2:1,4+3*level,DreadFX.SOUL[2]);
                     if(rat)for(int c:SkillInteractions.area(origin,1)){
                         Char enemy=Actor.findChar(c);
                         if(enemy!=null&&enemy.alignment==Char.Alignment.ENEMY)xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff.affect(enemy,xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison.class).set(2+level);
                     }
                     pet.die(SoulDetonation.this);
-                    //the souls go up one after another: a violet flare where each stood, a jolt, the boom climbing, then its light reaching the mage
-                    if(hero.sprite!=null&&hero.sprite.parent!=null)new xyz.gabriwar.warpedpixeldungeon.effects.Flare(6,16).color(0xBBA7EE,true)
-                        .show(hero.sprite.parent,xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap.tileCenterToWorld(origin),0.5f);
+                    //the souls go up one after another: a star of soul light where each stood, a jolt, the boom climbing, then its light reaching the mage
+                    if(hero.sprite!=null&&hero.sprite.parent!=null)PixelFlare.show(SkillVfx.cx(origin),SkillVfx.cy(origin),DreadFX.SOUL[2],PixelFlare.M,0.5f);
                     xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StaggerFX.after(0.1f*order,()->{
                         Fx.shake(2,0.2f);SpatialSound.play(Assets.Sounds.BLAST,origin,0.8f,0.9f+0.1f*order);
                     });

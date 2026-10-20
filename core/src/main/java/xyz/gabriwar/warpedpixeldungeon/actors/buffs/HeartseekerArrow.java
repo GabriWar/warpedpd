@@ -25,6 +25,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
 import com.watabou.utils.Bundle;
+import com.watabou.utils.Callback;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -33,20 +34,36 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Heartseeker;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.ClosingRing;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.BloodParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.SpiritBow;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.Dart;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
-/** Heartseeker's lodged arrow: the heart beats three times, then bursts. */
+/**
+ * Heartseeker's lodged arrow: the heart beats three times, then bursts. Seen as a heartbeat in the
+ * heart's reds (the blood's crimson D01818 for its light, SkillPalette.HEART's CC0000 for its body;
+ * never pink, never a charm's hearts nor the hero's low-health alarm): each beat a throb
+ * of motes out of the chest, a star of the heart's light there, and a ring of its deep red closing
+ * tighter on the feet (the countdown), a thump pitched a step higher; the burst its real blood and
+ * a flare of the heart's light.
+ */
 public class HeartseekerArrow extends Buff {
 
 	public static final int BEATS = 3;
 	public static final int REACH = 4;
+	/** The heart's body (the countdown ring, CC0000) and its light (the throb's and the burst's
+	 *  stars, the blood's crimson D01818: a flare adds its star over a glow of its own colour, and
+	 *  the specks' heart FF3355, charm's, adds up to pink), the countdown ring's widest (the first
+	 *  beat's), how much tighter each beat after, the width it closes to, its life. */
+	public static final int CRIMSON = SkillPalette.HEART.stop( 1 ), HEART_LIGHT = SkillPalette.BLOOD.stop( 1 ),
+			RING_FROM = 31, RING_STEP = 4, RING_TO = 7;
+	public static final float RING_LIFE = 0.3f;
 
 	private int beats = BEATS;
 	private int rank = 1;
@@ -79,9 +96,37 @@ public class HeartseekerArrow extends Buff {
 	private void pulse(){
 		if (target.sprite == null || !Dungeon.level.heroFOV[target.pos]) return;
 		int beat = BEATS - beats;
-		target.sprite.emitter().burst( Speck.factory( Speck.HEART ), 1 + beat );
-		target.sprite.showStatus( CharSprite.WARNING, Integer.toString( beats ) );
-		SpatialSound.play( Assets.Sounds.HEALTH_WARN, target, 0.4f + 0.2f * beat, 1f + 0.15f * beat );
+		beat( target.sprite, beat );
+		xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.counterOn( xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Heartseeker.class, target, beats, CharSprite.WARNING );
+		//a heartbeat's thump, a step higher each beat (never the hero's own low-health warning)
+		SpatialSound.play( Assets.Sounds.HIT, target, 0.4f + 0.2f * beat, 0.55f + 0.1f * beat );
+	}
+
+	/** The arrow lodging in a heart: its first throb, `n` motes out of the chest. Any thread
+	 *  (one burst of the sprite's emitter: the game's Random drawn once, as the hearts did). */
+	public static void lodged( CharSprite s, int n ){
+		s.emitter().burst( SkillBursts.HEARTBEAT, n );
+		heart( s, 0.2f );
+	}
+
+	/** A beat (1, 2, ...): 1 + beat motes throbbing out of the chest, and the countdown's ring
+	 *  closing on the feet, RING_STEP px tighter each beat. Any thread (one burst, as the hearts). */
+	public static void beat( CharSprite s, int beat ){
+		s.emitter().burst( SkillBursts.HEARTBEAT, 1 + beat );
+		heart( s, 0.25f );
+		ClosingRing.on( s, RING_FROM - RING_STEP * beat, RING_TO, RING_LIFE, CRIMSON );
+	}
+
+	//the heart itself throbbing: a small star of the heart's light at the chest
+	private static void heart( CharSprite s, float life ){
+		PixelFlare.show( SkillVfx.midX( s ), SkillVfx.midY( s ) - 1, HEART_LIGHT, PixelFlare.S, life );
+	}
+
+	/** The heart bursting: its blood (the burst is a real wound) and a flare of the heart's light at
+	 *  its chest. Any thread (one burst, as before). */
+	public static void bursting( CharSprite s ){
+		s.emitter().burst( BloodParticle.FACTORY, 12 );
+		PixelFlare.show( SkillVfx.midX( s ), SkillVfx.midY( s ), HEART_LIGHT, PixelFlare.M, 0.5f );
 	}
 
 	private void burst(){
@@ -94,9 +139,8 @@ public class HeartseekerArrow extends Buff {
 
 		detach();
 		if (victim.sprite != null && Dungeon.level.heroFOV[pos]){
-			victim.sprite.emitter().burst( BloodParticle.FACTORY, 12 );
-			new Flare( 6, 24 ).color( 0xCC2222, true ).show( victim.sprite, 0.7f );
-			victim.sprite.showStatus( CharSprite.NEGATIVE, Messages.get( Heartseeker.class, "burst" ) );
+			bursting( victim.sprite );
+			xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.chipOn( Heartseeker.class, victim );
 		}
 		SpatialSound.play( Assets.Sounds.HIT_STRONG, pos, 1f, 0.9f );
 		victim.damage( damage, this );
@@ -120,10 +164,14 @@ public class HeartseekerArrow extends Buff {
 		Buff.affect( next, HeartseekerArrow.class ).set( rank );
 		SpiritBow bow = Dungeon.hero != null ? Dungeon.hero.belongings.getItem( SpiritBow.class ) : null;
 		final Mob struck = next;
-		SkillFX.streak( from, struck.pos, bow != null ? bow.knockArrow() : new Dart(), () -> {
+		Callback lodges = () -> {
 			SkillFX.flash( struck );
-			if (struck.sprite != null) struck.sprite.emitter().burst( Speck.factory( Speck.HEART ), 3 );
-		} );
+			if (struck.sprite != null) lodged( struck.sprite, 3 );
+		};
+		//the bow's own arrow tearing free; with no bow, a spirit arrow of light (never a dart, an
+		//item), landing when the dart would have
+		if (bow != null) SkillFX.streak( from, struck.pos, bow.knockArrow(), lodges );
+		else SkillFX.streak( from, struck.pos, SkillFX.Streak.SPIRIT_ARROW, new Dart(), lodges );
 		SpatialSound.play( Assets.Sounds.HIT_ARROW, struck, 1f, 0.8f );
 	}
 

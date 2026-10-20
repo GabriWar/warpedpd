@@ -132,6 +132,7 @@ import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.BrokenSeal;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
@@ -176,7 +177,6 @@ import xyz.gabriwar.warpedpixeldungeon.levels.features.Door;
 import xyz.gabriwar.warpedpixeldungeon.levels.traps.GeyserTrap;
 import xyz.gabriwar.warpedpixeldungeon.levels.traps.GnollRockfallTrap;
 import xyz.gabriwar.warpedpixeldungeon.levels.traps.GrimTrap;
-import xyz.gabriwar.warpedpixeldungeon.messages.Languages;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.plants.Earthroot;
 import xyz.gabriwar.warpedpixeldungeon.plants.Swiftthistle;
@@ -468,7 +468,22 @@ public abstract class Char extends Actor {
 		return attack(enemy, 1f, 0f, 1f);
 	}
 	
-	public boolean attack( Char enemy, float dmgMulti, float dmgBonus, float accMulti ) {
+	public boolean attack( Char enemy, float dmgMulti, float dmgBonus, float accMulti ){
+		xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.begin( this, enemy );
+		xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.openBlow( this, enemy, dmgMulti, dmgBonus, accMulti );
+		try {
+			return attackInBlow( enemy, dmgMulti, dmgBonus, accMulti );
+		} finally {
+			//the damage ledger commits the blow before its presenter reads it for the card
+			try {
+				xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.closeBlow();
+			} finally {
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.end();
+			}
+		}
+	}
+
+	private boolean attackInBlow( Char enemy, float dmgMulti, float dmgBonus, float accMulti ) {
 
 		if (enemy == null) return false;
 		
@@ -482,7 +497,7 @@ public abstract class Char extends Actor {
 		if (enemy.isInvulnerable(getClass())) {
 
 			if (visibleFight) {
-				enemy.sprite.showStatus( CharSprite.POSITIVE, Messages.get(this, "invulnerable") );
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.mark( enemy, FloatingText.IMMUNE );
 
 				SpatialSound.play(Assets.Sounds.HIT_PARRY, enemy, 1f, Random.Float(0.96f, 1.05f));
 			} else {
@@ -498,8 +513,11 @@ public abstract class Char extends Actor {
 				if (!enemy.isAlive()) return true;
 			}
 			
-			int dr = Math.round(enemy.drRoll() * AscensionChallenge.statModifier(enemy)
-					* (1f - xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.drPierce( this, enemy )));
+			int drRaw = enemy.drRoll();
+			float drStat = AscensionChallenge.statModifier(enemy);
+			float drPierce = xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.drPierce( this, enemy );
+			int dr = Math.round(drRaw * drStat * (1f - drPierce));
+			xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.armor( enemy, drRaw, drPierce, dr );
 			
 			if (this instanceof Hero){
 				Hero h = (Hero)this;
@@ -507,15 +525,18 @@ public abstract class Char extends Actor {
 						&& h.subClass == HeroSubClass.SNIPER
 						&& !Dungeon.level.adjacent(h.pos, enemy.pos)){
 					dr = 0;
+					xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.armorIgnored( enemy, h.subClass.title() );
 				}
 
 				if (h.buff(MonkEnergy.MonkAbility.UnarmedAbilityTracker.class) != null){
 					dr = 0;
+					xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.armorIgnored( enemy, h.buff(MonkEnergy.class) );
 				}
 
 				//skill tree: Precision-style gaps in the target's guard
 				if (h.heroSkills != null && h.heroSkills.anyIgnoresArmor(enemy)){
 					dr = 0;
+					xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.armorIgnored( enemy, h.heroSkills.cause );
 				}
 			}
 
@@ -523,6 +544,7 @@ public abstract class Char extends Actor {
 			// potentially applying various multiplier effects
 			float dmg;
 			Preparation prep = buff(Preparation.class);
+			xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.beginBaseRoll();
 			if (prep != null){
 				dmg = prep.damageRoll(this);
 				if (this == Dungeon.hero && Dungeon.hero.hasTalent(Talent.BOUNTY_HUNTER)) {
@@ -531,16 +553,17 @@ public abstract class Char extends Actor {
 			} else {
 				dmg = damageRoll();
 			}
+			xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.endBaseRoll( dmg );
 
-			dmg = dmg*dmgMulti;
+			dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.multiplierLabel( this ), dmg, dmgMulti );
 
 			//flat damage bonus is affected by multipliers
-			dmg += dmgBonus;
+			dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.add( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.bonusLabel( this ), dmg, dmgBonus );
 
 			if (enemy.buff(GuidingLight.Illuminated.class) != null){
 				enemy.buff(GuidingLight.Illuminated.class).detach();
 				if (this == Dungeon.hero && Dungeon.hero.hasTalent(Talent.SEARING_LIGHT)){
-					dmg += Math.round((1 + 2*Dungeon.hero.pointsInTalent(Talent.SEARING_LIGHT)) * Talent.levelScale(Dungeon.hero));
+					dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.add( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, Talent.SEARING_LIGHT, dmg, Math.round((1 + 2*Dungeon.hero.pointsInTalent(Talent.SEARING_LIGHT)) * Talent.levelScale(Dungeon.hero)) );
 				}
 				if (this != Dungeon.hero && Dungeon.hero.subClass == HeroSubClass.PRIEST){
 					enemy.damage(5+Dungeon.hero.lvl, GuidingLight.INSTANCE);
@@ -548,94 +571,109 @@ public abstract class Char extends Actor {
 			}
 
 			Berserk berserk = buff(Berserk.class);
-			if (berserk != null) dmg = berserk.damageFactor(dmg);
+			if (berserk != null) dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.to( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.MUL, berserk, dmg, berserk.damageFactor(dmg) );
 
 			if (buff( Fury.class ) != null) {
-				dmg *= 1.5f;
+				dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, buff( Fury.class ), dmg, 1.5f );
 			}
 
 			if (buff( PowerOfMany.PowerBuff.class) != null){
 				if (buff( BeamingRay.BeamingRayBoost.class) != null
 					&& buff( BeamingRay.BeamingRayBoost.class).object == enemy.id()){
-					dmg *= 1.3f + 0.05f*Dungeon.hero.pointsInTalent(Talent.BEAMING_RAY);
+					dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, buff( BeamingRay.BeamingRayBoost.class ), dmg, 1.3f + 0.05f*Dungeon.hero.pointsInTalent(Talent.BEAMING_RAY) );
 				} else {
-					dmg *= 1.25f;
+					dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, buff( PowerOfMany.PowerBuff.class ), dmg, 1.25f );
 				}
 			}
 
 			for (ChampionEnemy buff : buffs(ChampionEnemy.class)){
-				dmg *= buff.meleeDamageFactor();
+				dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, buff, dmg, buff.meleeDamageFactor() );
 			}
 
-			dmg *= AscensionChallenge.statModifier(this);
+			dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.WORLD, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.POWER, dmg, AscensionChallenge.statModifier(this) );
 
 			// Undead mobs deal more damage at night
 			if (properties().contains(Property.UNDEAD)) {
-				dmg *= DayNightCycle.undeadDamageMultiplier();
+				dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.WORLD, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.UNDEAD_NIGHT, dmg, DayNightCycle.undeadDamageMultiplier() );
 			}
 
 			// Season and weekday damage modifiers
-			dmg *= GameCalendar.seasonDamageMultiplier();
-			dmg *= GameCalendar.weekdayDamageMultiplier();
+			dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.WORLD, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.SEASON, dmg, GameCalendar.seasonDamageMultiplier() );
+			dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.WORLD, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.WEEKDAY, dmg, GameCalendar.weekdayDamageMultiplier() );
 
 			//the blood moon's fury: a hero under it hits demons harder
 			if (this instanceof Hero && buff(xyz.gabriwar.warpedpixeldungeon.actors.buffs.BloodMoonBuff.class) != null
 					&& enemy.properties().contains(Property.DEMONIC)){
-				dmg *= xyz.gabriwar.warpedpixeldungeon.actors.buffs.BloodMoonBuff.DEMONIC_DMG_MULT;
+				dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.WORLD, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.BLOOD_MOON, dmg, xyz.gabriwar.warpedpixeldungeon.actors.buffs.BloodMoonBuff.DEMONIC_DMG_MULT );
 			}
 
 			//friendly endure
 			Endure.EndureTracker endure = buff(Endure.EndureTracker.class);
-			if (endure != null) dmg = endure.damageFactor(dmg);
+			if (endure != null) dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.to( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.MUL, endure, dmg, endure.damageFactor(dmg) );
 
 			//enemy endure
 			endure = enemy.buff(Endure.EndureTracker.class);
 			if (endure != null){
-				dmg = endure.adjustDamageTaken(dmg);
+				dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.to( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.MUL, endure, dmg, endure.adjustDamageTaken(dmg) );
 			}
 
 			if (enemy.buff(ScrollOfChallenge.ChallengeArena.class) != null){
-				dmg *= 0.67f;
+				dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, enemy.buff(ScrollOfChallenge.ChallengeArena.class), dmg, 0.67f );
 			}
 
 			if (Dungeon.hero.alignment == enemy.alignment
 					&& Dungeon.hero.buff(AuraOfProtection.AuraBuff.class) != null
 					&& (Dungeon.level.distance(enemy.pos, Dungeon.hero.pos) <= 2 || enemy.buff(LifeLinkSpell.LifeLinkSpellBuff.class) != null)){
-				dmg *= 0.9f - 0.1f*Dungeon.hero.pointsInTalent(Talent.AURA_OF_PROTECTION);
+				dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, Dungeon.hero.buff(AuraOfProtection.AuraBuff.class), dmg, 0.9f - 0.1f*Dungeon.hero.pointsInTalent(Talent.AURA_OF_PROTECTION) );
 			}
 
 			if (enemy.buff(MonkEnergy.MonkAbility.Meditate.MeditateResistance.class) != null){
-				dmg *= 0.2f;
+				dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, enemy.buff(MonkEnergy.MonkAbility.Meditate.MeditateResistance.class), dmg, 0.2f );
 			}
 
 			if ( buff(Weakness.class) != null ){
-				dmg *= 0.67f;
+				dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, buff(Weakness.class), dmg, 0.67f );
 			}
 			xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Demoralize.Demoralized demoralized =
 					buff(xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Demoralize.Demoralized.class);
-			if (demoralized != null) dmg *= demoralized.factor;
+			if (demoralized != null) dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, demoralized, dmg, demoralized.factor );
+			//a Lash's disarm: the first blow that lands after it is half a blow, and spends it
+			xyz.gabriwar.warpedpixeldungeon.actors.buffs.Disarmed disarmed =
+					buff(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Disarmed.class);
+			if (disarmed != null){
+				dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, disarmed, dmg, 0.5f );
+				disarmed.detach();
+				//the struck one's card shows the cause beside the halved number
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.chip( enemy, -(xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator.DISARMED + 1), 0 );
+			}
 
-			if ( buff(Feelers.class) != null ) dmg *= 2f;
-			if ( buff(Wither.class) != null )  dmg /= 2f;
+			if ( buff(Feelers.class) != null ) dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, buff(Feelers.class), dmg, 2f );
+			if ( buff(Wither.class) != null )  dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, buff(Wither.class), dmg, 0.5f );
 
-			int effectiveDamage = enemy.defenseProc( this, Math.round(dmg) );
+			int rounded = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.round( enemy, dmg );
+			xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.push( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.AUTO, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.DEFENSE.of( enemy ) );
+			int effectiveDamage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.pop( enemy.defenseProc( this, rounded ) );
 			//the defender's reaction (riposte, thorns, a glyph) killed the attacker: its blow never lands
 			if (!isAlive()) return true;
 			//do not trigger on-hit logic if defenseProc returned a negative value
 			if (effectiveDamage >= 0) {
-				effectiveDamage = Math.max(effectiveDamage - dr, 0);
+				effectiveDamage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.to( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ADD, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.ARMOR, effectiveDamage, Math.max(effectiveDamage - dr, 0) );
 
 				if (enemy.buff(Viscosity.ViscosityTracker.class) != null) {
-					effectiveDamage = enemy.buff(Viscosity.ViscosityTracker.class).deferDamage(effectiveDamage);
+					effectiveDamage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.to( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ADD, new Viscosity(), effectiveDamage,
+							enemy.buff(Viscosity.ViscosityTracker.class).deferDamage(effectiveDamage) );
 					enemy.buff(Viscosity.ViscosityTracker.class).detach();
 				}
 
 				//vulnerable specifically applies after armor reductions
 				if (enemy.buff(Vulnerable.class) != null) {
+					int unhurt = effectiveDamage;
 					effectiveDamage *= 1.33f;
+					xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mulRound( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, enemy.buff(Vulnerable.class), unhurt, 1.33f, effectiveDamage );
 				}
 
-				effectiveDamage = attackProc(enemy, effectiveDamage);
+				xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.push( enemy, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.AUTO, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.ATTACK_EFFECT.of( this ) );
+				effectiveDamage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.pop( attackProc(enemy, effectiveDamage) );
 			}
 			if (visibleFight) {
 				if (effectiveDamage > 0 || !enemy.blockSound(Random.Float(0.96f, 1.05f))) {
@@ -650,9 +688,11 @@ public abstract class Char extends Actor {
 			// If the enemy is already dead, interrupt the attack.
 			// This matters as defence procs can sometimes inflict self-damage, such as armor glyphs.
 			if (!enemy.isAlive()){
+				if (visibleFight) xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx.blowEnded( this, enemy );
 				return true;
 			}
 
+			xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.expectMain( enemy, effectiveDamage );
 			enemy.damage( effectiveDamage, this );
 
 			if (buff(FireImbue.class) != null)  buff(FireImbue.class).proc(enemy);
@@ -662,6 +702,7 @@ public abstract class Char extends Actor {
 			if (buff(SoulFire.class) != null)   buff(SoulFire.class).proc(enemy);
 
 			if (enemy.isAlive() && enemy.alignment != alignment && prep != null && prep.canKO(enemy)){
+				xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.execute( enemy, prep, enemy.HP );
 				enemy.HP = 0;
 				for (Buff b : enemy.buffs(Brute.BruteRage.class)){
 					b.detach();
@@ -673,9 +714,7 @@ public abstract class Char extends Actor {
 					enemy.damage(-1, this);
 					DeathMark.processFearTheReaper(enemy);
 				}
-				if (enemy.sprite != null) {
-					enemy.sprite.showStatus(CharSprite.NEGATIVE, Messages.get(Preparation.class, "assassinated"));
-				}
+				if (enemy.sprite != null) xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.chip( enemy, FloatingText.EXECUTE, 0 );
 			}
 
 			Talent.CombinedLethalityAbilityTracker combinedLethality = buff(Talent.CombinedLethalityAbilityTracker.class);
@@ -683,6 +722,7 @@ public abstract class Char extends Actor {
 				if ( enemy.isAlive() && enemy.alignment != alignment && !Char.hasProp(enemy, Property.BOSS)
 						&& !Char.hasProp(enemy, Property.MINIBOSS) &&
 						(enemy.HP/(float)enemy.HT) <= 0.4f*((Hero)this).pointsInTalent(Talent.COMBINED_LETHALITY)/3f) {
+					xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.execute( enemy, Talent.COMBINED_LETHALITY, enemy.HP );
 					enemy.HP = 0;
 					for (Buff b : enemy.buffs(Brute.BruteRage.class)){
 						b.detach();
@@ -694,9 +734,7 @@ public abstract class Char extends Actor {
 						enemy.damage(-1, this);
 						DeathMark.processFearTheReaper(enemy);
 					}
-					if (enemy.sprite != null) {
-						enemy.sprite.showStatus(CharSprite.NEGATIVE, Messages.get(Talent.CombinedLethalityAbilityTracker.class, "executed"));
-					}
+					if (enemy.sprite != null) xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.chip( enemy, FloatingText.EXECUTE, 0 );
 				}
 				combinedLethality.detach();
 			}
@@ -707,6 +745,7 @@ public abstract class Char extends Actor {
 				//the blow as the eye takes it: its star, what the weapon leaves, a recoil (pictures
 				//only, made on the render thread, drawing nothing of the game's Random)
 				if (visibleFight && sprite != null) {
+					xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx.swing( this, enemy, true );
 					enemy.sprite.hitFx( sprite.x + sprite.width() / 2f, sprite.y + sprite.height() / 2f, effectiveDamage,
 							xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.HitFx.styleOf( this ),
 							this == Dungeon.hero || enemy == Dungeon.hero );
@@ -746,21 +785,17 @@ public abstract class Char extends Actor {
 			}
 
 			if (enemy.sprite != null){
-				if (hitMissIcon != -1){
-					//dooking is a playful sound Ferrets can make, like low pitched chirping
-					// I doubt this will translate, so it's only in English
-					if (hitMissIcon == FloatingText.MISS_TUFT && Messages.lang() == Languages.ENGLISH && Random.Int(10) == 0) {
-						enemy.sprite.showStatusWithIcon(CharSprite.NEUTRAL, "dooked", hitMissIcon);
-					} else {
-						enemy.sprite.showStatusWithIcon(CharSprite.NEUTRAL, enemy.defenseVerb(), hitMissIcon);
-					}
-					hitMissIcon = -1;
-				} else {
-					enemy.sprite.showStatus(CharSprite.NEUTRAL, enemy.defenseVerb());
-				}
+				//the miss's card: the defence's icon (its verb called for what it does: a parry spent,
+				//a guard taken, a dodge counted) and the reason it missed
+				String verb = enemy.defenseVerb();
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.miss( enemy,
+						xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.missCell( enemy, verb ), hitMissIcon );
+				hitMissIcon = -1;
 				//the swing whooshing past (pictures only, as a blow's)
 				if (visibleFight && sprite != null) {
 					enemy.sprite.dodgeFx( sprite.x + sprite.width() / 2f, sprite.y + sprite.height() / 2f );
+					xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx.swing( this, enemy, false );
+					if (enemy.glyphLevel( xyz.gabriwar.warpedpixeldungeon.items.armor.glyphs.Afterimage.class ) >= 0) xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows.afterimageDodge( enemy, this );
 				}
 			}
 			if (visibleFight) {
@@ -794,21 +829,27 @@ public abstract class Char extends Actor {
 	}
 
 	public static boolean hit( Char attacker, Char defender, float accMulti, boolean magic ) {
-		if (attacker.buff(SpaceTimePowers.class) != null) return true;
+		if (attacker.buff(SpaceTimePowers.class) != null){
+			xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.sureRoll( attacker, defender );
+			return true;
+		}
 		if (attacker == Dungeon.hero && Dungeon.debugOneHitKill) return true;
 
+		xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.beginRoll( attacker, defender );
 		float acuStat = attacker.attackSkill( defender );
+		xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.accRead( acuStat );
 		float defStat = defender.defenseSkill( attacker );
+		xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.defRead( defStat );
 
 		//under the blood moon enemies aim truer at the hero
 		if (defender instanceof Hero && attacker.alignment == Alignment.ENEMY
 				&& defender.buff(xyz.gabriwar.warpedpixeldungeon.actors.buffs.BloodMoonBuff.class) != null){
-			acuStat *= xyz.gabriwar.warpedpixeldungeon.actors.buffs.BloodMoonBuff.ENEMY_ACC_MULT;
+			acuStat = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollMul( true, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.BLOOD_MOON, acuStat, xyz.gabriwar.warpedpixeldungeon.actors.buffs.BloodMoonBuff.ENEMY_ACC_MULT );
 		}
 
 		//the cold stiffens whoever is caught in it: they dodge a third less
 		if (defender.buff(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hypothermia.class) != null){
-			defStat *= xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hypothermia.EVASION_FACTOR;
+			defStat = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollMul( false, defender.buff(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hypothermia.class), defStat, xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hypothermia.EVASION_FACTOR );
 		}
 
 		if (defender instanceof Hero && ((Hero) defender).damageInterrupt){
@@ -817,10 +858,12 @@ public abstract class Char extends Actor {
 
 		//invisible chars always hit (for the hero this is surprise attacking)
 		if (attacker.invisible > 0 && attacker.canSurpriseAttack()){
+			xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollStep( true, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.SURPRISE, acuStat, INFINITE_ACCURACY );
 			acuStat = INFINITE_ACCURACY;
 		}
 
 		if (defender.buff(MonkEnergy.MonkAbility.Focus.FocusBuff.class) != null){
+			xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollStep( false, defender.buff(MonkEnergy.MonkAbility.Focus.FocusBuff.class), defStat, INFINITE_EVASION );
 			defStat = INFINITE_EVASION;
 		}
 
@@ -828,50 +871,58 @@ public abstract class Char extends Actor {
 		//note that infinite evasion beats infinite accuracy
 		if (defStat >= INFINITE_EVASION){
 			hitMissIcon = FloatingText.getMissReasonIcon(attacker, acuStat, defender, INFINITE_EVASION);
+			xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.roll( attacker, defender, acuStat, defStat, 0f, 0f, false, hitMissIcon );
 			return false;
 		} else if (acuStat >= INFINITE_ACCURACY){
 			hitMissIcon = FloatingText.getHitReasonIcon(attacker, INFINITE_ACCURACY, defender, defStat);
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.reason( attacker, defender, hitMissIcon );
+			xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.roll( attacker, defender, acuStat, defStat, 0f, 0f, true, hitMissIcon );
 			return true;
 		}
 
 		float acuRoll = Random.Float( acuStat );
-		if (attacker.buff(Bless.class) != null)       acuRoll *= 1.25f;
-		if (attacker.buff(  Hex.class) != null)       acuRoll *= 0.8f;
-		if (attacker.buff( Daze.class) != null)       acuRoll *= 0.5f;
-		if (attacker.buff(MarkOfTheNut.class) != null) acuRoll *= 2f;
+		xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollBase( true, acuRoll );
+		if (attacker.buff(Bless.class) != null)       acuRoll = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollMul( true, attacker.buff(Bless.class), acuRoll, 1.25f );
+		if (attacker.buff(  Hex.class) != null)       acuRoll = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollMul( true, attacker.buff(Hex.class), acuRoll, 0.8f );
+		if (attacker.buff( Daze.class) != null)       acuRoll = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollMul( true, attacker.buff(Daze.class), acuRoll, 0.5f );
+		if (attacker.buff(MarkOfTheNut.class) != null) acuRoll = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollMul( true, attacker.buff(MarkOfTheNut.class), acuRoll, 2f );
 		for (ChampionEnemy buff : attacker.buffs(ChampionEnemy.class)){
-			acuRoll *= buff.evasionAndAccuracyFactor();
+			acuRoll = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollMul( true, buff, acuRoll, buff.evasionAndAccuracyFactor() );
 		}
-		acuRoll *= AscensionChallenge.skillModifier(attacker);
+		acuRoll = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollMul( true, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.POWER, acuRoll, AscensionChallenge.skillModifier(attacker) );
 		if (Dungeon.hero.heroClass != HeroClass.CLERIC
 				&& Dungeon.hero.hasTalent(Talent.BLESS)
 				&& attacker.alignment == Alignment.ALLY){
 			// + 3%/5%
-			acuRoll *= 1.01f + 0.02f*Dungeon.hero.pointsInTalent(Talent.BLESS);
+			acuRoll = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollMul( true, Talent.BLESS, acuRoll, 1.01f + 0.02f*Dungeon.hero.pointsInTalent(Talent.BLESS) );
 		}
-		acuRoll *= accMulti;
+		acuRoll = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollMul( true, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.AIM, acuRoll, accMulti );
 
 		float defRoll = Random.Float( defStat );
-		if (defender.buff(Bless.class) != null) defRoll *= 1.25f;
-		if (defender.buff(  Hex.class) != null) defRoll *= 0.8f;
-		if (defender.buff( Daze.class) != null) defRoll *= 0.5f;
+		xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollBase( false, defRoll );
+		if (defender.buff(Bless.class) != null) defRoll = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollMul( false, defender.buff(Bless.class), defRoll, 1.25f );
+		if (defender.buff(  Hex.class) != null) defRoll = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollMul( false, defender.buff(Hex.class), defRoll, 0.8f );
+		if (defender.buff( Daze.class) != null) defRoll = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollMul( false, defender.buff(Daze.class), defRoll, 0.5f );
 		for (ChampionEnemy buff : defender.buffs(ChampionEnemy.class)){
-			defRoll *= buff.evasionAndAccuracyFactor();
+			defRoll = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollMul( false, buff, defRoll, buff.evasionAndAccuracyFactor() );
 		}
-		defRoll *= AscensionChallenge.skillModifier(defender);
+		defRoll = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollMul( false, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.POWER, defRoll, AscensionChallenge.skillModifier(defender) );
 		if (Dungeon.hero.heroClass != HeroClass.CLERIC
 				&& Dungeon.hero.hasTalent(Talent.BLESS)
 				&& defender.alignment == Alignment.ALLY){
 			// + 3%/5%
-			defRoll *= 1.01f + 0.02f*Dungeon.hero.pointsInTalent(Talent.BLESS);
+			defRoll = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollMul( false, Talent.BLESS, defRoll, 1.01f + 0.02f*Dungeon.hero.pointsInTalent(Talent.BLESS) );
 		}
-		defRoll *= FerretTuft.evasionMultiplier();
+		defRoll = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.rollMul( false, FerretTuft.class, defRoll, FerretTuft.evasionMultiplier() );
 
 		if (acuRoll >= defRoll){
 			hitMissIcon = FloatingText.getHitReasonIcon(attacker, acuRoll, defender, defRoll);
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.reason( attacker, defender, hitMissIcon );
+			xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.roll( attacker, defender, acuStat, defStat, acuRoll, defRoll, true, hitMissIcon );
 			return true;
 		} else {
 			hitMissIcon = FloatingText.getMissReasonIcon(attacker, acuRoll, defender, defRoll);
+			xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.roll( attacker, defender, acuStat, defStat, acuRoll, defRoll, false, hitMissIcon );
 			return false;
 		}
 	}
@@ -921,21 +972,21 @@ public abstract class Char extends Actor {
 
 		Earthroot.Armor armor = buff( Earthroot.Armor.class );
 		if (armor != null) {
-			damage = armor.absorb( damage );
+			damage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.to( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ADD, armor, damage, armor.absorb( damage ) );
 		}
 
 		ShieldOfLight.ShieldOfLightTracker shield = buff( ShieldOfLight.ShieldOfLightTracker.class);
 		if (shield != null && shield.object == enemy.id()){
 			int min = ShieldOfLight.minBlock();
-			damage -= Random.NormalIntRange(min, 2*min);
-			damage = Math.max(damage, 0);
+			damage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.to( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ADD, shield, damage, damage - Random.NormalIntRange(min, 2*min) );
+			damage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.to( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.SET, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.NO_NEGATIVE, damage, Math.max(damage, 0) );
 		} else if (this == Dungeon.hero
 				&& Dungeon.hero.heroClass != HeroClass.CLERIC
 				&& Dungeon.hero.hasTalent(Talent.SHIELD_OF_LIGHT)
 				&& TargetHealthIndicator.instance.target() == enemy){
 			//33/50%
 			if (Random.Int(6) < 1+Dungeon.hero.pointsInTalent(Talent.SHIELD_OF_LIGHT)){
-				damage -= 1 + Dungeon.hero.lvl/10;
+				damage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.to( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ADD, Talent.SHIELD_OF_LIGHT, damage, damage - (1 + Dungeon.hero.lvl/10) );
 			}
 		}
 
@@ -944,7 +995,8 @@ public abstract class Char extends Actor {
 			if (Dungeon.hero.alignment == alignment && Dungeon.hero.belongings.armor() != null
 					&& Dungeon.hero.buff(AuraOfProtection.AuraBuff.class) != null
 					&& (Dungeon.level.distance(pos, Dungeon.hero.pos) <= 2 || buff(LifeLinkSpell.LifeLinkSpellBuff.class) != null)) {
-				damage = Dungeon.hero.belongings.armor().proc( enemy, this, damage );
+				xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.push( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.AUTO, Dungeon.hero.belongings.armor() );
+				damage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.pop( Dungeon.hero.belongings.armor().proc( enemy, this, damage ) );
 			}
 		}
 
@@ -1047,18 +1099,31 @@ public abstract class Char extends Actor {
 	}
 	
 	public void damage( int dmg, Object src ) {
+		//the damage ledger keeps every rule this damage meets (Hero.damage opens it first for the hero)
+		boolean opened = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.enterDamage( this, dmg, src );
+		try {
+			damageInLedger( dmg, src );
+		} finally {
+			if (opened) xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.exitDamage( this );
+		}
+	}
+
+	private void damageInLedger( int dmg, Object src ) {
 		
 		if (!isAlive() || dmg < 0) {
 			return;
 		}
 
 		if(isInvulnerable(src.getClass())){
-			sprite.showStatus(CharSprite.POSITIVE, Messages.get(this, "invulnerable"));
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.mark( this, FloatingText.IMMUNE );
 			return;
 		}
 
 		if (buff(RoseBarrier.class) != null || buff(Cocoshield.class) != null) {
-			sprite.showStatus(CharSprite.POSITIVE, Messages.get(this, "invulnerable"));
+			//immune, and the barrier that made it so beside it
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.mark( this, FloatingText.IMMUNE );
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.buffIcon( this,
+					buff(RoseBarrier.class) != null ? buff(RoseBarrier.class) : buff(Cocoshield.class) );
 			return;
 		}
 
@@ -1070,7 +1135,7 @@ public abstract class Char extends Actor {
 					link.detach();
 				}
 			}
-			dmg = (int)Math.ceil(dmg / (float)(links.size()+1));
+			dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mulRound( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, buff(LifeLink.class), dmg, 1f / (links.size()+1), (int)Math.ceil(dmg / (float)(links.size()+1)) );
 			for (LifeLink link : links){
 				Char ch = (Char)Actor.findById(link.object);
 				if (ch != null) {
@@ -1091,18 +1156,21 @@ public abstract class Char extends Actor {
 		xyz.gabriwar.warpedpixeldungeon.actors.buffs.Drenched wet = buff(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Drenched.class);
 		if (wet != null){
 			if (Property.ICY.resistances().contains(src.getClass())){
-				dmg = Math.round(dmg * wet.coldVulnerability());
+				float cold = wet.coldVulnerability();
+				dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mulRound( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, wet, dmg, cold, Math.round(dmg * cold) );
 			} else if (Property.ELECTRIC.resistances().contains(src.getClass())){
-				dmg = Math.round(dmg * wet.electricVulnerability());
+				float shock = wet.electricVulnerability();
+				dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mulRound( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, wet, dmg, shock, Math.round(dmg * shock) );
 			}
 		}
 
-		dmg = xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.beforeDamage(this, dmg, src);
+		xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.push( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.AUTO, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.SKILL_MARKS );
+		dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.pop( xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.beforeDamage(this, dmg, src) );
 
 		//IronSkin (Overgrown): the hardened skin caps each incoming hit at 1
 		//damage (distinct from RoseBarrier's full invulnerability above).
 		if (buff(IronSkin.class) != null && !isImmune(IronSkin.class)) {
-			dmg = 1;
+			dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.to( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.SET, buff(IronSkin.class), dmg, 1 );
 		}
 
 		//Shield (PotionOfArmor): soaks a fraction of each hit for a limited number
@@ -1110,7 +1178,7 @@ public abstract class Char extends Actor {
 		//once spent. Nothing used to call it, so the potion did nothing at all.
 		Shield potionShield = buff(Shield.class);
 		if (potionShield != null && dmg > 0) {
-			dmg = Math.round(dmg * (1f - Shield.LEVEL));
+			dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mulRound( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, potionShield, dmg, 1f - Shield.LEVEL, Math.round(dmg * (1f - Shield.LEVEL)) );
 			potionShield.detach();
 		}
 
@@ -1122,15 +1190,15 @@ public abstract class Char extends Actor {
 			if (Dungeon.hero.alignment == alignment
 					&& Dungeon.hero.buff(AuraOfProtection.AuraBuff.class) != null
 					&& (Dungeon.level.distance(pos, Dungeon.hero.pos) <= 2 || buff(LifeLinkSpell.LifeLinkSpellBuff.class) != null)) {
-				damage *= 0.9f - 0.1f*Dungeon.hero.pointsInTalent(Talent.AURA_OF_PROTECTION);
+				damage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, Dungeon.hero.buff(AuraOfProtection.AuraBuff.class), damage, 0.9f - 0.1f*Dungeon.hero.pointsInTalent(Talent.AURA_OF_PROTECTION) );
 			}
 		}
 
 		if (buff(PowerOfMany.PowerBuff.class) != null){
 			if (buff(LifeLinkSpell.LifeLinkSpellBuff.class) != null){
-				damage *= 0.70f - 0.05f*Dungeon.hero.pointsInTalent(Talent.LIFE_LINK);
+				damage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, buff(LifeLinkSpell.LifeLinkSpellBuff.class), damage, 0.70f - 0.05f*Dungeon.hero.pointsInTalent(Talent.LIFE_LINK) );
 			} else {
-				damage *= 0.75f;
+				damage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, buff(PowerOfMany.PowerBuff.class), damage, 0.75f );
 			}
 		}
 
@@ -1153,26 +1221,28 @@ public abstract class Char extends Actor {
 			Buff.detach(this, MagicalSleep.class);
 		}
 		if (this.buff(Doom.class) != null && !isImmune(Doom.class)){
-			damage *= 1.67f;
+			damage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, this.buff(Doom.class), damage, 1.67f );
 		}
 		//flat skill damage grows with the hero's own damage (weapon-based skills already do)
 		if (this != Dungeon.hero && xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.levelScaledSource(src)){
-			damage = Math.round( damage * xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.heroPower() );
+			float power = xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.heroPower();
+			damage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mulRound( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ATTACKER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.HERO_POWER, damage, power, Math.round( damage * power ) );
 		}
 		//Vulnerable is applied in Char.attack for weapon blows; hero skills dealing damage directly get it here
 		if (this.buff(Vulnerable.class) != null && xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.heroSkillSource(src)){
-			damage *= 1.33f;
+			damage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, this.buff(Vulnerable.class), damage, 1.33f );
 		}
 		if (alignment != Alignment.ALLY && this.buff(DeathMark.DeathMarkTracker.class) != null){
-			damage *= 1.25f;
+			damage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, this.buff(DeathMark.DeathMarkTracker.class), damage, 1.25f );
 		}
 
-		if (this.buff(BeetleInfected.class) != null) damage += 2;
+		if (this.buff(BeetleInfected.class) != null) damage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.add( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, this.buff(BeetleInfected.class), damage, 2 );
 
 		//two separate things can convert dmg to bleed, we handle that here
 		//we do this before modifiers are applied back to dmg as we don't want to stack them twice (from this and bleed)
 		float bleedAmt = 0;
 		Class bleedSrc = null;
+		boolean vorpalEcho = false;
 		if (src instanceof Char && ((Char) src).buff(Sickle.HarvestBleedTracker.class) != null){
 			if (!isImmune(Bleeding.class)){
 				bleedAmt = dmg;
@@ -1183,32 +1253,36 @@ public abstract class Char extends Actor {
 			if (!isImmune(Bleeding.class)){
 				bleedAmt = ((Char) src).buff(Vorpal.VorpalTracker.class).powerMulti*(2+dmg/2f);
 				bleedSrc = Vorpal.class;
+				vorpalEcho = ((Char) src).buff(Vorpal.VorpalTracker.class).echo;
 			}
 			((Char) src).buff(Vorpal.VorpalTracker.class).detach();
 		}
 
 		Class<?> srcClass = src.getClass();
 		if (isImmune( srcClass )) {
-			damage = 0;
+			damage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.to( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.SET, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.IMMUNE, damage, 0f );
 		} else {
-			damage *= resist( srcClass );
+			damage = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mul( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.RESIST, damage, resist( srcClass ) );
 		}
 
-		dmg = Math.round(damage);
+		dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.round( this, damage );
 
 		//we ceil these specifically to favor the player vs. champ dmg reduction
 		// most important vs. giant champions in the earlygame
 		for (ChampionEnemy buff : buffs(ChampionEnemy.class)){
-			dmg = (int) Math.ceil(dmg * buff.damageTakenFactor());
+			float taken = buff.damageTakenFactor();
+			dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.mulRound( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, buff, dmg, taken, (int) Math.ceil(dmg * taken) );
 		}
 		
 		//TODO improve this when I have proper damage source logic
 		if (AntiMagic.RESISTS.contains(src.getClass())){
-			dmg -= AntiMagic.drRoll(this, glyphLevel(AntiMagic.class));
+			int unwarded = dmg;
+			dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.to( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ADD, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.MAGIC_ARMOR, dmg, dmg - AntiMagic.drRoll(this, glyphLevel(AntiMagic.class)) );
+			if (unwarded > 0 && dmg < unwarded) ElementRows.antiMagic(this, src, unwarded, unwarded - dmg);
 			if (buff(ArcaneArmor.class) != null) {
-				dmg -= Random.NormalIntRange(0, buff(ArcaneArmor.class).level());
+				dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.to( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.ADD, buff(ArcaneArmor.class), dmg, dmg - Random.NormalIntRange(0, buff(ArcaneArmor.class).level()) );
 			}
-			if (dmg < 0) dmg = 0;
+			if (dmg < 0) dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.to( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.SET, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.NO_NEGATIVE, dmg, 0 );
 		}
 		
 		if (buff( Paralysis.class ) != null) {
@@ -1239,8 +1313,10 @@ public abstract class Char extends Actor {
 			b.announced = false;
 			b.attachTo(this);
 			b.set(bleedAmt, bleedSrc);
-			sprite.showStatus(CharSprite.WARNING, Messages.titleCase(b.name()) + " " + dmg);
+			sprite.showStatusWithIcon(CharSprite.WARNING, Integer.toString(dmg), FloatingText.BLEEDING);
 			Splash.at( sprite.center(), -PointF.PI / 2, PointF.PI / 6, sprite.blood(), 10 );
+			if (bleedSrc == Vorpal.class) xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows.vorpalBleed( (Char) src, this, bleedAmt, vorpalEcho );
+			xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.outcome( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.HitRecord.BLEED, bleedAmt );
 			return;
 		}
 
@@ -1248,14 +1324,19 @@ public abstract class Char extends Actor {
 		dmg = ShieldBuff.processDamage(this, dmg, src);
 		shielded -= dmg;
 		//Last Rites-style saves: the promised health survives every multiplier applied after the skill ran
-		if (this instanceof Hero) dmg = ((Hero)this).applyHealthHold(dmg);
+		if (this instanceof Hero) dmg = xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.to( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.DEFENDER, xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step.SET, xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.HEALTH_HOLD, dmg + shielded, ((Hero)this).applyHealthHold(dmg) + shielded ) - shielded;
+		xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.landed( this, dmg, shielded );
         int linkedHealthLoss=Math.min(Math.max(0,HP),Math.max(0,dmg));
 		HP -= dmg;
         boolean aliveBeforeLink = isAlive();
         xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions.shareLinkedDamage(this,linkedHealthLoss,src);
         // A focused echo can finish this target inside its nested damage call.
         // That call already handled death and loot; never run them a second time.
-        if (aliveBeforeLink && !isAlive()) return;
+        // This hit's own number still shows (the nested call showed only the echo's).
+        if (aliveBeforeLink && !isAlive()) {
+            showDamage(src, dmg + shielded);
+            return;
+        }
 
 		if (HP > 0 && src instanceof Char && ((Char) src).buff(Grim.GrimTracker.class) != null){
 
@@ -1266,8 +1347,10 @@ public abstract class Char extends Actor {
 				int extraDmg = Math.round(HP*resist(Grim.class));
 				dmg += extraDmg;
 				HP -= extraDmg;
+				xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.grim( this, extraDmg );
 
 				sprite.emitter().burst( ShadowParticle.UP, 5 );
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows.grimExecute( (Char) src, this, ((Char) src).buff(Grim.GrimTracker.class).echo );
 				if (!isAlive() && ((Char) src).buff(Grim.GrimTracker.class).qualifiesForBadge){
 					Badges.validateGrimWeapon();
 				}
@@ -1284,56 +1367,14 @@ public abstract class Char extends Actor {
 			}
 			if (dmgToAdd > 0){
 				Buff.affect((Char) src, Kinetic.ConservedDamage.class).setBonus(dmgToAdd);
+				ElementRows.kineticStore(this, (Char) src, dmgToAdd);
 			} else if (((Char) src).buff(Kinetic.ConservedDamage.class) != null){
 				((Char) src).buff(Kinetic.ConservedDamage.class).detach();
 			}
 			((Char) src).buff(Kinetic.KineticTracker.class).detach();
 		}
 		
-		if (sprite != null) {
-			//defaults to normal damage icon if no other ones apply
-			int                                                         icon = FloatingText.PHYS_DMG;
-			if (NO_ARMOR_PHYSICAL_SOURCES.contains(src.getClass()))     icon = FloatingText.PHYS_DMG_NO_BLOCK;
-			if (AntiMagic.RESISTS.contains(src.getClass()))             icon = FloatingText.MAGIC_DMG;
-			if (src instanceof Pickaxe)                                 icon = FloatingText.PICK_DMG;
-
-			//special case for sniper when using ranged attacks
-			if (src == Dungeon.hero
-					&& Dungeon.hero.subClass == HeroSubClass.SNIPER
-					&& !Dungeon.level.adjacent(Dungeon.hero.pos, pos)
-					&& Dungeon.hero.belongings.attackingWeapon() instanceof MissileWeapon){
-				icon = FloatingText.PHYS_DMG_NO_BLOCK;
-			}
-
-			//special case for monk using unarmed abilities
-			if (src == Dungeon.hero
-					&& Dungeon.hero.buff(MonkEnergy.MonkAbility.UnarmedAbilityTracker.class) != null){
-				icon = FloatingText.PHYS_DMG_NO_BLOCK;
-			}
-
-			if (src instanceof Hunger)                                  icon = FloatingText.HUNGER;
-			if (src instanceof Burning)                                 icon = FloatingText.BURNING;
-			if (src instanceof Chill || src instanceof Frost)           icon = FloatingText.FROST;
-			if (src instanceof GeyserTrap || src instanceof StormCloud) icon = FloatingText.WATER;
-			if (src instanceof Burning)                                 icon = FloatingText.BURNING;
-			if (src instanceof Electricity)                             icon = FloatingText.SHOCKING;
-			if (src instanceof Bleeding)                                icon = FloatingText.BLEEDING;
-			if (src instanceof ToxicGas)                                icon = FloatingText.TOXIC;
-			if (src instanceof Corrosion)                               icon = FloatingText.CORROSION;
-			if (src instanceof Poison)                                  icon = FloatingText.POISON;
-			if (src instanceof Ooze)                                    icon = FloatingText.OOZE;
-			if (src instanceof Viscosity.DeferedDamage)                 icon = FloatingText.DEFERRED;
-			if (src instanceof Corruption)                              icon = FloatingText.CORRUPTION;
-			if (src instanceof AscensionChallenge)                      icon = FloatingText.AMULET;
-
-			if ((icon == FloatingText.PHYS_DMG || icon == FloatingText.PHYS_DMG_NO_BLOCK) && hitMissIcon != -1){
-				if (icon == FloatingText.PHYS_DMG_NO_BLOCK) hitMissIcon += 18; //extra row
-				icon = hitMissIcon;
-			}
-			hitMissIcon = -1;
-
-			sprite.showStatusWithIcon(CharSprite.NEGATIVE, Integer.toString(dmg + shielded), icon);
-		}
+		showDamage(src, dmg + shielded);
 
 		if (HP < 0) HP = 0;
 
@@ -1342,6 +1383,55 @@ public abstract class Char extends Actor {
 		} else if (HP == 0 && buff(DeathMark.DeathMarkTracker.class) != null){
 			DeathMark.processFearTheReaper(this);
 		}
+	}
+
+	//the number of a hit: its icon picked from the source (a blow's hit/miss reason on plain physical
+	//damage), raised over the sprite
+	private void showDamage( Object src, int shown ){
+		if (sprite == null) return;
+
+		//defaults to normal damage icon if no other ones apply
+		int                                                         icon = FloatingText.PHYS_DMG;
+		if (NO_ARMOR_PHYSICAL_SOURCES.contains(src.getClass()))     icon = FloatingText.PHYS_DMG_NO_BLOCK;
+		if (AntiMagic.RESISTS.contains(src.getClass()))             icon = FloatingText.MAGIC_DMG;
+		if (src instanceof Pickaxe)                                 icon = FloatingText.PICK_DMG;
+
+		//special case for sniper when using ranged attacks
+		if (src == Dungeon.hero
+				&& Dungeon.hero.subClass == HeroSubClass.SNIPER
+				&& !Dungeon.level.adjacent(Dungeon.hero.pos, pos)
+				&& Dungeon.hero.belongings.attackingWeapon() instanceof MissileWeapon){
+			icon = FloatingText.PHYS_DMG_NO_BLOCK;
+		}
+
+		//special case for monk using unarmed abilities
+		if (src == Dungeon.hero
+				&& Dungeon.hero.buff(MonkEnergy.MonkAbility.UnarmedAbilityTracker.class) != null){
+			icon = FloatingText.PHYS_DMG_NO_BLOCK;
+		}
+
+		if (src instanceof Hunger)                                  icon = FloatingText.HUNGER;
+		if (src instanceof Burning)                                 icon = FloatingText.BURNING;
+		if (src instanceof Chill || src instanceof Frost)           icon = FloatingText.FROST;
+		if (src instanceof GeyserTrap || src instanceof StormCloud) icon = FloatingText.WATER;
+		if (src instanceof Burning)                                 icon = FloatingText.BURNING;
+		if (src instanceof Electricity)                             icon = FloatingText.SHOCKING;
+		if (src instanceof Bleeding)                                icon = FloatingText.BLEEDING;
+		if (src instanceof ToxicGas)                                icon = FloatingText.TOXIC;
+		if (src instanceof Corrosion)                               icon = FloatingText.CORROSION;
+		if (src instanceof Poison)                                  icon = FloatingText.POISON;
+		if (src instanceof Ooze)                                    icon = FloatingText.OOZE;
+		if (src instanceof Viscosity.DeferedDamage)                 icon = FloatingText.DEFERRED;
+		if (src instanceof Corruption)                              icon = FloatingText.CORRUPTION;
+		if (src instanceof AscensionChallenge)                      icon = FloatingText.AMULET;
+
+		if ((icon == FloatingText.PHYS_DMG || icon == FloatingText.PHYS_DMG_NO_BLOCK) && hitMissIcon != -1){
+			if (icon == FloatingText.PHYS_DMG_NO_BLOCK) hitMissIcon += 18; //extra row
+			icon = hitMissIcon;
+		}
+		hitMissIcon = -1;
+
+		sprite.showStatusWithIcon(CharSprite.NEGATIVE, Integer.toString(shown), icon);
 	}
 
 	//these are misc. sources of physical damage which do not apply armor, they get a different icon
@@ -1518,7 +1608,10 @@ public abstract class Char extends Actor {
 		buffs.add( buff );
 		if (Actor.chars().contains(this)) Actor.add( buff );
 
-		if (sprite != null && sprite.alive && buff.announced) {
+		//its icon on the card: the open blow's chip, else a late chip; a buff with no icon keeps its word
+		if (sprite != null && sprite.alive && buff.announced
+				&& !xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.announce( this, buff )
+				&& !xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.lateBuff( this, buff )) {
 			switch (buff.type) {
 				case POSITIVE:
 					sprite.showStatus(CharSprite.POSITIVE, Messages.titleCase(buff.name()));
@@ -1581,8 +1674,15 @@ public abstract class Char extends Actor {
 			stealth += ((xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero) this).heroSkills.allStealth();
 		}
 
+		// a HUSHED line on the armor: quieter, and wet boots make no sound (any hero's, a co-op guest's too)
+		float hush = this instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero
+				? xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.value( ((xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero) this).belongings.armor(),
+						xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.HUSHED )
+				: 0f;
+		stealth += hush;
+
 		// Soaked shoes make squelching sounds — harder to stay hidden
-		if (buff(SoakedShoes.class) != null) {
+		if (hush <= 0f && buff(SoakedShoes.class) != null) {
 			stealth += SoakedShoes.STEALTH_PENALTY;
 		}
 

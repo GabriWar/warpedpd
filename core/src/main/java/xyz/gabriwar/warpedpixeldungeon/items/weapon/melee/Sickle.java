@@ -66,7 +66,8 @@ public class Sickle extends MeleeWeapon {
 		}
 	}
 
-	private final xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector.Listener grassPicker
+	//the tall grass to cut, for the sickle's REAP and the war scythe's
+	public static final xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector.Listener grassPicker
 			= new xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector.Listener() {
 		@Override
 		public void onSelect(Integer cell) {

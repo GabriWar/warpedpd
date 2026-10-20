@@ -34,10 +34,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Daze;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.ClosingRing;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 
 /**
@@ -83,13 +83,14 @@ public class SixthSense extends Skill {
 			//the warning: a green ring closing on her as the flare opens
 			PixelFlare.show( SkillVfx.midX( hero.sprite ), SkillVfx.midY( hero.sprite ), 0x88CC66, PixelFlare.M, 0.6f );
 			ClosingRing.on( hero.sprite, 31, 9, 0.45f, 0x88CC66 );
-			hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 6 );
+			//her own sparkle (never the level-up's stars)
+			hero.sprite.emitter().burst( SkillBursts.FLOURISH, 6 );
 		}
 		SpatialSound.play( Assets.Sounds.MISS, hero, 1f, 1.5f );
 		if (level >= MAX_LEVEL && source instanceof Char && source != hero && ((Char) source).isAlive()){
 			Char striker = (Char) source;
 			Buff.prolong( striker, Daze.class, DAZE_TURNS );
-			if (striker.sprite != null) striker.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
+			if (striker.sprite != null) striker.sprite.emitter().burst( SkillBursts.DAZE, 4 );
 		}
 		return damage - quarter;
 	}

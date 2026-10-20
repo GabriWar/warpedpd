@@ -36,7 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.effects.Surprise;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.TalismanOfForesight;
@@ -76,7 +76,7 @@ public class Hunting extends PassiveSkillA3 {
 		castTextYell();
 		if (enemy.sprite != null && Dungeon.level.heroFOV[enemy.pos]){
 			Surprise.hit( enemy );
-			enemy.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
+			enemy.sprite.emitter().burst( SkillBursts.METAL_SPARK, 4 );
 		}
 		SpatialSound.play( Assets.Sounds.HIT_STRONG, enemy, 0.8f, 1.2f );
 		//the stun lands after the blow does, or the blow itself would shake it off

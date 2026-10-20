@@ -25,6 +25,9 @@
 package xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
@@ -55,8 +58,10 @@ public class Ancient extends Weapon.Enchantment {
 			defender.damage( bonus, this );
 		}
 
+		boolean counted = false;
 		if (damage + bonus >= defender.HP && selfUpgrades < SELF_UPGRADE_CAP) {
 			numKills++;
+			counted = true;
 			if (numKills >= KILLS_NEEDED) {
 				numKills = 0;
 				//later attunements get progressively harder to earn
@@ -64,8 +69,16 @@ public class Ancient extends Weapon.Enchantment {
 					selfUpgrades++;
 					weapon.upgrade();
 					GLog.p( Messages.get( this, "attune", weapon.name() ) );
+					ElementRows.attuned( attacker );
 				}
 			}
+		}
+		//its look: the bonus's rune stamped on the foe, a counted kill's rune drawn into the weapon
+		if (bonus > 0){
+			EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, EnchantFx.strength( level(), bonus, defender.HT, 1f ), level(), 0,
+					ElementRows.ancient( counted ) );
+		} else if (counted){
+			ElementRows.killRune( attacker, defender );
 		}
 
 		return damage;

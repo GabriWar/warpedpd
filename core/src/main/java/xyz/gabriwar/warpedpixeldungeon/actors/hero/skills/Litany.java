@@ -34,8 +34,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.RuneFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillRay;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 public class Litany extends SubSkill1 {
@@ -77,8 +80,12 @@ public class Litany extends SubSkill1 {
 		if (level <= 0 || hero == null || !hero.isAlive()) return;
 		verses++;
 		boolean bless = level >= MAX_LEVEL && verses % 3 == 0;
-		if (hero.sprite != null)
-			hero.sprite.emitter().burst( Speck.factory( Speck.NOTE ), 2 );
+		//a verse: runes of light rising off the cleric (never a lullaby's notes), and the spoken
+		//prayer's ring of gold runes rising from his feet
+		if (hero.sprite != null){
+			hero.sprite.emitter().burst( SkillBursts.VERSE, 2 );
+			spoken( hero.sprite );
+		}
 		mend( hero, hero, bless );
 		for (Mob m : Dungeon.level.mobs.toArray( new Mob[0] )){
 			if (m.alignment == Char.Alignment.ALLY && m.isAlive() && Dungeon.level.distance( hero.pos, m.pos ) <= VERSE_RANGE)
@@ -95,8 +102,19 @@ public class Litany extends SubSkill1 {
 			Buff.prolong( ch, Bless.class, VERSE_BLESS );
 		if (ch.sprite == null) return;
 		ch.sprite.emitter().burst( Speck.factory( Speck.HEALING ), 3 );
-		if (heal > 0) ch.sprite.showStatus( CharSprite.POSITIVE, "+" + heal + "HP" );
-		if (ch != hero && hero.sprite != null && hero.sprite.parent != null)
-			hero.sprite.parent.add( new Beam.HealthRay( hero.sprite.center(), ch.sprite.center() ) );
+		if (heal > 0) ch.sprite.showStatusWithIcon( CharSprite.POSITIVE, Integer.toString( heal ), xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.HEALING );
+		//the mend flows to an ally as Mass Heal's does, landing in the heal's red crosses: only to
+		//one it mends or blesses, never a heal's picture on an ally already whole
+		if ((heal > 0 || bless) && ch != hero && hero.sprite != null && hero.sprite.parent != null)
+			SkillRay.show( hero.sprite, ch.sprite, SkillRay.HEAL, MassHeal.FLOW );
 	}
+
+	/** The verse spoken: RISE_N gold runes on a RISE_RX x RISE_RY ring rising from the feet at
+	 *  RISE_SPEED px/s for RISE_LIFE s (RuneFX.rise, RUNE_HOLY; one Runes gizmo). Any thread. */
+	public static void spoken( CharSprite s ){
+		RuneFX.rise( s, RISE_N, SkillPalette.RUNE_HOLY, RISE_RX, RISE_RY, RISE_SPEED, RISE_LIFE );
+	}
+
+	public static final int RISE_N = 6;
+	public static final float RISE_RX = 9f, RISE_RY = 3.5f, RISE_SPEED = 18f, RISE_LIFE = 0.4f;
 }

@@ -28,7 +28,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
@@ -38,7 +37,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import com.watabou.utils.Random;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.ShoutFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
 
 public class CreepingDread extends Skill {
@@ -64,8 +64,13 @@ public class CreepingDread extends Skill {
 				if (struck.isAlive()) Buff.affect( struck, Terror.class, turns ).object = heroId;
 			} );
 			castTextYell();
-			CellEmitter.get( enemy.pos ).burst( ShadowParticle.CURSE, 5 );
-			if (enemy.sprite != null) enemy.sprite.emitter().burst( Speck.factory( Speck.SCREAM ), 1 );
+			//fear creeping in: ink crawling in and pooling under it, a violet ring closing on its
+			//feet, the body shuddering (never a curse landing, an alarm, a wraith rising)
+			CellEmitter.get( enemy.pos ).burst( SkillBursts.DREAD, 5 );
+			if (enemy.sprite != null){
+				enemy.sprite.emitter().burst( SkillBursts.TREMBLE, 1 );
+				ShoutFX.dread( enemy.sprite, false, 0 );
+			}
 			//at mastery the fear spills onto every enemy standing beside it, one after another
 			if (level >= MAX_LEVEL){
 				FxTimeline t = FxTimeline.start();
@@ -75,10 +80,13 @@ public class CreepingDread extends Skill {
 					if (other == null || other.alignment != Char.Alignment.ENEMY || !other.isAlive()) continue;
 					Buff.affect( other, Terror.class, 3 + level ).object = Dungeon.hero.id();
 					final Char next = other;
+					final int from = enemy.pos;
 					t.at( 0.1f + 0.08f * order++, () -> {
 						if (next.sprite == null || !next.isAlive()) return;
-						CellEmitter.get( next.pos ).burst( ShadowParticle.CURSE, 3 );
-						next.sprite.emitter().burst( Speck.factory( Speck.SCREAM ), 1 );
+						CellEmitter.get( next.pos ).burst( SkillBursts.DREAD, 3 );
+						next.sprite.emitter().burst( SkillBursts.TREMBLE, 1 );
+						ShoutFX.creep( from, next.pos, 0 );
+						ShoutFX.dread( next.sprite, true, 0.08f );
 					} );
 				}
 			}

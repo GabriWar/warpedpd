@@ -29,7 +29,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PulseRingFX;
 
 
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
@@ -77,9 +76,10 @@ public class CrusadersZeal extends Skill {
 				if (ch.sprite != null) ch.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 4 );
 			}
 			if (hero.sprite != null){
-				new xyz.gabriwar.warpedpixeldungeon.effects.Flare( 8, 26 ).color( 0xFFE070, true ).show( hero.sprite, 0.6f );
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare.show( hero.sprite.x + hero.sprite.width() / 2f,
+						hero.sprite.y + hero.sprite.height() / 2f, 0xFFE070, xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare.L, 0.6f );
 				PulseRingFX.around( hero.sprite, 0xFFE070, 20, 0.5f );
-				hero.sprite.showStatus( CharSprite.POSITIVE, Messages.get( this, "crippled" ) );
+				chipOn( hero );
 			}
 			SpatialSound.play( Assets.Sounds.RAY, hero, 1f, 1.1f );
 			zeal.flames = 0;
@@ -118,11 +118,9 @@ public class CrusadersZeal extends Skill {
 			return true;
 		}
 
+		//its own gold cross, never Burning's flame
 		@Override
-		public int icon(){ return xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator.FIRE; }
-
-		@Override
-		public void tintIcon( com.watabou.noosa.Image icon ){ icon.hardlight( 1f, 0.9f, 0.4f ); }
+		public int icon(){ return xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator.ZEAL; }
 
 		@Override
 		public String iconTextDisplay(){ return Integer.toString( flames ); }

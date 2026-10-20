@@ -25,15 +25,18 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PulseRingFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillRay;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
+import com.watabou.utils.Random;
 
 
 import com.watabou.utils.PathFinder;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle;
-import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
-import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -44,6 +47,9 @@ import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import java.util.ArrayList;
 
 public class Purify extends SubSkill3 {
+
+	/** How long the cleansing ray to an ally holds, s. */
+	public static final float CLEANSE = 0.3f;
 
 	{
 		name = "Purify";
@@ -97,7 +103,8 @@ public class Purify extends SubSkill3 {
 					Buff.detach( ally, xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vulnerable.class );
 					if (ally.sprite != null){
 						ally.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 4 );
-						hero.sprite.parent.add( new Beam.LightRay( hero.sprite.center(), ally.sprite.center() ) );
+						//a short cleansing ray of holy light from the cleric to the ally
+						SkillRay.show( hero.sprite, ally.sprite, SkillRay.HOLY, CLEANSE );
 					}
 				}
 			}
@@ -105,9 +112,11 @@ public class Purify extends SubSkill3 {
 			castTextYell();
 			SpatialSound.play( Assets.Sounds.CHARMS, hero, 1f, 1.4f );
 			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
-			Dungeon.hero.sprite.emitter().burst( ShaftParticle.FACTORY, 5 );
-			Splash.around( Dungeon.hero.sprite, 0xFFFFFF, 6 );
-			PulseRingFX.around( hero.sprite, 0xFFFFFF, 14, 0.45f );
+			Dungeon.hero.sprite.emitter().burst( SkillBursts.HOLY_MOTE, 5 );
+			splashDraw();
+			//the purge: a pulse of holy light's palest gold (never a white sonar ping), the gold one after it
+			PulseRingFX.around( hero.sprite, SkillPalette.HOLY.stop( 0 ), 14, 0.45f );
+			FxTimeline.start().at( 0.1f, () -> PulseRingFX.around( hero.sprite, 0xF1D99C, 16, 0.4f ) );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );
 			hero.busy();
@@ -117,4 +126,10 @@ public class Purify extends SubSkill3 {
 
 	@Override
 	protected boolean upgrade(){ return true; }
+
+	/** The one draw of the game's Random the white splash round the cleric always made
+	 *  (Splash.around's, when the scene has its effects): the purge is a pulse of light, never a splash. */
+	public static void splashDraw(){
+		if (GameScene.layer( GameScene.Layer.EFFECTS ) != null) Random.Float();
+	}
 }

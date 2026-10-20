@@ -28,6 +28,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Freezing;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFactories;
@@ -44,6 +45,10 @@ import com.watabou.noosa.Game;
 import com.watabou.noosa.Group;
 import com.watabou.noosa.particles.Emitter;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+
 /**
  * What a burning blob does to the place it burns in, read off the blob's own state every SCAN s
  * (so a co-op guest, who has the blob, sees all of it): a glow on the floor of each burning cell
@@ -56,7 +61,8 @@ import com.watabou.noosa.particles.Emitter;
  * the kit has room for, never another's - shimmer over its groups (a source for every four
  * cells), a warm wash on the water beside it, and the end of each cell it burns out of: smoke
  * curling off and embers glowing on the floor as they cool, or a pop of steam where frost put it
- * out.
+ * out. The trees an open fire or an inferno burns (the CROWNS nearest the hero, seen or not) have
+ * their crowns alight (BurningTree) until they burn down.
  *
  * A group on the floor's layer holding the floor glows; made on the render thread the first time
  * its blob's factory emits (FireBlobFx), gone with its blob's emitter.
@@ -126,6 +132,12 @@ public class FireField extends Group {
 	private final int[] slotSize = new int[LIGHTS], slotHeld = new int[LIGHTS];
 	private final float[] slotX = new float[LIGHTS], slotY = new float[LIGHTS];
 	private final LightRef[] slotGlow = new LightRef[LIGHTS], slotPool = new LightRef[LIGHTS];
+
+	/** The burning trees whose crowns are alight at most (BurningTree): the nearest the hero. */
+	public static final int CROWNS = 4;
+	//the crowns alight, and this scan's burning trees (the wanted ones first)
+	private final ArrayList<BurningTree> crowns = new ArrayList<>();
+	private int[] trees = new int[16];
 
 	FireField( Blob blob, BlobEmitter emitter, FireStyle style ){
 		this.blob = blob;
@@ -218,6 +230,8 @@ public class FireField extends Group {
 			if (glows[i] != null) glows[i].out();
 			glows[i] = null;
 		}
+		for (BurningTree t : crowns) t.out();
+		crowns.clear();
 	}
 
 	/** Whether its blob's emitter is gone and it is fading away. */
@@ -265,6 +279,7 @@ public class FireField extends Group {
 		floorGlows( level );
 		lights();
 		shimmer();
+		crowns( level, cur );
 	}
 
 	//the burning cells seen, gathered into groups of joined cells (8 ways); a group wider or taller
@@ -609,5 +624,70 @@ public class FireField extends Group {
 				laid++;
 			}
 		}
+	}
+
+	// ------------------------------------------------------------------ the trees
+
+	//the trees burning in it, for an open fire or an inferno (the clean and the cursed fires take
+	//no tree as wood): the CROWNS nearest the hero, seen or not, have their crowns alight; one whose
+	//tree is gone, no longer burns or is no longer among them goes out
+	private void crowns( Level level, int[] cur ){
+		int n = 0;
+		if (style.flame == Element.FIRE && (style.kind == FireStyle.Kind.OPEN || style.kind == FireStyle.Kind.INFERNO)
+				&& cur != null && blob.volume > 0 && !blob.area.isEmpty()){
+			int w = level.width();
+			for (int j = blob.area.top; j < blob.area.bottom; j++){
+				for (int i = blob.area.left; i < blob.area.right; i++){
+					int c = i + j * w;
+					if (c < 0 || c >= cur.length || !style.burning( cur[c] ) || !BurningTree.tree( level.map[c] )) continue;
+					if (n == trees.length) trees = Arrays.copyOf( trees, n * 2 );
+					trees[n++] = c;
+				}
+			}
+			n = nearest( level, trees, n, CROWNS );
+		}
+		//the crowns kept: their trees still among the wanted (each taken off the list)
+		for (Iterator<BurningTree> it = crowns.iterator(); it.hasNext(); ){
+			BurningTree t = it.next();
+			int c = t.cell(), k = 0;
+			while (k < n && trees[k] != c) k++;
+			if (c < 0 || k == n){
+				t.out();
+				it.remove();
+				continue;
+			}
+			trees[k] = -1;
+			t.burn( cur[c], level.heroFOV[c] );
+		}
+		//and the rest set alight
+		for (int k = 0; k < n; k++){
+			int c = trees[k];
+			if (c < 0) continue;
+			BurningTree t = BurningTree.light( level, c, cur[c], level.heroFOV[c] );
+			if (t != null) crowns.add( t );
+		}
+	}
+
+	//the `most` of the first n cells nearest the hero moved to the front (a selection, nothing
+	//allocated); how many are wanted
+	private static int nearest( Level level, int[] cells, int n, int most ){
+		if (n <= most) return n;
+		int hero = Dungeon.hero != null ? Dungeon.hero.pos : -1;
+		if (hero < 0) return most;
+		int w = level.width(), hx = hero % w, hy = hero / w;
+		for (int k = 0; k < most; k++){
+			int best = k, bd = Integer.MAX_VALUE;
+			for (int m = k; m < n; m++){
+				int d = Math.max( Math.abs( cells[m] % w - hx ), Math.abs( cells[m] / w - hy ) );
+				if (d < bd){
+					bd = d;
+					best = m;
+				}
+			}
+			int t = cells[k];
+			cells[k] = cells[best];
+			cells[best] = t;
+		}
+		return most;
 	}
 }

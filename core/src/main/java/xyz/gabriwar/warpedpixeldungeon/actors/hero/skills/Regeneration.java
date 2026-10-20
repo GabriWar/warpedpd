@@ -39,6 +39,8 @@ import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.MoteFX;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 
@@ -79,8 +81,14 @@ public class Regeneration extends PassiveSkillA2 {
 
 		hero.HP = Math.min( hero.HT, hero.HP + heal );
 		if (hero.sprite != null){
-			new Flare( 5, 16 ).color( 0x66FF66, true ).show( hero.sprite, 0.6f );
+			//the green star of a second wind (the legacy Flare, kept on the owner's word), on the render
+			//thread, the heal's crosses and its green light rising beside them
+			final CharSprite hs = hero.sprite;
+			Fx.post( () -> {
+				if (hs.parent != null) new Flare( 5, 16 ).color( 0x66FF66, true ).show( hs, 0.6f );
+			} );
 			hero.sprite.emitter().burst( Speck.factory( Speck.HEALING ), 3 + level );
+			MoteFX.greens( hero.sprite, 3 );
 			if (heal > 0) hero.sprite.showStatusWithIcon( CharSprite.POSITIVE, Integer.toString( heal ), FloatingText.HEALING );
 		}
 		SpatialSound.play( Assets.Sounds.DRINK, hero, 0.8f, 1.3f );

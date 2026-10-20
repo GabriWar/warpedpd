@@ -32,15 +32,16 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import com.watabou.utils.Bundle;
-import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.LanceFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StreakFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Random;
 
@@ -50,6 +51,14 @@ import com.watabou.utils.Random;
  * each body bursts as a lance. At level 3 the lance splits into three as it leaves his back.
  */
 public class Transcendence extends ActiveSkill {
+
+	/** The lance of light's ramp (the HOLY school's, lightest first). */
+	public static final int[] HOLY = { 0xFFFFFF, 0xFFF4D0, 0xF1D99C, 0xC9A05A };
+	/** A lance bursting up out of a body: its tip LANCE_OVER px over the head, its shaft LANCE px
+	 *  (the head and shaft end inside the body, above its feet: never a spike out of the ground). */
+	public static final int LANCE = 5, LANCE_OVER = 8;
+	/** How long it shows, s (gone before its fading tail could stand over the body like a spear). */
+	public static final float LANCE_LIFE = 0.24f;
 
 	{
 		tag = "PA4";
@@ -81,7 +90,7 @@ public class Transcendence extends ActiveSkill {
 		if (action.equals(Skill.AC_ACTIVATE) && hero.sprite != null){
 			SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 1f, 1.4f );
 			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
-			new Flare( 6, 18 ).color( 0xFFFFDD, true ).show( hero.sprite, 0.5f );
+			PixelFlare.show( SkillVfx.midX( hero.sprite ), SkillVfx.midY( hero.sprite ), 0xFFF4D0, PixelFlare.M, 0.5f );
 		} else if (action.equals(Skill.AC_DEACTIVATE)){
 			SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 0.5f, 0.8f );
 		}
@@ -118,12 +127,10 @@ public class Transcendence extends ActiveSkill {
 		final int land = cell;
 		CellEmitter.center( from ).burst( Speck.factory( Speck.LIGHT ), 6 );
 		hero.move( land, false );
+		//half light passing through: a streak of gold with his afterimages along it (never a beam)
 		if (hero.sprite != null){
 			hero.sprite.place( land );
-			if (hero.sprite.parent != null){
-				hero.sprite.parent.add( new Beam.LightRay( DungeonTilemap.raisedTileCenterToWorld( from ),
-						DungeonTilemap.raisedTileCenterToWorld( land ) ) );
-			}
+			if (hero.sprite.parent != null) StreakFX.dash( from, land, 0xF1D99C, 0.45f, 0.25f, true );
 			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 8 );
 		}
 		Dungeon.level.occupyCell( hero );
@@ -134,7 +141,11 @@ public class Transcendence extends ActiveSkill {
 		for (Char ch : passed){
 			if (!ch.isAlive()) continue;
 			ch.damage( Random.NormalIntRange( min, max ), this );
-			if (ch.sprite != null) ch.sprite.flash();
+			if (ch.sprite != null){
+				ch.sprite.flash();
+				//the light left inside bursts out of the body as a lance, upward
+				LanceFX.stab( SkillVfx.midX( ch.sprite ), ch.sprite.y - LANCE_OVER, -90, HOLY, LANCE, LANCE_LIFE );
+			}
 			CellEmitter.center( ch.pos ).burst( Speck.factory( Speck.LIGHT ), 5 );
 		}
 		//+3: the lance splits into three as it leaves the hero's back
@@ -169,9 +180,9 @@ public class Transcendence extends ActiveSkill {
 					if (ch.sprite != null) ch.sprite.flash();
 				}
 			}
+			//each third of the lance a stroke of gold the way it really cuts (never a beam)
 			if (end != land && hero.sprite != null && hero.sprite.parent != null){
-				hero.sprite.parent.add( new Beam.LightRay( DungeonTilemap.raisedTileCenterToWorld( land ),
-						DungeonTilemap.raisedTileCenterToWorld( end ) ) );
+				StreakFX.show( land, end, 0xF1D99C, 0.35f, 0.2f );
 			}
 		}
 	}

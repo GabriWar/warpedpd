@@ -29,8 +29,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Chill;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Corruption;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Doom;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FiendBurning;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Surging;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantNet;
+import xyz.gabriwar.warpedpixeldungeon.net.NetManager;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import com.watabou.noosa.Game;
@@ -70,7 +74,14 @@ public final class StateLooks {
 	private int darkRead = DARK;
 	private Element fireRead = Element.FIRE;
 	private boolean breathesRead;
-	private float readIn;
+	//a surge's stacks (Surging.SurgeTracker.stacks), read every SURGE_EVERY s while SURGING is on;
+	//a guest's character holds no buffs, so it keeps the last it knew (one at first)
+	private volatile int surgeRead = 1;
+	//whether a PARALYSED is a real stun (a Paralysis buff), read with the others: a frost, a time
+	//freeze, a duel and a fading image only pause the body and show no stars. A guest's character
+	//holds no buffs, so his stays true (his ice still hides them: FROZEN comes by name)
+	private volatile boolean stunRead = true;
+	private float readIn, surgeIn;
 	private boolean wasFlashing;
 
 	/** The chill's tint (Chill.cooldown() / Chill.DURATION from 0.15 to 0.35), and its colour. */
@@ -78,8 +89,8 @@ public final class StateLooks {
 	static final float CHILL_MIN = 0.15f, CHILL_MAX = 0.35f, CHILL_DEFAULT = 0.25f;
 	/** The darks: a darkened body's own, doom's, corruption's. */
 	public static final int DARK = 0x6A4A8A, DOOM = 0x8A2A4A, CORRUPTION = 0x9050C0;
-	/** How often the buffs behind the looks are read again, s. */
-	static final float READ_EVERY = 0.5f;
+	/** How often the buffs behind the looks are read again, s; a surge's stacks more often. */
+	static final float READ_EVERY = 0.5f, SURGE_EVERY = 0.25f;
 
 	public StateLooks( CharSprite sprite ){
 		this.sprite = sprite;
@@ -173,10 +184,30 @@ public final class StateLooks {
 	//one's lock: the chill's strength, the dark's kind, the fire's
 	private void readBuffs( float dt ){
 		Char ch = sprite.ch;
-		if (ch == null || (readIn -= dt) > 0) return;
+		if (ch == null) return;
+		if ((surgeIn -= dt) <= 0){
+			surgeIn = SURGE_EVERY;
+			boolean surging;
+			synchronized (this){
+				surging = asked[CharSprite.State.SURGING.ordinal()] == ADD || looks[CharSprite.State.SURGING.ordinal()] != null;
+			}
+			if (surging){
+				Surging.SurgeTracker t = ch.buff( Surging.SurgeTracker.class );
+				if (t != null){
+					int n = Math.max( 1, t.stacks );
+					if (n != surgeRead){
+						surgeRead = n;
+						//the host's guests count them too (their characters hold no buffs)
+						EnchantNet.sendSurge( ch, n );
+					}
+				}
+			}
+		}
+		if ((readIn -= dt) > 0) return;
 		readIn = READ_EVERY;
-		boolean chilled, cold, dark, burning;
+		boolean chilled, cold, dark, burning, paralysed;
 		synchronized (this){
+			paralysed = asked[CharSprite.State.PARALYSED.ordinal()] == ADD || looks[CharSprite.State.PARALYSED.ordinal()] != null;
 			chilled = asked[CharSprite.State.CHILLED.ordinal()] == ADD || looks[CharSprite.State.CHILLED.ordinal()] != null;
 			cold = asked[CharSprite.State.CHILLED.ordinal()] == ADD || asked[CharSprite.State.HYPOTHERMIA.ordinal()] == ADD;
 			dark = asked[CharSprite.State.DARKENED.ordinal()] == ADD || looks[CharSprite.State.DARKENED.ordinal()] != null;
@@ -195,11 +226,37 @@ public final class StateLooks {
 		if (burning){
 			fireRead = ch.buff( FiendBurning.class ) != null ? Element.FIEND : Element.FIRE;
 		}
+		if (paralysed && !NetManager.isNetClient()){
+			stunRead = ch.buff( Paralysis.class ) != null;
+		}
 	}
 
 	/** The chill's tint for the turns it has left: from CHILL_MIN, full at Chill.DURATION. */
 	public static float chillStrength( float left ){
 		return CHILL_MIN + (CHILL_MAX - CHILL_MIN) * Math.max( 0f, Math.min( 1f, left / Chill.DURATION ) );
+	}
+
+	/** A surge's stacks as last read (SURGING's motes). */
+	public int surge(){
+		return surgeRead;
+	}
+
+	/** A co-op guest's: the stacks the host read for this character (EnchantNet). Any thread. */
+	public void surgeSent( int stacks ){
+		surgeRead = Math.max( 1, stacks );
+	}
+
+	/** Whether the stun stars show now: PARALYSED's look is on, it is a real stun and no ice
+	 *  holds the body (a frozen body is paused, not stunned). */
+	public synchronized boolean stunStars(){
+		Look l = looks[CharSprite.State.PARALYSED.ordinal()];
+		return l != null && !l.stopping && stunShown();
+	}
+
+	//a stun's stars may show: a real stun, and no ice over it (the stars' look asks every frame)
+	synchronized boolean stunShown(){
+		Look ice = looks[CharSprite.State.FROZEN.ordinal()];
+		return stunRead && (ice == null || ice.stopping);
 	}
 
 	/** The dark a darkened sprite takes now. */
@@ -281,6 +338,9 @@ public final class StateLooks {
 			case BARKED:             return new Looks.Barked( sp );
 			case VERDANT:            return new Looks.Verdant( sp );
 			case HERB:               return new Looks.Herb( sp );
+			case PARALYSED:          return sp.ch == null ? null : new Looks.Stunned( sp, this );
+			case SEEDED:             return new Looks.Seeded( sp );
+			case SURGING:            return new Looks.Surge( sp, this );
 			default:                 return null;
 		}
 	}

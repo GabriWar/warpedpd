@@ -24,7 +24,9 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.ArcSpinFX;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
@@ -234,7 +236,7 @@ public class Hurl extends Skill {
 			//the combo built by earlier throws powers this whole throw, bounces included
 			HurlCombo combo = level >= MAX_LEVEL ? hero.buff(HurlCombo.class) : null;
 			power = DAMAGE * (combo == null ? 1f : combo.multiplier());
-			if (combo != null && hero.sprite != null) hero.sprite.emitter().burst(Speck.factory(Speck.STAR), 2 + combo.hits);
+			if (combo != null && hero.sprite != null) hero.sprite.emitter().burst(SkillBursts.FLOURISH, 2 + combo.hits);
 		}
 
 		void fly(int from, Char target) {
@@ -252,11 +254,11 @@ public class Hurl extends Skill {
 					weapon.hitSound(1f, target);
 					//each body it bites rings a little higher, and a bounce catches the light
 					SpatialSound.play(Assets.Sounds.HIT_PARRY, target, 0.7f, 1.1f + 0.12f * (visited.size() - 1));
-					if (target.sprite != null) new Flare(4, 10).color(0xFFFFFF, true).show(target.sprite, 0.3f);
+					if (target.sprite != null) PixelFlare.show(SkillVfx.midX(target.sprite), SkillVfx.midY(target.sprite), 0xB9DEEE, PixelFlare.S, 0.3f);
 					if (level >= MAX_LEVEL) Buff.affect(hero, HurlCombo.class).addHit();
 					bounce = Random.Float() < 0.15f * level;
 				} else if (target.isAlive()) {
-					if (target.sprite != null) target.sprite.showStatus(CharSprite.NEUTRAL, target.defenseVerb());
+					if (target.sprite != null) xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.missed( target );
 					SpatialSound.play(Assets.Sounds.MISS, target);
 				}
 				Char next = bounce && hero.isAlive() ? bounceTarget(to, visited) : null;
@@ -273,8 +275,8 @@ public class Hurl extends Skill {
 				SpatialSound.play(Assets.Sounds.HIT_PARRY, hero, 1f, 1.3f);
 				//caught: a glint in her hand
 				if (hero.sprite != null){
-					new Flare(4, 8).color(0xFFFFFF, true).show(hero.sprite, 0.25f);
-					hero.sprite.emitter().burst(Speck.factory(Speck.STAR), 3);
+					PixelFlare.show(SkillVfx.midX(hero.sprite), SkillVfx.midY(hero.sprite), 0xB9DEEE, PixelFlare.S, 0.25f);
+					hero.sprite.emitter().burst(SkillBursts.FLOURISH, 3);
 				}
 				hero.spendAndNext(TIME_TO_USE);
 			});
@@ -300,7 +302,7 @@ public class Hurl extends Skill {
 			hits = Math.min(MAX_HITS, hits + 1);
 			left = DURATION;
 			if (target != null && target.sprite != null){
-				target.sprite.showStatus(CharSprite.POSITIVE, Messages.get(Hurl.class, "combo", hits));
+				Skill.counterOn(Hurl.class, target, hits, CharSprite.POSITIVE);
 			}
 		}
 

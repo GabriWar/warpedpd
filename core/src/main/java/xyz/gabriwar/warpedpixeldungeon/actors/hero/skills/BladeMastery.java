@@ -32,9 +32,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vulnerable;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import com.watabou.utils.Random;
 
 public class BladeMastery extends PassiveSkillB3 {
@@ -71,8 +69,9 @@ public class BladeMastery extends PassiveSkillB3 {
 		boolean fresh = ch.buff( Read.class ) == null;
 		Buff.prolong( ch, Read.class, READ_TURNS );
 		if (fresh && ch.sprite != null){
-			ch.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "break" ) );
-			ch.sprite.emitter().burst( Speck.factory( Speck.STAR ), 3 );
+			chipOn( ch );
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.buffIcon( ch, ch.buff( Read.class ) );
+			ch.sprite.emitter().burst( SkillBursts.STEEL_GLINT, 3 );
 		}
 	}
 
@@ -86,7 +85,7 @@ public class BladeMastery extends PassiveSkillB3 {
 	@Override
 	public void onDodge( Char attacker ){
 		xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero = xyz.gabriwar.warpedpixeldungeon.Dungeon.hero;
-		if (hero != null && hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 3 );
+		if (hero != null && hero.sprite != null) hero.sprite.emitter().burst( SkillBursts.STEEL_GLINT, 3 );
 		SpatialSound.play( Assets.Sounds.HIT_PARRY, hero, 0.8f, 1.4f );
 	}
 
@@ -97,6 +96,9 @@ public class BladeMastery extends PassiveSkillB3 {
 		}
 
 		@Override
-		public int icon(){ return xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator.NONE; }
+		public int icon(){ return xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator.FORM_READ; }
+
+		@Override
+		public float iconFadePercent(){ return Math.max( 0f, (READ_TURNS - visualcooldown()) / READ_TURNS ); }
 	}
 }

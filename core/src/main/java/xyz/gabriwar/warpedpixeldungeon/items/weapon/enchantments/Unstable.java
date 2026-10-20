@@ -24,6 +24,9 @@ package xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows;
 import com.watabou.utils.Random;
 import com.watabou.utils.Reflection;
 
@@ -60,6 +63,7 @@ public class Unstable extends Weapon.Enchantment {
 		
 		Weapon.Enchantment enchant = Reflection.newInstance(Random.oneOf(randomEnchants));
 		enchant.level(level()); //scales with enchantment level
+		EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, EnchantFx.strength( level(), 0, 1, 1f ), level(), 0, ShadowRows.DICE );
 		damage = enchant.proc( weapon, attacker, defender, damage );
 		
 		return damage + conservedDamage;

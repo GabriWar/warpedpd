@@ -28,6 +28,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite.Glowing;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 
 public class Grim extends Weapon.Enchantment {
 	
@@ -48,7 +49,9 @@ public class Grim extends Weapon.Enchantment {
 
 		//we defer logic using a buff here so we can know the true final damage
 		//see Char.damage
-		Buff.affect(attacker, GrimTracker.class).maxChance = maxChance;
+		GrimTracker tracker = Buff.affect(attacker, GrimTracker.class);
+		tracker.maxChance = maxChance;
+		tracker.echo = Quality.isVestige( weapon, this );
 
 		if (attacker.buff(GrimTracker.class) != null
 				&& attacker instanceof Hero
@@ -72,6 +75,8 @@ public class Grim extends Weapon.Enchantment {
 
 		public float maxChance;
 		public boolean qualifiesForBadge;
+		//its execute is a vestige's (the picture's echo; never saved: it lives for one blow)
+		public transient boolean echo;
 
 		@Override
 		public boolean act() {

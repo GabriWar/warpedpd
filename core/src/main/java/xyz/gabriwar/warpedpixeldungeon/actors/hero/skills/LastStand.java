@@ -42,6 +42,7 @@ import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 
 public class LastStand extends Skill {
 
@@ -92,9 +93,10 @@ public class LastStand extends Skill {
 			for (int n : PathFinder.NEIGHBOURS8){
 				Char ch = Actor.findChar( hero.pos + n );
 				if (ch != null && ch.alignment == Char.Alignment.ENEMY && ch.isAlive()){
-					if (!Char.hasProp( ch, Char.Property.BOSS ) && !Char.hasProp( ch, Char.Property.MINIBOSS ))
-						Buff.affect( ch, Paralysis.class, 2f );
-					if (ch.sprite != null) ch.sprite.emitter().burst( Speck.factory( Speck.STAR ), 3 );
+					boolean boss = Char.hasProp( ch, Char.Property.BOSS ) || Char.hasProp( ch, Char.Property.MINIBOSS );
+					if (!boss) Buff.affect( ch, Paralysis.class, 2f );
+					//held: the stun's amber twinkle; a boss it cannot hold only shudders
+					if (ch.sprite != null) ch.sprite.emitter().burst( boss ? SkillBursts.TREMBLE : SkillBursts.DAZE, 3 );
 				}
 			}
 		}

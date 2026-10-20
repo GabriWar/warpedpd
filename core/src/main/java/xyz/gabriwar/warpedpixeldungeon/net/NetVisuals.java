@@ -30,7 +30,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.CheckedCell;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.sprites.MissileSprite;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.AmbientSnowParticle;
@@ -160,6 +159,30 @@ public class NetVisuals {
 		reg("shaft_heal",       ShaftParticle.HEAL); // fx:nature-life-holy
 		reg("sungrass_shaft",   xyz.gabriwar.warpedpixeldungeon.effects.fx.nature.PlantFx.SUNGRASS_SHAFT); // fx:nature-life-holy
 		reg("holy_flame",       xyz.gabriwar.warpedpixeldungeon.effects.skillfx.HolyFlameParticle.FACTORY); // fx:skills
+		reg("skill_dread",       xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.DREAD); // fx:skills
+		reg("skill_tremble",     xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.TREMBLE); // fx:skills
+		reg("skill_roar",        xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.ROAR); // fx:skills
+		reg("skill_grit",        xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.GRIT); // fx:skills
+		reg("skill_stone_chip",  xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.STONE_CHIP); // fx:skills
+		reg("skill_metal_spark", xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.METAL_SPARK); // fx:skills
+		reg("skill_steel_glint", xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.STEEL_GLINT); // fx:skills
+		reg("skill_arcane_spark", xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.ARCANE_SPARK); // fx:skills
+		reg("skill_storm_spark", xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.STORM_SPARK); // fx:skills
+		reg("skill_ink",         xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.INK_DRIFT); // fx:skills
+		reg("skill_ember",       xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.EMBER_MOTE); // fx:skills
+		reg("skill_frost",       xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.FROST_GLINT); // fx:skills
+		reg("skill_feather",     xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.FEATHER); // fx:skills
+		reg("skill_flourish",    xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.FLOURISH); // fx:skills
+		reg("skill_gold",        xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.GOLD_GLINT); // fx:skills
+		reg("skill_verse",       xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.VERSE); // fx:skills
+		reg("skill_soul",        xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.SOUL_WISP); // fx:skills
+		reg("skill_holy",        xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.HOLY_MOTE); // fx:skills
+		reg("skill_breath",      xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.BREATH); // fx:skills
+		reg("skill_heartbeat",   xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.HEARTBEAT); // fx:skills
+		reg("skill_fuse",        xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.FUSE); // fx:skills
+		reg("skill_ichor",       xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.ICHOR); // fx:skills
+		reg("skill_scent",       xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.SCENT); // fx:skills
+		reg("skill_daze",        xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts.DAZE); // fx:skills (rfx kit: a real daze)
 	}
 
 	private static void reg(String id, Emitter.Factory factory) {
@@ -307,10 +330,11 @@ public class NetVisuals {
 	}
 
 	/**
-	 * Record a missile sprite (thrown item, projectile).
+	 * Record a missile sprite (thrown item, projectile). `sig`: what the item shows of its magic
+	 * (ItemLooks.sig), sent as an optional "sig" so the guest's stand-in trails it; null for none.
 	 */
 	public static void recordMissile(float fx, float fy, float tx, float ty, int image,
-								   float angularSpeed, float angle) {
+								   float angularSpeed, float angle, int[] sig) {
 		if (!NetManager.isHost()) return;
 		try {
 			JSONObject evt = new JSONObject();
@@ -322,6 +346,7 @@ public class NetVisuals {
 			evt.put("img", image);
 			evt.put("as", angularSpeed);
 			evt.put("a", angle);
+			if (sig != null) evt.put("sig", cells(sig)); // fx:enchant
 			pendingEvents.add(evt);
 		} catch (JSONException ignored) {}
 	}
@@ -351,6 +376,7 @@ public class NetVisuals {
 			JSONObject evt = new JSONObject();
 			evt.put("t", "sf");
 			evt.put("id", ch.id());
+			blow(evt);
 			pendingEvents.add(evt);
 		} catch (JSONException ignored) {}
 	}
@@ -365,6 +391,7 @@ public class NetVisuals {
 			evt.put("t", "sb");
 			evt.put("id", ch.id());
 			evt.put("d", damage);
+			blow(evt);
 			pendingEvents.add(evt);
 		} catch (JSONException ignored) {}
 	}
@@ -423,6 +450,40 @@ public class NetVisuals {
 			if (m != 0) evt.put("m", m);
 			pendingEvents.add(evt);
 		} catch (JSONException ignored) {}
+	}
+
+	// fx:enchant
+	/**
+	 * Record one of the enchantments' pictures (effects/fx/enchant/EnchantNet): its kind, its whole
+	 * numbers ("i": codes, ids, a tier, flags...) and a list of cells ("a", sent only when there
+	 * is one). The guest's EnchantNet plays it, the sting with it.
+	 */
+	public static void recordEnchant(int kind, int[] ints, int[] list) {
+		recordEnchant(kind, ints, list, 0);
+	}
+
+	/**
+	 * The same, tagged with the blow it belongs to ("s", effects/fx/combat/Blow's serial, sent only
+	 * when not 0): a guest holds a tagged picture until its blow's card comes.
+	 */
+	public static void recordEnchant(int kind, int[] ints, int[] list, int serial) {
+		if (!NetManager.isHost()) return;
+		try {
+			JSONObject evt = new JSONObject();
+			evt.put("t", "eh");
+			evt.put("k", kind);
+			if (ints != null) evt.put("i", cells(ints));
+			if (list != null && list.length > 0) evt.put("a", cells(list));
+			if (serial != 0) evt.put("s", serial);
+			pendingEvents.add(evt);
+		} catch (JSONException ignored) {}
+	}
+
+	//the blow open on this thread (effects/fx/combat/Blow), its serial as "s"; none outside one, nor
+	//in one whose card the host will not draw (no CARD would come to release it on the guest)
+	private static void blow(JSONObject evt) throws JSONException {
+		int serial = xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.cardSerial();
+		if (serial != 0) evt.put("s", serial);
 	}
 
 	private static JSONArray cells(int[] cells) {
@@ -573,6 +634,7 @@ public class NetVisuals {
 			case "cc": replayCheckedCell(evt); break;
 			case "sk": replayStrike(evt); break;
 			case "fh": replayFire(evt); break;
+			case "eh": replayEnchant(evt); break; // fx:enchant
 			case "gw": replayGather(evt); break;
 		}
 	}
@@ -595,6 +657,29 @@ public class NetVisuals {
 			list = java.util.Arrays.copyOf(list, k);
 		}
 		xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.FireNet.play(evt.getInt("k"), cell, evt.optInt("n", 0), evt.optInt("m", 0), list);
+	}
+
+	// fx:enchant
+	//an enchantment's picture: its numbers as sent, its cells those on the guest's level, its
+	//characters found as every replay finds them
+	private static void replayEnchant(JSONObject evt) throws JSONException {
+		JSONArray i = evt.optJSONArray("i");
+		int[] ints = new int[i != null ? i.length() : 0];
+		for (int k = 0; k < ints.length; k++) ints[k] = i.optInt(k, -1);
+		int[] list = null;
+		JSONArray a = evt.optJSONArray("a");
+		if (a != null && Dungeon.level != null) {
+			int len = Dungeon.level.length();
+			list = new int[a.length()];
+			int n = 0;
+			for (int k = 0; k < a.length(); k++) {
+				int c = a.optInt(k, -1);
+				if (c >= 0 && c < len) list[n++] = c;
+			}
+			list = java.util.Arrays.copyOf(list, n);
+		}
+		xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantNet.play(evt.getInt("k"), ints, list, NetVisuals::findSprite,
+				evt.optInt("s", 0));
 	}
 
 	//a piece of gathering: played only on a cell of the guest's level
@@ -732,6 +817,8 @@ public class NetVisuals {
 
 		if (Dungeon.hero != null && Dungeon.hero.sprite != null && Dungeon.hero.sprite.parent != null) {
 			Item dummy = new Item() { { image = img; } };
+			// fx:enchant - the item's magic, so the stand-in trails it (an older host sends none)
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.ItemLooks.sign(dummy, evt.optJSONArray("sig"));
 			MissileSprite ms = (MissileSprite) Dungeon.hero.sprite.parent.recycle(MissileSprite.class);
 			ms.reset(new PointF(fx, fy), new PointF(tx, ty), dummy, null);
 			ms.angularSpeed = angSpeed;
@@ -751,7 +838,7 @@ public class NetVisuals {
 			float x = c.x;
 			float y = c.y - sprite.height() / 2f;
 			int pos = sprite.ch != null ? sprite.ch.pos : -1;
-			FloatingText.show(x, y, pos, text, color, icon, true);
+			FloatingText.show(x, y, pos, text, color, icon, true, sprite);
 		}
 	}
 
@@ -759,14 +846,14 @@ public class NetVisuals {
 		int id = evt.getInt("id");
 		int damage = evt.getInt("d");
 
+		//a blow's blood waits for its card (its drops and its star as the blow's lead allows)
+		if (xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantNet.holdBlood(evt.optInt("s", 0), id, damage,
+				NetVisuals::findSprite)) return;
 		CharSprite sprite = findSprite(id);
 		if (sprite != null) {
-			// Approximate blood burst from center
-			PointF c = sprite.center();
-			int n = Math.min(9, Math.max(1, (int)(9 * Math.sqrt((double)damage / 20))));
-			Splash.at(c, 0xFFBB0000, n);
-			// the blow's star, flash and recoil, as the host saw them (no shake: the guest's hero is not in it)
-			sprite.hitFx( c.x + (sprite.flipHorizontal ? 8 : -8), c.y, damage, xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.HitFx.HIT, false );
+			// Approximate blood burst from center, and the blow's star, flash and recoil, as the host
+			// saw them (no shake: the guest's hero is not in it)
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantNet.bloodAsEver(sprite, damage);
 		}
 	}
 

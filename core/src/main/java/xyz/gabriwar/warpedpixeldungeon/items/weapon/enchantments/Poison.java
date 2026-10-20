@@ -26,6 +26,9 @@ package xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import com.watabou.utils.Random;
@@ -46,6 +49,7 @@ public class Poison extends Weapon.Enchantment {
 			Buff.affect(defender,
 					xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison.class)
 					.set((level + 1) * power()); //scales with enchantment level
+			EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, Math.min( 1f, (level + 1) * power() / 6f ), level(), 0, ElementRows.poison() );
 		}
 
 		return damage;

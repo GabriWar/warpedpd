@@ -26,11 +26,15 @@ package xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger;
+import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.effects.SpellSprite;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows;
 import com.watabou.utils.Random;
 
 public class Nomnom extends Weapon.Enchantment {
@@ -55,7 +59,7 @@ public class Nomnom extends Weapon.Enchantment {
 			if (effValue > 0) {
 				attacker.HP += effValue;
 				attacker.sprite.emitter().start(Speck.factory(Speck.HEALING), 0.4f, 1);
-				attacker.sprite.showStatus(CharSprite.POSITIVE, Integer.toString(effValue));
+				attacker.sprite.showStatusWithIcon(CharSprite.POSITIVE, Integer.toString(effValue), FloatingText.HEALING);
 			}
 
 			Hunger hunger = attacker.buff(Hunger.class);
@@ -63,6 +67,7 @@ public class Nomnom extends Weapon.Enchantment {
 				hunger.satisfy(maxValue);
 				SpellSprite.show(attacker, SpellSprite.FOOD);
 			}
+			EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, 1f, level(), 0, ShadowRows.NOMNOM );
 		}
 
 		return damage;

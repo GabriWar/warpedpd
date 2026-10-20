@@ -23,6 +23,9 @@ package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfSirensSong;
+import xyz.gabriwar.warpedpixeldungeon.items.spells.SummonElemental;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import com.watabou.utils.Bundle;
 
@@ -58,6 +61,15 @@ public class Charm extends FlavourBuff {
 	@Override
 	public int icon() {
 		return BuffIndicator.HEART;
+	}
+
+	//every charm wears its hearts, whatever charmed it (a co-op guest sees them by the state's name);
+	//they stay while a siren's thrall or a summoned ally's bond, which wear them too, still holds
+	@Override
+	public void fx(boolean on) {
+		if (on) target.sprite.add(CharSprite.State.HEARTS);
+		else if (target.buff(ScrollOfSirensSong.Enthralled.class) == null
+				&& target.buff(SummonElemental.InvisAlly.class) == null) target.sprite.remove(CharSprite.State.HEARTS);
 	}
 
 	@Override

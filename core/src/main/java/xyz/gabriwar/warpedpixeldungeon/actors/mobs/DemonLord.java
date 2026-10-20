@@ -225,7 +225,7 @@ public class DemonLord extends Mob {
 	//below half health: two ice demons claw their way out of the floor beside him
 	private void enrage() {
 		BossHealthBar.bleed( true );
-		sprite.showStatus( CharSprite.WARNING, Messages.get( this, "enraged" ) );
+		xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.icon( this, xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.RAGE, 0 );
 		yell( Messages.get( this, "rage" ) );
 		SpatialSound.play( Assets.Sounds.CHALLENGE, pos );
 		breathCooldown = 0;

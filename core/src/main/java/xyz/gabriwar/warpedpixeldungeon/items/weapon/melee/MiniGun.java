@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.effects.Splash;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfSharpshooting;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
@@ -104,7 +105,8 @@ public class MiniGun extends Weapon {
 			if (charge < 1){
 				charge = fullcharge;
 				hero.sprite.showStatus(CharSprite.DEFAULT, Messages.get(this, "reloading"));
-				hero.spendAndNext(1.5f);
+				if (Quality.rollFreeReload(this, hero)) hero.next();
+				else hero.spendAndNext(1.5f);
 			} else {
 				curUser = hero;
 				curItem = this;
@@ -115,7 +117,9 @@ public class MiniGun extends Weapon {
 				GLog.n(Messages.get(this, "full"));
 			} else {
 				float reloadtime = (fullcharge - charge)/2;
-				hero.spendAndNext(reloadtime*1f);
+				//a reload that already takes no time has nothing to spare
+				if (reloadtime > 0 && Quality.rollFreeReload(this, hero)) hero.next();
+				else hero.spendAndNext(reloadtime*1f);
 				hero.sprite.showStatus(CharSprite.DEFAULT, Messages.get(this, "reloading"));
 				charge = fullcharge;
 			}
@@ -229,6 +233,12 @@ public class MiniGun extends Weapon {
 			setID = 0;
 		}
 
+		//the shot fires the gun's magic and counts its rarity
+		@Override
+		public Weapon magicSource() {
+			return MiniGun.this;
+		}
+
 		@Override
 		public ArrayList<String> actions(Hero hero) {
 			return new ArrayList<>();
@@ -293,8 +303,8 @@ public class MiniGun extends Weapon {
 		public void cast(final Hero user, final int dst) {
 			final int cell = throwPos( user, dst );
 			//SPS never actually consumed ammo (dead reload mechanic); ammo is
-			//consumed here so reloading matters
-			charge--;
+			//consumed here so reloading matters, unless an AMMO line spares the round
+			if (!Quality.rollSpareAmmo(MiniGun.this, user)) charge--;
 			updateQuickslot();
 			spray( cell );
 			super.cast(user, dst);

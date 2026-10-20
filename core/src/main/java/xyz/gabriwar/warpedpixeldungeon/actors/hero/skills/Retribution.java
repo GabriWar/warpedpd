@@ -32,6 +32,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.effects.Beam;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillRay;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 
@@ -104,8 +106,15 @@ public class Retribution extends SubSkill3 {
 				if (m == enemy || m.alignment != Char.Alignment.ENEMY || !m.isAlive()
 						|| Dungeon.level.distance( enemy.pos, m.pos ) > BURST_RANGE || !Dungeon.level.heroFOV[m.pos]) continue;
 				final Mob next = m;
-				if (enemy.sprite != null && m.sprite != null && hero.sprite != null && hero.sprite.parent != null)
-					hero.sprite.parent.add( new Beam.LightRay( enemy.sprite.center(), m.sprite.center() ) );
+				//the debt bursts on: a ray of holy light into the next (the game's own LightRay, kept on the
+				//owner's word) with gold motes streaming along it, on the render thread
+				if (enemy.sprite != null && m.sprite != null && hero.sprite != null && hero.sprite.parent != null){
+					Fx.post( () -> {
+						if (enemy.sprite == null || next.sprite == null || hero.sprite == null || hero.sprite.parent == null) return;
+						hero.sprite.parent.add( new Beam.LightRay( enemy.sprite.center(), next.sprite.center() ) );
+						SkillRay.stream( enemy.sprite, next.sprite, SkillRay.STREAM_HOLY, 0.5f );
+					} );
+				}
 				SkillInteractions.defer( () -> { if (next.isAlive()) next.damage( half, Retribution.this ); } );
 				break;
 			}

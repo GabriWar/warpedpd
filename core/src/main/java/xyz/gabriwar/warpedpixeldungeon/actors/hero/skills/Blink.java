@@ -35,7 +35,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Afterimage;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StreakFX;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import com.watabou.utils.PathFinder;
@@ -85,7 +90,8 @@ public class Blink extends ActiveSkill {
 		super.execute( hero, action );
 		if (action.equals(Skill.AC_ACTIVATE) && hero.sprite != null){
 			SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 1f, 1.6f );
-			hero.sprite.emitter().burst( SparkParticle.FACTORY, 8 );
+			//static gathering on him in the storm's pale cyan (never a body crackling with a shock)
+			hero.sprite.emitter().burst( SkillBursts.STORM_SPARK, 8 );
 		}
 	}
 
@@ -171,7 +177,7 @@ public class Blink extends ActiveSkill {
 			for (int k = i; k < jumps.size(); k++) jumps.get( k ).strike( source );
 			if (hero.sprite != null){
 				hero.sprite.place( hero.pos );
-				hero.sprite.emitter().burst( SparkParticle.FACTORY, 10 );
+				hero.sprite.emitter().burst( SkillBursts.STORM_SPARK, 10 );
 			}
 			hero.next();
 			return;
@@ -188,12 +194,26 @@ public class Blink extends ActiveSkill {
 			PointF middle = j.target.sprite.center();
 			arcs.add( new Lightning.Arc( start, middle ) );
 			arcs.add( new Lightning.Arc( middle, end ) );
-			j.target.sprite.emitter().burst( SparkParticle.FACTORY, 6 );
+			j.target.sprite.emitter().burst( SkillBursts.STORM_SPARK, 6 );
 		} else {
 			arcs.add( new Lightning.Arc( start, end ) );
 		}
 		j.strike( source );
-		hero.sprite.parent.add( new Lightning( arcs, () -> playJump( source, hero, jumps, i + 1 ) ) );
+		jumped( hero.sprite, j.from, j.land );
+		//his own lightning, in the storm's pale cyan (never the Shocking enchantment's blue-white)
+		hero.sprite.parent.add( new Lightning( arcs, () -> playJump( source, hero, jumps, i + 1 ) ).tint( Lightning.STORM ) );
+	}
+
+	/** A jump of the chain seen: a streak of his class's colour from where he set off to where he
+	 *  lands, and his shape left behind where he set off, fading. Nothing of the game's Random.
+	 *  Any thread (his sprite already placed on `land`). */
+	public static void jumped( final CharSprite s, final int from, final int land ){
+		StreakFX.dash( from, land, SkillVfx.classColor(), 0.45f, 0.2f, false );
+		Fx.post( () -> {
+			if (s.parent == null || !s.visible || !SkillVfx.valid( from ) || !SkillVfx.valid( land )) return;
+			Afterimage.of( s, SkillVfx.classColor(), 0.55f, 0.2f,
+					SkillVfx.cx( from ) - SkillVfx.cx( land ), SkillVfx.cy( from ) - SkillVfx.cy( land ) );
+		} );
 	}
 
 	/** the free tile straight past an enemy seen from a cell, or -1 when he cannot pass it */

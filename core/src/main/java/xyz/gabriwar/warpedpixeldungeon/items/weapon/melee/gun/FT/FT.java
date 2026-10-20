@@ -36,6 +36,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Fire;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.gun.Gun;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
@@ -70,6 +71,12 @@ public class FT extends Gun {
         return Math.max(0, (maxRound()-round)*2);
     }
 
+    //the cone's own reach, before a RANGE line stretches it
+    @Override
+    public int baseRange() {
+        return tier + 1;
+    }
+
     @Override
     public Bullet knockBullet(){
         return new FTBullet();
@@ -85,7 +92,7 @@ public class FT extends Gun {
         protected void onThrow(int cell) {
             if (cell != curUser.pos) {
                 Ballistica aim = new Ballistica(curUser.pos, cell, Ballistica.WONT_STOP);
-                int maxDist = FT.this.tier + 1;
+                int maxDist = FT.this.baseRange() + Quality.rangeBonus(FT.this, FT.this.baseRange());
                 int dist = Math.min(aim.dist, maxDist);
                 ConeAOE cone = new ConeAOE(aim,
                         dist,
@@ -100,6 +107,7 @@ public class FT extends Gun {
                             null
                     );
                 }
+                xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.PieceFx.reach(curUser, FT.this, aim, FT.this.baseRange(), maxDist);
                 ArrayList<Char> chars = new ArrayList<>();
                 for (int cells : cone.cells){
                     //knock doors open

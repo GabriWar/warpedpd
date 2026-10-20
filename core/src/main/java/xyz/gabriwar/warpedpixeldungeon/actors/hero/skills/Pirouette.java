@@ -44,6 +44,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 
 import java.util.ArrayList;
 
@@ -129,7 +130,7 @@ public class Pirouette extends Skill {
 				for (Char ch : left){
 					if (!ch.isAlive()) continue;
 					Buff.prolong( ch, xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo.class, 2f );
-					if (ch.sprite != null) ch.sprite.emitter().burst( Speck.factory( Speck.STAR ), 3 );
+					if (ch.sprite != null) ch.sprite.emitter().burst( SkillBursts.DAZE, 3 );
 				}
 			}
 			hero.spendAndNext( TIME_TO_USE );

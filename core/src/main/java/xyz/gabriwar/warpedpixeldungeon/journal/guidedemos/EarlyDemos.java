@@ -693,7 +693,7 @@ public final class EarlyDemos {
 
 	//Hit down to 200 (and again to 100, DM300.damage: HT/3 steps), DM-300 supercharges: it lights a
 	//pylon other than the one nearest you (CavesBossLevel.activatePylon), cannot be hurt
-	//(isInvulnerable: "invulnerable"), charges for 3 turns, then moves at double speed (speed x2) but
+	//(isInvulnerable: its card shows IMMUNE), charges for 3 turns, then moves at double speed (speed x2) but
 	//still strikes once a turn, for 15 to 25. The lit pylon has 50 health and takes hits under 15 whole
 	//(Pylon.damage); when it falls the charge ends (Pylon.die, DM300.loseSupercharge).
 	private static void dm300Supercharge( DemoBook book ){
@@ -716,12 +716,12 @@ public final class EarlyDemos {
 				.hurt( "dm", 14 )
 				.beat()
 				.look( "dm", CHARGED, true ).anim( "dm", "charge" )
-				.status( "dm", "actors.char.invulnerable", CharSprite.POSITIVE )
+				.chip( "dm", xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.IMMUNE )
 				.hide( "far" ).show( "lit" )
 				.turn()
 				.attack( "you", 1, 3 )
 				.beat()
-				.status( "dm", "actors.char.invulnerable", CharSprite.POSITIVE )
+				.chip( "dm", xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.IMMUNE )
 				.caption( "immune" )
 				.turn()
 				.move( "you", 3, 2 )

@@ -124,7 +124,7 @@ public class RedDragon extends PET implements Callback {
 					GameScene.add(Blob.seed(enemy.pos, 1, Fire.class));
 				}
 			} else {
-				enemy.sprite.showStatus(0xFFFFFF, enemy.defenseVerb());
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.missed( enemy );
 			}
 		}
 	}

@@ -65,6 +65,7 @@ public class WndHero extends WndTabbed {
 	private StatsTab stats;
 	private TalentsTab talents;
 	private BuffsTab buffs;
+	private DamageTab damage;
 
 	public static int lastIdx = 0;
 
@@ -86,6 +87,10 @@ public class WndHero extends WndTabbed {
 		add( buffs );
 		buffs.setRect(0, 0, WIDTH, HEIGHT);
 		buffs.setupList();
+
+		damage = new DamageTab();
+		add( damage );
+		damage.setRect(0, 0, WIDTH, HEIGHT);
 		
 		add( new IconTab( Icons.get(Icons.RANKINGS) ) {
 			protected void select( boolean value ) {
@@ -114,6 +119,19 @@ public class WndHero extends WndTabbed {
 				buffs.visible = buffs.active = selected;
 			}
 		} );
+		add( new IconTab( Icons.get(Icons.DAMAGE) ) {
+			protected void select( boolean value ) {
+				super.select( value );
+				if (selected) {
+					lastIdx = 3;
+					//taken again each time it is chosen, as the stats are
+					if (!damage.visible || damage.stale) {
+						damage.build();
+					}
+				}
+				damage.visible = damage.active = selected;
+			}
+		} );
 
 		layoutTabs();
 
@@ -140,6 +158,7 @@ public class WndHero extends WndTabbed {
 		stats.layout();
 		talents.layout();
 		buffs.layout();
+		damage.layout();
 	}
 
 	//the stats live in a scroll pane: with weather and the day's calendar

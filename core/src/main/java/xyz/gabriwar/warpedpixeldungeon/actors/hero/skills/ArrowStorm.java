@@ -48,9 +48,13 @@ import com.watabou.utils.PathFinder;
 import java.util.ArrayList;
 import com.watabou.utils.PointF;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.FxTimeline;
+import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillFlight;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.Dart;
-import xyz.gabriwar.warpedpixeldungeon.sprites.MissileSprite;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
+import com.watabou.noosa.Group;
 
 public class ArrowStorm extends Skill {
 
@@ -101,8 +105,9 @@ public class ArrowStorm extends Skill {
 			SpatialSound.play( Assets.Sounds.ATK_SPIRITBOW, curUser, 1f, 0.8f );
 			//the storm falls now and keeps falling for two more turns
 			Buff.append( curUser, ArrowRain.class ).set( cell, level, 3 );
-			//the volley, seen: a fan of arrows loosed skyward one after another, the string a note
-			//higher each, then dust kicking up under the impact cells in sequence as the storm lands
+			//the volley, seen: a fan of spirit arrows of light loosed skyward one after another (never
+			//darts, an item), the string a note higher each, then dust kicking up under the impact
+			//cells in sequence as the storm lands
 			if (curUser.sprite.parent != null){
 				final int n = 2 + level;
 				final PointF top = DungeonTilemap.tileCenterToWorld( cell );
@@ -111,8 +116,8 @@ public class ArrowStorm extends Skill {
 					final int k = i;
 					t.at( 0.07f * i, () -> {
 						if (curUser.sprite == null || curUser.sprite.parent == null) return;
-						PointF sky = new PointF( top.x + (k - (n - 1) / 2f) * 6f, top.y - DungeonTilemap.SIZE * 6 );
-						((MissileSprite) curUser.sprite.parent.recycle( MissileSprite.class )).reset( curUser.sprite.center(), sky, new Dart(), null );
+						PointF hand = curUser.sprite.center();
+						loose( curUser.sprite.parent, hand.x, hand.y, top.x + (k - (n - 1) / 2f) * 6f, top.y - DungeonTilemap.SIZE * 6, k );
 						SpatialSound.play( Assets.Sounds.ATK_SPIRITBOW, curUser, 0.7f, 0.9f + 0.08f * k );
 					} );
 				}
@@ -134,6 +139,15 @@ public class ArrowStorm extends Skill {
 		public String prompt(){
 			return Messages.get( ArrowStorm.class, "prompt" );
 		}
+	}
+
+	/** One arrow of the volley loosed skyward from (fx, fy) to (tx, ty) in a group: a spirit arrow of
+	 *  light at a thrown item's pace, the first with a nature flare at the string; a co-op guest is
+	 *  sent it as the dart it was. Render thread. */
+	public static void loose( Group parent, float fx, float fy, float tx, float ty, int k ){
+		SkillFlight.fly( parent, fx, fy, tx, ty, SkillFX.Streak.SPIRIT_ARROW, SkillFX.MISSILE_SPEED, null );
+		SkillFX.forGuests( fx, fy, tx, ty, new Dart() );
+		if (k == 0 && Fx.seen( fx, fy )) PixelFlare.show( fx, fy, ArrowRain.NATURE, PixelFlare.S, 0.3f );
 	}
 
 	@Override

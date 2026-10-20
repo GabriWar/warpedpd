@@ -30,7 +30,7 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.PoisonParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
@@ -63,7 +63,7 @@ public class Scorpion extends PassiveSkillB2 {
 				&& Random.Int( 100 ) < 10 * level){
 			if (level >= Skill.MAX_LEVEL && enemy.buff( Cripple.class ) != null){
 				SkillInteractions.affectAfterHit( enemy, xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis.class, 1f );
-				CellEmitter.center( enemy.pos ).burst( Speck.factory( Speck.STAR ), 4 );
+				CellEmitter.center( enemy.pos ).burst( SkillBursts.DAZE, 4 );
 			}
 			Buff.prolong( enemy, Cripple.class, 2 + level );
 			CellEmitter.center( enemy.pos ).burst( PoisonParticle.SPLASH, 5 );

@@ -25,10 +25,10 @@
 package xyz.gabriwar.warpedpixeldungeon.effects;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
-import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Element;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxBudget;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxCurves;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
@@ -183,10 +183,21 @@ public abstract class CritterSprite extends Image {
 	 * A crow, a gull, a finch or an owl. It glides in and settles, pecks, hops and turns
 	 * about, looks up when the hero comes close, and flies off - flapping up and away,
 	 * growing as it climbs toward the eye, fading - when something comes too near.
+	 *
+	 * The surface's flocks cast a shadow (castShadow), as the peaks' eagle does: a small dark
+	 * ellipse on the ground straight under it (the kit's 2:1 wet mark, FxFrames.WET_9, dark),
+	 * SHADOW strong under a bird on the ground, as far below it as it flies high and fading as it
+	 * climbs (gone by SHADOW_GONE px up), dimming with the light (none by night). It lies in the
+	 * effects under every other picture and shows where the hero sees the ground under the bird.
 	 */
 	public static class Bird extends CritterSprite {
 
 		public enum Kind { CROW, GULL, FINCH, OWL }
+
+		/** Its shadow's alpha under a bird on the ground, and the height it is gone by (px). */
+		public static final float SHADOW = 0.25f, SHADOW_GONE = 56f;
+		//the shadow's colour: the wet mark's grey (200) lit by it reads as the ad's 10141C
+		private static final int SHADOW_COLOR = 0x141A24;
 
 		//poses of a bird row (crow, gull, finch); the owl's row has its own
 		private static final int PERCH = 0, PECK = 1, WARY = 2, HOP = 3, GLIDE = 7;
@@ -212,6 +223,8 @@ public abstract class CritterSprite extends Image {
 		//(alphaCap, scale0) and, already in the air, turns away at once (airborne)
 		private float heading, speed, vmax, climb, alphaCap = 1f, scale0 = 1f;
 		private boolean airborne;
+		//its shadow on the ground (castShadow), or null
+		private Image shadow;
 
 		public Bird( Kind kind, float ax, float ay, float seenDY ){
 			super( ax, ay );
@@ -276,6 +289,57 @@ public abstract class CritterSprite extends Image {
 		/** Heads up: the hero is close. No pecking, no hopping. */
 		public void wary( boolean on ){
 			wary = on;
+		}
+
+		/** Its shadow on the ground from now on (the surface's flocks), in the effects under every other picture. */
+		public Bird castShadow(){
+			if (shadow != null) return this;
+			shadow = new Image( Assets.Effects.FX_SHEET );
+			int[] f = FxFrames.WET_9;
+			shadow.frame( shadow.texture.uvRect( f[0], f[1], f[0] + f[2], f[1] + f[3] ) );
+			shadow.hardlight( SHADOW_COLOR );
+			shadow.alpha( 0f );
+			GameScene.effect( shadow );
+			if (shadow.parent != null) shadow.parent.sendToBack( shadow );
+			return this;
+		}
+
+		//its shadow on the ground, or null, for the tests
+		Image shadow(){
+			return shadow;
+		}
+
+		/** The light's share of a shadow by the night's tint (GameScene.nightTintAlpha): whole by
+		 *  day and under a broken sky, thinning as the light dims (dusk, a grey sky), none by night. */
+		public static float shadowLight( float nightTint ){
+			return 1f - FxCurves.smooth( (nightTint - 0.15f) / 0.25f );
+		}
+
+		@Override
+		public void update(){
+			super.update();
+			if (shadow != null && exists) placeShadow();
+		}
+
+		//straight below it on the ground, its middle a pixel over the bird's feet, on whole pixels: as
+		//plain as the bird is, fading as it climbs and with the light
+		private void placeShadow(){
+			int[] f = FxFrames.WET_9;
+			shadow.x = Math.round( gx() - f[2] / 2f );
+			shadow.y = Math.round( gy() - 1f - f[3] / 2f );
+			float a = alpha() * SHADOW * Math.max( 0f, 1f - z / SHADOW_GONE ) * shadowLight( GameScene.nightTintAlpha() );
+			shadow.alpha( a );
+			shadow.visible = a > 0.004f && WeatherSprites.visible( gx(), gy() - 1f );
+		}
+
+		@Override
+		public void vanish(){
+			if (shadow != null){
+				shadow.killAndErase();
+				shadow.destroy();
+				shadow = null;
+			}
+			super.vanish();
 		}
 
 		//on the ground (or coming down to it) it shows when its own spot is in sight
@@ -779,8 +843,8 @@ public abstract class CritterSprite extends Image {
 
 		@Override
 		protected void act( float dt ){
-			//the wind carries the whole patch along, as it does the fireflies
-			ax += ClimateManager.localWindSpeed() * 0.25f * dt;
+			//the wind carries the whole patch along the way it blows, as it does the fireflies
+			ax += Fx.driftX() * 0.25f * dt;
 			heading += rf( -1f, 1f ) * 4f * dt;
 			//never far from its patch: past 40px it turns for home
 			if (startled <= 0f && Math.hypot( ox, oy ) > 40f){

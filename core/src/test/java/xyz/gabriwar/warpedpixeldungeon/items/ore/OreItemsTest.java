@@ -208,6 +208,7 @@ public class OreItemsTest {
 			lines.add( item.desc() );
 		}
 		for (String k : new String[]{ "prised", "prised_two" }) lines.add( Messages.get( Ore.class, k, "iron ore" ) );
+		lines.add( Messages.get( Ore.class, "prised_n", "iron ore", 3 ) );
 		lines.add( Messages.get( Ore.class, "you_now_have", 10, "iron ore" ) );
 		lines.add( Messages.get( Ore.class, "smith", 50, 0 ) );
 		lines.add( Messages.get( Ore.class, "smith_bonus", 10, 150 ) );

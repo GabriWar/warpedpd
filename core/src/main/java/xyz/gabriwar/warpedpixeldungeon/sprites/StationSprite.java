@@ -38,6 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxLight;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.fire.PlaceLight;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.ChimneySmokeParticle;
 import xyz.gabriwar.warpedpixeldungeon.homestead.stations.HomesteadStation;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.ambience.AmbientSound;
@@ -65,7 +66,11 @@ import com.watabou.utils.PointF;
  * it was made for (a move of the overworld's window: shiftWorld). It drops an ember now and then,
  * and is heard: the kiln and the forge roar (the KILN sound, played again before each play ends so
  * it runs on as one roar), the hearth crackles, from its cell (SpatialSound), quieter the further
- * the hero is, and not at all past HEARD cells.
+ * the hero is, and not at all past HEARD cells. Its chimney smokes, gently: a column of the
+ * chimneys' grey puffs (Smoke) out of the top of its frame, leaning with the wind over the fog
+ * where the hero has seen its cell, a puff every SMOKE_EVERY s (fewer as the effects' budget thins);
+ * lit while the sprite watched, its smoke starts at the mouth, found lit it is already smoking, and
+ * put out it thins away.
  */
 public abstract class StationSprite extends MobSprite {
 
@@ -79,6 +84,13 @@ public abstract class StationSprite extends MobSprite {
 	private static final float ROAR_MIN = 1.2f, ROAR_MAX = 1.4f, CRACKLE_MIN = 2.6f, CRACKLE_MAX = 3.0f;
 	private static final float ROAR_VOLUME = 0.6f, CRACKLE_VOLUME = 0.7f;
 	private static final float EMBER_MIN = 2f, EMBER_MAX = 5f;
+	/** A puff of its chimney's smoke every this many s, by fire (none, the kiln's, the forge's, the
+	 *  hearth's); how far the budget may thin them (to a quarter). */
+	public static final float[] SMOKE_EVERY = { 0f, 0.4f, 0.45f, 0.5f };
+	public static final float SMOKE_FLOOR = 0.25f;
+	//its chimney's mouth in its frame {x, y, w, h}, by fire: the kiln's vent, the forge's hood, the
+	//hearth's flue
+	private static final int[][] MOUTH = { null, { 6, 0, 4, 2 }, { 6, 0, 4, 1 }, { 5, 0, 6, 1 } };
 
 	private final Fire fire;
 	private final Animation still, working;
@@ -87,6 +99,10 @@ public abstract class StationSprite extends MobSprite {
 	//the cell the light was made for
 	private int lightCell = -1;
 	private float soundIn, emberIn;
+	//its chimney's smoke while its fire burns, and whether this sprite has seen its fire out (lit
+	//after that, the smoke starts at the mouth)
+	private Smoke smoke;
+	private boolean wasOut;
 
 	/** A station's look: its frame at rest, its work frames (null to keep its frame) played at
 	 *  `fps`, and its fire. */
@@ -150,6 +166,8 @@ public abstract class StationSprite extends MobSprite {
 
 		if (fire == Fire.NONE || !busy || ch.pos < 0){
 			putOutLight();
+			putOutSmoke();
+			wasOut = true;
 			return;
 		}
 		if (light != null && lightCell != ch.pos) putOutLight();
@@ -157,6 +175,7 @@ public abstract class StationSprite extends MobSprite {
 			light = makeLight( ch.pos );
 			lightCell = ch.pos;
 		}
+		smoke();
 		if (visible){
 			light.update();
 			if ((emberIn -= Game.elapsed) <= 0){
@@ -175,6 +194,31 @@ public abstract class StationSprite extends MobSprite {
 		light = null;
 		lightCell = -1;
 	}
+
+	//its chimney's smoke, made as its fire is lit (or found lit) and kept over its mouth: the scene's
+	//slide of the overworld's window moves the two together, a co-op guest's re-labelled window
+	//places the sprite again and the smoke follows it here
+	private void smoke(){
+		int[] m = MOUTH[fire.ordinal()];
+		float mx = x + m[0], my = y + m[1];
+		if (smoke == null || !smoke.exists || smoke.parent == null){
+			float every = SMOKE_EVERY[fire.ordinal()] / Math.max( SMOKE_FLOOR, FxBudget.factor( FxBudget.P2 ) );
+			smoke = wasOut ? ChimneySmokeParticle.kindle( Smoke.class, mx, my, m[2], m[3], every, 0, 0, true )
+					: ChimneySmokeParticle.column( Smoke.class, mx, my, m[2], m[3], every, 0, 0, true );
+			return;
+		}
+		if (smoke.x != mx || smoke.y != my) smoke.slide( mx - smoke.x, my - smoke.y );
+	}
+
+	//its fire out: the smoke thins away, and the column is the scene's again once it has
+	private void putOutSmoke(){
+		if (smoke != null && smoke.exists && smoke.parent != null) smoke.on = false;
+		smoke = null;
+	}
+
+	/** A station's chimney smoke: the chimneys' column, but a kind of its own, so the scene never
+	 *  hands a station a column SettlementAmbience still holds as it fades, nor the other way round. */
+	public static final class Smoke extends ChimneySmokeParticle.Column {}
 
 	//the overworld's window moved under it: the light, made for a cell of the old window, is made
 	//again for the station's new cell on the next frame
@@ -232,6 +276,7 @@ public abstract class StationSprite extends MobSprite {
 	public void kill(){
 		super.kill();
 		putOutLight();
+		putOutSmoke();
 	}
 
 	// ----------------------------------------------------------------- each station's

@@ -23,9 +23,13 @@ package xyz.gabriwar.warpedpixeldungeon.items.armor.glyphs;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.EnergyParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor.Glyph;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite.Glowing;
 import com.watabou.utils.Random;
@@ -51,6 +55,7 @@ public class Potential extends Glyph {
 			if (wands > 0) {
 				defender.sprite.centerEmitter().burst(EnergyParticle.FACTORY, 10);
 			}
+			EnchantFx.ward( EnchantLooks.of( getClass() ), defender, attacker, Math.min( 1f, 0.2f + 0.25f * wands ), level(), Quality.isVestige( armor, this ) ? EnchantFx.ECHO : 0, ElementRows.potential( wands ) );
 		}
 		
 		return damage;

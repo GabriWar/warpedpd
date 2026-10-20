@@ -33,10 +33,12 @@ import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Random;
@@ -78,7 +80,7 @@ public class DoubleShot extends ActiveSkill2 {
 		super.execute(hero, action);
 		if (action.equals(Skill.AC_ACTIVATE)){
 			SpatialSound.play( Assets.Sounds.ATK_SPIRITBOW, hero, 1f, 1.3f );
-			hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 6 );
+			hero.sprite.emitter().burst( SkillBursts.FLOURISH, 6 );
 			AimedShot.switchOff( hero, AimedShot.class );
 			AimedShot.switchOff( hero, Bombvoyage.class );
 			StanceAuraBuff.sync( hero, RogueHuntressAuras.Aimed.class, false );
@@ -86,7 +88,7 @@ public class DoubleShot extends ActiveSkill2 {
 			StanceAuraBuff.sync( hero, RogueHuntressAuras.Double.class, true );
 		} else if (action.equals(Skill.AC_DEACTIVATE)){
 			SpatialSound.play( Assets.Sounds.ATK_SPIRITBOW, hero, 0.6f, 0.9f );
-			if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 2 );
+			if (hero.sprite != null) hero.sprite.emitter().burst( SkillBursts.FLOURISH, 2 );
 			StanceAuraBuff.sync( hero, RogueHuntressAuras.Double.class, false );
 		}
 	}
@@ -102,9 +104,9 @@ public class DoubleShot extends ActiveSkill2 {
 			return false;
 		castTextYell();
 		Dungeon.hero.MP -= getManaCost();
-		//the second arrow leaving the string: a twang a note higher and two sparks off the bow
+		//the second arrow leaving the string: a twang a note higher and two motes of her sparkle off the bow
 		Sample.INSTANCE.play( Assets.Sounds.ATK_SPIRITBOW, 0.8f, 1.5f );
-		if (Dungeon.hero.sprite != null) Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 2 );
+		if (Dungeon.hero.sprite != null) Dungeon.hero.sprite.emitter().burst( SkillBursts.FLOURISH, 2 );
 		return true;
 	}
 
@@ -138,8 +140,9 @@ public class DoubleShot extends ActiveSkill2 {
 				}
 				mark = ch.id();
 				if (ch.sprite != null){
-					new Flare( 6, 14 ).color( 0xFF5555, true ).show( ch.sprite, 0.8f );
-					ch.sprite.emitter().burst( Speck.factory( Speck.STAR ), 3 );
+					//the hunter's mark in her own leaf green (never fire's peach)
+					PixelFlare.show( SkillVfx.midX( ch.sprite ), SkillVfx.midY( ch.sprite ), SkillPalette.NATURE_LIGHT, PixelFlare.S, 0.6f );
+					ch.sprite.emitter().burst( SkillBursts.FLOURISH, 3 );
 				}
 				SpatialSound.play( Assets.Sounds.BEACON, ch, 0.7f, 1.4f );
 				GLog.i( Messages.get( DoubleShot.class, "marked", ch.name() ) );

@@ -39,7 +39,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.SkillDecoy;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillFX;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.WindParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.SpiritBow;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
@@ -84,7 +84,7 @@ public class Awareness extends PassiveSkillA2 {
 		if (hero == null || attacker == null) return;
 		Buff.affect( attacker, Read.class );
 		castTextYell();
-		if (hero.sprite != null) hero.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
+		if (hero.sprite != null) hero.sprite.emitter().burst( SkillBursts.FLOURISH, 4 );
 		SpatialSound.play( Assets.Sounds.MISS, hero, 1f, 1.4f );
 		//answered once the enemy's own attack is over
 		SkillInteractions.defer( () -> {

@@ -25,8 +25,13 @@
 package xyz.gabriwar.warpedpixeldungeon.items.armor.glyphs;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.exotic.PotionOfCleansing;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import com.watabou.utils.Random;
@@ -51,12 +56,24 @@ public class Purity extends Armor.Glyph {
 			float powerMulti = Math.max(1f, procChance);
 
 			//cleanses all debuffs, plus a short period of debuff immunity
+			int debuffs = debuffs( defender );
 			PotionOfCleansing.cleanse( defender, Math.round( powerMulti * power() )); //scales with glyph level
 			defender.sprite.emitter().start( Speck.factory( Speck.LIGHT ), 0.2f, 3 );
+			int removed = Math.max( 0, debuffs - debuffs( defender ) );
+			EnchantFx.ward( EnchantLooks.of( getClass() ), defender, attacker, Math.min( 1f, removed / 3f ), level(), Quality.isVestige( armor, this ) ? EnchantFx.ECHO : 0, ElementRows.purity( removed ) );
 
 		}
 
 		return damage;
+	}
+
+	//how many debuffs a character carries (a read)
+	private static int debuffs( Char ch ){
+		int n = 0;
+		for (Buff b : ch.buffs()){
+			if (b.type == Buff.buffType.NEGATIVE) n++;
+		}
+		return n;
 	}
 
 	@Override

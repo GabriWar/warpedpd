@@ -35,7 +35,9 @@ import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxRandom;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Ramp;
+import xyz.gabriwar.warpedpixeldungeon.effects.particles.ChimneySmokeParticle;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import com.watabou.noosa.particles.Emitter;
 
 /**
@@ -51,7 +53,9 @@ import com.watabou.noosa.particles.Emitter;
  *   the gases;
  * About 9 live particles on a grass fire's cell (cur 4), 12 at cur 6, 13 at the thickest
  * (fx-previews/fire-heat: the numbers measured), a third of that in its last turn.
- * - motes for the clean fires (magic's sparkles, halomethane's cold motes).
+ * - motes for the clean fires (magic's sparkles, halomethane's cold motes);
+ * - a camp fire's coals: a gentle smoke, a puff of the chimneys' grey every CAMP_SMOKE_EVERY s off
+ *   each cell, leaning with the wind over the fog (CampSmoke).
  * Its FireField adds the floor's glow, the light, the shimmer, the washes and the cells' ends.
  *
  * A blob's use() makes one with pour() (one of the game's random numbers, as its old pour drew)
@@ -76,6 +80,12 @@ public class FireBlobFx extends Emitter.Factory implements FxBudget.Prioritized 
 	public static final float VORTEX_MIN = 20f, VORTEX_MAX = 30f;
 	/** A fire wind: its streaks, its ash, its embers, each one every this many s; its drift's least. */
 	public static final float WIND_STREAK_EVERY = 0.12f, WIND_ASH_EVERY = 0.6f, WIND_EMBER_EVERY = 0.5f, WIND_DRIFT = 8f;
+	/** A camp fire's smoke: a puff off each of its burning cells every this many s. */
+	public static final float CAMP_SMOKE_EVERY = 0.5f;
+
+	/** The column a camp fire's smoke rises in: the chimneys' (ChimneySmokeParticle.Column), a kind of
+	 *  its own, never pouring by itself - its coals put each puff in while the hero sees them. */
+	public static final class CampSmoke extends ChimneySmokeParticle.Column {}
 
 	//a puff's sizes, one frame each (a matter frame grows by stepping to a bigger one)
 	private static final int[][][] PUFF_M = { { FxFrames.PUFF_M[0] }, { FxFrames.PUFF_M[1] } };
@@ -85,6 +95,8 @@ public class FireBlobFx extends Emitter.Factory implements FxBudget.Prioritized 
 	final FireStyle style;
 	private final float interval;
 	private FireField field;
+	//a camp fire's smoke column over the fog, made with its first puff
+	private CampSmoke campSmoke;
 
 	FireBlobFx( Blob blob, BlobEmitter emitter, FireStyle style, float interval ){
 		this.blob = blob;
@@ -245,6 +257,24 @@ public class FireBlobFx extends Emitter.Factory implements FxBudget.Prioritized 
 		if (FxRandom.Float() < interval / COAL_EMBER_EVERY && FxBudget.keep( FxBudget.P2, x, y )){
 			Flames.ember( make( e, x, y - 2 ), style.ember );
 		}
+		//a camp fire smokes a little
+		if (style == FireStyle.CAMP && FxRandom.Float() < interval / CAMP_SMOKE_EVERY && FxBudget.keep( FxBudget.P2, x, y )){
+			Emitter smoke = campSmoke();
+			if (smoke != null) ChimneySmokeParticle.FACTORY.emit( smoke, 0, x, y - 4 );
+		}
+	}
+
+	//its smoke column: held over the fog, ungated (a puff is only made where the hero sees its cell)
+	//and never pouring nor dying by itself
+	private Emitter campSmoke(){
+		if (campSmoke == null || !campSmoke.exists || campSmoke.parent == null){
+			campSmoke = GameScene.overFogEmitter( CampSmoke.class );
+			if (campSmoke == null) return null;
+			campSmoke.gated = campSmoke.soot = campSmoke.steam = false;
+			campSmoke.on = false;
+			campSmoke.autoKill = false;
+		}
+		return campSmoke;
 	}
 
 	//a wind of fire: streaks of flame drifting with the wind (or on, where there is none), ash

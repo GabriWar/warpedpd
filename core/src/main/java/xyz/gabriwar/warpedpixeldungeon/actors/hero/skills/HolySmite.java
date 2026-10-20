@@ -28,8 +28,10 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.PulseRingFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraBuff;
 import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.StanceAuraFX;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
+import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
 
 
 import com.watabou.utils.PathFinder;
@@ -114,11 +116,14 @@ public class HolySmite extends ActiveSkill1 {
 
 		hero.MP -= getManaCost();
 		castTextYell();
+		//the smite of light falls (the spectacle lands in its own impact and shake); the dust it
+		//kicks up is SkillFX.land's burst alone (its draw kept), never a second landing or shake
 		SkillSpectacleFX.show( SkillSpectacleFX.HAMMER, enemy.pos );
-		SkillFX.land( enemy.pos );
-		//the hammer comes down: a gold flash at the impact and a beat of light out from it
+		CellEmitter.bottom( enemy.pos ).burst( Speck.factory( Speck.DUST ), 8 );
+		//a star of gold on the struck and a beat of light out from it
 		SkillFX.flash( enemy );
-		if (enemy.sprite != null) new Flare( 6, 14 ).color( 0xFFE9A0, true ).show( enemy.sprite, 0.35f );
+		if (enemy.sprite != null)
+			PixelFlare.show( SkillVfx.midX( enemy.sprite ), SkillVfx.midY( enemy.sprite ), 0xF1D99C, PixelFlare.L, 0.35f );
 		PulseRingFX.at( enemy.pos, 0xFFE9A0, 8 * reach( level ), 0.45f );
 		SpatialSound.play( Assets.Sounds.HIT_MAGIC, enemy, 0.8f, 0.9f );
 

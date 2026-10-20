@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.potions.exotic;
 
+import xyz.gabriwar.warpedpixeldungeon.items.EmptyBottle;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfExperience;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
@@ -117,6 +118,7 @@ public class PotionOfDivineInspiration extends ExoticPotion {
 						curItem.detach(curUser.belongings.backpack);
 					}
 					identifiedByUse = false;
+					EmptyBottle.giveBack(curUser);
 
 					curUser.busy();
 					curUser.sprite.operate(curUser.pos);

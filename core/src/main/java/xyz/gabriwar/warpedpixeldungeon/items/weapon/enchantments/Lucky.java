@@ -28,6 +28,10 @@ import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfWealth;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite.Glowing;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import com.watabou.noosa.Visual;
 import com.watabou.utils.Random;
 
@@ -50,11 +54,13 @@ public class Lucky extends Weapon.Enchantment {
 			//default is -5: 80% common, 20% uncommon, 0% rare
 			//ring level increases by 1 for each 20% above 100% proc rate
 			Buff.affect(defender, LuckProc.class).ringLevel = -10 + Math.round(5*powerMulti);
+			EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, 0.45f, level(), Quality.isVestige( weapon, this ) ? EnchantFx.ECHO : 0, ShadowRows.LUCKY );
 		} else {
 			//in rare cases where we attack many times at once (e.g. gladiator fury)
 			// make sure that failed luck procs override prior succeeded ones
 			if (defender.buff(LuckProc.class) != null){
 				defender.buff(LuckProc.class).detach();
+				ShadowRows.luckFizzle( defender );
 			}
 		}
 		
@@ -69,6 +75,7 @@ public class Lucky extends Weapon.Enchantment {
 
 	public static void showFlare( Visual vis ){
 		RingOfWealth.showFlareForBonusDrop(vis);
+		ShadowRows.luckyDrop( vis );
 	}
 
 	@Override
@@ -80,6 +87,11 @@ public class Lucky extends Weapon.Enchantment {
 	public static class LuckProc extends Buff {
 
 		private int ringLevel = -5;
+
+		@Override
+		public void fx( boolean on ) {
+			ShadowRows.luckMark( target, on );
+		}
 		
 		@Override
 		public boolean act() {

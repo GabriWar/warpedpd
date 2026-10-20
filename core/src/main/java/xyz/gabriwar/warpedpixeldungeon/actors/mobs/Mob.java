@@ -821,7 +821,7 @@ public abstract class Mob extends Char {
 			if (state == FLEEING && ((buff instanceof Terror && buff(Dread.class) == null)
 					|| (buff instanceof Dread && buff(Terror.class) == null))) {
 				if (enemySeen) {
-					sprite.showStatus(CharSprite.WARNING, Messages.get(this, "rage"));
+					xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.icon( this, xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.RAGE, 0 );
 					state = HUNTING;
 				} else {
 					state = WANDERING;
@@ -2176,7 +2176,7 @@ public abstract class Mob extends Char {
 		protected void nowhereToRun() {
 			if (buff( Terror.class ) == null && buff( Dread.class ) == null) {
 				if (enemySeen) {
-					sprite.showStatus(CharSprite.WARNING, Messages.get(Mob.class, "rage"));
+					xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.icon( Mob.this, xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.RAGE, 0 );
 					state = HUNTING;
 				} else {
 					state = WANDERING;

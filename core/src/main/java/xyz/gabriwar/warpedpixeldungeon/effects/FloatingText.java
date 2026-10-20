@@ -51,6 +51,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Scimitar;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.MissileWeapon;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap;
 import xyz.gabriwar.warpedpixeldungeon.ui.RenderedTextBlock;
 import com.watabou.noosa.Camera;
@@ -137,10 +138,82 @@ public class FloatingText extends RenderedTextBlock {
 	public static int MISS_TUFT = 81;
 	public static int MISS_RUN  = 82;
 
+	//what used to float as a word, on a hit card (tools/text_icons_gen.py paints them): a miss's
+	//dodge, block or guard (a parry is PARRY), immunity, a resisted effect, a creature's rage, a
+	//cursed weapon's fuse (hardlit amber or red), a free reload
+	public static int MISS_DODGE = 83;
+	public static int MISS_BLOCK = 84;
+	public static int GUARDED   = 85;
+	public static int IMMUNE    = 86;
+	public static int RESISTED  = 87;
+	public static int RAGE      = 88;
+	public static int FUSE      = 126;
+	public static int RELOAD    = 127;
+
+	//Warped's cells (tools/text_icons_gen.py paints them)
+	//a crit: the red X, in the left slot of a hit card
+	public static int CRIT      = 4;
+	public static int MANA      = 22;
+
+	//a weapon type's or perk's event (silver, drawn plain)
+	public static int HEAVE     = 25;
+	public static int PARRY     = 26;
+	public static int SHRED     = 27;
+	public static int FELL      = 28;
+	public static int CRACK     = 29;
+	public static int CHORD     = 30;
+	public static int PULL      = 31;
+	public static int EXECUTE   = 32;
+	public static int MOMENTUM  = 33;
+	public static int FLURRY    = 34;
+	public static int LONGSHOT  = 35;
+	public static int BULWARK   = 48;
+	public static int REACH     = 49;
+
+	//a rarity line's event (gold, drawn plain)
+	public static int EXECUTIONER = 50;
+	public static int MOON      = 51;
+	public static int STORM     = 52;
+	public static int DEFIANT   = 53;
+	public static int S_UNDEAD  = 66;
+	public static int S_DEMON   = 67;
+	public static int S_CONSTRUCT = 68;
+	public static int S_ELEMENTAL = 69;
+	public static int S_BEAST   = 70;
+	public static int S_HUMANOID = 71;
+	public static int STEADY    = 89;
+
+	//an enchantment family's mark (grey, hardlit in the look's colour): F_EMBER + Family.ordinal()
+	public static int F_EMBER   = 90;
+	public static int F_RIME    = 91;
+	public static int F_STORM   = 92;
+	public static int F_VENOM   = 93;
+	public static int F_VERDANT = 94;
+	public static int F_DREAD   = 95;
+	public static int F_REAPER  = 96;
+	public static int F_CUT     = 97;
+	public static int F_DRAIN   = 98;
+	public static int F_FORCE   = 99;
+	public static int F_WARD    = 100;
+	public static int F_RADIANCE= 101;
+	public static int F_FORTUNE = 102;
+	public static int F_MIRAGE  = 103;
+	public static int F_HEART   = 104;
+	public static int F_HEX     = 105;
+
+	//a family cell's hollow twin (an echo's mark) sits this many cells after it
+	public static int HOLLOW    = 18;
+
+	public static int hollow( int familyCell ){
+		return familyCell + HOLLOW;
+	}
+
 	private Image icon;
 	private boolean iconLeft;
 
 	private float timeLeft;
+	//a damage number (a whole number with a damage icon): nudged up a stack, it keeps NUMBER_FLOOR s
+	boolean damageNumber;
 	
 	private int key = -1;
 
@@ -237,12 +310,15 @@ public class FloatingText extends RenderedTextBlock {
 			icon = null;
 		}
 
+		//an icon alone (a chip with no card to land on) sits on y as a text would
+		float h = (text == null || text.isEmpty()) && icon != null ? icon.height() : height();
 		setPos(
 			PixelScene.align( Camera.main, x - width() / 2),
-			PixelScene.align( Camera.main, y - height())
+			PixelScene.align( Camera.main, y - h)
 		);
 		
 		timeLeft = LIFESPAN;
+		damageNumber = isDamageNumber( text, iconIdx );
 	}
 	
 	/* STATIC METHODS */
@@ -256,12 +332,19 @@ public class FloatingText extends RenderedTextBlock {
 	}
 	
 	public static void show( float x, float y, int key, String text, int color, int iconIdx, boolean left ) {
+		show( x, y, key, text, color, iconIdx, left, null );
+	}
+
+	/** The same over a sprite: while it has a live hit card (HitCard) the text starts 2 px over the
+	 *  card's top and stacks above it as texts stack, never pushing the card. */
+	public static void show( float x, float y, int key, String text, int color, int iconIdx, boolean left, CharSprite over ) {
 		Game.runOnRenderThread(new Callback() {
 			@Override
 			public void call() {
 				FloatingText txt = GameScene.status();
 				if (txt != null){
-					txt.reset(x, y, text, color, iconIdx, left);
+					float top = HitCard.textTop( over );
+					txt.reset(x, Float.isNaN( top ) ? y : Math.min( y, top - 2 ), text, color, iconIdx, left);
 					if (key != -1) push(txt, key);
 				}
 				//healing and shielding answered where they land (a guest's replayed text too)
@@ -270,7 +353,7 @@ public class FloatingText extends RenderedTextBlock {
 		});
 	}
 	
-	private static void push( FloatingText txt, int key ) {
+	static void push( FloatingText txt, int key ) {
 		
 		synchronized (stacks) {
 			txt.key = key;
@@ -292,8 +375,7 @@ public class FloatingText extends RenderedTextBlock {
 						above.setPos(above.left(), below.top() - above.height() - 4);
 
 						//reduce remaining time on texts being nudged up, to prevent spam
-						above.timeLeft = Math.min(above.timeLeft, LIFESPAN-(numBelow/5f));
-						above.timeLeft = Math.max(above.timeLeft, 0);
+						above.timeLeft = nudged(above.timeLeft, numBelow, above.damageNumber);
 						
 						below = above;
 						aboveIndex--;
@@ -305,6 +387,35 @@ public class FloatingText extends RenderedTextBlock {
 			
 			stack.add(txt);
 		}
+	}
+
+	/** The least a damage number nudged up a crowded stack keeps, s (a word is cut to nothing from
+	 *  the fifth one down, as in Shattered). */
+	static final float NUMBER_FLOOR = 0.4f;
+
+	//a text's time left once nudged up by the numBelow-th text under it
+	static float nudged( float timeLeft, int numBelow, boolean damageNumber ){
+		float cut = Math.min( timeLeft, LIFESPAN - numBelow / 5f );
+		if (damageNumber) cut = Math.max( cut, Math.min( timeLeft, NUMBER_FLOOR ) );
+		return Math.max( cut, 0 );
+	}
+
+	//a whole number ("12", "+12", "-3") with a damage icon
+	static boolean isDamageNumber( String text, int iconIdx ){
+		if (text == null || !xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.damageIcon( iconIdx )) return false;
+		String t = text.trim();
+		int i = t.startsWith( "+" ) || t.startsWith( "-" ) ? 1 : 0;
+		if (i >= t.length()) return false;
+		for (; i < t.length(); i++){
+			char c = t.charAt( i );
+			if (c < '0' || c > '9') return false;
+		}
+		return true;
+	}
+
+	/** Its time left, s. */
+	float timeLeft(){
+		return timeLeft;
 	}
 
 	// *** These are for custom icons that show impact of effects on top of base acc/eve ***

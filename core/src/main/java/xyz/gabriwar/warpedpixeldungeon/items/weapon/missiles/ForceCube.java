@@ -26,9 +26,11 @@ import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.SnipersMark;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.WeaponPerk;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.levels.traps.TenguDartTrap;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -66,7 +68,7 @@ public class ForceCube extends MissileWeapon {
 	public float castDelay(Char user, int cell) {
 		//special rules as throwing this onto empty space or yourself does trigger it
 		if (!Dungeon.level.pit[cell] && Actor.findChar(cell) == null){
-			return delayFactor( user );
+			return delayFactor( user ) + heaveDelay( user );
 		} else {
 			return super.castDelay(user, cell);
 		}
@@ -78,6 +80,9 @@ public class ForceCube extends MissileWeapon {
 			super.onThrow(cell);
 			return;
 		}
+
+		//the blast strikes the furthest first: a heave waits for the one on the cell
+		aimHeave( cell );
 
 		//keep the parent reference for things like IDing
 		MissileWeapon parentTemp = parent;
@@ -138,5 +143,8 @@ public class ForceCube extends MissileWeapon {
 		
 		WandOfBlastWave.BlastWave.blast(cell);
 		SpatialSound.play( Assets.Sounds.BLAST, cell );
+
+		//a heave is spent on the throw it armed, landed or not (MissileWeapon.onThrow)
+		Buff.detach( curUser, WeaponPerk.Heave.class );
 	}
 }

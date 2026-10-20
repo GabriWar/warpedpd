@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.potions.exotic;
 
+import xyz.gabriwar.warpedpixeldungeon.items.EmptyBottle;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Blazing;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -125,6 +126,7 @@ public class PotionOfDragonsBreath extends ExoticPotion {
 				}
 				potionAlreadyUsed = true;
 				identifiedByUse = false;
+				EmptyBottle.giveBack(curUser);
 				curUser.busy();
 				SpatialSound.play( Assets.Sounds.DRINK, curUser );
 				curUser.sprite.operate(curUser.pos, new Callback() {

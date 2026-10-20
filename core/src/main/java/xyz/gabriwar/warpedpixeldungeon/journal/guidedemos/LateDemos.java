@@ -139,7 +139,7 @@ public final class LateDemos {
 				.turn()
 				//the cheap blow spends the parry
 				.attack( "you", 3, 2 ).beat()
-				.status( "monk", "actors.mobs.monk.parried", CharSprite.NEUTRAL ).clear( "monk" )
+				.chip( "monk", xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.PARRY ).clear( "monk" )
 				.caption( "spend" )
 				.beat()
 				.attack( "monk", 2, 2 ).beat().hurt( "you", 26 )
@@ -151,7 +151,7 @@ public final class LateDemos {
 	}
 
 	//At 50 health the king takes the throne for phase 2 (DwarfKing.damage): invulnerable to all but
-	//his servants' deaths, which show "invulnerable" on him (Char.attack). Each servant summoned in
+	//his servants' deaths, which show IMMUNE on his card (Char.attack). Each servant summoned in
 	//phase 2 carries KingDamager, which takes HT/12 = 25 off his 300 shield when it dies for good
 	//(a ghoul revived keeps it: revivePersists), so 12 deaths end the phase.
 	private static void kingShield( DemoBook book ){
@@ -171,7 +171,7 @@ public final class LateDemos {
 				.caption( "shield" )
 				.turn()
 				.attack( "you", 3, 2 ).beat()
-				.status( "king", "actors.char.invulnerable", CharSprite.POSITIVE )
+				.chip( "king", xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.IMMUNE )
 				.turn()
 				//a servant comes up on a pedestal
 				.show( "ghoul" )
@@ -313,7 +313,7 @@ public final class LateDemos {
 	}
 
 	//A fist within 4 tiles of Yog is invulnerable (YogFist.isNearYog, isInvulnerable): blows on it
-	//show "invulnerable". Five tiles off it can be hurt. Fists hit for 18 to 36.
+	//show IMMUNE on their card. Five tiles off it can be hurt. Fists hit for 18 to 36.
 	private static final int[] NEAR_YOG = { 1,1, 2,1, 3,1, 4,1, 0,2, 1,2, 2,2, 3,2, 4,2 };
 
 	private static void yogFist( DemoBook book ){
@@ -330,7 +330,7 @@ public final class LateDemos {
 				.caption( "near" )
 				.turn()
 				.attack( "you", 2, 1 ).beat()
-				.status( "fist", "actors.char.invulnerable", CharSprite.POSITIVE )
+				.chip( "fist", xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.IMMUNE )
 				.turn()
 				.move( "you", 4, 1 ).move( "fist", 3, 1 )
 				.turn()

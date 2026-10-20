@@ -27,6 +27,7 @@ import com.watabou.utils.Random;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
 import xyz.gabriwar.warpedpixeldungeon.effects.WeatherSprites;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
 
 /**
  * Wind-borne dust: tan specks that skate along low and stretch when the wind is up. In a
@@ -62,6 +63,8 @@ public class DustParticle extends WeatherParticle {
 	private static final int[] SAND = { 0xE0C890, 0xD8B878, 0xC8A060, 0xB89058 };
 
 	private float wobblePhase, wobbleRate;
+	//the way the wind blows it, east 1 or west -1: its gusts push it on that way
+	private float side = 1f;
 	//a sandstorm's: driven sand, or a puff (its size at the start, and at the end)
 	private boolean driven, puff;
 	private float grow0, grow1;
@@ -83,7 +86,10 @@ public class DustParticle extends WeatherParticle {
 		frame(wind > 6f && Random.Float() < 0.5f ? WeatherSprites.SPECK_2 : WeatherSprites.SPECK_1);
 		color(COLORS[Random.Int(COLORS.length)]);
 
-		speed.set(Random.Float(-2, 2) + wind * 1.2f, Random.Float(-2, 4));
+		//skating the way the wind blows (under a roof the draught east it always had: Fx.driftX)
+		float drift = Fx.driftX();
+		side = drift < 0 ? -1f : 1f;
+		speed.set(Random.Float(-2, 2) + drift * 1.2f, Random.Float(-2, 4));
 		acc.set(0, Random.Float(0.5f, 2f)); // barely falls
 		wobblePhase = Random.Float((float)(Math.PI * 2));
 		wobbleRate = Random.Float(3f, 6f);
@@ -146,7 +152,7 @@ public class DustParticle extends WeatherParticle {
 		}
 		super.update();
 		wobblePhase += Game.elapsed * wobbleRate;
-		speed.x += ((float) Math.sin(wobblePhase) * 3f + 4f * WeatherSprites.gust()) * Game.elapsed;
+		speed.x += ((float) Math.sin(wobblePhase) * 3f + 4f * WeatherSprites.gust() * side) * Game.elapsed;
 		am = envelope(0.15f, 0.15f, 0.4f);
 		fov();
 	}

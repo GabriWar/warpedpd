@@ -27,9 +27,13 @@ package xyz.gabriwar.warpedpixeldungeon.items.armor.glyphs;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfArcana;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfMirrorImage;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows;
+import java.util.Set;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import com.watabou.utils.Random;
 
 public class Mirrorimage extends Armor.Glyph {
@@ -47,7 +51,9 @@ public class Mirrorimage extends Armor.Glyph {
         float powerMulti = Math.max(1f, procChance);
 
         if (Random.Float() < procChance && defender == Dungeon.hero){
+            Set<Mob> had = ShadowRows.images();
             ScrollOfMirrorImage.spawnImages(Dungeon.hero, (int)powerMulti);
+            ShadowRows.mirrorimage( defender, attacker, level(), ShadowRows.echo( Quality.isVestige( armor, this ) ), had );
         }
         return damage;
     }

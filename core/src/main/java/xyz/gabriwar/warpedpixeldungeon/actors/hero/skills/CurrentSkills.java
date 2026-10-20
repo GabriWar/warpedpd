@@ -32,6 +32,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroSubClass;
+import xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger;
+import xyz.gabriwar.warpedpixeldungeon.actors.ledger.Step;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import com.watabou.utils.Bundle;
 
@@ -565,15 +567,19 @@ public class CurrentSkills {
 			for (Skill s : allSkills){
 				if (dmg <= 0) break;                 //mirrors Hero's `if (dmg > 0)` guard: don't burn mana on 0 dmg
 				if (resolvesLast(s) != (pass == 1)) continue;
+				//the damage ledger names what each skill took off
+				DamageLedger.push( hero, Step.DEFENDER, DamageLedger.AUTO, s );
 				if (tick){
 					if (s.savesFromDeath()) dmg -= s.incomingDamageReduction(dmg, source);
+					DamageLedger.pop( dmg );
 					continue;
 				}
 				dmg = Math.round(dmg * s.incomingDamageModifier());
 				dmg -= s.incomingDamageReduction(dmg, source);
+				DamageLedger.pop( dmg );
 			}
 		}
-		return Math.max(0, dmg);
+		return DamageLedger.to( hero, Step.DEFENDER, Step.SET, DamageLedger.NO_NEGATIVE, dmg, Math.max(0, dmg) );
 	}
 
 	private static boolean resolvesLast( Skill s ){
@@ -586,12 +592,19 @@ public class CurrentSkills {
 
 	public int allOnHit( Char enemy, int damage, boolean ranged, boolean linkPrepared ){
 		// Shadow Link is paid before weapon/talent procs in Hero.attackProc.
-		for (Skill s : allSkills) if (!linkPrepared || !(s instanceof DoubleStab)) damage = s.onHitProc(enemy, damage, ranged);
+		for (Skill s : allSkills) if (!linkPrepared || !(s instanceof DoubleStab)){
+			//the damage ledger names what each skill did to the blow
+			DamageLedger.push( enemy, Step.ATTACKER, DamageLedger.AUTO, s );
+			damage = DamageLedger.pop( s.onHitProc(enemy, damage, ranged) );
+		}
 		return damage;
 	}
 
 	public int allOnDefend( Char enemy, int damage ){
-		for (Skill s : allSkills) damage = s.onDefendProc(enemy, damage);
+		for (Skill s : allSkills){
+			DamageLedger.push( Dungeon.hero, Step.DEFENDER, DamageLedger.AUTO, s );
+			damage = DamageLedger.pop( s.onDefendProc(enemy, damage) );
+		}
 		return damage;
 	}
 
@@ -707,15 +720,25 @@ public class CurrentSkills {
 	private float lastDodgeTurn = -1f;
 	private int lastDodgeAttacker = -1;
 	private boolean lastDodgeResult = false;
+	private Skill lastDodgeSkill = null;
+
+	/** The skill behind the latest any*() that answered yes (a dodge, a sure hit, armour ignored,
+	 *  an aimed shot, an instant kill): the damage ledger names the rule after it. Read at once by
+	 *  the caller; null when none. */
+	public Skill cause = null;
 
 	/** keyed on game time and attacker: two attackers in the same instant each get their own roll */
 	public boolean anyDodge( Char attacker ){
 		if (attacker == null) return false;
 		float now = xyz.gabriwar.warpedpixeldungeon.actors.Actor.now();
-		if (now == lastDodgeTurn && attacker.id() == lastDodgeAttacker) return lastDodgeResult;
+		if (now == lastDodgeTurn && attacker.id() == lastDodgeAttacker){
+			cause = lastDodgeSkill;
+			return lastDodgeResult;
+		}
 		lastDodgeTurn = now;
 		lastDodgeAttacker = attacker.id();
 		lastDodgeResult = false;
+		lastDodgeSkill = null;
 		List<Skill> asked = new ArrayList<>();
 		for (Skill s : allSkills){
 			if (s.level <= 0) continue;
@@ -723,20 +746,28 @@ public class CurrentSkills {
 			if (s.dodgeChance(attacker)){
 				s.onDodge(attacker);
 				lastDodgeResult = true;
+				lastDodgeSkill = s;
 				break;
 			}
 		}
 		if (!lastDodgeResult) for (Skill s : asked) s.onDodgeFailed(attacker);
+		cause = lastDodgeSkill;
 		return lastDodgeResult;
 	}
 
 	public boolean anySureHit( Char target ){
-		for (Skill s : allSkills) if (s.level > 0 && s.sureHit(target)) return true;
+		for (Skill s : allSkills) if (s.level > 0 && s.sureHit(target)){
+			cause = s;
+			return true;
+		}
 		return false;
 	}
 
 	public boolean anyIgnoresArmor( Char target ){
-		for (Skill s : allSkills) if (s.level > 0 && s.ignoresArmor(target)) return true;
+		for (Skill s : allSkills) if (s.level > 0 && s.ignoresArmor(target)){
+			cause = s;
+			return true;
+		}
 		return false;
 	}
 
@@ -775,7 +806,10 @@ public class CurrentSkills {
 	}
 
 	public boolean anyInstantKill( Char enemy, int damage ){
-		for (Skill s : allSkills) if (s.level > 0 && s.instantKill( enemy, damage )) return true;
+		for (Skill s : allSkills) if (s.level > 0 && s.instantKill( enemy, damage )){
+			cause = s;
+			return true;
+		}
 		return false;
 	}
 
@@ -849,7 +883,10 @@ public class CurrentSkills {
 	}
 
 	public boolean anyAimedShot(){
-		for (Skill s : allSkills) if (s.level > 0 && s.aimedShot()) return true;
+		for (Skill s : allSkills) if (s.level > 0 && s.aimedShot()){
+			cause = s;
+			return true;
+		}
 		return false;
 	}
 

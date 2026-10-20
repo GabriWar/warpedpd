@@ -41,7 +41,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBolt;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
@@ -106,8 +106,13 @@ public class ScouringFlame extends Skill {
 			hero.sprite.zap( cell );
 			SpatialSound.play( Assets.Sounds.BURNING, hero, 1f, 1.3f );
 			SpatialSound.play( Assets.Sounds.RAY, hero, 0.7f, 1.2f );
+			//a bolt of holy light down each ray (MagicMissile.boltFromChar's line and its one draw each,
+			//never a wand's)
 			for (Ballistica ray : cone.rays){
-				MagicMissile.boltFromChar( hero.sprite.parent, MagicMissile.LIGHT_MISSILE, hero.sprite, ray.path.get( ray.dist ), null );
+				int end = ray.path.get( ray.dist );
+				Char at = Actor.findChar( end );
+				if (at != null) SkillBolt.fly( hero.sprite.parent, hero.sprite.center(), at.sprite.destinationCenter(), SkillBolt.HOLY, null );
+				else SkillBolt.fly( hero.sprite.parent, hero.sprite, end, SkillBolt.HOLY, null );
 			}
 
 			int dmg = 4 + 3 * level;

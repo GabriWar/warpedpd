@@ -193,7 +193,7 @@ public final class BasicsDemos {
 				.attack( "snake", 3, 2 ).beat().hurt( "you", 2 )
 				.turn()
 				//and slips aside from the blow that would have finished it
-				.attack( "you", 4, 2 ).beat().status( "snake", "actors.char.def_verb", CharSprite.NEUTRAL )
+				.attack( "you", 4, 2 ).beat().chip( "snake", xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.MISS_DODGE )
 				.caption( "dodges" )
 				.turns( 2 );
 	}
@@ -407,7 +407,7 @@ public final class BasicsDemos {
 				.item( "potion", PotionOfStrength.class, 1, 2 )
 				.caption( "short" )
 				.turn()
-				.attack( "you", 2, 1 ).beat().status( "rat", "actors.char.def_verb", CharSprite.NEUTRAL )
+				.attack( "you", 2, 1 ).beat().chip( "rat", xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.MISS_DODGE )
 				.turn()
 				.attack( "rat", 1, 1 ).beat().hurt( "you", 2 )
 				.turn()
@@ -494,7 +494,7 @@ public final class BasicsDemos {
 				.beat()
 				.burst( GuideEffect.ROCKS, 3, 2 )
 				.hurt( "gnoll", 9 )
-				.status( "gnoll", "stunned", CharSprite.WARNING )
+				.chip( "gnoll", -(BuffIndicator.PARALYSIS + 1) )
 				.freeze( "gnoll" )
 				.caption( "mana" )
 				.turn()

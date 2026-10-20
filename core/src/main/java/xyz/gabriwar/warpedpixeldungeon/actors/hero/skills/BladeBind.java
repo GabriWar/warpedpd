@@ -25,12 +25,14 @@
  */
 
 package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
-import xyz.gabriwar.warpedpixeldungeon.effects.Chains;
-import xyz.gabriwar.warpedpixeldungeon.effects.Effects;
+import xyz.gabriwar.warpedpixeldungeon.effects.SkillMarkFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.LinkFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
+import com.watabou.noosa.Game;
+import com.watabou.noosa.Gizmo;
 import com.watabou.utils.PointF;
 
 
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import com.watabou.noosa.audio.Sample;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -46,7 +48,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Callback;
 
@@ -109,27 +110,66 @@ public class BladeBind extends Skill {
 		if (level >= MAX_LEVEL) Buff.affect( ch, Wrenched.class );
 		SpatialSound.play( Assets.Sounds.HIT_PARRY, ch, 1f, 1.0f );
 		SpatialSound.play( Assets.Sounds.HIT_PARRY, ch, 0.8f, 0.7f );
-		//two chains of light snap from her blade onto it and lock
+		//two tethers of steel light snap from her blade onto it and lock (never the Ethereal Chains)
 		if (hero.sprite != null && hero.sprite.parent != null && ch.sprite != null){
 			PointF a = hero.sprite.center(), b = ch.sprite.center();
-			hero.sprite.parent.add( new Chains( new PointF( a.x - 4, a.y - 3 ), new PointF( b.x + 3, b.y - 2 ), Effects.Type.ETHEREAL_CHAIN, null ) );
-			hero.sprite.parent.add( new Chains( new PointF( a.x + 4, a.y + 2 ), new PointF( b.x - 3, b.y + 3 ), Effects.Type.ETHEREAL_CHAIN, () -> {
+			SkillMarkFX.tether( hero, ch, STEEL, TETHER_LIFE, -2 );
+			SkillMarkFX.tether( hero, ch, STEEL, TETHER_LIFE, 2 );
+			//the bite the second chain's landing gave, on the frame it landed (Chains: dist/320 + 0.2 s)
+			PointF biteFrom = new PointF( a.x + 4, a.y + 2 ), biteTo = new PointF( b.x - 3, b.y + 3 );
+			hero.sprite.parent.add( new Bite( biteFrom, biteTo, () -> {
 				if (ch.sprite != null){
 					ch.sprite.flash();
-					ch.sprite.emitter().burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle.FACTORY, 5 );
+					ch.sprite.emitter().burst( SkillBursts.METAL_SPARK, 5 );
 				}
 				SpatialSound.play( Assets.Sounds.CHAINS, ch, 0.9f, 1.3f );
 			} ) );
+			//the blades drawn into the bind from both ends: steel glints pulled off her blade and off
+			//it to a knot between them, snapping on the bite's own frame (the same two points, the
+			//same clock; it bites nothing itself: the Bite above does)
+			LinkFX.bind( hero.sprite.parent, biteFrom, biteTo, LinkFX.STEEL, null );
 		}
 		if (ch.sprite != null){
-			ch.sprite.showStatus( CharSprite.WARNING, Messages.get( BladeBind.this, "bound" ) );
-			ch.sprite.emitter().burst( Speck.factory( Speck.STAR ), 6 );
+			BladeBind.this.chipOn( ch );
+			//it is weakened, not dazed: steel sparks, never stun stars
+			ch.sprite.emitter().burst( SkillBursts.METAL_SPARK, 6 );
 			ch.sprite.flash();
 		}
-		xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.center( ch.pos ).burst( xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle.FACTORY, 8 );
+		xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.center( ch.pos ).burst( SkillBursts.METAL_SPARK, 8 );
 		Dungeon.hero.heroSkills.lastUsed = this;
 		hero.sprite.operate( ch.pos );
 		hero.spendAndNext( TIME_TO_USE );
+	}
+
+	/** The tethers' steel and how long they hold, s. */
+	public static final int STEEL = 0xB9DEEE;
+	public static final float TETHER_LIFE = 0.45f;
+
+	/** What the second of the two chains that once drew the bind did when it landed, on its frame:
+	 *  Chains' clock (dist/320 + 0.2 s from the first frame it was updated, passed by more than
+	 *  that), without the chain. */
+	public static final class Bite extends Gizmo {
+
+		final float duration;
+		private final com.watabou.utils.Callback then;
+		private float spent;
+
+		public Bite( PointF from, PointF to, com.watabou.utils.Callback then ){
+			float dx = to.x - from.x;
+			float dy = to.y - from.y;
+			float distance = (float)Math.hypot( dx, dy );
+			duration = distance/320f + 0.2f;
+			this.then = then;
+		}
+
+		@Override
+		public void update(){
+			super.update();
+			if ((spent += Game.elapsed) > duration){
+				killAndErase();
+				then.call();
+			}
+		}
 	}
 
 	//+3: the wrenched enemy's next attack on you misses outright
@@ -143,7 +183,7 @@ public class BladeBind extends Skill {
 		if (attacker == null) return;
 		Buff.detach( attacker, Wrenched.class );
 		SkillInteractions.affectAfterHit( attacker, Vulnerable.class, 3f );
-		if (attacker.sprite != null) attacker.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
+		if (attacker.sprite != null) attacker.sprite.emitter().burst( SkillBursts.METAL_SPARK, 4 );
 		Sample.INSTANCE.play( Assets.Sounds.HIT_PARRY, 1f, 1.4f );
 	}
 

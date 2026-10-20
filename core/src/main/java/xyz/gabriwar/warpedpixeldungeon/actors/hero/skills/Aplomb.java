@@ -34,10 +34,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Daze;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Paralysis;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 
 public class Aplomb extends Skill {
 
@@ -69,9 +68,10 @@ public class Aplomb extends Skill {
 			return 0;
 		}
 		if (hero.sprite != null){
-			hero.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( this, "shrug" ) );
-			hero.sprite.emitter().burst( Speck.factory( Speck.FORGE ), 4 );
-			new Flare( 4, 12 ).color( 0xD8D8D8, true ).show( hero.sprite, 0.3f );
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.icon( hero, xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.RESISTED, 0 );
+			chipOn( hero );
+			hero.sprite.emitter().burst( SkillBursts.METAL_SPARK, 4 );
+			PixelFlare.show( SkillVfx.midX( hero.sprite ), SkillVfx.midY( hero.sprite ), 0xB9DEEE, PixelFlare.S, 0.3f );
 		}
 		SpatialSound.play( Assets.Sounds.STURDY, hero, 1f, 1.2f );
 
@@ -84,8 +84,8 @@ public class Aplomb extends Skill {
 				Buff.prolong( attacker, Paralysis.class, 1f );
 			}
 			if (attacker.sprite != null){
-				attacker.sprite.showStatus( CharSprite.WARNING, Messages.get( this, "reel" ) );
-				attacker.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
+				chipOn( attacker );
+				attacker.sprite.emitter().burst( SkillBursts.DAZE, 4 );
 			}
 		}
 		return damage;

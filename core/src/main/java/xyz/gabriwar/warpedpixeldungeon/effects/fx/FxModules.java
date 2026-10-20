@@ -26,6 +26,7 @@ package xyz.gabriwar.warpedpixeldungeon.effects.fx;
 
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.modules.ArcaneFx;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.modules.CharactersFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.modules.EnchantArea;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.modules.FireHeatFx;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.modules.GasesColdFx;
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.modules.LightningFx;
@@ -46,9 +47,9 @@ public final class FxModules {
 	private FxModules(){}
 
 	/** How many areas, and their indices (in fxSlots too). */
-	public static final int COUNT = 8;
+	public static final int COUNT = 9;
 	public static final int WATER_LIFE = 0, LIGHTNING = 1, FIRE_HEAT = 2, ARCANE = 3, NATURE_HOLY = 4,
-			GASES_COLD = 5, CHARACTERS = 6, SKILLS = 7;
+			GASES_COLD = 5, CHARACTERS = 6, SKILLS = 7, ENCHANT = 8;
 	/** The kit's own slot in a sprite's fxSlots, after the areas'. */
 	public static final int KIT = COUNT;
 
@@ -60,7 +61,8 @@ public final class FxModules {
 			new NatureHolyFx(),
 			new GasesColdFx(),
 			new CharactersFx(),
-			new SkillsFx() };
+			new SkillsFx(),
+			new EnchantArea() };
 
 	/** The area of this key, null for none. */
 	public static FxModule byKey( String key ){

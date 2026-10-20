@@ -296,7 +296,7 @@ public class SentryRoom extends SpecialRoom {
 					GLog.n(Messages.capitalize(Messages.get(Char.class, "kill", name())));
 				}
 			} else {
-				Dungeon.hero.sprite.showStatus( CharSprite.NEUTRAL,  Dungeon.hero.defenseVerb() );
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.missed( Dungeon.hero );
 			}
 		}
 

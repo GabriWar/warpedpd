@@ -25,7 +25,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.PoisonParticle;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import com.watabou.utils.Random;
@@ -46,6 +50,7 @@ public class Venomous extends Weapon.Enchantment {
 
 			//delays the poison's damage by 3 turns if the enemy had no poison on them already
 			Poison poison = defender.buff(Poison.class);
+			boolean fresh = poison == null;
 			if (poison == null) {
 				poison = Buff.affect(defender, Poison.class);
 				poison.delay(3f);
@@ -55,6 +60,9 @@ public class Venomous extends Weapon.Enchantment {
 				poison.extend(powerMulti * ((level / 2f) + 3) * power()); //scales with enchantment level
 			}
 			CellEmitter.center(defender.pos).burst(PoisonParticle.SPLASH, 5);
+			//no poison took (a foe it cannot touch): nothing to show
+			if (poison != null) EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, ElementRows.venomStrength( fresh, level() ), level(),
+					Quality.isVestige( weapon, this ) ? EnchantFx.ECHO : 0, ElementRows.venomous() );
 
 		}
 

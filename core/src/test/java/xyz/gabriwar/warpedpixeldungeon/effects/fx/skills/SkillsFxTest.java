@@ -705,7 +705,46 @@ public class SkillsFxTest {
 	}
 
 	@Test
+	public void aHeavyBlowRingsTwiceAndLeavesNoHammer(){
+		int before = FxRing.live();
+		WarriorImpactFX.show( at( 5, 6 ) );
+		int light = FxRing.live() - before;
+		frames( 60 );
+		before = FxRing.live();
+		WarriorImpactFX.show( at( 5, 6 ), true );
+		assertEquals( "a second, wider ring", light + 1, FxRing.live() - before );
+		frames( 2 );
+		for (Group g : layers) assertEquals( 0, count( g, com.watabou.noosa.Image.class, "effects/warrior_impact.png" ) );
+	}
+
+	@Test
+	public void wingsOpenBehindTheBodyTheRestInTheLight(){
+		SkillSpectacleFX.show( SkillSpectacleFX.WINGS, Dungeon.hero.pos );
+		SkillSpectacleFX.show( SkillSpectacleFX.SPIRE, at( 6, 5 ) );
+		frames( 1 );
+		assertEquals( 1, count( layers[GameScene.Layer.FLOOR.ordinal()], SkillSpectacleFX.class ) );
+		assertEquals( 1, count( layers[GameScene.Layer.LIGHTS.ordinal()], SkillSpectacleFX.class ) );
+		//gone, and their count with them (it is the spectacles' own, kept across scenes)
+		frames( 90 );
+		assertEquals( 0, SkillSpectacleFX.live() );
+	}
+
+	private static int count( Group g, Class<?> c, String asset ){
+		int n = 0;
+		for (Gizmo m : g.membersView()){
+			if (m == null || !m.exists || !m.alive) continue;
+			if (m instanceof Group) n += count( (Group) m, c, asset );
+			else if (c.isInstance( m ) && com.watabou.gltextures.TextureCache.contains( asset )
+					&& ((com.watabou.noosa.Image) m).texture == com.watabou.gltextures.TextureCache.get( asset )) n++;
+		}
+		return n;
+	}
+
+	@Test
 	public void aRainStrikesAsWhatFalls(){
+		assertEquals( Element.FIRE, SkillFX.fallElement( SkillFX.Fall.METEOR ) );
+		assertEquals( Element.STEEL, SkillFX.fallElement( SkillFX.Fall.SPIRIT_ARROW ) );
+		assertEquals( Element.EARTH, SkillFX.fallElement( SkillFX.Fall.WEIGHT ) );
 		assertEquals( Element.STEEL, SkillFX.rainElement( new xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.Dart() ) );
 		assertEquals( Element.FIRE, SkillFX.rainElement( new xyz.gabriwar.warpedpixeldungeon.items.bombs.Bomb() ) );
 		assertEquals( Element.EARTH, SkillFX.rainElement( new xyz.gabriwar.warpedpixeldungeon.items.stones.StoneOfBlast() ) );

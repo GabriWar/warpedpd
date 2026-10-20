@@ -40,7 +40,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Lightning;
-import xyz.gabriwar.warpedpixeldungeon.effects.particles.SparkParticle;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
@@ -163,17 +165,27 @@ public class StormCall extends Skill {
 		}
 		final int[] a = arcs.get( i );
 		SpatialSound.play( Assets.Sounds.LIGHTNING, a[1], 1f, 0.9f + 0.1f * i );
-		CellEmitter.center( a[1] ).burst( SparkParticle.FACTORY, 8 );
+		CellEmitter.center( a[1] ).burst( SkillBursts.STORM_SPARK, 8 );
+		struck( a[1] );
 		Char ch = Actor.findChar( a[1] );
 		if (ch != null && ch.sprite != null) ch.sprite.flash();
 		Callback then = () -> playArc( hero, arcs, i + 1 );
 		if (a[0] < 0){
 			Fx.shake( 2, 0.3f );
 			PointF foot = DungeonTilemap.raisedTileCenterToWorld( a[1] );
-			hero.sprite.parent.add( new Lightning( new PointF( foot.x, foot.y - DungeonTilemap.SIZE * 7 ), a[1], then ).major().aloft() );
+			hero.sprite.parent.add( new Lightning( new PointF( foot.x, foot.y - DungeonTilemap.SIZE * 7 ), a[1], then ).major().aloft().tint( Lightning.STORM ) );
 		} else {
-			hero.sprite.parent.add( new Lightning( a[0], a[1], then ).major() );
+			hero.sprite.parent.add( new Lightning( a[0], a[1], then ).major().tint( Lightning.STORM ) );
 		}
+	}
+
+	/** The storm's own colour (its lightning's hot halo). */
+	public static final int STORM = 0xB9DEEE;
+
+	/** Where a bolt of the call strikes: a flare of the storm's own pale cyan (the hero's storm,
+	 *  not the weather's). Any thread. */
+	public static void struck( int cell ){
+		if (SkillVfx.valid( cell )) PixelFlare.show( SkillVfx.cx( cell ), SkillVfx.cy( cell ), STORM, PixelFlare.M, 0.35f );
 	}
 
 	private void strike( Char ch, int damage ){

@@ -24,12 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
-import com.watabou.noosa.Camera;
-import com.watabou.noosa.Game;
-import com.watabou.noosa.Image;
 import com.watabou.utils.Bundle;
-import com.watabou.utils.PathFinder;
-import com.watabou.utils.PointF;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
@@ -41,20 +36,19 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.ShieldOfTheFaithful;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
-import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
-import xyz.gabriwar.warpedpixeldungeon.effects.ShieldHalo;
-import xyz.gabriwar.warpedpixeldungeon.effects.SkillSpectacleFX;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
-import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
-import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.AegisArcFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBolt;
 
 /**
  * Shield of the Faithful: a shield of light hovering at the cleric's side. It catches part
  * of each blow and cracks; after enough blows it shatters into shards that cut and blind
  * the enemies next to the cleric, then reforms. At mastery a blow it catches from a
  * distance is thrown back at the shooter as a bolt of light.
+ *
+ * Its look is an aegis of light, never a shield item nor the SHIELDED state: an arc of gold at
+ * the cleric's side turned toward the enemy it guards (AegisArcFX), dimmer with each crack.
  */
 public class ShieldOfTheFaithfulWard extends Buff {
 
@@ -72,7 +66,14 @@ public class ShieldOfTheFaithfulWard extends Buff {
 	private int caught = 0;
 	private int broken = 0;
 
-	private Image shield;
+	private AegisArcFX arc;
+	//the cell of the enemy it guards (-1: none in sight: it hangs at the cleric's front)
+	private volatile int facing = -1;
+
+	/** The arc's resting alpha by cracks: 0.7, 0.55, then 0.4. */
+	public static float rest( int cracks ){
+		return Math.max( 0.4f, 0.7f - 0.15f * cracks );
+	}
 
 	/** blows the shield holds before it gives out: 2 / 3 / 4 */
 	public static int holds( int rank ){
@@ -95,11 +96,10 @@ public class ShieldOfTheFaithfulWard extends Buff {
 		int blocked = Math.min( damage, Math.max( 1, Math.round( damage * CATCH ) ) );
 		cracks++;
 		caught += blocked;
+		if (source instanceof Char) facing = ((Char) source).pos;
 
 		if (target.sprite != null && target.sprite.parent != null){
-			ShieldHalo halo = new ShieldHalo( target.sprite );
-			target.sprite.parent.add( halo );
-			halo.putOut();
+			if (arc != null) arc.caught();
 			target.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 4 );
 		}
 		SpatialSound.play( Assets.Sounds.HIT_PARRY, target, 1f, 1.3f );
@@ -109,8 +109,12 @@ public class ShieldOfTheFaithfulWard extends Buff {
 			Char shooter = (Char) source;
 			if (shooter.isAlive() && shooter.alignment == Char.Alignment.ENEMY
 					&& !Dungeon.level.adjacent( target.pos, shooter.pos )){
-				if (target.sprite != null && target.sprite.parent != null)
-					MagicMissile.boltFromChar( target.sprite.parent, MagicMissile.LIGHT_MISSILE, target.sprite, shooter.pos, null );
+				if (target.sprite != null && target.sprite.parent != null){
+					//MagicMissile.boltFromChar's line, drawn as a bolt of holy light (its one draw kept)
+					Char at = Actor.findChar( shooter.pos );
+					if (at != null) SkillBolt.fly( target.sprite.parent, target.sprite.center(), at.sprite.destinationCenter(), SkillBolt.HOLY, null );
+					else SkillBolt.fly( target.sprite.parent, target.sprite, shooter.pos, SkillBolt.HOLY, null );
+				}
 				SpatialSound.play( Assets.Sounds.RAY, target, 0.8f, 1.2f );
 				shooter.damage( blocked, this );
 			}
@@ -127,7 +131,7 @@ public class ShieldOfTheFaithfulWard extends Buff {
 		broken = REFORM;
 		SpatialSound.play( Assets.Sounds.DEGRADE, target, 0.8f, 1.2f );
 		CellEmitter.center( target.pos ).burst( Speck.factory( Speck.LIGHT ), 8 );
-		if (target.sprite != null) target.sprite.showStatus( CharSprite.WARNING, Messages.get( ShieldOfTheFaithful.class, "shatter" ) );
+		xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.chipOn( ShieldOfTheFaithful.class, target );
 	}
 
 	@Override
@@ -136,11 +140,13 @@ public class ShieldOfTheFaithfulWard extends Buff {
 			detach();
 			return true;
 		}
+		Char g = guarded();
+		facing = g == null ? -1 : g.pos;
 		if (broken > 0 && --broken == 0){
 			SpatialSound.play( Assets.Sounds.CHARMS, target, 0.8f, 1.2f );
 			if (target.sprite != null){
 				target.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 6 );
-				target.sprite.showStatus( CharSprite.POSITIVE, Messages.get( ShieldOfTheFaithful.class, "reform" ) );
+				xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.chipOn( ShieldOfTheFaithful.class, target );
 			}
 		}
 		spend( TICK );
@@ -149,28 +155,21 @@ public class ShieldOfTheFaithfulWard extends Buff {
 
 	@Override
 	public void fx( boolean on ){
-		if (shield != null){
-			shield.killAndErase();
-			shield = null;
+		if (arc != null){
+			Fx.dispose( arc );
+			arc = null;
 		}
 		if (on && target.sprite != null && target.sprite.parent != null){
-			final CharSprite owner = target.sprite;
-			shield = new ItemSprite( ItemSpriteSheet.ROUND_SHIELD ){
-				private float time;
+			arc = AegisArcFX.hold( target.sprite, new AegisArcFX.Ward(){
 				@Override
-				public void update(){
-					super.update();
-					time += Game.elapsed;
-					visible = owner.visible && broken <= 0;
-					PointF c = owner.center();
-					x = c.x + 5 - width() / 2f;
-					y = c.y - 1 + (float) Math.sin( time * 3 ) * 1.5f - height() / 2f;
-					alpha( 0.65f + 0.15f * (float) Math.sin( time * 4 ) );
+				public int facing(){
+					return facing;
 				}
-			};
-			shield.scale.set( 0.6f );
-			shield.hardlight( 0xFFE9A6 );
-			owner.parent.add( shield );
+				@Override
+				public float rest(){
+					return broken > 0 ? 0f : ShieldOfTheFaithfulWard.rest( cracks );
+				}
+			}, AegisArcFX.GOLD );
 		}
 	}
 

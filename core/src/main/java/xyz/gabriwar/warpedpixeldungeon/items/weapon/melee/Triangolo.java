@@ -24,6 +24,8 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.weapon.melee;
 
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.TypeFx;
+import java.util.ArrayList;
 import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Vertigo;
 import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
@@ -70,14 +72,18 @@ public class Triangolo extends MeleeWeapon {
 	@Override
 	public int proc(Char attacker, Char defender, int damage) {
 		//resonance: full weapon damage to every other char adjacent to the target
+		//the wielder's own side and the neutral are spared: the note strikes only the other side
 		int p = defender.pos;
+		ArrayList<Char> struck = new ArrayList<>();
 		for (int n : PathFinder.NEIGHBOURS8) {
 			Char ch = Actor.findChar(p + n);
-			if (ch != null && ch != defender && ch != attacker && ch.isAlive()) {
+			if (ch != null && ch != defender && ch != attacker && ch.isAlive() && ch.alignment != attacker.alignment && ch.alignment != Char.Alignment.NEUTRAL) {
+				struck.add(ch);
 				int dmg = Math.max(Random.NormalIntRange(min(), max()) - Random.IntRange(0, 1), 0);
 				ch.damage(dmg, this);
 			}
 		}
+		TypeFx.resonance( attacker, defender, this, struck );
 		return super.proc(attacker, defender, damage);
 	}
 

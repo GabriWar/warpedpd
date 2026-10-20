@@ -34,7 +34,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.AdultDragonVioletSprite;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import com.watabou.utils.Random;
 
 public class AdultDragonViolet extends Mob {
@@ -107,7 +106,7 @@ public class AdultDragonViolet extends Mob {
 				enemy.damage( dmg, this );
 				Buff.affect( enemy, Poison.class ).set( 1 );
 			} else {
-				enemy.sprite.showStatus( CharSprite.NEUTRAL, enemy.defenseVerb() );
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.missed( enemy );
 			}
 		}
 		next();

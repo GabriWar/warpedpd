@@ -256,7 +256,7 @@ public class Waterskin extends Item {
 		Dewdrop.consumeDew( drops, hero, true );
 		if (mana > 0){
 			hero.MP += mana;
-			hero.sprite.showStatus( 0x6688FF, "+%d MP", mana );
+			hero.sprite.showStatusWithIcon( 0x6688FF, Integer.toString( mana ), xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.MANA );
 		}
 		volume -= drops;
 		Catalog.countUses( Dewdrop.class, drops );

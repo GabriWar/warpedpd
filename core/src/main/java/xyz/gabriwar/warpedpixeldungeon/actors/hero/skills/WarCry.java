@@ -28,7 +28,9 @@ package xyz.gabriwar.warpedpixeldungeon.actors.hero.skills;
 
 
 import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.ShoutFX;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -46,6 +48,10 @@ public class WarCry extends SubSkill2 {
 		mana = 10;
 		tier = 2;
 	}
+
+	/** How far the shout's rings roll, px; at +3 its flinch is in the shout's dark (the fear weakens them). */
+	static final float REACH = 72f;
+	private static final int[] WEAKENED = { ShoutFX.MARTIAL[0], ShoutFX.MARTIAL[3], ShoutFX.MARTIAL[3], ShoutFX.MARTIAL[3] };
 
 	@Override
 	public boolean toggleable(){ return false; }
@@ -66,13 +72,22 @@ public class WarCry extends SubSkill2 {
 					Buff.prolong( mob, xyz.gabriwar.warpedpixeldungeon.actors.buffs.Terror.class, 2 + level ).object = hero.id();
 					//+3: the fleeing are weakened for as long as they run
 					if (level >= MAX_LEVEL) Buff.prolong( mob, xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness.class, 2 + level );
-					if (mob.sprite != null) mob.sprite.emitter().burst( Speck.factory( Speck.SCREAM ), 3 );
+					if (mob.sprite != null){
+						//each one jolts back from the shout and trembles, the nearest first (at +3, weakened,
+						//in the shout's dark)
+						mob.sprite.emitter().burst( SkillBursts.TREMBLE, 3 );
+						ShoutFX.flinch( mob.sprite, SkillVfx.midX( hero.sprite ), SkillVfx.midY( hero.sprite ),
+								level >= MAX_LEVEL ? WEAKENED : ShoutFX.MARTIAL,
+								Math.min( 0.3f, 0.05f + 0.03f * Dungeon.level.distance( hero.pos, mob.pos ) ) );
+					}
 				}
 			}
 			hero.MP -= getManaCost();
 			castTextYell();
 			SpatialSound.play( Assets.Sounds.CHALLENGE, hero, 1f, 0.9f );
-			Dungeon.hero.sprite.emitter().burst( Speck.factory( Speck.SCREAM ), 4 );
+			//the shout: lines bursting from him, a tan shockwave rolling over the floor
+			Dungeon.hero.sprite.emitter().burst( SkillBursts.ROAR, 4 );
+			ShoutFX.roar( hero.sprite, ShoutFX.MARTIAL, REACH );
 			Fx.shake( 2, 0.3f );
 			Dungeon.hero.heroSkills.lastUsed = this;
 			hero.spend( TIME_TO_USE );

@@ -24,6 +24,7 @@ package xyz.gabriwar.warpedpixeldungeon.items.stones;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Belongings;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.effects.Enchanting;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.GainFx;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
@@ -67,7 +68,7 @@ public class StoneOfEnchantment extends InventoryStone {
 		}
 		
 		curUser.sprite.emitter().start( Speck.factory( Speck.LIGHT ), 0.1f, 5 );
-		Enchanting.show( curUser, item );
+		Enchanting.show( curUser, item, GainFx.of( item instanceof Weapon ? ((Weapon)item).enchantment : ((Armor)item).glyph ) );
 		
 		if (item instanceof Weapon) {
 			GLog.p(Messages.get(this, "weapon"));

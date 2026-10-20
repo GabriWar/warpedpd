@@ -93,7 +93,7 @@ public class Fairy extends PET implements Callback {
 			if (healAmt > 0) {
 				Dungeon.hero.HP = Math.min(Dungeon.hero.HT, Dungeon.hero.HP + healAmt);
 				Dungeon.hero.sprite.emitter().start(Speck.factory(Speck.HEALING), 0.4f, 1);
-				Dungeon.hero.sprite.showStatus(0x00FF00, Integer.toString(healAmt));
+				Dungeon.hero.sprite.showStatusWithIcon(0x00FF00, Integer.toString(healAmt), xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.HEALING);
 				if (Dungeon.level.heroFOV[pos]) {
 					GLog.p(Messages.get(this, "heal"));
 				}
@@ -134,7 +134,7 @@ public class Fairy extends PET implements Callback {
 
 					CellEmitter.center(enemy.pos).burst(SparkParticle.FACTORY, 3);
 				} else {
-					enemy.sprite.showStatus(0xFFFFFF, enemy.defenseVerb());
+					xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.missed( enemy );
 				}
 			}
 

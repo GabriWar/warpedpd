@@ -95,7 +95,13 @@ public enum Element {
 	SMOKE( ramp( 0x8A847C, 0x5E5850, 0x3E3A34, 0x242220 ), 0x8A847C, 0x8A847C,
 			ramp( 0x8A847C, 0x5E5850, 0x3E3A34, 0x242220 ), null, false ),
 	STEAM( ramp( 0xFFFFFF, 0xEEF2F4, 0xD4DCE2, 0xAEB8C2 ), 0xFFFFFF, 0xFFFFFF,
-			ramp( 0xFFFFFF, 0xEEF2F4, 0xD4DCE2, 0xAEB8C2 ), null, false );
+			ramp( 0xFFFFFF, 0xEEF2F4, 0xD4DCE2, 0xAEB8C2 ), null, false ),
+	//coin and luck: Midas, CromLuck, a lucky coin, a crit's star, a free reload
+	GOLD( ramp( 0xFFFFF0, 0xFFF0A0, 0xFFD24A, 0xE0A020, 0xA06A10, 0x4A2E08 ), 0xFFD860, 0xFFFFF0,
+			null, ramp( 0xFFF0A0, 0xE0A020, 0x5A3A08 ), true ),
+	//light being eaten, always drawn inward: a curse's hex (SHADOW pushes outward, this pulls in)
+	VOID( ramp( 0xD8B8FF, 0x8A5AC0, 0x4A2A78, 0x24103E, 0x100620, 0x060210 ), 0x7A48C8, 0xE8D8FF,
+			ramp( 0x2E1648, 0x1A0C2C ), null, false );
 
 	/** Its colours, hottest or lightest first. */
 	public final Ramp ramp;

@@ -4,13 +4,14 @@ import com.watabou.utils.Bundle;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.*;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.SkillInteractions;
-import xyz.gabriwar.warpedpixeldungeon.sprites.MirrorSprite;
+import xyz.gabriwar.warpedpixeldungeon.sprites.DecoySprite;
 
-/** One disposable distraction; it never attacks or awards loot/experience. */
+/** One disposable distraction; it never attacks or awards loot/experience. A shade of shadow
+ *  (DecoySprite), never the Mirror Image it once looked like. */
 public class SkillDecoy extends Mob {
     public int rank=1,left=4;
     public boolean blinding=true;
-    {spriteClass=MirrorSprite.class;alignment=Alignment.ALLY;HP=HT=1;EXP=0;lootChance=0;properties.add(Property.IMMOVABLE);}
+    {spriteClass=DecoySprite.class;alignment=Alignment.ALLY;HP=HT=1;EXP=0;lootChance=0;properties.add(Property.IMMOVABLE);}
     @Override public boolean act(){
         if(--left<=0){die(this);return true;}
         SkillInteractions.lure(pos,rank);SkillInteractions.flare(pos,0xB8A3DD);spend(TICK);return true;

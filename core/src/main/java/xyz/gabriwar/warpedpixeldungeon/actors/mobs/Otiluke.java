@@ -46,7 +46,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments.Vampiric;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.relic.RelicMeleeWeapon;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.OtilukeSprite;
 import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
@@ -144,7 +143,7 @@ public class Otiluke extends Mob implements Callback {
 			int dmg = Random.Int(100, 160);
 			enemy.damage(dmg, this);
 		} else {
-			enemy.sprite.showStatus(CharSprite.NEUTRAL, enemy.defenseVerb());
+			xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.missed( enemy );
 		}
 	}
 

@@ -36,8 +36,9 @@ import com.watabou.utils.RectF;
 /**
  * A character's afterimage: its frame as it is now, left behind as light in a colour, fading over
  * its life (a dash, a blink, a strike from the sky). A copy of the frame (never Image.copy, which
- * would share the sprite's scale), in the light layer, added. FxBudget.afterimageCap() at once:
- * past it the oldest goes.
+ * would share the sprite's scale), in the light layer, added. FxBudget.afterimageCap() at once,
+ * counting the items' afterimages (ItemGhost.live()) with them: past it the oldest goes, and with
+ * none of its own to let go of there is no room (null).
  */
 public class Afterimage extends Image {
 
@@ -72,7 +73,11 @@ public class Afterimage extends Image {
 		Afterimage a = GameScene.recycle( GameScene.Layer.LIGHTS, Afterimage.class );
 		if (a == null) return null;
 		a.setup( s, f, color, alpha, life, dx, dy );
-		enter( a );
+		//the items' ghosts read first, outside this one's lock (theirs reads this count)
+		if (!enter( a, ItemGhost.live() )){
+			a.kill();
+			return null;
+		}
 		return a;
 	}
 
@@ -122,15 +127,18 @@ public class Afterimage extends Image {
 		leave( this );
 	}
 
-	private static synchronized void enter( Afterimage a ){
+	//in, if there is room beside the items' ghosts once its own oldest has gone; false: none
+	private static synchronized boolean enter( Afterimage a, int ghosts ){
 		a.serial = ++serials;
-		for (int i = 0; i < count; i++) if (live[i] == a) return;
-		if (count >= FxBudget.afterimageCap() || count >= live.length){
+		for (int i = 0; i < count; i++) if (live[i] == a) return true;
+		if (count + ghosts >= FxBudget.afterimageCap() || count >= live.length){
 			Afterimage oldest = null;
 			for (int i = 0; i < count; i++) if (oldest == null || live[i].serial < oldest.serial) oldest = live[i];
-			if (oldest != null) oldest.kill();
+			if (oldest == null) return false;
+			oldest.kill();
 		}
 		if (count < live.length) live[count++] = a;
+		return true;
 	}
 
 	private static synchronized void leave( Afterimage a ){

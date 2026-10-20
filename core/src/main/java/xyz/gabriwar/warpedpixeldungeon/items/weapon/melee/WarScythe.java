@@ -22,6 +22,7 @@
 package xyz.gabriwar.warpedpixeldungeon.items.weapon.melee;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
+import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
@@ -35,6 +36,23 @@ public class WarScythe extends MeleeWeapon {
 
 		tier = 5;
 		ACC = 0.8f; //20% penalty to accuracy
+	}
+
+	//out in the world it cuts tall grass as the sickle does (Sickle.AC_REAP), and a ripe crop
+	//(Farming.hasSickle)
+	@Override
+	public java.util.ArrayList<String> actions(Hero hero) {
+		java.util.ArrayList<String> actions = super.actions(hero);
+		if (xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.allowedHere(Dungeon.level)) actions.add(Sickle.AC_REAP);
+		return actions;
+	}
+
+	@Override
+	public void execute(Hero hero, String action) {
+		super.execute(hero, action);
+		if (action.equals(Sickle.AC_REAP) && xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Gathering.mayWork(hero)) {
+			xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.selectCell(Sickle.grassPicker);
+		}
 	}
 
 	@Override

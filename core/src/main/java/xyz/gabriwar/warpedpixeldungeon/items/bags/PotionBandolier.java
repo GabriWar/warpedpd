@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items.bags;
 
+import xyz.gabriwar.warpedpixeldungeon.items.EmptyBottle;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.LiquidMetal;
 import xyz.gabriwar.warpedpixeldungeon.items.Waterskin;
@@ -35,7 +36,7 @@ public class PotionBandolier extends Bag {
 
 	@Override
 	public boolean canHold( Item item ) {
-		if (item instanceof Potion || item instanceof LiquidMetal || item instanceof Waterskin){
+		if (item instanceof Potion || item instanceof EmptyBottle || item instanceof LiquidMetal || item instanceof Waterskin){
 			return super.canHold(item);
 		} else {
 			return false;

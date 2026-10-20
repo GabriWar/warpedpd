@@ -30,7 +30,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.SpiritForm;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
@@ -314,12 +313,11 @@ public class RingOfForce extends Ring {
 		private int minTurnsLeft;
 
 		public void reset(){
-			if (!active){
-				//announce the buff
-				target.sprite.showStatus(CharSprite.POSITIVE, Messages.titleCase(name()));
-			}
+			boolean announce = !active;
 			active = true;
 			minTurnsLeft = 50;
+			//announce the buff: its icon on a card (it has one once active)
+			if (announce) xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.buffIcon( target, this );
 		}
 
 		@Override

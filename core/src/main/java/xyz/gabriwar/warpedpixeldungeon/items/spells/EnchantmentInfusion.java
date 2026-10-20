@@ -28,6 +28,7 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Enchanting;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.GainFx;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfIdentify;
@@ -80,7 +81,7 @@ public class EnchantmentInfusion extends InventorySpell {
 						GLog.p(Messages.get(StoneOfEnchantment.class, "weapon"));
 						SpatialSound.play(Assets.Sounds.READ, curUser);
 						Invisibility.dispel();
-						Enchanting.show(curUser, item);
+						Enchanting.show(curUser, item, GainFx.of(enchants[index]));
 					}
 				}
 				@Override
@@ -115,7 +116,7 @@ public class EnchantmentInfusion extends InventorySpell {
 						GLog.p(Messages.get(StoneOfEnchantment.class, "armor"));
 						SpatialSound.play(Assets.Sounds.READ, curUser);
 						Invisibility.dispel();
-						Enchanting.show(curUser, item);
+						Enchanting.show(curUser, item, GainFx.of(glyphs[index]));
 					}
 				}
 				@Override

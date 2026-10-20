@@ -377,7 +377,9 @@ public final class DebugScenes {
 					+ " farther it struck. The bolts come down on your"
 					+ " turns (about every third turn, within 10 cells: stand still and only sheet lightning flashes); one in sight is"
 					+ " drawn, burns its cell to embers and sets the grass round it alight (never by you or anyone), and hurts and stuns"
-					+ " whatever it hits, you too. Rest and the bolts come fast: each in sight drawn, the flash and thunder at most every 0.7 s" ),
+					+ " whatever it hits, you too. With a tree in reach (the wood here) half of them strike one, on its crown: it catches"
+					+ " there, flames, embers and smoke, and burns down to embers and charcoal in 8 turns."
+					+ " Rest and the bolts come fast: each in sight drawn, the flash and thunder at most every 0.7 s" ),
 			new WeatherScene( "weather-gale", "Weather: a gale over open plains",
 					new Sky( null, 0f, 16f, 90f, false ), WeatherScene.Ground.PLAINS, false,
 					"dry, the wind held at 16 m/s: the gale bed from the wind's side, and a gust from the same side"

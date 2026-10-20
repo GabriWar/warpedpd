@@ -35,11 +35,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
 import xyz.gabriwar.warpedpixeldungeon.effects.Wound;
 import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.MissileWeapon;
-import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 
 public class Mastery extends PassiveSkillB3 {
 
@@ -72,12 +71,12 @@ public class Mastery extends PassiveSkillB3 {
 		if (Random.Int( 100 ) >= 15 + 15 * level) return;
 
 		if (hero.sprite != null){
-			hero.sprite.showStatus( CharSprite.NEUTRAL, Messages.get( this, "riposte" ) );
+			chipOn( hero );
 			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 3 );
 		}
 		Wound.hit( enemy );
 		if (enemy.sprite != null && enemy.sprite.visible){
-			enemy.sprite.emitter().burst( Speck.factory( Speck.STAR ), 4 );
+			enemy.sprite.emitter().burst( SkillBursts.METAL_SPARK, 4 );
 		}
 		SpatialSound.play( Assets.Sounds.HIT_PARRY, enemy, 1f, 1.1f );
 		Fx.shake( 1, 0.15f );

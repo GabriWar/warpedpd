@@ -36,7 +36,6 @@ import xyz.gabriwar.warpedpixeldungeon.levels.traps.DisintegrationTrap;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
-import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.EyeSprite;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Bundle;
@@ -213,7 +212,7 @@ public class Eye extends Mob {
 					GLog.n( Messages.get(this, "deathgaze_kill") );
 				}
 			} else {
-				ch.sprite.showStatus( CharSprite.NEUTRAL,  ch.defenseVerb() );
+				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.missed( ch );
 			}
 		}
 

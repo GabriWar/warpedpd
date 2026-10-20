@@ -23,6 +23,7 @@ package xyz.gabriwar.warpedpixeldungeon.items.armor.curses;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ElementRows;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
@@ -46,6 +47,7 @@ public class Bulk extends Armor.Glyph {
 		} else {
 			if (owner.sprite != null){
 				owner.sprite.emitter().startDelayed(ShadowParticle.UP, 0.02f, 5, 0.05f);
+				if (owner.sprite.visible) ElementRows.bulk( owner );
 			}
 			return 1/3f * genericProcChanceMultiplier(owner);
 		}

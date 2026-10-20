@@ -253,10 +253,14 @@ abstract public class KindOfWeapon extends EquipableItem {
 	abstract public int max(int lvl);
 
 	public int damageRoll( Char owner ) {
+		int lo = min(), hi = max();
 		if (owner instanceof Hero){
-			return Hero.heroDamageIntRange(min(), max());
+			int rolled = Hero.heroDamageIntRange(lo, hi);
+			//the damage ledger: the range and the roll, the base of the hero's blow
+			xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.weaponRange( this, lo, hi, rolled );
+			return rolled;
 		} else {
-			return Random.NormalIntRange(min(), max());
+			return Random.NormalIntRange(lo, hi);
 		}
 	}
 	

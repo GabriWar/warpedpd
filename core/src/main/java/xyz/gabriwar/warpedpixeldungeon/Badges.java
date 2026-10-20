@@ -1375,6 +1375,16 @@ public class Badges {
 		saveNeeded = true;
 	}
 	
+	/** The debug menu's "Unlock all classes": every hero, without their Play Games achievements. */
+	public static void unlockAllClasses(){
+		loadGlobal();
+		for (Badge b : new Badge[]{ Badge.UNLOCK_MAGE, Badge.UNLOCK_ROGUE, Badge.UNLOCK_HUNTRESS,
+				Badge.UNLOCK_DUELIST, Badge.UNLOCK_CLERIC }){
+			if (global.add( b )) saveNeeded = true;
+		}
+		saveGlobal();
+	}
+
 	public static void unlock( Badge badge ){
 		if (!isUnlocked(badge) && (badge.type == BadgeType.JOURNAL || Dungeon.customSeedText.isEmpty())){
 			global.add( badge );

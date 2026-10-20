@@ -24,17 +24,28 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
+import com.watabou.noosa.Game;
+import com.watabou.noosa.Group;
 import com.watabou.noosa.tweeners.Delayer;
 import com.watabou.utils.Bundle;
+
+import java.util.List;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.ChargedShot;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
-import xyz.gabriwar.warpedpixeldungeon.effects.Flare;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
-import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.Fx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxCurves;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.FxFrames;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.FxPic;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.PixelFlare;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillPalette;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.skills.SkillVfx;
+import xyz.gabriwar.warpedpixeldungeon.effects.skillfx.SkillBursts;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 
@@ -72,18 +83,19 @@ public class ChargedShotDraw extends Buff {
         return true;
     }
     public void aim(int cell){this.aim=cell;fx(true);}
-    private com.watabou.noosa.Group preview;
+    private AimLine preview;
+    //the lane she aims down, in sight: an aim line of nature light (never the crosshair of a
+    //telegraphed attack), let go of with Fx.dispose
     @Override public void fx(boolean on){
-        if(preview!=null){preview.killAndErase();preview=null;}
+        if(preview!=null){preview.release();preview=null;}
         if(on && onSameFloor() && target!=null && target.sprite!=null && target.sprite.parent!=null){
-            preview=new com.watabou.noosa.Group();
             xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica line=new xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica(target.pos,aim,xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica.WONT_STOP);
+            java.util.ArrayList<Integer> lane=new java.util.ArrayList<>();
             for(int i=1;i<line.path.size()&&i<=8+2*level;i++){
                 int cell=line.path.get(i);if(!Dungeon.level.heroFOV[cell])continue;
-                com.watabou.noosa.Image im=xyz.gabriwar.warpedpixeldungeon.ui.Icons.get(xyz.gabriwar.warpedpixeldungeon.ui.Icons.TARGET);
-                im.point(xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTilemap.tileToWorld(cell));im.hardlight(0xA6DBCF);im.alpha(.5f);preview.add(im);
+                lane.add(cell);
             }
-            target.sprite.parent.add(preview);
+            preview=AimLine.show(lane);
         }
     }
 	public void set( int aim, int level, int turns ){
@@ -110,17 +122,129 @@ public class ChargedShotDraw extends Buff {
 			detach();
 			return true;
 		}
-		//the draw, seen: light gathering, the count over her head
+		//the draw, seen: her own light gathering (never the level-up's stars), the count over her head
 		if (hero.sprite != null && hero.sprite.visible){
-			hero.sprite.emitter().burst( Speck.factory( Speck.LIGHT ), 1 + (level > 2 ? 2 : level) );
-			new Flare( 4, 8 + 2 * level ).color( 0xFFE9A0, true ).show( hero.sprite, 0.5f ).angularSpeed = 120;
-			hero.sprite.showStatus( CharSprite.NEUTRAL, Integer.toString( turnsLeft ) );
+			drawing( hero.sprite, 1 + (level > 2 ? 2 : level) );
+			xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill.counterOn( ChargedShot.class, hero, turnsLeft, CharSprite.NEUTRAL );
 			if (turnsLeft <= 3) SpatialSound.play( Assets.Sounds.CHARGEUP, hero, 0.5f, 1.4f + 0.2f * (3 - turnsLeft) );
 		}
 		spend( TICK );
         // Hero.holdTurn advances the draw without allowing other actions.
 
 		return true;
+	}
+
+	/** A turn of the draw on her: `n` motes of her own light lifting, a small flare. Any thread (one
+	 *  burst of the sprite's emitter, as the light's). */
+	public static void drawing( CharSprite s, int n ){
+		s.emitter().burst( SkillBursts.FLOURISH, n );
+		PixelFlare.show( SkillVfx.midX( s ), SkillVfx.midY( s ), AimLine.COLOR, PixelFlare.S, 0.45f );
+	}
+
+	/**
+	 * The lane she aims down while she draws: a dot of nature light (PULSE_DOT, the huntress's leaf
+	 * green) on the ground of every cell of it in sight, breathing within 12% (the line of fire,
+	 * shown), and every BEAT s RUNNERS motes of her light flowing down it from her toward the target,
+	 * a pale one leading (an aim line, never an enemy's telegraph: no crosshair, no red, on the floor
+	 * under the bodies). Made without the GPU (it may be on the actor thread), put on the floor's
+	 * layer by Fx.post, let go of with release (Fx.dispose). At most MOST dots (a lane is 14 cells at
+	 * most) plus RUNNERS quads; nothing allocated a frame.
+	 */
+	public static final class AimLine extends Group {
+
+		public static final int COLOR = SkillPalette.NATURE_LIGHT, MOST = 16, RUNNERS = 3;
+		public static final float LEVEL = 0.6f, BREATH = 0.12f, BREATH_HZ = 0.8f, BEAT = 0.6f, RUN_PER_CELL = 0.035f, RUN_MOST = 0.4f;
+		/** The runners: each this far behind the one before (a share of a cell), their colours
+		 *  (leading first) and alphas. */
+		public static final float RUN_GAP = 0.35f;
+		static final int[] RUN_COLORS = { SkillPalette.NATURE.stop( 0 ), SkillPalette.NATURE.stop( 1 ), SkillPalette.NATURE.stop( 2 ) };
+		static final float[] RUN_ALPHAS = { 1f, 0.85f, 0.65f };
+		/** The dots lie this far under the cell's middle (on its ground). */
+		public static final float GROUND = 3f;
+
+		private final FxPic[] dots;
+		private final FxPic[] runners = new FxPic[RUNNERS];
+		private volatile boolean gone;
+
+		private AimLine( List<Integer> lane ){
+			int n = Math.min( MOST, lane.size() );
+			dots = new FxPic[n];
+			for (int i = 0; i < n; i++){
+				int cell = lane.get( i );
+				FxPic d = new FxPic( SkillVfx.LIGHT_SHEET );
+				d.additive = true;
+				d.show( FxFrames.Light.PULSE_DOT ).lit( COLOR ).place( SkillVfx.cx( cell ), SkillVfx.cy( cell ) + GROUND );
+				d.am = LEVEL;
+				add( d );
+				dots[i] = d;
+			}
+			for (int j = 0; j < RUNNERS; j++){
+				FxPic m = new FxPic( SkillVfx.SHEET );
+				m.additive = true;
+				m.show( FxFrames.MOTE_2 ).lit( RUN_COLORS[j] );
+				m.visible = false;
+				add( m );
+				runners[j] = m;
+			}
+		}
+
+		/** An aim line down these cells (none: nothing), on the floor's layer. Any thread. */
+		public static AimLine show( List<Integer> lane ){
+			if (lane.isEmpty()) return null;
+			final AimLine a = new AimLine( lane );
+			Fx.post( () -> {
+				Group floor = GameScene.layer( GameScene.Layer.FLOOR );
+				if (a.gone || floor == null) return;
+				floor.add( a );
+			} );
+			return a;
+		}
+
+		/** Let go of (Fx.dispose), whether or not it was put on the scene yet. Any thread. */
+		public void release(){
+			gone = true;
+			Fx.dispose( this );
+		}
+
+		public int dots(){
+			return dots.length;
+		}
+
+		@Override
+		public void update(){
+			super.update();
+			float t = Game.timeTotal;
+			for (int i = 0; i < dots.length; i++){
+				FxPic d = dots[i];
+				d.takeSlide();
+				d.am = LEVEL * (1f + BREATH * (float) Math.sin( (t * BREATH_HZ + i * 0.07f) * 2 * Math.PI ));
+			}
+			//the runners: from the lane's first cell to its last, eased out, the pale one leading and the
+			//others a little behind it, then gone till the next beat
+			float run = Math.min( RUN_MOST, RUN_PER_CELL * dots.length );
+			float p = (t % BEAT) / run;
+			boolean on = p < 1f && dots.length > 0;
+			float fade = p < 0.8f ? 1f : (1f - p) / 0.2f;
+			float lead = FxCurves.easeOut( Math.min( 1f, p ) ) * (dots.length - 1);
+			for (int j = 0; j < RUNNERS; j++){
+				FxPic m = runners[j];
+				float k = lead - j * RUN_GAP;
+				m.visible = on && k >= 0;
+				if (!m.visible) continue;
+				int i = Math.min( dots.length - 2, (int) k );
+				float x, y;
+				if (i < 0){
+					x = dots[0].midX();
+					y = dots[0].midY();
+				} else {
+					float f = k - i;
+					x = dots[i].midX() + (dots[i + 1].midX() - dots[i].midX()) * f;
+					y = dots[i].midY() + (dots[i + 1].midY() - dots[i].midY()) * f;
+				}
+				m.place( x, y );
+				m.am = RUN_ALPHAS[j] * fade;
+			}
+		}
 	}
 
 	/** still on the floor she drew on; a stairway or a portal spoils the shot */

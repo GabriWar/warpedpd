@@ -110,6 +110,7 @@ public class ItemSlot extends Button {
 		super.createChildren();
 		
 		sprite = new ItemSprite();
+		sprite.mode( ItemSprite.Mode.SLOT );
 		add(sprite);
 		
 		status = new BitmapText( PixelScene.pixelFont);
@@ -255,39 +256,13 @@ public class ItemSlot extends Button {
 	private int[] enchLvls = new int[0];
 	private int enchIdx = 0;
 	private float enchCycle = 0;
-	private com.watabou.noosa.particles.Emitter equipmentSparkles;
-	private int[] sparkleColors = new int[0];
-
-	private static void addSparkleColor(java.util.ArrayList<Integer> colors, int color, int level) {
-		// +0: one spark/4s; +1: one/2s; +2: 1.5/s; +5: 7.5/s, per effect.
-		int weight = Math.max(1, level * (level + 1));
-		for (int i=0; i<weight; i++) colors.add(color);
-	}
+	//whether the item's motes are served first from the slots' pool: equipped or quickslotted
+	//(the sprite keys its motes itself, from the item it views: effects/fx/enchant/ItemAura)
+	private boolean auraFirst;
 
 	private void updateSparkles() {
-		java.util.ArrayList<Integer> colors = new java.util.ArrayList<>();
-		if (item instanceof Weapon) {
-			for (Weapon.Enchantment enchantment : ((Weapon)item).enchantments())
-				if (item.cursedKnown || !enchantment.curse()) addSparkleColor(colors, enchantment.glowing().color, enchantment.level());
-		} else if (item instanceof Armor) {
-			for (Armor.Glyph glyph : ((Armor)item).glyphs())
-				if (item.cursedKnown || !glyph.curse()) addSparkleColor(colors, glyph.glowing().color, glyph.level());
-		}
-		int[] next = new int[colors.size()];
-		for (int i=0; i<next.length; i++) next[i] = colors.get(i);
-		if (java.util.Arrays.equals(next, sparkleColors)) return;
-		sparkleColors = next;
-		if (equipmentSparkles != null) {
-			equipmentSparkles.killAndErase(); equipmentSparkles.destroy(); equipmentSparkles = null;
-		}
-		if (next.length > 0) {
-			equipmentSparkles = new com.watabou.noosa.particles.Emitter();
-			// Above the sprite, below quantity and level text; preserve any existing item emitter.
-			add(equipmentSparkles);
-			bringToFront(status); bringToFront(extra); bringToFront(level); bringToFront(enchLvl);
-			equipmentSparkles.pos(sprite);
-			equipmentSparkles.pour(xyz.gabriwar.warpedpixeldungeon.effects.particles.EquipmentSparkle.factory(next), 4f / next.length);
-		}
+		auraFirst = item != null && Dungeon.hero != null
+				&& (item.isEquipped( Dungeon.hero ) || (Dungeon.quickslot != null && Dungeon.quickslot.contains( item )));
 	}
 	
 	@Override
@@ -389,10 +364,9 @@ public class ItemSlot extends Button {
 
 	@Override
 	public void update() {
-		if (equipmentSparkles != null) {
-			equipmentSparkles.visible = equipmentSparkles.on = visible && active && sprite.visible;
-			equipmentSparkles.pos(sprite);
-		}
+		//the item's motes run while the slot shows it; the selected slot (pressed or hovered) is
+		//served first too
+		sprite.auraGate( visible && active && sprite.visible, auraFirst || pressedButton == this || hoverTip != null );
 		super.update();
 		if (sparksOn && qualitySparks != null && frameW > 2 && frameH > 2) flowSparks();
 		//with two empowered enchantments the blue number cycles between them

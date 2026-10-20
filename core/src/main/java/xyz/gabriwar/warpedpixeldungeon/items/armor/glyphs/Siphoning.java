@@ -28,8 +28,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.effects.FloatingText;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ShadowParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantFx;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.EnchantLooks;
 import com.watabou.utils.Random;
 
 //ported from SPS-PD's dark glyph: the armor drains life from attackers,
@@ -62,6 +65,7 @@ public class Siphoning extends Armor.Glyph {
 				defender.HP += healAmt;
 				defender.sprite.showStatusWithIcon( CharSprite.POSITIVE, Integer.toString( healAmt ), FloatingText.HEALING );
 			}
+			EnchantFx.ward( EnchantLooks.of( getClass() ), defender, attacker, EnchantFx.strength( level(), drain, defender.HT, powerMulti ), level(), Quality.isVestige( armor, this ) ? EnchantFx.ECHO : 0 );
 
 		}
 
