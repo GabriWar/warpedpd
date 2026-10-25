@@ -29,36 +29,57 @@ import com.watabou.noosa.Tilemap;
 
 /**
  * A window-sized layer of a view of another band, not the slice's own ground: one depth of the
- * view down from a mountain (WindowGenerator.belowLayers, under the terrain, where the slice is
- * open air, hazed by its depth), the shade the drops' rims cast, or the tops of the rock above
- * the slice (WindowGenerator.Window.top, under the walls' rims). Each view is three parts: its
- * ground's tiles (tiles_overworld), then the dressing's blends and corner roundings over them
- * (overworld_dress, WindowGenerator.View). Refilled on every slide like the dressing
- * (OverworldDress.Layer); put on screen by GameScene.addBelow and GameScene.addRockTops.
+ * view down (WindowGenerator.belowLayers, under the terrain, hazed by its depth) through a
+ * mountain's drops or a cave's pits, the shade their rims cast, or the tops of the rock above the
+ * slice (WindowGenerator.Window.top, under the walls' rims). Each view is four parts: its ground's
+ * tiles and the shores of its open water (the slice's tileset: tiles_overworld under the sky,
+ * tiles_caves below), then the dressing's blends and corner roundings over them (overworld_dress,
+ * WindowGenerator.View). Refilled on every slide like the dressing (OverworldDress.Layer); put on
+ * screen by GameScene.addBelow and GameScene.addRockTops.
  */
 public class SliceGroundLayer extends CustomTilemap {
 
 	/** the rock tops */
 	public static final int TOPS = -1;
 	/** the parts of a view, drawn in this order */
-	public static final int TILES = 0, BLENDS = 1, CORNERS = 2;
+	public static final int TILES = 0, SHORES = 1, BLENDS = 2, CORNERS = 3;
+	public static final int PARTS = 4;
 
 	/** 0: one band down, then deeper; WindowGenerator.BELOW_LAYERS: the shade the rims cast;
 	 *  TOPS: the tops of the rock */
 	public final int depth;
-	/** TILES, BLENDS or CORNERS */
+	/** TILES, SHORES, BLENDS or CORNERS */
 	public final int part;
 
 	private int[] data;
+	//no cell holds a tile: worked out as the data is handed over (the actor thread adopting a window),
+	//so the render thread never scans for it
+	private boolean empty = true;
 
+	/** A part of a view of the surface or the peaks, or the rims' shade (its tiles are the surface's). */
 	public SliceGroundLayer( int depth, int part ){
+		this( depth, part, Assets.Environment.TILES_OVERWORLD );
+	}
+
+	/** ...whose tiles and shores are drawn from this tileset (a pit's view of the caves: tiles_caves). */
+	public SliceGroundLayer( int depth, int part, String tiles ){
 		this.depth = depth;
 		this.part = part;
-		texture = part == TILES ? Assets.Environment.TILES_OVERWORLD : Assets.Environment.OVERWORLD_DRESS;
+		texture = part == TILES || part == SHORES ? tiles : Assets.Environment.OVERWORLD_DRESS;
 	}
 
 	public void setData( int[] data ){
 		this.data = data;
+		boolean none = true;
+		if (data != null) for (int i = 0; i < data.length && none; i++) none = data[i] < 0;
+		empty = none;
+	}
+
+	/** Nothing to draw: no cell held a tile when the data was handed over (GameScene.addBelow puts up
+	 *  no tilemap for a part of the view down that has never had anything to draw: a cave's pits are
+	 *  few, and most of its view's parts stay empty). */
+	public boolean empty(){
+		return empty;
 	}
 
 	/** the tile shown at this cell, -1 for none */
@@ -72,6 +93,7 @@ public class SliceGroundLayer extends CustomTilemap {
 		int[] d = data;
 		if (d == null || cell < 0 || cell >= d.length || d[cell] == tile) return;
 		d[cell] = tile;
+		if (tile >= 0) empty = false;
 		if (vis != null && vis.alive){
 			int x = cell % tileW, y = cell / tileW;
 			vis.updateMapRect( new com.watabou.utils.Rect( x, y, x + 1, y + 1 ) );

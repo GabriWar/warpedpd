@@ -148,13 +148,19 @@ public class DungeonTerrainTilemap extends DungeonTilemap {
 			);
 
 		} else if (tile == Terrain.CHASM) {
-			//a mountain's drop that shows the ground far below (tiles/SliceGroundLayer) draws no
-			//edge of its own: the plain chasm, which needsRender skips
+			int chasm = DungeonTileSheet.stitchChasmTile( pos > mapWidth ? map[pos - mapWidth] : -1);
 			if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
 					&& ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).seesBelow( pos )){
-				return DungeonTileSheet.CHASM;
+				//a mountain's drop that shows the ground far below (tiles/SliceGroundLayer) draws no
+				//edge of its own: the plain chasm, which needsRender skips
+				if (((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).openSky()){
+					return DungeonTileSheet.CHASM;
+				}
+				//a cave's pit keeps the face of what drops away into it, the floor below showing where
+				//its dark was; the picture of an examined pit keeps the chasm whole
+				if (!flat) return DungeonTileSheet.pitFace( chasm );
 			}
-			return DungeonTileSheet.stitchChasmTile( pos > mapWidth ? map[pos - mapWidth] : -1);
+			return chasm;
 		}
 
 		if (!flat) {
@@ -242,7 +248,7 @@ public class DungeonTerrainTilemap extends DungeonTilemap {
 		switch (t){
 			case Terrain.EMPTY: case Terrain.EMPTY_DECO: case Terrain.EMPTY_SP:
 			case Terrain.GRASS: case Terrain.HIGH_GRASS: case Terrain.FURROWED_GRASS:
-			case Terrain.SNOW: case Terrain.DIRT_PATH:
+			case Terrain.SNOW: case Terrain.DIRT_PATH: case Terrain.MUD:
 				return true;
 			default:
 				return false;
@@ -283,7 +289,8 @@ public class DungeonTerrainTilemap extends DungeonTilemap {
 	protected boolean needsRender(int pos) {
 		return super.needsRender(pos)
 				&& data[pos] != DungeonTileSheet.WATER
-				//a mountain's drop shows the ground far below it (tiles/SliceGroundLayer), not the void
+				//a mountain's drop shows the ground below it (tiles/SliceGroundLayer), not the void, and so does
+				//a cave's pit with no face of its own (DungeonTileSheet.pitFace)
 				&& !(data[pos] == DungeonTileSheet.CHASM
 					&& Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
 					&& ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).seesBelow( pos ));

@@ -74,4 +74,33 @@ public class WorldMapEventLabelsTest {
 			}
 		}
 	}
+
+	//an eclipse is pinned on the well of the village whose elders told of it (EclipseEvent): alone,
+	//or with a market and a raid on that well the same day, no name lies over another's
+	@Test
+	public void anEclipseOnAVillagesWellKeepsClearOfEveryName(){
+		for (int sy = -2; sy <= 1; sy++){
+			for (int sx = -2; sx <= 1; sx++){
+				int wx = sx * 64 + 30, wy = sy * 64 + 30;
+				WorldEvents.Event market = new WorldEvents.Event( WorldEvents.Type.MARKET, sx, sy, 5, 0, 100, wx, wy, 1L );
+				WorldEvents.Event raid = new WorldEvents.Event( WorldEvents.Type.RAID, sx, sy, 5, 0, 100, wx, wy, 2L );
+				WorldEvents.Event eclipse = new WorldEvents.Event( WorldEvents.Type.ECLIPSE, sx, sy, 5, 0, 100, wx, wy, 4L );
+				boolean[] village = { (sy & 1) == 0, (sx & 1) == 0 };
+				String at = "sector " + sx + "," + sy;
+				assertFalse( at + ": over the village's name",
+						Arrays.equals( WndWorldMap.labelCorner( Arrays.asList( eclipse ), 0 ), village ) );
+				for (List<WorldEvents.Event> l : Arrays.asList( Arrays.asList( market, raid, eclipse ),
+						Arrays.asList( eclipse, raid, market ), Arrays.asList( raid, eclipse, market ) )){
+					boolean[][] corners = new boolean[l.size() + 1][];
+					corners[0] = village;
+					for (int i = 0; i < l.size(); i++) corners[i + 1] = WndWorldMap.labelCorner( l, i );
+					for (int a = 0; a < corners.length; a++){
+						for (int b = a + 1; b < corners.length; b++){
+							assertFalse( at + ": two names on one corner", Arrays.equals( corners[a], corners[b] ) );
+						}
+					}
+				}
+			}
+		}
+	}
 }

@@ -32,12 +32,15 @@ import xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar;
 import xyz.gabriwar.warpedpixeldungeon.actors.PrecipType;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.AlbinoPiranha;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.AlbinoRat;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Alligator;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bananaspider;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bat;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bison;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.BrownBat;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.BrownWolf;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Brute;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bunny;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Camel;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.ClayGolem;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.ColdSpirit;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Crab;
@@ -50,22 +53,29 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Goat;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Golem;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.GrayWolf;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.GreyOni;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Horse;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.HuntPack;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.IceDemon;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.KoboldIcemancer;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.LostSoul;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Minotaur;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Pike;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Scorpio;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Shaman;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Slime;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Snake;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Spinner;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Swarm;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Vulture;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.WildCrab;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Wraith;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Yeti;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FireflyParticle;
+import xyz.gabriwar.warpedpixeldungeon.journal.Bestiary;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph;
+import xyz.gabriwar.warpedpixeldungeon.journal.GuideProgress;
+import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -92,13 +102,15 @@ import java.util.HashSet;
  */
 public class OverworldFauna {
 
-	/** The ground a row's beasts keep to. DRY: open dry floor (every surface row). POOL: the wadeable
-	 *  shelf of a deep pool (WATER beside DEEP_WATER: the deep water itself is solid). CRYSTAL: floor
-	 *  beside a crystal seam. FUNGUS: a mushroom patch within two cells. HEAT: hot ground (HOT_GROUND, as
-	 *  the world laid it) within five. CLIFF: a drop (CHASM) within two. FROZEN: frozen ground (the
-	 *  window's snow line). All but POOL are dry floor too. */
+	/** The ground a row's beasts keep to. DRY: open dry floor (every surface row but the water's).
+	 *  POOL: the wadeable shelf of a deep pool on a slice (WATER beside DEEP_WATER: the deep water
+	 *  itself is solid). CRYSTAL: floor beside a crystal seam. FUNGUS: a mushroom patch within two
+	 *  cells. HEAT: hot ground (HOT_GROUND, as the world laid it) within five. CLIFF: a drop (CHASM)
+	 *  within two. FROZEN: frozen ground (the window's snow line). SHALLOWS: the surface's open water
+	 *  (WATER, wadeable: a river's, a swamp's pools, the sea's shallows), the swamp's alligators' and
+	 *  the rivers' pike's. All but POOL and SHALLOWS are dry floor too. */
 	public enum Habitat {
-		DRY, POOL, CRYSTAL, FUNGUS, HEAT, CLIFF, FROZEN;
+		DRY, POOL, CRYSTAL, FUNGUS, HEAT, CLIFF, FROZEN, SHALLOWS;
 		public final int bit = 1 << ordinal();
 	}
 
@@ -185,24 +197,39 @@ public class OverworldFauna {
 				new Entry( Bunny.class,     5, DAYTIME, 1, 1 ),
 				new Entry( AlbinoRat.class, 3, NIGHT,   1, 1 ),
 		};
-		//the meadow's deer graze the open grass by day; the plains keep to rabbits and rats
-		TABLE.put( WorldModel.Biome.MEADOW, new Entry[]{ grass[0], grass[1], new Entry( Deer.class, 2, DAYTIME, 1, 2 ) } );
-		TABLE.put( WorldModel.Biome.PLAINS, grass );
+		//the meadow's deer graze the open grass by day; the plains keep to rabbits and rats. Bison
+		//herds roam both by day, bigger on the open plains: one roll in eight or so by day is a herd;
+		//on both, by day, the wild horses' herds of two to four (actors/mobs/Horse)
+		TABLE.put( WorldModel.Biome.MEADOW, new Entry[]{ grass[0], grass[1], new Entry( Deer.class, 2, DAYTIME, 1, 2 ),
+				new Entry( Bison.class, 1, DAYTIME, 2, 4 ), new Entry( Horse.class, 1, DAYTIME, 2, 4 ) } );
+		TABLE.put( WorldModel.Biome.PLAINS, new Entry[]{ grass[0], grass[1], new Entry( Bison.class, 1, DAYTIME, 3, 5 ),
+				new Entry( Horse.class, 2, DAYTIME, 2, 4 ) } );
 		EMPTY.put( WorldModel.Biome.MEADOW, 1 );
 		EMPTY.put( WorldModel.Biome.PLAINS, 2 );
 
+		//by day the camels' strings and the vultures over them, the scorpions; the snakes after dark
 		TABLE.put( WorldModel.Biome.DESERT, new Entry[]{
 				new Entry( Scorpio.class,   2, DAYTIME, 1, 1 ),
 				new Entry( Snake.class,     3, DARK,    1, 1 ),
+				new Entry( Camel.class,     2, DAYTIME, 1, 3 ),
+				new Entry( Vulture.class,   2, DAYTIME, 1, 2 ),
 		} );
 		EMPTY.put( WorldModel.Biome.DESERT, 4 );
 
+		//the alligators lie in the swamp's pools (its open water), at any hour
 		TABLE.put( WorldModel.Biome.SWAMP, new Entry[]{
 				new Entry( Snake.class,        3, ANY, 1, 1 ),
 				new Entry( Slime.class,        2, ANY, 1, 1 ),
 				new Entry( Bananaspider.class, 2, ANY, 1, 1 ),
+				new Entry( Alligator.class,    1, ANY, 1, 1, Habitat.SHALLOWS ),
 		} );
 		EMPTY.put( WorldModel.Biome.SWAMP, 2 );
+
+		//the rivers' open water: their pike, at any hour (a frozen river is ice, no water)
+		TABLE.put( WorldModel.Biome.RIVER, new Entry[]{
+				new Entry( Pike.class,         2, ANY, 1, 1, Habitat.SHALLOWS ),
+		} );
+		EMPTY.put( WorldModel.Biome.RIVER, 3 );
 
 		TABLE.put( WorldModel.Biome.BEACH, new Entry[]{
 				new Entry( WildCrab.class,  4, DAYTIME, 1, 1 ),
@@ -307,7 +334,8 @@ public class OverworldFauna {
 					new Entry( ColdSpirit.class,     2, ANY,     2, 4, Habitat.FROZEN ) ),
 	};
 
-	//the ground each beast of the slices keeps to (one kind of ground per beast across the bands)
+	//the ground each beast of the slices, and of the surface's water, keeps to (one kind of ground per
+	//beast across the bands and the surface)
 	private static final HashMap<Class<? extends Mob>, Habitat> HOME = new HashMap<>();
 
 	static {
@@ -328,9 +356,13 @@ public class OverworldFauna {
 			if (DAYTIME.containsAll( h.getValue() )) DIURNAL.add( h.getKey() );
 		}
 
-		//every beast of the slices keeps to one kind of ground wherever it lives
+		//every beast of the slices keeps to one kind of ground wherever it lives, and so does every
+		//beast of the surface's water (the rest of the surface is dry ground)
 		for (Band b : BANDS){
 			for (Entry e : b.rows) HOME.put( e.cls, e.habitat );
+		}
+		for (Entry[] rows : TABLE.values()){
+			for (Entry e : rows) if (e.habitat != Habitat.DRY) HOME.put( e.cls, e.habitat );
 		}
 	}
 
@@ -354,8 +386,8 @@ public class OverworldFauna {
 		return out;
 	}
 
-	/** The ground a beast of the slices keeps to: DRY for anything the bands do not know. A kind the
-	 *  bands do not list keeps to its parent's ground (a shrine's piranha is still a fish). */
+	/** The ground a beast of the slices or of the surface's water keeps to: DRY for anything else. A
+	 *  kind the tables do not list keeps to its parent's ground (a shrine's piranha is still a fish). */
 	public static Habitat home( Class<? extends Mob> cls ){
 		for (Class<?> c = cls; c != null && Mob.class.isAssignableFrom( c ); c = c.getSuperclass()){
 			Habitat h = HOME.get( c );
@@ -381,16 +413,18 @@ public class OverworldFauna {
 
 	/**
 	 * The kinds of ground a window cell is (Habitat bits), 0 where nothing of the table may stand:
-	 * rock, and water other than a deep pool's shelf. The surface's dry land is DRY alone. Pure, so
-	 * the tests can ask it of a hand-made map; `world` is what the world laid there (the pristine
-	 * map), the hot ground's only source, or null.
+	 * rock, and water other than open water on the surface or a deep pool's shelf on a slice. The
+	 * surface's dry land is DRY alone, its open water SHALLOWS alone. Pure, so the tests can ask it of
+	 * a hand-made map; `world` is what the world laid there (the pristine map), the hot ground's only
+	 * source, or null.
 	 */
 	static int habitat( int[] map, int[] world, int w, int h, int cell, boolean frozen, int altitude ){
 		int t = map[cell];
 		if ((Terrain.flags[t] & Terrain.PASSABLE) == 0) return 0;
 		int x = cell % w, y = cell / w;
 		if ((Terrain.flags[t] & Terrain.LIQUID) != 0){
-			if (altitude == 0 || t != Terrain.WATER) return 0;
+			if (t != Terrain.WATER) return 0;
+			if (altitude == 0) return Habitat.SHALLOWS.bit;
 			for (int dy = -1; dy <= 1; dy++){
 				for (int dx = -1; dx <= 1; dx++){
 					int nx = x + dx, ny = y + dy;
@@ -430,10 +464,26 @@ public class OverworldFauna {
 		return (habitat( l, cell ) & home( m.getClass() ).bit) != 0;
 	}
 
-	/** Can it stand on this cell at all? A fish only in the water: a parked beast coming back into the
-	 *  window takes a cell near its own, which for a fish may be dry land. */
+	/** Can it stand on this cell at all? A beast of the water only in the water: a parked beast coming
+	 *  back into the window takes a cell near its own, which for a fish, or an alligator that lies in
+	 *  wait, may be dry land. */
 	public static boolean standsAt( OverworldLevel l, Mob m, int cell ){
-		return home( m.getClass() ) != Habitat.POOL || l.water[cell];
+		Habitat home = home( m.getClass() );
+		return (home != Habitat.POOL && home != Habitat.SHALLOWS) || l.water[cell];
+	}
+
+	/** The guide's page on the surface's beasts of the open lands, the swamp and the rivers. */
+	public static final String BEASTS_PAGE = "surface_beasts";
+
+	/** A beast in the hero's sight on its turn: its bestiary entry is seen, and the first time any of
+	 *  the surface's bison, camels, vultures, alligators and pike is, the guide's page on them writes
+	 *  itself (GuideGraph.TAG_BEASTS; no page writes itself before the hero has been down into the
+	 *  dungeon, GuideProgress.findPage, so none is asked for until then). */
+	public static void sighted( Mob m ){
+		Level level = Dungeon.level;
+		if (level == null || level.heroFOV == null || m.pos < 0 || m.pos >= level.heroFOV.length || !level.heroFOV[m.pos]) return;
+		if (!Bestiary.isSeen( m.getClass() )) Bestiary.setSeen( m.getClass() );
+		if (GuideProgress.descended() && !GuideProgress.pageFound( BEASTS_PAGE )) GuideGraph.reveal( GuideGraph.TAG_BEASTS );
 	}
 
 	/**
@@ -602,13 +652,26 @@ public class OverworldFauna {
 	}
 
 	/**
+	 * The hour the beasts keep on a slice: the clock's, but under the open sky the dark of a solar
+	 * eclipse is night to them (levels/overworld/EclipseEvent): the night's beasts come out, the
+	 * day's go to ground.
+	 */
+	public static Phase phaseNow( int altitude ){
+		Phase p = DayNightCycle.phase();
+		if ((p == Phase.DAY || p == Phase.DAWN) && ClimateManager.isSolarEclipse() && WorldLayers.openSky( altitude )){
+			return Phase.NIGHT;
+		}
+		return p;
+	}
+
+	/**
 	 * The hour-change cull: by day (dawn included) nocturnal beasts that are
 	 * out of sight and more than 20 cells from the hero are gone; after dusk
 	 * the same goes for the day's. Runs on the live level only.
 	 */
 	public static void cull( OverworldLevel level ){
 		if (Dungeon.level != level || Dungeon.hero == null || level.heroFOV == null || !level.openSky()) return;
-		HashSet<Class<? extends Mob>> gone = DARK.contains( DayNightCycle.phase() ) ? DIURNAL : NOCTURNAL;
+		HashSet<Class<? extends Mob>> gone = DARK.contains( phaseNow( level.altitude() ) ) ? DIURNAL : NOCTURNAL;
 		int w = level.width();
 		int hx = Dungeon.hero.pos % w, hy = Dungeon.hero.pos / w;
 		for (Mob m : level.mobs.toArray( new Mob[0] )){
@@ -618,6 +681,8 @@ public class OverworldFauna {
 					&& ((xyz.gabriwar.warpedpixeldungeon.homestead.HomesteadActor) m).homesteadKept()) continue;
 			//a world event's beasts are the event's to end (HuntEvent): never culled mid-hunt
 			if (m.buff( HuntPack.class ) != null) continue;
+			//nor a herd on the move, deer by night or wolves by day (MigrationEvent)
+			if (MigrationEvent.onTheMove( m )) continue;
 			//nor a grazer the night has sent after a crop (homestead/farming/Pests): dawn ends its errand
 			if (m.buff( xyz.gabriwar.warpedpixeldungeon.homestead.farming.Grazing.class ) != null) continue;
 			if (m.pos < 0 || m.pos >= level.heroFOV.length || level.heroFOV[m.pos]) continue;

@@ -87,7 +87,9 @@ public final class Farming {
 	private Farming(){}
 
 	/** What came of tending a crop. */
-	public enum Outcome { GROWING, WITHERED, SPENT, FROSTED, EATEN, UPROOTED }
+	public enum Outcome { GROWING, WITHERED, SPENT, FROSTED, EATEN, UPROOTED,
+		//a flood over its bank, a wildfire beside it (levels/overworld: FloodEvent, WildfireEvent)
+		DROWNED, SCORCHED }
 
 	/** This slice's fields, null anywhere else. */
 	public static FarmSlice fields( Level level ){
@@ -269,7 +271,7 @@ public final class Farming {
 				return Outcome.FROSTED;
 			}
 		}
-		c.growth += world ? FarmRules.growth( dt, c.day, today, away, glass ) : dt;
+		c.growth += world ? FarmRules.growth( dt, c.day, today, away, glass ) * silt( level, cell ) : dt;
 		c.clock = now;
 		c.day = Math.max( c.day, today );
 
@@ -292,6 +294,13 @@ public final class Farming {
 			if (c.seeds >= FarmRules.maxSeeds( plant )) return Outcome.SPENT;
 		}
 		return Outcome.GROWING;
+	}
+
+	//the silt a flood left on the crop's bank: it grows faster on it for a while (FloodEvent)
+	private static float silt( Level level, int cell ){
+		return level instanceof OverworldLevel
+				? xyz.gabriwar.warpedpixeldungeon.levels.overworld.FloodEvent.siltFactor( (OverworldLevel) level, cell, WorldClock.turn() )
+				: 1f;
 	}
 
 	/** Does an untended crop wait for its home to be settled (FarmSettler), rather than catch up
@@ -365,6 +374,8 @@ public final class Farming {
 			case SPENT:    key = "spent"; break;
 			case FROSTED:  key = "frosted"; break;
 			case UPROOTED: key = "uprooted"; break;
+			case DROWNED:  key = "drowned"; break;
+			case SCORCHED: key = "scorched"; break;
 			case EATEN:    return;   //Pests tells it, naming the beast
 			default:       key = "wither"; break;
 		}

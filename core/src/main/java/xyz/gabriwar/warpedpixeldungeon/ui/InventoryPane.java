@@ -89,9 +89,9 @@ public class InventoryPane extends Component {
 	public static final int HEIGHT = 82;
 
 	// Total slot buttons pre-created. Must be >= Backpack.capacity() at max bags.
-	// Currently: 43 base (Bag.capacity) + up to 7 bags = 50.
+	// Currently: 49 base (Bag.capacity) + up to 7 bags = 56.
 	// If you increase Bag.capacity(), increase this too.
-	public static final int MAX_BAG_ITEMS = 50;
+	public static final int MAX_BAG_ITEMS = 56;
 
 	private static final int ITEMS_PER_ROW = 10;
 	private static final int ITEMS_PER_ROW_EXPANDED = 8;
@@ -231,11 +231,11 @@ public class InventoryPane extends Component {
 	protected void layout() {
 		width = WIDTH;
 		int itemsPerRow = expanded ? ITEMS_PER_ROW_EXPANDED : ITEMS_PER_ROW;
-		// Hardcoded to match Bag.capacity() (43). Do NOT use lastBag.capacity() here
-		// because Backpack.capacity() returns 43 + numBags, and bags are hidden in the
+		// Hardcoded to match Bag.capacity() (49). Do NOT use lastBag.capacity() here
+		// because Backpack.capacity() returns 49 + numBags, and bags are hidden in the
 		// grid (shown as tab buttons). Using capacity() would show extra unusable slots.
 		// If you change Bag.capacity(), change this too.
-		int shownItems = 43;
+		int shownItems = 49;
 		int rows = (int)Math.ceil((float)shownItems / itemsPerRow);
 		height = 32 + rows * (SLOT_HEIGHT + 1);
 

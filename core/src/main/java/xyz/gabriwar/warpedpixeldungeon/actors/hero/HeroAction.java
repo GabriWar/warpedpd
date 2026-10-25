@@ -53,6 +53,9 @@ public class HeroAction {
 	
 	public static class Interact extends HeroAction {
 		public Char ch;
+		//the tap that asked it was held (CellSelector.heldTap, gone by the time the hero acts): a
+		//horse of his shows its menu rather than taking him up (homestead/mounts/Mounts.tapped)
+		public boolean held;
 		public Interact( Char ch ) {
 			this.ch = ch;
 		}

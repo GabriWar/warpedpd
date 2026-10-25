@@ -23,6 +23,7 @@ package xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Pike;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Piranha;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 
@@ -38,7 +39,7 @@ public class FishingSpear extends MissileWeapon {
 	
 	@Override
 	public int proc(Char attacker, Char defender, int damage) {
-		if (defender instanceof Piranha){
+		if (defender instanceof Piranha || defender instanceof Pike){
 			damage = Math.max(damage, defender.HP/2);
 		}
 		return super.proc(attacker, defender, damage);

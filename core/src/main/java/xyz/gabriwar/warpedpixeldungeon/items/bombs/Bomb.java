@@ -202,7 +202,8 @@ public class Bomb extends Item {
 			for (int i : affectedCells){
 				for (int n : PathFinder.NEIGHBOURS8){
 					int adj = i + n;
-					if (adj >= 0 && adj < Dungeon.level.length()) {
+					//the map's own frame stands any blast, as it stands a pick
+					if (Dungeon.level.insideMap(adj)) {
 						int tile = Dungeon.level.map[adj];
 						//a sealed tomb's walls and door stand any blast (levels/overworld/CaveSites)
 						if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel

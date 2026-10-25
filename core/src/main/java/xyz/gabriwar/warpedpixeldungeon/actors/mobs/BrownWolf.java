@@ -72,15 +72,27 @@ public class BrownWolf extends Mob {
 	protected Char chooseEnemy() {
 		HuntPack pack = buff( HuntPack.class );
 		if (pack != null && pack.steer( this )) return pack.choice;
+		//one of a migrating herd's wolves keeps behind its stragglers (Migrating)
+		Migrating herd = buff( Migrating.class );
+		if (herd != null && herd.steer( this )) return herd.choice;
 		return super.chooseEnemy();
 	}
 
-	//blood drawn by the hero's side turns the whole pack on him
+	//blood drawn by the hero's side turns the whole pack on him (a hunt's, or a herd's wolves)
 	@Override
 	public void damage( int dmg, Object src ) {
 		HuntPack pack = buff( HuntPack.class );
 		if (pack != null && HuntPack.byHero( src )) pack.provoked();
+		Migrating herd = buff( Migrating.class );
+		if (herd != null && HuntPack.byHero( src )) herd.provoked();
 		super.damage( dmg, src );
+	}
+
+	//a migrating herd's wolf leaves its place behind the herd empty
+	@Override
+	public void die( Object cause ) {
+		xyz.gabriwar.warpedpixeldungeon.levels.overworld.MigrationEvent.fell( this );
+		super.die( cause );
 	}
 
 	//UL pack behaviour: waking one wolf calls the rest of the pack

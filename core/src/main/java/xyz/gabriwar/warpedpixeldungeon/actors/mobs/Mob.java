@@ -1418,6 +1418,9 @@ public abstract class Mob extends Char {
 
 			rollToDropLoot();
 
+			//a village's hunt (bounty/Bounties): a beast it asked for, killed near it by the party
+			xyz.gabriwar.warpedpixeldungeon.bounty.BountyActions.onKill( this, cause );
+
 			if (cause == Dungeon.hero || cause instanceof Weapon || cause instanceof Weapon.Enchantment){
 				//the town guard's bounty: the posted creature, brought down by the hero's hand
 				if (TownLedger.bountyTarget == getClass()){
@@ -2384,6 +2387,9 @@ public abstract class Mob extends Char {
 
 	public static void holdAllies( Level level, int holdFromPos ){
 		heldAllies.clear();
+		//a horse the hero rides goes on under him to another riding slice; anywhere else he gets
+		//down at the threshold and it waits there (homestead/mounts/Mounts)
+		xyz.gabriwar.warpedpixeldungeon.homestead.mounts.Mounts.leavingLevel( level, holdFromPos );
 		for (Mob mob : level.mobs.toArray( new Mob[0] )) {
 			//preserve directable allies or empowered intelligent allies no matter where they are
 			if (mob instanceof DirectableAlly

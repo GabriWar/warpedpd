@@ -159,7 +159,10 @@ public final class HomesteadWorld {
 	public static final String[] SECTIONS = {
 			SECTION_PKG + "gathering.GatheringWorld",
 			SECTION_PKG + "threats.ThreatWorld",     //the raids' ledgers, what was settled on return
-			SECTION_PKG + "travel.TravelWorld"       //the waystones attuned
+			SECTION_PKG + "travel.TravelWorld",      //the waystones attuned
+			"xyz.gabriwar.warpedpixeldungeon.items.catching.CatchWorld",  //the bug net's catches today, the bottles' caches
+			SECTION_PKG + "mounts.StableWorld",      //the villages' stables set up
+			"xyz.gabriwar.warpedpixeldungeon.bounty.BountyWorld"   //the villages' notices taken, the standing earned
 	};
 
 	private static final ArrayList<Home> homes = new ArrayList<>();

@@ -42,6 +42,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.StarFragment;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
+import xyz.gabriwar.warpedpixeldungeon.items.bags.BuildersSatchel;
 import xyz.gabriwar.warpedpixeldungeon.items.ore.Ore;
 import xyz.gabriwar.warpedpixeldungeon.items.rarity.MasterworkCore;
 import xyz.gabriwar.warpedpixeldungeon.items.quest.DarkGold;
@@ -171,9 +172,10 @@ public class Blacksmith2 extends NPC {
 			public String textPrompt(){
 				return Messages.get( Blacksmith2.class, "smelt_prompt" );
 			}
+			//ore rides in the builder's satchel (the backpack without one)
 			@Override
 			public Class<? extends Bag> preferredBag(){
-				return xyz.gabriwar.warpedpixeldungeon.actors.hero.Belongings.Backpack.class;
+				return BuildersSatchel.class;
 			}
 			@Override
 			public boolean itemSelectable( Item item ){

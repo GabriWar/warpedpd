@@ -25,13 +25,20 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
 import com.watabou.noosa.Game;
+import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.items.Heap;
+import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
+import xyz.gabriwar.warpedpixeldungeon.levels.rooms.WarpedRoomsTest;
 
 import java.util.ArrayList;
 
@@ -45,10 +52,21 @@ public class TenguToysTest {
 
 	private Level previous;
 	private String previousVersion;
+	private Hero previousHero;
+	private int previousDepth, previousBranch;
+	private Hero rogue;
+
+	@BeforeClass public static void boot(){
+		WarpedRoomsTest.boot();
+	}
 
 	@Before public void setup(){
 		previous = Dungeon.level;
 		previousVersion = Game.version;
+		previousHero = Dungeon.hero;
+		previousDepth = Dungeon.depth;
+		previousBranch = Dungeon.branch;
+		Actor.clear();
 		Game.version = "test";
 		Level floor = new Level(){
 			@Override protected boolean build(){ return true; }
@@ -63,10 +81,20 @@ public class TenguToysTest {
 		java.util.Arrays.fill( floor.solid, true );
 		for (int y = 1; y < W - 1; y++) for (int x = 1; x < W - 1; x++) Level.set( y * W + x, Terrain.EMPTY, floor );
 		Dungeon.level = floor;
+		Dungeon.depth = 4;
+		Dungeon.branch = 0;
+		//the rogue who threw them, two steps off
+		rogue = new Hero();
+		rogue.pos = MID - 2;
+		Dungeon.hero = rogue;
 	}
 
 	@After public void cleanup(){
+		Actor.clear();
 		Dungeon.level = previous;
+		Dungeon.hero = previousHero;
+		Dungeon.depth = previousDepth;
+		Dungeon.branch = previousBranch;
 		Game.version = previousVersion;
 		if (previous != null) PathFinder.setMapSize( previous.width(), previous.height() );
 	}
@@ -94,5 +122,109 @@ public class TenguToysTest {
 		ArrayList<Integer> mastered = TenguFireBomb.fireCells( MID, 3 );
 		assertEquals( 25, mastered.size() );
 		assertTrue( mastered.contains( MID + 2 * W + 2 ) );
+	}
+
+	/** a toy of `kind` counting down on `cell`, as a save brings it back: no scene needed */
+	private <T extends Buff> T ticking( Class<T> kind, int cell ){
+		T bomb = com.watabou.utils.Reflection.newInstance( kind );
+		Bundle b = new Bundle();
+		b.put( "cell", cell );
+		b.put( "depth", Dungeon.depth );
+		b.put( "branch", Dungeon.branch );
+		b.put( "fuse", 2 );
+		b.put( "turns", 3 );
+		b.put( "level", 1 );
+		bomb.restoreFromBundle( b );
+		assertTrue( bomb.attachTo( rogue ) );
+		return bomb;
+	}
+
+	private static Item[] toys(){
+		return new Item[]{ new TenguSmokeBomb.RogueBombItem(), new TenguFireBomb.RogueFireBombItem(),
+				new TenguShockBomb.RogueShockerItem() };
+	}
+
+	@Test public void aToyStaysPutWhileItsFuseRuns(){
+		ticking( TenguSmokeBomb.class, MID );
+		ticking( TenguFireBomb.class, MID + 1 );
+		ticking( TenguShockBomb.class, MID + 2 );
+		Item[] toys = toys();
+		for (int i = 0; i < toys.length; i++){
+			Dungeon.level.drop( toys[i], MID + i );
+			rogue.pos = MID + i;
+			assertFalse( toys[i].name(), toys[i].doPickUp( rogue, MID + i ) );
+			assertTrue( Dungeon.level.heaps.get( MID + i ).items.contains( toys[i] ) );
+		}
+	}
+
+	@Test public void aToyWithNoFuseLeftComesAwayAndIsNotKept(){
+		//a toy lying where no bomb of its kind still counts down: its bomb went off elsewhere, or
+		//burnt out when the rogue left the floor. It used to lie there for good, and on a stair
+		//or a doorway he could never take it, as nothing he could not pick up is moved off one
+		Item[] toys = toys();
+		for (int i = 0; i < toys.length; i++){
+			Heap heap = Dungeon.level.drop( toys[i], MID + i );
+			rogue.pos = MID + i;
+			assertTrue( toys[i].name(), toys[i].doPickUp( rogue, MID + i ) );
+			heap.pickUp();
+			assertTrue( heap.isEmpty() );
+			assertTrue( rogue.belongings.backpack.items.isEmpty() );
+		}
+		assertEquals( "Spent, the shocker comes apart in your hands.",
+				xyz.gabriwar.warpedpixeldungeon.messages.Messages.get( TenguToy.class, "spent", toys[2].name() ) );
+	}
+
+	@Test public void aToyLeftOnAFloorTheRogueLeftComesAway(){
+		//thrown, then the rogue went down the stairs before it went off: the bomb fizzles there...
+		TenguShockBomb shock = ticking( TenguShockBomb.class, MID );
+		Item toy = new TenguShockBomb.RogueShockerItem();
+		Dungeon.level.drop( toy, MID );
+		Dungeon.depth++;
+		shock.act();
+		assertTrue( rogue.buffs( TenguShockBomb.class ).isEmpty() );
+		//...and back up, its toy is still there, and comes away
+		Dungeon.depth--;
+		rogue.pos = MID;
+		assertTrue( toy.doPickUp( rogue, MID ) );
+	}
+
+	@Test public void aToyMovedOffItsCellComesAway(){
+		//the bomb counts down on its own cell; a toy that ended up elsewhere is nobody's
+		ticking( TenguFireBomb.class, MID );
+		Item toy = new TenguFireBomb.RogueFireBombItem();
+		Dungeon.level.drop( toy, MID + 1 );
+		rogue.pos = MID + 1;
+		assertTrue( toy.doPickUp( rogue, MID + 1 ) );
+	}
+
+	@Test public void aToyOnTheGroundWithNoBombLeftIsSweptAway(){
+		//a ticking toy stays; the one its rogue left mid-fuse is gone when he comes back to the floor
+		ticking( TenguSmokeBomb.class, MID );
+		Item live = new TenguSmokeBomb.RogueBombItem();
+		Dungeon.level.drop( live, MID );
+		TenguShockBomb shock = ticking( TenguShockBomb.class, MID + 2 );
+		Item spent = new TenguShockBomb.RogueShockerItem();
+		Dungeon.level.drop( spent, MID + 2 );
+		Dungeon.depth++;
+		shock.act();
+		Dungeon.depth--;
+		TenguToy.sweep( Dungeon.level );
+		assertTrue( Dungeon.level.heaps.get( MID ).items.contains( live ) );
+		assertTrue( Dungeon.level.heaps.get( MID + 2 ) == null || !Dungeon.level.heaps.get( MID + 2 ).items.contains( spent ) );
+	}
+
+	@Test public void aBombFollowsItsGroundAsTheWindowSlides(){
+		TenguFireBomb fire = ticking( TenguFireBomb.class, MID );
+		fire.slide( 1, 1, W, W );
+		assertTrue( fire.ticksOn( MID - 1 - W ) );
+		assertFalse( fire.ticksOn( MID ) );
+		//slid out of the window: it fizzles, and its toy is swept away
+		TenguSmokeBomb smoke = ticking( TenguSmokeBomb.class, W + 1 );
+		Item toy = new TenguSmokeBomb.RogueBombItem();
+		Dungeon.level.drop( toy, W + 1 );
+		smoke.slide( 2, 0, W, W );
+		assertTrue( rogue.buffs( TenguSmokeBomb.class ).isEmpty() );
+		TenguToy.sweep( Dungeon.level );
+		assertTrue( Dungeon.level.heaps.get( W + 1 ) == null );
 	}
 }

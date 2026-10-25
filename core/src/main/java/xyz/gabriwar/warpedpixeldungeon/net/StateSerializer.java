@@ -77,9 +77,15 @@ public class StateSerializer {
 	// A world slice's homesteads (OverworldLevel.sharedHomestead): the window's pieces and roofs,
 	// shipped whole when the fingerprint changes
 	private static Long prevHomeSig = null;
+	// A world slice's sea (OverworldLevel.sharedSea): the places found, the boats moored, the
+	// treasure dug up, shipped whole when the fingerprint changes
+	private static Long prevSeaSig = null;
 	// The homes and waystones a guest's world map pins (homestead/travel/TravelShare): the run's,
 	// not the slice's, shipped whole when the fingerprint changes
 	private static Long prevTravelSig = null;
+	// The villages' bounties a guest's journal and boards show (bounty/BountyShare): the run's, shipped
+	// whole when the fingerprint changes
+	private static Long prevBountySig = null;
 	private static String prevHeroBuffHash = "";
 	private static HashMap<Integer, String> prevMobBuffHashes = new HashMap<>();
 	private static HashMap<Integer, MobState> prevMobStates = new HashMap<>();
@@ -154,7 +160,9 @@ public class StateSerializer {
 		prevEventSig = null;
 		prevHazardSig = null;
 		prevHomeSig = null;
+		prevSeaSig = null;
 		prevTravelSig = null;
+		prevBountySig = null;
 		// Not blanked: every caller of this pairs it with a FULL_STATE, which already
 		// carries the current window. Blanking would make the very next delta re-ship
 		// the whole 176x176 map for nothing.
@@ -360,15 +368,25 @@ public class StateSerializer {
 				long homeSig = ow.sharedHomesteadSig();
 				state.put("whome", ow.sharedHomestead());
 				prevHomeSig = homeSig;
+				// the sea's places found, its moored boats, its dug treasure (as above)
+				long seaSig = ow.sharedSeaSig();
+				state.put("wsea", ow.sharedSea());
+				prevSeaSig = seaSig;
 				// the homes and the waystones known, for the guests' maps (as above)
 				long travelSig = xyz.gabriwar.warpedpixeldungeon.homestead.travel.TravelShare.sig();
 				state.put("wtravel", xyz.gabriwar.warpedpixeldungeon.homestead.travel.TravelShare.text());
 				prevTravelSig = travelSig;
+				// the villages' bounties: the notices taken, the standing, the rewards waiting (as above)
+				long bountySig = xyz.gabriwar.warpedpixeldungeon.bounty.BountyShare.sig();
+				state.put("wbounty", xyz.gabriwar.warpedpixeldungeon.bounty.BountyShare.text());
+				prevBountySig = bountySig;
 			} else {
 				prevEventSig = null;
 				prevHazardSig = null;
 				prevHomeSig = null;
+				prevSeaSig = null;
 				prevTravelSig = null;
+				prevBountySig = null;
 			}
 
 			// Snapshot for delta tracking
@@ -653,6 +671,13 @@ public class StateSerializer {
 					prevHomeSig = homeSig;
 					hasChanges = true;
 				}
+				// a place of the sea found, a boat launched, moored, boarded or sunk, a chest dug up
+				long seaSig = ow.sharedSeaSig();
+				if (prevSeaSig == null || seaSig != prevSeaSig) {
+					delta.put("wsea", ow.sharedSea());
+					prevSeaSig = seaSig;
+					hasChanges = true;
+				}
 				// a home founded, renamed or lost, a waystone seen or attuned
 				long travelSig = xyz.gabriwar.warpedpixeldungeon.homestead.travel.TravelShare.sig();
 				if (prevTravelSig == null || travelSig != prevTravelSig) {
@@ -660,11 +685,20 @@ public class StateSerializer {
 					prevTravelSig = travelSig;
 					hasChanges = true;
 				}
+				// a notice taken, counted, done or given up, a reward come due, a standing risen
+				long bountySig = xyz.gabriwar.warpedpixeldungeon.bounty.BountyShare.sig();
+				if (prevBountySig == null || bountySig != prevBountySig) {
+					delta.put("wbounty", xyz.gabriwar.warpedpixeldungeon.bounty.BountyShare.text());
+					prevBountySig = bountySig;
+					hasChanges = true;
+				}
 			} else {
 				prevEventSig = null;
 				prevHazardSig = null;
 				prevHomeSig = null;
+				prevSeaSig = null;
 				prevTravelSig = null;
+				prevBountySig = null;
 			}
 
 			// Heap changes — track content hash, not just count

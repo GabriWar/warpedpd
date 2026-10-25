@@ -35,8 +35,11 @@ import xyz.gabriwar.warpedpixeldungeon.actors.PrecipType;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroAction;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor;
+import xyz.gabriwar.warpedpixeldungeon.effects.CatchFx;
 import xyz.gabriwar.warpedpixeldungeon.effects.CritterSprite;
 import xyz.gabriwar.warpedpixeldungeon.effects.SliceCritterSprite;
+import xyz.gabriwar.warpedpixeldungeon.items.catching.Critter;
+import xyz.gabriwar.warpedpixeldungeon.items.catching.CritterCatch;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.net.NetManager;
@@ -69,6 +72,9 @@ import java.util.Collections;
  * On the slices above and below, the Field hands its turn to the slice's own life
  * (SliceLife: CaveLife's bats, drips, glows and blind fish; PeakLife's eagle, marmots,
  * snow plumes and sea of clouds).
+ *
+ * The bug net (items/catching/BugNet) asks for the butterfly drawn on a cell (critterAt),
+ * and takes it out of the picture when it catches it.
  */
 public final class OverworldCritters {
 
@@ -508,6 +514,22 @@ public final class OverworldCritters {
 			}
 		}
 		return best;
+	}
+
+	// ------------------------------------------------------------ the bug net
+
+	/**
+	 * The bug net (items/catching/BugNet): the small critter drawn on this window cell, nearest its
+	 * middle, as a target the net takes or misses - a butterfly out over the grass, the surface's one
+	 * critter small enough (its birds, hares and leaping fish are not; the fireflies are the net's own
+	 * to find, items/catching/CritterCatch). Null for none, on a slice's own life, or while a rebase
+	 * stands between the window and the pictures. Render thread.
+	 */
+	public static CritterCatch.Target critterAt( int cell ){
+		Field f = current;
+		if (f == null || Dungeon.level != f.level || f.life != null || Dungeon.hero == null
+				|| Dungeon.hero.sprite == null || cell < 0 || cell >= f.level.length() || !f.frameAgrees()) return null;
+		return f.butterflyAt( cell );
 	}
 
 	/** Debug scenes: a full set at once around the hero, every gate but the ground's waived. Render thread. */
@@ -1213,6 +1235,40 @@ public final class OverworldCritters {
 				break;
 			}
 			return forced ? rf( 0.6f, 1.2f ) : rf( 1.2f, 3.5f ) / rate;
+		}
+
+		//the butterfly drawn on the cell nearest its middle, as the net's target; null for none
+		CritterCatch.Target butterflyAt( int cell ){
+			final int w = level.width();
+			float cx = (cell % w + 0.5f) * DungeonTilemap.SIZE, cy = (cell / w + 0.5f) * DungeonTilemap.SIZE;
+			CritterSprite.Butterfly best = null;
+			float bestD = Float.MAX_VALUE;
+			for (CritterSprite c : live){
+				if (!(c instanceof CritterSprite.Butterfly) || !c.exists || c.leaving()) continue;
+				float px = c.x + c.origin.x, py = c.y + c.origin.y;
+				if (!CritterCatch.on( cell, w, px, py )) continue;
+				float d = cheb( px, py, cx, cy );
+				if (d < bestD){
+					bestD = d;
+					best = (CritterSprite.Butterfly) c;
+				}
+			}
+			if (best == null) return null;
+			final CritterSprite.Butterfly b = best;
+			return new CritterCatch.Target( Critter.butterfly( b.colour() ) ){
+				@Override public float x(){ return b.x + b.origin.x; }
+				@Override public float y(){ return b.y + b.origin.y; }
+				@Override public boolean on( int c ){
+					return b.exists && !b.leaving() && Dungeon.level == level && CritterCatch.on( c, level.width(), x(), y() );
+				}
+				@Override public void take(){
+					CatchFx.netted( x(), y(), critter );
+					b.vanish();
+				}
+				@Override public void spook( float sx, float sy ){
+					if (b.exists) b.startle( sx, sy );
+				}
+			};
 		}
 
 		String showcase( boolean night ){

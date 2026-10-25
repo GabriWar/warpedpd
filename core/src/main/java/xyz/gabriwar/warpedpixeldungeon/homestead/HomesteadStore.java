@@ -86,7 +86,9 @@ public class HomesteadStore implements Bundlable {
 			SECTION_PKG + "farming.FarmSlice",          //crops, watering
 			SECTION_PKG + "animals.AnimalSlice",        //pens, tied and roped animals
 			SECTION_PKG + "threats.ThreatSlice",        //sieges, damage ledgers
-			SECTION_PKG + "travel.TravelSlice"          //waystones of this slice
+			SECTION_PKG + "travel.TravelSlice",         //waystones of this slice
+			//the villages' notice boards of this slice: after the waystones, which keep their cells by the well
+			"xyz.gabriwar.warpedpixeldungeon.bounty.BountySlice"
 	};
 
 	final SectorMap<Built> built = new SectorMap<>();

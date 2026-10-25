@@ -29,12 +29,12 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
-import xyz.gabriwar.warpedpixeldungeon.actors.hero.Belongings;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
+import xyz.gabriwar.warpedpixeldungeon.items.bags.BuildersSatchel;
 import xyz.gabriwar.warpedpixeldungeon.items.ore.Ore;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.Ores;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -101,9 +101,10 @@ public class DwarvenForge extends NPC {
 			public String textPrompt(){
 				return Messages.get( DwarvenForge.class, "smelt_prompt" );
 			}
+			//ore rides in the builder's satchel (the backpack without one)
 			@Override
 			public Class<? extends Bag> preferredBag(){
-				return Belongings.Backpack.class;
+				return BuildersSatchel.class;
 			}
 			@Override
 			public boolean itemSelectable( Item item ){

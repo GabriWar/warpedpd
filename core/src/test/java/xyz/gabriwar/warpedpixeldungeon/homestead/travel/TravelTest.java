@@ -32,6 +32,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle;
 import xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar;
 import xyz.gabriwar.warpedpixeldungeon.actors.WorldClock;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Frost;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.WellFed;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
@@ -680,6 +681,23 @@ public class TravelTest {
 		}
 		OverworldLevel.arriveAt( wx, wy );
 		assertEquals( free, ow.getTransition( null ).cell() );
+	}
+
+	//a beacon home from far off: the window jumps mid-trip (no level current) and a frozen mob
+	//it parks lets its Frost go, which looks at the level's water
+	@Test
+	public void aFarArrivalMidTripParksAFrozenMob(){
+		OverworldLevel ow = openWindow();
+		Rat rat = new Rat();
+		rat.pos = openCell( ow );
+		ow.mobs.add( rat );
+		Buff.affect( rat, Frost.class, Frost.DURATION );
+		Dungeon.level = null;
+
+		OverworldLevel.arriveAt( ow.worldX + 5000, ow.worldY );
+		ow.getTransition( null );
+		assertNull( "the trip's level is still unset", Dungeon.level );
+		assertFalse( ow.mobs.contains( rat ) );
 	}
 
 	@Test

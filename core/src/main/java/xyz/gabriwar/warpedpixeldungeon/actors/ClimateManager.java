@@ -121,6 +121,29 @@ public class ClimateManager {
 	private static int auroraRemaining = 0;
 	private static boolean rainbowActive = false;
 	private static int rainbowRemaining = 0;
+	// The world's own eclipses (levels/overworld/EclipseEvent): the dark of the one on now, as world
+	// turns {first, first of the light again}, or none - not the sky's rare chance eclipse, which
+	// keeps its counter above
+	private static int scheduledFrom = Integer.MIN_VALUE, scheduledTo = Integer.MIN_VALUE;
+	// ...and how deep its dark is this turn (computeLight)
+	private static float eclipseDepth = 0f;
+
+	// =====================================================================
+	// THE GROUND'S MEMORY OF THE RAIN (levels/overworld: WildfireEvent, FloodEvent)
+	// =====================================================================
+
+	// The world turn (WorldClock.turn) rain last fell on the surface (MIN_VALUE: never), and when the
+	// last RAIN_SPELLS spells of it began, oldest first: what a wildfire is put out by, wherever the
+	// hero was when it rained. Rain is liquid (rain, sleet, hail) at RAIN_MIN or more
+	private static final int RAIN_SPELLS = 8;
+	private static final float RAIN_MIN = 0.05f;
+	private static int lastRainTurn = Integer.MIN_VALUE;
+	private static int[] rainStarts = new int[0];
+	private static boolean rainingNow = false;
+	// How soaked the ground is (FloodEvent: rain adds its rate, every turn drains), and the flood the
+	// rivers last rose in: the turn it began and how high it climbs
+	private static float soak = 0f;
+	private static int floodStart = Integer.MIN_VALUE, floodPeak = 0;
 
 	// =====================================================================
 	// CONSTANTS
@@ -262,6 +285,18 @@ public class ClimateManager {
 	private static boolean localFog = false;
 	public static void setLocalFog(boolean fog) { localFog = fog; }
 
+	/** Is the fog that lies (isFoggy) the place's own alone - the swamp's thick mist - with no fog
+	 *  of the fronts' about? A bog lantern burns through the one, never the other (WetlandSites.mistPenalty). */
+	public static boolean fogIsLocal() {
+		return localFog && weatherState != WeatherState.FOG;
+	}
+	// Local sandstorm: the desert's own weather, the sand the climate's wind lifts where the hero
+	// stands (actors/Sandstorm; GameScene.updateWeather <- OverworldLevel.localSandstorm), shown
+	// as the sky's weather (SundialIndicator). Not bundled: re-derived from where the hero stands.
+	private static boolean localSandstorm = false;
+	public static void setLocalSandstorm(boolean sand) { localSandstorm = sand; }
+	public static boolean isSandstorm() { return localSandstorm; }
+
 	// The special skies are the level's to allow: the overworld shows an
 	// aurora only over its far north at night and a rainbow only by day after
 	// the rain; everywhere else the climate's own word stands.
@@ -357,6 +392,43 @@ public class ClimateManager {
 	public static float localAmbientLight() { return localAmbientLight; }
 	public static boolean isSolarEclipse()  { return solarEclipseActive; }
 	public static boolean isLunarEclipse()  { return lunarEclipseActive; }
+	/** How far the moon covers the sun now, 0..1: the world's eclipse along its curve
+	 *  (EclipseEvent.depth), the sky's rare chance one whole while it lasts. */
+	public static float eclipseDepth()      { return solarEclipseActive ? eclipseDepth : 0f; }
+
+	// =====================================================================
+	// PUBLIC API: the rain's memory and the floods (levels/overworld)
+	// =====================================================================
+
+	/** The world turn rain last fell on the surface, Integer.MIN_VALUE when it never has. */
+	public static int lastRainTurn()        { return lastRainTurn; }
+
+	/** Is rain (liquid, RAIN_MIN or more) falling on the surface now? */
+	public static boolean wetNow()          { return rainingNow; }
+
+	/** How soaked the ground is (FloodEvent). */
+	public static float soak()              { return soak; }
+
+	/** The world turn the rivers last rose in a flood (Integer.MIN_VALUE: never), and how high. */
+	public static int floodStart()          { return floodStart; }
+	public static int floodPeak()           { return floodPeak; }
+
+	/** The first world turn at or after `turn` a spell of rain began, as far back as the last
+	 *  RAIN_SPELLS of them reach; Integer.MAX_VALUE when none has since. */
+	public static int firstRainAfter(int turn) {
+		int best = Integer.MAX_VALUE;
+		for (int s : rainStarts) {
+			if (s >= turn && s < best) best = s;
+		}
+		return best;
+	}
+
+	/** Debug (the flood scenes): the rivers rose at `start`, to `peak`, the ground's soaking spent. */
+	public static void debugFlood(int start, int peak) {
+		floodStart = start;
+		floodPeak = peak;
+		soak = 0f;
+	}
 
 	// Debug toggles for special events
 	public static void debugToggleAurora() {
@@ -598,6 +670,7 @@ public class ClimateManager {
 		lunarEclipseActive = false; lunarEclipseRemaining = 0;
 		auroraActive = false; auroraRemaining = 0;
 		rainbowActive = false; rainbowRemaining = 0;
+		resetMemory();
 
 		// Compute initial temperature
 		surfaceTemp = seasonalBaselineTemp();
@@ -686,6 +759,9 @@ public class ClimateManager {
 
 		// 6. Compute precipitation
 		computePrecipitation();
+
+		// 6b. The ground's memory of it: the last rain, the spells of it, the soaking (floods)
+		trackRain();
 
 		// 7. Determine weather state
 		prevWeatherState = weatherState;
@@ -820,9 +896,13 @@ public class ClimateManager {
 		// ---- Special events ----
 		checkSpecialEvents(turn, phase, progress, moonPhase, season);
 
-		// Eclipse overrides
+		// Eclipse overrides: the world's own as deep as the moon has crossed the sun (a dusk at the
+		// deepest: EclipseEvent.light), the sky's rare chance one all but black
 		if (solarEclipseActive) {
-			sunLight *= 0.02f;
+			int[] w = scheduledTo != Integer.MIN_VALUE ? new int[]{ scheduledFrom, scheduledTo }
+					: xyz.gabriwar.warpedpixeldungeon.levels.overworld.EclipseEvent.windowAt(WorldClock.turn());
+			eclipseDepth = w != null ? xyz.gabriwar.warpedpixeldungeon.levels.overworld.EclipseEvent.depth(w[0], w[1], WorldClock.turn()) : 1f;
+			sunLight *= w != null ? xyz.gabriwar.warpedpixeldungeon.levels.overworld.EclipseEvent.light(w[0], w[1], WorldClock.turn()) : 0.02f;
 		}
 		if (lunarEclipseActive) {
 			moonLight *= 0.25f;
@@ -984,8 +1064,26 @@ public class ClimateManager {
 	                                        float progress,
 	                                        GameCalendar.MoonPhase moonPhase,
 	                                        GameCalendar.Season season) {
+		// The world's own eclipses, on their schedule or heralded in the surface's log
+		// (levels/overworld/EclipseEvent): the sun dark through their window, said there, not counted down
+		int now = WorldClock.turn();
+		int[] scheduled = xyz.gabriwar.warpedpixeldungeon.levels.overworld.EclipseEvent.windowAt(now);
+		if (scheduled != null) {
+			boolean was = solarEclipseActive && scheduledTo == scheduled[1];
+			scheduledFrom = scheduled[0];
+			scheduledTo = scheduled[1];
+			solarEclipseActive = true;
+			solarEclipseRemaining = scheduled[1] - now;
+			if (!was) xyz.gabriwar.warpedpixeldungeon.levels.overworld.EclipseEvent.began(scheduled[1]);
+		} else if (scheduledTo != Integer.MIN_VALUE) {
+			scheduledFrom = scheduledTo = Integer.MIN_VALUE;
+			solarEclipseActive = false;
+			solarEclipseRemaining = 0;
+			xyz.gabriwar.warpedpixeldungeon.levels.overworld.EclipseEvent.ended();
+		}
+
 		// Tick active events
-		if (solarEclipseActive) {
+		if (solarEclipseActive && scheduledTo == Integer.MIN_VALUE) {
 			solarEclipseRemaining--;
 			if (solarEclipseRemaining <= 0) {
 				solarEclipseActive = false;
@@ -1065,6 +1163,35 @@ public class ClimateManager {
 			rainbowActive = true;
 			rainbowRemaining = 100 + rng.nextInt(200); // 100-300 turns
 			logWeather("rainbow_appears");
+		}
+	}
+
+	/**
+	 * The ground's memory of the rain, once a hero turn: when rain last fell and when its spells
+	 * began (a wildfire is put out by the first after it caught, WildfireEvent), and how soaked the
+	 * ground is - a wet season's long rain sends the rivers over their banks (FloodEvent.rises).
+	 */
+	private static void trackRain() {
+		int now = WorldClock.turn();
+		boolean wet = precipRate >= RAIN_MIN
+				&& (precipType == PrecipType.RAIN || precipType == PrecipType.SLEET || precipType == PrecipType.HAIL);
+		if (wet) {
+			if (!rainingNow) {
+				int[] grown = java.util.Arrays.copyOf(rainStarts, Math.min(RAIN_SPELLS, rainStarts.length + 1));
+				if (rainStarts.length >= RAIN_SPELLS) System.arraycopy(rainStarts, 1, grown, 0, RAIN_SPELLS - 1);
+				grown[grown.length - 1] = now;
+				rainStarts = grown;
+			}
+			lastRainTurn = now;
+		}
+		rainingNow = wet;
+		soak = clamp(soak + (wet ? precipRate : 0f) - xyz.gabriwar.warpedpixeldungeon.levels.overworld.FloodEvent.SOAK_DRAIN,
+				0f, xyz.gabriwar.warpedpixeldungeon.levels.overworld.FloodEvent.SOAK_CAP);
+		if (xyz.gabriwar.warpedpixeldungeon.levels.overworld.FloodEvent.rises(GameCalendar.season(), soak, surfaceTemp, floodStart, now)) {
+			floodStart = now;
+			floodPeak = xyz.gabriwar.warpedpixeldungeon.levels.overworld.FloodEvent.peakFor(soak);
+			//the rivers took the water off the land
+			soak = 0f;
 		}
 	}
 
@@ -1516,6 +1643,14 @@ public class ClimateManager {
 	private static final String B_AURORA_REM        = "auroraR";
 	private static final String B_RAINBOW           = "rainbow";
 	private static final String B_RAINBOW_REM       = "rainbowR";
+	private static final String B_RAIN_LAST         = "rainLast";
+	private static final String B_RAIN_STARTS       = "rainStarts";
+	private static final String B_RAINING           = "raining";
+	private static final String B_SOAK              = "soak";
+	private static final String B_FLOOD_START       = "floodStart";
+	private static final String B_FLOOD_PEAK        = "floodPeak";
+	private static final String B_ECLIPSE_FROM      = "eclFrom";
+	private static final String B_ECLIPSE_TO        = "eclTo";
 
 	public static void storeInBundle(Bundle parent) {
 		Bundle b = new Bundle();
@@ -1544,6 +1679,14 @@ public class ClimateManager {
 		b.put(B_AURORA_REM, auroraRemaining);
 		b.put(B_RAINBOW, rainbowActive);
 		b.put(B_RAINBOW_REM, rainbowRemaining);
+		b.put(B_RAIN_LAST, lastRainTurn);
+		b.put(B_RAIN_STARTS, rainStarts);
+		b.put(B_RAINING, rainingNow);
+		b.put(B_SOAK, soak);
+		b.put(B_FLOOD_START, floodStart);
+		b.put(B_FLOOD_PEAK, floodPeak);
+		b.put(B_ECLIPSE_FROM, scheduledFrom);
+		b.put(B_ECLIPSE_TO, scheduledTo);
 
 		parent.put(CLIMATE, b);
 	}
@@ -1578,6 +1721,20 @@ public class ClimateManager {
 		auroraRemaining = b.getInt(B_AURORA_REM);
 		rainbowActive = b.getBoolean(B_RAINBOW);
 		rainbowRemaining = b.getInt(B_RAINBOW_REM);
+		//a save from before the ground remembered the rain: dry since ever, no flood
+		resetMemory();
+		if (b.contains(B_RAIN_LAST)) lastRainTurn = b.getInt(B_RAIN_LAST);
+		if (b.contains(B_RAIN_STARTS)) rainStarts = b.getIntArray(B_RAIN_STARTS);
+		if (b.contains(B_RAINING)) rainingNow = b.getBoolean(B_RAINING);
+		if (b.contains(B_SOAK)) soak = b.getFloat(B_SOAK);
+		if (b.contains(B_FLOOD_START)) floodStart = b.getInt(B_FLOOD_START);
+		if (b.contains(B_FLOOD_PEAK)) floodPeak = b.getInt(B_FLOOD_PEAK);
+		//the world's eclipse a save was made in: its window ends it on the first turn after (a
+		//real-clock run loaded past it would otherwise count it down as the sky's chance one)
+		if (b.contains(B_ECLIPSE_FROM) && b.contains(B_ECLIPSE_TO)) {
+			scheduledFrom = b.getInt(B_ECLIPSE_FROM);
+			scheduledTo = b.getInt(B_ECLIPSE_TO);
+		}
 
 		frontQueue.clear();
 		Collection<Bundlable> fronts = b.getCollection(B_FRONT_QUEUE);
@@ -1655,6 +1812,19 @@ public class ClimateManager {
 		lunarEclipseActive = false; lunarEclipseRemaining = 0;
 		auroraActive = false; auroraRemaining = 0;
 		rainbowActive = false; rainbowRemaining = 0;
+		resetMemory();
 		computeLocalValues();
+	}
+
+	//the rain's memory, the floods and the world's eclipse on now, as at a run's start
+	private static void resetMemory() {
+		scheduledFrom = scheduledTo = Integer.MIN_VALUE;
+		eclipseDepth = 0f;
+		lastRainTurn = Integer.MIN_VALUE;
+		rainStarts = new int[0];
+		rainingNow = false;
+		soak = 0f;
+		floodStart = Integer.MIN_VALUE;
+		floodPeak = 0;
 	}
 }

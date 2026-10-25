@@ -473,6 +473,9 @@ public class WndJournal extends WndTabbed {
 				}
 			}
 
+			//the villages' notices the hero carries (bounty/BountyJournal)
+			xyz.gabriwar.warpedpixeldungeon.bounty.BountyJournal.addTo( grid );
+
 			for (int i = Statistics.deepestFloor; i > 0; i--){
 
 				ArrayList<Notes.Record> recs = Notes.getRecords(i);

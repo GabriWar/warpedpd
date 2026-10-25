@@ -213,6 +213,9 @@ public final class SettlementAmbience {
 				DayNightCycle.phase(), DayNightCycle.phaseProgress(), GameCalendar.season(),
 				ClimateManager::surfaceTempIn, ClimateManager.isRaining(), WorldClock.night(),
 				live, lights, smoke, keys );
+		collectWitches( ow.worldSeed(), ow.map, w, ow.height(), ow.worldX(), ow.worldY(),
+				ow.worldX() + pos % w, ow.worldY() + pos / w, DayNightCycle.phase(), ClimateManager.isRaining(),
+				live, lights, smoke, keys );
 		//the houses a raid set alight, anywhere in the window: the smoke rises from the roof and
 		//is seen from afar, over the fog. it pours from the back wall's row along the shell's
 		//three inner columns (SettlementLights: the 5x5 shell, back wall at middle - 2), never
@@ -410,6 +413,41 @@ public final class SettlementAmbience {
 					break;
 				}
 				default:
+			}
+		}
+	}
+
+	/**
+	 * The swamp witches' huts round a hero on world cell (hwx, hwy) of a surface window
+	 * (WetlandSites): a village house's windows and chimney, but she keeps her own hours - her
+	 * lamps lit from the dusk through the night to the dawn, her chimney smoking at every hour,
+	 * the cauldron under it always on the boil. Package-private for the tests.
+	 */
+	static void collectWitches( long seed, int[] map, int w, int h, int ox, int oy, int hwx, int hwy, Phase phase,
+			boolean raining, HashSet<Long> live, ArrayList<Light> lights, ArrayList<Smoke> smoke, HashSet<Long> keys ){
+		final int S = DungeonTilemap.SIZE;
+		final int[] cm = SettlementLights.CHIMNEY_MOUTH;
+		for (WetlandSites.Place p : WetlandSites.placesIn( seed, hwx - KEEP, hwy - KEEP, hwx + KEEP, hwy + KEEP )){
+			if (p.kind != WorldStructures.Site.WITCH_HUT) continue;
+			if (phase != Phase.DAY){
+				int kind = SettlementLights.VILLAGE_WINDOW_KINDS[SettlementLights.windowStyle( seed, p.cx, p.cy )];
+				for (int[] o : SettlementLights.HOUSE_WINDOWS){
+					int c = SettlementLights.glassCell( seed, map, w, h, ox, oy, p.cx + o[0], p.cy + o[1] );
+					if (c == -1) continue;
+					long key = OverworldLevel.worldKey( ox + c % w, oy + c / w );
+					if (wanted( live, key, ox + c % w, oy + c / w, hwx, hwy, keys )){
+						lights.add( new Light( key, kind, (c % w) * S, (c / w) * S, 1f ) );
+					}
+				}
+			}
+			int c = SettlementLights.chimneyCell( seed, map, w, h, ox, oy, p.cx, p.cy );
+			if (c == -1) continue;
+			int cwx = ox + c % w, cwy = oy + c / w;
+			long key = OverworldLevel.worldKey( cwx, cwy );
+			//shown while the hut's front is seen, as a village house's
+			if (wanted( live, key, cwx, cwy, hwx, hwy, keys )){
+				smoke.add( new Smoke( key, (c % w) * S + cm[0], (c / w) * S + cm[1], cm[2], cm[3],
+						SettlementLights.puffInterval( 1f, raining ), p.cx - cwx, p.cy + 2 - cwy, true ) );
 			}
 		}
 	}

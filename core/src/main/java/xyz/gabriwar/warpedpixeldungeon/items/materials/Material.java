@@ -54,7 +54,7 @@ public abstract class Material extends Item {
 	public static final Class<? extends Material>[] ALL = new Class[]{
 			Log.class, PineLog.class, Plank.class, Resin.class, RoughStone.class, CutStone.class,
 			Clay.class, FiredBrick.class, Sand.class, GlassPane.class, Thatch.class, Rope.class,
-			Hide.class, Leather.class, Charcoal.class, IronFittings.class
+			Hide.class, Leather.class, Charcoal.class, IronFittings.class, VultureFeather.class, GatorTooth.class
 	};
 
 	/** What one of it sells for. */

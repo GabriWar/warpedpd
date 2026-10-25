@@ -35,8 +35,10 @@ import xyz.gabriwar.warpedpixeldungeon.effects.particles.EarthParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.SnowParticle;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.FestivalEvent;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.RaidEvent;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.RoamerEvent;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.VillageRoutine;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -212,6 +214,8 @@ public abstract class Settler extends NPC {
 		VillageRoutine.Slot s = VillageRoutine.slotFor( r, c, personal );
 		//a travelling market in the settlement draws people to the well
 		if (ow.marketActiveAt( settlementKey() )) s = VillageRoutine.marketSlot( r, s );
+		//its festival: work put by for the well and the stalls, and the dance from dusk
+		if (!gnoll() && FestivalEvent.on( ow, settlementKey() )) s = VillageRoutine.festivalSlot( r, s, c, personal );
 		//a raid, or the mending after one: everyone indoors (bed stays bed) - except the family
 		//whose own house the band set alight: they are out at the well with the buckets
 		if (!gnoll() && s != VillageRoutine.Slot.BED && RaidEvent.shelters( settlementKey(), house )){
@@ -459,6 +463,7 @@ public abstract class Settler extends NPC {
 			return TICK;
 		}
 		if (OverworldLevel.heroDistance( ow, pos ) > VillageRoutine.NEAR) return TICK;
+		if (s == VillageRoutine.Slot.DANCE) return dance( ow, c );
 		if (idle > 0){
 			idle--;
 			if (plan.amble > 0 && Random.Int( 4 ) == 0) ambleNear( ow, destCell, plan.amble, true );
@@ -467,6 +472,33 @@ public abstract class Settler extends NPC {
 		idle = Random.IntRange( 6, 14 );
 		flourish( ow, c, r, s );
 		return TICK;
+	}
+
+	//round the well with its ring, a step every DANCE_LEG turns - every dancer on the same turns,
+	//so the ring turns as one - and now and then a note over it where a hero sees it. a step
+	//beside it needs no path: the spot moves on with it. past what stands on the ring the spot
+	//moves on to the next place of it, and the day's round walks the dancer round to it
+	private float dance( OverworldLevel ow, VillageRoutine.Clock c ){
+		if (Math.floorMod( c.turn, VillageRoutine.DANCE_LEG ) != 0) return TICK;
+		int ring = VillageRoutine.danceRing( spot );
+		int next = VillageRoutine.danceStep( ow, place, pos, ring );
+		//round anyone standing on the ring who is not dancing (an elder watching, a guard, a hero):
+		//only a dancer ahead is waited for, as a ring does
+		for (int k = 1; k < 8 * ring && next != -1 && next != pos && bystander( Actor.findChar( next ) ); k++){
+			next = VillageRoutine.danceStep( ow, place, next, ring );
+		}
+		if (next == -1 || next == pos || Actor.findChar( next ) != null) return TICK;
+		settleOn( ow, next );
+		if (!ow.adjacent( pos, next )) return TICK;
+		moveSprite( pos, next );
+		move( next );
+		if (Random.Int( 6 ) == 0 && ow.heroFOV[next]) CellEmitter.get( next ).burst( Speck.factory( Speck.NOTE ), 1 );
+		return 1f / speed();
+	}
+
+	//someone on a dance ring who is not dancing on it
+	private static boolean bystander( Char ch ){
+		return ch != null && !(ch instanceof Settler && ((Settler) ch).slot == VillageRoutine.Slot.DANCE.ordinal());
 	}
 
 	//a step to a free open cell within `radius` of `around` - and, keeping to the spot, one
@@ -571,6 +603,9 @@ public abstract class Settler extends NPC {
 			yell( Messages.get( this, "recovering" ) );
 			return true;
 		}
+		//a parcel the hero carries for this village (bounty/BountyActions): an elder takes it, anyone
+		//else points the way to the elder's house
+		if (xyz.gabriwar.warpedpixeldungeon.bounty.BountyActions.settlerTalk( this )) return true;
 		OverworldLevel ow = surface();
 		if (ow != null && place != null && slot >= 0 && slot < VillageRoutine.Slot.values().length){
 			if (state == SLEEPING){
@@ -578,13 +613,36 @@ public abstract class Settler extends NPC {
 				return true;
 			}
 			hush = 3;   //stops to talk
+			//a great beast abroad near the settlement (RoamerEvent): the talk of the place
+			String rumour = RoamerEvent.rumour( ow, settlementKey() );
+			if (rumour != null){
+				yell( rumour );
+				return true;
+			}
 			VillageRoutine.Role spoken = VillageRoutine.Role.values()[role];
+			//an elder who has read an eclipse in the sky speaks of nothing else (EclipseEvent)
+			if (spoken == VillageRoutine.Role.ELDER){
+				String sky = xyz.gabriwar.warpedpixeldungeon.levels.overworld.EclipseEvent.elderLine( this );
+				if (sky != null){
+					yell( sky );
+					return true;
+				}
+			}
 			//a fisher with no water to fish works the fields, and talks of them
 			if (spoken == VillageRoutine.Role.FISHER && VillageRoutine.shores( ow, place, homeArea( ow ) ).length == 0){
 				spoken = VillageRoutine.Role.FARMER;
 			}
 			String stem = VillageRoutine.chatStem( spoken, VillageRoutine.Slot.values()[slot], VillageRoutine.clock(), place.farms() );
-			yell( Messages.get( this, stem + "_" + Random.Int( VillageRoutine.chatLines( stem ) ) ) );
+			//its festival day: at the well, nothing else is talked of
+			if (slot == VillageRoutine.Slot.GATHER.ordinal() && !gnoll() && FestivalEvent.on( ow, settlementKey() )) stem = "festival";
+			String line = Messages.get( this, stem + "_" + Random.Int( VillageRoutine.chatLines( stem ) ) );
+			//a fisher with water to fish says his piece and trades: he buys the hero's catch and sells
+			//rods and bait (items/catching/FisherTrade)
+			if (spoken == VillageRoutine.Role.FISHER && !gnoll()){
+				xyz.gabriwar.warpedpixeldungeon.items.catching.FisherTrade.offer( this, line );
+				return true;
+			}
+			yell( line );
 			return true;
 		}
 		if (Shopkeeper.closedForNight()){

@@ -70,8 +70,20 @@ public class VaultLaser extends NPC {
 	//to avoid many sentries calling setSeen every turn
 	private boolean seen = false;
 
+	//a laser no vault room set up (the debug menu's mob spawner makes a bare one) turns a quarter
+	//turn each shot, with the lasers room's shortest wait between shots
+	private void ensureLaserPattern(){
+		if (laserDirs != null) return;
+		int w = Dungeon.level.width();
+		laserDirs = new int[]{pos-1, pos-w, pos+1, pos+w};
+		afterShotCooldown = 7;
+		curCooldown = afterShotCooldown;
+	}
+
 	@Override
 	protected boolean act() {
+		ensureLaserPattern();
+
 		if (!seen && Dungeon.level.heroFOV[pos]){
 			Bestiary.setSeen(getClass());
 			seen = true;
@@ -204,6 +216,7 @@ public class VaultLaser extends NPC {
 	@Override
 	public void storeInBundle(Bundle bundle) {
 		super.storeInBundle(bundle);
+		ensureLaserPattern();
 		bundle.put(LASER_DIRS, laserDirs);
 		bundle.put(LASER_DIR_IDX, laserDirIdx);
 		bundle.put(AFTER_SHOT_COOLDOWN, afterShotCooldown);

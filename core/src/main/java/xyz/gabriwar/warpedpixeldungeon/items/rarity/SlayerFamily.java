@@ -27,16 +27,19 @@ package xyz.gabriwar.warpedpixeldungeon.items.rarity;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.AdultDragonViolet;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.AlbinoPiranha;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Alligator;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Assassin;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bat;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bee;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Beetle;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bison;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.BlueCat;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.BrokenRobot;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.BrownBat;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.BrownWolf;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Brute;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bunny;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Camel;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.ChaosMage;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.ClayGolem;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Crab;
@@ -66,6 +69,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.MrDestructo2dot0;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.MrDestructo;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Necromancer;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Oni;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Pike;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Piranha;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Rat;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.RatBoss;
@@ -87,6 +91,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Thief;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.ThiefKing;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Tinkerer;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Velocirooster;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Vulture;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Warlock;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Yeti;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -112,7 +117,7 @@ public enum SlayerFamily {
 			Velocirooster.class, Yeti.class, Kupua.class, Gullin.class, Crab.class, CrabKing.class, ShellCrab.class,
 			Piranha.class, AlbinoPiranha.class, Bee.class, SteelBee.class, Swarm.class, Beetle.class, Spinner.class,
 			SpiderGuard.class, SpiderMind.class, SpiderServant.class, SpiderExploding.class, SpiderQueen.class,
-			AdultDragonViolet.class
+			AdultDragonViolet.class, Bison.class, Camel.class, Vulture.class, Alligator.class, Pike.class
 	};
 
 	private static final Class<?>[] HUMANOID = {

@@ -79,11 +79,16 @@ public class Messages {
 			Assets.Messages.WARPED_ROOMS,
 			Assets.Messages.HOMESTEAD,
 			Assets.Messages.HOMESTEAD_FARMING,
+			Assets.Messages.CATCHING,
+			Assets.Messages.SEA,
+			Assets.Messages.HOMESTEAD_MOUNTS,
 			Assets.Messages.DEMOS_SURFACE,
 			Assets.Messages.DEMOS_EARLY,
 			Assets.Messages.DEMOS_LATE,
 			Assets.Messages.DEMOS_EXTRA,
-			Assets.Messages.DEMOS_BASICS
+			Assets.Messages.DEMOS_BASICS,
+			Assets.Messages.DRYLANDS,
+			Assets.Messages.BOUNTY
 	};
 
 	static{

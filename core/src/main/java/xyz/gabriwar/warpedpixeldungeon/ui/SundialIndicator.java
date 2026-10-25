@@ -272,11 +272,13 @@ public class SundialIndicator extends Button {
 	}
 
 	private void captionUpdate(SkyContext c) {
-		String name = weatherName(ClimateManager.weatherState());
+		//the desert's sandstorm is the weather where it blows, whatever the sky's fronts say
+		boolean sand = ClimateManager.isSandstorm();
+		String name = sand ? Messages.get(this, "w_sandstorm") : weatherName(ClimateManager.weatherState());
 		if (!name.equals(sCaption)) {
 			sCaption = name;
 			caption.text(name);
-			int col = weatherColor(ClimateManager.weatherState());
+			int col = sand ? SANDSTORM_COLOR : weatherColor(ClimateManager.weatherState());
 			caption.hardlight(col);
 			captionW = Math.round(caption.width());
 		}
@@ -497,6 +499,9 @@ public class SundialIndicator extends Button {
 	public static String phaseName(DayNightCycle.Phase phase) {
 		return Messages.get(SundialIndicator.class, "phase_" + phase.name().toLowerCase());
 	}
+
+	/** The caption's colour while a sandstorm blows where the hero stands: the sand's tan. */
+	public static final int SANDSTORM_COLOR = 0xe8c47a;
 
 	/** the text colour that names a state of the sky */
 	public static int weatherColor(WeatherState ws) {

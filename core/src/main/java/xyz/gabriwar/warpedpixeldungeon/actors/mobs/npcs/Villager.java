@@ -64,6 +64,15 @@ public class Villager extends Settler {
 		return homeSector;
 	}
 
+	//an elder is known as one: a parcel for the village goes to them (bounty/BountyActions)
+	@Override
+	public String name(){
+		if (role == xyz.gabriwar.warpedpixeldungeon.levels.overworld.VillageRoutine.Role.ELDER.ordinal()){
+			return xyz.gabriwar.warpedpixeldungeon.messages.Messages.get( this, "name_elder" );
+		}
+		return super.name();
+	}
+
 	@Override
 	protected boolean gnoll(){
 		return false;

@@ -227,8 +227,9 @@ public class OverworldDress {
 	}
 
 	//a dressing layer's tilemap under the open sky: CustomTilemap's own, but for the tiles the wind
-	//sways, which are left out of its chunks and drawn right after them
-	private static class Swaying extends Tilemap {
+	//sways, which are left out of its chunks and drawn right after them (the desert's palms' too:
+	//DrylandsArt)
+	static class Swaying extends Tilemap {
 
 		private final WindSway.Batch sway;
 

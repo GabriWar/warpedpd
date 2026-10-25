@@ -244,7 +244,21 @@ public class Tengu extends Mob {
 	}
 	
 	@Override
+	protected boolean act() {
+		//a den boss already at 0 HP (a run saved while he could not die) falls on his next turn, wherever he
+		//stands: the hero may have no way to land one more hit
+		if (!(Dungeon.level instanceof PrisonBossLevel) && HP <= 0) {
+			die( Dungeon.hero );
+			return true;
+		}
+		return super.act();
+	}
+
+	@Override
 	public boolean isAlive() {
+		//the den boss dies as any boss does: only the prison arena's progress() takes the arena Tengu
+		//off the level, so in the den he stood at 0 HP for good
+		if (!(Dungeon.level instanceof PrisonBossLevel)) return super.isAlive();
 		return super.isAlive() || Dungeon.level.mobs.contains(this); //Tengu has special death rules, see prisonbosslevel.progress()
 	}
 

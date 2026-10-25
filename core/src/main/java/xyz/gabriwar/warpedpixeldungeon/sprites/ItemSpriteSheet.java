@@ -822,12 +822,14 @@ public class ItemSpriteSheet {
 	public static final int SUMMON_ELE_FROST = SPELLS+9;
 	public static final int SUMMON_ELE_SHOCK = xy(5, 43);
 	public static final int SUMMON_ELE_CHAOS = xy(6, 43);
-	public static final int AQUA_BLAST       = SPELLS+1;
-	public static final int MAGIC_PORTER     = SPELLS+3;
-	public static final int FEATHER_FALL     = SPELLS+5;
-	public static final int ENCHANT_INFUSE   = SPELLS+10;
-	public static final int CRIMSON_EPITHET  = SPELLS+11;
-	public static final int FORCEFIELD       = SPELLS+12;
+	//OvergrownPD's own icons for its spells, on the free cells after the elementals (they shared
+	//Shattered's spells' cells before)
+	public static final int AQUA_BLAST       = xy(7, 43);
+	public static final int MAGIC_PORTER     = xy(8, 43);
+	public static final int FEATHER_FALL     = xy(9, 43);
+	public static final int ENCHANT_INFUSE   = xy(10, 43);
+	public static final int CRIMSON_EPITHET  = xy(11, 43);
+	public static final int FORCEFIELD       = xy(12, 43);
 	public static final int HOLYBLAST        = SPELLS+13;
 	public static final int DOOMCALL         = SPELLS+14;
 	public static final int SEASONCHANGE     = SPELLS+15;
@@ -847,9 +849,12 @@ public class ItemSpriteSheet {
 		assignItemRect(SUMMON_ELE_FROST,  8, 16);
 		assignItemRect(SUMMON_ELE_SHOCK,  8, 16);
 		assignItemRect(SUMMON_ELE_CHAOS,  8, 16);
-		// AQUA_BLAST=SPELLS+1, MAGIC_PORTER=SPELLS+3, FEATHER_FALL=SPELLS+5,
-		// ENCHANT_INFUSE=SPELLS+10, CRIMSON_EPITHET=SPELLS+11, FORCEFIELD=SPELLS+12
-		// share tiles with the originals above — no separate assignItemRect needed
+		assignItemRect(AQUA_BLAST     , 12, 12);
+		assignItemRect(MAGIC_PORTER   , 13, 13);
+		assignItemRect(FEATHER_FALL   , 12, 12);
+		assignItemRect(ENCHANT_INFUSE , 14, 13);
+		assignItemRect(CRIMSON_EPITHET, 12, 12);
+		assignItemRect(FORCEFIELD     , 13, 16);
 		assignItemRect(HOLYBLAST    , 14, 13);
 		assignItemRect(DOOMCALL     ,  8, 16);
 		assignItemRect(SEASONCHANGE , 12, 12);
@@ -2091,5 +2096,127 @@ public class ItemSpriteSheet {
 		for (int i = OLD_ALCHEMY; i < OLD_ALCHEMY+15; i++)
 			assignItemRect(i, 12, 14);
 		assignItemRect(ARTIFACT_CAPE_THORNS, 16, 14);
+	}
+
+	//the overworld batch: one row of 16 per part (items.png rows 65-72)
+	private static final int OW_SEA       =                            xy(1, 65);   //16 slots: boats, the sea's finds
+	public static final int RAFT                = OW_SEA+0;
+	public static final int SAILBOAT            = OW_SEA+1;
+	public static final int SEA_CHART           = OW_SEA+2;
+	public static final int SEA_LANTERN         = OW_SEA+3;
+	static {
+		assignItemRect(RAFT,        16, 12);
+		assignItemRect(SAILBOAT,    16, 16);
+		assignItemRect(SEA_CHART,   15, 13);
+		assignItemRect(SEA_LANTERN, 10, 15);
+	}
+	private static final int OW_WETLANDS  =                            xy(1, 66);   //16 slots: swamp and shore places
+	//the tide pools' finds and the swamp witch's own wares (items/wetlands, tools/assets/wetland_art.py)
+	public static final int SEASHELL     = OW_WETLANDS+0;
+	public static final int PEARL        = OW_WETLANDS+1;
+	public static final int WITCH_REMEDY = OW_WETLANDS+2;
+	public static final int BOG_LANTERN  = OW_WETLANDS+3;
+	public static final int WADING_BALM  = OW_WETLANDS+4;
+	static {
+		assignItemRect(SEASHELL     , 12, 11);
+		assignItemRect(PEARL        ,  8,  8);
+		assignItemRect(WITCH_REMEDY , 10, 14);
+		assignItemRect(BOG_LANTERN  , 11, 15);
+		assignItemRect(WADING_BALM  , 13, 11);
+	}
+	private static final int OW_DRYLANDS  =                            xy(1, 67);   //16 slots: desert places
+	//the desert's (tools/assets/drylands_art.py): the oasis palms' dates, what keeps a sandstorm off,
+	//and the buried temples' relic
+	public static final int DATES               = OW_DRYLANDS+0;
+	public static final int SAND_GOGGLES        = OW_DRYLANDS+1;
+	public static final int DESERT_SCARF        = OW_DRYLANDS+2;
+	public static final int SUN_SCARAB          = OW_DRYLANDS+3;
+	static {
+		assignItemRect(DATES,        12, 12);
+		assignItemRect(SAND_GOGGLES, 14,  9);
+		assignItemRect(DESERT_SCARF, 14, 13);
+		assignItemRect(SUN_SCARAB,   13, 13);
+	}
+	private static final int OW_FAUNA     =                            xy(1, 68);   //16 slots: the new beasts' drops
+	public static final int VULTURE_FEATHER = OW_FAUNA+0;
+	public static final int GATOR_TOOTH     = OW_FAUNA+1;
+	//no item: the glob a struck camel spits (actors/mobs/Camel), thrown as a missile
+	public static final int CAMEL_SPIT      = OW_FAUNA+2;
+	static {
+		assignItemRect(VULTURE_FEATHER, 14, 16);
+		assignItemRect(GATOR_TOOTH,      8, 14);
+		assignItemRect(CAMEL_SPIT,       9,  7);
+	}
+	private static final int OW_CATCH     =                            xy(1, 69);   //16 slots: net, rod, bait, fish
+	//the bug net and the fishing rod (items/catching), tools/assets/catch_art_gen.py
+	public static final int BUG_NET         = OW_CATCH+0;
+	public static final int FISHING_ROD     = OW_CATCH+1;
+	public static final int EARTHWORMS      = OW_CATCH+2;
+	public static final int JAR_WINGS       = OW_CATCH+3;
+	public static final int JAR_CRAWLER     = OW_CATCH+4;
+	public static final int JAR_FROG        = OW_CATCH+5;
+	public static final int FISH_TROUT      = OW_CATCH+6;
+	public static final int FISH_PERCH      = OW_CATCH+7;
+	public static final int FISH_PIKE       = OW_CATCH+8;
+	public static final int FISH_CATFISH    = OW_CATCH+9;
+	public static final int FISH_MACKEREL   = OW_CATCH+10;
+	public static final int FISH_CHAR       = OW_CATCH+11;
+	public static final int FISH_CAVEFISH   = OW_CATCH+12;
+	public static final int COOKED_FISH     = OW_CATCH+13;
+	public static final int OLD_BOOT        = OW_CATCH+14;
+	public static final int MESSAGE_BOTTLE  = OW_CATCH+15;
+	static {
+		assignItemRect(BUG_NET        , 16, 16);
+		assignItemRect(FISHING_ROD    , 16, 16);
+		assignItemRect(EARTHWORMS     , 15, 11);
+		assignItemRect(JAR_WINGS      , 12, 14);
+		assignItemRect(JAR_CRAWLER    , 12, 14);
+		assignItemRect(JAR_FROG       , 12, 14);
+		assignItemRect(FISH_TROUT     , 16, 9);
+		assignItemRect(FISH_PERCH     , 15, 10);
+		assignItemRect(FISH_PIKE      , 16, 8);
+		assignItemRect(FISH_CATFISH   , 16, 9);
+		assignItemRect(FISH_MACKEREL  , 16, 9);
+		assignItemRect(FISH_CHAR      , 16, 9);
+		assignItemRect(FISH_CAVEFISH  , 14, 8);
+		assignItemRect(COOKED_FISH    , 16, 10);
+		assignItemRect(OLD_BOOT       , 14, 14);
+		assignItemRect(MESSAGE_BOTTLE , 15, 15);
+	}
+	private static final int OW_EVENTS    =                            xy(1, 70);   //16 slots: 1-8 nature events, 9-16 life events
+	//the nature events' marks (levels/overworld: WildfireEvent, FloodEvent, EclipseEvent; tools/assets/ow_events_nature_art.py)
+	public static final int EV_WILDFIRE = OW_EVENTS+0;
+	public static final int EV_FLOOD    = OW_EVENTS+1;
+	public static final int EV_ECLIPSE  = OW_EVENTS+2;
+	static {
+		assignItemRect(EV_WILDFIRE, 15, 16);
+		assignItemRect(EV_FLOOD,    16, 14);
+		assignItemRect(EV_ECLIPSE,  16, 16);
+	}
+	//the life events' (levels/overworld/RoamerEvent): a slain great beast's trophy, by its kind
+	public static final int TROPHY_PELT         = OW_EVENTS+8;
+	public static final int TROPHY_FANG         = OW_EVENTS+9;
+	public static final int TROPHY_STINGER      = OW_EVENTS+10;
+	static {
+		assignItemRect(TROPHY_PELT,    16, 14);
+		assignItemRect(TROPHY_FANG,    11, 15);
+		assignItemRect(TROPHY_STINGER, 14, 15);
+	}
+	private static final int OW_BOUNTY    =                            xy(1, 71);   //16 slots: the villages' notice boards
+	//the villages' notices by kind (journal, board window) and the delivery's parcel (tools/assets/bounty_art.py)
+	public static final int NOTICE_HUNT         = OW_BOUNTY+0;
+	public static final int NOTICE_GATHER       = OW_BOUNTY+1;
+	public static final int NOTICE_DELIVER      = OW_BOUNTY+2;
+	public static final int PARCEL              = OW_BOUNTY+3;
+	static {
+		assignItemRect(NOTICE_HUNT    , 12, 14);
+		assignItemRect(NOTICE_GATHER  , 12, 14);
+		assignItemRect(NOTICE_DELIVER , 12, 14);
+		assignItemRect(PARCEL         , 13, 12);
+	}
+	private static final int OW_MOUNTS    =                            xy(1, 72);   //16 slots: horses and riding
+	public static final int SADDLE              = OW_MOUNTS+0;
+	static {
+		assignItemRect(SADDLE, 15, 13);
 	}
 }

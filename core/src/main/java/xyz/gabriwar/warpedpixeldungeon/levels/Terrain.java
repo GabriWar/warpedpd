@@ -154,6 +154,10 @@ public class Terrain {
 	public static final int HOMESTEAD_FIRST        = BUILT_WALL_LOG;
 	public static final int HOMESTEAD_LAST         = SAPLING_SHRUB;
 
+	//the world's floods (levels/overworld/FloodEvent): the mud on a river's banks as the water
+	//goes, and on a road under it. Slow going (homestead/travel/Paths)
+	public static final int MUD                    = 138;
+
 	public static final int PASSABLE		= 0x01;
 	public static final int LOS_BLOCKING	= 0x02;
 	public static final int FLAMABLE		= 0x04;
@@ -281,6 +285,8 @@ public class Terrain {
 		flags[RUBBLE_STONE]           = PASSABLE;
 		flags[FLOOR_PLANK]            = PASSABLE;
 		flags[FLOOR_STONE]            = PASSABLE;
+
+		flags[MUD]                    = PASSABLE;
 
 	}
 

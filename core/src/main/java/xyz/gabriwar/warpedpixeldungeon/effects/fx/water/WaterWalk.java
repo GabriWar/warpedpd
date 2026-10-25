@@ -105,7 +105,8 @@ public final class WaterWalk {
 	/** A sprite stepped (any thread): what the water, the grass or the snow make of it. */
 	public static void stepped( final CharSprite s, final int from, final int to ){
 		Level level = Dungeon.level;
-		if (level == null || s.ch == null || s.ch.flying || !s.visible) return;
+		//a boat makes its own wake (StateLooks' boat look)
+		if (level == null || s.ch == null || s.ch.flying || !s.visible || s.afloat()) return;
 		if (from < 0 || to < 0 || from >= level.length() || to >= level.length()) return;
 		Fx.post( () -> step( s, from, to ) );
 	}
@@ -113,7 +114,7 @@ public final class WaterWalk {
 	/** A sprite landed from a jump on its character's cell. */
 	public static void jumped( final CharSprite s ){
 		Level level = Dungeon.level;
-		if (level == null || s.ch == null || s.ch.flying || !s.visible) return;
+		if (level == null || s.ch == null || s.ch.flying || !s.visible || s.afloat()) return;
 		final int at = s.ch.pos;
 		if (at < 0 || at >= level.length() || !level.water[at]) return;
 		Fx.post( () -> landed( s, at ) );
@@ -324,7 +325,8 @@ public final class WaterWalk {
 		Level level = Dungeon.level;
 		if (level == null || s.ch == null || s.ch.flying || level.water == null) return;
 		int c = drawnCell( s );
-		boolean wet = c >= 0 && level.water[c];
+		//aboard a boat: the hull, not the water, is round his legs
+		boolean wet = c >= 0 && level.water[c] && !s.afloat();
 		Object o = s.fxSlots[FxModules.WATER_LIFE];
 		if (!wet){
 			if (o instanceof Wader) ((Wader) o).wet = false;

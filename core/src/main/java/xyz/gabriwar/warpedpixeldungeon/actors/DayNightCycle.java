@@ -71,7 +71,11 @@ public class DayNightCycle {
 
 	// Day turns by season (Night = 2000 - dayTurns)
 	private static int dayTurnsBySeason() {
-		GameCalendar.Season s = GameCalendar.season();
+		return dayTurns(GameCalendar.season());
+	}
+
+	/** How many turns the DAY phase lasts in a season, on a turn-counted run. */
+	public static int dayTurns(GameCalendar.Season s) {
 		switch (s) {
 			case SUMMER: return 1400;  // long summer days
 			case SPRING: return 1100;  // slightly longer than average

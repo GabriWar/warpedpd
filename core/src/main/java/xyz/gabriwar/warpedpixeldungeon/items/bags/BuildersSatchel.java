@@ -27,13 +27,20 @@ package xyz.gabriwar.warpedpixeldungeon.items.bags;
 import xyz.gabriwar.warpedpixeldungeon.items.BuildersTool;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.PortableChest;
+import xyz.gabriwar.warpedpixeldungeon.items.StoneOre;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.Material;
+import xyz.gabriwar.warpedpixeldungeon.items.nornstone.NornStone;
+import xyz.gabriwar.warpedpixeldungeon.items.ore.Gem;
+import xyz.gabriwar.warpedpixeldungeon.items.ore.Ore;
+import xyz.gabriwar.warpedpixeldungeon.items.quest.DarkGold;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.MasterworkCore;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 
 /**
  * The builder's satchel: a bag that holds the homesteads' building materials (items/materials)
  * and tools: portable chests and the builder's tool, so none of them fill the backpack. Building spends from it first
- * (Material.spend).
+ * (Material.spend). It also takes what the rock gives: ores and gems, stone ore, dark gold, norn
+ * stones and the masterwork cores smelted from ore (not the type shifter, which is spent like a spell).
  */
 public class BuildersSatchel extends Bag {
 
@@ -43,14 +50,16 @@ public class BuildersSatchel extends Bag {
 
 	@Override
 	public boolean canHold( Item item ){
-		return (item instanceof Material || item instanceof PortableChest || item instanceof BuildersTool)
+		return (item instanceof Material || item instanceof PortableChest || item instanceof BuildersTool
+				|| item instanceof Ore || item instanceof Gem || item instanceof StoneOre
+				|| item instanceof DarkGold || item instanceof NornStone || item instanceof MasterworkCore)
 				&& super.canHold( item );
 	}
 
 	@Override
 	public int capacity(){
-		//one stack of each material, with room to spare
-		return 24;
+		//a stack of each material, and room beside them for what the rock gives
+		return 30;
 	}
 
 	@Override

@@ -241,6 +241,10 @@ public class Heap implements Bundlable {
 			} else if (item instanceof MysteryMeat || item instanceof MonsterMeat || item instanceof FrozenCarpaccio) {
 				replace( item, ChargrilledMeat.cook( item.quantity ) );
 				burnt = true;
+			} else if (item instanceof xyz.gabriwar.warpedpixeldungeon.items.catching.CaughtFish) {
+				//a caught fish grills in the fire as it does on a hearth (items/catching/CatchRecipes)
+				replace( item, ((xyz.gabriwar.warpedpixeldungeon.items.catching.CaughtFish) item).cooked( false ) );
+				burnt = true;
 			} else if (item.getClass() == Nut.class) {
 				//fire toasts a raw nut (not a GoldenNut or an already-toasted one)
 				replace( item, ToastedNut.cook( (Nut) item ) );

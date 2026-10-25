@@ -26,6 +26,7 @@ package xyz.gabriwar.warpedpixeldungeon.journal.guidecites;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bless;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Breathless;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Burning;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Chill;
@@ -52,9 +53,12 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Windswept;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.AlbinoPiranha;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.AlbinoRat;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Alligator;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bat;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bison;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Brute;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bunny;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Camel;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.ClayGolem;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.ColdSpirit;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.CrystalGuardian;
@@ -81,11 +85,13 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Minotaur;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Otiluke;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldBandit;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldDragon;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Pike;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Raider;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.RiftElemental;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.RuinSkeleton;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Shaman;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.ShrinePiranha;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Shark;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Skeleton;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Slime;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Snake;
@@ -93,6 +99,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.SpectralRat;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Spinner;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Swarm;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Tengu;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Vulture;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Wraith;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Yeti;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.YogDzewa;
@@ -107,8 +114,10 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.FarmCrop;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.GnollVillager;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Hermit;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.LakeShrine;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.LighthouseKeeper;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.OtilukeNPC;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.OverworldGuard;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Horse;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.OverworldShopkeeper;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Shopkeeper;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SummitCairn;
@@ -118,6 +127,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Tinkerer5;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TownGuard;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Traveller;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.TravellingMerchant;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.VillageFisher;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Villager;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town.Bard;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town.Bishop;
@@ -130,6 +140,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town.Mercenary;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town.TownGuardFolk;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town.Townsfolk;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.pets.ShadowDragon;
+import xyz.gabriwar.warpedpixeldungeon.bounty.NoticeBoard;
+import xyz.gabriwar.warpedpixeldungeon.bounty.Parcel;
 import xyz.gabriwar.warpedpixeldungeon.homestead.BuildCatalog;
 import xyz.gabriwar.warpedpixeldungeon.homestead.animals.TiePost;
 import xyz.gabriwar.warpedpixeldungeon.homestead.farming.CompostBin;
@@ -141,6 +153,7 @@ import xyz.gabriwar.warpedpixeldungeon.homestead.stations.Hearth;
 import xyz.gabriwar.warpedpixeldungeon.homestead.stations.Kiln;
 import xyz.gabriwar.warpedpixeldungeon.homestead.stations.MasonsBench;
 import xyz.gabriwar.warpedpixeldungeon.homestead.stations.Quern;
+import xyz.gabriwar.warpedpixeldungeon.homestead.mounts.Riding;
 import xyz.gabriwar.warpedpixeldungeon.homestead.stations.TanningRack;
 import xyz.gabriwar.warpedpixeldungeon.homestead.stations.Workbench;
 import xyz.gabriwar.warpedpixeldungeon.homestead.threats.AlarmBell;
@@ -159,6 +172,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.DiaryPage;
 import xyz.gabriwar.warpedpixeldungeon.items.Egg;
 import xyz.gabriwar.warpedpixeldungeon.items.Fertilizer;
 import xyz.gabriwar.warpedpixeldungeon.items.Gold;
+import xyz.gabriwar.warpedpixeldungeon.items.food.Fish;
 import xyz.gabriwar.warpedpixeldungeon.items.HallsKey;
 import xyz.gabriwar.warpedpixeldungeon.items.Mushroom;
 import xyz.gabriwar.warpedpixeldungeon.items.OtilukesJournal;
@@ -173,7 +187,9 @@ import xyz.gabriwar.warpedpixeldungeon.items.Whistle;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.ClothArmor;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.BuildersSatchel;
 import xyz.gabriwar.warpedpixeldungeon.items.bombs.Bomb;
+import xyz.gabriwar.warpedpixeldungeon.items.food.Aprico;
 import xyz.gabriwar.warpedpixeldungeon.items.food.Blandfruit;
+import xyz.gabriwar.warpedpixeldungeon.items.food.Cornwheatshaft;
 import xyz.gabriwar.warpedpixeldungeon.items.food.Bread;
 import xyz.gabriwar.warpedpixeldungeon.items.food.EagleEgg;
 import xyz.gabriwar.warpedpixeldungeon.items.food.Flour;
@@ -189,8 +205,18 @@ import xyz.gabriwar.warpedpixeldungeon.items.materials.Charcoal;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.Clay;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.CutStone;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.FiredBrick;
+import xyz.gabriwar.warpedpixeldungeon.items.materials.GatorTooth;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.GlassPane;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.Hide;
+import xyz.gabriwar.warpedpixeldungeon.items.catching.BugNet;
+import xyz.gabriwar.warpedpixeldungeon.items.catching.CritterJar;
+import xyz.gabriwar.warpedpixeldungeon.items.catching.Earthworm;
+import xyz.gabriwar.warpedpixeldungeon.items.catching.FishingRod;
+import xyz.gabriwar.warpedpixeldungeon.items.catching.MessageBottle;
+import xyz.gabriwar.warpedpixeldungeon.items.catching.OldBoot;
+import xyz.gabriwar.warpedpixeldungeon.effects.DungeonCritterSprite;
+import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
+import xyz.gabriwar.warpedpixeldungeon.items.MagicWorldMap;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.IronFittings;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.Leather;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.Log;
@@ -201,6 +227,8 @@ import xyz.gabriwar.warpedpixeldungeon.items.materials.Rope;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.RoughStone;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.Sand;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.Thatch;
+import xyz.gabriwar.warpedpixeldungeon.items.materials.VultureFeather;
+import xyz.gabriwar.warpedpixeldungeon.items.misc.Saddle;
 import xyz.gabriwar.warpedpixeldungeon.items.nornstone.BlueNornStone;
 import xyz.gabriwar.warpedpixeldungeon.items.nornstone.GreenNornStone;
 import xyz.gabriwar.warpedpixeldungeon.items.nornstone.NornStone;
@@ -220,6 +248,10 @@ import xyz.gabriwar.warpedpixeldungeon.items.quest.DarkGold;
 import xyz.gabriwar.warpedpixeldungeon.items.quest.Pickaxe;
 import xyz.gabriwar.warpedpixeldungeon.items.rarity.MasterworkCore;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfUpgrade;
+import xyz.gabriwar.warpedpixeldungeon.items.sea.Raft;
+import xyz.gabriwar.warpedpixeldungeon.items.sea.Sailboat;
+import xyz.gabriwar.warpedpixeldungeon.items.sea.SeaChart;
+import xyz.gabriwar.warpedpixeldungeon.items.sea.SeaLantern;
 import xyz.gabriwar.warpedpixeldungeon.items.treeseeds.Acorn;
 import xyz.gabriwar.warpedpixeldungeon.items.treeseeds.BushSeed;
 import xyz.gabriwar.warpedpixeldungeon.items.treeseeds.PineCone;
@@ -231,7 +263,9 @@ import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.relic.AresSword;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.relic.CromCruachAxe;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.relic.LokisFlail;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.relic.NeptunusTrident;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.FishingSpear;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.JupitersWraith;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.Dart;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.traps.FleecingTrap;
 import xyz.gabriwar.warpedpixeldungeon.plants.Apricobush;
@@ -241,12 +275,16 @@ import xyz.gabriwar.warpedpixeldungeon.plants.Eggbloom;
 import xyz.gabriwar.warpedpixeldungeon.plants.Gobgrape;
 import xyz.gabriwar.warpedpixeldungeon.plants.Tomatobush;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
+import xyz.gabriwar.warpedpixeldungeon.sea.Afloat;
+import xyz.gabriwar.warpedpixeldungeon.sea.Swimming;
 import xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTileSheet;
 import xyz.gabriwar.warpedpixeldungeon.tiles.HomesteadVisuals;
 import xyz.gabriwar.warpedpixeldungeon.tiles.OverworldDress;
+import xyz.gabriwar.warpedpixeldungeon.tiles.SeaArt;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuildIcons;
 import xyz.gabriwar.warpedpixeldungeon.ui.Icons;
+import com.watabou.noosa.Image;
 
 //Cites for the world above: the surface, the peaks, the deep caves, homesteads, the town and its mines.
 public final class SurfaceCites {
@@ -257,6 +295,8 @@ public final class SurfaceCites {
 	//the slices, the places of the mountains and the caves)
 	private static final String LAND = Assets.Environment.TILES_OVERWORLD;
 	private static final String DRESS = Assets.Environment.OVERWORLD_DRESS;
+	//the desert places' props (tiles/DrylandsArt)
+	private static final String DRY = Assets.Environment.DRYLANDS_PROPS;
 	//the kupua mines are cave tiles, their sealed last floor and the dragon cave prison tiles
 	private static final String MINES = Assets.Environment.TILES_CAVES;
 	private static final String SEALED = Assets.Environment.TILES_PRISON;
@@ -264,7 +304,9 @@ public final class SurfaceCites {
 	public static void register( CiteBook book ){
 		surface( book );
 		peaks( book );
+		sea( book );
 		deep( book );
+		wetlands( book );
 		homestead( book );
 		town( book );
 		mines( book );
@@ -312,6 +354,22 @@ public final class SurfaceCites {
 				.mob( TravellingMerchant.class, "traveling market" )
 				.mob( Raider.class, "bandit raid" );
 
+		book.page( "surface_bounties" )
+				.mob( NoticeBoard.class, "notice board" ).primary()
+				.sprite( ItemSpriteSheet.NOTICE_HUNT, "hunt" )
+				.mob( GrayWolf.class, "gray wolves" )
+				.mob( AlbinoRat.class, "albino rats" )
+				.sprite( ItemSpriteSheet.NOTICE_GATHER, "gathering" )
+				.item( Hide.class, "hides" )
+				.item( Log.class, "oak logs" )
+				.item( IronOre.class, "iron ore" )
+				.item( Fish.class, "fish" )
+				.sprite( ItemSpriteSheet.NOTICE_DELIVER, "delivery" )
+				.item( Parcel.class, "parcel" )
+				.mob( Villager.class, "elder" )
+				.item( Gold.class, "gold" )
+				.mob( OverworldGuard.class, "guards" );
+
 		book.page( "surface_wilds" )
 				.icon( Icons.COMPASS, "world map" )
 				.terrain( LAND, DungeonTileSheet.FLAT_WALL_DECO, "ruins" )
@@ -346,6 +404,49 @@ public final class SurfaceCites {
 				.mob( Deer.class, "deer" )
 				.item( MysteryMeat.class, "meat" );
 
+		book.page( "surface_beasts" )
+				.mob( Bison.class, "Bison" ).primary()
+				.item( Hide.class, "hide" )
+				.item( MysteryMeat.class, "mystery meat" )
+				.mob( Camel.class, "Camels" )
+				.buff( Daze.class, "dazed" )
+				.mob( Deer.class, "deer" )
+				.mob( Vulture.class, "Vultures" )
+				.item( VultureFeather.class, "vulture feathers" )
+				.mob( Alligator.class, "Alligators" )
+				.water( Assets.Environment.WATER_SEWERS, "pools", "water" )
+				.item( GatorTooth.class, "alligator tooth" )
+				.mob( Pike.class, "Pike" )
+				.item( FishingSpear.class, "fishing spear" )
+				.mob( Workbench.class, "workbench" )
+				.item( Plank.class, "plank" )
+				.item( Dart.class, "darts" );
+		book.page( "surface_nature" )
+				.sprite( ItemSpriteSheet.EV_WILDFIRE, "wildfire" ).primary()
+				.terrain( Assets.Environment.TERRAIN_FEATURES, feature( Terrain.STUMP_PINE ), "stumps" )
+				.item( xyz.gabriwar.warpedpixeldungeon.items.potions.PotionOfWater.class, "bottle of water" )
+				.terrain( Assets.Environment.TERRAIN_FEATURES, feature( Terrain.SAPLING_PINE ), "saplings" )
+				.item( Charcoal.class, "charcoal" )
+				.sprite( ItemSpriteSheet.EV_FLOOD, "flood" )
+				.terrain( LAND, DungeonTileSheet.MUD_TILE, "mud" )
+				.sprite( ItemSpriteSheet.EV_ECLIPSE, "eclipse" )
+				.item( xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfCorruption.class, "wand of corruption" );
+		book.page( "surface_festivals" )
+				.plain( "festival", "great beast", "tracks" )
+				.mob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.FestivalCook.class, "festival cooks" )
+				.mob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.FestivalChampion.class, "village champion" )
+				.sprite( ItemSpriteSheet.WEAPON_HOLDER, "weapon" )
+				.sprite( ItemSpriteSheet.ARMOR_HOLDER, "armor" )
+				.sprite( ItemSpriteSheet.WAND_HOLDER, "wand" )
+				.sprite( ItemSpriteSheet.RING_HOLDER, "ring" )
+				.mob( Deer.class, "deer" )
+				.mob( GrayWolf.class, "wolves" )
+				.mob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.GreatWolf.class, "great wolf" ).primary()
+				.mob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.ElderYeti.class, "elder yeti" )
+				.mob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.GiantScorpio.class, "giant scorpion" )
+				.item( xyz.gabriwar.warpedpixeldungeon.items.RoamerTrophy.class, "trophy" )
+				.item( Gold.class, "gold" );
+
 		book.page( "surface_barrows" )
 				.item( Amulet.class, "Amulet of Yendor" )
 				.icon( Icons.STAIRS_TRAPS, "barrow" )
@@ -360,11 +461,113 @@ public final class SurfaceCites {
 				.item( PotionOfStrength.class, "Potion of Strength" )
 				.item( ScrollOfUpgrade.class, "Scroll of Upgrade" );
 
+		//the desert (levels/overworld/Drylands, actors/Sandstorm, levels/SandTempleLevel)
+		book.page( "surface_oasis" )
+				.water( Assets.Environment.WATER_SEWERS, "oasis" )
+				.terrain( DRY, xyz.gabriwar.warpedpixeldungeon.levels.overworld.Drylands.ART_PALM_CROWN, "date palms" ).primary()
+				.buff( Heatstroke.class, "heatstroke" )
+				.item( xyz.gabriwar.warpedpixeldungeon.items.EmptyBottle.class, "empty bottles" )
+				.item( xyz.gabriwar.warpedpixeldungeon.items.food.Dates.class, "dates" )
+				.mob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.OasisTrader.class, "oasis trader" )
+				.item( xyz.gabriwar.warpedpixeldungeon.items.misc.SandGoggles.class, "sand goggles" )
+				.item( xyz.gabriwar.warpedpixeldungeon.items.misc.DesertScarf.class, "desert scarf" )
+				.mob( Deer.class, "deer" );
+
+		book.page( "surface_sandstorm" )
+				.buff( xyz.gabriwar.warpedpixeldungeon.actors.buffs.Sandblown.class, "sandstorm" )
+				.buff( xyz.gabriwar.warpedpixeldungeon.actors.buffs.Blindness.class, "blind" )
+				.item( xyz.gabriwar.warpedpixeldungeon.items.misc.SandGoggles.class, "sand goggles" ).primary()
+				.item( xyz.gabriwar.warpedpixeldungeon.items.misc.DesertScarf.class, "desert scarf" )
+				.item( xyz.gabriwar.warpedpixeldungeon.items.materials.GlassPane.class, "glass pane" )
+				.item( xyz.gabriwar.warpedpixeldungeon.items.materials.Leather.class, "leather" )
+				.item( xyz.gabriwar.warpedpixeldungeon.items.materials.Thatch.class, "thatch" )
+				.plain( "lee" );
+
+		book.page( "surface_temples" )
+				.terrain( DRY, xyz.gabriwar.warpedpixeldungeon.levels.overworld.Drylands.ART_STAIR, "buried temples" )
+				.terrain( DRY, xyz.gabriwar.warpedpixeldungeon.levels.overworld.Drylands.ART_OBELISK_TOP, "obelisks" )
+				.terrain( DRY, xyz.gabriwar.warpedpixeldungeon.levels.overworld.Drylands.ART_STATUE, "jackal statues" )
+				.mob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Snake.class, "snakes" )
+				.mob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mummy.class, "mummies" )
+				.mob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Skeleton.class, "skeletons" )
+				.mob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Scorpio.class, "scorpions" )
+				.mob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Monk.class, "monks" )
+				.mob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Statue.class, "statue" )
+				.item( xyz.gabriwar.warpedpixeldungeon.items.trinkets.SunScarab.class, "Sun Scarab" ).primary();
+
 		book.page( "boss_dragon" )
 				.mob( OverworldDragon.class, "dragon" )
 				.buff( Poison.class, "poison" )
 				.terrain( LAND, DungeonTileSheet.FLAT_WALL, "rock" )
 				.item( Gold.class, "gold", "hoard" );
+	}
+
+	//the sea's places as their sheet draws them (tiles/SeaArt)
+	private static final String SEA = SeaArt.TEXTURE;
+
+	private static void sea( CiteBook book ){
+		book.page( "sea_sailing" )
+				.item( Raft.class, "raft" ).primary()
+				.item( Sailboat.class, "sailboat" )
+				.mob( Workbench.class, "workbench" )
+				.mob( Forge.class, "forge" )
+				.item( Log.class, "log" )
+				.item( Rope.class, "rope" )
+				.item( IronFittings.class, "iron fittings" )
+				.item( Hide.class, "hide" )
+				.item( Leather.class, "leather" )
+				.mob( VillageFisher.class, "fisher" )
+				.buff( Afloat.class, BuffIndicator.BOAT, "Aboard", "moored" )
+				.icon( Icons.COMPASS, "Speed", "wind" )
+				.buff( Drenched.class, "Weather", "soak" )
+				.item( Plank.class, "Repair", "plank" )
+				.buff( Swimming.class, "Swimming" )
+				.plain( "Launching" );
+
+		book.page( "sea_islands" )
+				.terrain( SEA, SeaArt.PALM_FRONDS[0], "Islands", "palm" ).primary()
+				.item( SeaChart.class, "sea chart" )
+				.terrain( SEA, SeaArt.DIG, "cross" )
+				.sprite( ItemSpriteSheet.CHEST, "buried chest" )
+				.item( Shovel.class, "shovel" )
+				.item( Gold.class, "gold" )
+				.sprite( ItemSpriteSheet.RING_HOLDER, "ring" )
+				.sprite( ItemSpriteSheet.WAND_HOLDER, "wand" )
+				.sprite( ItemSpriteSheet.ARTIFACT_HOLDER, "artifact" )
+				.terrain( SEA, SeaArt.WRECK_EAST + 2, "shipwreck" )
+				.terrain( SEA, SeaArt.SHAFT, "lighthouse" )
+				.icon( Icons.COMPASS, "world map" );
+
+		book.page( "sea_wrecks" )
+				.terrain( SEA, SeaArt.WRECK_EAST + 2, "Shipwrecks" ).primary()
+				.terrain( SEA, SeaArt.WRECK_EAST + 1 + SeaArt.ROW, "hold" )
+				.sprite( ItemSpriteSheet.CHEST, "chest" )
+				.item( Plank.class, "plank" )
+				.item( Rope.class, "rope" )
+				.item( Gold.class, "gold" )
+				.sprite( ItemSpriteSheet.RING_HOLDER, "ring" )
+				.sprite( ItemSpriteSheet.WAND_HOLDER, "wand" )
+				.sprite( ItemSpriteSheet.ARTIFACT_HOLDER, "artifact" )
+				.icon( Icons.COMPASS, "world map" );
+
+		book.page( "sea_lighthouses" )
+				.terrain( SEA, SeaArt.SHAFT, "Lighthouses" ).primary()
+				.terrain( SEA, SeaArt.LAMP, "lamp" )
+				.mob( LighthouseKeeper.class, "keeper" )
+				.terrain( SEA, SeaArt.APRON[1], "paving" )
+				.item( SeaChart.class, "Sea chart" )
+				.item( SeaLantern.class, "Sea lantern" )
+				.item( Torch.class, "torch" )
+				.mob( Shark.class, "shark" )
+				.icon( Icons.COMPASS, "world map" );
+
+		book.page( "sea_sharks" )
+				.mob( Shark.class, "Sharks" ).primary()
+				.buff( Bleeding.class, "bleeding" )
+				.item( Raft.class, "raft" )
+				.item( Sailboat.class, "sailboat" )
+				.item( SeaLantern.class, "sea lantern" )
+				.mob( LighthouseKeeper.class, "lighthouse keepers" );
 	}
 
 	private static void peaks( CiteBook book ){
@@ -501,6 +704,48 @@ public final class SurfaceCites {
 				.water( Assets.Environment.WATER_CAVES, "cave water" );
 	}
 
+	//the swamps and the shores (levels/overworld/WetlandSites)
+	private static void wetlands( CiteBook book ){
+		book.page( "wet_swamps" )
+				.terrain( LAND, DungeonTileSheet.FLAT_HIGH_GRASS, "Swamps" )
+				.effect( GuideEffect.STEAM, "low mist" )
+				.item( xyz.gabriwar.warpedpixeldungeon.items.wetlands.BogLantern.class, "bog lantern" )
+				.water( Assets.Environment.WATER_SEWERS, "water" )
+				.item( xyz.gabriwar.warpedpixeldungeon.items.wetlands.WadingBalm.class, "wading balm" )
+				.mob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SunkenIdol.class, "sunken shrine" )
+				.mob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SwampWitch.class, "swamp witch" )
+				.icon( Icons.COMPASS, "world map" );
+
+		book.page( "wet_witch" )
+				.mob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SwampWitch.class, "swamp witch" ).primary()
+				.terrain( DRESS, OverworldDress.BRIDGE_NS[0], "boardwalk" )
+				.item( xyz.gabriwar.warpedpixeldungeon.items.wetlands.WitchsRemedy.class, "witch's remedy" )
+				.item( xyz.gabriwar.warpedpixeldungeon.items.wetlands.BogLantern.class, "bog lantern" )
+				.item( xyz.gabriwar.warpedpixeldungeon.items.wetlands.WadingBalm.class, "wading balm" )
+				.item( xyz.gabriwar.warpedpixeldungeon.plants.Sungrass.Seed.class, "herbs" )
+				.item( xyz.gabriwar.warpedpixeldungeon.items.food.PixieParasol.class, "mushrooms" )
+				.item( xyz.gabriwar.warpedpixeldungeon.items.food.MysteryMeat.class, "critter parts" )
+				.sprite( ItemSpriteSheet.POTION_HOLDER, "potion" )
+				.item( xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfRemoveCurse.class, "curse" )
+				.plain( "brews", "exotic" );
+
+		book.page( "wet_shrine" )
+				.mob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SunkenIdol.class, "sunken idol", "sunken shrine" ).primary()
+				.terrain( LAND, DungeonTileSheet.FLAT_STATUE, "statue" )
+				.item( Gold.class, "gold" )
+				.buff( xyz.gabriwar.warpedpixeldungeon.actors.buffs.BogBlessing.class, "bog's blessing" )
+				.mob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.DrownedAcolyte.class, "drowned acolyte" )
+				.plain( "offering" );
+
+		book.page( "wet_tidepools" )
+				.water( Assets.Environment.WATER_SEWERS, "tide pools" )
+				.item( xyz.gabriwar.warpedpixeldungeon.items.wetlands.Seashell.class, "seashell" )
+				.item( xyz.gabriwar.warpedpixeldungeon.items.wetlands.Pearl.class, "pearl" ).primary()
+				.mob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.Crab.class, "crab" )
+				.mob( xyz.gabriwar.warpedpixeldungeon.actors.mobs.PearlOyster.class, "pearl oyster" )
+				.plain( "tide" );
+	}
+
 	private static void homestead( CiteBook book ){
 		book.page( "hs_overview" )
 				.mob( Shopkeeper.class, "general store" )
@@ -511,6 +756,12 @@ public final class SurfaceCites {
 				.item( Shovel.class, "shovel" )
 				.item( Sickle.class, "sickle" )
 				.item( Rope.class, "rope" )
+				.item( IronOre.class, "ore" )
+				.item( xyz.gabriwar.warpedpixeldungeon.items.ore.Amethyst.class, "gem" )
+				.item( StoneOre.class, "stone ore" )
+				.item( DarkGold.class, "dark gold" )
+				.item( NornStone.class, "norn stone" )
+				.item( MasterworkCore.class, "masterwork core" )
 				.mob( OverworldShopkeeper.class, "carpenter" )
 				.terrain( LAND, DungeonTileSheet.WELL, "well" )
 				.item( Plank.class, "plank" )
@@ -686,6 +937,8 @@ public final class SurfaceCites {
 				.mob( Deer.class, "deer" )
 				.mob( Goat.class, "goat" )
 				.mob( Bunny.class, "bunny" )
+				.mob( Bison.class, "bison" )
+				.mob( Camel.class, "camel" )
 				.custom( piece( "fence" ), "fence", "pen" )
 				.custom( piece( "palisade" ), "palisade" )
 				.mob( TiePost.class, "tie post", "TIE" )
@@ -693,6 +946,21 @@ public final class SurfaceCites {
 				.custom( piece( "gate" ), "gate" )
 				.item( MysteryMeat.class, "mystery meat" )
 				.item( Hide.class, "hide" );
+
+		book.page( "hs_horses" )
+				.mob( Horse.class, "wild horses" ).primary()
+				//an action, not a thing: what it takes is cited
+				.plain( "Taming" )
+				.item( Thatch.class, "thatch" )
+				.item( Cornwheatshaft.class, "cornwheat shaft" )
+				.item( Aprico.class, "aprico" )
+				.item( Blandfruit.class, "blandfruit" )
+				.item( Rope.class, "rope" )
+				.mob( TiePost.class, "tie post" )
+				.item( Saddle.class, "saddle" )
+				.mob( TanningRack.class, "tanning rack" )
+				.mob( OverworldShopkeeper.class, "stablehand" )
+				.buff( Riding.class, "Riding" );
 
 		book.page( "hs_homes" )
 				//a home's score and the time you spend away: no things
@@ -734,6 +1002,68 @@ public final class SurfaceCites {
 				.terrain( LAND, DungeonTileSheet.DIRT_PATH_TILE, "road" )
 				.custom( piece( "path" ), "cobbled path" )
 				.custom( piece( "bridge" ), "bridge" );
+
+		catching( book );
+	}
+
+	//the bug net and the fishing rod (items/catching): their pages sit in the homesteads' chapter
+	private static void catching( CiteBook book ){
+		book.page( "hs_catching" )
+				//a rule, not a thing
+				.plain( "Wary critters" )
+				.item( BugNet.class, "bug net" ).primary()
+				.item( CritterJar.class, "jar" )
+				.custom( butterfly(), "butterflies" )
+				.custom( () -> new ItemSprite( ItemSpriteSheet.JAR_WINGS, new ItemSprite.Glowing( 0xE8F060 ) ), "fireflies" )
+				.custom( smallLife( DungeonCritterSprite.ROW_MOTH ), "moths" )
+				.custom( smallLife( DungeonCritterSprite.ROW_FLY ), "flies" )
+				.custom( smallLife( DungeonCritterSprite.ROW_BEETLE ), "beetles" )
+				.custom( smallLife( DungeonCritterSprite.ROW_SNAIL ), "snails" )
+				.custom( smallLife( DungeonCritterSprite.ROW_FROG ), "frogs" )
+				.item( FishingRod.class, "fishing rod" )
+				.mob( Workbench.class, "workbench" )
+				.item( Plank.class, "plank" )
+				.item( Rope.class, "rope" );
+
+		book.page( "hs_fishing" )
+				.item( FishingRod.class, "fishing rod" ).primary()
+				.terrain( LAND, DungeonTileSheet.FROZEN_WATER, "ice" )
+				.item( Earthworm.class, "earthworms", "bait" )
+				.item( Shovel.class, "shovel" )
+				.item( BugNet.class, "bug net" )
+				.custom( () -> new Image( Assets.Effects.FISHING, 12, 0, 5, 7 ), "bobber" )
+				.mob( Hearth.class, "hearth" )
+				.mob( CookingPot.class, "cooking pot" )
+				.mob( Villager.class, "fishers" )
+				.item( IronFittings.class, "iron fittings" );
+
+		book.page( "hs_fish" )
+				.sprite( ItemSpriteSheet.FISH_TROUT, "brook trout" ).primary()
+				.sprite( ItemSpriteSheet.FISH_PERCH, "perch" )
+				.sprite( ItemSpriteSheet.FISH_PIKE, "pike" )
+				.sprite( ItemSpriteSheet.FISH_CATFISH, "catfish" )
+				.sprite( ItemSpriteSheet.FISH_MACKEREL, "mackerel" )
+				.sprite( ItemSpriteSheet.FISH_CHAR, "arctic char" )
+				.sprite( ItemSpriteSheet.FISH_CAVEFISH, "cave fish" )
+				.item( OldBoot.class, "old boot" )
+				.sprite( ItemSpriteSheet.GOLD, "sodden purse" )
+				.item( MessageBottle.class, "message in a bottle" )
+				.item( MagicWorldMap.class, "world map" )
+				.sprite( ItemSpriteSheet.CHEST, "chest" );
+	}
+
+	//a butterfly of the surface's critters (effects/CritterSprite: its row, the brimstone's yellow)
+	private static Cite.Picture butterfly(){
+		return () -> {
+			Image i = new Image( Assets.Effects.CRITTERS, 0, 7 * 16, 16, 16 );
+			i.hardlight( 0xF4DC50 );
+			return i;
+		};
+	}
+
+	//one of the dungeon's small life, as its sheet draws it at rest (effects/DungeonCritterSprite)
+	private static Cite.Picture smallLife( int row ){
+		return () -> new Image( Assets.Effects.DUNGEON_CRITTERS, 0, row * 16, 16, 16 );
 	}
 
 	private static void town( CiteBook book ){

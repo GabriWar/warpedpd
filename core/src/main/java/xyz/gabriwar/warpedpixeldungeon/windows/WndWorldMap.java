@@ -30,6 +30,8 @@ import xyz.gabriwar.warpedpixeldungeon.levels.Delves;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.CaveSites;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.MountainSites;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.WetlandSites;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.SeaWorld;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldEvents;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldLayers;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldStructures;
@@ -75,6 +77,11 @@ import java.util.List;
  * The homesteads' marks are pinned too (homestead/travel/MapMarks): the homes as houses with their
  * names, the waystones attuned bright and those only seen dim, and whatever the homesteads' other
  * parts mark (a home under threat). A tap by one of the map's own slice sets the waypoint on it.
+ *
+ * On the surface the sea's places found (levels/overworld/SeaWorld: by sight or from a keeper's
+ * chart) are pinned and named too: an island a big sand-coloured pin, a wreck driftwood brown, a
+ * lighthouse white; and the boats moored on the slice a dark wood brown. A tap by one sets the
+ * waypoint on it (an island's middle, a wreck's hold, the paving before a lighthouse's door).
  */
 public class WndWorldMap extends Window {
 
@@ -147,6 +154,12 @@ public class WndWorldMap extends Window {
 
 	//the homesteads' marks of the map's own slice (homes, waystones; homestead/travel/MapMarks), for a tap
 	private final ArrayList<MapMarks.Mark> marks = new ArrayList<>();
+
+	//the sea's places found and the boats moored, pinned (markSea): {wx, wy} each, their names, for a tap
+	private final ArrayList<int[]> seaSpots = new ArrayList<>();
+	private final ArrayList<String> seaNames = new ArrayList<>();
+	/** The sea's pins: an island, a wreck, a lighthouse, a moored boat. */
+	static final int ISLAND_PIN = 0xFFD8C48E, WRECK_PIN = 0xFFB89870, LIGHT_PIN = 0xFFF4F4EC, BOAT_PIN = 0xFF8A5A2A;
 	//a homestead mark's picture, its on-screen width
 	private static final float MARK_SIZE = 9f;
 
@@ -196,6 +209,7 @@ public class WndWorldMap extends Window {
 		markEvents();
 		markSites();
 		markHomesteads();
+		markSea();
 		heroPin = pin( MARKER, heroWx, heroWy );
 
 		labelSites();
@@ -383,6 +397,33 @@ public class WndWorldMap extends Window {
 		}
 	}
 
+	//the sea's places the party has found, and the boats moored: pinned in their colours and named
+	//(SeaWorld.found, SeaWorld.moorings); surface only
+	private void markSea(){
+		if (level.altitude() != 0) return;
+		for (SeaWorld.Found f : level.sea().found()){
+			int colour = f.kind == SeaWorld.ISLAND ? ISLAND_PIN : f.kind == SeaWorld.WRECK ? WRECK_PIN : LIGHT_PIN;
+			//a lighthouse's tower stands on its key; the waypoint goes before its door
+			int wy = f.kind == SeaWorld.LIGHTHOUSE ? f.y + 1 : f.y;
+			Pin p = pin( colour, f.x, f.y );
+			p.grow = f.kind == SeaWorld.ISLAND ? 2f : 1.25f;
+			place( p );
+			label( f.name, chart.chartX( f.x ), chart.chartY( f.y ), true, false ).hardlight( colour & 0xFFFFFF );
+			seaSpots.add( new int[]{ f.x, wy } );
+			seaNames.add( f.name );
+		}
+		for (int[] m : level.sea().moorings()){
+			Pin p = pin( BOAT_PIN, m[0], m[1] );
+			p.grow = 1.25f;
+			place( p );
+			String name = Messages.get( SeaWorld.class,
+					m[2] == xyz.gabriwar.warpedpixeldungeon.items.sea.Boat.Kind.SAILBOAT.ordinal() ? "moored_sail" : "moored_raft" );
+			label( name, chart.chartX( m[0] ), chart.chartY( m[1] ), false, true ).hardlight( 0xC89A6A );
+			seaSpots.add( new int[]{ m[0], m[1] } );
+			seaNames.add( name );
+		}
+	}
+
 	//an event listed before the i-th stands on the very same cell
 	static boolean stacked( List<WorldEvents.Event> events, int i ){
 		WorldEvents.Event e = events.get( i );
@@ -392,15 +433,23 @@ public class WndWorldMap extends Window {
 		return false;
 	}
 
-	//the corner of its dot the i-th event's name hangs off, {right, below}: a market's or a
-	//raid's the one its village's own name (labelSites) leaves free, any other's the upper right.
-	//one stacked on another takes the other corner on the same side: clear of the first's name,
-	//and (that side being the one the village's name leaves free) of the village's too
+	//the corner of its dot the i-th event's name hangs off, {right, below}: a market's, a raid's or
+	//an eclipse's (pinned on the well of the village whose elders told of it, EclipseEvent) or a
+	//festival's the one its village's own name (labelSites) leaves free, any other's the upper right.
+	//one stacked on another takes the other corner on the same side: clear of the first's name, and
+	//(that side being the one the village's name leaves free) of the village's too; a third on one
+	//well (a market, a raid and an eclipse at once) the one corner left, on the village's name's side
 	static boolean[] labelCorner( List<WorldEvents.Event> events, int i ){
 		WorldEvents.Event e = events.get( i );
-		boolean atVillage = e.type == WorldEvents.Type.MARKET || e.type == WorldEvents.Type.RAID;
+		boolean atVillage = e.type == WorldEvents.Type.MARKET || e.type == WorldEvents.Type.RAID
+				|| e.type == WorldEvents.Type.ECLIPSE || e.type == WorldEvents.Type.FESTIVAL;
 		boolean right = !atVillage || (e.sy & 1) != 0, below = atVillage && (e.sx & 1) != 0;
-		return new boolean[]{ right, stacked( events, i ) ? !below : below };
+		int under = 0;
+		for (int j = 0; j < i; j++){
+			if (events.get( j ).wx == e.wx && events.get( j ).wy == e.wy) under++;
+		}
+		if (under >= 2 && atVillage) return new boolean[]{ !right, below };
+		return new boolean[]{ right, under > 0 ? !below : below };
 	}
 
 	//one name per village on the chart's slab (the same sectors the chart dotted),
@@ -411,7 +460,10 @@ public class WndWorldMap extends Window {
 		int span = WorldChart.SPAN / WorldStructures.SECTOR + 2;
 		for (int sy = s0y; sy <= s0y + span; sy++){
 			for (int sx = s0x; sx <= s0x + span; sx++){
-				WorldStructures.Site site = WorldStructures.siteType( level.worldSeed, sx, sy );
+				//the land's places (landType): the barrows, the villages, the wetlands' and the desert's
+				//are never the sea's, and the sea is not worked out for some six hundred sectors as the
+				//map opens
+				WorldStructures.Site site = WorldStructures.landType( level.worldSeed, sx, sy );
 				if (site == WorldStructures.Site.DUNGEON){
 					//a barrow: its name and level, greyed once its guardian is dead
 					RenderedTextBlock t = label( Messages.get( WndWorldMap.class, "delve",
@@ -428,6 +480,32 @@ public class WndWorldMap extends Window {
 						place( p );
 						blinking.add( p );
 					}
+					continue;
+				}
+				if (WetlandSites.isWetland( site )){
+					//a place of the wetlands: its name in its dot's colour
+					RenderedTextBlock t = label( WetlandSites.mapName( site ),
+							chart.chartX( WorldStructures.placeX( level.worldSeed, sx, sy ) ),
+							chart.chartY( WorldStructures.placeY( level.worldSeed, sx, sy ) ),
+							(sy & 1) == 0, (sx & 1) == 0 );
+					t.hardlight( WetlandSites.dot( site ) );
+					continue;
+				}
+				if (site == WorldStructures.Site.BURIED_TEMPLE){
+					//a buried temple: its name and level, as a barrow's, greyed once its guardian is down
+					RenderedTextBlock t = label( Messages.get( WndWorldMap.class, "delve",
+									Delves.templeName( level.worldSeed, sx, sy ), Delves.templeLevel( level.worldSeed, sx, sy ) ),
+							chart.chartX( WorldStructures.siteX( level.worldSeed, sx, sy ) ),
+							chart.chartY( WorldStructures.siteY( level.worldSeed, sx, sy ) ),
+							(sy & 1) == 0, (sx & 1) == 0 );
+					t.hardlight( Delves.cleared( sx, sy ) ? CLEARED_DELVE : WorldChart.TEMPLE_DOT );
+					continue;
+				}
+				if (site == WorldStructures.Site.OASIS){
+					label( Messages.get( WndWorldMap.class, "oasis" ),
+							chart.chartX( WorldStructures.siteX( level.worldSeed, sx, sy ) ),
+							chart.chartY( WorldStructures.siteY( level.worldSeed, sx, sy ) ),
+							(sy & 1) == 0, (sx & 1) == 0 ).hardlight( WorldChart.OASIS_DOT );
 					continue;
 				}
 				if (site != WorldStructures.Site.VILLAGE) continue;
@@ -602,12 +680,27 @@ public class WndWorldMap extends Window {
 					}
 				}
 			}
+			//...and one on (or by) a place of the sea found, or a moored boat
+			int sea = -1;
+			if (hit == null && mark == null){
+				for (int i = 0; i < seaSpots.size(); i++){
+					int[] sp = seaSpots.get( i );
+					int d = Math.max( Math.abs( wx - sp[0] ), Math.abs( wy - sp[1] ) );
+					if (d < best){
+						best = d;
+						sea = i;
+					}
+				}
+			}
 			if (hit != null){
 				level.setWaypoint( hit.wx, hit.wy );
 				GLog.p( Messages.get( WndWorldMap.class, "waypoint_event", Messages.get( WorldEvents.class, "map_" + hit.type.key ) ) );
 			} else if (mark != null){
 				level.setWaypoint( mark.wx, mark.wy );
 				GLog.p( Messages.get( WndWorldMap.class, "waypoint_event", mark.name ) );
+			} else if (sea != -1){
+				level.setWaypoint( seaSpots.get( sea )[0], seaSpots.get( sea )[1] );
+				GLog.p( Messages.get( WndWorldMap.class, "waypoint_event", seaNames.get( sea ) ) );
 			} else {
 				level.setWaypoint( wx, wy );
 				GLog.p( Messages.get( WndWorldMap.class, "waypoint_set" ) );

@@ -57,16 +57,16 @@ public class Belongings implements Iterable<Item> {
 		}
 		// Bags occupy a physical slot in the items list but are hidden in the UI
 		// (shown as tab buttons instead). This +1 per bag compensates for that,
-		// keeping usable (non-bag) visible slots fixed at Bag.capacity() (43).
+		// keeping usable (non-bag) visible slots fixed at Bag.capacity() (49).
 		//
-		// Example: 7 bags → capacity = 43 + 7 = 50 total physical slots
+		// Example: 7 bags → capacity = 49 + 7 = 56 total physical slots
 		//   - 7 slots used by bags (hidden in UI)
-		//   - 43 slots available for items (shown as grey squares)
+		//   - 49 slots available for items (shown as grey squares)
 		//
 		// The HUD (InventoryPane) and popup (WndBag) both skip bags when
-		// rendering slots, so they show exactly 43 usable positions.
+		// rendering slots, so they show exactly 49 usable positions.
 		public int capacity(){
-			int cap = super.capacity(); // Bag.capacity() = 43
+			int cap = super.capacity(); // Bag.capacity() = 49
 			for (Item item : items){
 				if (item instanceof Bag){
 					cap++;

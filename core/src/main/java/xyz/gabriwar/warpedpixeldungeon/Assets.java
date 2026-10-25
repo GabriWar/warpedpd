@@ -46,6 +46,10 @@ public class Assets {
 		public static final String WATER_SHEEN_B = "effects/water_sheen_b.png"; // fx:water-life
 		public static final String WATER_POCKS = "effects/water_pocks.png"; // fx:water-life
 		public static final String LAVA_GLOW = "effects/lava_glow.png"; // fx:water-life
+		//a fishing line's rod in hand, bobber and hole in the ice (effects/FishingFx), tools/assets/catch_art_gen.py
+		public static final String FISHING = "effects/fishing.png";
+		//the swamp's low mist (effects/SwampMist), a seamless tile painted by tools/assets/wetland_art.py
+		public static final String SWAMP_MIST = "effects/swamp_mist.png";
 	}
 
 	public static class Environment {
@@ -67,6 +71,10 @@ public class Assets {
 
 //Temple sub-region (Re-ARranged port)
 		public static final String TILES_TEMPLE  = "environment/tiles_temple.png";
+		//the buried temples' floors (levels/SandTempleLevel): the temple's sheet in sandstone (tools/assets/drylands_art.py)
+		public static final String TILES_SAND_TEMPLE = "environment/tiles_sand_temple.png";
+		//the oasis' and the temple tops' props (tiles/DrylandsArt)
+		public static final String DRYLANDS_PROPS = "environment/custom_tiles/drylands.png";
 		public static final String WATER_TEMPLE  = "environment/water_temple.png";
 
 //Frozen region (Unleashed PD port; tileset recoloured from caves)
@@ -204,12 +212,22 @@ public class Assets {
 		public static final String HOMESTEAD = "messages/homestead/homestead";
 		//the homesteads' fields and animals (homestead/farming, homestead/animals)
 		public static final String HOMESTEAD_FARMING = "messages/homestead/farming";
+		//the bug net and the fishing rod (items/catching)
+		public static final String CATCHING = "messages/catching/catching";
+		//the sea: boats, islands, wrecks, lighthouses, sharks (sea/, items/sea, levels/overworld/SeaWorld)
+		public static final String SEA = "messages/sea/sea";
+		//the horses and riding (homestead/mounts)
+		public static final String HOMESTEAD_MOUNTS = "messages/homestead/mounts";
 		//the Descent Guide's acted-out scenes, a bundle for each group of chapters (journal/guidedemos)
 		public static final String DEMOS_SURFACE = "messages/guide/demos_surface";
 		public static final String DEMOS_EARLY   = "messages/guide/demos_early";
 		public static final String DEMOS_LATE    = "messages/guide/demos_late";
 		public static final String DEMOS_EXTRA   = "messages/guide/demos_extra";
 		public static final String DEMOS_BASICS  = "messages/guide/demos_basics";
+		//the desert's places, its sandstorm and their wares (levels/overworld/Drylands)
+		public static final String DRYLANDS = "messages/drylands/drylands";
+		//the villages' notice boards and their bounties (bounty/)
+		public static final String BOUNTY = "messages/bounty/bounty";
 	}
 
 	public static class Music {
@@ -495,6 +513,14 @@ public class Assets {
 		public static final String WOLF_GRAY       = "sprites/wolf_gray.png";
 		public static final String DEER            = "sprites/deer.png";
 		public static final String GOAT            = "sprites/goat.png";
+		//the surface's beasts of the open lands, the swamp and the rivers (tools/ow_fauna_gen.py)
+		public static final String BISON           = "sprites/bison.png";
+		public static final String CAMEL           = "sprites/camel.png";
+		public static final String VULTURE         = "sprites/vulture.png";
+		public static final String ALLIGATOR       = "sprites/alligator.png";
+		public static final String PIKE            = "sprites/pike.png";
+		//the surface's horses, every coat bare and saddled (tools/assets/horse_gen.py)
+		public static final String HORSE           = "sprites/horse.png";
 		public static final String UL_SQUID        = "sprites/squid.png";
 		public static final String UL_ZOMBIE       = "sprites/zombie.png";
 		public static final String UL_ELEMENTALS2  = "sprites/elementals2.png";
@@ -628,8 +654,17 @@ public class Assets {
 		public static final String TRAVELLER_FARMER    = "sprites/traveller_farmer.png";
 		//the places on the mountains (levels/overworld/MountainSites, tools/mountain_sites_art.py)
 		public static final String HERMIT              = "sprites/hermit.png";
+		//the desert (tools/assets/drylands_art.py): the oasis trader, on the traveller layout, and the mummy
+		public static final String OASIS_TRADER        = "sprites/oasis_trader.png";
+		public static final String MUMMY               = "sprites/mummy.png";
 		public static final String EAGLE               = "sprites/eagle.png";
 		public static final String CAIRN               = "sprites/cairn.png";
+		//the wetlands' places (levels/overworld/WetlandSites, tools/assets/wetland_art.py)
+		public static final String SWAMP_WITCH         = "sprites/swamp_witch.png";
+		public static final String WITCH_CAULDRON      = "sprites/witch_cauldron.png";
+		public static final String SUNKEN_IDOL         = "sprites/sunken_idol.png";
+		public static final String DROWNED_ACOLYTE     = "sprites/drowned_acolyte.png";
+		public static final String PEARL_OYSTER        = "sprites/pearl_oyster.png";
 		public static final String CARAVAN_TRAIN       = "sprites/caravan_train.png";
 		public static final String VELOCIROOSTER  = "sprites/velocirooster.png";
 

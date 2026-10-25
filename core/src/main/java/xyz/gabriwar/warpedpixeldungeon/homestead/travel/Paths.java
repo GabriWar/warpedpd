@@ -45,6 +45,9 @@ public final class Paths {
 
 	/** How much faster the going is on a road: a tenth. */
 	public static final float SPEED_BONUS = 1.1f;
+	/** ...and how much slower in mud (a flood's, levels/overworld/FloodEvent): a step takes a third
+	 *  longer, on a road under the water too. */
+	public static final float MUD_SLOW = 0.75f;
 
 	/** Is this terrain a road, a path or a bridge (the world's or one built)? */
 	public static boolean isPath( int terrain ){
@@ -52,12 +55,13 @@ public final class Paths {
 				|| terrain == Terrain.DIRT_PATH || terrain == Terrain.BRIDGE;
 	}
 
-	/** SPEED_BONUS for a walker on a road of the world's slices, 1 anywhere else. */
+	/** SPEED_BONUS for a walker on a road of the world's slices, MUD_SLOW in mud, 1 anywhere else. */
 	public static float speedFactor( Char ch ){
 		Level level = Dungeon.level;
 		if (!(level instanceof OverworldLevel) || ch == null || ch.flying) return 1f;
 		int cell = ch.pos;
 		if (cell < 0 || cell >= level.length()) return 1f;
+		if (level.map[cell] == Terrain.MUD) return MUD_SLOW;
 		return isPath( level.map[cell] ) ? SPEED_BONUS : 1f;
 	}
 }

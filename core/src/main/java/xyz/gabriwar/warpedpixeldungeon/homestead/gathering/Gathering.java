@@ -113,8 +113,8 @@ public final class Gathering {
 	/** What the hero is put to on a cell. */
 	public enum Job { CHOP, QUARRY, DIG, REAP }
 
-	/** What digging a cell gives (dig). */
-	public enum Dig { STUMP, SAPLING, CLAY, SAND, TILL }
+	/** What digging a cell gives (dig). TREASURE: an island's buried sea chest (levels/overworld/SeaWorld). */
+	public enum Dig { STUMP, SAPLING, CLAY, SAND, TILL, TREASURE }
 
 	/** The turns each axe takes to fell a tree. */
 	public static final int HAND_AXE_TURNS = 8, AXE_TURNS = 6, BATTLE_AXE_TURNS = 5,
@@ -329,8 +329,10 @@ public final class Gathering {
 				return Quality.workStrokes( a, tree( Dungeon.level.map[cell] ) ? t : lightChop( t ) );
 			}
 			case QUARRY: return quarryStrokes( quarryTool( hero ) );
-			case DIG:    return Quality.workStrokes( shovel( hero ),
-					dig( (OverworldLevel) Dungeon.level, cell ) == Dig.STUMP ? STUMP_TURNS : DIG_TURNS );
+			case DIG: {
+				Dig d = dig( (OverworldLevel) Dungeon.level, cell );
+				return Quality.workStrokes( shovel( hero ), d == Dig.STUMP || d == Dig.TREASURE ? STUMP_TURNS : DIG_TURNS );
+			}
 			case REAP: default:
 				return REAP_TURNS;
 		}
@@ -425,6 +427,8 @@ public final class Gathering {
 	 */
 	public static Dig dig( OverworldLevel ow, int cell ){
 		int t = ow.map[cell];
+		//a cross scratched in an island's sand: a sea chest under it
+		if (ow.altitude() == 0 && ow.sea().treasureAt( cell )) return Dig.TREASURE;
 		if (BuiltTerrain.stump( t )) return Dig.STUMP;
 		if (BuiltTerrain.sapling( t )) return Dig.SAPLING;
 		if (t == Terrain.EMPTY_SP && ow.altitude() == 0){
@@ -435,9 +439,11 @@ public final class Gathering {
 		return bank( ow, cell ) ? Dig.CLAY : Dig.TILL;
 	}
 
-	/** Natural ground a spade goes into, and a seed is planted in: grass, tall grass, bare earth. */
+	/** Natural ground a spade goes into, and a seed is planted in: grass, tall grass, bare earth, a
+	 *  flood's mud. */
 	public static boolean earth( int t ){
-		return t == Terrain.GRASS || t == Terrain.HIGH_GRASS || t == Terrain.FURROWED_GRASS || t == Terrain.EMPTY;
+		return t == Terrain.GRASS || t == Terrain.HIGH_GRASS || t == Terrain.FURROWED_GRASS || t == Terrain.EMPTY
+				|| t == Terrain.MUD;
 	}
 
 	private static boolean grass( int t ){
@@ -589,6 +595,9 @@ public final class Gathering {
 			case SAND:
 				give( ow, cell, new Sand() );
 				break;
+			case TREASURE:
+				ow.sea().unearth( cell );
+				break;
 			case TILL:
 				Level.set( cell, Terrain.FARMLAND, ow );
 				changed( ow, cell );
@@ -598,8 +607,12 @@ public final class Gathering {
 				if (grass( t ) && Random.Float() < SEED_CHANCE){
 					give( ow, cell, Generator.randomUsingDefaults( Generator.Category.SEED ) );
 				}
+				//and worms for a fishing rod's hook, more of them in the rain (items/catching/Earthworm)
+				give( ow, cell, xyz.gabriwar.warpedpixeldungeon.items.catching.Earthworm.turnedUp() );
 				break;
 		}
+		//a cache a bottle's note marks, under this spadeful or a step off it (items/catching/BottleCaches)
+		xyz.gabriwar.warpedpixeldungeon.items.catching.BottleCaches.dug( ow, cell );
 	}
 
 	/** A tree burnt down to embers leaves 1-2 charcoal in its ashes (OverworldLevel.destroy). */

@@ -755,13 +755,17 @@ public class GatheringTest {
 		assertEquals( Terrain.FARMLAND, ow.map[grass] );
 		assertNotNull( "farmland stays tilled", Gathering.refusal( hero, grass, Gathering.Job.DIG ) );
 
-		//grass turned over brings up a seed one time in ten
+		//grass turned over brings up a seed one time in ten (and worms for a fishing rod's hook:
+		//items/catching/Earthworm, CatchingTest)
 		int seeds = 0, trials = 600;
 		for (int i = 0; i < trials; i++){
 			Level.set( grass, Terrain.GRASS, ow );
 			clear( ow, grass );
 			Gathering.dug( ow, grass );
-			if (ow.heaps.get( grass ) != null) seeds++;
+			Heap h = ow.heaps.get( grass );
+			if (h != null){
+				for (Item it : h.items) if (it instanceof xyz.gabriwar.warpedpixeldungeon.plants.Plant.Seed) seeds++;
+			}
 		}
 		assertTrue( "a seed about one time in ten: " + seeds, Math.abs( seeds / (float) trials - Gathering.SEED_CHANCE ) < 0.04f );
 
@@ -819,6 +823,23 @@ public class GatheringTest {
 		int thatch = count( ow.heaps.get( tall ), Thatch.class );
 		assertTrue( "1-2 thatch: " + thatch, thatch >= 1 && thatch <= 2 );
 		assertEquals( Messages.get( Gathering.class, "nothing_to_reap" ), Gathering.refusal( hero, tall, Gathering.Job.REAP ) );
+	}
+
+	@Test
+	public void theSicklesQuickslotReapsOutInTheWorld(){
+		Sickle sickle = new Sickle();
+		give( sickle );
+		Dungeon.level = new TownShopLevel();
+		assertNull( "below, a carried sickle has no quickslot use", sickle.defaultAction() );
+		windowIn( WorldModel.Biome.FOREST );
+		assertEquals( Sickle.AC_REAP, sickle.defaultAction() );
+		assertTrue( sickle.actions( hero ).contains( Sickle.AC_REAP ) );
+
+		//a Duelist's: carried it reaps, drawn it keeps its harvest
+		hero.heroClass = xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass.DUELIST;
+		assertEquals( Sickle.AC_REAP, sickle.defaultAction() );
+		hero.belongings.weapon = sickle;
+		assertEquals( MeleeWeapon.AC_ABILITY, sickle.defaultAction() );
 	}
 
 	// ------------------------------------------------------------------ what is not his to take
@@ -1131,7 +1152,8 @@ public class GatheringTest {
 					&& ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Villager) m).homeSector == key) folk++;
 			if (m instanceof OverworldShopkeeper && ((OverworldShopkeeper) m).homeSector == key){
 				if (((OverworldShopkeeper) m).speciality == OverworldShopkeeper.CARPENTER) joiners++;
-				else traders++;
+				//the stablehand joins it too, with his own stable (homestead/mounts/Stables, MountsTest)
+				else if (((OverworldShopkeeper) m).speciality != OverworldShopkeeper.STABLE) traders++;
 			}
 		}
 		assertTrue( "its families", folk > 0 );

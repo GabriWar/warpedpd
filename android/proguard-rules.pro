@@ -9,6 +9,14 @@
 # the homesteads' registries load their providers and sections by class name
 # (homestead/BuildCatalog, HomesteadStore, HomesteadWorld): nothing else references them
 -keep class xyz.gabriwar.warpedpixeldungeon.homestead.** { *; }
+# and the catching's, from outside that package: its run-wide record (HomesteadWorld.SECTIONS) and
+# the world map's marks on the bottles' caches (MapMarks.PROVIDERS)
+-keep class xyz.gabriwar.warpedpixeldungeon.items.catching.CatchWorld { *; }
+-keep class xyz.gabriwar.warpedpixeldungeon.items.catching.BottleMarks { *; }
+# and the bounties', also from outside it: the villages' boards laid on a slice (HomesteadStore.SECTIONS)
+# and the run-wide record of notices and standing (HomesteadWorld.SECTIONS)
+-keep class xyz.gabriwar.warpedpixeldungeon.bounty.BountySlice { *; }
+-keep class xyz.gabriwar.warpedpixeldungeon.bounty.BountyWorld { *; }
 
 # retained to support meaningful stack traces
 # note that the mapping file must be referenced in order to make sense of line numbers

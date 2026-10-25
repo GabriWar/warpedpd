@@ -26,11 +26,11 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
-import xyz.gabriwar.warpedpixeldungeon.actors.hero.Belongings;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.Torch;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
+import xyz.gabriwar.warpedpixeldungeon.items.bags.BuildersSatchel;
 import xyz.gabriwar.warpedpixeldungeon.items.food.SmallRation;
 import xyz.gabriwar.warpedpixeldungeon.items.ore.Gem;
 import xyz.gabriwar.warpedpixeldungeon.items.ore.Ore;
@@ -165,9 +165,10 @@ public class CaveMiner extends Shopkeeper {
 			public String textPrompt(){
 				return Messages.get( CaveMiner.class, "ore_prompt" );
 			}
+			//ore and gems ride in the builder's satchel (the backpack without one)
 			@Override
 			public Class<? extends Bag> preferredBag(){
-				return Belongings.Backpack.class;
+				return BuildersSatchel.class;
 			}
 			@Override
 			public boolean itemSelectable( Item item ){

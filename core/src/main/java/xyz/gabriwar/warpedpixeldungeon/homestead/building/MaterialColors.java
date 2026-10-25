@@ -29,6 +29,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.materials.Charcoal;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.Clay;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.CutStone;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.FiredBrick;
+import xyz.gabriwar.warpedpixeldungeon.items.materials.GatorTooth;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.GlassPane;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.Hide;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.IronFittings;
@@ -41,6 +42,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.materials.Rope;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.RoughStone;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.Sand;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.Thatch;
+import xyz.gabriwar.warpedpixeldungeon.items.materials.VultureFeather;
 
 /**
  * The colour each building material's words take on screen (the floating "-2 planks" over a piece
@@ -70,6 +72,8 @@ public final class MaterialColors {
 		if (material == Leather.class)      return 0xB07A4C;
 		if (material == Charcoal.class)     return 0x9A9A9A;
 		if (material == IronFittings.class) return 0xA9B4C2;
+		if (material == VultureFeather.class) return 0xB4ACA2;
+		if (material == GatorTooth.class)   return 0xF0EAD6;
 		return OTHER;
 	}
 }

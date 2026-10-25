@@ -243,6 +243,9 @@ import java.util.Locale;
  * looked for near the origin off the render thread;
  * weather-indoors-rain (rain over the town, the hero in its inn: only the roof); and weather-clear,
  * which releases every weather override, the temperature's and the clouds' too.
+ *
+ * The wetlands' places (levels/overworld/WetlandSites) have overworld-witch-hut, overworld-sunken-shrine,
+ * overworld-tide-pools and overworld-swamp-mist (debug/WetlandScenes).
  */
 public final class DebugScenes {
 
@@ -417,9 +420,13 @@ public final class DebugScenes {
 			new WeatherScene( "weather-clear", "Weather: release every weather override",
 					null, WeatherScene.Ground.HERE, false, null ),
 	},
+			//the life events' scenes: festivals, herds and roaming beasts (debug/LifeEventScenes)
+			LifeEventScenes.SCENES,
 			//the homesteads' scenes (debug/HomesteadScenes), and the gathering's (debug/GatheringScenes)
 			HomesteadScenes.SCENES,
 			GatheringScenes.SCENES,
+			//the bug net and the fishing rod (debug/CatchScenes)
+			CatchScenes.SCENES,
 			//the rooms' (debug/RoomScenes)
 			RoomScenes.SCENES,
 			//the build menu's (debug/BuildScenes)
@@ -430,10 +437,28 @@ public final class DebugScenes {
 			FarmScenes.SCENES,
 			//the threats' (debug/ThreatScenes)
 			ThreatScenes.SCENES,
+			//the horses' (debug/HorseScenes)
+			HorseScenes.SCENES,
 			//the travel part's (debug/TravelScenes)
 			TravelScenes.SCENES,
+			//the sea's (debug/SeaScenes)
+			SeaScenes.SCENES,
+			//the villages' notice boards' (debug/BountyScenes)
+			BountyScenes.SCENES,
+			//the magic map's march (debug/PathScenes)
+			PathScenes.SCENES,
 			//the old safe room's removal (debug/SafeRoomScenes)
-			SafeRoomScenes.SCENES );
+			SafeRoomScenes.SCENES,
+			//the views of the other bands: a cave pit, water below a drop, a tarn on a cliff (debug/ViewScenes)
+			ViewScenes.SCENES,
+			//the surface's beasts of the open lands, the swamp and the rivers (debug/BeastScenes)
+			BeastScenes.SCENES,
+			//the wetlands' places and the swamp's mist (debug/WetlandScenes)
+			WetlandScenes.SCENES,
+			//the desert's oases, buried temples and sandstorm (debug/DrylandsScenes)
+			DrylandsScenes.SCENES,
+			//the wildfires, the floods and the eclipses (debug/NatureEventScenes)
+			NatureEventScenes.SCENES );
 
 	//lists of scenes one after another
 	private static Scene[] concat( Scene[]... parts ){
@@ -622,6 +647,18 @@ public final class DebugScenes {
 		pending = scene;
 		starting = true;
 		toSlice( altitude, wx, wy );
+	}
+
+	//sends the hero down to a floor of a branch (a barrow's or a buried temple's crypt: levels/Delves),
+	//the scene run again once he stands there
+	static void descendThen( Scene scene, int depth, int branch ){
+		pending = scene;
+		starting = true;
+		InterlevelScene.mode = InterlevelScene.Mode.RETURN;
+		InterlevelScene.returnDepth = depth;
+		InterlevelScene.returnBranch = branch;
+		InterlevelScene.returnPos = -1;
+		Game.switchScene( InterlevelScene.class );
 	}
 
 	//a search of the world can run for many seconds (a hermit's hut, a thawed meadow): it runs off

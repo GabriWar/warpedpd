@@ -456,6 +456,10 @@ public class GameScene extends PixelScene {
 
 		customWalls = new Group();
 		add(customWalls);
+		//the sea's art lays its over layer among the custom walls: only once they are on the scene
+		if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel){
+			((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).presentSeaArt();
+		}
 
 		levelWallVisuals = Dungeon.level.addWallVisuals();
 		add( levelWallVisuals );
@@ -1653,7 +1657,7 @@ public class GameScene extends PixelScene {
 		if (scene != null) scene.healthIndicators.add(indicator);
 	}
 	
-	/** The tops of the overworld's rock (tiles/SliceGroundLayer.TOPS, its three parts): under the
+	/** The tops of the overworld's rock (tiles/SliceGroundLayer.TOPS, its four parts): under the
 	 *  walls' rims. */
 	public static void addRockTops( xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer layer ){
 		if (scene == null || scene.rockTops == null) return;
@@ -1662,22 +1666,23 @@ public class GameScene extends PixelScene {
 		int i = Math.max( 0, Math.min( parts.length - 1, layer.part ) );
 		if (parts[i] != t || t.parent != scene.rockTops){
 			parts[i] = t;
-			//the tiles, then the blends, then the corners over them
+			//the tiles, then a tarn's shores, then the blends, then the corners over them
 			scene.rockTops.clear();
 			for (Tilemap l : parts) if (l != null) scene.rockTops.add( l );
 		}
 	}
 
 	private Group rockTops;
-	private final Tilemap[] rockTopParts = new Tilemap[3];
+	private final Tilemap[] rockTopParts = new Tilemap[xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer.PARTS];
 
-	/** The view down from a mountain (tiles/SliceGroundLayer): under the ground tiles, over the water. */
+	/** The view down through a mountain's drops or a cave's pits (tiles/SliceGroundLayer): under the
+	 *  ground tiles, over the water. */
 	public static void addBelow( xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer layer ){
 		if (scene != null && scene.belowGround != null) scene.belowGround.put( layer );
 	}
 
-	//the ground of the bands below a mountain slice, one tilemap per depth, each hazed by its
-	//depth, and over them the shade the drop's rims cast into it
+	//the ground of the bands or slices below, its parts per depth, each hazed by its depth, and over
+	//them the shade the rims cast into the drop or the pit
 	private BelowGround belowGround;
 
 	private static final class BelowGround extends Group {
@@ -1686,15 +1691,22 @@ public class GameScene extends PixelScene {
 		//depth - looked down on, the far ground lies in shadow, and a lighter haze read as raised
 		private static final int HAZE = 0x3E4C66;
 		private static final float[] HAZE_STRENGTH = { 0.30f, 0.46f, 0.60f };
+		//...and down a cave's pit, where no sky lights the floor below: a cold slate blue, a little
+		//stronger, so the floor down there reads as deep and not as a stain on this one
+		private static final int CAVE_HAZE = 0x1C2436;
+		private static final float[] CAVE_HAZE_STRENGTH = { 0.35f, 0.50f, 0.62f };
 
-		//per depth its three parts (tiles, blends, corners), then the shade (WindowGenerator.belowLayers)
-		private static final int PARTS = 3;
+		//per depth its four parts (tiles, shores, blends, corners), then the shade (WindowGenerator.belowLayers)
+		private static final int PARTS = xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer.PARTS;
 		private final Tilemap[] layers = new Tilemap[xyz.gabriwar.warpedpixeldungeon.levels.overworld.WindowGenerator.BELOW_LAYERS * PARTS + 1];
 
 		void put( xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer layer ){
 			int d = Math.max( 0, Math.min( HAZE_STRENGTH.length, layer.depth ) );
 			int i = d == HAZE_STRENGTH.length ? layers.length - 1
 					: d * PARTS + Math.max( 0, Math.min( PARTS - 1, layer.part ) );
+			//no tilemap for a part that has never had anything to draw: a cave's pits are few, and
+			//most parts of its view stay empty for good (its depths below the first, its blends)
+			if (layers[i] == null && layer.empty()) return;
 			Tilemap t = layer.create();
 			if (layers[i] != t || t.parent != this){
 				layers[i] = t;
@@ -1703,7 +1715,11 @@ public class GameScene extends PixelScene {
 				for (Tilemap l : layers) if (l != null) add( l );
 			}
 			t.resetColor();
-			if (d < HAZE_STRENGTH.length) t.tint( HAZE, HAZE_STRENGTH[d] );
+			if (d < HAZE_STRENGTH.length){
+				boolean caves = Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
+						&& !((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).openSky();
+				t.tint( caves ? CAVE_HAZE : HAZE, (caves ? CAVE_HAZE_STRENGTH : HAZE_STRENGTH)[d] );
+			}
 		}
 	}
 
@@ -2509,10 +2525,19 @@ public class GameScene extends PixelScene {
 	private static void updateWeather() {
 		if (scene == null || scene.weatherOverlay == null) return;
 
-		// The place's own fog (the overworld's swamps at dawn) feeds the climate first
-		ClimateManager.setLocalFog(
-				Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
-						&& ((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level).localFog() );
+		// The place's own fog (the overworld's swamps at dawn) feeds the climate first, and its own
+		// sand: the desert's sandstorm where the hero stands (actors/Sandstorm). Both held while the
+		// overworld's window moves: its map and the hero's cell are not in one frame then, and a wrong
+		// answer would flip the fog, or the sundial's caption, for a refresh (WeatherOverlay holds too)
+		if (!(Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel)){
+			ClimateManager.setLocalFog( false );
+			ClimateManager.setLocalSandstorm( false );
+		} else if (!Dungeon.level.fogHeld()){
+			xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel ow =
+					(xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level;
+			ClimateManager.setLocalFog( ow.localFog() );
+			ClimateManager.setLocalSandstorm( ow.localSandstorm() );
+		}
 
 		// Precipitation
 		scene.weatherOverlay.setPrecipitation(

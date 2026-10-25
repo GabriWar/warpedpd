@@ -42,6 +42,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroAction;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor;
+import xyz.gabriwar.warpedpixeldungeon.effects.CatchFx;
 import xyz.gabriwar.warpedpixeldungeon.effects.CritterSprite;
 import xyz.gabriwar.warpedpixeldungeon.effects.DungeonCritterSprite;
 import xyz.gabriwar.warpedpixeldungeon.effects.SliceCritterSprite;
@@ -56,6 +57,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.particles.DriftParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.DripParticle;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.FireflyParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Heap;
+import xyz.gabriwar.warpedpixeldungeon.items.catching.CritterCatch;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.EyeOfNewt;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
@@ -100,6 +102,9 @@ import java.util.function.IntPredicate;
  * GameScene puts one in the scene of every floor with an ambience below ground (forLevel); the
  * newest is the one the fights are heard by. The dungeon never slides, so the floor's map is the
  * one the pictures stand on, and they are drawn where they are.
+ *
+ * The bug net (items/catching/BugNet) asks for the small critter drawn on a cell (critterAt), and
+ * takes it out of the picture when it catches it.
  */
 public final class DungeonLife extends Gizmo {
 
@@ -166,6 +171,90 @@ public final class DungeonLife extends Gizmo {
 		if (life == null || Dungeon.level != life.level) return;
 		synchronized (NOISES){
 			if (NOISES.size() < 16) NOISES.add( cell );
+		}
+	}
+
+	// ------------------------------------------------------------ the bug net
+
+	/**
+	 * The bug net (items/catching/BugNet): the small critter drawn on this cell of the floor shown,
+	 * nearest its middle and still unafraid, as a target the net takes or misses - a moth, a fly, a
+	 * beetle, a roach, a centipede, a silverfish, a spider, a snail, a strider, a frog, a newt, a
+	 * lizard, a butterfly (netted). Null for none. Render thread.
+	 */
+	public static CritterCatch.Target critterAt( int cell ){
+		DungeonLife life = current;
+		if (life == null || Dungeon.level != life.level || cell < 0 || cell >= life.level.length()) return null;
+		return life.netTarget( cell );
+	}
+
+	private CritterCatch.Target netTarget( int cell ){
+		int w = level.width();
+		float cx = (cell % w + 0.5f) * SIZE, cy = (cell / w + 0.5f) * SIZE;
+		Critter best = null;
+		xyz.gabriwar.warpedpixeldungeon.items.catching.Critter kind = null;
+		float bestD = Float.MAX_VALUE;
+		for (Critter c : live){
+			if (c.flock != null || !calm( c )) continue;
+			xyz.gabriwar.warpedpixeldungeon.items.catching.Critter k = netted( c );
+			if (k == null) continue;
+			CritterSprite s = c.sprite;
+			float px = s.x + s.origin.x, py = s.y + s.origin.y;
+			if (!CritterCatch.on( cell, w, px, py )) continue;
+			float d = cheb( px, py, cx, cy );
+			if (d < bestD){
+				bestD = d;
+				best = c;
+				kind = k;
+			}
+		}
+		if (best == null) return null;
+		final Critter c = best;
+		final CritterSprite s = c.sprite;
+		return new CritterCatch.Target( kind ){
+			@Override public float x(){ return s.x + s.origin.x; }
+			@Override public float y(){ return s.y + s.origin.y; }
+			@Override public boolean on( int at ){
+				return calm( c ) && Dungeon.level == level && CritterCatch.on( at, level.width(), x(), y() );
+			}
+			@Override public void take(){
+				CatchFx.netted( x(), y(), critter );
+				s.vanish();
+			}
+			@Override public void spook( float sx, float sy ){
+				if (!s.exists) return;
+				if (s instanceof DungeonCritterSprite) frighten( (DungeonCritterSprite) s, sx, sy );
+				else if (s instanceof CritterSprite.Butterfly) ((CritterSprite.Butterfly) s).startle( sx, sy );
+			}
+		};
+	}
+
+	//what the net takes a critter for: by its kind (a moth by the light it circles, a butterfly by its
+	//colour); null for one too big for a net or never to be netted (a bird, a hare, a mouse, a fish, a
+	//fire salamander)
+	private xyz.gabriwar.warpedpixeldungeon.items.catching.Critter netted( Critter c ){
+		switch (c.kind){
+			case MOTH:
+				return place == Place.HALLS ? xyz.gabriwar.warpedpixeldungeon.items.catching.Critter.CINDER_MOTH
+						: place == Place.FROZEN ? xyz.gabriwar.warpedpixeldungeon.items.catching.Critter.FROST_MOTH
+						: xyz.gabriwar.warpedpixeldungeon.items.catching.Critter.MOTH;
+			case BUTTERFLY:
+				return c.sprite instanceof CritterSprite.Butterfly
+						? xyz.gabriwar.warpedpixeldungeon.items.catching.Critter.butterfly( ((CritterSprite.Butterfly) c.sprite).colour() ) : null;
+			case FLY:          return xyz.gabriwar.warpedpixeldungeon.items.catching.Critter.FLY;
+			case BEETLE:       return xyz.gabriwar.warpedpixeldungeon.items.catching.Critter.BEETLE;
+			case EMBER_BEETLE: return xyz.gabriwar.warpedpixeldungeon.items.catching.Critter.EMBER_BEETLE;
+			case ROACH:        return xyz.gabriwar.warpedpixeldungeon.items.catching.Critter.ROACH;
+			case CENTIPEDE:    return xyz.gabriwar.warpedpixeldungeon.items.catching.Critter.CENTIPEDE;
+			case SILVERFISH:   return xyz.gabriwar.warpedpixeldungeon.items.catching.Critter.SILVERFISH;
+			case SPIDER:       return xyz.gabriwar.warpedpixeldungeon.items.catching.Critter.SPIDER;
+			case SPIDERLING:   return xyz.gabriwar.warpedpixeldungeon.items.catching.Critter.SPIDERLING;
+			case SNAIL:        return xyz.gabriwar.warpedpixeldungeon.items.catching.Critter.SNAIL;
+			case STRIDER:      return xyz.gabriwar.warpedpixeldungeon.items.catching.Critter.STRIDER;
+			case FROG:         return xyz.gabriwar.warpedpixeldungeon.items.catching.Critter.FROG;
+			case NEWT:         return xyz.gabriwar.warpedpixeldungeon.items.catching.Critter.NEWT;
+			case LIZARD:       return xyz.gabriwar.warpedpixeldungeon.items.catching.Critter.LIZARD;
+			default:           return null;
 		}
 	}
 

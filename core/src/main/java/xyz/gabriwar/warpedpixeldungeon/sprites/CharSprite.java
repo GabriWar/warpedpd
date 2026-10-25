@@ -89,12 +89,27 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 
 	//the eight from TORCHLIT came with the effects kit: the characters area draws them, any area may
 	//add them (replicated to co-op guests by name, as every state); SEEDED and SURGING came with the
-	//enchantments' effects (a parasitic seed, a surge's stacks). Saved by name: append only
+	//enchantments' effects (a parasitic seed, a surge's stacks); RIDING with the horses (a rider on
+	//horseback: homestead/mounts/Riding). Saved by name: append only
 	public enum State {
 		BURNING, LEVITATING, INVISIBLE, PARALYSED, FROZEN, ILLUMINATED, CHILLED, DARKENED, MARKED, HEALING, SHIELDED, HEARTS, GLOWING, AURA, ELECTRIC, BUTTER, HALOMETHANEBURNING, HEATSTROKE, HYPOTHERMIA,
 		TORCHLIT, ROOTED, BARKED, VERDANT, HERB, POISONED, CORRODED, OOZED,
-		SEEDED, SURGING
+		SEEDED, SURGING,
+		//aboard a raft, aboard a sailboat (sea/Afloat): the boat drawn under him, by name to co-op guests
+		BOAT_RAFT, BOAT_SAIL,
+		RIDING
 	}
+
+	/** How far a rider is drawn up off the ground, px: sitting in the saddle of the horse his looks
+	 *  draw under him (RIDING: effects/fx/combat/RiddenHorse). On the screen only, never his x and
+	 *  y, eased in and out over RIDE_EASE s. */
+	public static final float RIDE_LIFT = 6f, RIDE_EASE = 0.15f;
+	//on horseback (RIDING), and how far up he is drawn now
+	private volatile boolean riding;
+	private float rideLift;
+	/** The coat of the horse under a rider (Horse.coat), set by the rider's buff; a co-op guest,
+	 *  who is sent the state alone, draws the first. */
+	public volatile int rideCoat;
 	
 	protected Animation idle;
 	protected Animation run;
@@ -364,7 +379,8 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 				}
 				turnTo( from , to );
 
-				play( run );
+				//on horseback the horse runs, not the rider
+				play( riding ? idle : run );
 
 				motion = new PosTweener( CharSprite.this, worldToCamera( to ), moveInterval );
 				motion.listener = CharSprite.this;
@@ -693,6 +709,19 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 		shiverX = dx;
 	}
 
+	//a rise and fall held until told otherwise, whole pixels: a boat riding the swell (sea/Afloat's look)
+	private volatile int liftY;
+
+	/** The sprite shifted dy whole pixels up or down on the screen until told otherwise (0 ends it). */
+	public void lift( int dy ) {
+		liftY = dy;
+	}
+
+	/** The rise and fall it is held at now (lift). */
+	public int lift() {
+		return liftY;
+	}
+
 	/** How many of its states' looks are on or ending (0 before the first). */
 	public int looksCount() {
 		StateLooks l = looks;
@@ -715,16 +744,28 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 	public void screenOffset( int[] out ) {
 		boolean n = nudgeLeft > 0;
 		out[0] = (n ? nudgeX : 0) + shiverX;
-		out[1] = n ? nudgeY : 0;
+		out[1] = (n ? nudgeY : 0) + liftY;
 	}
 
 	private final HashSet<State> stateAdditions = new HashSet<>();
+
+	//aboard a boat (BOAT_RAFT, BOAT_SAIL): the water's walking effects leave it be (WaterWalk), the
+	//boat's look makes its own wake. any thread
+	private volatile boolean afloat;
+
+	/** Is it aboard a boat now (sea/Afloat's look)? */
+	public boolean afloat() {
+		return afloat;
+	}
 
 	public void add( State state ) {
 		//instant as it just changes an animation property that will get read later; it is still
 		//written down, so its look (the stun stars) starts as every state's does
 		if (state == State.PARALYSED){
 			paused = true;
+		}
+		if (state == State.BOAT_RAFT || state == State.BOAT_SAIL){
+			afloat = true;
 		}
 		synchronized (State.class) {
 			stateRemovals.remove(state);
@@ -777,6 +818,12 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 			case OOZED:
 			case SEEDED:
 			case SURGING:
+			case BOAT_RAFT:
+			case BOAT_SAIL:
+				looks().add( state );
+				break;
+			case RIDING:
+				riding = true;
 				looks().add( state );
 				break;
 			case INVISIBLE:
@@ -843,6 +890,9 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 		if (state == State.PARALYSED){
 			paused = false;
 		}
+		if (state == State.BOAT_RAFT || state == State.BOAT_SAIL){
+			afloat = false;
+		}
 		synchronized (State.class) {
 			stateAdditions.remove(state);
 			stateRemovals.add(state);
@@ -907,6 +957,10 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 				}
 				if (looks != null) looks.remove( state );
 				break;
+			case RIDING:
+				riding = false;
+				if (looks != null) looks.remove( state );
+				break;
 			default:
 				if (looks != null) looks.remove( state );
 				break;
@@ -936,6 +990,12 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 		}
 		if (nudgeLeft > 0) {
 			nudgeLeft -= Game.elapsed;
+		}
+		//up into the saddle, or down off it
+		float liftTo = riding ? RIDE_LIFT : 0f;
+		if (rideLift != liftTo) {
+			float by = Game.elapsed * RIDE_LIFT / RIDE_EASE;
+			rideLift = rideLift < liftTo ? Math.min( liftTo, rideLift + by ) : Math.max( liftTo, rideLift - by );
 		}
 		synchronized (State.class) {
 			for (State s : stateAdditions) {
@@ -1129,7 +1189,7 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 		Matrix.scale(shadowMatrix, shadowWidth, shadowHeight);
 		//a recoil, a squash, a shiver: the sprite (not its shadow) shifted on the screen only,
 		//straight across whatever its scale or angle (the matrix's own translation)
-		int ox = (nudgeLeft > 0 ? nudgeX : 0) + shiverX, oy = nudgeLeft > 0 ? nudgeY : 0;
+		int ox = (nudgeLeft > 0 ? nudgeX : 0) + shiverX, oy = (nudgeLeft > 0 ? nudgeY : 0) + liftY - Math.round( rideLift );
 		if (ox != 0 || oy != 0){
 			matrix[12] += ox;
 			matrix[13] += oy;
@@ -1141,7 +1201,8 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 		if (texture == null || (!dirty && buffer == null))
 			return;
 
-		if (renderShadow) {
+		//a rider's shadow is his horse's, drawn with it
+		if (renderShadow && !riding) {
 			if (dirty) {
 				((Buffer)verticesBuffer).position(0);
 				verticesBuffer.put(vertices);
@@ -1170,8 +1231,8 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 
 		//a sprite with no shadow has its matrix remade only when it moves: an offset coming or going
 		//on the screen (a recoil, a shiver) remakes it too
-		int ox = (nudgeLeft > 0 ? nudgeX : 0) + shiverX, oy = nudgeLeft > 0 ? nudgeY : 0;
-		if (!renderShadow && (ox != shownOffX || oy != shownOffY)) updateMatrix();
+		int ox = (nudgeLeft > 0 ? nudgeX : 0) + shiverX, oy = (nudgeLeft > 0 ? nudgeY : 0) + liftY - Math.round( rideLift );
+		if ((!renderShadow || riding) && (ox != shownOffX || oy != shownOffY)) updateMatrix();
 		shownOffX = ox;
 		shownOffY = oy;
 

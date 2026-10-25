@@ -34,8 +34,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * What the players have done about the world's timed events (WorldEvents), the only part of
  * them a save holds: placement is a pure function, so the log keeps the events heard of, the
  * ones under way on the ground (a hunt's pack loosed), the ones settled for good (a star's
- * fragment picked up, a market chased off), where each star's fragment was laid, and the events
- * a debug scene forced. Each entry carries the turn it can
+ * fragment picked up, a market chased off), where each star's fragment was laid, the wounds of a
+ * roaming beast that got away, the events a debug scene forced or the weather brought about (a
+ * wildfire, a flood, an eclipse heralded), and what became of the wildfires: the rain that put one
+ * out, the cells kept from it, the trees a storm left smouldering. Each entry carries the turn it can
  * be forgotten at (prune), so the log never grows past the events still on.
  *
  * It also keeps the events' clock: the furthest world turn they have been seen at. A real-clock
@@ -59,8 +61,22 @@ public class WorldEventLog {
 	//star id -> world key of the heap its fragment was laid in, and the turn the fragment is taken back
 	public final HashMap<Long, Long> lootAt = new HashMap<>();
 	public final HashMap<Long, Integer> lootEnds = new HashMap<>();
-	//the events debug scenes forced (WorldEvents.forcedStar, forcedMarket): read by eventsNear like any other
+	//roaming beast id -> what is left of its health, and the turn it may be forgotten: a beast that
+	//got away keeps its wounds (RoamerEvent)
+	public final HashMap<Long, Integer> wounds = new HashMap<>();
+	public final HashMap<Long, Integer> woundEnds = new HashMap<>();
+	//the events no schedule names alone: those debug scenes forced (WorldEvents.forcedStar,
+	//forcedMarket) and those the weather and the sky brought about (a wildfire, a flood, an
+	//eclipse heralded: WildfireEvent, FloodEvent, EclipseEvent). read by eventsNear like any other
 	public final CopyOnWriteArrayList<WorldEvents.Event> forced = new CopyOnWriteArrayList<>();
+	//wildfire id -> the turn the rain put it out (WildfireEvent.quench)
+	public final HashMap<Long, Integer> quench = new HashMap<>();
+	//world key -> {the turn from which no wildfire burns there, the turn that stops mattering}: a
+	//cell doused, built on or dug before the flames reached it (WildfireEvent.bar)
+	public final HashMap<Long, int[]> bars = new HashMap<>();
+	//a tree a storm's bolt struck in the warm season, smouldering: {wx, wy, the turn it was struck},
+	//oldest first, WildfireEvent.HOLDOVERS at most (WildfireEvent.lightning)
+	public final java.util.ArrayList<int[]> holdovers = new java.util.ArrayList<>();
 	//bumped whenever the forced list changes, so a cached enumeration knows to look again
 	private volatile int forcedVersion;
 	//the furthest world turn the events have been seen at (Integer.MIN_VALUE: none yet)
@@ -93,7 +109,39 @@ public class WorldEventLog {
 		announced.values().removeIf( end -> end <= turn );
 		resolved.values().removeIf( end -> end <= turn );
 		begun.values().removeIf( end -> end <= turn );
+		woundEnds.values().removeIf( end -> end <= turn );
+		wounds.keySet().retainAll( woundEnds.keySet() );
 		if (forced.removeIf( e -> e.lingersUntil() <= turn )) forcedVersion++;
+		java.util.HashSet<Long> on = new java.util.HashSet<>();
+		for (WorldEvents.Event e : forced) on.add( e.id );
+		quench.keySet().retainAll( on );
+		bars.values().removeIf( b -> b[1] <= turn );
+		holdovers.removeIf( h -> h[2] + WildfireEvent.HOLD_TURNS <= turn );
+	}
+
+	/** Is a wildfire kept off this world cell at this turn: doused, built on or dug before it came? */
+	public boolean barred( long key, int turn ){
+		int[] b = bars.get( key );
+		return b != null && turn >= b[0];
+	}
+
+	/** Keeps the wildfires off a world cell from a turn on, until another (the earlier start and
+	 *  the later end of two asks stand). */
+	public void bar( long key, int from, int until ){
+		int[] b = bars.get( key );
+		if (b == null) bars.put( key, new int[]{ from, until } );
+		else if (from < b[0] || until > b[1]){
+			b[0] = Math.min( b[0], from );
+			b[1] = Math.max( b[1], until );
+		} else return;
+		barsVersion++;
+	}
+
+	//bumped whenever a cell is kept from the wildfires anew: a fire worked out before looks again
+	private int barsVersion;
+
+	public int barsVersion(){
+		return barsVersion;
 	}
 
 	private static final String ANNOUNCED_IDS  = "event_announced_ids";
@@ -109,6 +157,14 @@ public class WorldEventLog {
 	private static final String CLOCK          = "event_clock";
 	private static final String BEGUN_IDS      = "event_begun_ids";
 	private static final String BEGUN_ENDS     = "event_begun_ends";
+	private static final String QUENCH_IDS     = "event_quench_ids";
+	private static final String QUENCH_TURNS   = "event_quench_turns";
+	private static final String BAR_KEYS       = "event_bar_keys";
+	private static final String BAR_TURNS      = "event_bar_turns";
+	private static final String HOLD_DATA      = "event_hold_data";
+	private static final String WOUND_IDS      = "event_wound_ids";
+	private static final String WOUND_HPS      = "event_wound_hps";
+	private static final String WOUND_ENDS     = "event_wound_ends";
 	//sx, sy, startDay, startTurn, endTurn, wx, wy
 	private static final int FORCED_INTS = 7;
 
@@ -140,6 +196,46 @@ public class WorldEventLog {
 		}
 		bundle.put( BEGUN_IDS, begunIds );
 		bundle.put( BEGUN_ENDS, begunEnds );
+
+		long[] quenchIds = new long[quench.size()];
+		int[] quenchTurns = new int[quench.size()];
+		i = 0;
+		for (HashMap.Entry<Long, Integer> e : quench.entrySet()){
+			quenchIds[i] = e.getKey();
+			quenchTurns[i] = e.getValue();
+			i++;
+		}
+		bundle.put( QUENCH_IDS, quenchIds );
+		bundle.put( QUENCH_TURNS, quenchTurns );
+
+		long[] barKeys = new long[bars.size()];
+		int[] barTurns = new int[bars.size() * 2];
+		i = 0;
+		for (HashMap.Entry<Long, int[]> e : bars.entrySet()){
+			barKeys[i] = e.getKey();
+			barTurns[2 * i] = e.getValue()[0];
+			barTurns[2 * i + 1] = e.getValue()[1];
+			i++;
+		}
+		bundle.put( BAR_KEYS, barKeys );
+		bundle.put( BAR_TURNS, barTurns );
+
+		int[] hold = new int[holdovers.size() * 3];
+		for (i = 0; i < holdovers.size(); i++) System.arraycopy( holdovers.get( i ), 0, hold, 3 * i, 3 );
+		bundle.put( HOLD_DATA, hold );
+		long[] woundIds = new long[wounds.size()];
+		int[] woundHps = new int[wounds.size()], woundEnd = new int[wounds.size()];
+		i = 0;
+		for (HashMap.Entry<Long, Integer> e : wounds.entrySet()){
+			Integer end = woundEnds.get( e.getKey() );
+			woundIds[i] = e.getKey();
+			woundHps[i] = e.getValue();
+			woundEnd[i] = end != null ? end : 0;
+			i++;
+		}
+		bundle.put( WOUND_IDS, woundIds );
+		bundle.put( WOUND_HPS, woundHps );
+		bundle.put( WOUND_ENDS, woundEnd );
 	}
 
 	/** What a co-op guest's world map is built from (OverworldLevel.mapEvents): the events heard
@@ -198,6 +294,38 @@ public class WorldEventLog {
 		} else {
 			//a save from before hunts were heard of from afar: a hunt was heard of only as it began
 			begun.putAll( announced );
+		}
+
+		//a save from before the wildfires has none of these: each group left empty
+		quench.clear();
+		if (bundle.contains( QUENCH_IDS ) && bundle.contains( QUENCH_TURNS )){
+			long[] ids = bundle.getLongArray( QUENCH_IDS );
+			int[] turns = bundle.getIntArray( QUENCH_TURNS );
+			for (int i = 0; i < Math.min( ids.length, turns.length ); i++) quench.put( ids[i], turns[i] );
+		}
+		bars.clear();
+		if (bundle.contains( BAR_KEYS ) && bundle.contains( BAR_TURNS )){
+			long[] keys = bundle.getLongArray( BAR_KEYS );
+			int[] turns = bundle.getIntArray( BAR_TURNS );
+			for (int i = 0; i < Math.min( keys.length, turns.length / 2 ); i++){
+				bars.put( keys[i], new int[]{ turns[2 * i], turns[2 * i + 1] } );
+			}
+		}
+		holdovers.clear();
+		if (bundle.contains( HOLD_DATA )){
+			int[] hold = bundle.getIntArray( HOLD_DATA );
+			for (int i = 0; i + 2 < hold.length; i += 3) holdovers.add( new int[]{ hold[i], hold[i + 1], hold[i + 2] } );
+		}
+		wounds.clear();
+		woundEnds.clear();
+		if (bundle.contains( WOUND_IDS ) && bundle.contains( WOUND_HPS ) && bundle.contains( WOUND_ENDS )){
+			long[] ids = bundle.getLongArray( WOUND_IDS );
+			int[] hps = bundle.getIntArray( WOUND_HPS ), ends = bundle.getIntArray( WOUND_ENDS );
+			int n = Math.min( ids.length, Math.min( hps.length, ends.length ) );
+			for (int i = 0; i < n; i++){
+				wounds.put( ids[i], hps[i] );
+				woundEnds.put( ids[i], ends[i] );
+			}
 		}
 	}
 

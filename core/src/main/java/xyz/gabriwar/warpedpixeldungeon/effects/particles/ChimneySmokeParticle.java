@@ -287,6 +287,12 @@ public class ChimneySmokeParticle extends WeatherParticle {
 		return column( kind, x, y, w, h, interval, gateDX, gateDY, gated, false, false, AGED );
 	}
 
+	/** A column of a kind of its own pouring SOOT, ungated (seen over the fog from anywhere in the
+	 *  window), already smoking: a wildfire's (effects/NatureDecor). */
+	public static <T extends Column> T soot( Class<T> kind, float x, float y, float w, float h, float interval ){
+		return column( kind, x, y, w, h, interval, 0, 0, false, true, false, AGED );
+	}
+
 	/** A column of a kind of its own over a fire only now lit (a homestead's kiln, a tree a bolt
 	 *  struck): no puff on its way up yet, the first one still to come out of its mouth. */
 	public static <T extends Column> T kindle( Class<T> kind, float x, float y, float w, float h, float interval,

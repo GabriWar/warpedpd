@@ -30,6 +30,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bison;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Camel;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Deer;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Goat;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.HuntPack;
@@ -64,8 +66,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
- * The hero's rope on the world's peaceful beasts (Leadable: deer, goats, bunnies). Nothing is
- * tamed: an animal is ROPED and PULLED, TIED to a post, or PENNED in.
+ * The hero's rope on the world's peaceful beasts (Leadable: deer, goats, bunnies, bison, camels,
+ * and a horse once it is tamed: homestead/mounts/Taming). Nothing else is tamed: an animal is
+ * ROPED and PULLED, TIED to a post, or PENNED in.
  *
  * LEASH (a rope's action, thrown over an animal up to LASSO cells off that the hero sees with
  * nothing in the way - past a deer's or a goat's shyness, so a wary beast is roped as it eyes him):
@@ -225,6 +228,8 @@ public final class Roping {
 		if (cell < 0 || cell >= level.length()) return "not_animal";
 		Char ch = Actor.findChar( cell );
 		if (!(ch instanceof Mob) || !leadable( (Mob) ch )) return "not_animal";
+		String own = ((Leadable) ch).ropeRefusal();
+		if (own != null) return own;
 		if (level.distance( hero.pos, cell ) > LASSO || hero.fieldOfView == null || !hero.fieldOfView[cell]
 				|| new Ballistica( hero.pos, cell, Ballistica.PROJECTILE ).collisionPos != cell) return "too_far";
 		return null;
@@ -279,6 +284,8 @@ public final class Roping {
 		if (hero != Dungeon.hero) return "host_only";
 		if (!(Dungeon.level instanceof OverworldLevel)) return "not_here";
 		if (!leadable( m )) return "not_animal";
+		String own = ((Leadable) m).ropeRefusal();
+		if (own != null) return own;
 		Leashed t = rope( m );
 		if (t != null && t.mode == Leashed.Mode.LEASHED) return "already";
 		if (leashed( Dungeon.level ).size() >= MAX_LEASHED) return "too_many";
@@ -387,9 +394,10 @@ public final class Roping {
 		if (h.sprite != null) h.sprite.drop();
 	}
 
-	/** The meat an animal gives the butcher: two for a deer or a goat, one for anything smaller. */
+	/** The meat an animal gives the butcher: two for a deer, a goat, a bison or a camel, one for
+	 *  anything smaller. */
 	public static int meatOf( Mob m ){
-		return m instanceof Deer || m instanceof Goat ? 2 : 1;
+		return m instanceof Deer || m instanceof Goat || m instanceof Bison || m instanceof Camel ? 2 : 1;
 	}
 
 	/**

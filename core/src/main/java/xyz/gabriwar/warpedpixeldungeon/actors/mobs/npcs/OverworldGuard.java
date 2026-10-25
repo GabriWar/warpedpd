@@ -214,7 +214,12 @@ public class OverworldGuard extends NPC {
 		//a call to arms in a raid, and the village's gratitude for days after the hero beat it off
 		if (RaidEvent.ongoing( homeSector )) yell( Messages.get( this, "raid" ) );
 		else if (RaidEvent.favoured( homeSector )) yell( Messages.get( this, "grateful" ) );
-		else yell( Messages.get( this, "line_" + Random.Int( 3 ) ) );
+		else {
+			//the way to the elder for a parcel, and friendlier words as the village's standing grows
+			//(bounty/BountyActions.guardLine)
+			String friendly = xyz.gabriwar.warpedpixeldungeon.bounty.BountyActions.guardLine( this );
+			yell( friendly != null ? friendly : Messages.get( this, "line_" + Random.Int( 3 ) ) );
+		}
 		return true;
 	}
 

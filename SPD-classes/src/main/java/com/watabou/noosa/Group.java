@@ -32,9 +32,10 @@ public class Group extends Gizmo {
 
 	protected ArrayList<Gizmo> members;
 
-	/** Read-only view of the member list, for whole-scene traversals. */
+	/** Read-only view of the member list, for whole-scene traversals; empty once the group is destroyed
+	 *  (a window closed by a tap on one of its own buttons, mid-update). */
 	public synchronized ArrayList<Gizmo> membersView() {
-		return new ArrayList<>( members );
+		return members == null ? new ArrayList<>() : new ArrayList<>( members );
 	}
 	
 	// Accessing it is a little faster,

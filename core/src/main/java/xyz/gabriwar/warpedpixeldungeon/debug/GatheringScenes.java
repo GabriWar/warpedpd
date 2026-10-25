@@ -279,7 +279,7 @@ final class GatheringScenes {
 	// ----------------------------------------------------------------- helpers
 
 	//a tool in the pack (known, uncursed), at the hero's feet when the pack is full
-	private static void give( Hero hero, Class<? extends Item> cls ){
+	static void give( Hero hero, Class<? extends Item> cls ){
 		Item item = Reflection.newInstance( cls );
 		if (item == null) return;
 		item.cursed = false;
@@ -291,13 +291,13 @@ final class GatheringScenes {
 	}
 
 	//a cell the hero may be set down on
-	private static boolean standable( OverworldLevel ow, int c ){
+	static boolean standable( OverworldLevel ow, int c ){
 		return ow.passable[c] && !ow.pit[c] && (Actor.findChar( c ) == null || c == Dungeon.hero.pos)
 				&& (Terrain.flags[ow.map[c]] & Terrain.LIQUID) == 0;
 	}
 
 	//anything beside the cell (its 8 neighbours) the test likes
-	private static boolean beside( OverworldLevel ow, int c, IntPredicate test ){
+	static boolean beside( OverworldLevel ow, int c, IntPredicate test ){
 		for (int n : PathFinder.NEIGHBOURS8){
 			int m = c + n;
 			if (m >= 0 && m < ow.length() && Math.abs( m % ow.width() - c % ow.width() ) <= 1 && test.test( m )) return true;
@@ -306,7 +306,7 @@ final class GatheringScenes {
 	}
 
 	//the cell nearest `from` (rings out to r, inside the window's rim) the test likes, -1 for none
-	private static int nearest( OverworldLevel ow, int from, int r, IntPredicate test ){
+	static int nearest( OverworldLevel ow, int from, int r, IntPredicate test ){
 		int w = ow.width(), fx = from % w, fy = from / w;
 		for (int d = 0; d <= r; d++){
 			for (int dy = -d; dy <= d; dy++){
@@ -322,7 +322,7 @@ final class GatheringScenes {
 	}
 
 	//"12 cells to the north-east" of `from`: north is up the screen
-	private static String where( OverworldLevel ow, int from, int cell ){
+	static String where( OverworldLevel ow, int from, int cell ){
 		int w = ow.width(), dx = cell % w - from % w, dy = cell / w - from / w;
 		int d = Math.max( Math.abs( dx ), Math.abs( dy ) );
 		if (d == 0) return "under you";

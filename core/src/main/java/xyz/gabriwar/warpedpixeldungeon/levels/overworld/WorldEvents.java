@@ -79,6 +79,19 @@ import java.util.Map;
  * (announceSectors -1): the raid by the smoke a hero sees from afar, the hunt by the pack's howl
  * as night falls within a sector of a hero (HuntEvent.HEAR), long before it starts.
  *
+ * A WILDFIRE, a FLOOD and an ECLIPSE (WildfireEvent, FloodEvent, EclipseEvent) belong to the
+ * weather and the sky, so no schedule names them on its own: a fire needs a hot dry spell, a flood
+ * a long rain in the wet season, and an eclipse is heralded to whoever is about the day before.
+ * The host writes each into the log as it comes about (WorldEventLog.forced, the list a debug
+ * scene's events go in too), and from there it is enumerated, pinned, saved and shipped to co-op
+ * guests like any other. Each says itself (announceSectors -1).
+ * Three more keep the seasons and the wilds: a human village's FESTIVAL, a day and a night once
+ * a season (FestivalEvent); a DEER MIGRATION across a region in spring and autumn, wolves on its
+ * trail (MigrationEvent); and a ROAMING BEAST with a name of its own, abroad in a region for
+ * days (RoamerEvent). The two seasonal ones read the season of their own days (EventSeasons),
+ * a pure function of the day on both clocks. All three announce themselves too, and the two that
+ * move are pinned on the map where they are now (onMap).
+ *
  * An event's identity is idOf(type, anchor sector, start day); one a debug scene forces gets
  * an id of its own (forcedId), which never equals a natural one.
  */
@@ -120,7 +133,19 @@ public final class WorldEvents {
 		//bandits raid a human village for a day (RaidEvent)
 		RAID       ( 0x7A1DE7E5L, 0xFFFF7F1E, -1, "raid" ),
 		//a wolf pack runs down a deer on its hunting ground, one night (HuntEvent)
-		HUNT       ( 0x40B7E4A5L, 0xFFB98A4E, -1, "hunt" );
+		HUNT       ( 0x40B7E4A5L, 0xFFB98A4E, -1, "hunt" ),
+		//a fire in the woods or the meadows, a dry spell's, spreading for a day or two (WildfireEvent)
+		WILDFIRE   ( 0x5F1D7E11L, 0xFFE03A1A, -1, "wildfire" ),
+		//the rivers over their banks after a long rain in the wet season (FloodEvent)
+		FLOOD      ( 0xF100D5E1L, 0xFF3C8CE6, -1, "flood" ),
+		//the moon across the sun for a few hours of a day, heralded the day before (EclipseEvent)
+		ECLIPSE    ( 0xEC1195E1L, 0xFF8C64DC, -1, "eclipse" ),
+		//a human village holds its festival for a day and a night, once a season (FestivalEvent)
+		FESTIVAL   ( 0xFE57A1F5L, 0xFFC6F23C, -1, "festival" ),
+		//a herd of deer crosses a region over four days in spring and autumn, wolves on its trail (MigrationEvent)
+		MIGRATION  ( 0x41687E2DL, 0xFF52E6A0, -1, "migration" ),
+		//a great beast with a name of its own roams a region for eight days (RoamerEvent)
+		ROAMER     ( 0x20A3E4B5L, 0xFFE8306E, -1, "roamer" );
 
 		public final long salt;            //id salt: stable across enum reordering (ids are bundled)
 		public final int pin;              //world map pin colour, ARGB
@@ -162,9 +187,15 @@ public final class WorldEvents {
 			return turn >= startTurn && turn < endTurn;
 		}
 
-		/** The first turn nothing of it is left on the land: a star's crater outlasts its loot. */
+		/** The first turn nothing of it is left on the land: a star's crater outlasts its loot, a
+		 *  wildfire's scar its flames (the trees grown back), a flood's mud its water. */
 		public int lingersUntil(){
-			return type == Type.FALLEN_STAR ? startTurn + STAR_SCAR_DAYS * FC : endTurn;
+			switch (type){
+				case FALLEN_STAR: return startTurn + STAR_SCAR_DAYS * FC;
+				case WILDFIRE:    return endTurn + WildfireEvent.SCAR_TURNS;
+				case FLOOD:       return endTurn + FloodEvent.MUD_TURNS;
+				default:          return endTurn;
+			}
 		}
 
 		/** Is a star's crater on the ground at this turn? */
@@ -235,6 +266,20 @@ public final class WorldEvents {
 		return openGround( t ) || t == Terrain.SHRUB;
 	}
 
+	/** May an event lay this terrain on this pristine ground (the window's overlay, OverworldLevel's
+	 *  scorch): embers on ground a star scorches, a burnt tree's stump or sapling only where its own
+	 *  kind of tree stands, a flood's water on a bank's open ground and its mud there or on a road. */
+	public static boolean layable( int laid, int pristine ){
+		switch (laid){
+			case Terrain.EMBERS: return scorchable( pristine );
+			case Terrain.STUMP_OAK: case Terrain.SAPLING_OAK: return pristine == Terrain.TREE_OAK;
+			case Terrain.STUMP_PINE: case Terrain.SAPLING_PINE: return pristine == Terrain.TREE_PINE;
+			case Terrain.WATER: return FloodEvent.floodable( pristine );
+			case Terrain.MUD: return FloodEvent.floodable( pristine ) || pristine == Terrain.DIRT_PATH;
+			default: return false;
+		}
+	}
+
 	//inside a settlement's berth (its fence, three out from its houses' reach) widened by the
 	//crater's two cells and one more, or within eight of any other site's heart (a dragon's
 	//lair is five across, then the crater and one)
@@ -242,10 +287,12 @@ public final class WorldEvents {
 		int sx0 = Math.floorDiv( wx, WorldStructures.SECTOR ), sy0 = Math.floorDiv( wy, WorldStructures.SECTOR );
 		for (int sy = sy0 - 1; sy <= sy0 + 1; sy++){
 			for (int sx = sx0 - 1; sx <= sx0 + 1; sx++){
-				WorldStructures.Site t = WorldStructures.siteType( seed, sx, sy );
+				//the land's places (landType): the sea's do not stand on a sector's site cell, and a
+				//star they would keep off is one that could fall before them
+				WorldStructures.Site t = WorldStructures.landType( seed, sx, sy );
 				if (t == WorldStructures.Site.NONE) continue;
-				int d = Math.max( Math.abs( WorldStructures.siteX( seed, sx, sy ) - wx ),
-						Math.abs( WorldStructures.siteY( seed, sx, sy ) - wy ) );
+				int d = Math.max( Math.abs( WorldStructures.placeX( seed, sx, sy ) - wx ),
+						Math.abs( WorldStructures.placeY( seed, sx, sy ) - wy ) );
 				int reach = t == WorldStructures.Site.VILLAGE
 						? WorldStructures.settlementLayout( seed, sx, sy )[0] + 3 + 3 : 8;
 				if (d <= reach) return true;
@@ -390,6 +437,29 @@ public final class WorldEvents {
 				if (e != null && within( e, csx, csy, radius ) && e.overlapsDay( day )) out.add( e );
 			}
 		}
+		//a festival runs from its morning into the next one: the day's own, and the day before's
+		for (int sy = csy - radius; sy <= csy + radius; sy++){
+			for (int sx = csx - radius; sx <= csx + radius; sx++){
+				for (int d = day - 1; d <= day; d++){
+					Event f = FestivalEvent.festivalEvent( seed, sx, sy, d );
+					if (f != null && f.overlapsDay( day )) out.add( f );
+				}
+			}
+		}
+		//a herd keeps to its season and a beast to its period: the one each region has now, if any
+		for (int ry = Math.floorDiv( csy - radius, MigrationEvent.REGION ); ry <= Math.floorDiv( csy + radius, MigrationEvent.REGION ); ry++){
+			for (int rx = Math.floorDiv( csx - radius, MigrationEvent.REGION ); rx <= Math.floorDiv( csx + radius, MigrationEvent.REGION ); rx++){
+				Event e = MigrationEvent.migration( seed, rx, ry, day );
+				if (e != null && within( e, csx, csy, radius ) && e.overlapsDay( day )) out.add( e );
+			}
+		}
+		int roam = Math.floorDiv( day, RoamerEvent.PERIOD );
+		for (int ry = Math.floorDiv( csy - radius, RoamerEvent.REGION ); ry <= Math.floorDiv( csy + radius, RoamerEvent.REGION ); ry++){
+			for (int rx = Math.floorDiv( csx - radius, RoamerEvent.REGION ); rx <= Math.floorDiv( csx + radius, RoamerEvent.REGION ); rx++){
+				Event e = RoamerEvent.roamer( seed, rx, ry, roam );
+				if (e != null && within( e, csx, csy, radius ) && e.overlapsDay( day )) out.add( e );
+			}
+		}
 		if (forced != null){
 			for (Event e : forced){
 				if (!within( e, csx, csy, radius ) || !e.overlapsDay( day )) continue;
@@ -439,6 +509,17 @@ public final class WorldEvents {
 			out.add( e );
 		}
 		return out;
+	}
+
+	/** Where an event stands on the world map at a turn: a migrating herd's middle (MigrationEvent),
+	 *  a roaming beast's haunt (RoamerEvent), every other event where it was laid. The same event
+	 *  (its id, its times) at that place. Pure: any thread. */
+	public static Event onMap( long seed, Event e, int turn ){
+		switch (e.type){
+			case MIGRATION: return MigrationEvent.onMap( seed, e, turn );
+			case ROAMER:    return RoamerEvent.onMap( seed, e, turn );
+			default:        return e;
+		}
 	}
 
 	private static final String[] OCTANTS = { "e", "ne", "n", "nw", "w", "sw", "s", "se" };

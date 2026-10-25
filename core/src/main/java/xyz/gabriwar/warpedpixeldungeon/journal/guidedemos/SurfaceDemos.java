@@ -29,6 +29,8 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Light;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Poison;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.AlbinoRat;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Alligator;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bison;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Deer;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Goat;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.GrayWolf;
@@ -57,6 +59,8 @@ public final class SurfaceDemos {
 
 	public static void register( DemoBook book ){
 		wolfHunt( book );
+		herdCharge( book );
+		gatorDrag( book );
 		goatButt( book );
 		dragonSpit( book );
 		firedamp( book );
@@ -104,6 +108,70 @@ public final class SurfaceDemos {
 				.icon( "wolf1", Icons.ALERT ).icon( "wolf2", Icons.ALERT )
 				.face( "wolf1", 5, 3 ).face( "wolf2", 5, 3 )
 				.caption( "close" )
+				.turns( 2 );
+	}
+
+	//A bison struck by anyone turns its herd on him (Bison.provoke, HERD cells); a bison that ran at him
+	//on its last turn strikes half again as hard (16 to 30, CHARGE_HIT) and throws him a tile straight
+	//back (Bison.attackProc, Goat.shoveCell). Here the struck one's herd mate runs at him from two
+	//tiles off and throws him diagonally away from it.
+	private static void herdCharge( DemoBook book ){
+		book.demo( "surface_beasts" ).under( "hit one and every bison within 8 tiles charges you" )
+				.stage( Demo.Region.SEWERS,
+						"\"\"\"\"\"\"\"",
+						"\"\"\"\"\"\"\"",
+						"\"\"\"\"\"\"\"",
+						"\"\"\"\"\"\"\"",
+						"\"\"\"\"\"\"\"" )
+				.mob( "b1", Bison.class, 3, 2 )
+				.mob( "b2", Bison.class, 1, 1 )
+				.hero( "you", 4, 2 )
+				.face( "you", 3, 2 )
+				.caption( "graze" )
+				.turn()
+				.attack( "you", 3, 2 ).beat().hurt( "b1", 9 )
+				.icon( "b1", Icons.ALERT ).icon( "b2", Icons.ALERT )
+				.face( "b1", 4, 2 ).face( "b2", 4, 2 )
+				.caption( "herd" )
+				.turn()
+				.move( "b2", 2, 1 )
+				.turn()
+				.move( "b2", 3, 1 )
+				.beat()
+				.attack( "b2", 4, 2 ).beat().hurt( "you", 36 )
+				.knock( "you", 5, 3 )
+				.caption( "throw" )
+				.turns( 2 );
+	}
+
+	//An alligator lies in the swamp's water, its lurk showing only its eyes (AlligatorSprite); whoever
+	//steps beside it it bursts out at: its ambush bite never misses and lands half again as hard (20
+	//to 36, AMBUSH_HIT), and it backs into the water behind it and drags him onto the cell it left
+	//(Alligator.drag).
+	private static void gatorDrag( DemoBook book ){
+		book.demo( "surface_beasts" ).under( "Step next to one and it bursts out" )
+				.stage( Demo.Region.SEWERS,
+						"\"\"\"\"\"\"\"",
+						"\"\"~~~\"\"",
+						"\"\"~~~\"\"",
+						"\"\"\"\"\"\"\"",
+						"\"\"\"\"\"\"\"" )
+				.mob( "gator", Alligator.class, 3, 2 )
+				.hero( "you", 3, 4 )
+				.anim( "gator", "lurk" )
+				.caption( "lurk" )
+				.turn()
+				.move( "you", 3, 3 )
+				.turn()
+				.attack( "gator", 3, 3 ).beat().hurt( "you", 42 )
+				.caption( "bite" )
+				.beat()
+				.anim( "gator", "swim" )
+				.knock( "gator", 3, 1 )
+				.knock( "you", 3, 2 )
+				.caption( "drag" )
+				.turn()
+				.anim( "gator", "lurk" )
 				.turns( 2 );
 	}
 

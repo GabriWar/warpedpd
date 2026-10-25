@@ -808,23 +808,25 @@ public abstract class CritterSprite extends Image {
 	public static class Butterfly extends CritterSprite {
 
 		//cabbage white, brimstone, orange tip, common blue: the pale art takes the tint
-		private static final int[] COLOURS = { 0xF4F4EC, 0xF4DC50, 0xF09838, 0x78A8F8 };
+		public static final int[] COLOURS = { 0xF4F4EC, 0xF4DC50, 0xF09838, 0x78A8F8 };
 		private static final float[] ODDS = { 0.35f, 0.30f, 0.20f, 0.15f };
 		private static final int[] FLUTTER = { 0, 1, 2, 1 };
 
+		//which of COLOURS it is (the bug net names it by it: items/catching/Critter.butterfly)
+		private final int colour;
 		private float heading, pace, fps, span, bob, height, startled;
 
 		public Butterfly( float ax, float ay ){
+			this( ax, ay, rollColour() );
+		}
+
+		/** One of a colour (its place in COLOURS): a butterfly let out of a jar. */
+		public Butterfly( float ax, float ay, int colour ){
 			super( ax, ay );
 			origin.set( 7, 8 );
 			pose( ROW_BUTTERFLY, 0 );
-			float roll = RNG.nextFloat();
-			int c = 0;
-			while (c < COLOURS.length - 1 && roll >= ODDS[c]){
-				roll -= ODDS[c];
-				c++;
-			}
-			hardlight( COLOURS[c] );
+			this.colour = Math.max( 0, Math.min( COLOURS.length - 1, colour ) );
+			hardlight( COLOURS[this.colour] );
 			heading = rf( 0f, 6.2832f );
 			pace = rf( 10f, 16f );
 			fps = rf( 10f, 14f );
@@ -832,6 +834,22 @@ public abstract class CritterSprite extends Image {
 			bob = rf( 0f, 6.2832f );
 			height = rf( 8f, 14f );
 			shown = 0f;
+		}
+
+		//a colour by its odds, on the critters' own dice
+		private static int rollColour(){
+			float roll = RNG.nextFloat();
+			int c = 0;
+			while (c < COLOURS.length - 1 && roll >= ODDS[c]){
+				roll -= ODDS[c];
+				c++;
+			}
+			return c;
+		}
+
+		/** Which of COLOURS it is. */
+		public int colour(){
+			return colour;
 		}
 
 		/** Something brushed past: away from it, twice as fast, for a moment. */

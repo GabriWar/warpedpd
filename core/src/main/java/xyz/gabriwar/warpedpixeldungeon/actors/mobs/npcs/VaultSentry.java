@@ -76,8 +76,26 @@ public class VaultSentry extends NPC {
 
 	private ArrayList<Integer> recentZaps = new ArrayList<>();
 
+	//a sentry no vault room set up (the debug menu's mob spawner makes a bare one) scans as the
+	//cross room's does: a quarter turn at a time, 4 tiles out, every third turn
+	private void ensureScanPattern(){
+		if (scanDirs != null) return;
+		int w = Dungeon.level.width();
+		scanLength = 4;
+		scanWidth = 90;
+		afterScanCooldown = 3;
+		scanDirs = new int[][]{
+				new int[]{pos-1},
+				new int[]{pos-w},
+				new int[]{pos+1},
+				new int[]{pos+w},
+		};
+	}
+
 	@Override
 	protected boolean act() {
+		ensureScanPattern();
+
 		if (!seen && Dungeon.level.heroFOV[pos]){
 			Bestiary.setSeen(getClass());
 			seen = true;
@@ -259,6 +277,7 @@ public class VaultSentry extends NPC {
 	@Override
 	public void storeInBundle(Bundle bundle) {
 		super.storeInBundle(bundle);
+		ensureScanPattern();
 		bundle.put(SCAN_WIDTH, scanWidth);
 		bundle.put(SCAN_LENGTH, scanLength);
 		bundle.put(SCAN_DIR_IDX, scanDirIdx);

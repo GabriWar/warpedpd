@@ -505,6 +505,8 @@ public enum Bestiary {
 		classConversions.put(VaultElemental.Frost.class,       Elemental.FrostElemental.class);
 		classConversions.put(VaultElemental.Shock.class,       Elemental.ShockElemental.class);
 		classConversions.put(VaultGolem.class,                 Golem.class);
+		//the deer that come to an oasis at dusk are the meadows' (levels/overworld/DrylandsLife)
+		classConversions.put(xyz.gabriwar.warpedpixeldungeon.actors.mobs.OasisDeer.class, xyz.gabriwar.warpedpixeldungeon.actors.mobs.Deer.class);
 
 		classConversions.put(DwarfKing.DKGhoul.class,          Ghoul.class);
 		classConversions.put(DwarfKing.DKWarlock.class,        Warlock.class);
@@ -570,6 +572,9 @@ public enum Bestiary {
 			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.DwarvenForge.class,
 			//a summit's cairn on the peaks (levels/overworld/MountainSites)
 			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SummitCairn.class,
+			//the wetlands' places' furniture: a witch's cauldron, a sunken shrine's idol (levels/overworld/WetlandSites)
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.WitchCauldron.class,
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SunkenIdol.class,
 			//the homesteads' furniture: a compost bin, a tie post (homestead/farming, homestead/animals)
 			xyz.gabriwar.warpedpixeldungeon.homestead.farming.CompostBin.class,
 			xyz.gabriwar.warpedpixeldungeon.homestead.animals.TiePost.class,
@@ -590,6 +595,8 @@ public enum Bestiary {
 			xyz.gabriwar.warpedpixeldungeon.homestead.stations.Quern.class,
 			xyz.gabriwar.warpedpixeldungeon.homestead.travel.Hearthstone.class,
 			xyz.gabriwar.warpedpixeldungeon.homestead.travel.Waystone.class,
+			//the villages' notice boards (bounty/NoticeBoard)
+			xyz.gabriwar.warpedpixeldungeon.bounty.NoticeBoard.class,
 			xyz.gabriwar.warpedpixeldungeon.net.SpectatorReceiver.NetHeroMob.class,
 			xyz.gabriwar.warpedpixeldungeon.net.SpectatorReceiver.SpectatorMob.class ) );
 

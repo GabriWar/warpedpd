@@ -43,6 +43,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.materials.Charcoal;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.Clay;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.CutStone;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.FiredBrick;
+import xyz.gabriwar.warpedpixeldungeon.items.materials.GatorTooth;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.GlassPane;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.Hide;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.IronFittings;
@@ -55,11 +56,17 @@ import xyz.gabriwar.warpedpixeldungeon.items.materials.Rope;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.RoughStone;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.Sand;
 import xyz.gabriwar.warpedpixeldungeon.items.materials.Thatch;
+import xyz.gabriwar.warpedpixeldungeon.items.materials.VultureFeather;
+import xyz.gabriwar.warpedpixeldungeon.items.misc.Saddle;
 import xyz.gabriwar.warpedpixeldungeon.items.ore.IronOre;
 import xyz.gabriwar.warpedpixeldungeon.items.potions.Potion;
 import xyz.gabriwar.warpedpixeldungeon.items.rarity.MasterworkCore;
+import xyz.gabriwar.warpedpixeldungeon.items.sea.Raft;
+import xyz.gabriwar.warpedpixeldungeon.items.sea.Sailboat;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MasonsHammer;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.WoodcuttersAxe;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.FishingSpear;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.Dart;
 import xyz.gabriwar.warpedpixeldungeon.plants.Plant;
 
 import java.util.ArrayList;
@@ -76,19 +83,26 @@ import java.util.List;
  * to one).
  *
  *   workbench      1 oak or pine log -> 3 planks (10 turns); 3 thatch -> 1 rope (5);
- *                  1 resin + 1 oak log -> 2 torches (5)
+ *                  1 resin + 1 oak log -> 2 torches (5); 2 vulture feathers + 1 plank -> 5 darts
+ *                  (5); 1 alligator tooth + 1 plank -> 2 fishing spears (10); 1 glass pane +
+ *                  1 leather -> sand goggles (20); 3 thatch -> a desert scarf (15); 4 oak or pine
+ *                  logs + 2 rope -> a raft (30)
  *   mason's bench  2 rough stone -> 1 cut stone (10)
  *   kiln (fire)    2 clay -> 2 fired bricks (60); 2 sand -> 1 glass pane (60);
  *                  1 oak or pine log -> 2 charcoal (40)
- *   tanning rack   1 hide -> 1 leather (300)
+ *   tanning rack   1 hide -> 1 leather (300); 2 hides + 1 rope -> a riding saddle (300)
  *   forge (fire)   1 iron ore -> 4 iron fittings (40); 2 iron fittings + 2 planks -> a woodcutter's
- *                  axe, or a mason's hammer (60 each)
+ *                  axe, or a mason's hammer (60 each); 12 planks + 3 rope + 2 iron fittings + 2 hides
+ *                  or leathers -> a sailboat (120)
  *   quern          2 cornwheat shafts -> 1 flour (20)
  *   hearth (fire)  1 flour -> 1 bread (30); 1 raw meat (mystery or monster meat, frozen
  *                  carpaccio) -> 1 grilled meat (5)
  *   cooking pot    1 mystery or monster meat -> 1 stewed meat (10); a blandfruit + a seed of the
  *                  hero's choice -> the blandfruit cooked with it (15); a pasty or phantom meat + a
  *                  ration + a piece of meat -> a meat pie (20)
+ *
+ * and the catching's (items/catching/CatchRecipes), after them: a bug net and a fishing rod at the
+ * workbench, a caught fish grilled at the hearth or poached in the cooking pot.
  */
 public final class StationRecipes {
 
@@ -166,6 +180,18 @@ public final class StationRecipes {
 		add( StationRecipe.at( "rope", Workbench.class ).in( Thatch.class, 3 ).out( Rope.class, 1 ).turns( 5 ).done() );
 		add( StationRecipe.at( "torches", Workbench.class ).in( Resin.class, 1 ).in( Log.class, 1 ).out( Torch.class, 2 ).turns( 5 ).done() );
 		add( StationRecipe.at( "torches_charcoal", Workbench.class ).in( Charcoal.class, 1 ).in( Plank.class, 1 ).out( Torch.class, 2 ).turns( 5 ).done() );
+		//the beasts' parts: a vulture's feathers fletch darts, an alligator's tooth points a spear
+		add( StationRecipe.at( "darts", Workbench.class ).in( VultureFeather.class, 2 ).in( Plank.class, 1 ).out( Dart.class, 5 ).turns( 5 ).done() );
+		add( StationRecipe.at( "fishing_spears", Workbench.class ).in( GatorTooth.class, 1 ).in( Plank.class, 1 )
+				.out( FishingSpear.class, 2 ).turns( 10 ).done() );
+		//what keeps a desert sandstorm off (items/misc/DesertWear): the lenses from the kiln's glass
+		add( StationRecipe.at( "sand_goggles", Workbench.class ).in( GlassPane.class, 1 ).in( Leather.class, 1 )
+				.out( xyz.gabriwar.warpedpixeldungeon.items.misc.SandGoggles.class, 1 ).turns( 20 ).done() );
+		add( StationRecipe.at( "desert_scarf", Workbench.class ).in( Thatch.class, 3 )
+				.out( xyz.gabriwar.warpedpixeldungeon.items.misc.DesertScarf.class, 1 ).turns( 15 ).done() );
+		//a raft for the sea (items/sea): logs lashed together
+		add( StationRecipe.at( "raft", Workbench.class ).inAny( 4, "raft_logs", Log.class, PineLog.class ).in( Rope.class, 2 )
+				.out( Raft.class, 1 ).turns( 30 ).done() );
 
 		//the mason's bench
 		add( StationRecipe.at( "cut_stone", MasonsBench.class ).in( RoughStone.class, 2 ).out( CutStone.class, 1 ).turns( 10 ).done() );
@@ -176,8 +202,10 @@ public final class StationRecipes {
 		add( StationRecipe.at( "charcoal_oak", Kiln.class ).in( Log.class, 1 ).out( Charcoal.class, 2 ).turns( 40 ).heat().done() );
 		add( StationRecipe.at( "charcoal_pine", Kiln.class ).in( PineLog.class, 1 ).out( Charcoal.class, 2 ).turns( 40 ).heat().done() );
 
-		//the tanning rack: slow
+		//the tanning rack: slow; and a riding saddle, two hides tanned and stitched with a rope
 		add( StationRecipe.at( "leather", TanningRack.class ).in( Hide.class, 1 ).out( Leather.class, 1 ).turns( 300 ).done() );
+		add( StationRecipe.at( "saddle", TanningRack.class ).in( Hide.class, 2 ).in( Rope.class, 1 )
+				.out( Saddle.class, 1 ).turns( 300 ).done() );
 
 		//the forge, fired: fittings, and the gathering's tools
 		add( StationRecipe.at( "fittings", Forge.class ).in( IronOre.class, 1 ).out( IronFittings.class, 4 ).turns( 40 ).heat().done() );
@@ -185,6 +213,9 @@ public final class StationRecipes {
 				.out( WoodcuttersAxe.class, 1 ).turns( 60 ).heat().done() );
 		add( StationRecipe.at( "masons_hammer", Forge.class ).in( IronFittings.class, 2 ).in( Plank.class, 2 )
 				.out( MasonsHammer.class, 1 ).turns( 60 ).heat().done() );
+		//a sailboat: a planked hull nailed with fittings, a sail of hides or leather
+		add( StationRecipe.at( "sailboat", Forge.class ).in( Plank.class, 12 ).in( Rope.class, 3 ).in( IronFittings.class, 2 )
+				.inAny( 2, "sail_hides", Hide.class, Leather.class ).out( Sailboat.class, 1 ).turns( 120 ).heat().done() );
 
 		//the quern
 		add( StationRecipe.at( "flour", Quern.class ).in( Cornwheatshaft.class, 2 ).out( Flour.class, 1 ).turns( 20 ).done() );
@@ -209,6 +240,9 @@ public final class StationRecipes {
 				.in( Food.class, 1 )
 				.inAny( 1, "pie_meat", MysteryMeat.class, StewedMeat.class, ChargrilledMeat.class, FrozenCarpaccio.class )
 				.out( MeatPie.class, 1 ).turns( 20 ).done() );
+
+		//the catching's: the bug net and the fishing rod, a fish grilled or poached (items/catching)
+		for (StationRecipe r : xyz.gabriwar.warpedpixeldungeon.items.catching.CatchRecipes.all()) add( r );
 	}
 
 	//a blandfruit cooked with the seed it used (as the alchemy pot's Blandfruit.CookFruit)

@@ -423,13 +423,17 @@ public enum Catalog {
 		ARTIFACTS.addItems(LloydsBeacon.class);
 
 		TRINKETS.addItems(Generator.Category.TRINKET.classes);
+		//the buried temples' relic (levels/Delves): never rolled, every temple cleared gives one
+		TRINKETS.addItems(xyz.gabriwar.warpedpixeldungeon.items.trinkets.SunScarab.class);
 
 		MISC_EQUIPMENT.addItems(BrokenSeal.class, SpiritBow.class, Waterskin.class, VelvetPouch.class,
 				PotionBandolier.class, ScrollHolder.class, MagicalHolster.class, Amulet.class,
 				AnkhChain.class, FoodPouch.class, xyz.gabriwar.warpedpixeldungeon.items.bags.BuildersSatchel.class,
 				AutoPotion.class, Spectacles.class,
 				AresSword.class, CromCruachAxe.class, LokisFlail.class, NeptunusTrident.class,
-				Chainsaw.class, Spork.class, ArmorKit.class );
+				Chainsaw.class, Spork.class, ArmorKit.class,
+				//what keeps a sandstorm off (items/misc/DesertWear)
+				xyz.gabriwar.warpedpixeldungeon.items.misc.SandGoggles.class, xyz.gabriwar.warpedpixeldungeon.items.misc.DesertScarf.class );
 
 
 
@@ -451,7 +455,9 @@ public enum Catalog {
 				Aprico.class, Cornwheatshaft.class, Fish.class, Pasty.FishLeftover.class, Grape.class,
 				Peanut.class, PlantEgg.class,
 				//the homesteads' quern and hearth (homestead/stations)
-				xyz.gabriwar.warpedpixeldungeon.items.food.Flour.class, xyz.gabriwar.warpedpixeldungeon.items.food.Bread.class );
+				xyz.gabriwar.warpedpixeldungeon.items.food.Flour.class, xyz.gabriwar.warpedpixeldungeon.items.food.Bread.class,
+				//an oasis' palms (levels/overworld/DrylandsLife)
+				xyz.gabriwar.warpedpixeldungeon.items.food.Dates.class );
 
 		EXOTIC_POTIONS.addItems(ExoticPotion.exoToReg.keySet().toArray(new Class[0]));
 
@@ -491,6 +497,10 @@ public enum Catalog {
 				SealShard.class, BrokenStaff.class, CloakScrap.class, BowFragment.class, BrokenHilt.class, TornPage.class,
 				SkeletonKey.class, GoldenSkeletonKey.class,
 				Rice.class, Mushroom.class, PuddingCup.class, StoneOre.class,
+				//the tide pools' finds and the swamp witch's wares (items/wetlands)
+				xyz.gabriwar.warpedpixeldungeon.items.wetlands.Seashell.class, xyz.gabriwar.warpedpixeldungeon.items.wetlands.Pearl.class,
+				xyz.gabriwar.warpedpixeldungeon.items.wetlands.WitchsRemedy.class, xyz.gabriwar.warpedpixeldungeon.items.wetlands.BogLantern.class,
+				xyz.gabriwar.warpedpixeldungeon.items.wetlands.WadingBalm.class,
 				//the seeds the land's trees and bushes are planted back with (items/treeseeds)
 				xyz.gabriwar.warpedpixeldungeon.items.treeseeds.Acorn.class, xyz.gabriwar.warpedpixeldungeon.items.treeseeds.PineCone.class,
 				xyz.gabriwar.warpedpixeldungeon.items.treeseeds.BushSeed.class,
@@ -503,6 +513,10 @@ public enum Catalog {
 				xyz.gabriwar.warpedpixeldungeon.items.materials.Thatch.class, xyz.gabriwar.warpedpixeldungeon.items.materials.Rope.class,
 				xyz.gabriwar.warpedpixeldungeon.items.materials.Hide.class, xyz.gabriwar.warpedpixeldungeon.items.materials.Leather.class,
 				xyz.gabriwar.warpedpixeldungeon.items.materials.Charcoal.class, xyz.gabriwar.warpedpixeldungeon.items.materials.IronFittings.class,
+				//what the surface's beasts leave (actors/mobs/Vulture, Alligator)
+				xyz.gabriwar.warpedpixeldungeon.items.materials.VultureFeather.class, xyz.gabriwar.warpedpixeldungeon.items.materials.GatorTooth.class,
+				//the horses' saddle (homestead/mounts)
+				xyz.gabriwar.warpedpixeldungeon.items.misc.Saddle.class,
 				BlueNornStone.class, GreenNornStone.class, OrangeNornStone.class,
 				PurpleNornStone.class, YellowNornStone.class,
 				AdamantArmor.class, AdamantRing.class, AdamantWand.class, AdamantWeapon.class,

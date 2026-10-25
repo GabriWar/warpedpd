@@ -61,8 +61,10 @@ public class WndBag extends WndTabbed {
 	//only one bag window can appear at a time
 	public static Window INSTANCE;
 
+	//every bag's grid is a whole number of these rows: 54 slots (the worn items, the bag, its room) or
+	//the satchel's 36, six or nine across, so no row is left part empty
 	protected static final int COLS_P   = 6;
-	protected static final int COLS_L   = 8;
+	protected static final int COLS_L   = 9;
 	
 	protected static int SLOT_WIDTH_P   = 28;
 	protected static int SLOT_WIDTH_L   = 28;
@@ -73,16 +75,20 @@ public class WndBag extends WndTabbed {
 	protected static final int SLOT_MARGIN	= 1;
 	
 	protected static final int TITLE_HEIGHT	= 14;
+
+	//the worn items' slots that lead every bag's grid: weapon, armor, artifact, misc, ring
+	private static final int WORN_SLOTS	= 5;
 	
 	private ItemSelector selector;
 
 	private int nCols;
 	private int nRows;
+	//every slot the grid lays out (gridSlots)
+	private int slots;
 
 	private int slotWidth;
 	private int slotHeight;
 
-	protected int count;
 	protected int col;
 	protected int row;
 
@@ -113,18 +119,8 @@ public class WndBag extends WndTabbed {
 
 		nCols = PixelScene.landscape() ? COLS_L : COLS_P;
 
-		// Grid rows based on USABLE slots only (capacity minus hidden bags).
-		// Bags are shown as tab buttons at the bottom, not as grid slots.
-		// Without this subtraction, the grid would have extra empty rows
-		// that the player can never fill (one phantom row per ~nCols bags).
-		//
-		// Backpack example: capacity()=50 (43 base + 7 bags), bagCount=7
-		//   → usable slots = 43, which matches Bag.capacity() and the HUD.
-		int bagCount = 0;
-		for (Item item : bag.items) {
-			if (item instanceof Bag) bagCount++;
-		}
-		nRows = (int)Math.ceil((bag.capacity() - bagCount)/(float)nCols);
+		slots = gridSlots( bag, Dungeon.hero.belongings );
+		nRows = (int)Math.ceil(slots/(float)nCols);
 
 		int windowWidth = slotWidth * nCols + SLOT_MARGIN * (nCols - 1);
 
@@ -148,7 +144,7 @@ public class WndBag extends WndTabbed {
 			nCols--;
 			windowWidth = slotWidth * nCols + SLOT_MARGIN * (nCols - 1);
 		}
-		nRows = (int)Math.ceil((bag.capacity() - bagCount)/(float)nCols);
+		nRows = (int)Math.ceil(slots/(float)nCols);
 
 		int fullGridHeight = slotHeight * nRows + SLOT_MARGIN * (nRows - 1);
 		int maxGridHeight  = (int)(PixelScene.uiCamera.height - chrome.marginTop() - 20 - TITLE_HEIGHT);
@@ -162,6 +158,9 @@ public class WndBag extends WndTabbed {
 		add( scrollPane );
 
 		placeItems( bag );
+		//a grid taller than the screen scrolls, and every slot of it is a button: let a drag
+		//that starts on one move the grid (a tap or a long press on it still works)
+		if (fullGridHeight > visibleGridHeight) scrollPane.dragOverButtons();
 
 		resize( windowWidth, windowHeight );
 
@@ -181,6 +180,23 @@ public class WndBag extends WndTabbed {
 		}
 
 		layoutTabs();
+	}
+
+	/**
+	 * Every slot a bag's grid lays out: the worn items, then the bag's own first slot (a sub-bag
+	 * shows itself there, the backpack the champion's second weapon), then its usable room. Bags
+	 * in the backpack are tab buttons at the bottom, not grid slots, so the physical slot each
+	 * takes (Backpack.capacity() counts them) is no room: the backpack's room is Bag.capacity().
+	 * An overfull bag (an item forced in on load) still shows every item.
+	 */
+	public static int gridSlots( Bag bag, Belongings stuff ){
+		int bags = 0, loose = 0;
+		for (Item item : bag.items) {
+			if (item instanceof Bag) bags++;
+			else loose++;
+		}
+		int lead = (bag != stuff.backpack || stuff.secondWep != null) ? 1 : 0;
+		return WORN_SLOTS + lead + Math.max( bag.capacity() - bags, loose );
 	}
 
 	public ItemSelector getSelector() {
@@ -320,7 +336,6 @@ public class WndBag extends WndTabbed {
 		// When viewing a sub-bag, show the bag itself as the first item
 		if (container != Dungeon.hero.belongings.backpack){
 			placeItem(container);
-			count--; // don't count, it's not actually inside of itself
 		} else if (stuff.secondWep != null) {
 			// Champion subclass: second weapon goes to front of backpack view
 			placeItem(stuff.secondWep);
@@ -330,25 +345,23 @@ public class WndBag extends WndTabbed {
 		// --- Bag contents ---
 		// IMPORTANT: Bags (FoodPouch, VelvetPouch, etc.) are completely excluded
 		// from the grid. They appear as tab buttons at the bottom of the window.
-		// Do NOT increment 'count' for bags — that would steal empty grey squares
-		// from the fill loop below, creating phantom unusable gaps in the grid.
+		// Do NOT place them — that would steal empty grey squares from the fill
+		// loop below, creating phantom unusable gaps in the grid.
 		for (Item item : container.items.toArray(new Item[0])) {
 			if (!(item instanceof Bag)) {
 				placeItem( item );
 			}
 		}
 
-		// --- Fill remaining grid with empty slots (grey squares) ---
-		// 'count' tracks how many placeItem() calls were made (via count++ in placeItem).
-		// Fill until the full grid (nRows * nCols) is covered so there are no gaps.
-		while (count < nRows * nCols) {
+		// --- Fill the bag's free room with empty slots (grey squares) ---
+		// One per usable slot left (gridSlots), so the grid shows exactly the room
+		// the bag has: the last row may be short, but no grey square is a lie.
+		while (row * nCols + col < slots) {
 			placeItem( null );
 		}
 	}
 	
 	protected void placeItem( final Item item ) {
-
-		count++;
 
 		int x = col * (slotWidth + SLOT_MARGIN);
 		int y = row * (slotHeight + SLOT_MARGIN);

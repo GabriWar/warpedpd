@@ -84,7 +84,11 @@ public final class VillageRoutine {
 	//ORDINALS ARE SAVED (Settler's bundle): append only, never reorder
 	public enum Role { FARMER, FISHER, CRAFTER, ELDER, LOAFER, HUNTER, GATHERER }
 	//ORDINALS ARE SAVED (Settler's bundle): append only, never reorder
-	public enum Slot { BED, INDOORS, WORK, BREAK, GATHER }
+	public enum Slot { BED, INDOORS, WORK, BREAK, GATHER, DANCE }
+
+	//a festival's dance (FestivalEvent): two rings round the well, the inner turning one way and
+	//the outer the other, each dancer a step on round its ring every DANCE_LEG turns
+	public static final int DANCE_INNER = 3, DANCE_OUTER = 5, DANCE_LEG = 2;
 
 	public enum Weather { FAIR, RAIN, SNOW, STORM }
 	//what a spot is: where a settler stands for it, and what it does there
@@ -352,6 +356,34 @@ public final class VillageRoutine {
 		return s;
 	}
 
+	/** Where a member's day goes while its settlement holds its festival (FestivalEvent): all work
+	 *  is put by for the well and the stalls by day; from dusk everyone but the old folk dances
+	 *  round the well, on into the night until each one's own late hour (revelry), while the elders
+	 *  watch from the well and turn in as ever. The weather still sends everyone in, and the dawn
+	 *  after is slept through. */
+	public static Slot festivalSlot( Role r, Slot s, Clock c, int p ){
+		if (s == Slot.INDOORS) return s;
+		switch (c.phase){
+			case DAY:
+				return Slot.GATHER;
+			case DUSK:
+				if (s == Slot.BED) return s;
+				return r == Role.ELDER ? Slot.GATHER : Slot.DANCE;
+			case NIGHT: {
+				Weather w = c.weatherFor( p );
+				if (r == Role.ELDER || w == Weather.RAIN || w == Weather.STORM) return s;
+				return c.progress < revelry( p ) ? Slot.DANCE : Slot.BED;
+			}
+			default:
+				return s;
+		}
+	}
+
+	//how far into the festival's night a member dances before bed
+	static float revelry( int p ){
+		return 0.25f + 0.3f * unit( p, 8 );
+	}
+
 	/** The leg of its round a member's working spot was set for: a hunter's moves on along
 	 *  the fence every HUNT_LEG turns and a gatherer's along the brush every FORAGE_LEG, each
 	 *  on a turn of its own (spot), so a clan never sets off as one; every other spot holds
@@ -514,6 +546,7 @@ public final class VillageRoutine {
 			case BED:     return new Target( homeX + ix + px*row, homeY + iy + py*row, Kind.HOME, 1, 0, -1, -1, homeX, homeY, 0 );
 			case INDOORS: return new Target( homeX + px*row, homeY + py*row, Kind.HOME, 1, 0, -1, -1, homeX, homeY, 0 );
 			case BREAK: case GATHER: return well( s, c, member, spot, spotHash( family, 0 ), 0 );
+			case DANCE:   return dance( s, spot );
 			default: break;
 		}
 		switch (r){
@@ -576,6 +609,46 @@ public final class VillageRoutine {
 		return new Target( s.cx + ringX( R, k ), s.cy + ringY( R, k ), Kind.RING, 2, 1, s.radius, s.radius + 1, 0, 0, leg );
 	}
 
+	//where a dancer joins its ring (danceRing): a place of its own on it, which it then steps on
+	//round (danceStep). the ring is the band it keeps to
+	static Target dance( Settlement s, long spot ){
+		int R = danceRing( spot );
+		int k = (int) Math.floorMod( spot >>> 12, 8L * R );
+		return new Target( s.cx + ringX( R, k ), s.cy + ringY( R, k ), Kind.RING, 2, 0, R, R, 0, 0, 0 );
+	}
+
+	/** Which of the festival's two dance rings a member dances on: half the village on each. */
+	public static int danceRing( long spot ){
+		return ((spot >>> 7) & 1L) == 0 ? DANCE_INNER : DANCE_OUTER;
+	}
+
+	/** The place k of the cell (dx, dy) on the Chebyshev ring r: ringX and ringY read backwards. */
+	public static int ringIndex( int r, int dx, int dy ){
+		if (dy == -r && dx < r) return dx + r;
+		if (dx == r && dy < r)  return 3 * r + dy;
+		if (dy == r && dx > -r) return 5 * r - dx;
+		return 7 * r - dy;
+	}
+
+	/** The window cell of the next place round its ring a dancer standing on `pos` makes for - the
+	 *  inner ring clockwise, the outer one the other way - or -1: it is off its ring, or there is
+	 *  nowhere on it to stand. The very next place, a step on; past whatever stands on the ring (a
+	 *  house's wall, a tree, the tall grass, a dropped pack), the first place beyond it, which the
+	 *  dancer walks round to (Settler.dance), so a ring never jams behind it. Whether anyone is
+	 *  standing there is the dancer's to see. */
+	public static int danceStep( OverworldLevel ow, Settlement s, int pos, int ring ){
+		int w = ow.width(), places = 8 * ring;
+		int dx = ow.worldX() + pos % w - s.cx, dy = ow.worldY() + pos / w - s.cy;
+		if (Math.max( Math.abs( dx ), Math.abs( dy ) ) != ring) return -1;
+		int k = ringIndex( ring, dx, dy ), turn = ring == DANCE_INNER ? 1 : -1;
+		for (int j = 1; j < places; j++){
+			int p = Math.floorMod( k + turn * j, places );
+			int c = spotCell( ow, s.cx + ringX( ring, p ), s.cy + ringY( ring, p ) );
+			if (c != -1 && standable( ow, c )) return c;
+		}
+		return -1;
+	}
+
 	//the brush of the outer ring, FORAGE_STRIDE cells further along every leg
 	static Target brush( Settlement s, long spot, int leg ){
 		int R = s.radius;
@@ -585,12 +658,14 @@ public final class VillageRoutine {
 
 	// ------------------------------------------------------------ chatter
 
-	/** The line set a member speaks from: the weather and the break have their own, a farmer's
+	/** The line set a member speaks from: the weather, the break and a festival's dance have their own, a farmer's
 	 *  winter work too and his yard in a village with no fields (`farms` false), a loafer by
 	 *  day keeps the old idle lines (line_N), and the rest are trade by hour (farmer_dawn,
 	 *  hunter_night...). */
 	public static String chatStem( Role r, Slot s, Clock c, boolean farms ){
 		if (s == Slot.INDOORS) return "indoors";
+		//only the human villages hold festivals: a gnoll's trade keeps its own lines
+		if (s == Slot.DANCE && !belongs( r, true )) return "dance";
 		if (s == Slot.BREAK) return "break";
 		if (r == Role.FARMER && s == Slot.WORK && c.winter) return "farmer_winter";
 		if (r == Role.FARMER && s == Slot.WORK && !farms) return "farmer_garden";

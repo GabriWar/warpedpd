@@ -341,6 +341,9 @@ public final class StateLooks {
 			case PARALYSED:          return sp.ch == null ? null : new Looks.Stunned( sp, this );
 			case SEEDED:             return new Looks.Seeded( sp );
 			case SURGING:            return new Looks.Surge( sp, this );
+			case BOAT_RAFT:          return new BoatLook( sp, false );
+			case BOAT_SAIL:          return new BoatLook( sp, true );
+			case RIDING:             return new RiddenHorse( sp );
 			default:                 return null;
 		}
 	}

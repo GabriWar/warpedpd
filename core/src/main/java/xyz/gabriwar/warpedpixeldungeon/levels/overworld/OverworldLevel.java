@@ -298,8 +298,49 @@ public class OverworldLevel extends Level {
 	//heights (HazardWatch, where they lie: LayerHazards)
 	private final HazardWatch hazards = new HazardWatch( this );
 
+	//the wetlands' places at work (WetlandSites lays them): their folk, the pools' finds, the
+	//shrines' nights
+	private final Wetlands wetlands = new Wetlands( this );
+
+	/** The wetlands' places of this level at work (the surface's). */
+	public Wetlands wetlands(){
+		return wetlands;
+	}
+
+	/** Is this window cell in a swamp (the window's own biome map, the surface's alone)? Any
+	 *  thread: the map is swapped whole with the window. */
+	public boolean swampAt( int cell ){
+		WindowGenerator.Window b = base;
+		byte[] biomes = b != null ? b.biome : null;
+		return biomes != null && cell >= 0 && cell < biomes.length
+				&& biomes[cell] == WorldModel.Biome.SWAMP.ordinal();
+	}
+
+	/** How thick the swamp's mist lies where the hero stands, 0..1 (WetlandSites.mistDensity):
+	 *  none off the surface's swamps. */
+	public float mistDensity(){
+		if (Dungeon.hero == null || altitude != 0 || !swampAt( Dungeon.hero.pos )) return 0f;
+		return WetlandSites.mistDensity( xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle.phase(),
+				xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle.phaseProgress() );
+	}
+
 	public HazardWatch hazards(){
 		return hazards;
+	}
+
+	//the sea of the surface: its islands and places in the window, what was found of them, the
+	//fishers' stalls, the sharks and the moored boats (SeaWorld; docs/sea.md)
+	private final SeaWorld sea = new SeaWorld( this );
+
+	public SeaWorld sea(){
+		return sea;
+	}
+
+	/** The depth tier of the water on a window cell (WindowGenerator: 1 the wadeable shelf, 2 and
+	 *  more the deep), 0 for anything that is no water of the generator's. Any thread. */
+	public int waterTierAt( int cell ){
+		byte[] d = waterDepth;
+		return d == null || cell < 0 || cell >= d.length ? 0 : d[cell];
 	}
 
 	//the way between slices standing on a window cell (WindowGenerator.LINK_*), LINK_NONE off the window
@@ -446,15 +487,17 @@ public class OverworldLevel extends Level {
 
 		//nobody stands inside a cell the season closed. heaps stay where
 		//they fell (a sunk heap is still a heap); mobs and the hero step to
-		//the nearest open ground
+		//the nearest open ground. the sea's own stay on its deep water: a
+		//shark, a hero aboard his boat or already swimming (sea/Seafaring)
 		for (Mob m : mobs){
-			if (passable[m.pos]) continue;
+			if (passable[m.pos] || m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.Shark) continue;
 			int to = freeSpotWithin( m.pos, 6 );
 			if (to == -1) to = clearSpotNear( m.pos );
 			m.pos = to;
 			if (m.sprite != null) m.sprite.place( to );
 		}
-		if (Dungeon.hero != null && Dungeon.level == this && !passable[Dungeon.hero.pos]){
+		if (Dungeon.hero != null && Dungeon.level == this && !passable[Dungeon.hero.pos]
+				&& !xyz.gabriwar.warpedpixeldungeon.sea.Seafaring.atSea( Dungeon.hero )){
 			int to = freeSpotWithin( Dungeon.hero.pos, 8 );
 			if (to == -1) to = clearSpotNear( Dungeon.hero.pos );
 			Dungeon.hero.interrupt();
@@ -468,7 +511,8 @@ public class OverworldLevel extends Level {
 		if (Dungeon.level == this){
 			for (xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero nh
 					: xyz.gabriwar.warpedpixeldungeon.net.NetManager.allKnownNetHeroes()){
-				if (nh.pos < 0 || nh.pos >= length() || passable[nh.pos]) continue;
+				if (nh.pos < 0 || nh.pos >= length() || passable[nh.pos]
+						|| xyz.gabriwar.warpedpixeldungeon.sea.Seafaring.atSea( nh )) continue;
 				int to = freeSpotWithin( nh.pos, 8 );
 				if (to == -1) to = clearSpotNear( nh.pos );
 				//NOT interrupt(): that resets the host's key-hold state, and this
@@ -481,6 +525,7 @@ public class OverworldLevel extends Level {
 			}
 		}
 		homesteadArrived();
+		marchSeasonTurned();
 
 		if (Dungeon.level == this
 				&& com.watabou.noosa.Game.scene() instanceof xyz.gabriwar.warpedpixeldungeon.scenes.GameScene){
@@ -542,15 +587,18 @@ public class OverworldLevel extends Level {
 		final HashMap<Long, Integer> edits = diffs.isEmpty() ? null : diffs.snapshotIn( ox, oy, ox + WIDTH, oy + HEIGHT );
 		final int version = diffsVersion;
 		//the fallen stars' scorch on that window as it stands now; a star coming down or cooling
-		//before the rebase changes the signature, and the window is derived again then
+		//before the rebase changes the signature, and the window is derived again then. the
+		//wildfires' scars and the flood's lines go with it: the window takes what they laid, and
+		//the live overlay catches up with them once it stands (stampCraters)
 		final HashMap<Long, Integer> scorch = scorchFor( ox, oy );
 		final long scorchSig = scorchSig( ox, oy );
+		final int flood = floodLevels();
 		final long seed = worldSeed;
 		Thread worker = new Thread( () -> {
 			WindowGenerator.Prepared p = null;
 			long t0 = System.currentTimeMillis();
 			try {
-				p = WindowGenerator.prepare( seed, altitude, ox, oy, season, edits, version, scorch, scorchSig );
+				p = WindowGenerator.prepare( seed, altitude, ox, oy, season, edits, version, scorch, scorchSig, flood );
 			} catch (Throwable t){
 				System.out.println( "[OW] window prep failed: " + t );
 			}
@@ -607,6 +655,8 @@ public class OverworldLevel extends Level {
 		layerSites = sites;
 		caveSiteList = java.util.Collections.unmodifiableList( caves );
 		springHeat = peaks.isEmpty() ? null : MountainSites.springHeat( peaks, worldX, worldY );
+		//the oases' shade, where the air is cooler (Drylands, oasisAir)
+		oasisShade = altitude == 0 ? Drylands.shade( worldSeed, worldX, worldY, WIDTH, HEIGHT ) : null;
 		peakSites = java.util.Collections.unmodifiableList( peaks );
 		sealedUnder = w.sealedBelow != null ? w.sealedBelow : new int[0];
 		//the reach of every found place the window holds is known now: the HUD names it there
@@ -615,6 +665,8 @@ public class OverworldLevel extends Level {
 		for (CaveSites.Site s : caves) grown |= knowReach( s.key, s.x0, s.y0, s.x1, s.y1 );
 		for (MountainSites.Site s : peaks) grown |= knowReach( worldKey( s.wx, s.wy ), s.x0, s.y0, s.x1, s.y1 );
 		if (grown) rebuildFoundSnapshot();
+		//the surface's islands and the sea's places the window reaches
+		sea.adopt( w );
 	}
 
 	//a found place's reach, once a window holding it is adopted: whether it was new
@@ -765,7 +817,8 @@ public class OverworldLevel extends Level {
 	 * between the slices, the stairs and any doorway the level keeps as a transition; a sealed
 	 * tomb and its walls; a village's fields; and every cell a settlement or a place of the world
 	 * laid as part of itself - a house's walls and doors, a well, a signpost, a road's bridge, an
-	 * altar or a statue, a barrow's mouth, a hut or tower of the peaks, a cave place's props.
+	 * altar or a statue, a barrow's mouth, a hut or tower of the peaks, a cave place's props, an
+	 * oasis or a buried temple's top.
 	 * Read from the generator's own terrain, so a wall mined away is still the village's.
 	 */
 	public boolean protectedForBuilding( int cell ){
@@ -790,6 +843,8 @@ public class OverworldLevel extends Level {
 		}
 		int wx = worldX + cell % width(), wy = worldY + cell / width();
 		if (altitude == 0){
+			//every cell of an oasis or a buried temple's top (Drylands): its pool, its ring, its stone
+			if (Drylands.placeAt( worldSeed, wx, wy ) != null) return true;
 			return (p == Terrain.WALL || p == Terrain.WALL_DECO) && WorldStructures.wallSite( worldSeed, wx, wy ) != null;
 		} else if (altitude > 0){
 			return MountainSites.wallKey( worldSeed, peakSites, wx, wy ) != null
@@ -858,19 +913,18 @@ public class OverworldLevel extends Level {
 	public int arrivalX, arrivalY;
 
 	//the magic map's waypoint, in world coordinates - the hero auto-walks
-	//toward it across windows (rebases re-aim the walk)
+	//toward it across windows, along a route he plans (marchDestination)
 	public boolean waypointActive = false;
 	//false while the march is PAUSED (player tapped) - the waypoint is kept
 	//and the hud compass tag resumes it
 	public boolean waypointMarching = false;
 	public int waypointX, waypointY;
 
-	/** Puts the hero back on the road toward the kept waypoint. */
+	/** Puts the hero back on the road toward the kept waypoint, planned afresh from where he stands. */
 	public void resumeMarch(){
 		if (!waypointActive) return;
 		waypointMarching = true;
-		marchStallPos = -1;
-		marchStallCount = 0;
+		routeStale = true;
 		aimAtWaypoint();
 	}
 
@@ -1059,7 +1113,13 @@ public class OverworldLevel extends Level {
 		}
 		int cell = localCell( arrivalX, arrivalY );
 		if (cell == -1 && Dungeon.level != this){
+			//the window's mobs are parked on the way, and a parked mob's buffs detach looking at
+			//Dungeon.level (a frozen one, Frost, at its water): null mid-trip, so this window
+			//stands in for it, as it does on a slide
+			Level was = Dungeon.level;
+			Dungeon.level = this;
 			jumpWindowTo( arrivalX, arrivalY );
+			Dungeon.level = was;
 			cell = localCell( arrivalX, arrivalY );
 		}
 		if (cell == -1) cell = Dungeon.hero != null ? Dungeon.hero.pos : width()/2 + height()/2 * width();
@@ -1178,6 +1238,8 @@ public class OverworldLevel extends Level {
 		//so are a slice's places (a camp's trader, a tomb's guard, a hermit, an eyrie's pair): the
 		//next rebase is a long walk away. the wildlife and the surface sites' guardians wait for it
 		if (altitude == 0) populateSettlements();
+		//...and the wetlands' folk (a witch, an idol), furniture of their places as the settlements' are
+		if (altitude == 0) wetlands.populate();
 		if (altitude != 0) populateLayerSites();
 		//the first step settles the new window's events
 		liveEvents = null;
@@ -1197,7 +1259,9 @@ public class OverworldLevel extends Level {
 		//with the first to leave, HuntEvent) and the town's portal gate (placeTownGate puts it
 		//back on its own cell). read BEFORE Actor.remove, which detaches buffs
 		xyz.gabriwar.warpedpixeldungeon.actors.mobs.HuntPack hunting = m.buff( xyz.gabriwar.warpedpixeldungeon.actors.mobs.HuntPack.class );
+		//...nor a shark: the sea's are set down afresh round whoever sails (SeaWorld)
 		if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.RoadWalker
+				|| m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.Shark
 				|| m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.PortalGate
 				|| (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldBandit
 						&& ((xyz.gabriwar.warpedpixeldungeon.actors.mobs.OverworldBandit) m).retreating)
@@ -1206,6 +1270,9 @@ public class OverworldLevel extends Level {
 			if (hunting != null) HuntEvent.lost( this, hunting );
 			return;
 		}
+		//nor a festival's champion, a migrating herd's beast or a roaming beast: each event puts
+		//its own back where it should be (FestivalEvent, MigrationEvent, RoamerEvent)
+		if (FestivalEvent.leaving( this, m ) || MigrationEvent.leaving( this, m ) || RoamerEvent.leaving( this, m )) return;
 		Actor.remove( m );
 		for (xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff b : m.buffs()) Actor.remove( b );
 		m.clearTime();
@@ -1406,6 +1473,18 @@ public class OverworldLevel extends Level {
 						LevelTransition.Type.REGULAR_ENTRANCE ) );
 			}
 		}
+		//the buried temples' stairwells (Drylands): their crypts are the barrows' kind (Delves), opened
+		//the first time someone goes down, so where they lead is filled in then too
+		for (Drylands.Place p : Drylands.places( worldSeed, worldX, worldY, worldX + WIDTH - 1, worldY + HEIGHT - 1 )){
+			if (p.type != WorldStructures.Site.BURIED_TEMPLE) continue;
+			int lx = p.cx - worldX, ly = p.cy - worldY;
+			if (lx < 1 || ly < 1 || lx >= width() - 1 || ly >= height() - 1) continue;
+			int cell = lx + ly * width();
+			if (map[cell] != Terrain.EXIT) continue;
+			transitions.add( new LevelTransition( this, cell, LevelTransition.Type.BRANCH_EXIT,
+					0, xyz.gabriwar.warpedpixeldungeon.levels.Delves.BRANCH_BASE,
+					LevelTransition.Type.REGULAR_ENTRANCE ) );
+		}
 	}
 
 	//the ways between the slices are the window's ENTRANCE (up) and EXIT (down)
@@ -1418,6 +1497,7 @@ public class OverworldLevel extends Level {
 			if (t != Terrain.ENTRANCE && t != Terrain.EXIT) continue;
 			if (!insideMap( cell ) || inTown( cell )) continue;
 			if (altitude == 0 && WorldStructures.delveGate( worldSeed, worldX + cell % width(), worldY + cell / width() )) continue;
+			if (altitude == 0 && Drylands.templeGate( worldSeed, worldX + cell % width(), worldY + cell / width() )) continue;
 			linkTransition( cell );
 		}
 	}
@@ -1447,6 +1527,9 @@ public class OverworldLevel extends Level {
 		int gx = worldX + transition.cell() % width(), gy = worldY + transition.cell() / width();
 		if (altitude == 0 && WorldStructures.delveGate( worldSeed, gx, gy )){
 			return enterDelve( hero, transition, gx, gy );
+		}
+		if (altitude == 0 && Drylands.templeGate( worldSeed, gx, gy )){
+			return enterTemple( hero, transition, gx, gy );
 		}
 		if (transition.destBranch == 0 && WorldLayers.isLayerDepth( transition.destDepth )){
 			arriveAt( worldX + transition.cell() % width(), worldY + transition.cell() / width() );
@@ -1487,6 +1570,39 @@ public class OverworldLevel extends Level {
 					if (index != 0) return;
 					xyz.gabriwar.warpedpixeldungeon.levels.Delves.Entry e
 							= xyz.gabriwar.warpedpixeldungeon.levels.Delves.open( worldSeed, sx, sy );
+					transition.destDepth = e.firstDepth();
+					transition.destBranch = e.branch;
+					transition.destType = LevelTransition.Type.REGULAR_ENTRANCE;
+					OverworldLevel.super.activateTransition( hero, transition );
+				}
+			} ) );
+		return false;
+	}
+
+	//a buried temple's stairwell: no amulet asked, a confirm with its name, level and floors (and a
+	//line saying it is cleared, when it is) before the hero goes down (Delves.openTemple)
+	private boolean enterTemple( xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero,
+			LevelTransition transition, int gx, int gy ){
+		int sx = Math.floorDiv( gx, WorldStructures.SECTOR ), sy = Math.floorDiv( gy, WorldStructures.SECTOR );
+		String name = xyz.gabriwar.warpedpixeldungeon.levels.Delves.templeName( worldSeed, sx, sy );
+		final String desc = Messages.get( Drylands.class, "temple_desc",
+				xyz.gabriwar.warpedpixeldungeon.levels.Delves.templeLevel( worldSeed, sx, sy ),
+				xyz.gabriwar.warpedpixeldungeon.levels.Delves.templeFloors( worldSeed, sx, sy ) )
+				+ (xyz.gabriwar.warpedpixeldungeon.levels.Delves.cleared( sx, sy )
+					? "\n\n" + Messages.get( Drylands.class, "temple_cleared_desc" ) : "");
+		com.watabou.noosa.Game.runOnRenderThread( () ->
+			xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.show(
+					new xyz.gabriwar.warpedpixeldungeon.windows.WndOptions(
+							new xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite(
+									xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet.SUN_SCARAB ),
+							name, desc,
+							Messages.get( Drylands.class, "temple_yes" ),
+							Messages.get( Drylands.class, "temple_no" ) ){
+				@Override
+				protected void onSelect( int index ){
+					if (index != 0) return;
+					xyz.gabriwar.warpedpixeldungeon.levels.Delves.Entry e
+							= xyz.gabriwar.warpedpixeldungeon.levels.Delves.openTemple( worldSeed, sx, sy );
 					transition.destDepth = e.firstDepth();
 					transition.destBranch = e.branch;
 					transition.destType = LevelTransition.Type.REGULAR_ENTRANCE;
@@ -1553,6 +1669,15 @@ public class OverworldLevel extends Level {
 				xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.add( all[i], i >= 2 );
 			}
 		}
+		//the desert places' props, over the dressing (tiles/DrylandsArt)
+		if (dryGround != null){
+			if (dcx != 0 || dcy != 0){
+				dryGround.shiftVisual( dcx, dcy );
+				dryCanopy.shiftVisual( dcx, dcy );
+			}
+			xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.add( dryGround, false );
+			xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.add( dryCanopy, true );
+		}
 		//the roofs, refilled for the new window (built for it as it was adopted)
 		if (roofs != null){
 			for (xyz.gabriwar.warpedpixeldungeon.tiles.RoofLayers.Tiles t : roofs.layers()){
@@ -1572,6 +1697,23 @@ public class OverworldLevel extends Level {
 			}
 		}
 		presentDelveFlags();
+		presentSeaArt( dcx, dcy );
+	}
+
+	//the sea's places, the palms and the moored boats on screen (tiles/SeaArt): laid afresh, never saved
+	private final xyz.gabriwar.warpedpixeldungeon.tiles.SeaArt.Shown seaShown = new xyz.gabriwar.warpedpixeldungeon.tiles.SeaArt.Shown();
+
+	/** The sea's art laid again for the window as it stands (render thread; a no-op off the scene, and
+	 *  while a rebase moves the window: the level is a slide ahead of the screen until its render block,
+	 *  which lays the art again with everything else). */
+	public void presentSeaArt(){
+		if (shifting) return;
+		presentSeaArt( 0, 0 );
+	}
+
+	private void presentSeaArt( int dcx, int dcy ){
+		if (altitude != 0 || !liveScene()) return;
+		xyz.gabriwar.warpedpixeldungeon.tiles.SeaArt.present( this, seaShown, dcx, dcy );
 	}
 
 	//the flags over the cleared barrows the window holds (tiles/DelveFlag), re-laid from the
@@ -1583,7 +1725,9 @@ public class OverworldLevel extends Level {
 		if (altitude == 0){
 			for (int sy = sector0Y(); sy <= sector1Y(); sy++){
 				for (int sx = sector0X(); sx <= sector1X(); sx++){
-					if (WorldStructures.siteType( worldSeed, sx, sy ) != WorldStructures.Site.DUNGEON
+					//a cleared barrow's, and a cleared buried temple's (its crypt is a barrow's kind)
+					WorldStructures.Site site = WorldStructures.siteType( worldSeed, sx, sy );
+					if ((site != WorldStructures.Site.DUNGEON && site != WorldStructures.Site.BURIED_TEMPLE)
 							|| !xyz.gabriwar.warpedpixeldungeon.levels.Delves.cleared( sx, sy )) continue;
 					//planted just behind the stairway, inside the barrow's stone square
 					int lx = WorldStructures.siteX( worldSeed, sx, sy ) - worldX;
@@ -1614,16 +1758,16 @@ public class OverworldLevel extends Level {
 	// ------------------------------------------------------------ the rock's tops
 
 	//the open-sky slices' rock seen from below as the land on top of it (WindowGenerator.Window.top):
-	//per window cell, the tile of its top, the dressing's blends and corners over it, and
-	//whether its scarp is earth; null in the caves
+	//per window cell, the tile of its top, the shores of a tarn up there, the dressing's blends and
+	//corners over it, and whether its scarp is earth; null in the caves
 	private int[] top;
 	private int[][] topParts;
 	private boolean[] earth;
-	//the tops on screen, a view's three parts: under the walls' rims, on every rock cell with
-	//rock in front of it (the rest of the rock shows its face)
+	//the tops on screen, a view's four parts (SliceGroundLayer.PARTS): under the walls' rims, on every
+	//rock cell with rock in front of it (the rest of the rock shows its face)
 	private xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer[] tops;
 
-	private void setTopData( int[] top, int[] blends, int[] corners, boolean[] earth ){
+	private void setTopData( int[] top, int[] shores, int[] blends, int[] corners, boolean[] earth ){
 		this.top = top;
 		this.earth = earth;
 		if (top == null){
@@ -1631,7 +1775,7 @@ public class OverworldLevel extends Level {
 			topParts = null;
 			return;
 		}
-		topParts = new int[][]{ top, blends, corners };
+		topParts = new int[][]{ top, shores, blends, corners };
 		if (tops == null){
 			tops = new xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer[topParts.length];
 			for (int i = 0; i < tops.length; i++) tops[i] = new xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer( xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer.TOPS, i );
@@ -1764,9 +1908,9 @@ public class OverworldLevel extends Level {
 		return true;
 	}
 
-	//the view down from a mountain slice: the ground of the bands below, seen through the
-	//drops, a view's three parts per depth and the rims' shade (WindowGenerator.belowLayers).
-	//null everywhere else
+	//the view down: the ground of the bands below a mountain slice, seen through its drops, or the
+	//floor of the cave slice below, seen through a cave's pits - a view's four parts per depth and the
+	//rims' shade (WindowGenerator.belowLayers). null on the surface
 	private xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer[] below;
 
 	/** whether the ground below shows at this cell: a drop there is drawn as that ground */
@@ -1783,19 +1927,23 @@ public class OverworldLevel extends Level {
 			below = null;
 			return;
 		}
-		int depths = v.depth.length;
+		int depths = v.depth.length, parts = xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer.PARTS;
 		if (below == null){
-			below = new xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer[depths * 3 + 1];
+			below = new xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer[depths * parts + 1];
+			//the ground below in this slice's own tileset (a pit looks down on the caves' floor)
 			for (int d = 0; d < depths; d++){
-				for (int part = 0; part < 3; part++) below[d * 3 + part] = new xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer( d, part );
+				for (int part = 0; part < parts; part++){
+					below[d * parts + part] = new xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer( d, part, tilesTex() );
+				}
 			}
-			below[depths * 3] = new xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer( depths, xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer.TILES );
+			//the rims' shade: the surface's tileset holds it for every slice
+			below[depths * parts] = new xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer( depths, xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer.TILES );
 		}
 		for (int d = 0; d < depths; d++){
-			int[][] parts = { v.depth[d].tiles, v.depth[d].blends, v.depth[d].corners };
-			for (int part = 0; part < 3; part++) below[d * 3 + part].setData( parts[part] );
+			int[][] data = { v.depth[d].tiles, v.depth[d].shores, v.depth[d].blends, v.depth[d].corners };
+			for (int part = 0; part < parts; part++) below[d * parts + part].setData( data[part] );
 		}
-		below[depths * 3].setData( v.shade );
+		below[depths * parts].setData( v.shade );
 		for (xyz.gabriwar.warpedpixeldungeon.tiles.SliceGroundLayer b : below) b.setRect( 0, 0, WIDTH, HEIGHT );
 	}
 
@@ -1841,6 +1989,104 @@ public class OverworldLevel extends Level {
 			all[i].setData( dress[i] );
 		}
 		dressedMap = map.clone();
+		setDryArt();
+	}
+
+	// ------------------------------------------------------- the desert (Drylands)
+
+	//the props of the desert's places on screen (tiles/DrylandsArt): the palms, the rug, the temple
+	//tops' stone; made the first time a window holds one, laid again with every window
+	private xyz.gabriwar.warpedpixeldungeon.tiles.DrylandsArt dryGround, dryCanopy;
+
+	private void setDryArt(){
+		if (altitude != 0) return;
+		int[][] art = Drylands.art( worldSeed, worldX, worldY, map, WIDTH, HEIGHT );
+		if (art == null && dryGround == null) return;
+		if (dryGround == null){
+			dryGround = new xyz.gabriwar.warpedpixeldungeon.tiles.DrylandsArt();
+			dryCanopy = new xyz.gabriwar.warpedpixeldungeon.tiles.DrylandsArt();
+			customTiles.add( dryGround );
+			customWalls.add( dryCanopy );
+		}
+		if (art == null){
+			art = new int[][]{ new int[length()], new int[length()] };
+			java.util.Arrays.fill( art[0], -1 );
+			java.util.Arrays.fill( art[1], -1 );
+		}
+		dryGround.setRect( 0, 0, WIDTH, HEIGHT );
+		dryCanopy.setRect( 0, 0, WIDTH, HEIGHT );
+		dryGround.setData( art[0] );
+		dryCanopy.setData( art[1] );
+	}
+
+	//a cell of a desert place changed in play: its props laid again round it (a prop shows only
+	//while its cell still holds what the place laid). Visual only: a mirror does it too
+	private void redressDry( int cell ){
+		if (dryGround == null || altitude != 0 || cell < 0 || cell >= length()) return;
+		int wx = worldX + cell % width(), wy = worldY + cell / width();
+		if (Drylands.placeAt( worldSeed, wx, wy ) == null) return;
+		int[][] art = Drylands.art( worldSeed, worldX, worldY, map, WIDTH, HEIGHT );
+		if (art == null) return;
+		int w = width(), x0 = cell % w, y0 = cell / w;
+		for (int y = Math.max( 0, y0 - 1 ); y <= Math.min( height() - 1, y0 + 1 ); y++){
+			for (int x = Math.max( 0, x0 - 1 ); x <= Math.min( w - 1, x0 + 1 ); x++){
+				int c = x + y * w;
+				dryGround.setCell( c, art[0][c] );
+				dryCanopy.setCell( c, art[1][c] );
+			}
+		}
+	}
+
+	//the window cells in an oasis' shade (Drylands.shade), null for none
+	private volatile byte[] oasisShade;
+
+	/** The degrees an oasis' shade and water take off the air, and the coolest it makes it. */
+	public static final float OASIS_COOL = 10f, OASIS_FLOOR = 22f;
+
+	/** The air over a cell (TileTemperature.tileTemp): in an oasis' shade cooler by OASIS_COOL, but
+	 *  never cooled below OASIS_FLOOR; elsewhere t as it is. */
+	public float oasisAir( int cell, float t ){
+		byte[] s = oasisShade;
+		if (s == null || cell < 0 || cell >= s.length || s[cell] == 0 || t <= OASIS_FLOOR) return t;
+		return Math.max( OASIS_FLOOR, t - OASIS_COOL );
+	}
+
+	//which window cells are desert as this season has it (desertAt): one immutable answer a window
+	private static final class DesertCache {
+		final int version;
+		final float shift;
+		final byte[] cells;   //0 not asked yet, 1 desert, 2 not
+		DesertCache( int version, float shift, int length ){
+			this.version = version;
+			this.shift = shift;
+			cells = new byte[length];
+		}
+	}
+	private volatile DesertCache desertCache;
+
+	/** Is this window cell desert, the biome as this season makes it (the sandstorm's ground)? Asked
+	 *  of the world model once a cell a window, from any thread. */
+	public boolean desertAt( int cell ){
+		if (altitude != 0 || cell < 0 || cell >= length()) return false;
+		float shift = WorldModel.seasonShift();
+		DesertCache c = desertCache;
+		if (c == null || c.version != windowVersion || c.shift != shift || c.cells.length != length()){
+			c = new DesertCache( windowVersion, shift, length() );
+			desertCache = c;
+		}
+		byte v = c.cells[cell];
+		if (v == 0){
+			v = biomeAtCell( cell ) == WorldModel.Biome.DESERT ? (byte) 1 : (byte) 2;
+			c.cells[cell] = v;
+		}
+		return v == 1;
+	}
+
+	/** The desert's sandstorm blows where the hero stands (actors/Sandstorm): the place's own
+	 *  weather, as the swamps' dawn fog is (ClimateManager.setLocalSandstorm). */
+	public boolean localSandstorm(){
+		return Dungeon.hero != null && altitude == 0
+				&& xyz.gabriwar.warpedpixeldungeon.actors.Sandstorm.strengthAt( this, Dungeon.hero.pos ) > 0f;
 	}
 
 	/**
@@ -1852,6 +2098,9 @@ public class OverworldLevel extends Level {
 	 * Visual only: a mirror does it too.
 	 */
 	public void redressAround( int cell ){
+		redressDry( cell );
+		//a palm felled, a treasure dug up, a wreck's or a lighthouse's cell changed: the sea's art follows
+		if (altitude == 0 && sea.artAt( cell )) com.watabou.noosa.Game.runOnRenderThread( this::presentSeaArt );
 		int[] dm = dressedMap;
 		if (dressGround == null || dm == null || base == null || cell < 0 || cell >= dm.length) return;
 		int was = dm[cell], now = map[cell];
@@ -1881,13 +2130,25 @@ public class OverworldLevel extends Level {
 	/** As redressAround, for many cells changed at once (a window's stumps growing back): one pass of
 	 *  the dressing for them all, not one each. GameScene.updateMap then finds them dressed. */
 	public void redressCells( int[] cells ){
+		for (int cell : cells) redressDry( cell );
+		if (altitude == 0){
+			for (int cell : cells){
+				if (sea.artAt( cell )){
+					com.watabou.noosa.Game.runOnRenderThread( this::presentSeaArt );
+					break;
+				}
+			}
+		}
 		int[] dm = dressedMap;
 		if (dressGround == null || dm == null || base == null) return;
 		java.util.ArrayList<Integer> moved = new java.util.ArrayList<>();
 		for (int cell : cells){
 			if (cell < 0 || cell >= dm.length || dm[cell] == map[cell]) continue;
-			if ((dressDrawn( dm[cell] ) || dressDrawn( map[cell] ))
-					&& !(Terrain.homestead( dm[cell] ) && Terrain.homestead( map[cell] ))) moved.add( cell );
+			if (((dressDrawn( dm[cell] ) || dressDrawn( map[cell] ))
+					&& !(Terrain.homestead( dm[cell] ) && Terrain.homestead( map[cell] )))
+					//a flood's water and mud coming and going: the ground's blends lap to them
+					|| waterish( dm[cell] ) != waterish( map[cell] )
+					|| dm[cell] == Terrain.MUD || map[cell] == Terrain.MUD) moved.add( cell );
 			dm[cell] = map[cell];
 		}
 		if (moved.isEmpty()) return;
@@ -2370,6 +2631,13 @@ public class OverworldLevel extends Level {
 		if (altitude < 0) return Messages.get( this, "place_below", -altitude );
 		int wx = worldX + cell % width(), wy = worldY + cell / width();
 		if (WorldStructures.townCell( wx, wy ) != -1) return "Town";
+		//a place of the wetlands, on its grounds
+		for (WetlandSites.Place p : WetlandSites.placesIn( worldSeed, wx, wy, wx, wy )){
+			if (p.holds( wx, wy )) return WetlandSites.mapName( p.kind );
+		}
+		//a found island, wreck or lighthouse goes by its own name (SeaWorld)
+		String seaName = sea.placeNameAt( cell );
+		if (seaName != null) return seaName;
 		int sx = Math.floorDiv( wx, WorldStructures.SECTOR );
 		int sy = Math.floorDiv( wy, WorldStructures.SECTOR );
 		for (int dy = -1; dy <= 1; dy++){
@@ -2447,6 +2715,7 @@ public class OverworldLevel extends Level {
 	public void clearWaypoint(){
 		waypointActive = false;
 		waypointMarching = false;
+		routeStale = true;
 		if (Dungeon.hero != null
 				&& Dungeon.hero.curAction instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroAction.Move){
 			Dungeon.hero.interrupt();
@@ -2464,10 +2733,9 @@ public class OverworldLevel extends Level {
 		waypointActive = true;
 		waypointMarching = true;
 		waypointSetAt = System.currentTimeMillis();
-		marchStallPos = -1;
-		marchStallCount = 0;
 		waypointX = wx;
 		waypointY = wy;
+		routeStale = true;
 		aimAtWaypoint();
 	}
 
@@ -2475,145 +2743,385 @@ public class OverworldLevel extends Level {
 	//must not treat that as a player tap (player taps CANCEL the waypoint)
 	public boolean aimingWaypoint = false;
 
-	//stall detection state - counted ONLY in the ready-hook re-aim path,
-	//where a whole movement cycle has actually had the chance to fail.
-	//counting inside aimAtWaypoint fired false 'blocked' on back-to-back
-	//waypoint sets while standing still
-	private int marchStallPos = -1;
-	private int marchStallCount = 0;
-	//adaptive leg length: shrinks while stuck (night vision, dense forest cut
-	//the explored radius under the default), recovers on movement
-	private int marchLegLen = 10;
+	//THE ROUTE the march follows (MarchPlanner), in world cells: planned when the waypoint is set,
+	//resumed or loaded (it is never saved), planned again from where the hero stands each time the
+	//window moves (the ground ahead is known exactly then) and whenever the way ahead fails. Kept on
+	//the actor thread: the map's and the hud's calls only mark it stale
+	private volatile boolean routeStale = true;
+	private MarchPlanner.Route route;
+	//was the route planned aboard his boat (sea/Seafaring.SAIL: over the water), and where he stood the
+	//last time he was sent ashore, with the acts he has stood there since
+	private boolean routeAboard;
+	private int landFrom = -1, landStrikes;
+	//how far along it the hero is (the segment from this point on, MarchPlanner.advance), and the point the
+	//leg in hand runs to (-1: none)
+	private int routeAt, legAt = -1;
+	//the plan being worked out on the planner's thread
+	private MarchPlanner.Job planning;
+	//what this route has learned: the exact ground of every window it was planned in, and the blocks
+	//found shut on the way (a river the untouched world's sampling missed, a wall, a mob in a narrow way)
+	private MarchPlanner.LongLongMap routeGround = new MarchPlanner.LongLongMap();
+	private MarchPlanner.LongLongMap routeShut = new MarchPlanner.LongLongMap();
+	//...and the cells (world, MarchPlanner.blockKey packing) someone stood in by the hero when the way was
+	//found cut: shut to its every plan and leg, at whatever edge of his sight they stand on later
+	private MarchPlanner.LongLongMap routeShutCells = new MarchPlanner.LongLongMap();
+	//the march's own clock (acts while marching), its act of the last step further along the route and
+	//the best headway yet (how far along the route his leg is, less his steps to it: it rises with every
+	//step he takes toward it and every leg further on, never while he paces; NaN until the route's first
+	//leg), the acts in a row with no leg, and the plans asked for since the last step further along
+	private int marchActs, progressAct, legFails, stuckPlans;
+	private float headwayBest = Float.NaN;
+	//his steps to the leg in hand, -1 for a step onto known ground nearer the route (no leg of it)
+	private int legSteps = -1;
+
+	//how long the hero stands waiting for a plan before he lets a turn go by: he waits a moment, not turns
+	private static final long PLAN_WAIT_MS = 1500;
+	//acts in a row with no leg before the way ahead counts as cut
+	private static final int LEG_STRIKES = 3;
+	//acts with no step further along the route before the march plans again: it is pacing
+	private static final int NO_PROGRESS_ACTS = 12;
+	//plans asked for with no step further along between them before the march gives up
+	private static final int STUCK_PLANS = 3;
+	//the leg in hand is kept until a point this much further along is in reach: a new leg is a new walk
+	private static final int LEG_STRIDE = 3;
+	//how far round him (steps) the hero looks for ground nearer the route when none of it is in reach
+	private static final int FRONTIER = 8;
 
 	/**
-	 * Act-hook entry: returns the next march destination (a passable cell
-	 * toward the waypoint), or -1 when the march should not continue. Runs a
-	 * genuine per-act stall check: each call means a whole act cycle had the
-	 * chance to move the hero and didn't.
+	 * Act-hook entry (Hero.act, every act while the march runs): the window cell the hero walks toward
+	 * this turn - a point further along the route - his own cell to wait a turn out, or -1 when the march
+	 * has stopped. Actor thread.
 	 */
 	public int marchDestination(){
-		if (!waypointActive || !waypointMarching || Dungeon.hero == null) return -1;
-		if (Dungeon.hero.pos == marchStallPos){
-			//shrink the leg before striking out: shorter legs stay inside
-			//whatever the CURRENT sight radius managed to reveal
-			marchLegLen = Math.max( 1, marchLegLen / 2 );
-			if (++marchStallCount >= 5){
-				waypointMarching = false;
-				marchStallCount = 0;
-				marchStallPos = -1;
-				marchLegLen = 10;
-				GLog.w( Messages.get( this, "waypoint_blocked" ) );
-				return -1;
+		xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero = Dungeon.hero;
+		if (network || !waypointActive || !waypointMarching || hero == null || Dungeon.level != this) return -1;
+		if (routeStale){
+			routeStale = false;
+			dropRoute();
+		}
+		marchActs++;
+		int hx = worldX + hero.pos % width(), hy = worldY + hero.pos / width();
+
+		//aboard his boat the route is planned over the water, and one planned for the other way of going
+		//(he boarded, or came ashore) is dropped. A waypoint ashore he knows in the window is sailed for
+		//straight: the sea's steering lands him nearest it and he walks on
+		boolean aboard = xyz.gabriwar.warpedpixeldungeon.sea.Seafaring.aboard( hero );
+		if ((route != null || planning != null) && aboard != routeAboard) dropRoute();
+		if (aboard){
+			int land = landing( false );
+			if (land != -1) return sailAshore( hero, land );
+		}
+
+		//a plan in: taken. The march waits for one it cannot go on without (a moment of the hero's, not
+		//turns); a plan worked out while he walks the route in hand is taken when it is in
+		if (route == null && planning == null) plan( hx, hy, true, false );
+		if (planning != null){
+			MarchPlanner.Job job = planning;
+			MarchPlanner.Route fresh = route == null || job.urgent ? job.await( PLAN_WAIT_MS ) : job.poll();
+			if (fresh != null){
+				planning = null;
+				//a plan made while he walks that failed leaves him the route in hand
+				boolean keep = route != null && !job.urgent && fresh.status == MarchPlanner.Status.FAILED;
+				if (!keep && !take( fresh, job.confirm, hx, hy )) return -1;
+			} else if (route == null || job.urgent){
+				return hero.pos;
 			}
+		}
+		//a tap paused the march while the hero waited
+		if (!waypointMarching) return -1;
+
+		routeAt = MarchPlanner.advance( route, routeAt, hx, hy );
+
+		//on the end of a route that stops short of the waypoint (the waypoint itself is occupyCell's): the
+		//end is planned again from here, against the ground round him as it stands, before it is believed
+		int end = route.last();
+		if (route.xs[end] == hx && route.ys[end] == hy){
+			//a sea route ends where the water comes nearest the waypoint: he goes ashore there
+			if (aboard && !route.endsAtGoal){
+				int land = landing( true );
+				if (land != -1) return sailAshore( hero, land );
+			}
+			return replan( hx, hy, true, false );
+		}
+
+		int leg = leg( hero, hx, hy );
+		if (leg == -1){
+			//the way ahead is cut on the ground he knows (a river the world's sampling missed, a wall, a
+			//mob in a narrow way): a turn or two for it to clear, then its block is shut and the way planned
+			//round it
+			if (++legFails < LEG_STRIKES) return hero.pos;
+			shutAhead( hero );
+			return replan( hx, hy, false, true );
+		}
+		legFails = 0;
+		if (legSteps > 0){
+			float headway = route.along[legAt] - legSteps;
+			if (Float.isNaN( headwayBest )){
+				headwayBest = headway;
+			} else if (headway > headwayBest + 1f){
+				headwayBest = headway;
+				progressAct = marchActs;
+				stuckPlans = 0;
+			}
+		}
+		//pacing: stepping, but no further along the route. Planned again from here, with what was found shut
+		if (marchActs - progressAct > NO_PROGRESS_ACTS){
+			return replan( hx, hy, false, true );
+		}
+		return leg;
+	}
+
+	//a plan that came in, taken from where the hero stands now; false (the march stopped) when it has no
+	//way, or when it was planned from the end of a route stopping short of the waypoint and gets him no
+	//nearer the waypoint: then where he stands is as near as it can be reached
+	private boolean take( MarchPlanner.Route fresh, boolean confirm, int hx, int hy ){
+		if (fresh.status == MarchPlanner.Status.FAILED || fresh.size() == 0){
+			return stopMarch( "waypoint_blocked" );
+		}
+		int end = fresh.last();
+		if (confirm && !fresh.endsAtGoal
+				&& MarchPlanner.octile( Math.abs( fresh.xs[end] - waypointX ), Math.abs( fresh.ys[end] - waypointY ) )
+					> MarchPlanner.octile( Math.abs( hx - waypointX ), Math.abs( hy - waypointY ) ) - 1f){
+			return stopMarch( "waypoint_unreachable" );
+		}
+		route = fresh;
+		routeAt = MarchPlanner.advance( fresh, 0, hx, hy );
+		headwayBest = Float.NaN;
+		legAt = -1;
+		legFails = 0;
+		progressAct = marchActs;
+		return true;
+	}
+
+	//the march waits on a plan from here; it gives up after STUCK_PLANS of them with no step further along.
+	//`stuck`: the way ahead was found cut, or he paced: whoever he sees about him is taken to stand where he
+	//stands, for the rest of the route
+	private int replan( int hx, int hy, boolean confirm, boolean stuck ){
+		if (++stuckPlans > STUCK_PLANS){
+			stopMarch( "waypoint_blocked" );
+			return -1;
+		}
+		xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero = Dungeon.hero;
+		if (stuck){
+			boolean[] fov = hero.fieldOfView != null && hero.fieldOfView.length == length() ? hero.fieldOfView : heroFOV;
+			for (Char ch : Actor.chars()){
+				if (ch == hero || ch.pos < 0 || ch.pos >= length() || !fov[ch.pos]
+						|| distance( ch.pos, hero.pos ) > FRONTIER) continue;
+				routeShutCells.put( MarchPlanner.blockKey( worldX + ch.pos % width(), worldY + ch.pos / width() ), 1 );
+			}
+		}
+		plan( hx, hy, true, confirm );
+		legFails = 0;
+		progressAct = marchActs;
+		return Dungeon.hero.pos;
+	}
+
+	//asks the planner for a route from (hx, hy), reading the window's ground exactly first (it joins what the
+	//route has learned, the cells found stood in shut). `urgent`: the march waits on it; otherwise the hero
+	//walks on and takes it when it is in
+	private void plan( int hx, int hy, boolean urgent, boolean confirm ){
+		if (planning != null) planning.cancel();
+		routeAboard = xyz.gabriwar.warpedpixeldungeon.sea.Seafaring.aboard( Dungeon.hero );
+		MarchPlanner.Walker walker = routeAboard ? xyz.gabriwar.warpedpixeldungeon.sea.Seafaring.SAIL : MarchPlanner.LAND;
+		MarchPlanner.readWindow( this, worldX, worldY, walker, routeGround );
+		for (long k : routeShutCells.keys()) MarchPlanner.shutCell( routeGround, MarchPlanner.keyX( k ), MarchPlanner.keyY( k ) );
+		planning = MarchPlanner.submit( new MarchPlanner.Request(
+				MarchPlanner.ground( worldSeed, altitude, windowShift ), walker,
+				hx, hy, waypointX, waypointY, routeGround.copy(), routeShut.copy(), MarchPlanner.BUDGET ),
+				urgent, confirm );
+	}
+
+	//aboard: where he goes ashore for the waypoint - the waypoint itself when it is ground in the window he
+	//knows, or (`near`: the sea route ends short of it) the known ground in the window nearest it; -1 for none
+	private int landing( boolean near ){
+		int w = width(), local = localCell( waypointX, waypointY );
+		if (local != -1 && ashore( local )) return local;
+		if (!near) return -1;
+		int best = -1;
+		float bestTo = Float.MAX_VALUE;
+		for (int c = 0; c < length(); c++){
+			if (!ashore( c )) continue;
+			float to = MarchPlanner.octile( Math.abs( worldX + c % w - waypointX ), Math.abs( worldY + c / w - waypointY ) );
+			if (to < bestTo){
+				bestTo = to;
+				best = c;
+			}
+		}
+		return best;
+	}
+
+	private boolean ashore( int c ){
+		return insideMap( c ) && passable[c] && !xyz.gabriwar.warpedpixeldungeon.sea.Seafaring.water( this, c ) && (visited[c] || mapped[c]);
+	}
+
+	//sends him ashore at `land`; a march that stands in one place that long without landing stops
+	private int sailAshore( xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero, int land ){
+		if (hero.pos != landFrom){
+			landFrom = hero.pos;
+			landStrikes = 0;
+		} else if (++landStrikes > NO_PROGRESS_ACTS){
+			stopMarch( "waypoint_blocked" );
+			return -1;
+		}
+		return land;
+	}
+
+	//pauses the march (the waypoint stays, the hud tag resumes it) with a word why
+	private boolean stopMarch( String why ){
+		waypointMarching = false;
+		dropRoute();
+		GLog.w( Messages.get( this, why ) );
+		return false;
+	}
+
+	private void dropRoute(){
+		if (planning != null) planning.cancel();
+		planning = null;
+		route = null;
+		routeAt = 0;
+		legAt = -1;
+		routeGround = new MarchPlanner.LongLongMap();
+		routeShut = new MarchPlanner.LongLongMap();
+		routeShutCells = new MarchPlanner.LongLongMap();
+		landFrom = -1;
+		legFails = 0;
+		stuckPlans = 0;
+		progressAct = marchActs;
+	}
+
+	//the leg: the furthest point of the route the hero can walk to on the ground he knows - his own
+	//pathfinding's ground (Hero.getCloser: passable, seen or mapped, no plant, nobody he sees on it) - and
+	//never a way round of his own. With none of it in reach (tall grass or a wood: he sees a step round
+	//him) a step toward its next point, onto known ground nearer it. -1 when not even that
+	private int leg( xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero, int hx, int hy ){
+		int len = length(), w = width();
+		boolean[] known = new boolean[len];
+		//aboard, the known open water (sea/Seafaring steers him over it)
+		for (int i = 0; i < len; i++){
+			known[i] = (routeAboard ? xyz.gabriwar.warpedpixeldungeon.sea.Seafaring.water( this, i ) && insideMap( i ) : passable[i] && plants.get( i ) == null)
+					&& (visited[i] || mapped[i]);
+		}
+		if (routeAboard) known[hero.pos] = true;
+		boolean[] fov = hero.fieldOfView != null && hero.fieldOfView.length == len ? hero.fieldOfView : heroFOV;
+		boolean[] pass = Dungeon.findPassable( hero, known, fov, true );
+		int[] dist;
+		if (routeShut.size() == 0 && routeShutCells.size() == 0){
+			com.watabou.utils.PathFinder.buildDistanceMap( hero.pos, pass );
+			dist = com.watabou.utils.PathFinder.distance;
 		} else {
-			marchStallPos = Dungeon.hero.pos;
-			marchStallCount = 0;
-			marchLegLen = 10;
-		}
-		return navigableLeg();
-	}
-
-	//the 8 marching directions, octant-indexed (E, SE, S, SW, W, NW, N, NE)
-	private static final int[][] OCTANTS = {
-			{1,0},{1,1},{0,1},{-1,1},{-1,0},{-1,-1},{0,-1},{1,-1}
-	};
-
-	/**
-	 * A leg the hero can PROVABLY walk: candidates fan out from the direct
-	 * bearing (then rotated 45 and 90 degrees to either side, then shorter),
-	 * each tested with the same known-cells pathfinder the hero uses. the
-	 * march hugs around lakes, tree lines and rock walls by itself instead
-	 * of pausing at every local obstacle.
-	 */
-	private int navigableLeg(){
-		int hx = Dungeon.hero.pos % width(), hy = Dungeon.hero.pos / width();
-		int dxw = waypointX - (worldX + hx), dyw = waypointY - (worldY + hy);
-
-		//known ground: passable AND explored - exactly what getCloser allows
-		boolean[] known = new boolean[length()];
-		for (int i = 0; i < known.length; i++){
-			known[i] = passable[i] && (visited[i] || mapped[i]);
-		}
-		boolean[] fov = Dungeon.hero.fieldOfView != null
-				&& Dungeon.hero.fieldOfView.length == length()
-				? Dungeon.hero.fieldOfView : heroFOV;
-
-		int octant = (int)Math.floorMod( Math.round(
-				Math.atan2( dyw, dxw ) / (Math.PI / 4) ), 8 );
-		int[] rotations = {0, 1, -1, 2, -2};
-		int[] lens = { Math.max( 2, marchLegLen ), Math.max( 2, marchLegLen / 2 ) };
-
-		for (int len : lens){
-			for (int rot : rotations){
-				int[] dir = OCTANTS[Math.floorMod( octant + rot, 8 )];
-				int tx = Math.max( 2, Math.min( width()-3, hx + dir[0] * len ) );
-				int ty = Math.max( 2, Math.min( height()-3, hy + dir[1] * len ) );
-				int target = tx + ty * width();
-				if (target == Dungeon.hero.pos) continue;
-				if (!known[target] || Actor.findChar( target ) != null){
-					int fixed = -1;
-					for (int d : com.watabou.utils.PathFinder.NEIGHBOURS8){
-						int c = target + d;
-						if (c >= 0 && c < length() && known[c]
-								&& Actor.findChar( c ) == null && c != Dungeon.hero.pos){
-							fixed = c;
-							break;
-						}
-					}
-					if (fixed == -1) continue;
-					target = fixed;
+			//what the route found shut is shut to its legs too, and a point he would reach sooner through
+			//it is none: he would walk that way (a monster at the edge of his sight comes and goes from
+			//what he knows, and the gap it stands in with it)
+			com.watabou.utils.PathFinder.buildDistanceMap( hero.pos, pass );
+			int[] open = com.watabou.utils.PathFinder.distance.clone();
+			boolean[] round = pass.clone();
+			for (long k : routeShut.keys()){
+				int x0 = MarchPlanner.keyX( k ) * MarchPlanner.B - worldX, y0 = MarchPlanner.keyY( k ) * MarchPlanner.B - worldY;
+				for (int i = 0; i < MarchPlanner.B * MarchPlanner.B; i++){
+					int x = x0 + i % MarchPlanner.B, y = y0 + i / MarchPlanner.B;
+					if (x >= 0 && y >= 0 && x < w && y < height()) round[x + y * w] = false;
 				}
-				if (com.watabou.utils.PathFinder.getStep( Dungeon.hero.pos, target, known ) != -1
-						&& Dungeon.findPath( Dungeon.hero, target, known, fov, true ) != null){
-					return target;
+			}
+			for (long k : routeShutCells.keys()){
+				int x = MarchPlanner.keyX( k ) - worldX, y = MarchPlanner.keyY( k ) - worldY;
+				if (x >= 0 && y >= 0 && x < w && y < height()) round[x + y * w] = false;
+			}
+			com.watabou.utils.PathFinder.buildDistanceMap( hero.pos, round );
+			dist = com.watabou.utils.PathFinder.distance;
+			for (int c = 0; c < len; c++){
+				if (open[c] < dist[c]) dist[c] = Integer.MAX_VALUE;
+			}
+		}
+
+		int best = MarchPlanner.leg( route, routeAt, hx, hy, dist, worldX, worldY, w, height() );
+		if (best != -1){
+			if (legAt > routeAt && best < legAt + LEG_STRIDE){
+				int held = routeCell( legAt );
+				if (held != -1 && dist[held] > 0 && dist[held] != Integer.MAX_VALUE) best = legAt;
+			}
+			legAt = best;
+			legSteps = dist[routeCell( best )];
+			return routeCell( best );
+		}
+		legAt = -1;
+		legSteps = -1;
+
+		int next = MarchPlanner.toward( route, routeAt, hx, hy );
+		int tx = route.xs[next] - worldX, ty = route.ys[next] - worldY;
+		int x0 = hero.pos % w, y0 = hero.pos / w;
+		float nearest = MarchPlanner.octile( Math.abs( tx - x0 ), Math.abs( ty - y0 ) );
+		int step = -1;
+		for (int y = Math.max( 1, y0 - FRONTIER ); y <= Math.min( height() - 2, y0 + FRONTIER ); y++){
+			for (int x = Math.max( 1, x0 - FRONTIER ); x <= Math.min( w - 2, x0 + FRONTIER ); x++){
+				int c = x + y * w, d = dist[c];
+				if (d <= 0 || d > FRONTIER) continue;
+				float to = MarchPlanner.octile( Math.abs( tx - x ), Math.abs( ty - y ) );
+				if (to < nearest - 0.5f || (step != -1 && to == nearest && d < dist[step])){
+					nearest = to;
+					step = c;
 				}
 			}
 		}
-		//nothing navigable this turn - fall back to the direct leg and let the
-		//stall machinery count its strike
-		return marchLeg();
+		if (step == -1) shutCut = MarchPlanner.cut( route, routeAt, dist, worldX, worldY, w, height() );
+		return step;
 	}
 
-	/**
-	 * The next SHORT LEG toward the waypoint: ~10 cells from the hero in the
-	 * waypoint's direction, never further. The hero's pathfinder only walks
-	 * through KNOWN (visited/mapped) cells - a faraway target sits in fog and
-	 * kills the path outright (the original 'march never starts' bug). short
-	 * legs stay inside what the view distance has already revealed, and each
-	 * act re-aims a fresh leg, so the march creeps and self-extends.
-	 */
-	public int marchLeg(){
-		int hx = Dungeon.hero.pos % width(), hy = Dungeon.hero.pos / width();
-		int hwx = worldX + hx, hwy = worldY + hy;
-		int dxw = waypointX - hwx, dyw = waypointY - hwy;
+	//the route point the way ahead was found cut at on the last leg that had none, for shutAhead
+	private int shutCut = -1;
 
-		int LEG = marchLegLen;
-		int stepX = Math.max( -LEG, Math.min( LEG, dxw ) );
-		int stepY = Math.max( -LEG, Math.min( LEG, dyw ) );
-
-		int tx = Math.max( 2, Math.min( width()-3, hx + stepX ) );
-		int ty = Math.max( 2, Math.min( height()-3, hy + stepY ) );
-		int target = clearSpotNear( tx + ty * width() );
-		//a mob standing exactly on the leg's end also kills the path - side-step
-		if (Actor.findChar( target ) != null && target != Dungeon.hero.pos){
-			for (int d : com.watabou.utils.PathFinder.NEIGHBOURS8){
-				int c = target + d;
-				if (c >= 0 && c < length() && passable[c] && Actor.findChar( c ) == null){
-					target = c;
-					break;
-				}
-			}
+	//shuts the block where the way ahead was found cut, for every plan of this route: the first block of
+	//the route from there on that is not the one the hero stands in (nor the waypoint's)
+	private void shutAhead( xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero hero ){
+		int from = shutCut;
+		shutCut = -1;
+		if (from < 0) return;
+		int hbx = Math.floorDiv( worldX + hero.pos % width(), MarchPlanner.B );
+		int hby = Math.floorDiv( worldY + hero.pos / width(), MarchPlanner.B );
+		for (int i = from; i <= route.last(); i++){
+			if (routeCell( i ) == -1) return;
+			int bx = Math.floorDiv( route.xs[i], MarchPlanner.B ), by = Math.floorDiv( route.ys[i], MarchPlanner.B );
+			if (bx == hbx && by == hby) continue;
+			if (bx == Math.floorDiv( waypointX, MarchPlanner.B ) && by == Math.floorDiv( waypointY, MarchPlanner.B )) return;
+			routeShut.put( MarchPlanner.blockKey( bx, by ), 1 );
+			return;
 		}
-		return target;
+	}
+
+	//the window cell of a route point, -1 off the window
+	private int routeCell( int i ){
+		int x = route.xs[i] - worldX, y = route.ys[i] - worldY;
+		if (x < 1 || y < 1 || x >= width() - 1 || y >= height() - 1) return -1;
+		return x + y * width();
+	}
+
+	//the window moved under the march: the ground ahead is known exactly now, so the route is planned
+	//again from here while the hero walks on (the leg in hand slid with the window)
+	private void marchWindowMoved(){
+		if (network || !waypointActive || !waypointMarching || route == null || planning != null
+				|| Dungeon.hero == null || Dungeon.level != this) return;
+		plan( worldX + Dungeon.hero.pos % width(), worldY + Dungeon.hero.pos / width(), false, false );
+	}
+
+	//the season turned the ground (ice thawed, water froze): what the route learned of it is stale, and it is
+	//planned again from here
+	private void marchSeasonTurned(){
+		if (planning != null){
+			planning.cancel();
+			planning = null;
+		}
+		routeGround = new MarchPlanner.LongLongMap();
+		marchWindowMoved();
 	}
 
 	public void aimAtWaypoint(){
 		if (network || !waypointActive || Dungeon.hero == null || Dungeon.level != this) return;
 
+		//the hero is set walking where he stands: his next act plans the route and seats its first leg
+		//(Hero.act, marchDestination) on the actor thread
 		aimingWaypoint = true;
-		int dst = marchLeg();
 		try {
-			Dungeon.hero.handle( dst );
+			Dungeon.hero.curAction = new xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroAction.Move( Dungeon.hero.pos );
+			Dungeon.hero.lastAction = null;
 		} finally {
 			aimingWaypoint = false;
 		}
@@ -2642,8 +3150,10 @@ public class OverworldLevel extends Level {
 		//the settlements' smoke and lamplight on a network client, which runs no hero turn
 		//to light them (SettlementAmbience.onHeroTurn lights the host's) - and the caves' and the peaks' places
 		v.add( new SettlementAmbience.Mirror( this ) );
-		//and the timed events' streaks, smoke, glow and bunting (the host's step shows his)
+		//and the timed events' streaks, smoke, glow and bunting (the host's step shows his), the
+		//festivals' maypoles, lanterns and band and the roaming beasts' tracks
 		if (altitude == 0) v.add( new EventDecorMirror( this ) );
+		if (altitude == 0) v.add( new LifeDecorMirror( this ) );
 		//the cracks of thin ice stepped on (HazardWatch): the slices' only, the surface's ice never cracks
 		v.add( new IceCracks( this ) );
 		//the roof over the hero's head fades (tiles/RoofLayers)
@@ -2651,6 +3161,15 @@ public class OverworldLevel extends Level {
 		//the clouds' shadows drifting over the land on a fair day, under the surface's own sky (they
 		//lie over the land among the effects, laid there once the scene has made them)
 		if (altitude == 0) v.add( new xyz.gabriwar.warpedpixeldungeon.effects.CloudShadows( this ) );
+		//the swamps' low mist, and the sea breaking over the beaches' tide pools at high water
+		//(WetlandSites): pictures only, so a network mirror shows its own
+		if (altitude == 0){
+			v.add( new xyz.gabriwar.warpedpixeldungeon.effects.SwampMist( this ) );
+			v.add( new xyz.gabriwar.warpedpixeldungeon.effects.TideSurf( this ) );
+		}
+		//a wildfire's smoke over the fog, seen from afar: from its flames' blob, the host's and a
+		//co-op guest's alike (WildfireEvent)
+		if (altitude == 0) v.add( new xyz.gabriwar.warpedpixeldungeon.effects.NatureDecor( this ) );
 		return v;
 	}
 
@@ -2694,12 +3213,11 @@ public class OverworldLevel extends Level {
 				&& !xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager.isRaining();
 	}
 
-	/** The swamps steam at dawn: fog of the place, whatever the fronts say (ClimateManager.setLocalFog). */
+	/** The swamps' mist lies thick from late in the dusk, through the night and the dawn, into the
+	 *  first of the day: fog of the place, whatever the fronts say (ClimateManager.setLocalFog).
+	 *  The rest of the day it is a low haze (mistDensity, WetlandSites). */
 	public boolean localFog(){
-		return Dungeon.hero != null && altitude == 0
-				&& xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle.phase()
-					== xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle.Phase.DAWN
-				&& biomeAtCell( Dungeon.hero.pos ) == WorldModel.Biome.SWAMP;
+		return mistDensity() >= WetlandSites.THICK;
 	}
 
 	@Override
@@ -2802,22 +3320,29 @@ public class OverworldLevel extends Level {
 		dressSeason = p.season;
 		windowShift = p.base.shift;
 		int[][] dress = p.dress;
+		HashMap<Long, Integer> laidBy;
+		int floodBy;
 		if (p.diffsVersion == diffsVersion && p.scorchSig == scorchSig( worldX, worldY )){
 			System.arraycopy( p.map, 0, map, 0, length() );
+			laidBy = p.scorch;
+			floodBy = p.flood;
 		} else {
+			laidBy = scorchFor( worldX, worldY );
+			floodBy = floodLevels();
 			System.arraycopy( pristine, 0, map, 0, length() );
 			WindowGenerator.overlayDiffs( map, diffs, worldX, worldY );
-			WindowGenerator.overlayScorch( map, pristine, link, scorchFor( worldX, worldY ), diffs, worldX, worldY );
+			WindowGenerator.overlayScorch( map, pristine, link, laidBy, diffs, worldX, worldY );
+			WindowGenerator.overlayFlood( map, p.base, diffs, worldX, worldY, floodBy );
 			dress = WindowGenerator.dress( worldSeed, worldX, worldY, map, p.base, p.season );
 		}
 		if (resealTombs()) dress = WindowGenerator.dress( worldSeed, worldX, worldY, map, p.base, p.season );
-		noteScorch();
+		noteScorch( laidBy, floodBy );
 		//ORDER MATTERS: the dressing reads map[] for its edge blends, its deep
 		//water shades and its fallen leaves, so the authoritative terrain has
 		//to be in place first
 		setDressData( dress );
 		setBelowData( p.below );
-		setTopData( p.base.top, p.base.topBlend, p.base.topCorner, p.base.earth );
+		setTopData( p.base.top, p.base.topShore, p.base.topBlend, p.base.topCorner, p.base.earth );
 		layoutTownArt();
 
 		long t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
@@ -2854,7 +3379,7 @@ public class OverworldLevel extends Level {
 		}
 		setDressData( WindowGenerator.dress( worldSeed, worldX, worldY, map, w, season ) );
 		setBelowData( WindowGenerator.belowLayers( worldSeed, worldX, worldY, w ) );
-		setTopData( w.top, w.topBlend, w.topCorner, w.earth );
+		setTopData( w.top, w.topShore, w.topBlend, w.topCorner, w.earth );
 		layoutTownArt();
 		refreshRoofs( false );
 		presentWindowArt();
@@ -2878,7 +3403,8 @@ public class OverworldLevel extends Level {
 		boolean hit = p != null;
 		if (p == null){
 			p = WindowGenerator.prepare( worldSeed, altitude, worldX, worldY, GameCalendar.season(),
-					diffs.isEmpty() ? null : diffs, diffsVersion, scorchFor( worldX, worldY ), scorchSig( worldX, worldY ) );
+					diffs.isEmpty() ? null : diffs, diffsVersion, scorchFor( worldX, worldY ), scorchSig( worldX, worldY ),
+					floodLevels() );
 		}
 		adoptPrepared( p );
 		if (present) presentWindowArt();
@@ -3027,9 +3553,10 @@ public class OverworldLevel extends Level {
 				int p = pristine[cell];
 				if (map[cell] != p){
 					long key = worldKey( worldX + x, worldY + y );
-					//a fallen star's scorch, laid by the event itself and taken back by it: never the
-					//player's edit (WorldEvents)
-					if (map[cell] == Terrain.EMBERS && laidScorch.contains( key )) continue;
+					//what an event laid - a fallen star's scorch, a wildfire's scar, a flood's water
+					//and mud - taken back by it: never the player's edit (WorldEvents)
+					Integer laid = laidScorch.get( key );
+					if (laid != null && map[cell] == laid) continue;
 					//cosmetic degradation (burned or trampled vegetation) is NOT
 					//recorded: nature reclaims it once the window moves away. this
 					//also keeps the diff store from growing without bound - a big
@@ -3211,8 +3738,7 @@ public class OverworldLevel extends Level {
 			//the hour turned: cull the wildlife of the hour before (the
 			//rebase pass does it too, but a hero who never reaches the
 			//margin would keep the night's wolves all day)
-			xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle.Phase phaseNow
-					= xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle.phase();
+			xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle.Phase phaseNow = OverworldFauna.phaseNow( altitude );
 			if (phaseNow != faunaCullPhase){
 				faunaCullPhase = phaseNow;
 				OverworldFauna.cull( this );
@@ -3225,8 +3751,14 @@ public class OverworldLevel extends Level {
 			//waypoint reached?
 			if (waypointActive
 					&& Math.abs( wx - waypointX ) <= 1 && Math.abs( wy - waypointY ) <= 1){
+				//a march's leg may run on past the waypoint: the walk ends here (a walk of the
+				//player's own onto a paused waypoint goes on)
+				if (waypointMarching && Dungeon.hero.curAction instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroAction.Move){
+					Dungeon.hero.curAction = null;
+				}
 				waypointActive = false;
 				waypointMarching = false;
+				routeStale = true;
 				xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter.get( ch.pos ).burst(
 						xyz.gabriwar.warpedpixeldungeon.effects.particles.ShaftParticle.FACTORY, 6 );
 				GLog.p( Messages.get( this, "waypoint_reached" ) );
@@ -3295,8 +3827,14 @@ public class OverworldLevel extends Level {
 		}
 		//the world's timed events: a star coming down, a market come to town (WorldEvents)
 		if (altitude == 0) tickEvents( heroPos );
+		//the wetlands' places: found when first seen, a shrine's night, a beach's tide (Wetlands)
+		if (altitude == 0) wetlands.tick( heroPos );
+		//the sea: its places found when first seen, its sharks (SeaWorld)
+		if (altitude == 0) sea.tick( heroPos );
 		//the slices' places: found when first seen, and the rifts' heat and flares (CaveSites)
 		if (altitude != 0) tickLayer( heroPos );
+		//the desert's places: found when first seen, the palms' dates, the drinkers at dusk (DrylandsLife)
+		if (altitude == 0) DrylandsLife.tick( this, heroPos );
 	}
 
 	private void tickLayer( int heroPos ){
@@ -3508,6 +4046,13 @@ public class OverworldLevel extends Level {
 		if (circling != null && !circling.translate( dx, dy, width(), height() )){
 			drop( circling.cancel(), Dungeon.hero.pos ).sprite.drop();
 		}
+		//so do the rogue's bombs from Tengu's Arsenal; a toy whose bomb scrolled away is cleared
+		for (xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff b : Dungeon.hero.buffs()){
+			if (b instanceof xyz.gabriwar.warpedpixeldungeon.actors.buffs.TenguToy){
+				((xyz.gabriwar.warpedpixeldungeon.actors.buffs.TenguToy) b).slide( dx, dy, width(), height() );
+			}
+		}
+		xyz.gabriwar.warpedpixeldungeon.actors.buffs.TenguToy.sweep( this );
 		//a cave-in about to come down marks raw cells too: they follow their ground
 		hazards.rebased( dx, dy, netHeroes );
 		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW actors and heaps", t );
@@ -3543,15 +4088,10 @@ public class OverworldLevel extends Level {
 			ny = Math.max( 2, Math.min( height()-3, ny ) );
 			Dungeon.hero.curAction.dst = nx + ny * width();
 		}
-		//an active waypoint re-aims the walk against the shifted window - a
-		//fresh short leg, always inside known/passable ground
-		if (waypointActive && waypointMarching){
-			if (Dungeon.hero.curAction instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroAction.Move){
-				Dungeon.hero.curAction.dst = marchLeg();
-			}
-			marchStallPos = -1;
-			marchStallCount = 0;
-		}
+		//a march's leg in hand is a point of its route, in the world, and slid with the window above. The
+		//route is planned again from here against the new window, whose ground is known exactly now, and
+		//the hero's next act seats his leg from it (marchDestination)
+		marchWindowMoved();
 
 		t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
 		populate();
@@ -4125,10 +4665,19 @@ public class OverworldLevel extends Level {
 							}
 						}
 						break;
+					case OASIS:
+						//its trader and the dates under its palms (DrylandsLife)
+						DrylandsLife.populate( this, sx, sy );
+						break;
 				}
 			}
 		}
 
+		//the wetlands' folk: the witch and her cauldron, the shrines' idols
+		wetlands.populate();
+
+		//the sea's places: a wreck's salvage, once; a lighthouse's keeper (SeaWorld)
+		sea.populate();
 		placeFishermen();
 		placeCaravans();
 		placeTravellers( false );
@@ -4171,8 +4720,8 @@ public class OverworldLevel extends Level {
 					&& !(m instanceof xyz.gabriwar.warpedpixeldungeon.homestead.HomesteadActor
 							&& ((xyz.gabriwar.warpedpixeldungeon.homestead.HomesteadActor) m).homesteadKept())) fauna++;
 		}
-		xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle.Phase phase
-				= xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle.phase();
+		//the beasts' hour: an eclipsed sun's dark is their night (OverworldFauna.phaseNow)
+		xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle.Phase phase = OverworldFauna.phaseNow( altitude );
 		//nothing is set down within 16 cells of the hero - or, on a slice's first build, of where
 		//he is about to arrive
 		boolean live = Dungeon.hero != null && Dungeon.level == this;
@@ -4201,18 +4750,32 @@ public class OverworldLevel extends Level {
 			//...nor in a home: no beast in a room or under a roof, none near a hearthstone or a lit
 			//hearth (homestead/Shelter, HomeAnchors)
 			if (xyz.gabriwar.warpedpixeldungeon.homestead.Shelter.wildlifeBarred( this, cell )) continue;
+			//...nor by a wildfire: the beasts have fled it (WildfireEvent)
+			if (WildfireEvent.scares( this, cell )) continue;
 			ArrayList<Mob> beasts = OverworldFauna.roll( altitude, biomeAtCell( cell ), phase, hab );
 			int placed = 0;
 			for (int i = 0; i < beasts.size(); i++){
 				int at = cell + (i == 0 ? 0 : com.watabou.utils.PathFinder.NEIGHBOURS8[i % 8]);
 				//a slice's pack member only where its kind lives: a fish never beside the water, a wisp by its seam
 				if (i > 0 && altitude != 0 && (!OverworldFauna.livesAt( this, beasts.get( i ), at ) || inSiteBerth( at ))) continue;
+				//...and on the surface no member of a land beasts' pack set down in the water, where addMob would put it
+				if (i > 0 && altitude == 0 && at > 0 && at < length() && water[clearSpotNear( at )]
+						&& OverworldFauna.home( beasts.get( i ).getClass() ) == OverworldFauna.Habitat.DRY) continue;
 				if (i > 0 && at >= 0 && at < length() && xyz.gabriwar.warpedpixeldungeon.homestead.Shelter.wildlifeBarred( this, at )) continue;
 				if (addMob( beasts.get( i ), at )) placed++;
 			}
 			fauna += placed;
 			if (live && placed >= 2 && heroDist <= 25 && OverworldFauna.isPack( beasts )) OverworldFauna.howl();
 		}
+	}
+
+	/** The beasts' hour turned under the hero (an eclipse's dark came or went, EclipseEvent): the
+	 *  hour's cull, then the window topped up with the beasts of the new one. The host's live
+	 *  surface only. */
+	void refreshFauna(){
+		if (network || altitude != 0 || Dungeon.level != this || Dungeon.hero == null || !liveScene()) return;
+		faunaCullPhase = OverworldFauna.phaseNow( altitude );
+		populateFauna();
 	}
 
 	/** Inside the reach of a place of the slice (CaveSites, MountainSites): no hazard of the slices
@@ -4232,7 +4795,9 @@ public class OverworldLevel extends Level {
 	//inside the berth of a place of the slice (its reach and four round it, a rift's reach alone:
 	//CaveSites, MountainSites), where no wildlife is set down. the window's own sites: never resolves
 	private boolean inSiteBerth( int cell ){
-		if (altitude == 0 || cell < 0 || cell >= length()) return false;
+		if (cell < 0 || cell >= length()) return false;
+		//the surface's: a witch's hut and a sunken shrine (Wetlands)
+		if (altitude == 0) return wetlands.inBerth( cell );
 		int wx = worldX + cell % width(), wy = worldY + cell / width();
 		if (altitude < 0) return CaveSites.inBerth( layerSites, wx, wy );
 		for (MountainSites.Site s : peakSites){
@@ -4243,8 +4808,12 @@ public class OverworldLevel extends Level {
 
 	private void populateSettlement( int sx, int sy, long key, int center ){
 		if (taggedHere( key )){
-			//a village peopled before the homesteads still gets its carpenter (homestead/gathering/Carpentry)
+			//a village peopled before the homesteads still gets its carpenter (homestead/gathering/Carpentry),
+			//and one peopled before the horses its stable (homestead/mounts/Stables)
 			xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Carpentry.settle( this, key );
+			xyz.gabriwar.warpedpixeldungeon.homestead.mounts.Stables.settle( this, key );
+			//...and, by the water, its fisher's stall (SeaWorld)
+			sea.settleFisher( key );
 			return;
 		}
 
@@ -4338,8 +4907,12 @@ public class OverworldLevel extends Level {
 			}
 		}
 
-		//and its carpenter keeps a stall by the well, set up once (homestead/gathering/Carpentry)
+		//and its carpenter keeps a stall by the well, set up once (homestead/gathering/Carpentry),
+		//as its stablehand does a stable (homestead/mounts/Stables)
 		xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Carpentry.settle( this, key );
+		xyz.gabriwar.warpedpixeldungeon.homestead.mounts.Stables.settle( this, key );
+		//and a village by the water its fisher, who sells boats on the bank (SeaWorld)
+		if (fac == WorldStructures.Faction.HUMAN) sea.settleFisher( key );
 	}
 
 	// ------------------------------------------------- the road's own trade
@@ -4608,14 +5181,16 @@ public class OverworldLevel extends Level {
 	private int roadMaskVersion = -1;
 
 	/** Road to the road's walkers: paths, bridges and doorways (a village's footpaths join every
-	 *  door to its well, and the road runs to the well). The terrain alone - whether a cell can be
-	 *  stood on just now is the walker's to check. */
+	 *  door to its well, and the road runs to the well), and a road under a flood's mud (FloodEvent):
+	 *  it is still the road. The terrain alone - whether a cell can be stood on just now is the
+	 *  walker's to check. */
 	public boolean[] roadMask(){
 		if (roadMask == null || roadMask.length != length() || roadMaskVersion != windowVersion){
 			boolean[] m = new boolean[length()];
 			for (int i = 0; i < m.length; i++){
 				int t = map[i];
-				m[i] = t == Terrain.DIRT_PATH || t == Terrain.BRIDGE || t == Terrain.DOOR || t == Terrain.OPEN_DOOR;
+				m[i] = t == Terrain.DIRT_PATH || t == Terrain.BRIDGE || t == Terrain.DOOR || t == Terrain.OPEN_DOOR
+						|| (t == Terrain.MUD && pristine != null && pristine[i] == Terrain.DIRT_PATH);
 			}
 			roadMask = m;
 			roadMaskVersion = windowVersion;
@@ -4979,9 +5554,18 @@ public class OverworldLevel extends Level {
 	private int nearEventsDay = Integer.MIN_VALUE, nearEventsForced = -1;
 	//each near star's crater (WorldEvents.craterCells), worked out once
 	private final HashMap<Long, int[]> craterCache = new HashMap<>();
-	//the world keys of the window cells the fallen stars' scorch lies on: the event's own work,
-	//never captured as the player's edit, and given back to the land by it when the scar is gone
-	private final java.util.HashSet<Long> laidScorch = new java.util.HashSet<>();
+	//the window cells an event's overlay lies on, by world key, and what it laid there: a fallen
+	//star's scorch, a wildfire's scar (embers, stumps, saplings), a flood's water and mud. the
+	//events' own work, never captured as the player's edit, and given back to the land by them.
+	//concurrent: what a cell is (tileNameAt) is asked from the render thread
+	private final java.util.concurrent.ConcurrentHashMap<Long, Integer> laidScorch = new java.util.concurrent.ConcurrentHashMap<>();
+	//the wildfires' stage and the flood's lines the window was last brought in line with, and the
+	//turn of it (restampOverlay)
+	private long overlayStage = Long.MIN_VALUE;
+	private int overlayFlood = -1, overlayAt = Integer.MIN_VALUE;
+	//a wildfire's scar and a flood's lines are brought in line at most this often (each pass may
+	//work the window's dressing out again); a flood's line moving, at once
+	private static final int OVERLAY_EVERY = 8;
 	//where each event was on the last step (1 on, 2 a star's cooling scar); null settles the
 	//window's events on the next one (a load, a far arrival, a forced event)
 	private HashMap<Long, Integer> liveEvents = null;
@@ -5051,23 +5635,59 @@ public class OverworldLevel extends Level {
 		return e.wx + 2 >= ox && e.wy + 2 >= oy && e.wx - 2 < ox + WIDTH && e.wy - 2 < oy + HEIGHT;
 	}
 
-	//the fallen stars' scorch on the window at (ox, oy) now: world key -> EMBERS, null for none.
-	//WindowGenerator.overlayScorch lays it where that window's own ground takes it
+	//the fallen stars' scorch and the wildfires' scars on the window at (ox, oy) now: world key ->
+	//the terrain laid (EMBERS, a stump, a sapling), null for none. WindowGenerator.overlayScorch
+	//lays it where that window's own ground takes it
 	private HashMap<Long, Integer> scorchFor( int ox, int oy ){
 		if (network || altitude != 0) return null;
 		int turn = eventTurn();
-		HashMap<Long, Integer> out = null;
+		HashMap<Long, Integer> out = new HashMap<>();
 		for (WorldEvents.Event e : nearEvents()){
 			if (!e.scarredAt( turn ) || !craterReaches( e, ox, oy )) continue;
 			int[] cells = craterCells( e );
 			for (int i = 0; i + 1 < cells.length; i += 2){
 				int x = cells[i] - ox, y = cells[i+1] - oy;
 				if (x <= 0 || y <= 0 || x >= WIDTH-1 || y >= HEIGHT-1) continue;
-				if (out == null) out = new HashMap<>();
 				out.put( worldKey( cells[i], cells[i+1] ), Terrain.EMBERS );
 			}
 		}
-		return out;
+		WildfireEvent.scars( worldSeed, eventLog, ox, oy, turn, out );
+		return out.isEmpty() ? null : out;
+	}
+
+	//a flood's lines now (FloodEvent.pack, 0 for none): what the windows lay on their banks
+	private int floodLevels(){
+		return network || altitude != 0 ? 0 : FloodEvent.levels( eventTurn() );
+	}
+
+	//what the events lay on the standing window now: the stars' and the wildfires' scorch, then a
+	//flood's water and mud on the window's own banks
+	private HashMap<Long, Integer> overlayWant(){
+		HashMap<Long, Integer> want = scorchFor( worldX, worldY );
+		if (want == null) want = new HashMap<>();
+		FloodEvent.want( base, worldX, worldY, floodLevels(), diffs, want );
+		return want;
+	}
+
+	/** The terrain an event's overlay laid on this window cell (a star's or a wildfire's scorch, a
+	 *  flood's water or mud), -1 for none. */
+	public int laidAt( int cell ){
+		if (cell < 0 || cell >= length()) return -1;
+		Integer t = laidScorch.get( worldKey( worldX + cell % width(), worldY + cell / width() ) );
+		return t == null ? -1 : t;
+	}
+
+	/** How high a river's bank stands on this window cell, in a flood's levels (FloodEvent), 0 for
+	 *  none. */
+	public int bankAt( int cell ){
+		WindowGenerator.Window b = base;
+		return b == null || b.bank == null || cell < 0 || cell >= b.bank.length ? 0 : b.bank[cell];
+	}
+
+	/** Every edit of the land the hero made in the world rect [x0, x1) x [y0, y1): its world cell
+	 *  and the terrain it holds (WildfireEvent: no fire burns what is no fuel). */
+	public void forEachEdit( int x0, int y0, int x1, int y1, SectorMap.Visitor<Integer> visitor ){
+		diffs.forEachIn( x0, y0, x1, y1, visitor );
 	}
 
 	//the stars whose scorch reaches the window at (ox, oy) now, as one number (0 for none): a
@@ -5082,14 +5702,18 @@ public class OverworldLevel extends Level {
 		return sig;
 	}
 
-	//which of the stars' cells the window just derived carries
-	private void noteScorch(){
+	//which of the events' cells the window just derived carries, from what it was laid by (the
+	//scorch and the flood's lines it was derived with); the live overlay catches up on the next step
+	private void noteScorch( HashMap<Long, Integer> laidBy, int floodBy ){
 		laidScorch.clear();
-		HashMap<Long, Integer> scorch = scorchFor( worldX, worldY );
-		if (scorch == null) return;
-		for (Long key : scorch.keySet()){
+		overlayAt = Integer.MIN_VALUE;
+		HashMap<Long, Integer> carried = new HashMap<>();
+		if (laidBy != null) carried.putAll( laidBy );
+		FloodEvent.want( base, worldX, worldY, floodBy, diffs, carried );
+		for (java.util.Map.Entry<Long, Integer> e : carried.entrySet()){
+			long key = e.getKey();
 			int cell = localCell( (int)(key & 0xFFFFFFFFL), (int)(key >> 32) );
-			if (cell != -1 && map[cell] == Terrain.EMBERS && !diffs.containsKey( key )) laidScorch.add( key );
+			if (cell != -1 && map[cell] == e.getValue() && !diffs.containsKey( key )) laidScorch.put( key, e.getValue() );
 		}
 	}
 
@@ -5115,7 +5739,7 @@ public class OverworldLevel extends Level {
 				int cell = x + y * width();
 				if (map[cell] != Terrain.EMBERS || !naturalDecay( pristine[cell], Terrain.EMBERS )) continue;
 				if (fire != null && fire.volume > 0 && fire.cur[cell] > 0) continue;
-				if (laidScorch.contains( worldKey( worldX + x, worldY + y ) )) continue;
+				if (laidScorch.containsKey( worldKey( worldX + x, worldY + y ) )) continue;
 				if ((Terrain.flags[pristine[cell]] & Terrain.SOLID) != 0
 						&& (occupied( cell ) || heaps.get( cell ) != null)) continue;
 				if (Random.Float() >= odds) continue;
@@ -5125,36 +5749,75 @@ public class OverworldLevel extends Level {
 		}
 	}
 
+	//the events' overlay on the standing window brought in line with now: what an event lays anew
+	//(a star come down, a wildfire's scar, a flood's water and mud) is stamped, what one lays no
+	//longer goes to its next stage (a stump to a sapling, water to mud) or gives the land back its
+	//own ground. Every cell changed is redrawn in one pass (Gathering.changed)
 	private void stampCraters(){
 		if (network || altitude != 0 || pristine == null) return;
-		HashMap<Long, Integer> want = scorchFor( worldX, worldY );
-		boolean live = liveScene();
-		java.util.Iterator<Long> it = laidScorch.iterator();
+		HashMap<Long, Integer> want = overlayWant();
+		java.util.ArrayList<Integer> changed = new java.util.ArrayList<>();
+		HashMap<Long, Integer> staged = new HashMap<>();
+		java.util.Iterator<java.util.Map.Entry<Long, Integer>> it = laidScorch.entrySet().iterator();
 		while (it.hasNext()){
-			long key = it.next();
-			if (want != null && want.containsKey( key )) continue;
-			it.remove();
+			java.util.Map.Entry<Long, Integer> en = it.next();
+			long key = en.getKey();
+			int was = en.getValue();
+			Integer now = want.get( key );
+			if (now != null && now == was) continue;
 			int cell = localCell( (int)(key & 0xFFFFFFFFL), (int)(key >> 32) );
-			if (cell == -1 || map[cell] != Terrain.EMBERS || diffs.containsKey( key )) continue;
-			//a bush does not grow back round someone standing in it: that cell heals with the
-			//next window instead (burnt brush is the land's to mend, never a player's edit)
+			//no longer the event's: off the window, or the hero's work since
+			if (cell == -1 || map[cell] != was || diffs.containsKey( key )){
+				it.remove();
+				continue;
+			}
+			if (now != null && WorldEvents.layable( now, pristine[cell] )){
+				set( cell, now, this );
+				it.remove();
+				staged.put( key, now );
+				changed.add( cell );
+				continue;
+			}
+			//a bush or a tree does not grow back round someone standing in it, nor over what lies
+			//there: it waits, still the event's (a burnt bush's embers are the land's to mend)
 			if ((Terrain.flags[pristine[cell]] & Terrain.SOLID) != 0
 					&& (occupied( cell ) || heaps.get( cell ) != null)) continue;
+			it.remove();
 			set( cell, pristine[cell], this );
-			if (live) xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.updateMap( cell );
+			changed.add( cell );
 		}
-		if (want == null) return;
-		for (Long key : want.keySet()){
-			if (laidScorch.contains( key )) continue;
+		laidScorch.putAll( staged );
+		for (java.util.Map.Entry<Long, Integer> en : want.entrySet()){
+			long key = en.getKey();
+			int t = en.getValue();
+			if (laidScorch.containsKey( key )) continue;
 			int cell = localCell( (int)(key & 0xFFFFFFFFL), (int)(key >> 32) );
 			if (cell == -1 || diffs.containsKey( key ) || link[cell] != WindowGenerator.LINK_NONE
-					|| !WorldEvents.scorchable( pristine[cell] ) || plants.get( cell ) != null) continue;
+					|| !WorldEvents.layable( t, pristine[cell] ) || plants.get( cell ) != null) continue;
 			//the player's own work on the cell stands; trampled or burnt growth is the land's
 			if (map[cell] != pristine[cell] && !naturalDecay( pristine[cell], map[cell] )) continue;
-			set( cell, Terrain.EMBERS, this );
-			laidScorch.add( key );
-			if (live) xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.updateMap( cell );
+			set( cell, t, this );
+			laidScorch.put( key, t );
+			changed.add( cell );
 		}
+		if (changed.isEmpty()) return;
+		int[] cells = new int[changed.size()];
+		for (int i = 0; i < cells.length; i++) cells[i] = changed.get( i );
+		xyz.gabriwar.warpedpixeldungeon.homestead.gathering.Gathering.changed( this, cells );
+	}
+
+	//the wildfires' scars and the flood's lines stamped as they move: a flood's at once, a fire's
+	//every OVERLAY_EVERY turns at most (the stars' are settled with their events, settleEvents)
+	private void restampOverlay( int turn ){
+		long stage = WildfireEvent.sig( worldSeed, eventLog, worldX, worldY, turn );
+		int flood = floodLevels();
+		if (stage == overlayStage && flood == overlayFlood && overlayAt != Integer.MIN_VALUE) return;
+		if (flood == overlayFlood && overlayAt != Integer.MIN_VALUE && turn >= overlayAt
+				&& turn - overlayAt < OVERLAY_EVERY) return;
+		overlayStage = stage;
+		overlayFlood = flood;
+		overlayAt = turn;
+		stampCraters();
 	}
 
 	//the hero's step on the surface: the window's events set to rights when one came on, went
@@ -5176,9 +5839,18 @@ public class OverworldLevel extends Level {
 		}
 		refreshMarkets( turn );
 		announceEvents( heroPos, turn );
-		//the events that keep their own book: raids on the villages, then the packs' night hunts
+		//the events that keep their own book: raids on the villages, then the packs' night hunts,
+		//the villages' festivals, the migrating herds and the roaming beasts
 		RaidEvent.onHeroStep( this );
 		HuntEvent.onHeroStep( this );
+		//...and the weather's and the sky's: the wildfires, the rivers in flood, the eclipses
+		WildfireEvent.onHeroStep( this );
+		FloodEvent.onHeroStep( this );
+		EclipseEvent.onHeroStep( this );
+		restampOverlay( turn );
+		FestivalEvent.onHeroStep( this );
+		MigrationEvent.onHeroStep( this );
+		RoamerEvent.onHeroStep( this );
 		showEventDecor( turn );
 		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW events", t0 );
 	}
@@ -5291,9 +5963,11 @@ public class OverworldLevel extends Level {
 		if (altitude != 0) return new ArrayList<>();
 		int turn = eventLog.peekClock( xyz.gabriwar.warpedpixeldungeon.actors.WorldClock.turn() );
 		int cx = Math.floorDiv( ox + span/2, WorldStructures.SECTOR ), cy = Math.floorDiv( oy + span/2, WorldStructures.SECTOR );
-		return WorldEvents.mapMarkers( WorldEvents.eventsNear( worldSeed, cx, cy, span / 2 / WorldStructures.SECTOR + 1,
-						WorldEvents.day( turn ), eventLog.forced ),
-				eventLog.announced, eventLog.resolved, turn, ox, oy, span );
+		ArrayList<WorldEvents.Event> events = WorldEvents.eventsNear( worldSeed, cx, cy, span / 2 / WorldStructures.SECTOR + 1,
+				WorldEvents.day( turn ), eventLog.forced );
+		//a herd and a roaming beast are pinned where they are now
+		for (int i = 0; i < events.size(); i++) events.set( i, WorldEvents.onMap( worldSeed, events.get( i ), turn ) );
+		return WorldEvents.mapMarkers( events, eventLog.announced, eventLog.resolved, turn, ox, oy, span );
 	}
 
 	/** Today's raids anchored about the window that are on and not beaten off, worked out afresh
@@ -5357,6 +6031,28 @@ public class OverworldLevel extends Level {
 			hazards.adoptShared( Bundle.read( new java.io.ByteArrayInputStream( text.getBytes() ) ) );
 		} catch (java.io.IOException e){
 			//Bundle.read has reported it. the cracks stay as they were; the next change ships them again
+		}
+	}
+
+	/** Co-op host (StateSerializer): a fingerprint of the sea his guests' mirrors show - the places
+	 *  found, the boats moored (SeaWorld) - shipped again only when it changed. */
+	public long sharedSeaSig(){
+		return sea.sharedSig();
+	}
+
+	/** Co-op host: the sea as his guests see it, as a bundle's text. */
+	public String sharedSea(){
+		return sea.shared();
+	}
+
+	/** A co-op guest's mirror takes over its host's sea (sharedSea): its map pins the same places, its
+	 *  art draws the same boats. Called before the mirror is the level, or on the render thread. */
+	public void adoptSharedSea( String text ){
+		if (!network || text == null || text.isEmpty()) return;
+		try {
+			sea.adoptShared( Bundle.read( new java.io.ByteArrayInputStream( text.getBytes() ) ) );
+		} catch (java.io.IOException e){
+			//Bundle.read has reported it. the sea stays as it was; the next change ships it again
 		}
 	}
 
@@ -5499,7 +6195,7 @@ public class OverworldLevel extends Level {
 	//may a trader pitch his stall here: open, dry, unclaimed ground with room for his four wares
 	//round him, a clear cell between his shelf and every house, and room between the stalls and
 	//from any other keeper's goods (whose shelf is what his strike would sweep)
-	private boolean stallSpot( int cell, int dx, int dy, int[] layout, ArrayList<Integer> picked, boolean offRoad ){
+	boolean stallSpot( int cell, int dx, int dy, int[] layout, ArrayList<Integer> picked, boolean offRoad ){
 		int w = width(), x = cell % w, y = cell / w;
 		if (x < 3 || y < 3 || x > w - 4 || y > height() - 4) return false;
 		if (!passable[cell] || water[cell] || occupied( cell ) || heaps.get( cell ) != null) return false;
@@ -5988,6 +6684,8 @@ public class OverworldLevel extends Level {
 		eventLog.storeInBundle( bundle );
 		hazards.storeInBundle( bundle );
 		homestead.storeInBundle( bundle );
+		wetlands.store( bundle );
+		sea.storeInBundle( bundle );
 	}
 
 	@Override
@@ -6073,6 +6771,9 @@ public class OverworldLevel extends Level {
 		if (found.size() == 5) townArt = found.toArray( new TownRemixedTiles.Layer[0] );
 		else { customTiles.removeAll( found ); customWalls.removeAll( found ); }
 		customTiles.removeAll( bundledDress( customTiles ) );
+		//the desert's props are laid again from the world as the window is (setDryArt)
+		customTiles.removeIf( c -> c instanceof xyz.gabriwar.warpedpixeldungeon.tiles.DrylandsArt );
+		customWalls.removeIf( c -> c instanceof xyz.gabriwar.warpedpixeldungeon.tiles.DrylandsArt );
 		customWalls.removeAll( bundledDress( customWalls ) );
 		//the roofs are laid again from the homestead store as the window is (refreshRoofs)
 		java.util.Iterator<xyz.gabriwar.warpedpixeldungeon.tiles.CustomTilemap> walls = customWalls.iterator();
@@ -6120,6 +6821,10 @@ public class OverworldLevel extends Level {
 		hazards.restoreFromBundle( bundle );
 		//what was built, before the window is laid (its roofs are laid with it)
 		homestead.restoreFromBundle( bundle );
+		//the wetlands' places found and their pools' stock (absent from older saves: none, full)
+		wetlands.restore( bundle );
+		//the sea's places found and the fishers' stalls set up (absent from older saves: none)
+		sea.restoreFromBundle( bundle );
 
 		//the stamp is kept as SAVED (not re-read): the window is re-derived
 		//below for the calendar as it stands, and if the year moved on while
@@ -6141,20 +6846,23 @@ public class OverworldLevel extends Level {
 		//a save from before a place stood here may have the hero (or a co-op guest) on a cell its
 		//walls or props took since, or shut inside a tomb: each is set down on the nearest open
 		//ground outside it. a mob or a heap left where a prop or a wall stands now comes out too.
-		//solid only: a hero saved floating over a drop (levitating, flying) stays where he was
+		//solid only: a hero saved floating over a drop (levitating, flying) stays where he was, and
+		//so does one saved on deep water - aboard his boat, or swimming (sea/Seafaring) - and a shark
 		if (!network && Dungeon.depth == WorldLayers.depthOf( altitude )){
 			if (Dungeon.hero != null && Dungeon.hero.pos >= 0 && Dungeon.hero.pos < length()
-					&& (solid[Dungeon.hero.pos] || inSealedTomb( Dungeon.hero.pos ))){
+					&& ((solid[Dungeon.hero.pos] && map[Dungeon.hero.pos] != Terrain.DEEP_WATER) || inSealedTomb( Dungeon.hero.pos ))){
 				Dungeon.hero.pos = openGroundNear( Dungeon.hero.pos, false );
 			}
 			for (xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero nh
 					: xyz.gabriwar.warpedpixeldungeon.net.NetManager.allKnownNetHeroes()){
-				if (nh.pos >= 0 && nh.pos < length() && (solid[nh.pos] || inSealedTomb( nh.pos ))){
+				if (nh.pos >= 0 && nh.pos < length()
+						&& ((solid[nh.pos] && map[nh.pos] != Terrain.DEEP_WATER) || inSealedTomb( nh.pos ))){
 					nh.pos = openGroundNear( nh.pos, false );
 				}
 			}
 			for (Mob m : mobs){
 				if (m.pos < 0 || m.pos >= length() || !solid[m.pos]) continue;
+				if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.Shark) continue;
 				int to = freeSpotWithin( m.pos, 6 );
 				m.pos = to != -1 ? to : openGroundNear( m.pos, false );
 			}
@@ -6197,34 +6905,62 @@ public class OverworldLevel extends Level {
 
 	/** The biome at a window cell, in world coordinates. */
 	public WorldModel.Biome biomeAtCell( int cell ){
+		//an island's ground is the sea's, laid by the surface pass alone: its beach and its woods are
+		//a beach's to the wildlife, the shovel and the weather (SeaWorld)
+		if (altitude == 0){
+			WorldModel.Biome isle = sea.biomeAt( cell );
+			if (isle != null) return isle;
+		}
 		return WorldModel.biomeAt( worldSeed,
 				worldX + cell % width(), worldY + cell / width() );
 	}
 
 	@Override
 	public String tileNameAt( int cell ){
+		String wet = wetlands.tileName( cell );
+		if (wet != null) return wet;
 		String place = placeKind( cell );
 		if (place != null) return Messages.get( CaveSites.class, place );
+		String seaCell = altitude == 0 ? sea.cellKey( cell ) : null;
+		if (seaCell != null) return Messages.get( SeaWorld.class, seaCell );
 		if (hazards.crackedAt( cell ) && map[cell] == Terrain.FROZEN_WATER) return Messages.get( HazardWatch.class, "cracked_name" );
 		String kind = builtWall( cell );
 		if (kind != null) return Messages.get( this, kind );
 		String peak = placeCell( cell );
 		if (peak != null) return Messages.get( MountainSites.class, peak );
+		String laid = laidKind( cell );
+		if (laid != null) return Messages.get( this, laid );
 		Ores.Kind ore = shownOre( cell );
 		return ore == null ? null : Messages.capitalize( Messages.get( this, "vein", Messages.get( ore.item, "name" ) ) );
 	}
 
 	@Override
 	public String tileDescAt( int cell ){
+		String wet = wetlands.tileDesc( cell );
+		if (wet != null) return wet;
 		String place = placeKind( cell );
 		if (place != null) return Messages.get( CaveSites.class, place + "_desc" );
+		String seaCell = altitude == 0 ? sea.cellKey( cell ) : null;
+		if (seaCell != null) return Messages.get( SeaWorld.class, seaCell + "_desc" );
 		if (hazards.crackedAt( cell ) && map[cell] == Terrain.FROZEN_WATER) return Messages.get( HazardWatch.class, "cracked_desc" );
 		String kind = builtWall( cell );
 		if (kind != null) return Messages.get( this, kind + "_desc" );
 		String peak = placeCell( cell );
 		if (peak != null) return Messages.get( MountainSites.class, peak + "_desc" );
+		String laid = laidKind( cell );
+		if (laid != null) return Messages.get( this, laid + "_desc" );
 		Ores.Kind ore = shownOre( cell );
 		return ore == null ? null : Messages.get( this, "vein_desc", Messages.capitalize( Messages.get( ore.item, "name" ) ) );
+	}
+
+	//what a world event left on this cell, by its string key: a flood's water, a wildfire's burnt
+	//stump, else null (the mud and the embers are named as they are anywhere)
+	private String laidKind( int cell ){
+		int t = laidAt( cell );
+		if (t == -1 || map[cell] != t) return null;
+		if (t == Terrain.WATER) return "floodwater";
+		if (t == Terrain.STUMP_OAK || t == Terrain.STUMP_PINE) return "burnt_stump";
+		return null;
 	}
 
 	//a cave place's prop, crack or wall on this cell, by its string key (CaveSites), else null
@@ -6317,6 +7053,8 @@ public class OverworldLevel extends Level {
 			case Terrain.DIRT_PATH:
 				//the surface's roads; on the peaks the same ground is a tunnel's floor
 				return Messages.get( this, altitude == 0 ? "road" : "tunnel" );
+			case Terrain.MUD:
+				return Messages.get( this, "mud" );
 			default:
 				return super.tileName( tile );
 		}
@@ -6336,7 +7074,7 @@ public class OverworldLevel extends Level {
 			case Terrain.MINE_CRYSTAL:
 				return Messages.get( this, "crystal_desc" );
 			case Terrain.DEEP_WATER:
-				return "The bottom drops away here - too deep to wade. Only the shallows by the shore can be crossed on foot.";
+				return Messages.get( SeaWorld.class, "deep_water_desc" );
 			case Terrain.BRIDGE:
 				return "Weathered planks carry the road over the water.";
 			case Terrain.SIGN:
@@ -6362,6 +7100,8 @@ public class OverworldLevel extends Level {
 				return Messages.get( this, "snow_desc" );
 			case Terrain.DIRT_PATH:
 				return Messages.get( this, altitude == 0 ? "road_desc" : "tunnel_desc" );
+			case Terrain.MUD:
+				return Messages.get( this, "mud_desc" );
 			default:
 				return super.tileDesc( tile );
 		}

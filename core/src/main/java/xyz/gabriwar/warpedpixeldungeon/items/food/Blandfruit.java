@@ -262,8 +262,10 @@ public class Blandfruit extends Food {
 			Blandfruit fruit = (Blandfruit) ingredients.get(0);
 			Seed seed = (Seed) ingredients.get(1);
 			
+			//only a seed that brews a potion: the others (dreamfoil, flytraps, the blandfruit's own...) have none
+			//for the fruit to take, and cooking with one crashed the pot as soon as both were in
 			if (fruit.quantity() >= 1 && fruit.potionAttrib == null
-				&& seed.quantity() >= 1){
+				&& seed.quantity() >= 1 && Potion.SeedToPotion.types.containsKey(seed.getClass())){
 
 				return true;
 			}

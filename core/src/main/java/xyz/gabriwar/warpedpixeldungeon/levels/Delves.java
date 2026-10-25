@@ -105,6 +105,17 @@ import java.util.Set;
  * already gated to branch 0. Everything else that grows the hero for good is rerolled out of
  * the item generator and swapped for gold where it is dropped on a barrow's floor
  * ({@link #banned}).
+ *
+ * <h3>The buried temples</h3>
+ *
+ * The desert's buried temples (WorldStructures.Site.BURIED_TEMPLE, levels/overworld/Drylands) are
+ * crypts of the same kind, an {@link Entry} marked {@link Entry#temple}: open to anyone, no amulet
+ * asked, only 2 to 4 floors ({@link #templeFloors}) cut as the sand temple (SandTempleLevel: its
+ * snakes, mummies, scorpions and stone, its traps), a narrower spread of levels round the same
+ * base ({@link #templeLevel}). Their guardian is an animated statue of the temple's god, waking
+ * only when struck, and its hoard is the temple's relic (items/trinkets/SunScarab) with a little
+ * gold and gear. Everything else - the branch, the floors' depths and seeds, the scaling, the ban
+ * on permanent upgrades, the way back out - is a barrow's.
  */
 public final class Delves {
 
@@ -182,10 +193,11 @@ public final class Delves {
 	// ------------------------------------------------------------- the barrows entered
 
 	/** A barrow the hero has opened: its sector, the branch its floors are saved under, and
-	 *  whether its guardian has fallen. */
+	 *  whether its guardian has fallen. A buried temple's is marked temple. */
 	public static class Entry {
 		public int sx, sy, branch, level, region, floors = MIN_FLOORS;
 		public boolean cleared;
+		public boolean temple;
 
 		int start(){
 			return startIndex( region, floors );
@@ -297,6 +309,70 @@ public final class Delves {
 		return e;
 	}
 
+	// ------------------------------------------------------------- the buried temples (pure)
+
+	/** The fewest and the most floors a buried temple runs. */
+	public static final int TEMPLE_MIN_FLOORS = 2, TEMPLE_MAX_FLOORS = 4;
+	//a temple's level round its distance's base: x0.6 to x1.6, never as wild as a barrow's
+	private static final double TEMPLE_LOW = 0.6, TEMPLE_HIGH = 1.6;
+
+	/** The level of the buried temple in this sector: the barrows' base for its distance from the
+	 *  town, times a log-random factor from 0.6 to 1.6; at least 1. */
+	public static int templeLevel( long seed, int sx, int sy ){
+		int wx = WorldStructures.siteX( seed, sx, sy ), wy = WorldStructures.siteY( seed, sx, sy );
+		double dist = Math.sqrt( (double)wx * wx + (double)wy * wy );
+		double base = 3 + dist / 120;
+		double u = (hash( seed ^ 0x7E3B1E7L, sx, sy ) >>> 11) / (double)(1L << 53);
+		return Math.max( 1, (int)Math.round( base * TEMPLE_LOW * Math.pow( TEMPLE_HIGH / TEMPLE_LOW, u ) ) );
+	}
+
+	/** How many floors the buried temple in this sector runs. */
+	public static int templeFloors( long seed, int sx, int sy ){
+		return TEMPLE_MIN_FLOORS + (int)Math.floorMod( hash( seed ^ 0x7E3F100EL, sx, sy ), TEMPLE_MAX_FLOORS - TEMPLE_MIN_FLOORS + 1 );
+	}
+
+	/** The region a buried temple's floors take their depths from: as a barrow's of its level. */
+	public static int templeRegion( long seed, int sx, int sy ){
+		int level = templeLevel( seed, sx, sy );
+		if (level <= 25) return Math.min( 4, (level - 1) / 5 );
+		return (int)Math.floorMod( hash( seed ^ 0x7E3E610L, sx, sy ) >>> 16, 5 );
+	}
+
+	//the temples' names: what the place is, and whom it was raised to (two message keys apiece, so
+	//every language words them its own way)
+	private static final int TEMPLE_KINDS = 5, TEMPLE_GODS = 12;
+
+	/** The name of the buried temple in this sector, in the player's language. */
+	public static String templeName( long seed, int sx, int sy ){
+		long h = hash( seed ^ 0x7E3A3E5L, sx, sy );
+		return Messages.get( Delves.class, "temple_name",
+				Messages.get( Delves.class, "temple_kind_" + Math.floorMod( h, TEMPLE_KINDS ) ),
+				Messages.get( Delves.class, "temple_god_" + Math.floorMod( h >> 12, TEMPLE_GODS ) ) );
+	}
+
+	/** The name of an opened barrow or temple. */
+	public static String name( Entry e ){
+		return e.temple ? templeName( worldSeed(), e.sx, e.sy ) : name( worldSeed(), e.sx, e.sy );
+	}
+
+	/** A buried temple's crypt, given a branch the first time it is opened (open's, for a temple). */
+	public static Entry openTemple( long seed, int sx, int sy ){
+		Entry e = bySector( sx, sy );
+		if (e != null) return e;
+		e = new Entry();
+		e.sx = sx;
+		e.sy = sy;
+		e.temple = true;
+		e.level = templeLevel( seed, sx, sy );
+		e.region = templeRegion( seed, sx, sy );
+		e.floors = templeFloors( seed, sx, sy );
+		int branch = BRANCH_BASE;
+		for (Entry o : entries) branch = Math.max( branch, o.branch + 1 );
+		e.branch = branch;
+		entries.add( e );
+		return e;
+	}
+
 	/** Every barrow opened so far (the map greys out the cleared ones). */
 	public static ArrayList<Entry> entries(){
 		return entries;
@@ -304,18 +380,21 @@ public final class Delves {
 
 	private static final String SX = "delve_sx", SY = "delve_sy", BRANCHES = "delve_branch",
 			LEVELS = "delve_level", REGIONS = "delve_region", CLEARED = "delve_cleared", FLOOR_COUNTS = "delve_floors",
+			TEMPLES = "delve_temple",
 			MAIN_DOOR = "main_door", MAIN_DOOR_X = "main_door_x", MAIN_DOOR_Y = "main_door_y";
 
 	public static void storeInBundle( Bundle bundle ){
 		int n = entries.size();
 		int[] sx = new int[n], sy = new int[n], br = new int[n], lv = new int[n], rg = new int[n], fl = new int[n];
-		boolean[] cl = new boolean[n];
+		boolean[] cl = new boolean[n], tp = new boolean[n];
 		for (int i = 0; i < n; i++){
 			Entry e = entries.get( i );
 			sx[i] = e.sx; sy[i] = e.sy; br[i] = e.branch; lv[i] = e.level; rg[i] = e.region; cl[i] = e.cleared;
 			fl[i] = e.floors;
+			tp[i] = e.temple;
 		}
 		bundle.put( FLOOR_COUNTS, fl );
+		bundle.put( TEMPLES, tp );
 		bundle.put( SX, sx );
 		bundle.put( SY, sy );
 		bundle.put( BRANCHES, br );
@@ -338,20 +417,25 @@ public final class Delves {
 		boolean[] cl = bundle.getBooleanArray( CLEARED );
 		//barrows opened before they ran more than four floors keep their four
 		int[] fl = bundle.contains( FLOOR_COUNTS ) ? bundle.getIntArray( FLOOR_COUNTS ) : null;
+		//saves from before the buried temples hold barrows only
+		boolean[] tp = bundle.contains( TEMPLES ) ? bundle.getBooleanArray( TEMPLES ) : null;
 		for (int i = 0; i < br.length; i++){
 			Entry e = new Entry();
 			e.sx = sx[i]; e.sy = sy[i]; e.branch = br[i]; e.level = lv[i]; e.region = rg[i]; e.cleared = cl[i];
 			e.floors = fl != null && i < fl.length ? fl[i] : MIN_FLOORS;
+			e.temple = tp != null && i < tp.length && tp[i];
 			entries.add( e );
 		}
 	}
 
 	// ------------------------------------------------------------- floors
 
-	/** The level class a barrow's floor is built from: its depth's region's. */
+	/** The level class a barrow's floor is built from: its depth's region's (a temple's, the sand
+	 *  temple's). */
 	public static Level newLevel( int branch, int depth ){
 		Entry e = byBranch( branch );
 		if (e == null || e.floorOf( depth ) < 0) return new DeadEndLevel();
+		if (e.temple) return new SandTempleLevel();
 		switch ((depth - 1) / 5){
 			case 0: default: return new SewerLevel();
 			case 1: return new PrisonLevel();
@@ -508,12 +592,21 @@ public final class Delves {
 		//a cleared barrow's floor built again (a beacon set in it) has no guardian left to hold it
 		if (guardAt == -1 || e.cleared) return;
 
-		ArrayList<Class<? extends Mob>> rotation = MobSpawner.getMobRotation( Dungeon.depth );
-		Mob guardian = Reflection.newInstance( rotation.get( rotation.size() - 1 ) );
-		if (guardian == null) return;
+		Mob guardian;
+		if (e.temple){
+			//a temple's: a statue of its god, standing still over the way down that is no more until
+			//it is struck (Statue: passive until harmed)
+			xyz.gabriwar.warpedpixeldungeon.actors.mobs.Statue statue = new xyz.gabriwar.warpedpixeldungeon.actors.mobs.Statue();
+			statue.createWeapon( false );
+			guardian = statue;
+		} else {
+			ArrayList<Class<? extends Mob>> rotation = MobSpawner.getMobRotation( Dungeon.depth );
+			guardian = Reflection.newInstance( rotation.get( rotation.size() - 1 ) );
+			if (guardian == null) return;
+			guardian.state = guardian.WANDERING;
+		}
 		guardian.HT = guardian.HP = guardian.HT * 3;
 		guardian.pos = guardAt;
-		guardian.state = guardian.WANDERING;
 		Buff.affect( guardian, Guardian.class );
 		Buff.affect( guardian, CHAMPIONS[Random.Int( CHAMPIONS.length )] );
 		level.mobs.add( guardian );
@@ -538,13 +631,31 @@ public final class Delves {
 		e.cleared = true;
 		int depth = effectiveDepth();
 
-		Heap heap = Dungeon.level.drop( new Gold( Random.IntRange( 100 * depth, 200 * depth ) ), mob.pos );
-		for (Item item : hoard( e.level, depth )){
+		Heap heap = Dungeon.level.drop( new Gold( e.temple ? Random.IntRange( 50 * depth, 100 * depth )
+				: Random.IntRange( 100 * depth, 200 * depth ) ), mob.pos );
+		for (Item item : e.temple ? templeHoard( e.level, depth ) : hoard( e.level, depth )){
 			Dungeon.level.drop( item, mob.pos );
 		}
 		heap.type = Heap.Type.CHEST;
 		if (heap.sprite != null) heap.sprite.view( heap ).place( heap.pos );
-		GLog.p( Messages.get( Delves.class, "cleared", name( worldSeed(), e.sx, e.sy ) ) );
+		GLog.p( Messages.get( Delves.class, e.temple ? "temple_cleared" : "cleared", name( e ) ) );
+	}
+
+	/** A temple guardian's hoard: the temple's relic, and one to four pieces of gear, more the
+	 *  higher the temple (gold aside). */
+	static ArrayList<Item> templeHoard( int level, int depth ){
+		ArrayList<Item> items = new ArrayList<>();
+		items.add( new xyz.gabriwar.warpedpixeldungeon.items.trinkets.SunScarab() );
+		int pieces = 1 + Math.min( 3, level / 15 );
+		int bonus = depth / 10;
+		for (int i = 0; i < pieces; i++){
+			Item item = Generator.random( HOARD[Random.Int( HOARD.length )] );
+			if (item == null) continue;
+			item.cursed = false;
+			if (item.isUpgradable() && bonus > 0) item.upgrade( bonus );
+			items.add( item );
+		}
+		return items;
 	}
 
 	private static final Generator.Category[] HOARD = { Generator.Category.WEAPON, Generator.Category.ARMOR,

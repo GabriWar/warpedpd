@@ -4,6 +4,10 @@ android {
     namespace = 'xyz.gabriwar.warpedpixeldungeon.android'
     compileSdk appAndroidCompileSDK
     compileOptions.sourceCompatibility = compileOptions.targetCompatibility = appJavaCompatibility
+    //the game calls Java 8 library APIs Android only has from 7.0 (API 24): List.sort,
+    //Comparator.comparingInt, removeIf, Map.merge... desugaring backs them on Android 5-6,
+    //which otherwise die with NoSuchMethodError the first time one runs
+    compileOptions.coreLibraryDesugaringEnabled = true
 
     sourceSets.main.assets.srcDirs = [new File(project(':core').projectDir, "/src/main/assets")]
 
@@ -115,6 +119,7 @@ configurations { natives }
 
 dependencies {
     implementation project(':core')
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
 
     implementation "com.badlogicgames.gdx:gdx-backend-android:$gdxVersion"
     natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-armeabi-v7a"

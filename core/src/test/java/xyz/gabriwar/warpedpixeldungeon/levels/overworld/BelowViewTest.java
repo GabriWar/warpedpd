@@ -157,10 +157,12 @@ public class BelowViewTest {
 		assertTrue( blends > 100 );
 	}
 
+	//the mountains look down through their drops and the caves through their pits (SliceViewsTest);
+	//the surface has nothing under it to see
 	@Test
-	public void onlyMountainsLookDown(){
+	public void theSurfaceDoesNotLookDown(){
 		assertNull( WindowGenerator.belowLayers( SEED, 0, 0, WindowGenerator.generate( SEED, 0, 0, 0, 0f ) ) );
-		assertNull( WindowGenerator.belowLayers( SEED, 0, 0, WindowGenerator.generate( SEED, -1, 0, 0, 0f ) ) );
+		assertNotNull( WindowGenerator.belowLayers( SEED, 0, 0, WindowGenerator.generate( SEED, -1, 0, 0, 0f ) ) );
 	}
 
 	@Test

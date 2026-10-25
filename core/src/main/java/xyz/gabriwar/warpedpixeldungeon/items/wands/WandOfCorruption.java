@@ -139,7 +139,9 @@ public class WandOfCorruption extends Wand {
 				Statistics.qualifiedForBossChallengeBadge = false;
 			}
 
-			float corruptingPower = 3 + buffedLvl()/3f;
+			//an eclipsed sun's dark lends dark magic strength (levels/overworld/EclipseEvent)
+			float corruptingPower = (3 + buffedLvl()/3f)
+					* xyz.gabriwar.warpedpixeldungeon.levels.overworld.EclipseEvent.corruptionBoost();
 			
 			//base enemy resistance is usually based on their exp, but in special cases it is based on other criteria
 			float enemyResist;

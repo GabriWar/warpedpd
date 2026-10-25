@@ -76,7 +76,8 @@ import java.util.ArrayList;
  *   <li>Veil — the faint wash heavy weather lays over everything, and a sandstorm's haze</li>
  *   <li>Ambient — fireflies, falling leaves, petals (flavor, non-precipitation)</li>
  *   <li>Precipitation — rain, snow, hail, sleet driven by climate conditions</li>
- *   <li>Sand — a sandstorm's dust puffs and driven sand, where its sound plays</li>
+ *   <li>Sand — a sandstorm's dust puffs and driven sand, where its sound plays, and the sand closing
+ *   in round the hero as a tan vignette where it reaches him (actors/Sandstorm cuts his sight there)</li>
  *   <li>Blizzard — where its sound plays: driven snow over the snowfall, a white vignette closing in
  *   from the screen's edges and whiteouts in the strong gusts</li>
  *   <li>Lightning — the bolt (a storm's or a storm cloud's), its arcs, the flash, and its thunder;
@@ -104,6 +105,9 @@ public class WeatherOverlay extends Group {
 	private GroundEmitter puffEmitter; // and its dust puffs
 	private float sandAmount = 0f;     // the sandstorm on screen, 0..1, eased toward sandstorm()
 	private float sandTarget = 0f, sandCheckIn = 0f; // sandstorm() as last looked at, and when next
+	private Image sandVignette;        // the sand closing in round a hero it reaches
+	private float sandClose = 0f, sandCloseTarget = 0f; // how far it reaches him, eased, and as last looked at
+	private float sandSpread = 1f, sandLight = 1f;      // how far past the screen it is stretched, and its light
 	private boolean stilled;           // the ambient flavour stilled by the sand or the blizzard
 	private Image vignette;            // the blizzard's white closing in from the screen's edges
 	private ColorBlock whiteout;       // and its whiteouts in the strong gusts
@@ -315,6 +319,11 @@ public class WeatherOverlay extends Group {
 				break;
 			case CORONA:
 				ambientEmitter.pour(CoronaParticle.FACTORY, 0.5f);
+				//and a few stars come out in the deepest of an eclipse's dark, in a layer of their own
+				ambientEmitter2 = createViewportEmitter(null, 0f);
+				ambientEmitter2.pour(xyz.gabriwar.warpedpixeldungeon.effects.particles.EclipseStarParticle.FACTORY,
+						xyz.gabriwar.warpedpixeldungeon.effects.particles.EclipseStarParticle.EVERY);
+				add(ambientEmitter2);
 				break;
 			case DRIP:
 				ambientEmitter.pour(DripParticle.FACTORY, 0.6f);
@@ -464,8 +473,14 @@ public class WeatherOverlay extends Group {
 			sandCheckIn = SAND_CHECK;
 			//not while the overworld's window moves: its map and the hero's cell are not in one
 			//frame (WeatherSounds holds too), what blows holds
-			if (Dungeon.level == null || !Dungeon.level.fogHeld()) sandTarget = sandstorm();
+			if (Dungeon.level == null || !Dungeon.level.fogHeld()){
+				sandTarget = sandstorm();
+				//all of it where it reaches the hero, a little where it is kept off him (the lee of
+				//something solid, his goggles or his scarf): actors/Sandstorm
+				sandCloseTarget = xyz.gabriwar.warpedpixeldungeon.actors.Sandstorm.exposure( Dungeon.hero ) > 0f ? 1f : SAND_KEPT_OFF;
+			}
 			if (haze != null) lightHaze();
+			sandLight = groundLight();
 		}
 		sandAmount += (sandTarget - sandAmount) * Math.min(1f, Game.elapsed * 0.8f);
 		if (sandTarget == 0f && sandAmount < 0.005f) sandAmount = 0f;
@@ -482,6 +497,23 @@ public class WeatherOverlay extends Group {
 			sandEmitter.on = puffEmitter.on = blowing;
 			sandEmitter.base(SAND_GRAIN_MAX + (SAND_GRAIN_MIN - SAND_GRAIN_MAX) * sandAmount);
 			puffEmitter.base(SAND_PUFF_MAX + (SAND_PUFF_MIN - SAND_PUFF_MAX) * sandAmount);
+		}
+		//the sand closing in round the hero: the blizzard's vignette in the haze's tan, stretched past
+		//the screen while it is light, at the screen's edges at full, sooner in the gusts; eased, so
+		//stepping into a wall's lee thins it slowly rather than at once (placed as it is drawn)
+		if (blowing && sandVignette == null) {
+			sandVignette = new Image(WeatherSprites.vignette());
+			add(sandVignette);
+		}
+		if (sandVignette != null) {
+			sandClose += (sandCloseTarget - sandClose) * Math.min(1f, Game.elapsed * 0.8f);
+			float reach = sandAmount * sandClose;
+			float close = Math.max(0f, Math.min(1f, reach * (1f + VIGNETTE_GUST * WeatherSprites.gust())));
+			sandSpread = 1f + VIGNETTE_SPREAD * (1f - close);
+			sandVignette.hardlight(((SAND_HAZE_COLOR >> 16) & 0xFF) / 255f * sandLight,
+					((SAND_HAZE_COLOR >> 8) & 0xFF) / 255f * sandLight, (SAND_HAZE_COLOR & 0xFF) / 255f * sandLight);
+			sandVignette.am = reach * SAND_VIGNETTE_ALPHA;
+			sandVignette.visible = sandVignette.am > 0.002f;
 		}
 		if (haze == null) return;
 		float alpha = sandAmount * (SAND_HAZE + SAND_HAZE_GUST * WeatherSprites.gust());
@@ -580,6 +612,7 @@ public class WeatherOverlay extends Group {
 	@Override
 	public void draw() {
 		placeVignette();
+		placeSandVignette();
 		super.draw();
 	}
 
@@ -588,9 +621,18 @@ public class WeatherOverlay extends Group {
 	//so it would bare a strip at its leading edge. It overhangs the screen by the flash's shake,
 	//which only the camera's matrix knows
 	private void placeVignette() {
+		place(vignette, vignetteSpread);
+	}
+
+	//the sand's vignette, placed as the blizzard's is
+	private void placeSandVignette() {
+		place(sandVignette, sandSpread);
+	}
+
+	private static void place(Image vignette, float spread) {
 		Camera cam = Camera.main;
 		if (vignette == null || cam == null) return;
-		float w = cam.width * vignetteSpread + VIGNETTE_SHAKE * 2f, h = cam.height * vignetteSpread + VIGNETTE_SHAKE * 2f;
+		float w = cam.width * spread + VIGNETTE_SHAKE * 2f, h = cam.height * spread + VIGNETTE_SHAKE * 2f;
 		vignette.scale.set(w / vignette.width, h / vignette.height);
 		vignette.x = cam.scroll.x + (cam.width - w) / 2f;
 		vignette.y = cam.scroll.y + (cam.height - h) / 2f;
@@ -926,6 +968,9 @@ public class WeatherOverlay extends Group {
 	private static final float SAND_PUFF_MAX = 0.9f, SAND_PUFF_MIN = 0.3f;
 	private static final float SAND_HAZE = 0.24f, SAND_HAZE_GUST = 0.05f;
 	private static final int SAND_HAZE_COLOR = 0xC8A064;
+	// the sand closing in round the hero: its alpha at full where it reaches him, and the share of
+	// it left where it is kept off him (actors/Sandstorm.exposure)
+	private static final float SAND_VIGNETTE_ALPHA = 0.7f, SAND_KEPT_OFF = 0.3f;
 	private static final float SAND_CHECK = 0.5f;
 
 	// The blizzard: from BLIZ_FLOOR of its full where it is heard, up by its rate (full at BLIZ_RATE)
@@ -1149,6 +1194,7 @@ public class WeatherOverlay extends Group {
 		killEmitter(blizStreaks);     blizStreaks = null;
 		killEmitter(blizFlakes);      blizFlakes = null;
 		sandAmount = sandTarget = sandCheckIn = 0f;
+		sandClose = sandCloseTarget = 0f;
 		blizAmount = blizTarget = blizCheckIn = 0f;
 		stilled = false;
 		activePrecipType = PrecipType.NONE;

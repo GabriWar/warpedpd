@@ -54,26 +54,27 @@ public class Bag extends Item implements Iterable<Item> {
 	// =====================================================================
 	// INVENTORY SLOT SYSTEM — READ THIS BEFORE CHANGING CAPACITY
 	// =====================================================================
-	// This value (43) is the number of USABLE item slots the player sees.
+	// This value (49) is the number of USABLE item slots the player sees.
 	// It is used as the base for Backpack.capacity() in Belongings.java.
 	//
 	// HOW IT WORKS:
 	//   - Backpack physically stores bags (FoodPouch, etc.) in its items list
 	//   - Each bag takes 1 physical slot, but Backpack.capacity() adds +1 per bag
-	//     to compensate, so usable slots always = this value (43)
+	//     to compensate, so usable slots always = this value (49)
 	//   - Bags are NOT shown in the item grid — they appear as tab buttons instead
 	//
 	// IF YOU CHANGE THIS NUMBER, YOU MUST ALSO UPDATE:
-	//   1. InventoryPane.java  → shownItems (hardcoded to 43 in layout())
+	//   1. InventoryPane.java  → shownItems (hardcoded to 48 in layout())
 	//   2. InventoryPane.java  → MAX_BAG_ITEMS (must be >= this + max number of bags)
-	//   3. WndBag.java         → nRows formula already adapts (capacity - bagCount)
+	//   3. WndBag.java         → gridSlots() already adapts (capacity - bagCount)
 	//   4. Belongings.java     → Backpack.capacity() already adapts (super + bags)
 	//
-	// Sub-bag capacities (FoodPouch=42, VelvetPouch=42, etc.) are separate
-	// and override this value independently.
+	// Sub-bag capacities (FoodPouch=48, VelvetPouch=48, etc.) are separate
+	// and override this value independently: one less than this, as a sub-bag
+	// shows itself in its first slot.
 	// =====================================================================
 	public int capacity(){
-		return 43;
+		return 49;
 	}
 
 	//if an item is being quick-used from the bag, the bag should take on its targeting properties

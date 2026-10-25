@@ -1192,6 +1192,17 @@ public class Hero extends Char {
 
 		//a road, a cobbled path or a bridge out in the world is quicker going (homestead/travel/Paths)
 		speed *= xyz.gabriwar.warpedpixeldungeon.homestead.travel.Paths.speedFactor( this );
+		//...and a swamp's water slower (levels/overworld/WetlandSites)
+		speed *= xyz.gabriwar.warpedpixeldungeon.levels.overworld.WetlandSites.bogFactor( this );
+
+		//and a sandstorm in the open slower (actors/Sandstorm)
+		speed *= xyz.gabriwar.warpedpixeldungeon.actors.Sandstorm.speedFactor( this );
+
+		//a boat's pace on the water, a swimmer's (sea/Seafaring)
+		speed *= xyz.gabriwar.warpedpixeldungeon.sea.Seafaring.speedFactor( this );
+
+		//on horseback, twice as fast: every cell half the time and half the hunger (homestead/mounts)
+		speed *= xyz.gabriwar.warpedpixeldungeon.homestead.mounts.Mounts.speedFactor( this );
 
 		speed = AscensionChallenge.modifyHeroSpeed(speed);
 
@@ -1309,30 +1320,34 @@ public class Hero extends Char {
 		//also catches a direct HP cost or a lethal write outside damage()
 		if (debugInfiniteHealth) HP = HT;
 
-		//the waypoint march does not stop for ANYTHING - whenever the hero
-		//would act with no action queued, the march seats a fresh Move RIGHT
-		//HERE on the actor thread, so this same act executes the step. (the
-		//old ready()-hook re-aim notified the actor thread BEFORE it parked -
-		//a missed wakeup that froze the hero after interrupts)
-		if (isAlive()
+		//the waypoint march does not stop for ANYTHING - every act while it runs,
+		//the march seats its leg RIGHT HERE on the actor thread, so this same act
+		//executes the step: a point further along the route it planned, or his own
+		//cell while he waits a turn out (OverworldLevel.marchDestination). (the
+		//old ready()-hook re-aim notified the actor thread BEFORE it parked - a
+		//missed wakeup that froze the hero after interrupts.) the host's own hero
+		//only: a co-op guest's hero walks his own taps
+		if (isAlive() && !isRemote
 				&& Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel){
 			xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel ow
 					= (xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level;
-			if (ow.waypointActive && ow.waypointMarching){
-				//no action queued: seat a fresh leg. current leg ARRIVED (the
-				//hero stands on its dst): renew it - otherwise getCloser fails
-				//on the spot and the march parks at the end of every leg
-				if (curAction == null){
-					int dst = ow.marchDestination();
-					if (dst != -1){
+			if (ow.waypointActive && ow.waypointMarching && !ow.isMirror()
+					&& (curAction == null || curAction instanceof HeroAction.Move)){
+				HeroAction leg = curAction;
+				int dst = ow.marchDestination();
+				//an action of the player's own, seated from the render thread while
+				//the march waited on its plan, stays his
+				if (curAction == leg){
+					if (dst == -1){
+						//the march stopped (the way blocked, the waypoint out of reach)
+						curAction = null;
+					} else if (curAction == null){
 						curAction = new HeroAction.Move( dst );
 						lastAction = null;
-					}
-				} else if (curAction instanceof HeroAction.Move
-						&& curAction.dst == pos){
-					int dst = ow.marchDestination();
-					if (dst != -1 && dst != pos){
+						path = null;
+					} else if (curAction.dst != dst){
 						curAction.dst = dst;
+						path = null;
 					}
 				}
 			}
@@ -2004,6 +2019,9 @@ public class Hero extends Char {
 			Buff.prolong(this, Windswept.class, Windswept.DURATION);
 		}
 
+		// --- the desert's sand on the wind → Sandblown (actors/Sandstorm) ---
+		xyz.gabriwar.warpedpixeldungeon.actors.Sandstorm.onHeroTurn(this);
+
 		// --- Ambient weather blessings ---
 		ClimateManager.WeatherOverlayAmbient ambient = ClimateManager.ambientType();
 		switch (ambient) {
@@ -2041,6 +2059,11 @@ public class Hero extends Char {
 			canSelfTrample = false;
 			return true;
 
+		//a tap on himself on horseback gets him down, his horse beside him (homestead/mounts)
+		} else if (pos == action.dst && xyz.gabriwar.warpedpixeldungeon.homestead.mounts.Mounts.getDown( this )){
+			canSelfTrample = false;
+			return false;
+
 		//Hero moves in place if there is grass to trample
 		} else if (pos == action.dst && canSelfTrample()){
 			canSelfTrample = false;
@@ -2048,20 +2071,16 @@ public class Hero extends Char {
 			spendAndNext( 1 / speed() );
 			return false;
 		} else {
-			//a marching waypoint leg with no path (fog detours, mobs, shifted
-			//ground) must NOT park silently: wait one turn and retry a fresh
-			//leg. marchDestination counts the strikes - three of them pause
-			//the march with its message, and only then does the hero go idle
-			if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel){
+			//a marching waypoint leg the hero cannot take this turn (its plan still
+			//coming, a mob in the way) must NOT park silently: he waits the turn out
+			//and the next act seats a fresh leg. marchDestination counts the strikes
+			//and pauses the march with its message, and only then does he go idle
+			if (!isRemote && Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel){
 				xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel ow
 						= (xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level;
-				if (ow.waypointActive && ow.waypointMarching){
-					int nd = ow.marchDestination();
-					if (nd != -1){
-						action.dst = nd;
-						spendAndNext( TICK );
-						return false;
-					}
+				if (ow.waypointActive && ow.waypointMarching && !ow.isMirror()){
+					spendAndNext( TICK );
+					return false;
 				}
 			}
 			ready();
@@ -2069,6 +2088,15 @@ public class Hero extends Char {
 		}
 	}
 	
+	//the interaction under way was asked with a held tap (HeroAction.Interact.held)
+	private boolean interactHeld = false;
+
+	/** Whether the character the hero is interacting with now was tapped with a held press: a horse
+	 *  of his shows its menu then, rather than taking him up (homestead/mounts/Mounts.tapped). */
+	public boolean interactHeld(){
+		return interactHeld;
+	}
+
 	private boolean actInteract( HeroAction.Interact action ) {
 		
 		Char ch = action.ch;
@@ -2077,7 +2105,12 @@ public class Hero extends Char {
 			
 			ready();
 			sprite.turnTo( pos, ch.pos );
-			return ch.interact(this);
+			interactHeld = action.held;
+			try {
+				return ch.interact(this);
+			} finally {
+				interactHeld = false;
+			}
 			
 		} else {
 			
@@ -2206,6 +2239,9 @@ public class Hero extends Char {
 							|| item instanceof DriedRose.Petal
 							|| item instanceof Key
 							|| item instanceof DescentPage
+							//a rogue's spent toy came apart in his hands (TenguToy): he has nothing
+							|| item instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.Tengu.BombAbility.BombItem
+							|| item instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.Tengu.ShockerAbility.ShockerItem
 							|| (item instanceof MissileWeapon && !MissileWeapon.UpgradedSetTracker.pickupValid(this, (MissileWeapon) item))) {
 						//Do Nothing
 					} else if (item instanceof DarkGold) {
@@ -2804,6 +2840,13 @@ public class Hero extends Char {
 				Buff.affect(this, Talent.AggressiveBarrierCooldown.class, 50f);
 
 			}
+			//no blow from the saddle: he jumps down first, his horse stepping aside (homestead/mounts)
+			if (!xyz.gabriwar.warpedpixeldungeon.homestead.mounts.Mounts.beforeStrike( this, attackTarget )){
+				ready();
+				attackTarget = null;
+				return false;
+			}
+
 			//skill tree: a bump that a skill turns into something else (it spends the hero's time itself)
 			if (Dungeon.level.adjacent(pos, attackTarget.pos) && heroSkills.anyHeroBump(this, attackTarget)){
 				attackTarget = null;
@@ -2872,6 +2915,8 @@ public class Hero extends Char {
 
 		damage = Talent.onAttackProc( this, enemy, damage );
 		damage = xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.heroHit( this, enemy, damage );
+		//the buried temples' relic: harder on the undead (items/trinkets/SunScarab)
+		damage = xyz.gabriwar.warpedpixeldungeon.items.trinkets.SunScarab.heroHit( this, enemy, damage );
 		//a shot whose aim a STEADY line kept from the wind: its gold chip on the struck one's card
 		if (xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.steadied( this, enemy )){
 			xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.chip( enemy,
@@ -3130,6 +3175,8 @@ public class Hero extends Char {
 
 	@Override
 	public void damage( int dmg, Object src ) {
+		//on horseback his horse takes a third of a blow (homestead/mounts)
+		dmg = xyz.gabriwar.warpedpixeldungeon.homestead.mounts.Mounts.shareBlow( this, dmg, src );
 		//the damage ledger keeps every rule this damage meets; Char.damage joins the same frame
 		boolean opened = DamageLedger.enterDamage( this, dmg, src );
 		try {
@@ -3407,7 +3454,13 @@ public class Hero extends Char {
 
 		int step = -1;
 		
-		if (Dungeon.level.adjacent( pos, target )) {
+		if (xyz.gabriwar.warpedpixeldungeon.sea.Seafaring.steers( this, target )) {
+
+			//aboard his boat, swimming, or walking to his moored boat: the sea's own ways (sea/Seafaring)
+			path = null;
+			step = xyz.gabriwar.warpedpixeldungeon.sea.Seafaring.nextStep( this, target );
+
+		} else if (Dungeon.level.adjacent( pos, target )) {
 
 			path = null;
 
@@ -3472,6 +3525,13 @@ public class Hero extends Char {
 
 		if (step != -1) {
 
+			//a horse never goes over a drop; at a doorway, a roof or a room its rider gets down and
+			//it waits on the cell he leaves (homestead/mounts)
+			if (!xyz.gabriwar.warpedpixeldungeon.homestead.mounts.Mounts.stepAllowed( this, step )){
+				return false;
+			}
+			boolean getDown = xyz.gabriwar.warpedpixeldungeon.homestead.mounts.Mounts.getsDownBefore( this, step );
+
 			float delay = 1;
 
 			if (buff(GreaterHaste.class) != null){
@@ -3500,8 +3560,10 @@ public class Hero extends Char {
 				Buff.affect(this, Momentum.class).gainStack();
 			}
 			
+			int from = pos;
 			sprite.move(pos, step);
 			move(step);
+			xyz.gabriwar.warpedpixeldungeon.homestead.mounts.Mounts.stepped( this, from, getDown );
 
 			spend( delay / speed() );
 			
@@ -3555,6 +3617,14 @@ public class Hero extends Char {
 		Heap heap = Dungeon.level.heaps.get( cell );
 
 
+		//his own moored boat, tapped from beside it: board it, or haul it out of the water (sea/Seafaring).
+		//a shark swimming over it is fought, as any mob tapped is
+		if (ch == null && cell == xyz.gabriwar.warpedpixeldungeon.sea.Seafaring.boatCell( this )
+				&& xyz.gabriwar.warpedpixeldungeon.sea.Seafaring.offerBoat( this )){
+			ready();
+			return false;
+		}
+
 		//a road signpost is read on CLICK when the hero is beside it
 		if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel
 				&& Dungeon.level.map[cell] == Terrain.SIGN
@@ -3571,7 +3641,10 @@ public class Hero extends Char {
 		} else if (ch instanceof Mob && (fieldOfView[cell] || Char.hasProp(ch, Property.OBJECT))) {
 
 			if (((Mob) ch).heroShouldInteract()) {
-				curAction = new HeroAction.Interact( ch );
+				HeroAction.Interact interact = new HeroAction.Interact( ch );
+				//whether the tap was held is known only now (homestead/mounts/Mounts.tapped)
+				interact.held = xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector.heldTap;
+				curAction = interact;
 			} else {
 				curAction = new HeroAction.Attack( ch );
 			}
@@ -4043,14 +4116,22 @@ public class Hero extends Char {
 	@Override
 	public void move(int step, boolean travelling) {
 		boolean wasHighGrass = Dungeon.level.map[step] == Terrain.HIGH_GRASS;
+		//where he stood, in the world: the step may slide the surface's window under him
+		int[] from = xyz.gabriwar.warpedpixeldungeon.sea.Seafaring.worldCell( pos );
 
 		super.move( step, travelling);
+
+		//the boat sails on under him, stays moored as he steps ashore, or takes him aboard (sea/Seafaring)
+		xyz.gabriwar.warpedpixeldungeon.sea.Seafaring.moved( this, from, pos );
 
 		BloomBuff bloom = buff(BloomBuff.class);
 		if (bloom != null && !flying) bloom.bloom(pos);
 		
 		if (!flying && travelling) {
-			if (Dungeon.level.water[pos]) {
+			if (xyz.gabriwar.warpedpixeldungeon.sea.Seafaring.aboard( this )) {
+				//a hull through the water: no wet feet
+				SpatialSound.play( Assets.Sounds.WATER, this, 0.6f, Random.Float( 0.6f, 0.8f ) );
+			} else if (Dungeon.level.water[pos]) {
 				SpatialSound.play( Assets.Sounds.WATER, this, 1, Random.Float( 0.8f, 1.25f ) );
 				// 2% chance per water step to soak shoes; already soaked adds duration
 				SoakedShoes soaked = buff(SoakedShoes.class);

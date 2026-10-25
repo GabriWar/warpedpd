@@ -664,8 +664,11 @@ public class Armor extends EquipableItem {
 				return Messages.get(HolyWard.class, "glyph_name", super.name());
 			} else {
 				String name = super.name();
-				if (glyph != null && (cursedKnown || !glyph.curse()))   name = glyph.name( name );
-				if (glyph2 != null && (cursedKnown || !glyph2.curse())) name = glyph2.name( name );
+				boolean first = glyph != null && (cursedKnown || !glyph.curse());
+				boolean second = glyph2 != null && (cursedKnown || !glyph2.curse());
+				if (first && second) return Glyph.bothNames( name, glyph, glyph2 );
+				if (first)  name = glyph.name( name );
+				if (second) name = glyph2.name( name );
 				return name;
 
 		}
@@ -1072,6 +1075,26 @@ public class Armor extends EquipableItem {
 		
 		public String name( String armorName ) {
 			return Messages.get(this, "name", armorName);
+		}
+
+		/**
+		 * An armor's name with both its glyphs. Two that follow the name are joined, not chained:
+		 * "armor of brimstone and stone", not "armor of brimstone of stone"; a first word both
+		 * share (the "of") is said once. A glyph named before the armor ("satisfying") chains as one.
+		 */
+		public static String bothNames( String armorName, Glyph first, Glyph second ){
+			final String MARK = "\u0001";
+			String a = first.name( MARK ), b = second.name( MARK );
+			if (!a.startsWith( MARK + " " ) || !b.startsWith( MARK + " " )){
+				return second.name( first.name( armorName ) );
+			}
+			a = a.substring( MARK.length() + 1 );
+			b = b.substring( MARK.length() + 1 );
+			int space = a.indexOf( ' ' );
+			if (space > 0 && b.startsWith( a.substring( 0, space + 1 ) )){
+				b = b.substring( space + 1 );
+			}
+			return armorName + " " + Messages.get( Armor.class, "glyphs_and", a, b );
 		}
 
 		public String desc() {

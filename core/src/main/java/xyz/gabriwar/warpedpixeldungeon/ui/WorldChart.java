@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.ui;
 
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.WetlandSites;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldLayers;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldModel;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldStructures;
@@ -292,6 +293,9 @@ public class WorldChart extends Image {
 
 	/** The dot of a barrow (WorldStructures.Site.DUNGEON); the map pins its name on it. */
 	public static final int DUNGEON_DOT = 0x2fd3c0;
+	/** The dots of the desert's places (levels/overworld/Drylands): an oasis' water blue, a buried
+	 *  temple's sandstone gold (its name pinned on it, as a barrow's). */
+	public static final int OASIS_DOT = 0x6fd8f0, TEMPLE_DOT = 0xe8c060;
 
 	/** The slab's pixels (RGBA, row-major), as the worker paints them: pure, for any thread. */
 	public static int[] pixels( long seed, int ox, int oy ){
@@ -328,20 +332,26 @@ public class WorldChart extends Image {
 			}
 		}
 
-		//sites: villages (amber), ruins (violet), barrows (teal), dragon lairs and the rest (red)
+		//sites: villages (amber), ruins (violet), barrows (teal), the wetlands' places (each its own:
+		//WetlandSites.dot), oases (blue), buried temples (gold), dragon lairs and the rest (red)
 		int s0x = Math.floorDiv( ox, WorldStructures.SECTOR ) - 1;
 		int s0y = Math.floorDiv( oy, WorldStructures.SECTOR ) - 1;
 		int span = SPAN / WorldStructures.SECTOR + 2;
 		for (int sy = s0y; sy <= s0y + span; sy++){
 			for (int sx = s0x; sx <= s0x + span; sx++){
-				WorldStructures.Site site = WorldStructures.siteType( seed, sx, sy );
+				//the land's places (landType): the sea's wrecks and lighthouses are pinned once found
+				//(WndWorldMap), never dotted, and the chart never works the sea out for them
+				WorldStructures.Site site = WorldStructures.landType( seed, sx, sy );
 				if (site == WorldStructures.Site.NONE) continue;
-				int cx = (WorldStructures.siteX( seed, sx, sy ) - ox) / STRIDE;
-				int cy = (WorldStructures.siteY( seed, sx, sy ) - oy) / STRIDE;
+				int cx = (WorldStructures.placeX( seed, sx, sy ) - ox) / STRIDE;
+				int cy = (WorldStructures.placeY( seed, sx, sy ) - oy) / STRIDE;
 				if (cx < 1 || cy < 1 || cx >= SIZE - 1 || cy >= SIZE - 1) continue;
 				int rgb = site == WorldStructures.Site.VILLAGE ? 0xffb347
 						: site == WorldStructures.Site.RUIN ? 0xcc66ff
-						: site == WorldStructures.Site.DUNGEON ? DUNGEON_DOT : 0xff4444;
+						: site == WorldStructures.Site.DUNGEON ? DUNGEON_DOT
+						: WetlandSites.isWetland( site ) ? WetlandSites.dot( site )
+						: site == WorldStructures.Site.OASIS ? OASIS_DOT
+						: site == WorldStructures.Site.BURIED_TEMPLE ? TEMPLE_DOT : 0xff4444;
 				for (int dy = -1; dy <= 1; dy++){
 					for (int dx = -1; dx <= 1; dx++){
 						px[(cy + dy) * SIZE + cx + dx] = (rgb << 8) | 0xFF;

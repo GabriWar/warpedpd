@@ -190,6 +190,12 @@ public class BuffIndicator extends Component {
 	public static final int ACCURACY_MARK   = 120;
 	//Crusader's Zeal's flames: a gold cross pattee (it wore Burning's flame tinted gold before)
 	public static final int ZEAL            = 121;
+	//the sea (sea/Afloat, sea/Swimming): a hull afloat, a swimmer's head in the waves
+	//(tools/assets/sea_art.py draws both)
+	public static final int SWIMMING        = 125;
+	public static final int BOAT            = 126;
+	//on horseback (homestead/mounts/Riding): a horseshoe
+	public static final int RIDING          = 124;
 
 	public static final int SIZE_SMALL  = 7;
 	public static final int SIZE_LARGE  = 16;

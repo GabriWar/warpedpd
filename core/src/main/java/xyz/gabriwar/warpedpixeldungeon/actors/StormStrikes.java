@@ -255,6 +255,9 @@ public final class StormStrikes {
 				//a tree catches at its crown and burns on as any fire burns one, down to embers and
 				//charcoal (Fire, OverworldLevel.destroy); its crown is seen alight (effects/fx/fire/BurningTree)
 				if (clear( level, cell )) GameScene.add( Blob.seed( cell, TREE_BURN, Fire.class ) );
+				//in warm weather a struck tree smoulders on, and a dry spell after may fan it into a
+				//wildfire (levels/overworld/WildfireEvent)
+				xyz.gabriwar.warpedpixeldungeon.levels.overworld.WildfireEvent.lightning( level, cell );
 			} else if (level.flamable[cell] && ground( level, cell )){
 				//the scorch is the bolt's own: the heavy rain a storm brings cannot take it back
 				boolean blocked = level.losBlocking[cell];

@@ -29,14 +29,20 @@ import xyz.gabriwar.warpedpixeldungeon.homestead.HomesteadActor;
 
 /**
  * A peaceful beast of the world the hero can put a rope on (Roping): the deer, the goat, the
- * bunny. Its class hands its turn, a tap on it and whether a tap talks to it over to Animals first.
- * It is the homestead's (kept for good, never culled with the wildlife) while it is roped, tied
- * to a post or penned.
+ * bunny, the bison, the camel, the horse (once tamed). Its class hands its turn, a tap on it and
+ * whether a tap talks to it over to Animals first. It is the homestead's (kept for good, never
+ * culled with the wildlife) while it is roped, tied to a post or penned.
  */
 public interface Leadable extends HomesteadActor {
 
 	@Override
 	default boolean homesteadKept(){
 		return Roping.held( (Mob) this );
+	}
+
+	/** Why the hero may not put a rope on it now, as a key of Roping's messages, or null when he
+	 *  may: a wild horse takes no rope until it is tamed (actors/mobs/Horse). */
+	default String ropeRefusal(){
+		return null;
 	}
 }

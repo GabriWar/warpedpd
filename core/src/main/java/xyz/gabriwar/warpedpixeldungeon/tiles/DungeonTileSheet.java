@@ -163,6 +163,21 @@ public class DungeonTileSheet {
 		return chasmStitcheable.get(above, CHASM);
 	}
 
+	//a cave's pit seen into (tiles_caves row 58 cells 1-3, tools/below_view_gen.py): the chasm's
+	//stitches under a floor, a special floor and a wall, their void cut out
+	private static final int PIT_FACES = xy(2, 59);
+
+	/** The face of a cave's pit drawn over its view down (WindowGenerator.belowLayers): the chasm
+	 *  stitch it would be (stitchChasmTile) with only its void cut out, so the face of what drops
+	 *  away into it stays and the floor of the slice below shows where the dark was. A plain chasm
+	 *  leaves nothing (CHASM, which the terrain skips there); water's spill is see-through already. */
+	public static int pitFace(int chasm){
+		if (chasm == CHASM_FLOOR)       return PIT_FACES;
+		if (chasm == CHASM_FLOOR_SP)    return PIT_FACES + 1;
+		if (chasm == CHASM_WALL)        return PIT_FACES + 2;
+		return chasm;
+	}
+
 
 	/**********************************************************************
 	 * Water Tiles
@@ -196,6 +211,11 @@ public class DungeonTileSheet {
 	public static final int FIELD_AUTUMN      = WARPED_TILES+13;
 	public static final int FIELD_AUTUMN_ALT  = WARPED_TILES+14;
 	public static final int FIELD_WINTER      = WARPED_TILES+15;
+
+	//the mud a flood leaves on the surface (Terrain.MUD, levels/overworld/FloodEvent), and its other
+	//look: the last two cells of tiles_overworld's last row (tools/assets/ow_events_nature_art.py)
+	public static final int MUD_TILE          = xy(15, 108);
+	public static final int MUD_TILE_ALT      = xy(16, 108);
 
 	/** Is the FURROWED_GRASS on this cell of the level farm ground rather than the warden's
 	 *  furrowed grass - a surface village's fields? Then none of the grass's raised tuft, its
@@ -246,7 +266,7 @@ public class DungeonTileSheet {
 	public static HashSet<Integer> OVERWORLD_BANKS = new HashSet<>(Arrays.asList(
 			Terrain.SNOW, Terrain.EMPTY_SP, Terrain.DIRT_PATH, Terrain.SHRUB, Terrain.BOULDER,
 			Terrain.TREE_PINE, Terrain.TREE_OAK, Terrain.FLOWER_PATCH, Terrain.MUSHROOM_PATCH,
-			Terrain.SIGN
+			Terrain.SIGN, Terrain.MUD
 	));
 
 	public static boolean waterStitcheable(int tile){
@@ -284,8 +304,9 @@ public class DungeonTileSheet {
 	//WATER_SHORE + SHORE_OFFSET[m], and each bank side (top, right, bottom, left order) is one
 	//base-4 digit of the ground: 0 grass, 1 dirt, 2 sand, 3 snow
 	public static final int WATER_SHORE = xy(1, 19);   //625 slots
-	//open water seen from high above, for the view down from a mountain (tools/below_view_gen.py:
-	//a still, darker crop of the surface's water texture; WindowGenerator.belowTile)
+	//open water seen from high above, for the views of the other bands (tools/below_view_gen.py:
+	//a still, darker crop of the surface's water texture; WindowGenerator.viewTile). The caves'
+	//tileset holds its own at the same place, cut from the caves' water, for what a pit shows
 	public static final int BELOW_WATER = xy(1, 59);
 	//the shade a drop's rims cast into it, by the mask of its eight neighbours that stand
 	//higher (1 N, 2 NE, 4 E, 8 SE, 16 S, 32 SW, 64 W, 128 NW; 1..255): the 16 rows under the water
@@ -341,21 +362,34 @@ public class DungeonTileSheet {
 
 	//the shore ground a bank terrain shows: the surface's bare grounds, else its grass
 	private static int shoreGround(int t){
-		return t == Terrain.DIRT_PATH ? 1 : t == Terrain.EMPTY_SP ? 2 : t == Terrain.SNOW ? 3 : 0;
+		return t == Terrain.DIRT_PATH || t == Terrain.MUD ? 1 : t == Terrain.EMPTY_SP ? 2 : t == Terrain.SNOW ? 3 : 0;
 	}
 
 	/** A surface water tile: the shape stitchWaterTile gives, each bank in its own ground. */
 	public static int stitchOverworldWater(int top, int right, int bottom, int left){
 		int mask = stitchWaterTile(top, right, bottom, left) - WATER;
+		return overworldShore(mask, shoreGround(top), shoreGround(right), shoreGround(bottom), shoreGround(left));
+	}
+
+	/** The surface's shore tile for a side mask (stitchWaterTile's bits) whose bank sides show these
+	 *  grounds (0 grass, 1 dirt, 2 sand, 3 snow; a side off the mask is not read): plain WATER for none. */
+	public static int overworldShore(int mask, int top, int right, int bottom, int left){
 		if (mask == 0) return WATER;
-		int[] sides = { top, right, bottom, left };
+		int[] grounds = { top, right, bottom, left };
 		int combo = 0, digit = 1;
 		for (int i = 0; i < 4; i++){
 			if ((mask & (1 << i)) == 0) continue;
-			combo += shoreGround(sides[i]) * digit;
+			combo += grounds[i] * digit;
 			digit *= 4;
 		}
 		return WATER_SHORE + SHORE_OFFSET[mask] + combo;
+	}
+
+	/** waterStitcheable on the world's slices, read without the level (they are all OverworldLevels, so
+	 *  the surface's banks count on every one): the land a view of another band gives a shore
+	 *  (WindowGenerator.viewShores). */
+	public static boolean worldBank(int tile){
+		return waterStitcheable.contains(tile) || OVERWORLD_BANKS.contains(tile);
 	}
 
 	// Frozen water uses the same stitching logic and stitcheable set as regular water,
@@ -670,6 +704,7 @@ public class DungeonTileSheet {
 		directVisuals.put(Terrain.FLOWER_PATCH,         GRASS);
 		directVisuals.put(Terrain.MUSHROOM_PATCH,       GRASS);
 		directVisuals.put(Terrain.DIRT_PATH,            DIRT_PATH_TILE);
+		directVisuals.put(Terrain.MUD,                  MUD_TILE);
 		directVisuals.put(Terrain.BRIDGE,               BRIDGE_TILE);
 		//the signpost art is a dressing overlay; the ground under it is grass/snow
 		directVisuals.put(Terrain.SIGN,                 GRASS);
@@ -752,6 +787,7 @@ public class DungeonTileSheet {
 		tileAltVisuals.put(FIELD_AUTUMN,    new tileAlt(new float[]{50f}, FIELD_AUTUMN_ALT));
 		tileAltVisuals.put(FLAT_WALL,       new tileAlt(new float[]{50f}, FLAT_WALL_ALT));
 		tileAltVisuals.put(EMBERS,          new tileAlt(new float[]{50f}, EMBERS_ALT));
+		tileAltVisuals.put(MUD_TILE,        new tileAlt(new float[]{50f}, MUD_TILE_ALT));
 		tileAltVisuals.put(FLAT_WALL_DECO,  new tileAlt(new float[]{50f}, FLAT_WALL_DECO_ALT));
 		tileAltVisuals.put(FLOOR_SP,        new tileAlt(new float[]{50f}, FLOOR_SP_ALT));
 		tileAltVisuals.put(FLOOR_DECO,      new tileAlt(new float[]{50f}, FLOOR_DECO_ALT));

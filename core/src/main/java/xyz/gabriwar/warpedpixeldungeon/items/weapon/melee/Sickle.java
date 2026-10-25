@@ -58,6 +58,18 @@ public class Sickle extends MeleeWeapon {
 		return actions;
 	}
 
+	//from a quickslot it reaps out in the world too: the tall grass is picked as the REAP's is. Only
+	//a Duelist's drawn sickle keeps its harvest there
+	@Override
+	public String defaultAction() {
+		String action = super.defaultAction();
+		if (Dungeon.hero != null && xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.allowedHere(Dungeon.level)
+				&& (action == null || !isEquipped(Dungeon.hero))) {
+			return AC_REAP;
+		}
+		return action;
+	}
+
 	@Override
 	public void execute(Hero hero, String action) {
 		super.execute(hero, action);

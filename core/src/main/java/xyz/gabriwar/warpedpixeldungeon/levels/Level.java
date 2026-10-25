@@ -1065,6 +1065,8 @@ public abstract class Level implements Bundlable {
 		PathFinder.buildDistanceMap(Dungeon.hero.pos, BArray.or(passable, avoid, null));
 
 		Mob mob = createMob();
+		//a level with no monsters of its own (a shop, a house) spawns none
+		if (mob == null) return false;
 		if (mob.state != mob.PASSIVE) {
 			mob.state = mob.WANDERING;
 		}
@@ -1407,6 +1409,14 @@ public abstract class Level implements Bundlable {
 
 		for (Blob b : blobs.values()){
 			b.onUpdateCellFlags(this, cell);
+		}
+
+		//the map's border stays shut whatever is laid on it, as buildFlagMaps has it: a hero let
+		//onto it (a blast's broken edge wall, a town room's floor ring greened by regrowth) has
+		//neighbours off the map, and the next step he takes from there crashes
+		if (!insideMap(cell)){
+			passable[cell] = avoid[cell] = false;
+			losBlocking[cell] = solid[cell] = true;
 		}
 
 		updateOpenSpace(cell);
@@ -1879,14 +1889,20 @@ public abstract class Level implements Bundlable {
 			if (c instanceof Hero){
 				viewDist *= 1f + 0.25f*((Hero) c).pointsInTalent(Talent.FARSIGHT);
 				viewDist *= EyeOfNewt.visionRangeMultiplier();
-				viewDist = Math.max( 2, viewDist + DayNightCycle.viewDistanceModifier() );
+				//...and the swamp's mist where he stands (levels/overworld/WetlandSites)
+				viewDist = Math.max( 2, viewDist + DayNightCycle.viewDistanceModifier()
+						- xyz.gabriwar.warpedpixeldungeon.levels.overworld.WetlandSites.mistPenalty( this, c ) );
+				//a sandstorm in the open closes the world in (actors/Sandstorm)
+				viewDist = Math.max( 2, viewDist * xyz.gabriwar.warpedpixeldungeon.actors.Sandstorm.sightFactor( c ) );
 			} else if (c instanceof Mob) {
 				// Dark/heat creatures have darkvision — unaffected by light level or weather
 				boolean darkvision = c.properties().contains(Char.Property.UNDEAD)
 						|| c.properties().contains(Char.Property.DEMONIC)
 						|| c.properties().contains(Char.Property.FIERY);
 				if (!darkvision) {
-					viewDist = Math.max(2, viewDist + DayNightCycle.viewDistanceModifier());
+					viewDist = Math.max(2, viewDist + DayNightCycle.viewDistanceModifier()
+							- xyz.gabriwar.warpedpixeldungeon.levels.overworld.WetlandSites.mistPenalty( this, c ));
+					viewDist = Math.max(2, viewDist * xyz.gabriwar.warpedpixeldungeon.actors.Sandstorm.sightFactor( c ));
 				}
 			}
 			

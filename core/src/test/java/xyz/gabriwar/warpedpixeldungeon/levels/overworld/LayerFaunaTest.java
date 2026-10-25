@@ -344,7 +344,7 @@ public class LayerFaunaTest {
 		pool[5 + 5 * 24] = Terrain.WATER;
 		assertEquals( "the shelf of a deep pool", Habitat.POOL.bit, hab( pool, null, 10, 10, false, -5 ) );
 		assertEquals( "a puddle with no deep water by it", 0, hab( pool, null, 5, 5, false, -5 ) );
-		assertEquals( "the surface's water is no one's", 0, hab( pool, null, 10, 10, false, 0 ) );
+		assertEquals( "the surface's open water is its water beasts' own", Habitat.SHALLOWS.bit, hab( pool, null, 10, 10, false, 0 ) );
 		assertEquals( "rock", 0, hab( pool, null, 0, 0, false, -5 ) );
 
 		int[] seam = floor( 11, 10, Terrain.MINE_CRYSTAL );

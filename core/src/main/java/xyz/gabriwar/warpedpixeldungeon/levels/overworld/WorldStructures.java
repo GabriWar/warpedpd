@@ -157,7 +157,19 @@ public class WorldStructures {
 	static float townRoadY(){ return TOWN_Y0 + 23; }
 
 	//what kind of site a sector hosts
-	public enum Site { NONE, VILLAGE, RUIN, DRAGON, CAMP, STONES, BIGTREE, DUNGEON }
+	public enum Site { NONE, VILLAGE, RUIN, DRAGON, CAMP, STONES, BIGTREE, DUNGEON,
+		//the wetlands' places (WetlandSites): a witch's hut in the bog, a sunken shrine, rock pools on a beach
+		WITCH_HUT, SUNKEN_SHRINE, TIDE_POOLS,
+		//the desert's own places (Drylands): claimed only where none of the above stands
+		OASIS, BURIED_TEMPLE,
+		//the sea's (SeaSites): they take only a sector all the others left empty
+		SHIPWRECK, LIGHTHOUSE }
+
+	/** One of the sea's places (SeaSites), which lay their ground on beaches, shallows and headlands
+	 *  alone: no village's fields keep clear of them, and the world map pins them once found. */
+	public static boolean seaSite( Site s ){
+		return s == Site.SHIPWRECK || s == Site.LIGHTHOUSE;
+	}
 
 	//who lives in a settlement
 	public enum Faction { HUMAN, GNOLL, BANDIT }
@@ -197,6 +209,12 @@ public class WorldStructures {
 	//keyed by sector coords - cleared when the seed changes
 	private static long cachedSeed = Long.MIN_VALUE;
 	private static final java.util.Map<Long, Site> siteCache = new java.util.concurrent.ConcurrentHashMap<>();
+	//the places the cascade (computeBaseType) lays, before the newer places (the wetlands', the
+	//desert's, the sea's) are looked for in what it left empty: the roads, the fields and the newer
+	//places' own checks read these, never siteType, so working out a place never asks for itself
+	private static final java.util.Map<Long, Site> baseCache = new java.util.concurrent.ConcurrentHashMap<>();
+	//the land's places (landType): the cascade's, the wetlands' and the desert's, which the sea's keep off
+	private static final java.util.Map<Long, Site> landCache = new java.util.concurrent.ConcurrentHashMap<>();
 	private static final java.util.Map<Long, Long> nearCache = new java.util.concurrent.ConcurrentHashMap<>();
 
 	private static long sectorKey( int sx, int sy ){
@@ -207,6 +225,8 @@ public class WorldStructures {
 		if (seed != cachedSeed){
 			cachedSeed = seed;
 			siteCache.clear();
+			baseCache.clear();
+			landCache.clear();
 			nearCache.clear();
 			layoutCache.clear();
 			segCache.clear();
@@ -225,7 +245,48 @@ public class WorldStructures {
 		return result;
 	}
 
+	/**
+	 * The sites the world had before the newer places: each decided by its sector's own anchor and
+	 * hash, never by a neighbour. The roads, the villages' fields and the newer places' clearances
+	 * read these, so a place laid after them (WetlandSites, Drylands, SeaSites) can look round itself
+	 * without asking its own sector again, and moves none of them.
+	 */
+	public static Site baseType( long seed, int sx, int sy ){
+		checkSeed( seed );
+		Long key = sectorKey( sx, sy );
+		Site cached = baseCache.get( key );
+		if (cached != null) return cached;
+		Site result = computeBaseType( seed, sx, sy );
+		baseCache.put( key, result );
+		return result;
+	}
+
+	/** What stands at a sector's site before the sea's places (SeaSites) are asked: the world's own
+	 *  (baseType), else a wetlands' place, else a desert's. The sea's places keep off all of these,
+	 *  and the world map names them (the sea's are pinned once found). */
+	public static Site landType( long seed, int sx, int sy ){
+		checkSeed( seed );
+		Long key = sectorKey( sx, sy );
+		Site cached = landCache.get( key );
+		if (cached != null) return cached;
+		Site result = baseType( seed, sx, sy );
+		if (result == Site.NONE){
+			//the wetlands' places: their own hash, on sectors nothing above claimed
+			WetlandSites.Place p = WetlandSites.place( seed, sx, sy );
+			//a sector still empty may hold one of the desert's places
+			result = p != null ? p.kind : Drylands.site( seed, sx, sy );
+		}
+		landCache.put( key, result );
+		return result;
+	}
+
+	//the land's places first; a sector they all leave empty may hold one of the sea's
 	private static Site computeSiteType( long seed, int sx, int sy ){
+		Site land = landType( seed, sx, sy );
+		return land != Site.NONE ? land : SeaSites.siteOf( seed, sx, sy );
+	}
+
+	private static Site computeBaseType( long seed, int sx, int sy ){
 		int wx = siteX( seed, sx, sy ), wy = siteY( seed, sx, sy );
 		//nothing settles on the town's doorstep
 		if (Math.abs( wx ) < WorldModel.TOWN_IN + 8 && Math.abs( wy ) < WorldModel.TOWN_IN + 8){
@@ -279,6 +340,18 @@ public class WorldStructures {
 		return Site.NONE;
 	}
 
+	/** Where the site of a sector really stands: its anchor (siteX/siteY), or for a wetland's place
+	 *  the spot it was laid on inside its sector (WetlandSites.Place). */
+	public static int placeX( long seed, int sx, int sy ){
+		WetlandSites.Place p = WetlandSites.isWetland( landType( seed, sx, sy ) ) ? WetlandSites.place( seed, sx, sy ) : null;
+		return p != null ? p.cx : siteX( seed, sx, sy );
+	}
+
+	public static int placeY( long seed, int sx, int sy ){
+		WetlandSites.Place p = WetlandSites.isWetland( landType( seed, sx, sy ) ) ? WetlandSites.place( seed, sx, sy ) : null;
+		return p != null ? p.cy : siteY( seed, sx, sy );
+	}
+
 	/** Is this world cell the stairway of a barrow (Site.DUNGEON)? Its transition is the
 	 *  barrow's own (OverworldLevel), never a way between the world's slices. */
 	public static boolean delveGate( long seed, int wx, int wy ){
@@ -308,7 +381,7 @@ public class WorldStructures {
 		for (int dy = -2; dy <= 2; dy++){
 			for (int dx = -2; dx <= 2; dx++){
 				if (dx == 0 && dy == 0) continue;
-				if (siteType( seed, sx+dx, sy+dy ) != Site.VILLAGE) continue;
+				if (baseType( seed, sx+dx, sy+dy ) != Site.VILLAGE) continue;
 				long ddx = siteX( seed, sx+dx, sy+dy ) - x0;
 				long ddy = siteY( seed, sx+dx, sy+dy ) - y0;
 				long d2 = ddx*ddx + ddy*ddy;
@@ -344,7 +417,7 @@ public class WorldStructures {
 		for (int dy = -2; dy <= 2; dy++){
 			for (int dx = -2; dx <= 2; dx++){
 				int vx = sx+dx, vy = sy+dy;
-				if (siteType( seed, vx, vy ) != Site.VILLAGE) continue;
+				if (baseType( seed, vx, vy ) != Site.VILLAGE) continue;
 				long n = nearestVillage( seed, vx, vy );
 				if (n == Long.MIN_VALUE) continue;
 				int nx = (int)(n >> 32), ny = (int)n;
@@ -358,7 +431,7 @@ public class WorldStructures {
 		for (int dy = -2; dy <= 2; dy++){
 			for (int dx = -2; dx <= 2; dx++){
 				int vx = sx+dx, vy = sy+dy;
-				if (siteType( seed, vx, vy ) != Site.VILLAGE) continue;
+				if (baseType( seed, vx, vy ) != Site.VILLAGE) continue;
 				long vwx = siteX( seed, vx, vy ), vwy = siteY( seed, vx, vy );
 				if (vwx*vwx + vwy*vwy < (long)(2.2f*SECTOR) * (long)(2.2f*SECTOR)){
 					segs.add( new float[]{ vwx, vwy, townRoadX(), townRoadY() } );
@@ -532,8 +605,31 @@ public class WorldStructures {
 		}
 		return -1;
 	}
+	/** Does a place of the land (landType: the world's own, the wetlands', the desert's; never the
+	 *  sea's) in the sectors round (sx, sy) lay anything on (wx, wy) - its ground, its fence, its
+	 *  fields? What the sea's places keep clear of. */
+	static boolean landTerrainAround( long seed, int sx, int sy, int wx, int wy ){
+		for (int dy = -1; dy <= 1; dy++){
+			for (int dx = -1; dx <= 1; dx++){
+				Site type = landType( seed, sx+dx, sy+dy );
+				if (type == Site.NONE) continue;
+				if (siteTerrain( seed, sx+dx, sy+dy, type, wx, wy ) != -1) return true;
+				if (type == Site.VILLAGE && inField( fieldPlots( seed, sx+dx, sy+dy ), wx, wy )) return true;
+			}
+		}
+		return false;
+	}
+
 	//village: huts on a ring around a well; ruin: broken stone shell
 	private static int siteTerrain( long seed, int sx, int sy, Site type, int wx, int wy ){
+		//the wetlands' places stand where they were laid in their sector, not on its anchor
+		if (WetlandSites.isWetland( type )) return WetlandSites.terrain( WetlandSites.place( seed, sx, sy ), wx, wy );
+		//an oasis, a buried temple's top: the desert's own (Drylands)
+		if (type == Site.OASIS || type == Site.BURIED_TEMPLE) return Drylands.terrain( seed, sx, sy, type, wx, wy );
+		//the sea's: a wreck's hull or a lighthouse on a mainland shore (an island's are the surface
+		//pass's, SeaSites.View)
+		if (seaSite( type )) return SeaSites.siteTerrain( seed, sx, sy, wx, wy );
+
 		int cx = siteX( seed, sx, sy ), cy = siteY( seed, sx, sy );
 		int dx = wx - cx, dy = wy - cy;
 
@@ -688,7 +784,7 @@ public class WorldStructures {
 	private static final java.util.EnumSet<WorldModel.Biome> FARMLAND = java.util.EnumSet.of(
 			WorldModel.Biome.PLAINS, WorldModel.Biome.MEADOW, WorldModel.Biome.FOREST, WorldModel.Biome.FOOTHILLS );
 	//how far the grounds of a place other than a village reach from its site (a dragon's lair, the widest)
-	private static final int SITE_REACH = 6;
+	static final int SITE_REACH = 6;
 	//tries at a plot, and the salt they are rolled with
 	private static final int FIELD_TRIES = 24;
 	private static final long FIELD_SALT = 0xF1E1D5L;
@@ -724,7 +820,7 @@ public class WorldStructures {
 	}
 
 	private static int[] computeFieldPlots( long seed, int sx, int sy ){
-		if (siteType( seed, sx, sy ) != Site.VILLAGE || faction( seed, sx, sy ) != Faction.HUMAN) return NO_FIELDS;
+		if (baseType( seed, sx, sy ) != Site.VILLAGE || faction( seed, sx, sy ) != Faction.HUMAN) return NO_FIELDS;
 		int cx = siteX( seed, sx, sy ), cy = siteY( seed, sx, sy );
 		int ring = settlementLayout( seed, sx, sy )[0] + FIELD_RING0;
 		long h = hash( seed ^ FIELD_SALT, sx, sy );
@@ -767,11 +863,13 @@ public class WorldStructures {
 		}
 		//clear of the town and the pines it spills into (terrainAt: fourteen cells round its walls)
 		if (rectNear( x0, y0, x1, y1, 0, 0, TOWN_SIZE / 2 + 16 )) return false;
-		//clear of every other place's grounds, and of every other village's fields
+		//clear of every other place's grounds, and of every other village's fields (the world's own:
+		//the wetlands' and the desert's places keep clear of the fields themselves, and the sea's lie
+		//on beaches and headlands no field reaches)
 		for (int dy = -2; dy <= 2; dy++){
 			for (int dx = -2; dx <= 2; dx++){
 				if (dx == 0 && dy == 0) continue;
-				Site t = siteType( seed, sx+dx, sy+dy );
+				Site t = baseType( seed, sx+dx, sy+dy );
 				if (t == Site.NONE) continue;
 				int reach = t == Site.VILLAGE ? settlementLayout( seed, sx+dx, sy+dy )[0] + FIELD_REACH + 1 : SITE_REACH;
 				if (rectNear( x0, y0, x1, y1, siteX( seed, sx+dx, sy+dy ), siteY( seed, sx+dx, sy+dy ), reach )) return false;

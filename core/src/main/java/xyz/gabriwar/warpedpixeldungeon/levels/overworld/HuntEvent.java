@@ -142,9 +142,11 @@ public final class HuntEvent {
 		boolean ok = Math.max( Math.abs( ax ), Math.abs( ay ) ) >= TOWN_CLEAR
 				&& GROUNDS.contains( WorldModel.baseBiomeAt( seed, ax, ay ) )
 				&& !OverworldFauna.nearSettlement( seed, ax, ay );
-		if (ok && WorldStructures.siteType( seed, sx, sy ) != WorldStructures.Site.NONE){
-			ok = Math.max( Math.abs( WorldStructures.siteX( seed, sx, sy ) - ax ),
-					Math.abs( WorldStructures.siteY( seed, sx, sy ) - ay ) ) > SITE_CLEAR;
+		//the land's places (landType): the sea's (SeaSites) stand away from a sector's site cell, and
+		//a hunt they would push off is one that was there before them
+		if (ok && WorldStructures.landType( seed, sx, sy ) != WorldStructures.Site.NONE){
+			ok = Math.max( Math.abs( WorldStructures.placeX( seed, sx, sy ) - ax ),
+					Math.abs( WorldStructures.placeY( seed, sx, sy ) - ay ) ) > SITE_CLEAR;
 		}
 		groundCache.put( key, ok );
 		return ok;

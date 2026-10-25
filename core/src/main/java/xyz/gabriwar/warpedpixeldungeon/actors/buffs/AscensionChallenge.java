@@ -266,7 +266,9 @@ public class AscensionChallenge extends Buff {
 	private boolean stacksLowered = false;
 
 	public void onLevelSwitch(){
-		if (Dungeon.depth < Statistics.highestAscent){
+		//only the dungeon's own floors are climbed: a town shop or house (branch 6) shares a floor's
+		//depth number but is no step of the ascent, and has no monsters to bring back
+		if (Dungeon.branch == 0 && Dungeon.depth < Statistics.highestAscent){
 			Statistics.highestAscent = Dungeon.depth;
 			justAscended = true;
 			if (Dungeon.bossLevel()){

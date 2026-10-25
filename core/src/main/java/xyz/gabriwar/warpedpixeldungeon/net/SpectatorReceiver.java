@@ -442,9 +442,15 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 				// ...and its homesteads' pieces and roofs
 				((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) level)
 						.adoptSharedHomestead(data.optString("whome", null));
+				// ...and its sea: the places found, the boats moored, the treasure dug up
+				((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) level)
+						.adoptSharedSea(data.optString("wsea", null));
 				// ...and the homes and waystones the host's map pins
 				xyz.gabriwar.warpedpixeldungeon.homestead.travel.TravelShare
 						.adopt(data.optString("wtravel", null));
+				// ...and the villages' bounties the host's hero carries
+				xyz.gabriwar.warpedpixeldungeon.bounty.BountyShare
+						.adopt(data.optString("wbounty", null));
 			}
 
 			String visitedRLE = data.optString("visited", "");
@@ -871,10 +877,21 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 					((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level)
 							.adoptSharedHomestead(data.optString("whome", null));
 				}
+				// A world slice's sea: the map pins its places, the art draws its boats and marks
+				if (data.has("wsea")
+						&& Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) {
+					((xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) Dungeon.level)
+							.adoptSharedSea(data.optString("wsea", null));
+				}
 				// The homes and waystones the host's world map pins (the map reads them on open)
 				if (data.has("wtravel")) {
 					xyz.gabriwar.warpedpixeldungeon.homestead.travel.TravelShare
 							.adopt(data.optString("wtravel", null));
+				}
+				// The villages' bounties the host's hero carries (the journal and the boards read them)
+				if (data.has("wbounty")) {
+					xyz.gabriwar.warpedpixeldungeon.bounty.BountyShare
+							.adopt(data.optString("wbounty", null));
 				}
 
 				// Mob updates

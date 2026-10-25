@@ -914,8 +914,8 @@ public class Dungeon {
 		if (branch == SpiderNestLevel.SPIDER_BRANCH) return "Spider Nest";
 		xyz.gabriwar.warpedpixeldungeon.levels.Delves.Entry delve = xyz.gabriwar.warpedpixeldungeon.levels.Delves.current();
 		if (delve != null){
-			return xyz.gabriwar.warpedpixeldungeon.levels.Delves.name(
-					xyz.gabriwar.warpedpixeldungeon.levels.Delves.worldSeed(), delve.sx, delve.sy )
+			//a barrow's name, or a buried temple's
+			return xyz.gabriwar.warpedpixeldungeon.levels.Delves.name( delve )
 					+ " " + (delve.floorOf( depth ) + 1) + "/" + delve.floors;
 		}
 		if (branch == xyz.gabriwar.warpedpixeldungeon.levels.rooms.quest.frozen.FrozenEntranceRoom.FROZEN_BRANCH) return "Frozen Caves";
@@ -1017,6 +1017,8 @@ public class Dungeon {
 		xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph.onArrive( depth, branch );
 
 		Actor.init();
+		//a rogue's toy left on this floor mid-fuse went off and is gone (actors/buffs/TenguToy)
+		xyz.gabriwar.warpedpixeldungeon.actors.buffs.TenguToy.sweep( level );
 
 		level.addRespawner();
 		//re-materialise a carried pet on arrival (Sprouted): respawnerPet() re-spawns

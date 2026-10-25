@@ -38,6 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.journal.Bestiary;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.HuntEvent;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.MigrationEvent;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.RaidEvent;
 import xyz.gabriwar.warpedpixeldungeon.net.NetManager;
@@ -50,8 +51,10 @@ import com.watabou.utils.Random;
 import java.util.ArrayList;
 
 /**
- * A deer of the open woods and meadows: daytime fauna (OverworldFauna) and the quarry of the
- * wolf packs' night hunts (levels.overworld.HuntEvent). Peaceful but fair game: it bolts from
+ * A deer of the open woods and meadows: daytime fauna (OverworldFauna), the quarry of the
+ * wolf packs' night hunts (levels.overworld.HuntEvent) and the herds that cross the land in
+ * spring and autumn (levels.overworld.MigrationEvent: one of those grazes its way along with its
+ * herd, drift). Peaceful but fair game: it bolts from
  * the hero and from wolves - a sprint, then it flags - and never fights. Cheap on purpose: no
  * field of view and no pathfinding, one greedy step a move.
  *
@@ -176,7 +179,9 @@ public class Deer extends Mob implements Leadable {
 				if (sprite != null) sprite.hideAlert();
 			}
 			state = WANDERING;
-			amble();
+			//one of a migrating herd (MigrationEvent): it grazes its way along with the herd
+			Migrating herd = buff( Migrating.class );
+			if (herd == null || !drift( herd.cellNow() )) amble();
 			spend( TICK );
 			return true;
 		}
@@ -246,6 +251,31 @@ public class Deer extends Mob implements Leadable {
 		move( c );
 	}
 
+	//grazing along with its herd: a step now and then toward its place in it once that has drawn
+	//more than two cells ahead, never into the tall grass; near its place, it ambles as ever.
+	//false when there is no place to make for (off the window, or off the herd's road)
+	private boolean drift( int place ){
+		if (place == -1 || Dungeon.level.distance( pos, place ) <= 2) return false;
+		if (sprite == null || Random.Int( 2 ) != 0) return true;
+		int w = Dungeon.level.width(), best = -1;
+		float px = place % w, py = place / w;
+		float bestD = (pos % w - px) * (pos % w - px) + (pos / w - py) * (pos / w - py);
+		for (int n : PathFinder.NEIGHBOURS8){
+			int c = pos + n;
+			if (!canStep( c, false )) continue;
+			float d = (c % w - px) * (c % w - px) + (c / w - py) * (c / w - py);
+			if (d < bestD){
+				bestD = d;
+				best = c;
+			}
+		}
+		if (best != -1){
+			moveSprite( pos, best );
+			move( best );
+		}
+		return true;
+	}
+
 	//a deer making good its escape is gone: off the edge of the world, out of everyone's sight,
 	//or into the trees well away from the hero (where he sees it go)
 	private boolean leaves(){
@@ -273,6 +303,8 @@ public class Deer extends Mob implements Leadable {
 		HuntPack pack = buff( HuntPack.class );
 		long hunt = pack != null ? pack.hunt : Long.MIN_VALUE;
 		boolean byPack = HuntPack.isWolf( cause );
+		//a migrating herd's deer leaves its place in the herd empty
+		MigrationEvent.fell( this );
 		super.die( cause );
 		Bestiary.countEncounter( getClass() );
 		//its hide, for a homestead's leather (homestead/gathering/Hides), under the meat

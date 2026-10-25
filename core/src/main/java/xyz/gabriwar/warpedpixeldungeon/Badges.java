@@ -1389,8 +1389,9 @@ public class Badges {
 		if (!isUnlocked(badge) && (badge.type == BadgeType.JOURNAL || Dungeon.customSeedText.isEmpty())){
 			global.add( badge );
 			saveNeeded = true;
-			//the same badge on Google Play, where the build has Play Games
-			com.watabou.noosa.Game.platform.unlockAchievement( badge.name() );
+			//the same badge on Google Play, where the build has Play Games (a unit test runs with no
+			//platform, and earns the catalog's badges with what the tests before it saw)
+			if (com.watabou.noosa.Game.platform != null) com.watabou.noosa.Game.platform.unlockAchievement( badge.name() );
 		}
 	}
 

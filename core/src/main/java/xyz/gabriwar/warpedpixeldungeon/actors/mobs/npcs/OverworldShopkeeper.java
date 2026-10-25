@@ -24,6 +24,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs;
 
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.Coffee;
@@ -38,8 +39,10 @@ import com.watabou.utils.Random;
 import java.util.ArrayList;
 
 /**
- * A settlement shop with a speciality: potions, scrolls, food, gear or seeds.
- * Restocks on the universal shop timer.
+ * A settlement shop with a speciality: potions, scrolls, food, gear or seeds; past them the
+ * village carpenter and the stablehand, who lay out their own goods. Restocks on the universal
+ * shop timer. A seed trader keeps a bug net among his stock, a food trader now and then
+ * (items/catching/BugNet).
  */
 public class OverworldShopkeeper extends Shopkeeper {
 
@@ -50,6 +53,8 @@ public class OverworldShopkeeper extends Shopkeeper {
 	//the village carpenter, past the rotation above: every village or larger has one besides its
 	//usual traders (homestead/gathering/Carpentry)
 	public static final int CARPENTER = 11;
+	//the village stablehand, past it: a horse for sale, saddles and hay (homestead/mounts/Stables)
+	public static final int STABLE = 12;
 
 	{
 		spriteClass = ShopkeeperVariantSprite.class;
@@ -83,10 +88,12 @@ public class OverworldShopkeeper extends Shopkeeper {
 		return RaidEvent.shutReason( homeSector );
 	}
 
-	//the price a saved settlement gives the hero who saved it (RaidEvent)
+	//the price a saved settlement gives the hero who saved it (RaidEvent), and the better price his
+	//standing there earns him with every rank (bounty/Bounties)
 	@Override
 	public float priceFactor(){
-		return RaidEvent.priceFactor( homeSector );
+		return RaidEvent.priceFactor( homeSector )
+				* xyz.gabriwar.warpedpixeldungeon.bounty.BountyActions.priceFactor( homeSector );
 	}
 
 	//in a raid the keeper is hiding behind the counter: a blast meant for a raider is not an attack on him
@@ -99,6 +106,14 @@ public class OverworldShopkeeper extends Shopkeeper {
 	//(homestead/gathering/Carpentry): not the few picked at random from a trader's stock
 	@Override
 	public void restock(){
+		if (speciality == STABLE){
+			//the stablehand's rail: a saddle, hay, and a horse when the last was sold
+			if (xyz.gabriwar.warpedpixeldungeon.homestead.mounts.Stables.lay( this ) > 0
+					&& xyz.gabriwar.warpedpixeldungeon.net.NetManager.anyHeroSees( pos )){
+				yell( xyz.gabriwar.warpedpixeldungeon.messages.Messages.get( Shopkeeper.class, "restock" ) );
+			}
+			return;
+		}
 		if (speciality != CARPENTER){
 			super.restock();
 			return;
@@ -107,6 +122,13 @@ public class OverworldShopkeeper extends Shopkeeper {
 				&& xyz.gabriwar.warpedpixeldungeon.net.NetManager.anyHeroSees( pos )){
 			yell( xyz.gabriwar.warpedpixeldungeon.messages.Messages.get( Shopkeeper.class, "restock" ) );
 		}
+	}
+
+	//the stablehand speaks of his horses
+	@Override
+	public String chatTextFor( Hero h ){
+		if (speciality == STABLE) return xyz.gabriwar.warpedpixeldungeon.messages.Messages.get( this, "talk_stable" );
+		return super.chatTextFor( h );
 	}
 
 	@Override
@@ -164,6 +186,11 @@ public class OverworldShopkeeper extends Shopkeeper {
 				it.identify( false );
 				stock.add( it );
 			}
+		}
+		//a bug net for the garden's butterflies on every seed trader's shelf, and now and then on a
+		//food trader's (items/catching/BugNet)
+		if (speciality == SEEDS || (speciality == FOOD && Random.Int( 3 ) == 0)){
+			stock.add( new xyz.gabriwar.warpedpixeldungeon.items.catching.BugNet() );
 		}
 		return stock;
 	}

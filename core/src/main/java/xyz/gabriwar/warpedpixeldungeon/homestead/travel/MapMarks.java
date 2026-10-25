@@ -37,7 +37,7 @@ import java.util.List;
  * the homes' gold), every WAYSTONE the hero has attuned (bright) or only seen (dim; one never seen is
  * not shown, and on the surface a waystone's settlement is already named on the map, so there it
  * carries no name of its own), and whatever the PROVIDERS add - the threats' part marks a home under
- * threat. A home or a waystone on another slice than the map's is pinned faded, its slice in its
+ * threat, the catching the caches the bottles' notes tell of (items/catching/BottleMarks). A home or a waystone on another slice than the map's is pinned faded, its slice in its
  * name. A tap on a mark of the map's own slice sets the march's waypoint on it.
  *
  * A provider is a public class with a public no-argument constructor implementing Provider, named in
@@ -97,7 +97,8 @@ public final class MapMarks {
 
 	/** The providers, by class name. */
 	public static final String[] PROVIDERS = {
-			"xyz.gabriwar.warpedpixeldungeon.homestead.threats.ThreatMarks"   //threats: a home under threat
+			"xyz.gabriwar.warpedpixeldungeon.homestead.threats.ThreatMarks",  //threats: a home under threat
+			"xyz.gabriwar.warpedpixeldungeon.items.catching.BottleMarks"      //the caches the bottles' notes mark
 	};
 
 	/** A home's colour on the map. */

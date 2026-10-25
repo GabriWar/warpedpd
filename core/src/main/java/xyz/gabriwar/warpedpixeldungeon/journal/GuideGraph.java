@@ -202,6 +202,9 @@ public class GuideGraph {
 	private static final int PEAKS    = 0xC8D4E0;
 	private static final int DEEP     = 0x9C8CE0;
 	private static final int BARROW   = 0x50C0B0;
+	private static final int WETLANDS = 0x6AAE84;
+	private static final int DESERT   = 0xE0B860;
+	private static final int SEA      = 0x5AA8D8;
 	private static final int HOMESTEAD = 0xD8A860;
 	private static final int TOPIC    = 0xCCCCCC;
 	private static final int BASICS   = 0xF0DCA8;
@@ -234,7 +237,7 @@ public class GuideGraph {
 	public static final String TAG_TOWN_INSIDE  = "town_inside";   //through a door of the town square
 	public static final String TAG_VILLAGE      = "village";       //through a village door
 	public static final String TAG_WORLD_MAP    = "world_map";     //the world map, opened
-	public static final String TAG_WORLD_EVENT  = "world_event";   //a star, a market, a raid or a hunt heard of
+	public static final String TAG_WORLD_EVENT  = "world_event";   //a star, a market, a raid, a hunt, a festival, a herd or a great beast heard of
 	public static final String TAG_BARROW       = "barrow";        //down a barrow's stairs
 	public static final String TAG_MOUNTAINS    = "mountains";     //up onto the mountains
 	public static final String TAG_HEIGHTS      = "heights";       //up where the air thins (+7 and up)
@@ -247,11 +250,30 @@ public class GuideGraph {
 	public static final String TAG_ROPE         = "rope";          //a first rope thrown over an animal
 	public static final String TAG_STONES       = "stones";        //a waystone attuned, or a hearthstone set down
 	public static final String TAG_GATHER       = "gather";        //a first building material or builder's satchel in the pack
+	public static final String TAG_BEASTS       = "beasts";        //a bison, a camel, a vulture, an alligator or a pike, seen
+	public static final String TAG_NET          = "net";           //a first bug net or critter in a jar in the pack
+	public static final String TAG_ROD          = "rod";           //a first fishing rod or worms in the pack
+	public static final String TAG_SWAMP        = "swamp";         //first steps in a swamp (levels/overworld/Wetlands)
+	public static final String TAG_WITCH_HUT    = "witch_hut";     //a swamp witch's hut, found
+	public static final String TAG_SUNKEN_SHRINE = "sunken_shrine"; //a sunken shrine, found
+	public static final String TAG_TIDE_POOLS   = "tide_pools";    //a beach's tide pools, found
+	public static final String TAG_OASIS        = "oasis";         //an oasis, found (levels/overworld/DrylandsLife)
+	public static final String TAG_SANDSTORM    = "sandstorm";     //caught in a desert sandstorm (actors/Sandstorm)
+	public static final String TAG_TEMPLE       = "temple";        //a buried temple, found or gone down into
+	public static final String TAG_SAIL         = "sail";          //a first boat launched or boarded
+	public static final String TAG_ISLAND       = "island";        //an island of the sea, sighted or charted
+	public static final String TAG_WRECK        = "wreck";         //a shipwreck, found
+	public static final String TAG_LIGHTHOUSE   = "lighthouse";    //a lighthouse, found
+	public static final String TAG_SHARK        = "shark";         //a shark's fin, seen
+	public static final String TAG_HORSE        = "horse";         //a first horse seen, tamed, bought or ridden
+	public static final String TAG_BOUNTY       = "bounty";        //a village's notice board read
 
 	public static final List<String> ALL_TAGS = Collections.unmodifiableList( Arrays.asList(
 			TAG_SURFACE, TAG_TOWN_INSIDE, TAG_VILLAGE, TAG_WORLD_MAP, TAG_WORLD_EVENT, TAG_BARROW,
 			TAG_MOUNTAINS, TAG_HEIGHTS, TAG_PEAK_SITE, TAG_CAVES, TAG_CAVES_DEEP, TAG_CAVE_SITE,
-			TAG_BUILT, TAG_FARM, TAG_ROPE, TAG_STONES, TAG_GATHER ) );
+			TAG_BUILT, TAG_FARM, TAG_ROPE, TAG_STONES, TAG_GATHER, TAG_BEASTS, TAG_NET, TAG_ROD,
+			TAG_SWAMP, TAG_WITCH_HUT, TAG_SUNKEN_SHRINE, TAG_TIDE_POOLS, TAG_OASIS, TAG_SANDSTORM, TAG_TEMPLE,
+			TAG_SAIL, TAG_ISLAND, TAG_WRECK, TAG_LIGHTHOUSE, TAG_SHARK, TAG_HORSE, TAG_BOUNTY ) );
 
 	//the save numbering of the places (see Dungeon.newLevel, WorldLayers, Delves)
 	static final int SURFACE_DEPTH = 97;
@@ -277,7 +299,9 @@ public class GuideGraph {
 		} else if (branch == VILLAGE_HOUSE){
 			tags.add( TAG_VILLAGE );
 		} else if (branch >= BARROWS_FROM){
-			tags.add( TAG_BARROW );
+			//a buried temple's crypt is a barrow's kind (levels/Delves), with a page of its own
+			xyz.gabriwar.warpedpixeldungeon.levels.Delves.Entry e = xyz.gabriwar.warpedpixeldungeon.levels.Delves.byBranch( branch );
+			tags.add( e != null && e.temple ? TAG_TEMPLE : TAG_BARROW );
 		}
 		return tags;
 	}
@@ -581,20 +605,43 @@ public class GuideGraph {
 		Node surface = new Node( "ch_surface", SURFACE ).icon( Icons.STAIRS_GRASS );
 		surface.child( page( "surface_overview", SURFACE, Icons.INFO ).tag( TAG_SURFACE ) );
 		surface.child( page( "surface_villages", SURFACE, Icons.DEPTH_GRASS ).tag( TAG_VILLAGE ) );
+		surface.child( page( "surface_bounties", SURFACE, Icons.JOURNAL ).tag( TAG_BOUNTY ) );
 		surface.child( page( "surface_wilds", SURFACE, Icons.COMPASS ).tag( TAG_WORLD_MAP ) );
 		surface.child( page( "surface_events", SURFACE, Icons.ALERT ).tag( TAG_WORLD_EVENT ) );
+		surface.child( page( "surface_beasts", SURFACE, Icons.SNAKE ).tag( TAG_BEASTS ) );
+		surface.child( page( "surface_nature", SURFACE, Icons.ALERT ).tag( TAG_WORLD_EVENT ) );
+		surface.child( page( "surface_festivals", SURFACE, Icons.CALENDAR ).tag( TAG_WORLD_EVENT ) );
 		surface.child( page( "surface_barrows", BARROW, Icons.STAIRS_TRAPS ).tag( TAG_BARROW ) );
+		//the desert's places and its weather (levels/overworld/Drylands, actors/Sandstorm)
+		surface.child( new Node( "surface_oasis", DESERT ).key( "surface_oasis" ).sprite( ItemSpriteSheet.DATES ).tag( TAG_OASIS ) );
+		surface.child( new Node( "surface_sandstorm", DESERT ).key( "surface_sandstorm" ).sprite( ItemSpriteSheet.SAND_GOGGLES ).tag( TAG_SANDSTORM ) );
+		surface.child( new Node( "surface_temples", DESERT ).key( "surface_temples" ).sprite( ItemSpriteSheet.SUN_SCARAB ).tag( TAG_TEMPLE ) );
 		surface.child( boss( "boss_dragon", SURFACE, OverworldDragon.class ) );
 		Node peaks = new Node( "ch_peaks", PEAKS ).icon( Icons.STAIRS_CHASM );
 		peaks.child( page( "peaks_overview", PEAKS, Icons.INFO ).tag( TAG_MOUNTAINS ) );
 		peaks.child( page( "peaks_places", PEAKS, Icons.DEPTH_CHASM ).tag( TAG_PEAK_SITE ) );
 		peaks.child( page( "peaks_heights", PEAKS, Icons.WARNING ).tag( TAG_HEIGHTS ) );
 		surface.child( peaks );
+		//the sea: boats, the islands, the wrecks, the lighthouses and the sharks (sea/, docs/sea.md)
+		Node sea = new Node( "ch_sea", SEA ).sprite( ItemSpriteSheet.SAILBOAT );
+		sea.child( page( "sea_sailing", SEA, Icons.COMPASS ).tag( TAG_SAIL ) );
+		sea.child( page( "sea_islands", SEA, Icons.DEPTH_WATER ).tag( TAG_ISLAND ) );
+		sea.child( page( "sea_wrecks", SEA, Icons.GOLD ).tag( TAG_WRECK ) );
+		sea.child( page( "sea_lighthouses", SEA, Icons.INFO ).tag( TAG_LIGHTHOUSE ) );
+		sea.child( page( "sea_sharks", SEA, Icons.WARNING ).tag( TAG_SHARK ) );
+		surface.child( sea );
 		Node deep = new Node( "ch_deep", DEEP ).icon( Icons.STAIRS_DARK );
 		deep.child( page( "deep_overview", DEEP, Icons.INFO ).tag( TAG_CAVES ) );
 		deep.child( page( "deep_places", DEEP, Icons.DEPTH_DARK ).tag( TAG_CAVE_SITE ) );
 		deep.child( page( "deep_hazards", DEEP, Icons.WARNING ).tag( TAG_CAVES_DEEP ) );
 		surface.child( deep );
+		//the swamps and the shores (levels/overworld/WetlandSites)
+		Node wet = new Node( "ch_wetlands", WETLANDS ).icon( Icons.STAIRS_WATER );
+		wet.child( page( "wet_swamps", WETLANDS, Icons.DEPTH_WATER ).tag( TAG_SWAMP ) );
+		wet.child( page( "wet_witch", WETLANDS, Icons.ALCHEMY ).tag( TAG_WITCH_HUT ) );
+		wet.child( page( "wet_shrine", WETLANDS, Icons.ALTAR_SHRINE ).tag( TAG_SUNKEN_SHRINE ) );
+		wet.child( page( "wet_tidepools", WETLANDS, Icons.STAIRS_WATER ).tag( TAG_TIDE_POOLS ) );
+		surface.child( wet );
 		root.child( surface );
 
 		//building, farming and travelling out in the world (homestead/)
@@ -607,8 +654,12 @@ public class GuideGraph {
 		homestead.child( page( "hs_shelter", HOMESTEAD, Icons.THERMAL_SPRING ).tag( TAG_BUILT ) );
 		homestead.child( page( "hs_farming", HOMESTEAD, Icons.HOTHOUSE ).tag( TAG_FARM ) );
 		homestead.child( page( "hs_animals", HOMESTEAD, Icons.PEDIGREE_HALL ).tag( TAG_ROPE ) );
+		homestead.child( page( "hs_horses", HOMESTEAD, Icons.PEDIGREE_HALL ).tag( TAG_HORSE ) );
 		homestead.child( page( "hs_homes", HOMESTEAD, Icons.ALERT ).tag( TAG_STONES ) );
 		homestead.child( page( "hs_travel", HOMESTEAD, Icons.COMPASS ).tag( TAG_STONES ) );
+		homestead.child( page( "hs_catching", HOMESTEAD, Icons.GRASS ).tag( TAG_NET ) );
+		homestead.child( page( "hs_fishing", HOMESTEAD, Icons.DEPTH_WATER ).tag( TAG_ROD ) );
+		homestead.child( page( "hs_fish", HOMESTEAD, Icons.STAIRS_WATER ).tag( TAG_ROD ) );
 		root.child( homestead );
 
 		Node town = new Node( "ch_town", TOWN ).icon( Icons.STAIRS_GRASS );

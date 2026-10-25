@@ -35,6 +35,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Fire;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Skill;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Tengu;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
@@ -53,10 +54,15 @@ import java.util.ArrayList;
  * off in the smoke bomb's blast at the end. Enemies in reach catch fire; the flames
  * themselves burn anyone who stands in them.
  */
-public class TenguFireBomb extends Buff {
+public class TenguFireBomb extends Buff implements TenguToy {
 
 	/** Tengu's bomb, spitting flame instead of smoke */
 	public static class RogueFireBombItem extends Tengu.BombAbility.BombItem {
+		@Override
+		public boolean doPickUp( Hero hero, int pos ) {
+			return TenguToy.pickUp( this, TenguFireBomb.class, hero, pos );
+		}
+
 		@Override
 		public Emitter emitter() {
 			Emitter emitter = new Emitter();
@@ -85,7 +91,9 @@ public class TenguFireBomb extends Buff {
 		this.depth = Dungeon.depth;
 		this.branch = Dungeon.branch;
 		this.turns = TURNS;
-		Dungeon.level.drop( new RogueFireBombItem(), cell );
+		//it counts down where the toy came to rest: a drop onto a cell that takes no heap lays it beside
+		Heap landed = Dungeon.level.drop( new RogueFireBombItem(), cell );
+		if (landed != null && landed.pos >= 0) this.cell = landed.pos;
 		SpatialSound.play( Assets.Sounds.BURNING, cell, 1f, 0.9f );
 		if (Dungeon.level.heroFOV[cell]) CellEmitter.center( cell ).burst( FlameParticle.FACTORY, 10 );
 		ignite();
@@ -95,6 +103,23 @@ public class TenguFireBomb extends Buff {
 	/** thrown on another floor: it burnt out where it was left */
 	private boolean offFloor(){
 		return depth >= 0 && (depth != Dungeon.depth || branch != Dungeon.branch);
+	}
+
+	@Override
+	public boolean ticksOn( int cell ){
+		return cell == this.cell && !offFloor();
+	}
+
+	@Override
+	public void slide( int dx, int dy, int width, int height ){
+		if (cell < 0 || offFloor()) return;
+		int x = cell % width - dx, y = cell / width - dy;
+		if (x <= 0 || y <= 0 || x >= width - 1 || y >= height - 1){
+			//scrolled out of the window: it fizzles where it lay, and TenguToy.sweep clears its toy
+			detach();
+		} else {
+			cell = x + y * width;
+		}
 	}
 
 	@Override
