@@ -111,7 +111,11 @@ public class WorldEventLog {
 		begun.values().removeIf( end -> end <= turn );
 		woundEnds.values().removeIf( end -> end <= turn );
 		wounds.keySet().retainAll( woundEnds.keySet() );
-		if (forced.removeIf( e -> e.lingersUntil() <= turn )) forcedVersion++;
+		//never removeIf here: on Android, desugaring runs Collection's default one, through the
+		//iterator, and a CopyOnWriteArrayList's iterator cannot remove
+		java.util.ArrayList<WorldEvents.Event> over = new java.util.ArrayList<>();
+		for (WorldEvents.Event e : forced) if (e.lingersUntil() <= turn) over.add( e );
+		if (forced.removeAll( over )) forcedVersion++;
 		java.util.HashSet<Long> on = new java.util.HashSet<>();
 		for (WorldEvents.Event e : forced) on.add( e.id );
 		quench.keySet().retainAll( on );

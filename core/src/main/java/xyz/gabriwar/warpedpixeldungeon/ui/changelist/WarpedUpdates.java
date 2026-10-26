@@ -127,6 +127,9 @@ public final class WarpedUpdates {
 
 	/** Newest first. */
 	public static final Entry[] ALL = {
+		new Entry( 11078, icon( Icons.WARNING ), "Loading the surface",
+				"Fixed a crash when loading the surface.",
+				"Since the last update, loading the surface could crash the game once world events had come and gone. Fixed." ),
 		new Entry( 11077, icon( Icons.WARNING ), "Older Android phones",
 				"Fixed crashes on Android 5 and 6.",
 				"On Android 5 and 6 the game could crash on the surface and in many other places, using features those versions lack. They come with the game now. Fixed." ),
