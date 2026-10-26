@@ -101,7 +101,9 @@ public class SummoningTrap extends Trap {
 				t.activate();
 			}
 			ScrollOfTeleportation.appear(mob, mob.pos);
-			Dungeon.level.occupyCell(mob);
+			//one that fell through a chasm as it appeared is on the floor below already: pressing
+			//its cell again would drop it twice
+			if (Dungeon.level.mobs.contains(mob)) Dungeon.level.occupyCell(mob);
 		}
 
 		//an egg left on the trap soaks up the summoning magic

@@ -127,6 +127,9 @@ public final class WarpedUpdates {
 
 	/** Newest first. */
 	public static final Entry[] ALL = {
+		new Entry( 11079, icon( Icons.WARNING ), "Summoning over a chasm",
+				"Fixed a crash when a summoning trap set a monster down over a chasm.",
+				"A summoning trap that set a monster down over a chasm crashed the game as the monster fell. It now falls through to the floor below, as monsters do." ),
 		new Entry( 11078, icon( Icons.WARNING ), "Loading the surface",
 				"Fixed a crash when loading the surface.",
 				"Since the last update, loading the surface could crash the game once world events had come and gone. Fixed." ),

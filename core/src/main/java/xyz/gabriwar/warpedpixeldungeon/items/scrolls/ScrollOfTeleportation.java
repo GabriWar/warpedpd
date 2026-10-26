@@ -306,6 +306,8 @@ public class ScrollOfTeleportation extends Scroll {
 		if (heard){
 			SpatialSound.play(Assets.Sounds.TELEPORT, pos);
 		}
+		//set down over a chasm, it fell through to the floor below as it landed, sprite and all
+		if (ch.sprite == null) return;
 		if (ch.pos == pos) {
 			ch.sprite.interruptMotion();
 			ch.sprite.place(pos);
