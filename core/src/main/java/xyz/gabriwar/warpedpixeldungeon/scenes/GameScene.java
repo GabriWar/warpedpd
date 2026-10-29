@@ -1798,14 +1798,20 @@ public class GameScene extends PixelScene {
 		return WaterFX.ring( x, y, size );
 	}
 	
-	public static synchronized SpellSprite spellSprite() {
-		return (SpellSprite)scene.spells.recycle( SpellSprite.class );
+	//the pools below lock the group they draw from, never GameScene.class: the render thread calls
+	//them from inside a group's update (a goo drop landing lays its decal, FxDecal.at), holding that
+	//group, while the actor thread asks for an emitter from the same group. Holding the class lock
+	//there too, each waited on the other for good. Picking a dead one and reviving it stays one step
+	//under the group's lock, so two threads never take the same one
+
+	public static SpellSprite spellSprite() {
+		return pick( scene.spells, SpellSprite.class );
 	}
 	
-	public static synchronized Emitter emitter() {
-		if (scene != null) {
-			Emitter emitter = (Emitter)scene.emitters.recycle( Emitter.class );
-			emitter.revive();
+	public static Emitter emitter() {
+		GameScene s = scene;
+		if (s != null) {
+			Emitter emitter = pick( s.emitters, Emitter.class );
 			//a recycled one may still carry the co-op tag of the cell it last burst on
 			emitter.netCell = -1;
 			emitter.netEmType = null;
@@ -1815,10 +1821,10 @@ public class GameScene extends PixelScene {
 		}
 	}
 
-	public static synchronized Emitter floorEmitter() {
-		if (scene != null) {
-			Emitter emitter = (Emitter)scene.floorEmitters.recycle( Emitter.class );
-			emitter.revive();
+	public static Emitter floorEmitter() {
+		GameScene s = scene;
+		if (s != null) {
+			Emitter emitter = pick( s.floorEmitters, Emitter.class );
 			emitter.netCell = -1;
 			emitter.netEmType = null;
 			return emitter;
@@ -1827,14 +1833,22 @@ public class GameScene extends PixelScene {
 		}
 	}
 
+	//a dead one of that exact class from the group brought back to life, or a new one added
+	@SuppressWarnings("unchecked")
+	private static <T extends Gizmo> T pick( Group g, Class<T> kind ){
+		synchronized (g) {
+			T t = (T) g.recycle( kind );
+			t.revive();
+			return t;
+		}
+	}
+
 	//an emitter drawn above the fog and the night's tint, world-anchored like every other effect
 	//(shiftWorldVisuals moves overFogEffects): the settlements' smoke columns
-	@SuppressWarnings("unchecked")
-	public static synchronized <T extends Emitter> T overFogEmitter( Class<T> kind ){
-		if (scene == null) return null;
-		T e = (T) scene.overFogEffects.recycle( kind );
-		e.revive();
-		return e;
+	public static <T extends Emitter> T overFogEmitter( Class<T> kind ){
+		GameScene s = scene;
+		if (s == null) return null;
+		return pick( s.overFogEffects, kind );
 	}
 
 	//the night overlay's current alpha (0 by day): what over-fog smoke darkens itself by
@@ -1897,32 +1911,29 @@ public class GameScene extends PixelScene {
 	/** A pooled picture of a kind from a layer: a dead one of that exact class brought back to
 	 *  life, or a new one added; null off the scene. The caller sets it up (and revives it, as a
 	 *  reset does). */
-	@SuppressWarnings("unchecked")
-	public static synchronized <T extends Gizmo> T recycle( Layer layer, Class<T> kind ){
+	public static <T extends Gizmo> T recycle( Layer layer, Class<T> kind ){
 		Group g = layer( layer );
-		return g == null ? null : (T) g.recycle( kind );
+		return g == null ? null : pick( g, kind );
 	}
 
 	/** A pooled kit emitter in the light layer. */
-	public static synchronized FxEmitter lightEmitter(){
+	public static FxEmitter lightEmitter(){
 		return pooled( layer( Layer.LIGHTS ) );
 	}
 
 	/** A pooled kit emitter among the effects (matter in the air). */
-	public static synchronized FxEmitter fxEmitter(){
+	public static FxEmitter fxEmitter(){
 		return pooled( layer( Layer.EFFECTS ) );
 	}
 
 	/** A pooled kit emitter on the floor, under everyone. */
-	public static synchronized FxEmitter floorFxEmitter(){
+	public static FxEmitter floorFxEmitter(){
 		return pooled( layer( Layer.FLOOR ) );
 	}
 
 	private static FxEmitter pooled( Group layer ){
 		if (layer == null) return null;
-		FxEmitter e = (FxEmitter)layer.recycle( FxEmitter.class );
-		e.revive();
-		return e;
+		return pick( layer, FxEmitter.class );
 	}
 
 	/** Onto the water's surface (the ripples' slot): rings, wakes, foam, washes; masked by the

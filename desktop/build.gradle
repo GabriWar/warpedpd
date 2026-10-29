@@ -25,6 +25,8 @@ tasks.register('debug', JavaExec) {
     systemProperty 'Implementation-Version', appVersionCode
     //-Pscene=<id> boots a fresh run straight into a debug scene (core DebugScenes)
     if (project.hasProperty('scene')) systemProperty 'wpd.scene', project.property('scene')
+    //-Psave=<crash-save.zip> loads a crash report's run into a free slot and continues it (core CrashSave)
+    if (project.hasProperty('save')) systemProperty 'wpd.save', rootProject.file(project.property('save')).absolutePath
 
     if (osName.contains('mac')) {
         jvmArgs '-XstartOnFirstThread'

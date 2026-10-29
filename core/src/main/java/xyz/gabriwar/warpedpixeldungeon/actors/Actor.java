@@ -239,6 +239,10 @@ public abstract class Actor implements Bundlable {
 	/*protected*/public void next() {
 		if (current == this) {
 			current = null;
+			//a turn handed back with the clock where it was, while the freeze watchdog hunts a spin
+			if (xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.tracing && time == now) {
+				xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.freeTurn( this, new Throwable() );
+			}
 		}
 	}
 
@@ -288,6 +292,10 @@ public abstract class Actor implements Bundlable {
 				now = current.time;
 				Actor acting = current;
 				xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.turn( acting, now );
+				xyz.gabriwar.warpedpixeldungeon.debug.CrashContext.begin( acting, now,
+						acting instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero
+								&& ((xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero) acting).curAction != null
+								? ((xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero) acting).curAction.getClass() : null );
 
 				if (xyz.gabriwar.warpedpixeldungeon.net.NetManager.isHost()) {
 					String tag = acting.getClass().getSimpleName();
@@ -334,6 +342,16 @@ public abstract class Actor implements Bundlable {
 						xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.act( false );
 					}
 					if (actStart != 0L) xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.actorActed( acting, System.nanoTime() - actStart );
+					xyz.gabriwar.warpedpixeldungeon.debug.CrashContext.end( acting.time, doNext );
+					//one that went on still scheduled with its clock where it was (one that took itself
+					//off the loop, a buff ending, owes nothing)
+					if (doNext && acting.time == now && xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.tracing) {
+						boolean scheduled;
+						synchronized (Actor.class) {
+							scheduled = all.contains( acting );
+						}
+						if (scheduled) xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.freeAct( acting );
+					}
 					if (xyz.gabriwar.warpedpixeldungeon.net.NetManager.isHost()) {
 						xyz.gabriwar.warpedpixeldungeon.net.NetManager.log("[NET-HOST] Actor.act id=" + acting.id()
 								+ " doNext=" + doNext);

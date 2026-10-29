@@ -94,12 +94,14 @@ public class Fire extends Blob {
 
 				} else if (freeze == null || freeze.volume <= 0 || freeze.cur[cell] <= 0) {
 
-					if ((cur[cell-1] > 0
+					//whether it can catch is asked first: the scan reaches the map's outer wall
+					//ring, whose neighbours past the edge must never be read
+					//a homestead's wooden station catches wherever it stands (on stone too)
+					if ((flamable[cell] || xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.catches( cell ))
+							&& (cur[cell-1] > 0
 							|| cur[cell+1] > 0
 							|| cur[cell-Dungeon.level.width()] > 0
 							|| cur[cell+Dungeon.level.width()] > 0)
-							//a homestead's wooden station catches wherever it stands (on stone too)
-							&& (flamable[cell] || xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.catches( cell ))
 							//living overworld vegetation resists catching: ignition is
 							//probabilistic and subcritical there, so a fire burns a patch
 							//and gutters out instead of consuming the whole map

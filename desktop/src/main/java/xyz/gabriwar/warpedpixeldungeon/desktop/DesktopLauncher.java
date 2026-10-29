@@ -76,15 +76,20 @@ public class DesktopLauncher {
 	//the path it was written to, or null
 	private static String saveCrashReport( String report ){
 		try {
-			java.io.File f = crashBase != null
-					? new Lwjgl3FileHandle( crashBase + "crash-report.txt", crashType ).file()
-					: new java.io.File( System.getProperty( "java.io.tmpdir" ), "warped-crash-report.txt" );
+			java.io.File f = crashFile( "crash-report.txt" );
 			if (f.getParentFile() != null) f.getParentFile().mkdirs();
 			java.nio.file.Files.write( f.toPath(), report.getBytes( java.nio.charset.StandardCharsets.UTF_8 ) );
 			return f.getAbsolutePath();
 		} catch (Throwable t) {
 			return null;
 		}
+	}
+
+	//a file of the crash's, in the game's folder (or the temp folder before it is known)
+	private static java.io.File crashFile( String name ){
+		return crashBase != null
+				? new Lwjgl3FileHandle( crashBase + name, crashType ).file()
+				: new java.io.File( System.getProperty( "java.io.tmpdir" ), "warped-" + name );
 	}
 
 	public static void main (String[] args) {
@@ -119,8 +124,16 @@ public class DesktopLauncher {
 				throwable.printStackTrace(pw);
 				pw.flush();
 				String exceptionMsg = sw.toString();
+				//the run as last saved, zipped beside the report: loaded with -Psave= it is the run to replay
+				java.io.File save = crashFile( xyz.gabriwar.warpedpixeldungeon.debug.CrashSave.FILE );
+				boolean zipped = xyz.gabriwar.warpedpixeldungeon.debug.CrashSave.zip( save );
 				//the whole report, untrimmed, in the game's folder: the box below shortens it
-				String saved = saveCrashReport( crashHeader() + "Thread: " + thread.getName() + "\n\n" + exceptionMsg );
+				String report = crashHeader() + (zipped ? "Save: " + save.getAbsolutePath() + "\n" : "Save: none\n")
+						+ "Thread: " + thread.getName() + "\n\n" + exceptionMsg
+						+ xyz.gabriwar.warpedpixeldungeon.debug.CrashContext.describe();
+				String saved = saveCrashReport( report );
+				//and straight to the developer, through the relay, with the save
+				String sent = xyz.gabriwar.warpedpixeldungeon.net.relay.CrashUpload.send( report, zipped ? save : null, 8000 );
 
 				//shorten/simplify exception message to make it easier to fit into a message box
 				exceptionMsg = exceptionMsg.replaceAll("\\(.*:([0-9]*)\\)", "($1)");
@@ -149,9 +162,13 @@ public class DesktopLauncher {
 				} else {
 					TinyFileDialogs.tinyfd_messageBox(title + " Has Crashed!",
 							title + " has run into an error it cannot recover from and has crashed, sorry about that!\n\n" +
-									"If you could, please email this error message to the developer (reportwpd@gabriwar.xyz):\n\n" +
+									(sent != null
+											? "The report was sent to the developer already (report " + sent + "). To add what you were doing, email reportwpd@gabriwar.xyz.\n\n"
+											: "If you could, please email this error message to the developer (reportwpd@gabriwar.xyz):\n\n") +
 									"version: " + Game.version + " (" + Game.versionCode + ")\n" +
-									(saved != null ? "full report: " + saved + "\n\n" : "") +
+									(saved != null ? "full report: " + saved + "\n" : "") +
+									(zipped ? "your run's save (attach it too, it lets the bug be replayed): " + save.getAbsolutePath() + "\n" : "") +
+									"\n" +
 									exceptionMsg,
 							"ok", "error", false);
 				}
@@ -223,6 +240,10 @@ public class DesktopLauncher {
 		String screenshots = System.getProperty("wpd.screenshots");
 		String trailer = System.getProperty("wpd.trailer");
 		//a debug scene to start straight into (DebugScenes): ./gradlew :desktop:debug -Pscene=<id>
+		//a crash report's run, loaded and continued from the title (-Psave=)
+		if (System.getProperty("wpd.save") != null) {
+			xyz.gabriwar.warpedpixeldungeon.debug.CrashSave.request(System.getProperty("wpd.save"));
+		}
 		if (System.getProperty("wpd.scene") != null) {
 			xyz.gabriwar.warpedpixeldungeon.debug.DebugScenes.request(System.getProperty("wpd.scene"));
 		}

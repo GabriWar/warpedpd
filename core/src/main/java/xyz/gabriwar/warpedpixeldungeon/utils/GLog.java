@@ -49,6 +49,7 @@ public class GLog {
 		}
 
 		DeviceCompat.log( TAG, text );
+		xyz.gabriwar.warpedpixeldungeon.debug.CrashContext.log( text );
 		update.dispatch( text );
 		xyz.gabriwar.warpedpixeldungeon.net.StateSerializer.recordLogMessage( text );
 	}

@@ -164,6 +164,13 @@ public class StorageChest extends Mob implements xyz.gabriwar.warpedpixeldungeon
 		if (sprite != null) sprite.killAndErase();
 	}
 
+	/** Only what lies in the chest is taken out: the window also shows the hero's gear and the
+	 *  chest's belly itself, and taking either copied it into the backpack (an equipped item
+	 *  twice over; the belly into itself, which no save could then write). */
+	boolean holds( Item item ){
+		return item != storage && storage.items.contains( item );
+	}
+
 	private final WndBag.ItemSelector withdrawSelector = new WndBag.ItemSelector() {
 		@Override
 		public String textPrompt() {
@@ -172,12 +179,12 @@ public class StorageChest extends Mob implements xyz.gabriwar.warpedpixeldungeon
 
 		@Override
 		public boolean itemSelectable(Item item) {
-			return true;
+			return holds( item );
 		}
 
 		@Override
 		public void onSelect(Item item) {
-			if (item != null){
+			if (item != null && holds( item )){
 				item.detachAll( storage );
 				if (!item.collect( Dungeon.hero.belongings.backpack )){
 					Dungeon.level.drop( item, Dungeon.hero.pos ).sprite.drop();

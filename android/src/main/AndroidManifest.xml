@@ -47,6 +47,12 @@
 			android:excludeFromRecents="true"
 			android:theme="@android:style/Theme.Black.NoTitleBar">
 		</activity>
+		<!-- the crashed run's save, read only, for the email app the report screen grants it to -->
+		<provider
+			android:name=".CrashSaveProvider"
+			android:authorities="${applicationId}.crashsave"
+			android:exported="false"
+			android:grantUriPermissions="true" />
 	</application>
 
 </manifest>

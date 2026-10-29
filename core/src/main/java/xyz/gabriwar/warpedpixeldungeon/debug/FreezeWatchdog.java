@@ -56,6 +56,29 @@ public class FreezeWatchdog {
 
 	private static Thread watcher;
 
+	//once the clock has stood still for TRACE ticks, every turn handed back for free is caught where
+	//it happens: the stack of that hand-back (Actor.next) is the line that spins, which the stacks
+	//of a spinning loop never show (between turns the actor thread only waits)
+	private static final int TRACE = 2;
+	public static volatile boolean tracing = false;
+	private static volatile String freeWho = null;
+	private static volatile Throwable freeAt = null;
+	private static volatile long freeCount = 0;
+
+	/** Actor.next with the clock where it was, while tracing: this is where the turn went back. */
+	public static void freeTurn( Object actor, Throwable where ){
+		freeWho = actor.getClass().getName() + " handed its turn back without spending time";
+		freeAt = where;
+		freeCount++;
+	}
+
+	/** An act() that returned true (go on) without spending time, while tracing. */
+	public static void freeAct( Object actor ){
+		freeWho = actor.getClass().getName() + ".act() returned true without spending time";
+		freeAt = null;
+		freeCount++;
+	}
+
 	/** the game scene came up (true) or went away (false): only a run is watched */
 	public static synchronized void inGame( boolean value ){
 		inGame = value;
@@ -107,10 +130,19 @@ public class FreezeWatchdog {
 
 			if (!inGame || paused){
 				renderStall = spin = actStall = spriteStall = 0;
+				tracing = false;
 			} else {
 				renderStall = rendering ? 0 : renderStall + 1;
 				//actors taking turns while the game clock stands still: something acts for free
 				spin = (l != lastLoops && t == lastTime) ? spin + 1 : 0;
+				if (spin == 0){
+					tracing = false;
+					freeWho = null;
+					freeAt = null;
+					freeCount = 0;
+				} else if (spin >= TRACE){
+					tracing = true;
+				}
 				actStall = (l == lastLoops && inAct) ? actStall + 1 : 0;
 				//a move animation that never ends, with the screen still drawing
 				spriteStall = (l == lastLoops && inSpriteWait && rendering) ? spriteStall + 1 : 0;
@@ -122,7 +154,7 @@ public class FreezeWatchdog {
 
 			String what = null;
 			if (renderStall >= RENDER_STALL)      what = "render thread stalled for " + renderStall + "s";
-			else if (spin >= TURN_SPIN)           what = "turn loop spinning for " + spin + "s with game time stuck at " + t;
+			else if (spin >= TURN_SPIN)           what = "turn loop spinning for " + spin + "s with game time stuck at " + t + cause();
 			else if (actStall >= ACT_STALL)       what = "one act() running for " + actStall + "s";
 			else if (spriteStall >= SPRITE_STALL) what = "actor thread waiting " + spriteStall + "s on a sprite that never stops moving";
 
@@ -130,6 +162,19 @@ public class FreezeWatchdog {
 				throw new RuntimeException( report( what ) );
 			}
 		}
+	}
+
+	//what the spin trace caught, with the stack of the free hand-back: the exact line
+	static String cause(){
+		String who = freeWho;
+		Throwable at = freeAt;
+		if (who == null) return "\ncause: not caught (no free hand-back or free act while tracing)";
+		StringBuilder sb = new StringBuilder( "\ncause: " ).append( who )
+				.append( " (" ).append( freeCount ).append( " times while tracing)" );
+		if (at != null){
+			for (StackTraceElement el : at.getStackTrace()) sb.append( "\n    at " ).append( el );
+		}
+		return sb.toString();
 	}
 
 	private static boolean ours( Thread t ){

@@ -47,6 +47,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfSharpshooting;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.gun.Gun;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.MissileWeapon;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -98,9 +99,11 @@ public class ShootGun extends Weapon {
 	@Override
 	public ArrayList<String> actions(Hero hero) {
 		ArrayList<String> actions = super.actions(hero);
-		actions.add(AC_SHOOT);
-		actions.add(AC_ENDSHOOT);
-		actions.add(AC_RELOAD);
+		if (isEquipped( hero )) {
+			actions.add(AC_SHOOT);
+			actions.add(AC_ENDSHOOT);
+			actions.add(AC_RELOAD);
+		}
 		return actions;
 	}
 
@@ -109,9 +112,17 @@ public class ShootGun extends Weapon {
 
 		super.execute(hero, action);
 
+		//fired and reloaded only in hand, as every firearm (Gun.execute)
+		if ((action.equals(AC_SHOOT) || action.equals(AC_RELOAD) || action.equals(AC_ENDSHOOT)) && !isEquipped( hero )) {
+			usesTargeting = false;
+			GLog.w( Messages.get( Gun.class, "not_equipped" ) );
+			return;
+		}
+		usesTargeting = true;
+
 		if (action.equals(AC_SHOOT)) {
 			if (charge < 1){
-				charge = fullcharge;
+				if (!load()) return;
 				hero.sprite.showStatus(CharSprite.DEFAULT, Messages.get(this, "reloading"));
 				if (Quality.rollFreeReload(this, hero)) hero.next();
 				else hero.spendAndNext(1.5f);
@@ -122,7 +133,7 @@ public class ShootGun extends Weapon {
 			}
 		} else if (action.equals(AC_ENDSHOOT)) {
 			if (charge < 1){
-				charge = fullcharge;
+				if (!load()) return;
 				hero.sprite.showStatus(CharSprite.DEFAULT, Messages.get(this, "reloading"));
 				if (Quality.rollFreeReload(this, hero)) hero.next();
 				else hero.spendAndNext(1.5f);
@@ -136,13 +147,27 @@ public class ShootGun extends Weapon {
 				GLog.n(Messages.get(this, "full"));
 			} else {
 				float reloadtime = (fullcharge - charge)/2;
+				if (!load()) return;
 				//a reload that already takes no time has nothing to spare
 				if (reloadtime > 0 && Quality.rollFreeReload(this, hero)) hero.next();
 				else hero.spendAndNext(reloadtime*1f);
 				hero.sprite.showStatus(CharSprite.DEFAULT, Messages.get(this, "reloading"));
-				charge = fullcharge;
 			}
 		}
+	}
+
+	//a reload spends a bullet per round loaded, as every firearm's does (Gun.reload): with too
+	//few it loads as many as there are, with none it loads nothing
+	private boolean load(){
+		int rounds = Math.min( fullcharge - charge, Dungeon.bullet );
+		if (rounds <= 0){
+			GLog.w( Messages.get( Gun.class, "less_bullet" ) );
+			return false;
+		}
+		Dungeon.bullet -= rounds;
+		charge += rounds;
+		updateQuickslot();
+		return true;
 	}
 
 	@Override

@@ -25,6 +25,7 @@
 package xyz.gabriwar.warpedpixeldungeon.android;
 
 import android.app.Activity;
+import android.content.ClipData;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -40,9 +41,15 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import xyz.gabriwar.warpedpixeldungeon.debug.CrashSave;
+
 public class CrashReportActivity extends Activity {
 
     public static final String EXTRA_CRASH_LOG = "crash_log";
+    //whether the crash handler zipped the run's save (CrashSaveProvider.file) for the email to carry
+    public static final String EXTRA_SAVE = "crash_save";
+    //the relay's id for the report when it went there by itself (net/relay/CrashUpload), else absent
+    public static final String EXTRA_SENT = "crash_sent";
 
     private static final String REPORT_EMAIL = "reportwpd@gabriwar.xyz";
     private static final String REPORT_SUBJECT = "Warped Pixel Dungeon Crash Report";
@@ -62,6 +69,8 @@ public class CrashReportActivity extends Activity {
 
         String crashLog = getIntent().getStringExtra(EXTRA_CRASH_LOG);
         if (crashLog == null) crashLog = "No crash log available.";
+        final boolean withSave = getIntent().getBooleanExtra(EXTRA_SAVE, false)
+                && CrashSaveProvider.file(this).isFile();
 
         // Build layout programmatically (no XML resources needed)
         LinearLayout root = new LinearLayout(this);
@@ -78,8 +87,14 @@ public class CrashReportActivity extends Activity {
         root.addView(title);
 
         TextView subtitle = new TextView(this);
-        subtitle.setText("Warped ran into an error it couldn't recover from. " +
-                "Send the report to help fix it — add a note below if you know what you were doing.");
+        final String sent = getIntent().getStringExtra(EXTRA_SENT);
+        subtitle.setText(sent != null
+                ? "Warped ran into an error it couldn't recover from. The report" +
+                  (withSave ? " and your run's save were" : " was") + " sent to the developer already (report " + sent + "). " +
+                  "If you know what you were doing, add a note below and email it too."
+                : "Warped ran into an error it couldn't recover from. " +
+                  "Send the report to help fix it — add a note below if you know what you were doing." +
+                  (withSave ? " Your run's save goes with it, so the bug can be replayed." : ""));
         subtitle.setTextColor(TEXT_LIGHT);
         subtitle.setTextSize(14f);
         subtitle.setTypeface(Typeface.MONOSPACE);
@@ -121,6 +136,25 @@ public class CrashReportActivity extends Activity {
                 String body = note.isEmpty()
                         ? finalCrashLog
                         : "Player comment:\n" + note + "\n\n----- crash log -----\n\n" + finalCrashLog;
+                if (withSave) {
+                    //a send with the save attached, offered to email apps only (the selector)
+                    Uri save = CrashSaveProvider.uri(CrashReportActivity.this);
+                    Intent withAttachment = new Intent(Intent.ACTION_SEND);
+                    withAttachment.setType("application/zip");
+                    withAttachment.putExtra(Intent.EXTRA_EMAIL, new String[]{REPORT_EMAIL});
+                    withAttachment.putExtra(Intent.EXTRA_SUBJECT, REPORT_SUBJECT);
+                    withAttachment.putExtra(Intent.EXTRA_TEXT, body);
+                    withAttachment.putExtra(Intent.EXTRA_STREAM, save);
+                    withAttachment.setClipData(ClipData.newRawUri(CrashSave.FILE, save));
+                    withAttachment.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    withAttachment.setSelector(new Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:")));
+                    try {
+                        startActivity(Intent.createChooser(withAttachment, "Send crash report..."));
+                        return;
+                    } catch (android.content.ActivityNotFoundException e) {
+                        // no email app takes attachments: the report goes without the save
+                    }
+                }
                 Intent emailIntent = new Intent(Intent.ACTION_SENDTO);
                 emailIntent.setData(Uri.parse("mailto:"));
                 emailIntent.putExtra(Intent.EXTRA_EMAIL, new String[]{REPORT_EMAIL});

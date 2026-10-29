@@ -70,6 +70,11 @@ public class SpiderCharm extends Item {
 		super.execute( hero, action );
 
 		if (action.equals( AC_USE )) {
+			//it will not take the last of a life: the price must leave the bearer standing
+			if (hero.HP <= hero.HT / 4) {
+				GLog.w( Messages.get( this, "too_weak" ) );
+				return;
+			}
 			Wound.hit( hero );
 			hero.damage( hero.HT / 4, this );
 			Buff.detach( hero, Sungrass.Health.class );

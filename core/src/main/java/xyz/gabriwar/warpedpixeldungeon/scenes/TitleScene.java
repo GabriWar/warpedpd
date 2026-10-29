@@ -89,6 +89,8 @@ public class TitleScene extends PixelScene {
 
 		//a debug scene asked for on the command line starts its run at once
 		if (xyz.gabriwar.warpedpixeldungeon.debug.DebugScenes.startRequested()) return;
+		//so does a crash report's save asked for on the command line (desktop -Psave=)
+		if (xyz.gabriwar.warpedpixeldungeon.debug.CrashSave.startRequested()) return;
 		Music.INSTANCE.playTracks(
 				new String[]{Assets.Music.THEME_1, Assets.Music.THEME_2},
 				new float[]{1, 1},

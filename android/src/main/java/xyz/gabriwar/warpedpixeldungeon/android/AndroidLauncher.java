@@ -58,6 +58,8 @@ public class AndroidLauncher extends AndroidApplication {
 	public static AndroidApplication instance;
 	
 	private static AndroidPlatformSupport support;
+
+	private static volatile boolean crashReported = false;
 	
 	//what a crash report needs beside the stack: the build (tools/retrace.py picks that build's R8
 	//map by its code, a release's line numbers mean nothing without it), the phone, and where the
@@ -92,14 +94,34 @@ public class AndroidLauncher extends AndroidApplication {
 		final Thread.UncaughtExceptionHandler defaultHandler = Thread.getDefaultUncaughtExceptionHandler();
 		Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
 			try {
-				StringWriter sw = new StringWriter();
-				throwable.printStackTrace(new PrintWriter(sw));
-				String stackTrace = crashHeader() + "Thread: " + thread.getName() + "\n\n" + sw.toString();
+				//the first crash is the one to report: one that follows from it must not replace its
+				//report. A crashed actor thread sits in this handler, so the game shutting down for
+				//the report times out waiting for it (GameScene.destroy) and crashes the render thread
+				if (!crashReported) {
+					crashReported = true;
+					StringWriter sw = new StringWriter();
+					throwable.printStackTrace(new PrintWriter(sw));
+					//the run as last saved, zipped for the report to attach: the run to replay
+					java.io.File save = CrashSaveProvider.file(AndroidLauncher.this);
+					boolean zipped = xyz.gabriwar.warpedpixeldungeon.debug.CrashSave.zip(save);
+					if (!zipped) save.delete();
+					//the stack first (the line), then the game round it (the hero, the last turns, the log)
+					String stackTrace = crashHeader() + (zipped ? "Save: attached\n" : "Save: none\n")
+							+ "Thread: " + thread.getName() + "\n\n" + sw.toString()
+							+ xyz.gabriwar.warpedpixeldungeon.debug.CrashContext.describe();
 
-				Intent intent = new Intent(AndroidLauncher.this, CrashReportActivity.class);
-				intent.putExtra(CrashReportActivity.EXTRA_CRASH_LOG, stackTrace);
-				intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-				startActivity(intent);
+					//sent straight to the relay while the game can still read its settings (the report
+					//screen is an activity of its own, without them): it arrives even if the mail never goes
+					String sent = xyz.gabriwar.warpedpixeldungeon.net.relay.CrashUpload.send(
+							stackTrace, zipped ? save : null, 8000);
+
+					Intent intent = new Intent(AndroidLauncher.this, CrashReportActivity.class);
+					intent.putExtra(CrashReportActivity.EXTRA_CRASH_LOG, stackTrace);
+					intent.putExtra(CrashReportActivity.EXTRA_SAVE, zipped);
+					intent.putExtra(CrashReportActivity.EXTRA_SENT, sent);
+					intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+					startActivity(intent);
+				}
 			} catch (Throwable ignored) {
 				// our crash handler crashed; the default one below still runs
 			}
