@@ -962,7 +962,28 @@ public class SettlerDayTest {
 				liven( ow, new ArrayList<>(), s.cx, s.cy + 1 );
 				f.sprite = stub();
 				said.clear();
-				f.interact( Dungeon.hero );
+				//a fisher with water to fish says his piece in his trade window (FisherTrade.offer),
+				//opened on the render thread: what is sent there is kept to be counted
+				final ArrayList<Runnable> posted = new ArrayList<>();
+				com.badlogic.gdx.Application app = com.badlogic.gdx.Gdx.app;
+				com.badlogic.gdx.Gdx.app = (com.badlogic.gdx.Application) java.lang.reflect.Proxy.newProxyInstance(
+						com.badlogic.gdx.Application.class.getClassLoader(), new Class<?>[]{ com.badlogic.gdx.Application.class },
+						(proxy, m, args) -> {
+							if (m.getName().equals( "postRunnable" )){ posted.add( (Runnable) args[0] ); return null; }
+							return m.invoke( app, args );
+						} );
+				try {
+					f.interact( Dungeon.hero );
+				} finally {
+					com.badlogic.gdx.Gdx.app = app;
+				}
+				if (k[0].equals( "wet" ) && k[1].equals( "FISHER" )){
+					assertEquals( "the wet fisher opens his trade, said: " + said, 1, posted.size() );
+					assertTrue( "and yells nothing over it: " + said, said.isEmpty() );
+					assertEquals( k[2], VillageRoutine.chatStem( Role.FISHER, Slot.values()[f.slot], VillageRoutine.clock(), s.farms() ) );
+					Actor.clear();
+					continue;
+				}
 				String line = String.join( "", said );
 				boolean fits = false;
 				int n = k[2].equals( "line" ) ? 6 : 3;

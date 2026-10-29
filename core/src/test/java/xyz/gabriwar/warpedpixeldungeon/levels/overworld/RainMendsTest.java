@@ -45,7 +45,7 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Set;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
@@ -152,8 +152,8 @@ public class RainMendsTest {
 		int[] pristine = (int[]) field( l, "pristine" );
 		pristine[BURNT[1]] = Terrain.EMPTY;
 		//a fallen star's scorch
-		@SuppressWarnings("unchecked") Set<Long> scorch = (Set<Long>) field( l, "laidScorch" );
-		scorch.add( OverworldLevel.worldKey( l.worldX() + BURNT[2] % W, l.worldY() + BURNT[2] / W ) );
+		@SuppressWarnings("unchecked") Map<Long, Integer> scorch = (Map<Long, Integer>) field( l, "laidScorch" );
+		scorch.put( OverworldLevel.worldKey( l.worldX() + BURNT[2] % W, l.worldY() + BURNT[2] / W ), Terrain.EMBERS );
 		embers( l, 400 );
 		assertEquals( "still burning", Terrain.EMBERS, l.map[BURNT[0]] );
 		assertEquals( "never growth", Terrain.EMBERS, l.map[BURNT[1]] );

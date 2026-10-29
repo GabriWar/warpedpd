@@ -87,6 +87,9 @@ public class HomesteadArtTest {
 		assertTrue( caves.getHeight() >= rows * 16 );
 		for (int y = HomesteadTiles.FIRST_ROW * 16; y < rows * 16; y++){
 			for (int x = 0; x < 256; x++){
+				//the block's last two free cells hold a flood's mud, the surface's alone
+				//(tools/assets/ow_events_nature_art.py MUD_CELLS): no homestead piece
+				if (y / 16 == HomesteadTiles.LAST_ROW && x / 16 >= 14) continue;
 				assertEquals( "pixel " + x + "," + y, ow.getRGB( x, y ), caves.getRGB( x, y ) );
 			}
 		}

@@ -173,7 +173,8 @@ public class RockTopsTest {
 
 	//nothing under the open sky keeps the dungeon's black roof: every wall with a wall in front
 	//of it (the rock's, a lair's rim, a ruin's or a barrow's dressed stone, a peak's hut) wears a
-	//top, on the surface and on the peaks - except a village's houses, which stay plain walls
+	//top, on the surface and on the peaks - except a village's houses and the swamp witch's hut,
+	//which stay plain walls
 	@Test
 	public void noWallUnderTheSkyIsRoofedBlack(){
 		for (int alt : new int[]{ 0, 2, 5 }){
@@ -187,8 +188,9 @@ public class RockTopsTest {
 							|| !xyz.gabriwar.warpedpixeldungeon.tiles.DungeonTileSheet.wallStitcheable( w.terrain[c + W] )) continue;
 					String at = "alt " + alt + " origin " + o[0] + "," + o[1] + " cell " + x + "," + (c / W) + " terrain " + t;
 					int wx = o[0] + x, wy = o[1] + c / W;
-					boolean house = alt == 0 && WorldStructures.wallSite( SEED, wx, wy ) == WorldStructures.Site.VILLAGE;
-					//a village's houses stay plain walls, everything else under the sky wears a top
+					WorldStructures.Site site = alt == 0 ? WorldStructures.wallSite( SEED, wx, wy ) : WorldStructures.Site.NONE;
+					boolean house = site == WorldStructures.Site.VILLAGE || site == WorldStructures.Site.WITCH_HUT;
+					//a village's houses and the swamp witch's hut stay plain walls, everything else under the sky wears a top
 					if (house) assertTrue( at, w.top[c] == -1 );
 					else assertTrue( at, WindowGenerator.builtWall( t ) && w.top[c] != -1 );
 				}
