@@ -92,9 +92,23 @@ public class MarketBodyguard extends Mob {
 		turnHostile();
 	}
 
+	/** The weather down here (a storm's bolts, its cold and heat) passes him by while the peace
+	 *  holds: it struck him and it counted as the hero's steel, shutting every market for the run. */
+	public static boolean weather( Class effect ){
+		return effect == xyz.gabriwar.warpedpixeldungeon.actors.blobs.StormCloud.class
+				|| effect == xyz.gabriwar.warpedpixeldungeon.actors.blobs.ThunderCloud.class
+				|| effect == xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hypothermia.class
+				|| effect == xyz.gabriwar.warpedpixeldungeon.actors.buffs.Heatstroke.class;
+	}
+
+	@Override
+	public boolean isImmune( Class effect ){
+		return (!hostile && weather( effect )) || super.isImmune( effect );
+	}
+
 	@Override
 	public void damage( int dmg, Object src ){
-		if (!hostile && !(src instanceof Blob)) provoke();
+		if (!hostile && !(src instanceof Blob) && !(src != null && weather( src.getClass() ))) provoke();
 		super.damage( dmg, src );
 	}
 

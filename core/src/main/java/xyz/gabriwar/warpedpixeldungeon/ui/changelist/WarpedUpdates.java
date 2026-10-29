@@ -127,6 +127,9 @@ public final class WarpedUpdates {
 
 	/** Newest first. */
 	public static final Entry[] ALL = {
+		new Entry( 11091, icon( Icons.WARNING ), "The Undercroft and the weather",
+				"Storms no longer shut the Undercroft for good.",
+				"A storm's lightning, cold or heat reaching the Undercroft's guards counted as you attacking them: the dealer left and every market stayed shut for the rest of the run. The weather now passes the guards by while the peace holds." ),
 		new Entry( 11090, item( ItemSpriteSheet.CHEST ), "Storage chests",
 				"Fixed a crash on saving after taking a chest's own storage out of it.",
 				"A placed storage chest's take-out window let you pick its own storage and your worn gear: the storage went into your backpack and then into itself, crashing the game every time it saved, and worn gear came out as a second copy. Now only what the chest holds can be taken out." ),
