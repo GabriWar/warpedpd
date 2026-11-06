@@ -113,7 +113,9 @@ public class Scorpio extends Mob {
 		// 5/(count+5) chance of healing, otherwise MysteryMeat fallback
 		if (Random.Int(5 + Dungeon.LimitedDrops.SCORPIO_HP.count) <= 4) {
 			Dungeon.LimitedDrops.SCORPIO_HP.count++;
-			return (Item) loot;
+			//loot is PotionOfHealing.class: Mob.createLoot makes the potion from it (casting the
+			//class itself to an Item threw on every drop and every bandit's snatch)
+			return super.createLoot();
 		} else {
 			return Random.Int(4) == 0
 					? new xyz.gabriwar.warpedpixeldungeon.items.food.MysteryMeat() : null;

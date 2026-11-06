@@ -581,7 +581,26 @@ public class SkeletonKey extends Artifact {
 			Arrays.fill(crystalKeysNeeded, -1);
 		}
 
+		//Shattered sized these for its 26 depths; Warped goes far deeper (Sokoban is 51, the
+		//overworld's layers past 100), so they grow to the depth the hero is on
+		private void fitDepth(){
+			if (Dungeon.depth < ironKeysNeeded.length
+					&& Dungeon.depth < goldenKeysNeeded.length
+					&& Dungeon.depth < crystalKeysNeeded.length) return;
+			ironKeysNeeded = grown(ironKeysNeeded);
+			goldenKeysNeeded = grown(goldenKeysNeeded);
+			crystalKeysNeeded = grown(crystalKeysNeeded);
+		}
+
+		private static int[] grown( int[] needed ){
+			if (Dungeon.depth < needed.length) return needed;
+			int[] bigger = Arrays.copyOf(needed, Dungeon.depth + 1);
+			Arrays.fill(bigger, needed.length, bigger.length, -1);
+			return bigger;
+		}
+
 		public void setupKeysForDepth(){
+			fitDepth();
 			ironKeysNeeded[Dungeon.depth] = 0;
 			goldenKeysNeeded[Dungeon.depth] = 0;
 			crystalKeysNeeded[Dungeon.depth] = 0;
@@ -605,12 +624,14 @@ public class SkeletonKey extends Artifact {
 
 		//used if a level was reset, e.g. via unblessed ankh vs. boss
 		public void clearDepth(){
+			fitDepth();
 			ironKeysNeeded[Dungeon.depth] = -1;
 			goldenKeysNeeded[Dungeon.depth] = -1;
 			crystalKeysNeeded[Dungeon.depth] = -1;
 		}
 
 		public void processIronLockOpened(){
+			fitDepth();
 			if (ironKeysNeeded[Dungeon.depth] == -1){
 				setupKeysForDepth();
 			}
@@ -619,6 +640,7 @@ public class SkeletonKey extends Artifact {
 		}
 
 		public void processGoldLockOpened(){
+			fitDepth();
 			if (goldenKeysNeeded[Dungeon.depth] == -1){
 				setupKeysForDepth();
 			}
@@ -627,6 +649,7 @@ public class SkeletonKey extends Artifact {
 		}
 
 		public void processCrystalLockOpened(){
+			fitDepth();
 			if (crystalKeysNeeded[Dungeon.depth] == -1){
 				setupKeysForDepth();
 			}
@@ -635,6 +658,7 @@ public class SkeletonKey extends Artifact {
 		}
 
 		public void processExcessKeys(){
+			fitDepth();
 			int keysNeeded = ironKeysNeeded[Dungeon.depth];
 			boolean removed = false;
 			if (keysNeeded >= 0) {

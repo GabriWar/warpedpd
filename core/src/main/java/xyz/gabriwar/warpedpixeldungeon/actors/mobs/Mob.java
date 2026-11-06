@@ -528,6 +528,13 @@ public abstract class Mob extends Char {
 	@Override
 	protected boolean act() {
 
+		//a living mob of this floor whose sprite was torn down (CharSprite.destroy clears it)
+		//gets a body again before it moves, rather than walking on with none and crashing
+		if (sprite == null && Dungeon.level.mobs.contains( this )
+				&& com.watabou.noosa.Game.scene() instanceof GameScene){
+			GameScene.addSprite( this );
+		}
+
 		super.act();
 		checkAmbientEffects();
 		checkTileTemperatureEffects();

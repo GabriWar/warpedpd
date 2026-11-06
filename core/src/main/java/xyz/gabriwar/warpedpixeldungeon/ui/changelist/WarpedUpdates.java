@@ -127,6 +127,15 @@ public final class WarpedUpdates {
 
 	/** Newest first. */
 	public static final Entry[] ALL = {
+		new Entry( 11094, item( ItemSpriteSheet.ARTIFACT_KEY ), "Keys past depth 25",
+				"Fixed a crash picking up a key or opening a lock in Sokoban and deeper.",
+				"Picking up a key or opening a locked door with the Skeleton Key crashed the game on any floor deeper than 25, such as Sokoban. Keys now work at every depth." ),
+		new Entry( 11094, item( ItemSpriteSheet.POTION_CRIMSON ), "Scorpio drops",
+				"Fixed a crash when a scorpio dropped its healing potion.",
+				"A scorpio about to drop its healing potion crashed the game, and so did a bandit stealing one. Scorpios drop their potions again." ),
+		new Entry( 11094, icon( Icons.WARNING ), "Monsters without a body",
+				"Fixed a crash when a monster moved after losing its sprite.",
+				"Now and then a monster lost its sprite and the game crashed as soon as it took a step. A monster found that way now gets its sprite back and goes on." ),
 		new Entry( 11091, icon( Icons.WARNING ), "The Undercroft and the weather",
 				"Storms no longer shut the Undercroft for good.",
 				"A storm's lightning, cold or heat reaching the Undercroft's guards counted as you attacking them: the dealer left and every market stayed shut for the rest of the run. The weather now passes the guards by while the peace holds." ),
