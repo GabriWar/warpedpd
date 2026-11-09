@@ -66,7 +66,10 @@ public class WallBlockingTilemap extends Tilemap {
 
 	@Override
 	public synchronized void updateMapCell(int cell) {
-		int c = compute( cell );
+		//with updateMap()'s guard: a window slide moves a blocker onto the cleared border
+		//(the cell right under the top row's first is not recomputed), and compute() reads
+		//past the map's start from there
+		int c = computeForMap( cell );
 		if (data[cell] != c){
 			data[cell] = c;
 			super.updateMapCell(cell);
@@ -233,7 +236,8 @@ public class WallBlockingTilemap extends Tilemap {
 		else if (dcy < 0) recompute( plan, 0, -dcy, w, -dcy + f, true );
 		if (dcx > 0)      recompute( plan, 0, 0, 1, h, true );
 		else if (dcx < 0) recompute( plan, w - 1, 0, w, h, true );
-		if (dcy > 0)      recompute( plan, 0, 0, w, 1, true );
+		//the top ring is updateMap()'s: the top row and the first cell under it
+		if (dcy > 0)      { recompute( plan, 0, 0, w, 1, true ); recompute( plan, 0, 1, 1, 2, true ); }
 		else if (dcy < 0) recompute( plan, 0, h - 1, w, h, true );
 		return plan;
 	}

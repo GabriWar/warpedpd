@@ -552,12 +552,14 @@ public abstract class Elemental extends Mob {
 				}
 			}
 
-			boolean visible = sprite.visible || enemy.sprite.visible;
+			//a struck char can be without a sprite (Shocking.arc skips its sparks for the
+			//same reason); it still takes the shock, there is just nothing of it to light
+			boolean visible = (sprite != null && sprite.visible) || (enemy.sprite != null && enemy.sprite.visible);
 			for (Char ch : affected){
-				if (ch.sprite.visible) visible = true;
+				if (ch.sprite != null && ch.sprite.visible) visible = true;
 			}
 
-			if (visible) {
+			if (visible && sprite != null && sprite.parent != null) {
 				sprite.parent.addToFront(new Lightning(arcs, null));
 				SpatialSound.play(Assets.Sounds.LIGHTNING, enemy);
 			}

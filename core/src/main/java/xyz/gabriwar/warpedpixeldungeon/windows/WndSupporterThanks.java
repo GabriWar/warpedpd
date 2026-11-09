@@ -144,6 +144,27 @@ public class WndSupporterThanks extends Window {
 
 		pos = rule( sig.bottom() + MARGIN, width ) + MARGIN;
 
+		//every supporter gets the developer's own Discord and the server's tier role
+		RenderedTextBlock discordLine = PixelScene.renderTextBlock(
+				Messages.get( this, "discord_line", WndSupporterDiscord.USERNAME ), 6 );
+		discordLine.maxWidth( width - MARGIN * 2 );
+		discordLine.setPos( MARGIN, pos );
+		add( discordLine );
+		pos = discordLine.bottom() + MARGIN;
+
+		RedButton discord = new RedButton( Messages.get( this, "discord" ) ) {
+			@Override
+			protected void onClick() {
+				WPDSettings.supporterDiscordTold( true );
+				Game.scene().addToFront( new WndSupporterDiscord() );
+			}
+		};
+		discord.icon( Icons.get( Icons.WPD ) );
+		discord.setRect( MARGIN, pos, width - MARGIN * 2, BTN_HEIGHT );
+		add( discord );
+		pos = discord.bottom() + 2;
+		WPDSettings.supporterDiscordTold( true );
+
 		RedButton close = new RedButton( Messages.get( this, "close_" + tier ) ) {
 			@Override
 			protected void onClick() {

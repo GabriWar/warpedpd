@@ -81,6 +81,7 @@ public class TitleScene extends PixelScene {
 	private BitmapText version;
 	private IconButton btnFade;
 	private ExitButton btnExit;
+	private IconButton btnDiscord;
 
 	@Override
 	public void create() {
@@ -307,6 +308,23 @@ public class TitleScene extends PixelScene {
 		};
 		add(fadeResetter);
 
+		//the game's Discord server, open to everyone, in the top left corner
+		btnDiscord = new IconButton(Icons.get(Icons.DISCORD)){
+			@Override
+			protected void onClick() {
+				super.onClick();
+				WarpedPixelDungeon.platform.openURI(
+						xyz.gabriwar.warpedpixeldungeon.windows.WndSupporterDiscord.SERVER_LINK);
+			}
+
+			@Override
+			protected String hoverText() {
+				return Messages.get(TitleScene.class, "discord");
+			}
+		};
+		btnDiscord.setRect(insets.left + 2, insets.top + 2, 20, 17);
+		add(btnDiscord);
+
 		if (DeviceCompat.isDesktop()) {
 			btnExit = new ExitButton();
 			btnExit.setPos( w - btnExit.width(), 0 );
@@ -320,6 +338,8 @@ public class TitleScene extends PixelScene {
 		}
 
 		WndSupporterThanks.showIfPending(this);
+		//every supporter hears once of their Discord line, past subscribers too
+		xyz.gabriwar.warpedpixeldungeon.windows.WndSupporterDiscord.tellOnce(this);
 		fadeIn();
 	}
 
@@ -355,6 +375,8 @@ public class TitleScene extends PixelScene {
 
 		version.alpha(alpha);
 		btnFade.icon().alpha(alpha);
+		btnDiscord.enable(alpha != 0);
+		btnDiscord.icon().alpha(alpha);
 		if (btnExit != null){
 			btnExit.enable(alpha != 0);
 			btnExit.icon().alpha(alpha);

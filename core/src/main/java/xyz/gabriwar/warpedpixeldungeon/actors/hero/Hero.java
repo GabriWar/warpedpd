@@ -1214,9 +1214,16 @@ public class Hero extends Char {
 			}
 		}
 
-		return speed;
+		//two rings of haste, +20 and +27 (1.15 a level), on a road passed a thousand: a step then
+		//cost under a thousandth of a turn, which Actor.spendConstant rounds back to the whole turn
+		//it started from, so the clock never moved while he walked (or marched to a waypoint) and
+		//nothing else on the floor ever got a turn. a hundred steps to a turn is already more than
+		//anything can catch, and a hundredth of a turn is a step the clock keeps
+		return Math.min( speed, MAX_SPEED );
 		
 	}
+
+	public static final float MAX_SPEED = 100f;
 
 	@Override
 	public boolean canSurpriseAttack(){
@@ -4368,7 +4375,8 @@ public class Hero extends Char {
 
 		//Unleashed PD port: ring of searching widens deliberate searches
 		if (intentional) distance += RingOfSearching.searchDistanceBonus(this);
-		distance = Math.max(1, distance);
+		//...but no further than ShadowCaster has rounding for: a ring past +40 threw
+		distance = Math.min(ShadowCaster.MAX_DISTANCE, Math.max(1, distance));
 		
 		boolean foresight = buff(Foresight.class) != null;
 		boolean foresightScan = foresight && !Dungeon.level.mapped[pos];

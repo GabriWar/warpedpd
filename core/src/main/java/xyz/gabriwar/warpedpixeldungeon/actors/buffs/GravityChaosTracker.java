@@ -81,7 +81,8 @@ public class GravityChaosTracker extends Buff {
 					}
 				}
 			} catch (InterruptedException e) {
-
+				//kept for GameScene.destroy, which stops the turn loop with it (see OverworldLevel's rebase)
+				Thread.currentThread().interrupt();
 			}
 		}
 

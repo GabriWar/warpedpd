@@ -25,6 +25,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Corruption;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Roots;
@@ -191,8 +192,10 @@ public class LivingPlant extends Mob {
 
 	@Override
 	protected Char chooseEnemy() {
-		//try to find a new enemy in these circumstances
-		if (enemy == null || !enemy.isAlive() || state == WANDERING
+		//try to find a new enemy in these circumstances: one gone from the floor alive too (a mob
+		//that fell down a chasm and lived, Chasm), as Mob.chooseEnemy has it - kept, the plant
+		//struck at a char with no sprite and crashed
+		if (enemy == null || !enemy.isAlive() || !Actor.chars().contains(enemy) || state == WANDERING
 				|| Dungeon.level.distance(enemy.pos, pos) > 2) {
 
 			//find all mobs near the living plant

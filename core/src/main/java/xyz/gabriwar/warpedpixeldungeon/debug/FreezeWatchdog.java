@@ -112,11 +112,21 @@ public class FreezeWatchdog {
 
 	public static void act( boolean value ){ inAct = value; }
 
-	private static void watch(){
-		long lastFrames = -1, lastLoops = -1;
-		float lastTime = Float.NaN;
-		int renderStall = 0, spin = 0, actStall = 0, spriteStall = 0;
+	//turns the player takes for free are no spin. a hero stopped before a lock or in roots and tapped
+	//again and again, or walking through a time freeze or a swiftthistle's bubble, leaves the clock
+	//where it was; ten seconds of that threw this "freeze" and closed a game that never hung (most of
+	//the reports it sent). a second in which the loop stood waiting on the hero's player, or in which
+	//the clock was held still on purpose, is a second the game was not stuck in
+	private static volatile long playerWaits = 0;
+	private static volatile long heldClock = 0;
 
+	/** The turn loop parked with a hero ready: it waits on his player, who has the game in hand. */
+	public static void playerWait(){ playerWaits++; }
+
+	/** A turn's time went into a time freeze or a time bubble (Char.spendConstant): the clock stands still by design. */
+	public static void clockHeld(){ heldClock++; }
+
+	private static void watch(){
 		while (true){
 			try {
 				Thread.sleep( 1000 );
@@ -124,44 +134,56 @@ public class FreezeWatchdog {
 				return;
 			}
 
-			long f = frames, l = turnLoops;
-			float t = turnTime;
-			boolean rendering = f != lastFrames;
-
-			if (!inGame || paused){
-				renderStall = spin = actStall = spriteStall = 0;
-				tracing = false;
-			} else {
-				renderStall = rendering ? 0 : renderStall + 1;
-				//actors taking turns while the game clock stands still: something acts for free
-				spin = (l != lastLoops && t == lastTime) ? spin + 1 : 0;
-				if (spin == 0){
-					tracing = false;
-					freeWho = null;
-					freeAt = null;
-					freeCount = 0;
-				} else if (spin >= TRACE){
-					tracing = true;
-				}
-				actStall = (l == lastLoops && inAct) ? actStall + 1 : 0;
-				//a move animation that never ends, with the screen still drawing
-				spriteStall = (l == lastLoops && inSpriteWait && rendering) ? spriteStall + 1 : 0;
-			}
-
-			lastFrames = f;
-			lastLoops = l;
-			lastTime = t;
-
-			String what = null;
-			if (renderStall >= RENDER_STALL)      what = "render thread stalled for " + renderStall + "s";
-			else if (spin >= TURN_SPIN)           what = "turn loop spinning for " + spin + "s with game time stuck at " + t + cause();
-			else if (actStall >= ACT_STALL)       what = "one act() running for " + actStall + "s";
-			else if (spriteStall >= SPRITE_STALL) what = "actor thread waiting " + spriteStall + "s on a sprite that never stops moving";
-
+			String what = tick();
 			if (what != null){
 				throw new RuntimeException( report( what ) );
 			}
 		}
+	}
+
+	private static long lastFrames = -1, lastLoops = -1, lastPlayerWaits = -1, lastHeldClock = -1;
+	private static float lastTime = Float.NaN;
+	private static int renderStall = 0, spin = 0, actStall = 0, spriteStall = 0;
+
+	/** One second's look at the two threads: what has stalled, or null. */
+	static String tick(){
+		long f = frames, l = turnLoops, w = playerWaits, h = heldClock;
+		float t = turnTime;
+		boolean rendering = f != lastFrames;
+		boolean playersOwn = w != lastPlayerWaits || h != lastHeldClock;
+
+		if (!inGame || paused){
+			renderStall = spin = actStall = spriteStall = 0;
+			tracing = false;
+		} else {
+			renderStall = rendering ? 0 : renderStall + 1;
+			//actors taking turns while the game clock stands still: something acts for free
+			spin = (l != lastLoops && t == lastTime && !playersOwn) ? spin + 1 : 0;
+			if (spin == 0){
+				tracing = false;
+				freeWho = null;
+				freeAt = null;
+				freeCount = 0;
+			} else if (spin >= TRACE){
+				tracing = true;
+			}
+			actStall = (l == lastLoops && inAct) ? actStall + 1 : 0;
+			//a move animation that never ends, with the screen still drawing
+			spriteStall = (l == lastLoops && inSpriteWait && rendering) ? spriteStall + 1 : 0;
+		}
+
+		lastFrames = f;
+		lastLoops = l;
+		lastTime = t;
+		lastPlayerWaits = w;
+		lastHeldClock = h;
+
+		String what = null;
+		if (renderStall >= RENDER_STALL)      what = "render thread stalled for " + renderStall + "s";
+		else if (spin >= TURN_SPIN)           what = "turn loop spinning for " + spin + "s with game time stuck at " + t + cause();
+		else if (actStall >= ACT_STALL)       what = "one act() running for " + actStall + "s";
+		else if (spriteStall >= SPRITE_STALL) what = "actor thread waiting " + spriteStall + "s on a sprite that never stops moving";
+		return what;
 	}
 
 	//what the spin trace caught, with the stack of the free hand-back: the exact line

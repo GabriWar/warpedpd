@@ -94,8 +94,12 @@ public class Shocking extends Weapon.Enchantment {
 	
 	public static void arc( Char attacker, Char defender, int dist, ArrayList<Char> affected, ArrayList<Lightning.Arc> arcs ) {
 
-		defender.sprite.centerEmitter().burst(SparkParticle.FACTORY, 3);
-		defender.sprite.flash();
+		//a char can stand with no sprite (one torn down, given back on its next act: Mob.act),
+		//as Char.attack allows: it is shocked all the same, only nothing is drawn for it
+		if (defender.sprite != null) {
+			defender.sprite.centerEmitter().burst(SparkParticle.FACTORY, 3);
+			defender.sprite.flash();
+		}
 
 		ArrayList<Char> hitThisArc = new ArrayList<>();
 		PathFinder.buildDistanceMap( defender.pos, BArray.not( Dungeon.level.solid, null ), dist );
@@ -110,7 +114,9 @@ public class Shocking extends Weapon.Enchantment {
 
 		affected.addAll(hitThisArc);
 		for (Char hit : hitThisArc){
-			arcs.add(new Lightning.Arc(defender.sprite.center(), hit.sprite.center()));
+			if (defender.sprite != null && hit.sprite != null) {
+				arcs.add(new Lightning.Arc(defender.sprite.center(), hit.sprite.center()));
+			}
 			arc(attacker, hit, (Dungeon.level.water[hit.pos] && !hit.flying) ? 2 : 1, affected, arcs);
 		}
 

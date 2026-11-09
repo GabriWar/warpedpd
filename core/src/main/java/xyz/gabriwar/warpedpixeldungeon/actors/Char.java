@@ -1516,13 +1516,17 @@ public abstract class Char extends Actor {
 	@Override
 	protected void spendConstant(float time) {
 		TimekeepersHourglass.timeFreeze freeze = buff(TimekeepersHourglass.timeFreeze.class);
+		//the turn's time goes into the freeze or the bubble and the clock stays where it was, on
+		//purpose: the freeze watchdog is told, or a long walk in stopped time reads as a spin
 		if (freeze != null) {
+			xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.clockHeld();
 			freeze.processTime(time);
 			return;
 		}
 
 		Swiftthistle.TimeBubble bubble = buff(Swiftthistle.TimeBubble.class);
 		if (bubble != null){
+			xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.clockHeld();
 			bubble.processTime(time);
 			return;
 		}

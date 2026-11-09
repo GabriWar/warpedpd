@@ -106,6 +106,24 @@ public class SupporterScene extends PixelScene {
 		ArrayList<Component> waysToGive = new ArrayList<>();
 		float btnsHeight = 0;
 		if (Payments.supportsDonations()) {
+			//a supporter's own way back to the developer's Discord and the server
+			if (Payments.receipt() != null) {
+				StyledButton discord = new StyledButton(Chrome.Type.GREY_BUTTON_TR,
+						Messages.get(this, "discord"), 7) {
+					@Override
+					protected void onClick() {
+						super.onClick();
+						WPDSettings.supporterDiscordTold(true);
+						addToFront(new xyz.gabriwar.warpedpixeldungeon.windows.WndSupporterDiscord());
+					}
+				};
+				discord.icon(Icons.get(Icons.WPD));
+				discord.textColor(Window.TITLE_COLOR);
+				discord.setSize(elementWidth, BTN_HEIGHT);
+				add(discord);
+				waysToGive.add(discord);
+				btnsHeight += BTN_HEIGHT + GAP;
+			}
 			for (PaymentService.Tier tier : Payments.tiers()) {
 				StyledButton b = new StyledButton(Chrome.Type.GREY_BUTTON_TR,
 						tier.name + " - _" + tier.price + "_/mo", 7) {
@@ -239,6 +257,8 @@ public class SupporterScene extends PixelScene {
 
 		//a thank-you owed from a purchase that a scene rebuild interrupted
 		WndSupporterThanks.showIfPending(this);
+		//every supporter hears once of their Discord line, past subscribers too
+		xyz.gabriwar.warpedpixeldungeon.windows.WndSupporterDiscord.tellOnce(this);
 	}
 
 	@Override
@@ -256,10 +276,10 @@ public class SupporterScene extends PixelScene {
 		RenderedTextBlock outro;
 
 		private static final Icons[] ICONS = {
-				Icons.CONTROLLER, Icons.TALENT, Icons.CHANGES, Icons.WARNING, Icons.PREFS
+				Icons.WPD, Icons.CONTROLLER, Icons.TALENT, Icons.CHANGES, Icons.WARNING, Icons.PREFS
 		};
 		private static final String[] KEYS = {
-				"perk_online", "perk_vote", "perk_updates", "perk_bugs", "perk_design"
+				"perk_discord", "perk_online", "perk_vote", "perk_updates", "perk_bugs", "perk_design"
 		};
 
 		@Override

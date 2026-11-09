@@ -162,6 +162,9 @@ public class WndTradeUp extends Window {
 			}
 			@Override
 			public void onSelect( Item item ){
+				//a scene reset (a turned screen) reopens the bag with this selector but tears this
+				//window down, as Shattered's blacksmith window guards against
+				if (WndTradeUp.this.parent == null) return;
 				if (item == null || !fits( item )) return;
 				given[index] = item;
 				refresh();

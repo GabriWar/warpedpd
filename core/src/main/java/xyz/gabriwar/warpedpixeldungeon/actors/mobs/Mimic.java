@@ -95,6 +95,18 @@ public class Mimic extends Mob {
 		}
 	}
 
+	//a disguised mimic is a chest to the weather: its cold, heat and rain gave it negative buffs
+	//and a storm's bolt struck it, and either one woke it (a crystal mimic fled at once)
+	@Override
+	protected boolean feelsWeather(){
+		return alignment != Alignment.NEUTRAL;
+	}
+
+	@Override
+	public boolean isImmune( Class effect ){
+		return (alignment == Alignment.NEUTRAL && MarketBodyguard.weather( effect )) || super.isImmune( effect );
+	}
+
 	@Override
 	public boolean add(Buff buff) {
 		if (super.add(buff)) {
@@ -193,6 +205,9 @@ public class Mimic extends Mob {
 
 	@Override
 	public void damage(int dmg, Object src) {
+		if (state == PASSIVE && src != null && alignment == Alignment.NEUTRAL && MarketBodyguard.weather( src.getClass() )){
+			return;
+		}
 		if (state == PASSIVE){
 			alignment = Alignment.ENEMY;
 			stopHiding();

@@ -396,6 +396,11 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 	}
 
 	private void handleFullState(JSONObject data) {
+		//the host's game takes Dungeon over below, from this network thread. A client runs no
+		//turn loop (GameScene.update starts none), but one left from a game played here before
+		//is still alive, and woken it acted that game's mobs and hero against the host's level:
+		//index and null-sprite crashes in Mob.act, TileTemperature, PlantGrowthManager. Ended first
+		GameScene.stopActorThread();
 		try {
 			int depth = data.getInt("depth");
 			int branch = data.optInt("branch", 0);
@@ -534,6 +539,8 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 			hero.exp = heroData.optInt("exp", 0);
 			hero.STR = heroData.optInt("str", 10);
 			hero.ready = true;
+			//before any delta: a guest opening the hero window on arrival read an empty tree
+			applyTalents(hero, heroData);
 
 			// Apply hero buffs
 			applyBuffsToChar(hero, heroData.optJSONArray("buffs"));
@@ -1165,22 +1172,7 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 			if (heroData.has("inv")) {
 				applyInventory(heroData.getJSONObject("inv"));
 			}
-			// Mirror host's talents (tree progression + banked points). Without this
-			// WndHero on the client renders empty trees regardless of host progress.
-			if (heroData.has("talents")) {
-				String talentsBlob = heroData.optString("talents", "");
-				if (!talentsBlob.isEmpty() && !"null".equals(talentsBlob)) {
-					try {
-						com.watabou.utils.Bundle tb = com.watabou.utils.Bundle.read(
-								new java.io.ByteArrayInputStream(talentsBlob.getBytes()));
-						xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent.restoreTalentsFromBundle(
-								tb, Dungeon.hero);
-					} catch (Throwable t) {
-						xyz.gabriwar.warpedpixeldungeon.net.NetManager.log(
-								"[NET-CLI] talents restore failed: " + t);
-					}
-				}
-			}
+			applyTalents(Dungeon.hero, heroData);
 			if (heroData.has("armorAbility")) {
 				String abilityCls = heroData.optString("armorAbility", "");
 				if (!abilityCls.isEmpty() && (Dungeon.hero.armorAbility == null
@@ -1217,6 +1209,29 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 			}
 		} catch (JSONException e) {
 			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * Mirror the host's talents (tree progression + banked points) onto the guest's hero. Without
+	 * this WndHero on the client renders empty trees regardless of host progress. A hero just built
+	 * from a full state has no tiers at all, and the hero window's tree reads the first two: it gets
+	 * its class's tree even when the host sent none, or sent one that does not read.
+	 */
+	static void applyTalents(Hero hero, JSONObject heroData) {
+		String talentsBlob = heroData.optString("talents", "");
+		if (!talentsBlob.isEmpty() && !"null".equals(talentsBlob)) {
+			try {
+				com.watabou.utils.Bundle tb = com.watabou.utils.Bundle.read(
+						new java.io.ByteArrayInputStream(talentsBlob.getBytes()));
+				xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent.restoreTalentsFromBundle(tb, hero);
+			} catch (Throwable t) {
+				xyz.gabriwar.warpedpixeldungeon.net.NetManager.log(
+						"[NET-CLI] talents restore failed: " + t);
+			}
+		}
+		if (hero.talents.isEmpty()) {
+			xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent.initClassTalents(hero);
 		}
 	}
 

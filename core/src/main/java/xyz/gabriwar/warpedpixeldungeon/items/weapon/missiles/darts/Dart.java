@@ -278,7 +278,9 @@ public class Dart extends MissileWeapon {
 
 		@Override
 		public boolean itemSelectable(Item item) {
-			return item instanceof Plant.Seed;
+			//only the seeds a dart can be tipped with: Warped's other seeds (crops, the
+			//overworld's plants) have no dart
+			return item instanceof Plant.Seed && TippedDart.types.containsKey(item.getClass());
 		}
 
 		@Override

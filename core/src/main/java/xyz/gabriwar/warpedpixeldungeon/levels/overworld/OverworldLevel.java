@@ -1254,6 +1254,22 @@ public class OverworldLevel extends Level {
 	//it from mobs. a fleeing thief hands its loot to the heap store first so
 	//nothing the player owns is ever duplicated or lost
 	private void park( Mob m, int wx, int wy ){
+		//Actor.remove detaches every buff, and a PinCushion's detach drops the darts stuck in the
+		//mob on its cell: on a window no scene shows that heap has no sprite (a crash on every
+		//window jump), and the cell is about to name another place. the darts are parked where
+		//the mob stood instead, as a thief's loot is; grabOne's last take detaches the empty buff
+		xyz.gabriwar.warpedpixeldungeon.actors.buffs.PinCushion pins = m.buff( xyz.gabriwar.warpedpixeldungeon.actors.buffs.PinCushion.class );
+		if (pins != null && !pins.getStuckItems().isEmpty()){
+			long key = worldKey( wx, wy );
+			Heap parked = storedHeaps.get( key );
+			if (parked == null){
+				parked = new Heap();
+				storedHeaps.put( key, parked );
+			}
+			for (int n = pins.getStuckItems().size(); n > 0; n--){
+				parked.items.add( pins.grabOne() );
+			}
+		}
 		//never stored: the road's walkers (RoadTraffic puts whoever should be out back on the
 		//road), an outlaw making off with a caravan's goods, a hunt's beasts (the hunt ends
 		//with the first to leave, HuntEvent) and the town's portal gate (placeTownGate puts it
@@ -4162,7 +4178,12 @@ public class OverworldLevel extends Level {
 		t = xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.begin();
 		try {
 			applied.await( 150, java.util.concurrent.TimeUnit.MILLISECONDS );
-		} catch (InterruptedException ignored){}
+		} catch (InterruptedException e){
+			//the interrupt is GameScene.destroy asking the turn loop to stop: kept, or the loop
+			//goes on and waits for a moving sprite the blocked render thread never finishes,
+			//and the scene change dies on "timeout waiting for actor thread"
+			Thread.currentThread().interrupt();
+		}
 		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW apply wait", t );
 
 		xyz.gabriwar.warpedpixeldungeon.debug.LagMonitor.end( "OW rebase total (actor)", tAll );

@@ -25,6 +25,7 @@
 package xyz.gabriwar.warpedpixeldungeon.actors.mobs;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Sleepiness;
@@ -92,7 +93,7 @@ public class Mirage extends Mob {
 
 	@Override
 	protected boolean act() {
-		if (--ttl <= 0 || Dungeon.hero == null || !Dungeon.hero.isAlive()){
+		if (--ttl <= 0 || !isAlive() || Dungeon.hero == null || !Dungeon.hero.isAlive()){
 			dissipate( false );
 			return true;
 		}
@@ -125,7 +126,16 @@ public class Mirage extends Mob {
 	}
 
 	private void dissipate( boolean visible ){
-		if (!isAlive()) return;
+		if (!isAlive()){
+			//dead (HP 0) yet still on the floor's mobs and in the turn loop: a floor saved like that
+			//loaded it back, and with nothing left to dissipate its act() returned true without
+			//spending, a million times a second (the game hung on arrival). take it off for good;
+			//not through destroy(), which counts it a kill as if it had been there
+			Actor.remove( this );
+			Dungeon.level.mobs.remove( this );
+			if (sprite != null) sprite.killAndErase();
+			return;
+		}
 		if (visible && sprite != null && Dungeon.level.heroFOV[pos]){
 			CellEmitter.get( pos ).burst( ShadowParticle.UP, 5 );
 		}

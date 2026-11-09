@@ -430,6 +430,11 @@ public abstract class Mob extends Char {
 		return result;
 	}
 
+	/** Whether the climate (cold, heat, rain, sun, dark) reaches this mob each turn. */
+	protected boolean feelsWeather(){
+		return true;
+	}
+
 	private void checkTileTemperatureEffects() {
 		if (!isAlive() || Dungeon.level == null) return;
 		//NPCs (shopkeeper, portals, quest givers) never freeze or overheat -
@@ -536,8 +541,10 @@ public abstract class Mob extends Char {
 		}
 
 		super.act();
-		checkAmbientEffects();
-		checkTileTemperatureEffects();
+		if (feelsWeather()) {
+			checkAmbientEffects();
+			checkTileTemperatureEffects();
+		}
 
 		boolean justAlerted = alerted;
 		alerted = false;
@@ -1089,7 +1096,8 @@ public abstract class Mob extends Char {
 	
 	protected boolean doAttack( Char enemy ) {
 		
-		if (sprite != null && (sprite.visible || enemy.sprite.visible)) {
+		//an enemy may have no sprite (one not shown yet, Char.die): Char.attack copes with that
+		if (sprite != null && (sprite.visible || (enemy.sprite != null && enemy.sprite.visible))) {
 			sprite.attack( enemy.pos );
 			return false;
 			

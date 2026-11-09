@@ -832,9 +832,14 @@ public class InterlevelScene extends PixelScene {
 				tries++;
 
 			//prevents spawning on traps or plants, prefers farther locations first
-			} while (level.traps.get(Dungeon.hero.pos) != null
+			} while ((Dungeon.hero.pos == -1 && tries < 100)
+					|| (Dungeon.hero.pos != -1 && (level.traps.get(Dungeon.hero.pos) != null
 					|| (level.plants.get(Dungeon.hero.pos) != null && tries < 500)
-					|| level.trueDistance(invPos, Dungeon.hero.pos) <= 30 - (tries/10));
+					|| level.trueDistance(invPos, Dungeon.hero.pos) <= 30 - (tries/10))));
+
+			//no respawn cell found (Warped's boss and Sokoban floors give none at all, -1): he
+			//rises at the entrance, as the sealed-level branch above does, not on cell -1
+			if (Dungeon.hero.pos == -1) Dungeon.hero.pos = level.entrance();
 
 			//directly trample grass
 			if (level.map[Dungeon.hero.pos] == Terrain.HIGH_GRASS || level.map[Dungeon.hero.pos] == Terrain.FURROWED_GRASS){

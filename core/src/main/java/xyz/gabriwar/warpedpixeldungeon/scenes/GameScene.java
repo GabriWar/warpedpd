@@ -1127,6 +1127,8 @@ public class GameScene extends PixelScene {
 		updateItemDisplays = true; // ensure HUD reflects loaded inventory (bags bypass collect())
 		restoreInvState();
 		WndSupporterThanks.showIfPending(this);
+		//every supporter hears once of their Discord line, past subscribers too
+		xyz.gabriwar.warpedpixeldungeon.windows.WndSupporterDiscord.tellOnce(this);
 		fadeIn();
 
 		//a debug scene asked for on the command line is set up now that the scene stands
@@ -1185,6 +1187,20 @@ public class GameScene extends PixelScene {
 		if (actorThread != null && actorThread.isAlive()){
 			Actor.keepActorThreadAlive = false;
 			actorThread.interrupt();
+		}
+	}
+
+	/** Ends the actor thread and waits (a second at most) for it to finish the act it is in:
+	 *  the game it runs is about to be replaced under it (SpectatorReceiver's full state). */
+	public static void stopActorThread(){
+		Thread t = actorThread;
+		endActorThread();
+		if (t != null && t != Thread.currentThread()){
+			try {
+				t.join( 1000 );
+			} catch (InterruptedException e){
+				Thread.currentThread().interrupt();
+			}
 		}
 	}
 

@@ -693,7 +693,10 @@ public final class OverworldCritters {
 
 		@Override
 		public void update(){
-			if (Dungeon.level != level || Dungeon.hero == null || Dungeon.hero.sprite == null) return;
+			//read once: a co-op guest's full state swaps Dungeon.hero for a new hero with no sprite
+			//on the network thread, while this frame still runs the old scene
+			final CharSprite hs = Dungeon.hero == null ? null : Dungeon.hero.sprite;
+			if (Dungeon.level != level || hs == null) return;
 			long tm = LagMonitor.begin();
 			if (sentinel.parent == null) GameScene.effect( sentinel );
 			if (sentinel.x != 0f || sentinel.y != 0f){
@@ -732,7 +735,6 @@ public final class OverworldCritters {
 			prune();
 			if (!Emitter.freezeEmitters && !slid){
 				float dt = Game.elapsed;
-				CharSprite hs = Dungeon.hero.sprite;
 				float hx = hs.x + hs.width() / 2f, hy = hs.y + hs.height() - 2f;
 				if (life != null){
 					//a slice's own life: what lives in the caves, or on the peaks
@@ -817,6 +819,8 @@ public final class OverworldCritters {
 		boolean frameAgrees(){
 			if (level.worldX() != visX || level.worldY() != visY) return false;
 			CharSprite hs = Dungeon.hero.sprite;
+			//none for a frame while a guest's full state swaps the hero (see update)
+			if (hs == null) return false;
 			int w = level.width();
 			int sx = (int)((hs.x + hs.width() / 2f) / DungeonTilemap.SIZE);
 			int sy = (int)((hs.y + hs.height() - 2f) / DungeonTilemap.SIZE);
@@ -1024,8 +1028,11 @@ public final class OverworldCritters {
 			ArrayList<CharSprite> others = others();
 			float[] pts = new float[others.size() * 2 + 2];
 			CharSprite hs = Dungeon.hero.sprite;
-			pts[0] = hs.x + hs.width() / 2f;
-			pts[1] = hs.y + hs.height() - 2f;
+			//none for a frame while a guest's full state swaps the hero (see update)
+			if (hs != null){
+				pts[0] = hs.x + hs.width() / 2f;
+				pts[1] = hs.y + hs.height() - 2f;
+			}
 			int n = 2;
 			for (CharSprite s : others){
 				pts[n++] = s.x + s.width() / 2f;

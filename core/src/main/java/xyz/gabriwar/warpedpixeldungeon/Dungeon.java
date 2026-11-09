@@ -1562,8 +1562,12 @@ public class Dungeon {
 			}
 		}
 
-		FileUtils.overwriteFile(GamesInProgress.gameFile(save), 1);
-		
+		//a slot with no save written has nothing to wipe: writing over it threw (ENOENT, the
+		//slot's folder missing) and the death itself crashed
+		if (FileUtils.fileExists(GamesInProgress.gameFile(save))) {
+			FileUtils.overwriteFile(GamesInProgress.gameFile(save), 1);
+		}
+
 		GamesInProgress.delete( save );
 	}
 	

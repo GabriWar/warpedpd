@@ -180,9 +180,14 @@ public class ElementalBlast extends ArmorAbility {
 
 		ConeAOE aoe = new ConeAOE(aim, aoeSize, 360, projectileProps);
 
+		//the tables know Shattered's wands only: a staff holding one Warped added (amok, firebolt,
+		//slowness...) unboxed a null and crashed. Such a wand blasts as plain magic missile does
+		final int effectType = effectTypes.getOrDefault(wandCls, MagicMissile.MAGIC_MISS_CONE);
+		final float damageFactor = damageFactors.getOrDefault(wandCls, damageFactors.get(WandOfMagicMissile.class));
+
 		for (Ballistica ray : aoe.outerRays){
 			((MagicMissile)hero.sprite.parent.recycle( MagicMissile.class )).reset(
-					effectTypes.get(wandCls),
+					effectType,
 					hero.sprite,
 					ray.path.get(ray.dist),
 					null
@@ -194,7 +199,7 @@ public class ElementalBlast extends ArmorAbility {
 		//cast a ray 2/3 the way, and do effects
 		Class<? extends Wand> finalWandCls = wandCls;
 		((MagicMissile)hero.sprite.parent.recycle( MagicMissile.class )).reset(
-				effectTypes.get(wandCls),
+				effectType,
 				hero.sprite,
 				aim.path.get(Math.min(aoeSize / 2, aim.path.size()-1)),
 				new Callback() {
@@ -270,7 +275,7 @@ public class ElementalBlast extends ArmorAbility {
 							Char mob = Actor.findChar(cell);
 							int damage = Math.round(Hero.heroDamageIntRange(15, 25)
 									* effectMulti
-									* damageFactors.get(finalWandCls));
+									* damageFactor);
 
 							if (mob != null && damage > 0 && mob.alignment != Char.Alignment.ALLY){
 								mob.damage(damage, Reflection.newInstance(finalWandCls));

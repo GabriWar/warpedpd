@@ -159,6 +159,9 @@ public enum Icons {
 	CUBE_CODE,
 	PURIGRO,
 	ARCNOR,
+
+	//the game's Discord server, on the title screen
+	DISCORD,
 	ALASTAIR;
 
 	public Image get() {
@@ -195,6 +198,9 @@ public enum Icons {
 				break;
 			case WPD:
 				icon.frame( icon.texture.uvRectBySize( 153, 0, 16, 16 ) );
+				break;
+			case DISCORD:
+				icon.frame( icon.texture.uvRectBySize( 176, 0, 16, 13 ) );
 				break;
 			case JOURNAL:
 				icon.frame( icon.texture.uvRectBySize( 136, 0, 17, 15 ) );

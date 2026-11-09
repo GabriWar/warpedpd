@@ -72,7 +72,8 @@ public class MagicEyeSprite extends MobSprite {
 	@Override
 	public void onComplete( Animation anim ) {
 		super.onComplete( anim );
-		if (anim == attack) {
+		//the strike itself can take the sprite down: a mirage in this shape dissolves on it
+		if (anim == attack && parent != null) {
 			if (Dungeon.level.heroFOV[ch.pos] || Dungeon.level.heroFOV[attackPos]) {
 				parent.add(new Beam.DeathRay(center(), DungeonTilemap.raisedTileCenterToWorld(attackPos)).lite());
 			}

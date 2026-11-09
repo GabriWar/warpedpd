@@ -33,7 +33,7 @@ if ! printf '%s\n' "$staged" | grep -qE "$changes"; then
 	echo "=============================================================================="
 	echo "  WARNING: this commit changes the game but not the Changes screen."
 	echo "  Every update lists whatever it changed: add an entry (icon, title, summary,"
-	echo "  body, since = commit count + 80) to ui/changelist/WarpedUpdates.java."
+	echo "  body, since = commit count + 158 + 1) to ui/changelist/WarpedUpdates.java."
 	list_game
 	echo "  If a player cannot see this change, carry on."
 	echo "=============================================================================="

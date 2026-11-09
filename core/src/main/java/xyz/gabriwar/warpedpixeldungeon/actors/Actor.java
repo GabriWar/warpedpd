@@ -380,6 +380,13 @@ public abstract class Actor implements Bundlable {
 						xyz.gabriwar.warpedpixeldungeon.net.NetManager.broadcastGameState();
 					}
 
+					//a hero who kept his turn ready() waits on his player: whatever the clock
+					//does meanwhile, the game is not stuck (FreezeWatchdog)
+					if (current instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero
+							&& ((xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero) current).ready) {
+						xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.playerWait();
+					}
+
 					//signals to the gamescene that actor processing is finished for now
 					Thread.currentThread().notify();
 					

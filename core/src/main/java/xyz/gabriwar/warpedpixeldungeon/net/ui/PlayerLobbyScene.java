@@ -390,7 +390,8 @@ public class PlayerLobbyScene extends PixelScene {
 			return;
 		}
 		NetManager.peekCharacter(ip, name, info -> Game.runOnRenderThread(() -> {
-			if (subtitle == null) return;
+			//the answer can come after the player joined: this lobby and its texts are torn down
+			if (subtitle == null || Game.scene() != PlayerLobbyScene.this) return;
 			if (info != null && info.optBoolean("found", false)) {
 				stashedHero = info;
 				HeroClass hc = HeroClass.values()[info.optInt("cls", 0)];

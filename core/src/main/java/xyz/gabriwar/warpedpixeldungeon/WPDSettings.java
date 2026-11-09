@@ -278,6 +278,7 @@ public class WPDSettings extends GameSettings {
 	//the store sheet closing can resize the surface and rebuild the scene under it
 	public static final String KEY_THANKS_TIER = "supporter_thanks_tier";
 	public static final String KEY_THANKS_NAME = "supporter_thanks_name";
+	public static final String KEY_SUPPORTER_DISCORD = "supporter_discord_told";
 
 	public static void supporterThanks( int tier, String tierName ){
 		put( KEY_THANKS_TIER, tier );
@@ -286,6 +287,14 @@ public class WPDSettings extends GameSettings {
 
 	public static int supporterThanksTier() {
 		return getInt( KEY_THANKS_TIER, 0, 0, 3 );
+	}
+
+	public static void supporterDiscordTold( boolean value ) {
+		put( KEY_SUPPORTER_DISCORD, value );
+	}
+
+	public static boolean supporterDiscordTold() {
+		return getBoolean( KEY_SUPPORTER_DISCORD, false );
 	}
 
 	public static String supporterThanksName() {

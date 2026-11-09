@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.MagicMissile;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTeleportation;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
+import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
@@ -59,7 +60,12 @@ public class LloydsBeacon extends Artifact {
 	public static final String AC_RETURN	= "RETURN";
 	
 	public int returnDepth	= -1;
+	public int returnBranch	= 0;
 	public int returnPos;
+	//set on a world slice: the world cell, since a window cell names another place once the
+	//window has moved (as BeaconOfReturning.BeaconTracker keeps it)
+	public boolean returnWorld	= false;
+	public int returnWX, returnWY;
 	
 	{
 		image = ItemSpriteSheet.ARTIFACT_BEACON;
@@ -74,14 +80,24 @@ public class LloydsBeacon extends Artifact {
 	}
 	
 	private static final String DEPTH	= "depth";
+	private static final String BRANCH	= "branch";
 	private static final String POS		= "pos";
+	private static final String WORLD	= "world";
+	private static final String WX		= "wx";
+	private static final String WY		= "wy";
 	
 	@Override
 	public void storeInBundle( Bundle bundle ) {
 		super.storeInBundle( bundle );
 		bundle.put( DEPTH, returnDepth );
+		bundle.put( BRANCH, returnBranch );
 		if (returnDepth != -1) {
 			bundle.put( POS, returnPos );
+		}
+		if (returnWorld) {
+			bundle.put( WORLD, true );
+			bundle.put( WX, returnWX );
+			bundle.put( WY, returnWY );
 		}
 	}
 	
@@ -89,7 +105,11 @@ public class LloydsBeacon extends Artifact {
 	public void restoreFromBundle( Bundle bundle ) {
 		super.restoreFromBundle(bundle);
 		returnDepth	= bundle.getInt( DEPTH );
+		returnBranch	= bundle.getInt( BRANCH );
 		returnPos	= bundle.getInt( POS );
+		returnWorld	= bundle.contains( WORLD ) && bundle.getBoolean( WORLD );
+		returnWX	= bundle.getInt( WX );
+		returnWY	= bundle.getInt( WY );
 	}
 	
 	@Override
@@ -145,7 +165,14 @@ public class LloydsBeacon extends Artifact {
 		} else if (action == AC_SET) {
 			
 			returnDepth = Dungeon.depth;
+			returnBranch = Dungeon.branch;
 			returnPos = hero.pos;
+			returnWorld = Dungeon.level instanceof OverworldLevel;
+			if (returnWorld) {
+				OverworldLevel ow = (OverworldLevel) Dungeon.level;
+				returnWX = ow.worldX + hero.pos % ow.width();
+				returnWY = ow.worldY + hero.pos / ow.width();
+			}
 			
 			hero.spend( LloydsBeacon.TIME_TO_USE );
 			hero.busy();
@@ -157,8 +184,9 @@ public class LloydsBeacon extends Artifact {
 			
 		} else if (action == AC_RETURN) {
 			
-			if (returnDepth == Dungeon.depth) {
-				ScrollOfTeleportation.appear( hero, returnPos );
+			int target = returnCell( Dungeon.level );
+			if (target != -1) {
+				ScrollOfTeleportation.appear( hero, target );
 				for(Mob m : Dungeon.level.mobs){
 					if (m.pos == hero.pos){
 						//displace mob
@@ -179,12 +207,30 @@ public class LloydsBeacon extends Artifact {
 				Level.beforeTransition();
 				InterlevelScene.mode = InterlevelScene.Mode.RETURN;
 				InterlevelScene.returnDepth = returnDepth;
+				InterlevelScene.returnBranch = returnBranch;
 				InterlevelScene.returnPos = returnPos;
+				if (returnWorld){
+					//the slice's window is centred on the beacon's world cell as the hero lands
+					OverworldLevel.arriveAt( returnWX, returnWY );
+					InterlevelScene.returnPos = -1;
+				}
 				Game.switchScene( InterlevelScene.class );
 			}
 			
 			
 		}
+	}
+
+	/** The beacon's cell on the level being played, or -1 when it is not there: another depth or
+	 *  branch (a barrow shares its depth with the surface: a surface cell read on a 7x7 barrow
+	 *  floor threw), or a world cell the window has moved off. A beacon from an older save, set
+	 *  before the branch was kept, is also not there when its cell lies off this level. */
+	int returnCell( Level level ){
+		if (returnDepth != Dungeon.depth || returnBranch != Dungeon.branch) return -1;
+		if (returnWorld) {
+			return level instanceof OverworldLevel ? ((OverworldLevel) level).localCell( returnWX, returnWY ) : -1;
+		}
+		return returnPos >= 0 && returnPos < level.length() ? returnPos : -1;
 	}
 
 	protected CellSelector.Listener zapper = new  CellSelector.Listener() {

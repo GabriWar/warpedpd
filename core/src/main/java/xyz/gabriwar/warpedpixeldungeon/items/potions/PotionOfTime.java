@@ -53,7 +53,8 @@ public class PotionOfTime extends Potion {
             splash(cell);
             SpatialSound.play(Assets.Sounds.SHATTER, cell);
         }
-        new TimekeepersHourglass().activateTimeFreeze(Dungeon.level.map[cell]);
+        //as long as drinking it: the cell's terrain id (anything up to ~90 charges) was passed here
+        new TimekeepersHourglass().activateTimeFreeze(Dungeon.hero.STR());
     }
 
     @Override
