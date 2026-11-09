@@ -69,6 +69,16 @@ public class Buff extends Actor {
 		if (target.isImmune( getClass() )) {
 			return false;
 		}
+
+		//already on this char: a new bleed onto a running one attaches that same bleed again
+		//(Char.damage). Nothing to add, and a re-add the char refuses (a cleanse, a skill that
+		//shrugs a debuff off) must not clear the target of a buff still on it and still in the
+		//turn loop: its next act() threw (Bleeding.act, a Warlock on depth 65)
+		if (this.target == target && target.buffs().contains( this )) {
+			//still scheduled as Char.add would, for a caller re-attaching to put it back in the loop
+			if (Actor.chars().contains( target )) Actor.add( this );
+			return true;
+		}
 		
 		this.target = target;
 

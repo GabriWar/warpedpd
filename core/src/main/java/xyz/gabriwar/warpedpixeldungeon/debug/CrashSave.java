@@ -28,8 +28,10 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.GamesInProgress;
 import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
 import xyz.gabriwar.warpedpixeldungeon.scenes.InterlevelScene;
+import com.watabou.utils.Bundle;
 import com.watabou.utils.FileUtils;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -42,7 +44,10 @@ import java.util.zip.ZipOutputStream;
 
 /**
  * The run a crash happened in, sent with the report: the slot's folder (game.dat and every floor
- * of the run, as last saved) zipped beside it. Loaded back on the desktop
+ * of the run, as last saved) zipped beside it, with game.dat and the current floor's file written
+ * again from the live game as it died. The slot is saved only on a floor change, so on its own it
+ * showed the floor as the hero arrived, not where he stood when it broke; the copies from disk
+ * stay in the zip as lastsave-*.dat for a crash whose live state will not load. Loaded back on the desktop
  * (./gradlew :desktop:debug -Psave=crash-save.zip) into a free slot and continued, it is the
  * player's run at its last save, to play up to the crash.
  */
@@ -61,21 +66,51 @@ public final class CrashSave {
 			File[] files = dir.listFiles();
 			if (files == null || files.length == 0) return false;
 			if (out.getParentFile() != null) out.getParentFile().mkdirs();
+			//the live run, built before anything is written: whatever fails to build is simply left
+			//as it was last saved
+			byte[] game = live( true );
+			byte[] floor = live( false );
+			String floorName = new File( GamesInProgress.depthFile(
+					GamesInProgress.curSlot, Dungeon.depth, Dungeon.branch ) ).getName();
 			try (ZipOutputStream zip = new ZipOutputStream( new FileOutputStream( out ) )) {
 				for (File f : files){
 					if (!f.isFile()) continue;
-					zip.putNextEntry( new ZipEntry( f.getName() ) );
+					boolean replaced = (game != null && f.getName().equals( "game.dat" ))
+							|| (floor != null && f.getName().equals( floorName ));
+					zip.putNextEntry( new ZipEntry( (replaced ? "lastsave-" : "") + f.getName() ) );
 					try (InputStream in = new FileInputStream( f )) {
 						copy( in, zip );
 					}
 					zip.closeEntry();
 				}
+				if (game != null) put( zip, "game.dat", game );
+				if (floor != null) put( zip, floorName, floor );
 			}
 			return true;
 		} catch (Throwable t) {
 			out.delete();
 			return false;
 		}
+	}
+
+	/** The live game (or the current floor) as its save file's bytes, or null if it will not
+	 *  build: a crash can leave anything half done, and the report must still go out. Written
+	 *  to memory, never to the slot, so a broken state cannot overwrite the player's save. */
+	private static byte[] live( boolean game ){
+		try {
+			Bundle bundle = game ? Dungeon.gameBundle() : Dungeon.levelBundle();
+			ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+			if (!Bundle.write( bundle, bytes )) return null;
+			return bytes.toByteArray();
+		} catch (Throwable t) {
+			return null;
+		}
+	}
+
+	private static void put( ZipOutputStream zip, String name, byte[] data ) throws IOException {
+		zip.putNextEntry( new ZipEntry( name ) );
+		zip.write( data );
+		zip.closeEntry();
 	}
 
 	/** A sent run unpacked into the first empty slot: its number. A player's zip is not trusted:

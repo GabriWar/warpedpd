@@ -1221,132 +1221,143 @@ public class Dungeon {
 
 	public static void saveGame( int save ) {
 		try {
-			Bundle bundle = new Bundle();
-
-			bundle.put( INIT_VER, initialVersion );
-			bundle.put( VERSION, version = Game.versionCode );
-			bundle.put( SEED, seed );
-			bundle.put( CUSTOM_SEED, customSeedText );
-			bundle.put( DAILY, daily );
-			bundle.put( DAILY_REPLAY, dailyReplay );
-			bundle.put( MULTIPLAYER, multiplayer );
-			bundle.put( LAST_PLAYED, lastPlayed = Game.realTime);
-			bundle.put( CHALLENGES, challenges );
-			bundle.put( MOBS_TO_CHAMPION, mobsToChampion );
-			bundle.put( HERO, hero );
-			bundle.put( DEPTH, depth );
-			bundle.put( BRANCH, branch );
-
-			bundle.put( GOLD, gold );
-		bundle.put( BULLET, bullet );
-		bundle.put( TEMPLE_DONE, templeCompleted );
-		CagedKobold.Quest.storeInBundle( bundle );
-			bundle.put( ENERGY, energy );
-
-			// Sprouted flags
-			bundle.put( DEW_CONDENSER, dewCondenser );
-			bundle.put( MEASURED_DRAUGHT, measuredDraught );
-			bundle.put( SKIN_CAPACITY, skinCapacity );
-			bundle.put( SPORK_AVAIL, sporkAvail );
-			bundle.put( SANCHIKARAH, sanchikarah );
-			bundle.put( SANCHIKARAH_DEATH, sanchikarahdeath );
-			bundle.put( SANCHIKARAH_LIFE, sanchikarahlife );
-			bundle.put( SANCHIKARAH_TRANS, sanchikarahtranscend );
-			bundle.put( ORB_OF_ZOT_DROPPED, orbofzotdropped );
-			bundle.put( ORB_OF_ZOT_SHOP, orbofzotshopsold );
-			bundle.put( SOU_BOUGHT, scrollsOfUpgradeBought );
-			bundle.put( SHADOW_YOG_KILLED, shadowyogkilled );
-			bundle.put( CRAB_KING_KILLED, crabkingkilled );
-			bundle.put( BANDIT_KING_KILLED, banditkingkilled );
-			bundle.put( SKELETON_KING_KILLED, skeletonkingkilled );
-			bundle.put( SHELL_CHARGE, shellCharge );
-			bundle.put( PET_HASTE_LEVEL, petHasteLevel );
-			bundle.put( ZOT_DRAINS, zotDrains );
-			bundle.put( RAT_CHESTS, ratChests );
-			bundle.put( EARLYGRASS, earlygrass );
-			bundle.put( GNOLLSPAWN, gnollspawned );
-			bundle.put( SKELETONSPAWN, skeletonspawned );
-			bundle.put( THIEFSPAWN, goldthiefspawned );
-			bundle.put( TENGUKILL, tengukilled );
-			bundle.put( TENGUDENKILL, tengudenkilled );
-			bundle.put( PLAYTEST, playtest );
-			bundle.put( PARS, pars );
-			bundle.put( TRANSMUTATION, transmutation );
-			bundle.put( CYCLE_TURN, cycleTurn );
-			bundle.put( GAME_START_TIME, gameStartTime );
-			bundle.put( CALENDAR_START, calendarStartDay );
-			ClimateManager.storeInBundle( bundle );
-
-			for (int d : droppedItems.keyArray()) {
-				bundle.put(Messages.format(DROPPED, d), droppedItems.get(d));
-			}
-			//the keys too: a barrow's (chasmKey) are not floor numbers the restore could guess
-			bundle.put( DROPPED_KEYS, droppedItems.keyArray() );
-			xyz.gabriwar.warpedpixeldungeon.levels.features.FallenMob.store( bundle, fallenMobs );
-			quickslot.storePlaceholders( bundle );
-
-			Bundle limDrops = new Bundle();
-			LimitedDrops.store( limDrops );
-			bundle.put ( LIMDROPS, limDrops );
-			
-			int count = 0;
-			int ids[] = new int[chapters.size()];
-			for (Integer id : chapters) {
-				ids[count++] = id;
-			}
-			bundle.put( CHAPTERS, ids );
-			
-			Bundle quests = new Bundle();
-			Ghost		.Quest.storeInBundle( quests );
-			Wandmaker	.Quest.storeInBundle( quests );
-			Blacksmith	.Quest.storeInBundle( quests );
-			Imp			.Quest.storeInBundle( quests );
-			bundle.put( QUESTS, quests );
-			
-			SpecialRoom.storeRoomsInBundle( bundle );
-			SecretRoom.storeRoomsInBundle( bundle );
-			xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.WarpedRooms.storeInBundle( bundle );
-			
-			Statistics.storeInBundle( bundle );
-			TownLedger.storeInBundle( bundle );
-			Notes.storeInBundle( bundle );
-			Generator.storeInBundle( bundle );
-			Portals.storeInBundle( bundle );
-			xyz.gabriwar.warpedpixeldungeon.levels.Delves.storeInBundle( bundle );
-			xyz.gabriwar.warpedpixeldungeon.homestead.HomesteadWorld.storeInBundle( bundle );
-			xyz.gabriwar.warpedpixeldungeon.homestead.legacy.SafeRoomMigration.storeInBundle( bundle );
-
-			int[] bundleArr = new int[generatedLevels.size()];
-			for (int i = 0; i < generatedLevels.size(); i++){
-				bundleArr[i] = generatedLevels.get(i);
-			}
-			bundle.put( GENERATED_LEVELS, bundleArr);
-			
-			Scroll.save( bundle );
-			Potion.save( bundle );
-			Ring.save( bundle );
-
-			Actor.storeNextID( bundle );
-			
-			Bundle badges = new Bundle();
-			Badges.saveLocal( badges );
-			bundle.put( BADGES, badges );
-			
-			FileUtils.bundleToFile( GamesInProgress.gameFile(save), bundle);
-			
+			FileUtils.bundleToFile( GamesInProgress.gameFile(save), gameBundle() );
 		} catch (IOException e) {
 			GamesInProgress.setUnknown( save );
 			WarpedPixelDungeon.reportException(e);
 		}
 	}
+
+	/** The run as saveGame writes it; a crash report also takes a copy of it as the game dies
+	 *  (debug/CrashSave), since the slot on disk is only as new as the last floor change. */
+	public static Bundle gameBundle() {
+		Bundle bundle = new Bundle();
+
+		bundle.put( INIT_VER, initialVersion );
+		bundle.put( VERSION, version = Game.versionCode );
+		bundle.put( SEED, seed );
+		bundle.put( CUSTOM_SEED, customSeedText );
+		bundle.put( DAILY, daily );
+		bundle.put( DAILY_REPLAY, dailyReplay );
+		bundle.put( MULTIPLAYER, multiplayer );
+		bundle.put( LAST_PLAYED, lastPlayed = Game.realTime);
+		bundle.put( CHALLENGES, challenges );
+		bundle.put( MOBS_TO_CHAMPION, mobsToChampion );
+		bundle.put( HERO, hero );
+		bundle.put( DEPTH, depth );
+		bundle.put( BRANCH, branch );
+
+		bundle.put( GOLD, gold );
+	bundle.put( BULLET, bullet );
+	bundle.put( TEMPLE_DONE, templeCompleted );
+	CagedKobold.Quest.storeInBundle( bundle );
+		bundle.put( ENERGY, energy );
+
+		// Sprouted flags
+		bundle.put( DEW_CONDENSER, dewCondenser );
+		bundle.put( MEASURED_DRAUGHT, measuredDraught );
+		bundle.put( SKIN_CAPACITY, skinCapacity );
+		bundle.put( SPORK_AVAIL, sporkAvail );
+		bundle.put( SANCHIKARAH, sanchikarah );
+		bundle.put( SANCHIKARAH_DEATH, sanchikarahdeath );
+		bundle.put( SANCHIKARAH_LIFE, sanchikarahlife );
+		bundle.put( SANCHIKARAH_TRANS, sanchikarahtranscend );
+		bundle.put( ORB_OF_ZOT_DROPPED, orbofzotdropped );
+		bundle.put( ORB_OF_ZOT_SHOP, orbofzotshopsold );
+		bundle.put( SOU_BOUGHT, scrollsOfUpgradeBought );
+		bundle.put( SHADOW_YOG_KILLED, shadowyogkilled );
+		bundle.put( CRAB_KING_KILLED, crabkingkilled );
+		bundle.put( BANDIT_KING_KILLED, banditkingkilled );
+		bundle.put( SKELETON_KING_KILLED, skeletonkingkilled );
+		bundle.put( SHELL_CHARGE, shellCharge );
+		bundle.put( PET_HASTE_LEVEL, petHasteLevel );
+		bundle.put( ZOT_DRAINS, zotDrains );
+		bundle.put( RAT_CHESTS, ratChests );
+		bundle.put( EARLYGRASS, earlygrass );
+		bundle.put( GNOLLSPAWN, gnollspawned );
+		bundle.put( SKELETONSPAWN, skeletonspawned );
+		bundle.put( THIEFSPAWN, goldthiefspawned );
+		bundle.put( TENGUKILL, tengukilled );
+		bundle.put( TENGUDENKILL, tengudenkilled );
+		bundle.put( PLAYTEST, playtest );
+		bundle.put( PARS, pars );
+		bundle.put( TRANSMUTATION, transmutation );
+		bundle.put( CYCLE_TURN, cycleTurn );
+		bundle.put( GAME_START_TIME, gameStartTime );
+		bundle.put( CALENDAR_START, calendarStartDay );
+		ClimateManager.storeInBundle( bundle );
+
+		for (int d : droppedItems.keyArray()) {
+			bundle.put(Messages.format(DROPPED, d), droppedItems.get(d));
+		}
+		//the keys too: a barrow's (chasmKey) are not floor numbers the restore could guess
+		bundle.put( DROPPED_KEYS, droppedItems.keyArray() );
+		xyz.gabriwar.warpedpixeldungeon.levels.features.FallenMob.store( bundle, fallenMobs );
+		quickslot.storePlaceholders( bundle );
+
+		Bundle limDrops = new Bundle();
+		LimitedDrops.store( limDrops );
+		bundle.put ( LIMDROPS, limDrops );
+		
+		int count = 0;
+		int ids[] = new int[chapters.size()];
+		for (Integer id : chapters) {
+			ids[count++] = id;
+		}
+		bundle.put( CHAPTERS, ids );
+		
+		Bundle quests = new Bundle();
+		Ghost		.Quest.storeInBundle( quests );
+		Wandmaker	.Quest.storeInBundle( quests );
+		Blacksmith	.Quest.storeInBundle( quests );
+		Imp			.Quest.storeInBundle( quests );
+		bundle.put( QUESTS, quests );
+		
+		SpecialRoom.storeRoomsInBundle( bundle );
+		SecretRoom.storeRoomsInBundle( bundle );
+		xyz.gabriwar.warpedpixeldungeon.levels.rooms.warped.WarpedRooms.storeInBundle( bundle );
+		
+		Statistics.storeInBundle( bundle );
+		TownLedger.storeInBundle( bundle );
+		Notes.storeInBundle( bundle );
+		Generator.storeInBundle( bundle );
+		Portals.storeInBundle( bundle );
+		xyz.gabriwar.warpedpixeldungeon.levels.Delves.storeInBundle( bundle );
+		xyz.gabriwar.warpedpixeldungeon.homestead.HomesteadWorld.storeInBundle( bundle );
+		xyz.gabriwar.warpedpixeldungeon.homestead.legacy.SafeRoomMigration.storeInBundle( bundle );
+
+		int[] bundleArr = new int[generatedLevels.size()];
+		for (int i = 0; i < generatedLevels.size(); i++){
+			bundleArr[i] = generatedLevels.get(i);
+		}
+		bundle.put( GENERATED_LEVELS, bundleArr);
+		
+		Scroll.save( bundle );
+		Potion.save( bundle );
+		Ring.save( bundle );
+
+		Actor.storeNextID( bundle );
+		
+		Bundle badges = new Bundle();
+		Badges.saveLocal( badges );
+		bundle.put( BADGES, badges );
+		
+		return bundle;
+	}
 	
 	public static void saveLevel( int save ) throws IOException {
-		Bundle bundle = new Bundle();
-		bundle.put( LEVEL, level );
+		Bundle bundle = levelBundle();
 		
 		FileUtils.bundleToFile(GamesInProgress.depthFile( save, depth, branch ), bundle);
 	}
 	
+	/** The floor as saveLevel writes it. */
+	public static Bundle levelBundle() {
+		Bundle bundle = new Bundle();
+		bundle.put( LEVEL, level );
+		return bundle;
+	}
+
 	public static void saveAll() throws IOException {
 		if (hero != null && (hero.isAlive() || WndResurrect.instance != null)) {
 			

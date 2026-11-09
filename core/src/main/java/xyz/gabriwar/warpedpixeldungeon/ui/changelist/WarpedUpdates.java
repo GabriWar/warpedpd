@@ -127,6 +127,9 @@ public final class WarpedUpdates {
 
 	/** Newest first. */
 	public static final Entry[] ALL = {
+		new Entry( 11201, icon( Icons.WARNING ), "Bleeding while shrugging it off",
+				"Fixed a crash when a fresh bleed was shrugged off while an old one still ran.",
+				"Taking a new bleeding wound while already bleeding, with a skill that shrugs debuffs off or a cleanse running, could leave the old bleed ticking with nobody to bleed, and the game crashed. The old bleed now simply keeps going." ),
 		new Entry( 11198, icon( Icons.WARNING ), "No more false freezes",
 				"The game no longer closes itself with a freeze report while time stands still.",
 				"Walking through stopped time (clock cypress, a potion of time, a swiftthistle bubble), or tapping again and again at a lock or while rooted, made the game think it had frozen and close itself. It now tells those apart from a real freeze. A hero with stacked rings of haste no longer stops the world's clock, a mirage left behind on a saved floor no longer hangs the game when you come back, and a thrown potion of time lasts as long as a drunk one." ),
