@@ -121,6 +121,15 @@ public class NetManager {
 	public static boolean isNetClient() { return mode == NetMode.SPECTATOR || mode == NetMode.PLAYER; }
 	public static boolean isActive() { return mode != NetMode.OFF; }
 
+	/** A game played together skips the tutorial: a fresh device's tutorial hid the toolbar,
+	 *  the status bar and the inventory and greyed the main menu until its page was read, and a
+	 *  client never reaches that page (it lies on the host's floor), so it could not play. */
+	static void skipTutorial() {
+		if (xyz.gabriwar.warpedpixeldungeon.WPDSettings.intro()) {
+			xyz.gabriwar.warpedpixeldungeon.WPDSettings.intro(false);
+		}
+	}
+
 	// --- Host: start server ---
 
 	public static void startHost() throws IOException {
@@ -266,6 +275,7 @@ public class NetManager {
 
 		server.start();
 		mode = NetMode.HOST;
+		skipTutorial();
 		StateSerializer.resetDeltaTracking();
 
 		Emitter.netListener = new Emitter.NetEmitterListener() {
@@ -912,6 +922,7 @@ public class NetManager {
 		}
 		client.connectAsPlayer(heroData);
 		mode = NetMode.PLAYER;
+		skipTutorial();
 	}
 
 	// --- Client: start as spectator ---
@@ -923,6 +934,7 @@ public class NetManager {
 		client.setMessageHandler(receiver);
 		client.connect();
 		mode = NetMode.SPECTATOR;
+		skipTutorial();
 	}
 
 	// --- Client: the same two roles, reached through the relay by room code ---
@@ -944,6 +956,7 @@ public class NetManager {
 		}
 		client.connectAsPlayer(heroData);
 		mode = NetMode.PLAYER;
+		skipTutorial();
 	}
 
 	public static void startSpectatorOnline(String code) {
@@ -954,6 +967,7 @@ public class NetManager {
 		client.setMessageHandler(receiver);
 		client.connect();
 		mode = NetMode.SPECTATOR;
+		skipTutorial();
 	}
 
 	// --- Client: send action ---

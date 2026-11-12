@@ -798,7 +798,7 @@ public class DriedRose extends Artifact {
 		}
 		
 		public void sayAppeared(){
-			if (Dungeon.hero.buff(AscensionChallenge.class) != null){
+			if (AscensionChallenge.climbing()){
 				yell( Messages.get( this, "dialogue_ascension_" + Random.IntRange(1, 6) ));
 
 			} else {

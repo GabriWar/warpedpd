@@ -24,7 +24,6 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AscensionChallenge;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
 import xyz.gabriwar.warpedpixeldungeon.items.AdamantWand;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -76,10 +75,8 @@ public class Wandmaker extends NPC {
 
 	@Override
 	protected boolean act() {
-		if (Dungeon.hero.buff(AscensionChallenge.class) != null){
-			die(null);
-			return true;
-		}
+		//the ascent no longer takes the quest givers: Shattered's run ends at the top, Warped's
+		//goes on past it, and a smith, wandmaker, imp or ghost gone then was gone for good
 		return super.act();
 	}
 	

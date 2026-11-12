@@ -786,7 +786,7 @@ public class Shopkeeper extends NPC {
 	/** Variant of {@link #chatText()} that picks the per-class line from a given hero.
 	 *  Lets netHero shop interactions use the netHero's class for the intro line. */
 	public String chatTextFor(Hero h){
-		if (h != null && h.buff(AscensionChallenge.class) != null){
+		if (h != null && h.buff(AscensionChallenge.class) != null && AscensionChallenge.onClimbFloor()){
 			return Messages.get(this, "talk_ascent");
 		}
 		switch (Dungeon.depth){

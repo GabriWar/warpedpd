@@ -89,7 +89,7 @@ public class PrisonLevel extends RegularLevel {
 
 	@Override
 	public void playLevelMusic() {
-		if (Wandmaker.Quest.active() || Statistics.amuletObtained){
+		if (Wandmaker.Quest.active() || Statistics.amuletClimb()){
 			Music.INSTANCE.play(Assets.Music.PRISON_TENSE, true);
 		} else {
 			Music.INSTANCE.playTracks(PRISON_TRACK_LIST, PRISON_TRACK_CHANCES, false);

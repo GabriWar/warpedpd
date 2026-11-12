@@ -72,7 +72,7 @@ public class TempleNewLevel extends Level {
 
     @Override
     public void playLevelMusic() {
-        if (Statistics.amuletObtained || Dungeon.templeCompleted){
+        if (Statistics.amuletClimb() || Dungeon.templeCompleted){
             Music.INSTANCE.play(Assets.Music.CAVES_TENSE, true);
         } else {
             Music.INSTANCE.playTracks(CAVES_TRACK_LIST, CAVES_TRACK_CHANCES, false);

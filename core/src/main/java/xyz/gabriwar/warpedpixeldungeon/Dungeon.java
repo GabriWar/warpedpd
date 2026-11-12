@@ -940,7 +940,7 @@ public class Dungeon {
 	//value used for scaling of damage values and other effects.
 	//is usually the dungeon depth, but can be set to 26 when ascending
 	public static int scalingDepth(){
-		if (Dungeon.hero != null && Dungeon.hero.buff(AscensionChallenge.class) != null){
+		if (AscensionChallenge.climbing()){
 			return 26;
 		} else if (xyz.gabriwar.warpedpixeldungeon.levels.Delves.inDelve()){
 			//a barrow's traps, gases and bombs hit as hard as its floor counts (unbounded)

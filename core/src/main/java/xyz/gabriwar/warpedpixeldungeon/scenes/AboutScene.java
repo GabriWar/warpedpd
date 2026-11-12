@@ -306,21 +306,21 @@ public class AboutScene extends PixelScene {
 		purigro.setRect(arcnor.right()+2, arcnor.top(), colWidth/2f, 0);
 		content.add(purigro);
 
-		//*** Transifex Credits ***
+		//*** Translation Credits ***
 
-		CreditsBlock transifex = new CreditsBlock(true,
+		CreditsBlock translations = new CreditsBlock(true,
 				Window.TITLE_COLOR,
 				null,
 				null,
-				"Warped PD inherits community translations from Shattered PD, made on _Transifex_! Thank you to all volunteer translators!",
-				"transifex.com/shattered-pixel/...",
-				"https://explore.transifex.com/shattered-pixel/shattered-pixel-dungeon/");
-		transifex.setRect((Camera.main.width - colWidth)/2f, purigro.bottom() + 12, colWidth, 0);
-		content.add(transifex);
+				"Warped PD's translations are made by volunteers through pull requests on _GitHub_! Thank you to every translator!",
+				"github.com/GabriWar/warpedpd",
+				"https://github.com/GabriWar/warpedpd");
+		translations.setRect((Camera.main.width - colWidth)/2f, purigro.bottom() + 12, colWidth, 0);
+		content.add(translations);
 
-		addLine(transifex.top() - 4, content);
+		addLine(translations.top() - 4, content);
 
-		addLine(transifex.bottom() + 4, content);
+		addLine(translations.bottom() + 4, content);
 
 		//*** Freesound Credits ***
 
@@ -352,7 +352,7 @@ public class AboutScene extends PixelScene {
 				"_Lemon,Squeeze,Squishy,Fruit.wav_ by _Filipe Chagas_",
 				"freesound.org",
 				"https://www.freesound.org");
-		freesound.setRect(transifex.left()-10, transifex.bottom() + 8, colWidth+20, 0);
+		freesound.setRect(translations.left()-10, translations.bottom() + 8, colWidth+20, 0);
 		content.add(freesound);
 
 		content.setSize( fullWidth, freesound.bottom()+10 + insets.bottom );

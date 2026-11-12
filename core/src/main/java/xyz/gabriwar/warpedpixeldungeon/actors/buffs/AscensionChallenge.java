@@ -54,7 +54,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Succubus;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Swarm;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Thief;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Warlock;
-import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Shopkeeper;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.NPC;
 import xyz.gabriwar.warpedpixeldungeon.items.Amulet;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.DriedRose;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
@@ -102,11 +102,25 @@ public class AscensionChallenge extends Buff {
 		modifiers.put(Scorpio.class,        1.1f);
 	}
 
+	/** The climb itself: the dungeon's own floors, 26 up to 1. */
+	public static boolean onClimbFloor(){
+		return Dungeon.branch == 0 && Dungeon.depth >= 1 && Dungeon.depth <= 26;
+	}
+
+	/** Whether the ascent's curse bites where the hero stands. Only on the climb: carried out
+	 *  into the world any way but the stairs (a beacon, the town, travel), it waits, with no
+	 *  damage, no stronger monsters and no fleeing shopkeepers, until he is back on a floor of
+	 *  the dungeon. It killed heroes on the surface and in town, where no floor can be climbed
+	 *  and no boosted monster killed to ease it. The stairs out of depth 1 still lift it. */
+	public static boolean climbing(){
+		return Dungeon.hero != null && Dungeon.hero.buff(AscensionChallenge.class) != null && onClimbFloor();
+	}
+
 	/** The HP / damage / armour factor on a char: the Ascension's while the hero carries it, times
 	 *  a barrow's scaling (Delves.power) while the hero is in one. */
 	public static float statModifier(Char ch){
 		float delve = xyz.gabriwar.warpedpixeldungeon.levels.Delves.power(ch);
-		if (Dungeon.hero == null || Dungeon.hero.buff(AscensionChallenge.class) == null){
+		if (!climbing()){
 			return delve;
 		}
 		return baseModifier(ch) * delve;
@@ -115,7 +129,7 @@ public class AscensionChallenge extends Buff {
 	/** The accuracy / evasion factor: the Ascension's, times a barrow's slower skill scaling. */
 	public static float skillModifier(Char ch){
 		float delve = xyz.gabriwar.warpedpixeldungeon.levels.Delves.skill(ch);
-		if (Dungeon.hero == null || Dungeon.hero.buff(AscensionChallenge.class) == null){
+		if (!climbing()){
 			return delve;
 		}
 		return baseModifier(ch) * delve;
@@ -143,8 +157,7 @@ public class AscensionChallenge extends Buff {
 
 	//distant mobs get constantly beckoned to the hero at 2+ stacks
 	public static void beckonEnemies(){
-		if (Dungeon.hero.buff(AscensionChallenge.class) != null
-				&& Dungeon.hero.buff(AscensionChallenge.class).stacks >= 2f){
+		if (climbing() && Dungeon.hero.buff(AscensionChallenge.class).stacks >= 2f){
 			for (Mob m : Dungeon.level.mobs){
 				if (m.alignment == Char.Alignment.ENEMY && m.distance(Dungeon.hero) > 8) {
 					m.beckon(Dungeon.hero.pos);
@@ -155,7 +168,7 @@ public class AscensionChallenge extends Buff {
 
 	//mobs move at 2x speed when not hunting/fleeing at 4 stacks or higher
 	public static float enemySpeedModifier(Mob m){
-		if (Dungeon.hero.buff(AscensionChallenge.class) != null
+		if (climbing()
 				&& m.alignment == Char.Alignment.ENEMY
 				&& Dungeon.hero.buff(AscensionChallenge.class).stacks >= 4f
 				&& m.state != m.HUNTING && m.state != m.FLEEING){
@@ -167,8 +180,7 @@ public class AscensionChallenge extends Buff {
 
 	//hero speed is halved and capped at 1x at 6+ stacks
 	public static float modifyHeroSpeed(float speed){
-		if (Dungeon.hero.buff(AscensionChallenge.class) != null
-				&& Dungeon.hero.buff(AscensionChallenge.class).stacks >= 6f){
+		if (climbing() && Dungeon.hero.buff(AscensionChallenge.class).stacks >= 6f){
 			return Math.min(speed/2f, 1f);
 		}
 
@@ -184,7 +196,7 @@ public class AscensionChallenge extends Buff {
 
 	public static void processEnemyKill(Char enemy){
 		AscensionChallenge chal = Dungeon.hero.buff(AscensionChallenge.class);
-		if (chal == null) return;
+		if (chal == null || !onClimbFloor()) return;
 
 		if (enemy instanceof Ratmogrify.TransmogRat){
 			enemy = ((Ratmogrify.TransmogRat) enemy).getOriginal();
@@ -230,7 +242,7 @@ public class AscensionChallenge extends Buff {
 
 	public static int AscensionCorruptResist(Mob m){
 		//default to just using their EXP value if no ascent challenge is happening
-		if (Dungeon.hero.buff(AscensionChallenge.class) == null){
+		if (!climbing()){
 			return m.EXP;
 		}
 
@@ -266,6 +278,8 @@ public class AscensionChallenge extends Buff {
 	private boolean stacksLowered = false;
 
 	public void onLevelSwitch(){
+		//off the climb (the world, the town, a den) the curse waits: nothing here is the ascent's
+		if (!onClimbFloor()) return;
 		//only the dungeon's own floors are climbed: a town shop or house (branch 6) shares a floor's
 		//depth number but is no step of the ascent, and has no monsters to bring back
 		if (Dungeon.branch == 0 && Dungeon.depth < Statistics.highestAscent){
@@ -285,9 +299,14 @@ public class AscensionChallenge extends Buff {
 				}
 
 				//clears any existing mobs from the level and adds one initial one
-				//this helps balance difficulty between levels with lots of mobs left, and ones with few
+				//this helps balance difficulty between levels with lots of mobs left, and ones with few.
+				//Only the hostile monsters: everything else stays, Warped's too (a storage chest and
+				//what it holds, crops, wards, the folk of a floor), where Shattered only kept its own
+				//reset() ones and deleted the rest
 				for (Mob mob : Dungeon.level.mobs.toArray( new Mob[0] )) {
-					if (!mob.reset()) {
+					if (mob.alignment == Char.Alignment.ENEMY && !(mob instanceof NPC)
+							&& !(mob instanceof xyz.gabriwar.warpedpixeldungeon.homestead.HomesteadActor)
+							&& !mob.reset()) {
 						Dungeon.level.mobs.remove( mob );
 					}
 				}
@@ -295,13 +314,8 @@ public class AscensionChallenge extends Buff {
 
 			}
 		}
-		if (Statistics.highestAscent < 20){
-			for (Mob m : Dungeon.level.mobs.toArray(new Mob[0])){
-				if (m instanceof Shopkeeper){
-					((Shopkeeper) m).flee();
-				}
-			}
-		}
+		//the shopkeepers stay open: one that fled took its shop and its depth's portal with it,
+		//for the rest of a run that in Warped goes on past the amulet
 
 	}
 
@@ -309,6 +323,7 @@ public class AscensionChallenge extends Buff {
 	private boolean justAscended = false;
 
 	public void saySwitch(){
+		if (!onClimbFloor()) return;
 		if (Dungeon.bossLevel()){
 			if (justAscended) {
 				GLog.p(Messages.get(this, "break"));
@@ -344,8 +359,8 @@ public class AscensionChallenge extends Buff {
 
 		beckonEnemies();
 
-		//hero starts progressively taking damage over time at 8+ stacks
-		if (stacks >= 8 && !Dungeon.bossLevel()){
+		//hero starts progressively taking damage over time at 8+ stacks, on the climb only
+		if (stacks >= 8 && !Dungeon.bossLevel() && onClimbFloor()){
 			damageInc += (stacks-4)/4f;
 			if (damageInc >= 1){
 				target.damage((int)damageInc, this);

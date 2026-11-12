@@ -1044,7 +1044,7 @@ public abstract class Level implements Bundlable {
 
 	public float respawnCooldown(){
 		float cooldown;
-		if (Statistics.amuletObtained){
+		if (Statistics.amuletClimb()){
 			if (Dungeon.depth == 1){
 				//very fast spawns on floor 1! 0/2/4/6/8/10/12, etc.
 				cooldown = (Dungeon.level.mobCount()) * (TIME_TO_RESPAWN / 25f);

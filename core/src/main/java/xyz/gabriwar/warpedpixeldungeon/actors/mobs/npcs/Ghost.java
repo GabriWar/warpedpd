@@ -25,7 +25,6 @@ import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AscensionChallenge;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.FetidRat;
@@ -92,11 +91,8 @@ public class Ghost extends NPC {
 
 	@Override
 	protected boolean act() {
-		if (Dungeon.hero.buff(AscensionChallenge.class) != null){
-			die(null);
-			Notes.remove( landmark() );
-			return true;
-		}
+		//the ascent no longer takes the quest givers: Shattered's run ends at the top, Warped's
+		//goes on past it, and a smith, wandmaker, imp or ghost gone then was gone for good
 		return super.act();
 	}
 

@@ -82,6 +82,13 @@ public class Statistics {
 	public static boolean gameWon = false;
 	public static boolean ascended = false;
 
+	/** The amulet is on its way up: taken, not yet carried out of the dungeon. The climb's
+	 *  spawns, music and compass are this, not amuletObtained: the run goes on after the amulet
+	 *  is out, and the dungeon must not stay in its ascent for the rest of it. */
+	public static boolean amuletClimb(){
+		return amuletObtained && !ascended;
+	}
+
 	// Sprouted-specific fields
 	public static int archersKilled;
 	public static int skeletonsKilled;

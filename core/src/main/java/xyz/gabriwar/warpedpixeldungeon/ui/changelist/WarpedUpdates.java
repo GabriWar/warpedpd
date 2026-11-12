@@ -127,6 +127,15 @@ public final class WarpedUpdates {
 
 	/** Newest first. */
 	public static final Entry[] ALL = {
+		new Entry( 11205, icon( Icons.CONTROLLER ), "Co-op on a new device",
+				"Joining a co-op game on a new device no longer leaves you unable to play.",
+				"On a device that had never finished the tutorial, joining a co-op game hid your toolbar, status bar and inventory and greyed out the main menu, because the tutorial waited for a page that lies on the host's floor. You could only watch. Hosting or joining a game together now skips the tutorial." ),
+		new Entry( 11204, icon( Icons.LANGS ), "Russian translation",
+				"Warped PD's own text is now translated into Russian, thanks to NervniyEnot.",
+				"The Russian translation now covers what Warped PD adds: items, monsters, skills, the homestead, the surface, the sea and the whole Descent Guide, translated by NervniyEnot. Their name is listed with the Russian translators in the language settings. Translations now come in as pull requests on GitHub, and the About screen and the language settings say so. Also fixed two lines of the English text: the guide said every chaos mage drops a Potion of Experience (it is one in 50), and the assassin's spear's ability lost its highlight." ),
+		new Entry( 11203, item( ItemSpriteSheet.AMULET ), "The Amulet's ascent",
+				"The ascent no longer takes the blacksmith or the shops, and its curse waits outside the dungeon.",
+				"Starting the Ascension with the Amulet used to remove the troll blacksmith, the wandmaker, the imp, the ghost and every shopkeeper for the rest of the run, and the floors it reset lost your storage chests and crops. They all stay now. The curse only works on the dungeon's floors: out in the world or in town it waits instead of hurting you every turn, and carrying the Amulet up the stairs of depth 1 still lifts it for good. After that, the dungeon goes back to normal instead of staying in its ascent." ),
 		new Entry( 11201, icon( Icons.WARNING ), "Bleeding while shrugging it off",
 				"Fixed a crash when a fresh bleed was shrugged off while an old one still ran.",
 				"Taking a new bleeding wound while already bleeding, with a skill that shrugs debuffs off or a cleanse running, could leave the old bleed ticking with nobody to bleed, and the game crashed. The old bleed now simply keeps going." ),

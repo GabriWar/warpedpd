@@ -209,7 +209,7 @@ public abstract class RegularLevel extends Level {
 	@Override
 	public int mobLimit() {
 		if (Dungeon.depth <= 1){
-			if (!Statistics.amuletObtained) return 0;
+			if (!Statistics.amuletClimb()) return 0;
 			else                            return 10;
 		}
 

@@ -105,7 +105,7 @@ public class CityLevel extends RegularLevel {
 
 	@Override
 	public void playLevelMusic() {
-		if (Statistics.amuletObtained){
+		if (Statistics.amuletClimb()){
 			Music.INSTANCE.play(Assets.Music.CITY_TENSE, true);
 		} else {
 			Music.INSTANCE.playTracks(CITY_TRACK_LIST, CITY_TRACK_CHANCES, false);

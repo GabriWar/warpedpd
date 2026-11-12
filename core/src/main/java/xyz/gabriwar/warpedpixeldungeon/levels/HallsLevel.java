@@ -92,7 +92,7 @@ public class HallsLevel extends RegularLevel {
 
 	@Override
 	public void playLevelMusic() {
-		if (Statistics.amuletObtained){
+		if (Statistics.amuletClimb()){
 			Music.INSTANCE.play(Assets.Music.HALLS_TENSE, true);
 		} else {
 			Music.INSTANCE.playTracks(HALLS_TRACK_LIST, HALLS_TRACK_CHANCES, false);

@@ -85,7 +85,7 @@ public class HallsBossLevel extends Level {
 				Music.INSTANCE.play(Assets.Music.HALLS_BOSS, true);
 			}
 		//if exit isn't unlocked
-		} else if (map[exit()] != Terrain.EXIT || Statistics.amuletObtained){
+		} else if (map[exit()] != Terrain.EXIT || Statistics.amuletClimb()){
 			Music.INSTANCE.end();
 		} else {
 			Music.INSTANCE.playTracks(HallsLevel.HALLS_TRACK_LIST, HallsLevel.HALLS_TRACK_CHANCES, false);

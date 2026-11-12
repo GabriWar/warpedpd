@@ -90,7 +90,7 @@ public class DemonSpawner extends Mob {
 			spawnRecorded = true;
 		}
 
-		if (Dungeon.hero.buff(AscensionChallenge.class) != null && spawnCooldown > 20){
+		if (AscensionChallenge.climbing() && spawnCooldown > 20){
 			spawnCooldown = 20;
 		}
 

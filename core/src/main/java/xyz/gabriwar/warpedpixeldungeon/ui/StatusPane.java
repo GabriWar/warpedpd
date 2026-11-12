@@ -147,7 +147,7 @@ public class StatusPane extends Component {
 
 		if (Dungeon.level instanceof xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel) {
 			//the world's window holds dozens of ways between its slices: the one arrow, as before
-			compasses.add( new Compass( Statistics.amuletObtained ? Dungeon.level.entrance() : Dungeon.level.exit() ) );
+			compasses.add( new Compass( Statistics.amuletClimb() ? Dungeon.level.entrance() : Dungeon.level.exit() ) );
 		} else {
 			for (xyz.gabriwar.warpedpixeldungeon.levels.features.LevelTransition t : Dungeon.level.transitions) {
 				compasses.add( new Compass( t.cell(), Compass.colorOf( t.type ) ) );
