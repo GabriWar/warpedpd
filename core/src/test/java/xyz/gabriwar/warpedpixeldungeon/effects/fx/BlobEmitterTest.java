@@ -105,12 +105,16 @@ public class BlobEmitterTest {
 	}
 
 	private static Level floor(){
+		return floor( W );
+	}
+
+	private static Level floor( int w ){
 		Level l = new Level(){
 			@Override protected boolean build(){ return true; }
 			@Override protected void createMobs(){ }
 			@Override protected void createItems(){ }
 		};
-		l.setSize( W, W );
+		l.setSize( w, w );
 		l.mobs = new HashSet<>();
 		l.heaps = new SparseArray<>();
 		l.blobs = new HashMap<>();
@@ -261,6 +265,24 @@ public class BlobEmitterTest {
 		assertEquals( "only the seen step into it", Arrays.asList( at( 4, 5 ) ), notes.kicks );
 		for (int i = 0; i < 6; i++) e.update();
 		assertEquals( 1, notes.kicks.size() );
+	}
+
+	@Test
+	public void anEmitterLeftFromABiggerFloorDrawsNothingOnASmallerOne(){
+		//a co-op guest's full state sets Dungeon.level to the host's floor from the network thread
+		//while the last floor's scene still runs: its emitters' blobs are laid out on that floor
+		Level small = Dungeon.level;
+		int w = 40;
+		Dungeon.level = floor( w );
+		Notes notes = new Notes();
+		Test1.factory = notes;
+		Test1 b = new Test1();
+		for (int y = 30; y <= 32; y++) for (int x = 30; x <= 32; x++) b.seed( Dungeon.level, x + y * w, 1000 );
+		BlobEmitter e = new BlobEmitter( b );
+		Dungeon.level = small;
+		tick( e );
+		assertTrue( notes.emits.isEmpty() );
+		assertTrue( notes.dying.isEmpty() );
 	}
 
 	@Test

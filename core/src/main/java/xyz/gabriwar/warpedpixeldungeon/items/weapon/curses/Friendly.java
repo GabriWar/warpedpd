@@ -52,7 +52,8 @@ public class Friendly extends Weapon.Enchantment {
 			Charm c = Buff.affect( defender, Charm.class, Charm.DURATION/2 );
 			c.ignoreNextHit = true;
 			c.object = attacker.id();
-			defender.sprite.centerEmitter().start( Speck.factory( Speck.HEART ), 0.2f, 5 );
+			//no sprite when the same blow already sent it through a chasm (Chilling): charmed unseen
+			if (defender.sprite != null) defender.sprite.centerEmitter().start( Speck.factory( Speck.HEART ), 0.2f, 5 );
 			EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, 0.45f, level(), EnchantFx.CURSE, ShadowRows.FRIENDLY );
 			
 		}

@@ -26,6 +26,7 @@ package xyz.gabriwar.warpedpixeldungeon.net;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Portals;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.PrecipType;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.PortalGate;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
@@ -401,6 +402,13 @@ public class SpectatorReceiver implements SpectatorClient.MessageHandler {
 		//is still alive, and woken it acted that game's mobs and hero against the host's level:
 		//index and null-sprite crashes in Mob.act, TileTemperature, PlantGrowthManager. Ended first
 		GameScene.stopActorThread();
+		//...and that game's actors go with it. A client registers none (the host's heroes and mobs
+		//are only drawn here), but the last game's stayed in the loop's list, and a loop started
+		//again under the host's level acted them on it: GameScene.update starts one as soon as the
+		//game is no longer a client's, which a dropped connection makes it with the host's level
+		//still up (NetManager.handleDisconnect, handleHostClosed). That hero's cell on the surface
+		//read off the end of a town's map (TileTemperature, index 16642 of 2072)
+		Actor.clear();
 		try {
 			int depth = data.getInt("depth");
 			int branch = data.optInt("branch", 0);

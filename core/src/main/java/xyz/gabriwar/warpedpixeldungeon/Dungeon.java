@@ -1359,6 +1359,10 @@ public class Dungeon {
 	}
 
 	public static void saveAll() throws IOException {
+		//a co-op guest stands in the host's game: it is not his to save, not even once his
+		//connection drops and he is no client any more (NetManager.handleDisconnect). Saved, it
+		//went over the run in the slot he last played, then threw on a SpectatorLevel's arrays
+		if (level != null && level.netMirror) return;
 		if (hero != null && (hero.isAlive() || WndResurrect.instance != null)) {
 			
 			Actor.fixTime();

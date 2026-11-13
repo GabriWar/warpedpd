@@ -242,6 +242,9 @@ public abstract class Actor implements Bundlable {
 			//a turn handed back with the clock where it was, while the freeze watchdog hunts a spin
 			if (xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.tracing && time == now) {
 				xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.freeTurn( this, new Throwable() );
+			//or with its own clock gone on: a turn paid for (a mob's bite, after its animation)
+			} else if (xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.tracing && time > now) {
+				xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.paidTurn();
 			}
 		}
 	}
@@ -270,7 +273,12 @@ public abstract class Actor implements Bundlable {
 		do {
 			
 			current = null;
-			if (!interrupted && !Game.switchingScene()) {
+			//and only while a game scene is up: woken on the title, a new game's hero select or a
+			//level loading (a co-op player's input or leaving, NetManager.wakeActorThread), this
+			//loop played the game left behind, with no hero (Comfy.check) and every char's sprite
+			//gone with its scene (Mob.act)
+			if (!interrupted && !Game.switchingScene()
+					&& xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.running()) {
 				float earliest = Float.MAX_VALUE;
 
 				synchronized (Actor.class) {
@@ -351,6 +359,9 @@ public abstract class Actor implements Bundlable {
 							scheduled = all.contains( acting );
 						}
 						if (scheduled) xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.freeAct( acting );
+					//one that went on with its own clock past the game's paid for its turn
+					} else if (doNext && acting.time > now && xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.tracing) {
+						xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.paidTurn();
 					}
 					if (xyz.gabriwar.warpedpixeldungeon.net.NetManager.isHost()) {
 						xyz.gabriwar.warpedpixeldungeon.net.NetManager.log("[NET-HOST] Actor.act id=" + acting.id()

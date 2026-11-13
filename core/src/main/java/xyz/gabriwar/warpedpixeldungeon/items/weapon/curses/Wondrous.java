@@ -46,7 +46,8 @@ public class Wondrous extends Weapon.Enchantment {
 			boolean positiveOnly = Random.Float() < WondrousResin.positiveCurseEffectChance();
 
 			Ballistica aim = new Ballistica(attacker.pos, defender.pos, Ballistica.STOP_TARGET);
-			defender.sprite.emitter().burst(RainbowParticle.BURST, 25);
+			//no sprite when the same blow already sent it through a chasm (Chilling)
+			if (defender.sprite != null) defender.sprite.emitter().burst(RainbowParticle.BURST, 25);
 			EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, 0.45f, level(), EnchantFx.CURSE, ShadowRows.WONDROUS );
 			CursedWand.randomValidEffect(weapon, attacker, aim, positiveOnly).effect(weapon, attacker, aim, positiveOnly);
 		}

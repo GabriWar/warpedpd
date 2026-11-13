@@ -112,8 +112,10 @@ public class AlbinoPiranha extends Mob {
 		defenseSkill = 10 + statDepth() * 2;
 	}
 
+	//straight to death, as Shattered's piranha: through damage( HT ) a champion's damage reduction
+	//let it live on land, acting there for free every turn
 	public void dieOnLand() {
-		damage( HT, this );
+		die( this );
 	}
 
 	@Override

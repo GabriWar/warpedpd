@@ -69,7 +69,8 @@ public class Parasitic extends Weapon.Enchantment {
 			seedDmg = Math.max( 1, Math.round( seedDmg * powerMulti * power() )); //scales with enchantment level
 
 			Buff.affect( defender, ParasiticSeed.class ).set( ParasiticSeed.DURATION, seedDmg );
-			defender.sprite.emitter().burst( LeafParticle.GENERAL, 5 );
+			//no sprite when the same blow already sent it through a chasm (Chilling): seeded unseen
+			if (defender.sprite != null) defender.sprite.emitter().burst( LeafParticle.GENERAL, 5 );
 			EnchantFx.proc( EnchantLooks.of( getClass() ), attacker, defender, Math.min( 1f, seedDmg * 5f / Math.max( 1, defender.HT ) ), level(),
 					Quality.isVestige( weapon, this ) ? EnchantFx.ECHO : 0, ElementRows.parasitic() );
 

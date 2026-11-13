@@ -150,6 +150,16 @@ public class VaultBossElemental extends Mob {
 	protected int lastEnemyPos = -1; //used for tracking targeting on some attacks
 
 	public void changeForm(){
+		//a fight can outlast the pool: a boss healed back across its fifths (a healing dart) crosses
+		//them again. With no other form left, Random.chances drew -1 (or only the current one, and
+		//the loop below never ended): a fresh pool then, as the fight started with
+		boolean otherLeft = false;
+		for (ElementalForm f : new ElementalForm[]{ElementalForm.FIRE, ElementalForm.FROST, ElementalForm.SHOCK}){
+			if (f != form && formChances[f.ordinal()] > 0) otherLeft = true;
+		}
+		if (!otherLeft){
+			formChances = new float[]{2, 2, 2};
+		}
 		ElementalForm newForm;
 		do {
 			newForm = ElementalForm.values()[Random.chances(formChances)];
@@ -341,6 +351,8 @@ public class VaultBossElemental extends Mob {
 	}
 
 	private boolean weakAnnounced = false;
+	//true while a damage() call is running on this boss
+	private boolean inDamage = false;
 
 	@Override
 	public void damage(int dmg, Object src) {
@@ -399,7 +411,18 @@ public class VaultBossElemental extends Mob {
 		int curbracket = (int) Math.ceil(HP / (float)hpBracket);
 
 		int preHP = HP;
-		super.damage(dmg, src);
+		//damage landing inside this call (a Double Stab focus links the boss to itself and echoes
+		//the hit back onto it: SkillInteractions.shareLinkedDamage) is part of this hit, and the
+		//fifths are this call's to check, on the health both left. Checked in the echo too, the
+		//same fifth changed the form twice and the clamp below gave back the fifth the echo had
+		//taken: the fight ran through more forms than formChances holds (index -1 in changeForm)
+		boolean inner = inDamage;
+		inDamage = true;
+		try {
+			super.damage(dmg, src);
+		} finally {
+			inDamage = inner;
+		}
 
 		int dmgTaken = preHP - HP;
 		if (dmgTaken > 0) {
@@ -407,7 +430,7 @@ public class VaultBossElemental extends Mob {
 			spAttackCooldown -= dmgTaken/12f;
 		}
 
-		if (HP <= (curbracket-1)*hpBracket){
+		if (!inner && HP <= (curbracket-1)*hpBracket){
 
 			if (isAlive()) {
 				//cannot be hit through multiple brackets at a time

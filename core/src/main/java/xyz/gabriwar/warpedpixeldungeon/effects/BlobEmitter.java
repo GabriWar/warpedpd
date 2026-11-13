@@ -167,7 +167,10 @@ public class BlobEmitter extends Emitter {
 	protected void emit( int index ) {
 
 		Level level = Dungeon.level;
-		if (level == null || blob.cur == null) return;
+		//a blob is laid out on the floor it was made on: a co-op guest's full state sets
+		//Dungeon.level to the host's floor from the network thread while the last floor's scene
+		//still runs, and its emitters read their blobs' cells against the new floor's size
+		if (level == null || blob.cur == null || blob.cur.length != level.length()) return;
 		int w = level.width();
 
 		if (was == null || was.length != level.length()) was = new byte[level.length()];

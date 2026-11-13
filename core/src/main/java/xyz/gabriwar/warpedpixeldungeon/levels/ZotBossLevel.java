@@ -221,10 +221,17 @@ public class ZotBossLevel extends Level {
 
 			Mob boss = new Zot();
 			boss.state = boss.HUNTING;
+			//out of the hero's sight while any cell is. With the whole arena in sight (no fog of
+			//war) none is, and this hunted for one forever: the turn loop froze on the hero's step
+			//out, and leaving the screen then crashed waiting for it (GameScene.destroy). After a
+			//thousand cells in sight a seen one will do, if no one stands on it: the hero's own
+			//cell was only ever kept out by being in sight
+			int seen = 0;
 			do {
 				boss.pos = Random.Int(length());
 			} while (!passable[boss.pos] || !outsideEntraceRoom(boss.pos)
-					|| Dungeon.level.heroFOV[boss.pos]);
+					|| Actor.findChar(boss.pos) != null
+					|| (Dungeon.level.heroFOV[boss.pos] && seen++ < 1000));
 			GameScene.add(boss);
 			GLog.n("...");
 

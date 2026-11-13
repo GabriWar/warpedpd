@@ -112,11 +112,15 @@ public class MarketBodyguard extends Mob {
 		super.damage( dmg, src );
 	}
 
+	//true while a save reads him back: the buffs he wore are put on him again before his floor
+	//is Dungeon.level (Dungeon.loadLevel), and wearing them again is no new blow from the hero
+	private boolean loading = false;
+
 	//as with the dealer: a cloud drifting over his post is weather, and the market does
 	//not turn on the hero for it. He still takes what it does to him
 	@Override
 	public boolean add( Buff buff ){
-		if (!hostile && buff.type == Buff.buffType.NEGATIVE
+		if (!hostile && !loading && buff.type == Buff.buffType.NEGATIVE
 				&& !Shopkeeper.environmental( buff )
 				&& !BlackMarketDealer.inHarmfulBlob( pos )
 				&& Dungeon.level.heroFOV[pos]) provoke();
@@ -164,8 +168,12 @@ public class MarketBodyguard extends Mob {
 
 	@Override
 	public void restoreFromBundle( Bundle bundle ){
-		super.restoreFromBundle( bundle );
+		//turned before his buffs go back on: a corruption among them has the last word on his
+		//side, and a turned guard's heat and cold are his again (isImmune)
 		hostile = bundle.getBoolean( HOSTILE );
 		if (hostile) alignment = Alignment.ENEMY;
+		loading = true;
+		super.restoreFromBundle( bundle );
+		loading = false;
 	}
 }

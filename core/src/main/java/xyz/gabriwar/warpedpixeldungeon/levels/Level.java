@@ -201,6 +201,10 @@ public abstract class Level implements Bundlable {
 	// Signed progress toward melting (+1) or freezing (-1), accumulated per world turn.
 	public float[] waterPhaseProgress;
 
+	//built on a co-op guest's device from the host's packets (net/NetLevels): the host's floor,
+	//never saved into a slot of this device (Dungeon.saveAll)
+	public boolean netMirror = false;
+
 	public Feeling feeling = Feeling.NONE;
 	
 	public int entrance;

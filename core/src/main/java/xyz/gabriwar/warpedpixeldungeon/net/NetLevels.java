@@ -105,6 +105,7 @@ public final class NetLevels {
 		if (identity != null) {
 			level.viewDistance = identity.optInt("viewDist", level.viewDistance);
 		}
+		level.netMirror = true;
 		return level;
 	}
 

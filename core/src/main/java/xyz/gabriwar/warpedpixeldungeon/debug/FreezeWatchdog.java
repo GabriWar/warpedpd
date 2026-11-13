@@ -65,11 +65,16 @@ public class FreezeWatchdog {
 	private static volatile Throwable freeAt = null;
 	private static volatile long freeCount = 0;
 
+	//what the turns of the second just gone did while tracing: one paid for itself (the actor's own
+	//clock went past the game's), one went for free
+	private static volatile boolean paid = false, free = false;
+
 	/** Actor.next with the clock where it was, while tracing: this is where the turn went back. */
 	public static void freeTurn( Object actor, Throwable where ){
 		freeWho = actor.getClass().getName() + " handed its turn back without spending time";
 		freeAt = where;
 		freeCount++;
+		free = true;
 	}
 
 	/** An act() that returned true (go on) without spending time, while tracing. */
@@ -77,6 +82,12 @@ public class FreezeWatchdog {
 		freeWho = actor.getClass().getName() + ".act() returned true without spending time";
 		freeAt = null;
 		freeCount++;
+		free = true;
+	}
+
+	/** A turn handed back or gone on with the actor's clock past the game's, while tracing: paid for. */
+	public static void paidTurn(){
+		paid = true;
 	}
 
 	/** the game scene came up (true) or went away (false): only a run is watched */
@@ -151,6 +162,12 @@ public class FreezeWatchdog {
 		float t = turnTime;
 		boolean rendering = f != lastFrames;
 		boolean playersOwn = w != lastPlayerWaits || h != lastHeldClock;
+		//a traced second whose turns paid for themselves, none for free: a crowd at one game time, each
+		//taking its turn in earnest, holds the clock still without hanging. Fifty piranhas set on each
+		//other by a scroll of rage, all in sight through mind vision, held it at 100.5 for over ten
+		//seconds: thirty bit there, one after another, every bite waiting on its animation
+		boolean paidFor = paid && !free;
+		paid = free = false;
 
 		if (!inGame || paused){
 			renderStall = spin = actStall = spriteStall = 0;
@@ -158,7 +175,7 @@ public class FreezeWatchdog {
 		} else {
 			renderStall = rendering ? 0 : renderStall + 1;
 			//actors taking turns while the game clock stands still: something acts for free
-			spin = (l != lastLoops && t == lastTime && !playersOwn) ? spin + 1 : 0;
+			spin = (l != lastLoops && t == lastTime && !playersOwn && !paidFor) ? spin + 1 : 0;
 			if (spin == 0){
 				tracing = false;
 				freeWho = null;

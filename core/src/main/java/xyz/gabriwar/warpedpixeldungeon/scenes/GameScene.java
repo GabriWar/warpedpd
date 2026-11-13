@@ -192,6 +192,15 @@ public class GameScene extends PixelScene {
 
 	static GameScene scene;
 
+	//a game scene built and on screen: the only time its turn loop may take a turn (Actor.process).
+	//That thread outlives the scene, waiting, and a co-op player's input wakes it from the network
+	//(NetManager.wakeActorThread) whatever the host is looking at
+	private static volatile boolean running = false;
+
+	public static boolean running(){
+		return running;
+	}
+
 	private SkinnedBlock water;
 	private DungeonTerrainTilemap tiles;
 	private xyz.gabriwar.warpedpixeldungeon.tiles.IceFringeTilemap iceFringe;
@@ -1149,12 +1158,16 @@ public class GameScene extends PixelScene {
 			}
 		}
 
+		running = true;
 	}
 	
 	public void destroy() {
 
 		xyz.gabriwar.warpedpixeldungeon.debug.FreezeWatchdog.inGame( false );
 		
+		//no more turns for this scene's game, however its loop is woken
+		running = false;
+
 		//tell the actor thread to finish, then wait for it to complete any actions it may be doing.
 		if (!waitForActorThread( 4500, true )){
 			Throwable t = new Throwable();

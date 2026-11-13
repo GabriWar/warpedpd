@@ -60,7 +60,9 @@ public class Chilling extends Weapon.Enchantment {
 			if (durationToAdd > 0) {
 				Buff.affect(defender, Chill.class, durationToAdd);
 			}
-			Splash.at( defender.sprite.center(), 0xFFB2D6FF, 5);
+			//a struck char can have no sprite: the same blow may already have sent it through a chasm
+			//(Chasm.fallThrough lets its sprite go). It is chilled all the same, only nothing is drawn
+			if (defender.sprite != null) Splash.at( defender.sprite.center(), 0xFFB2D6FF, 5);
 			//its look, by the chill it holds now against the most it can
 			Chill held = defender.buff(Chill.class);
 			float chill = held != null ? held.cooldown() : 0f;

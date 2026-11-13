@@ -111,7 +111,9 @@ public class Wound extends Image {
 	}
 
 	public static void hit( Char ch, float angle ) {
-		if (ch.sprite.parent != null) {
+		//a char can be struck with no sprite: the blow opening this wound may already have sent it
+		//through a chasm (Chasm.fallThrough takes it off the floor and lets its sprite go)
+		if (ch.sprite != null && ch.sprite.parent != null) {
 			Wound w = (Wound) ch.sprite.parent.recycle(Wound.class);
 			ch.sprite.parent.bringToFront(w);
 			w.reset(ch.sprite);

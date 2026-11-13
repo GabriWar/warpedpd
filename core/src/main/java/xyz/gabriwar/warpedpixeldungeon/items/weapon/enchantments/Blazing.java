@@ -67,7 +67,8 @@ public class Blazing extends Weapon.Enchantment {
 				burnt = burnDamage;
 			}
 			
-			defender.sprite.emitter().burst( FlameParticle.FACTORY, level + 1 );
+			//no sprite when the same blow already sent it through a chasm (Chilling): it burns unseen
+			if (defender.sprite != null) defender.sprite.emitter().burst( FlameParticle.FACTORY, level + 1 );
 			//its look: a fire caught by its chance, a flare-up by its burn
 			boolean caught = ignite && defender.buff(Burning.class) != null;
 			//nothing caught and nothing burnt (a foe fire cannot touch): nothing to show
