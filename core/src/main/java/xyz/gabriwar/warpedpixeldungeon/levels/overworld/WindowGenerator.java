@@ -1079,7 +1079,7 @@ public final class WindowGenerator {
 
 	/**
 	 * The ground a cell SHOWS, as a terrain: frozen ground under grass, bushes,
-	 * trees, signposts and roads is drawn as snow (DungeonTerrainTilemap, the
+	 * trees, signposts and roads, and frozen bare ground, is drawn as snow (DungeonTerrainTilemap, the
 	 * road's snow cap), and a
 	 * boulder lies on whatever ground its neighbours show. The edge transitions
 	 * blend what is drawn, not what the terrain is called.
@@ -1094,9 +1094,11 @@ public final class WindowGenerator {
 	private static int shownGround( int[] map, boolean[] frozen, int cell ){
 		int t = map[cell];
 		boolean frozenHere = frozen != null && cell < frozen.length && frozen[cell];
-		//(a frozen road wears a trodden snow cap - see dress() - so it reads as snow too)
+		//(a frozen road wears a trodden snow cap - see dress() - so it reads as snow too, and the
+		//bare and the mined ground DungeonTerrainTilemap draws as snow there blend as snow)
 		if (frozenHere && (t == Terrain.GRASS || t == Terrain.SHRUB || t == Terrain.TREE_PINE
-				|| t == Terrain.TREE_OAK || t == Terrain.SIGN || t == Terrain.DIRT_PATH)){
+				|| t == Terrain.TREE_OAK || t == Terrain.SIGN || t == Terrain.DIRT_PATH
+				|| t == Terrain.EMPTY || t == Terrain.EMPTY_DECO)){
 			return Terrain.SNOW;
 		}
 		switch (t){

@@ -127,6 +127,9 @@ public final class WarpedUpdates {
 
 	/** Newest first. */
 	public static final Entry[] ALL = {
+		new Entry( 11213, item( ItemSpriteSheet.SEED_ICECAP ), "Ice in the snow",
+				"Ice patches and boulders on frozen tundra sit in the snow, not on green squares.",
+				"On frozen tundra the bare ground is drawn as snow, but the ice patches in it still took a green grass rim and the boulders sat on squares of green ground. The snow now runs up to the ice and under the boulders, and the tall rocks there wear snow caps." ),
 		new Entry( 11211, icon( Icons.WARNING ), "No free levels at dawn",
 				"Beasts that leave the surface when the hour turns no longer count as your kills.",
 				"Wolves, bats and the other wild beasts that leave the surface when the hour turns used to count as your kills, so a new hero could jump several levels at dawn without fighting. They just leave now; your own kills, your allies' and your partner's still count." ),
