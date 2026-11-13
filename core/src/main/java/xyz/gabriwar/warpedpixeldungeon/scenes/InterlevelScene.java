@@ -769,7 +769,8 @@ public class InterlevelScene extends PixelScene {
 			level = Dungeon.newLevel();
 		}
 
-		Dungeon.switchLevel( level, returnPos );
+		//never inside a wall: a cell he cannot stand on lands him on the nearest one he can
+		Dungeon.switchLevel( level, level.returnLanding( returnPos ) );
 	}
 	
 	private void restore() throws IOException {

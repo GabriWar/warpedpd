@@ -47,6 +47,8 @@ public class SanChikarah extends Item {
 
 	private int returnDepth = -1;
 	private int returnPos;
+	//and its branch: a barrow's floors and the town's buildings share the dungeon's depths
+	private int returnBranch;
 
 	{
 		image = ItemSpriteSheet.SANCHIKARAH;
@@ -57,6 +59,7 @@ public class SanChikarah extends Item {
 
 	private static final String DEPTH = "depth";
 	private static final String POS = "pos";
+	private static final String BRANCH = "branch";
 
 	@Override
 	public void storeInBundle(Bundle bundle) {
@@ -64,6 +67,7 @@ public class SanChikarah extends Item {
 		bundle.put(DEPTH, returnDepth);
 		if (returnDepth != -1) {
 			bundle.put(POS, returnPos);
+			bundle.put(BRANCH, returnBranch);
 		}
 	}
 
@@ -72,6 +76,7 @@ public class SanChikarah extends Item {
 		super.restoreFromBundle(bundle);
 		returnDepth = bundle.getInt(DEPTH);
 		returnPos = bundle.getInt(POS);
+		returnBranch = bundle.getInt(BRANCH);
 	}
 
 	@Override
@@ -111,10 +116,12 @@ public class SanChikarah extends Item {
 			if (Dungeon.depth < Dungeon.POSTGAME_DEPTH) {
 				returnDepth = Dungeon.depth;
 				returnPos = hero.pos;
+				returnBranch = Dungeon.branch;
 
 				Level.beforeTransition();
 				InterlevelScene.mode = InterlevelScene.Mode.PORT4;
 				InterlevelScene.returnDepth = returnDepth;
+				InterlevelScene.returnBranch = returnBranch;
 				InterlevelScene.returnPos = returnPos;
 				Game.switchScene(InterlevelScene.class);
 			} else {
@@ -122,6 +129,7 @@ public class SanChikarah extends Item {
 				Level.beforeTransition();
 				InterlevelScene.mode = InterlevelScene.Mode.RETURN;
 				InterlevelScene.returnDepth = returnDepth;
+				InterlevelScene.returnBranch = returnBranch;
 				InterlevelScene.returnPos = returnPos;
 				Game.switchScene(InterlevelScene.class);
 			}

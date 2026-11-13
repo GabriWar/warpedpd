@@ -72,6 +72,8 @@ public class OtilukesJournal extends Item {
 
 	public int returnDepth = -1;
 	public int returnPos;
+	//and its branch: a barrow's floors and the town's buildings share the dungeon's depths
+	public int returnBranch;
 
 	public int charge = 0;
 	public int journalLevel = 1;
@@ -199,6 +201,7 @@ public class OtilukesJournal extends Item {
 			Level.beforeTransition();
 			InterlevelScene.mode = InterlevelScene.Mode.RETURN;
 			InterlevelScene.returnDepth = returnDepth;
+			InterlevelScene.returnBranch = returnBranch;
 			InterlevelScene.returnPos = returnPos;
 			Game.switchScene(InterlevelScene.class);
 			returnDepth = -1;
@@ -214,6 +217,7 @@ public class OtilukesJournal extends Item {
 
 		returnDepth = Dungeon.depth;
 		returnPos = hero.pos;
+		returnBranch = Dungeon.branch;
 		hero.spend(TIME_TO_USE);
 
 		Level.beforeTransition();
@@ -312,6 +316,7 @@ public class OtilukesJournal extends Item {
 
 	private static final String DEPTH   = "returnDepth";
 	private static final String POS     = "returnPos";
+	private static final String BRANCH  = "returnBranch";
 	private static final String ROOMS   = "rooms";
 	private static final String FIRSTS  = "firsts";
 	private static final String CHARGE  = "charge";
@@ -327,6 +332,7 @@ public class OtilukesJournal extends Item {
 		bundle.put(LEVEL, journalLevel);
 		if (returnDepth != -1) {
 			bundle.put(POS, returnPos);
+			bundle.put(BRANCH, returnBranch);
 		}
 	}
 
@@ -335,6 +341,7 @@ public class OtilukesJournal extends Item {
 		super.restoreFromBundle(bundle);
 		returnDepth  = bundle.getInt(DEPTH);
 		returnPos    = bundle.getInt(POS);
+		returnBranch = bundle.getInt(BRANCH);
 		charge       = bundle.getInt(CHARGE);
 		journalLevel = bundle.getInt(LEVEL);
 		rooms  = bundle.getBooleanArray(ROOMS);

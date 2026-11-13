@@ -26,6 +26,7 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
@@ -106,6 +107,13 @@ public class CagedKobold extends NPC {
 		}
 
 		return true;
+	}
+
+	//no spell takes hold of him in his cage: a lullaby and then a scroll of rage, or terror,
+	//set him walking off with it (Mob.add), as they did the shops' portal gates
+	@Override
+	public boolean add( Buff buff ) {
+		return false;
 	}
 
 	@Override

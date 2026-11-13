@@ -31,7 +31,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Blacksmith2;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.NPC;
-import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.OtilukeNPC;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Tinkerer1;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Tinkerer2;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Tinkerer4;
@@ -57,7 +56,9 @@ public class TownCommute {
 	public static final int PLAYER_BED = 77;
 
 	//who sleeps where: the foot of each bed, room by room, from the first room's
-	//two spare beds down. One bed in the last room stays empty
+	//two spare beds down. Two beds in the last room stay empty, and one of them is
+	//Otiluke's once he is freed (beds()): the inn used to put him to bed before that,
+	//and a word with him there freed him (OtilukeNPC.interact)
 	static final Object[][] BEDS = {
 			{ Bard.class,              78 },
 			{ InnServant.class,        79 },
@@ -80,8 +81,19 @@ public class TownCommute {
 			{ Tinkerer5.class,        828 },
 			{ Blacksmith2.class,      829 },
 			{ TownGuard.class,        952 },
-			{ OtilukeNPC.class,       953 },
 	};
+
+	//Otiluke's bed in the inn's last room, his only once he is freed
+	static final int OTILUKE_BED = 953;
+
+	//the inn's beds tonight: Otiluke sleeps here only once rescued from the mines, as he
+	//only lives in the street once rescued (OverworldLevel.sleeperHomes)
+	static Object[][] beds(){
+		if (!xyz.gabriwar.warpedpixeldungeon.Badges.checkOtilukeRescued()) return BEDS;
+		Object[][] all = java.util.Arrays.copyOf( BEDS, BEDS.length + 1 );
+		all[BEDS.length] = new Object[]{ xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.OtilukeNPC.class, OTILUKE_BED };
+		return all;
+	}
 
 	private static Level lastLevel;
 
@@ -95,7 +107,7 @@ public class TownCommute {
 		if (level instanceof TownInnLevel) {
 			//a hero walking in by day should not meet last night's guests filing out
 			if (arrived && !night) clearOut( level, true );
-			settle( level, night ? BEDS : ((TownInteriorLevel) level).folk(), night, arrived );
+			settle( level, night ? beds() : ((TownInteriorLevel) level).folk(), night, arrived );
 		} else if (level instanceof TownInteriorLevel
 				|| (level instanceof OverworldLevel && ((OverworldLevel) level).altitude() == 0)) {
 			//at night away from the inn nobody is wanted: whoever is still about walks

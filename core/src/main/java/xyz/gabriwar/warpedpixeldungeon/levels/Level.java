@@ -2127,6 +2127,33 @@ public abstract class Level implements Bundlable {
 		return (flags & Terrain.PASSABLE) != 0 && (flags & Terrain.AVOID) != 0;
 	}
 
+	/** Where a hero sent back to a cell he left lands (InterlevelScene.returnTo): that cell when he
+	 *  can be there (a floor, or a chasm or water he comes back to) or when it is no cell of the map
+	 *  (switchLevel's own: -1 the entrance, -2 the exit); else the nearest free floor he can walk to
+	 *  from the entrance, or -1 (the entrance) when there is none. A cell kept from another floor's
+	 *  layout put him inside a wall, to be bombed out. */
+	public int returnLanding( int cell ){
+		if (cell < 0 || cell >= length() || passable[cell] || pit[cell] || water[cell]) return cell;
+
+		LevelTransition entrance = getTransition( null );
+		if (entrance != null){
+			PathFinder.setMapSize( width(), height() );
+			PathFinder.buildDistanceMap( entrance.cell(), BArray.or( passable, avoid, null ) );
+		}
+		int best = -1;
+		float bestDistance = Float.MAX_VALUE;
+		for (int i = 0; i < length(); i++){
+			if (!passable[i] || avoid[i]) continue;
+			if (entrance != null && PathFinder.distance[i] == Integer.MAX_VALUE) continue;
+			float d = trueDistance( cell, i );
+			if (d < bestDistance && findMob( i ) == null){
+				best = i;
+				bestDistance = d;
+			}
+		}
+		return best;
+	}
+
 	//returns true if the input is a valid tile within the level
 	public boolean insideMap( int tile ){
 				//top and bottom row and beyond

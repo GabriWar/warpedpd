@@ -24,7 +24,6 @@
 
 package xyz.gabriwar.warpedpixeldungeon.items;
 
-import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
@@ -50,6 +49,8 @@ public class TownReturnBeacon extends Item {
 
 	private int returnDepth = -1;
 	private int returnPos;
+	//and its branch: a barrow's floors and the town's buildings share the dungeon's depths
+	private int returnBranch;
 
 	{
 		image = ItemSpriteSheet.TOWN_BEACON;
@@ -59,6 +60,7 @@ public class TownReturnBeacon extends Item {
 
 	private static final String DEPTH = "depth";
 	private static final String POS = "pos";
+	private static final String BRANCH = "branch";
 
 	@Override
 	public void storeInBundle(Bundle bundle) {
@@ -66,6 +68,7 @@ public class TownReturnBeacon extends Item {
 		bundle.put(DEPTH, returnDepth);
 		if (returnDepth != -1) {
 			bundle.put(POS, returnPos);
+			bundle.put(BRANCH, returnBranch);
 		}
 	}
 
@@ -74,14 +77,15 @@ public class TownReturnBeacon extends Item {
 		super.restoreFromBundle(bundle);
 		returnDepth = bundle.getInt(DEPTH);
 		returnPos = bundle.getInt(POS);
+		returnBranch = bundle.getInt(BRANCH);
 	}
 
 	@Override
 	public ArrayList<String> actions(Hero hero) {
 		ArrayList<String> actions = super.actions(hero);
-		//once Otiluke is rescued the mine is sealed off — no returning to it
+		//back to where it was used below the town: the mines stay open once Otiluke is freed
 		if (xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldLayers.isLayerDepth( Dungeon.depth )
-				&& returnDepth > 55 && !Badges.checkOtilukeRescued()) {
+				&& returnDepth > 55) {
 			actions.add(AC_RETURN);
 		}
 		//every Sprouted depth past the town, as in Sprouted (Otiluke hands this over on Zot's
@@ -117,6 +121,7 @@ public class TownReturnBeacon extends Item {
 
 			returnDepth = Dungeon.depth;
 			returnPos = hero.pos;
+			returnBranch = Dungeon.branch;
 
 			Buff buff = Dungeon.hero.buff(TimekeepersHourglass.timeFreeze.class);
 			if (buff != null)
@@ -137,7 +142,7 @@ public class TownReturnBeacon extends Item {
 
 			InterlevelScene.mode = InterlevelScene.Mode.RETURN;
 			InterlevelScene.returnDepth = returnDepth;
-			InterlevelScene.returnBranch = 0;
+			InterlevelScene.returnBranch = returnBranch;
 			InterlevelScene.returnPos = returnPos;
 			Level.beforeTransition();
 			Game.switchScene(InterlevelScene.class);

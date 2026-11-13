@@ -127,6 +127,21 @@ public final class WarpedUpdates {
 
 	/** Newest first. */
 	public static final Entry[] ALL = {
+		new Entry( 11211, icon( Icons.WARNING ), "No free levels at dawn",
+				"Beasts that leave the surface when the hour turns no longer count as your kills.",
+				"Wolves, bats and the other wild beasts that leave the surface when the hour turns used to count as your kills, so a new hero could jump several levels at dawn without fighting. They just leave now; your own kills, your allies' and your partner's still count." ),
+		new Entry( 11211, item( ItemSpriteSheet.CROWN ), "The Dwarf King's loot",
+				"Loot no longer lands out of reach on the Dwarf King's throne.",
+				"When the Dwarf King died seated on his throne, his loot (a page, Otiluke's Journal, ring drops) landed on the throne where nobody can stand. It now falls at the throne's foot, and loot already stuck there is moved down when you load the floor." ),
+		new Entry( 11211, icon( Icons.WARNING ), "Back from hidden places",
+				"Keys and items that take you to hidden places bring you back to the right floor, never into a wall.",
+				"The ancient keys, the books, the conch, the palantir, the beacons and the other items that take you to hidden places now remember the exact floor you left, a branch, barrow or town building too, and if that spot is no longer free you land on the nearest floor you can walk from. No more coming back inside a wall." ),
+		new Entry( 11211, icon( Icons.WARNING ), "Portals stay put",
+				"A shop's portal gate (and the caged kobold) can no longer be lulled, enraged or scared into walking off.",
+				"A lullaby and then a scroll of rage, terror or similar set a shop's portal gate (and the caged kobold) walking around. They ignore those now, and a gate that already wandered off goes back to its shop." ),
+		new Entry( 11211, icon( Icons.WARNING ), "The kupua mines stay open",
+				"Talking to Otiluke no longer closes the kupua mines.",
+				"Otiluke slept at the inn even before you freed him, and talking to him there closed the kupua mines. He no longer sleeps at the inn, freeing him leaves the mines open, and mines an earlier talk closed open again." ),
 		new Entry( 11205, icon( Icons.CONTROLLER ), "Co-op on a new device",
 				"Joining a co-op game on a new device no longer leaves you unable to play.",
 				"On a device that had never finished the tutorial, joining a co-op game hid your toolbar, status bar and inventory and greyed out the main menu, because the tutorial waited for a page that lies on the host's floor. You could only watch. Hosting or joining a game together now skips the tutorial." ),

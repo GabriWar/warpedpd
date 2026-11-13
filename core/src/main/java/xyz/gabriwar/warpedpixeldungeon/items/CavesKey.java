@@ -52,6 +52,8 @@ public class CavesKey extends Item {
 	private int specialLevel = 29;
 	private int returnDepth = -1;
 	private int returnPos;
+	//and its branch: a barrow's floors and the town's buildings share the dungeon's depths
+	private int returnBranch;
 	//the reward for clearing the region's hundred is paid once, not on every return
 	private boolean rewarded = false;
 
@@ -63,6 +65,7 @@ public class CavesKey extends Item {
 
 	private static final String DEPTH = "depth";
 	private static final String POS = "pos";
+	private static final String BRANCH = "branch";
 	private static final String REWARDED = "rewarded";
 
 	@Override
@@ -72,6 +75,7 @@ public class CavesKey extends Item {
 		bundle.put(REWARDED, rewarded);
 		if (returnDepth != -1) {
 			bundle.put(POS, returnPos);
+			bundle.put(BRANCH, returnBranch);
 		}
 	}
 
@@ -81,6 +85,7 @@ public class CavesKey extends Item {
 		returnDepth = bundle.getInt(DEPTH);
 		rewarded = bundle.getBoolean(REWARDED);
 		returnPos = bundle.getInt(POS);
+		returnBranch = bundle.getInt(BRANCH);
 	}
 
 	@Override
@@ -123,6 +128,7 @@ public class CavesKey extends Item {
 			if (Dungeon.depth < 25 && !Dungeon.bossLevel()) {
 				returnDepth = Dungeon.depth;
 				returnPos = hero.pos;
+				returnBranch = Dungeon.branch;
 				InterlevelScene.mode = InterlevelScene.Mode.PORTCAVES;
 			} else {
 				if (!rewarded && Statistics.albinoPiranhasKilled > 99) {
@@ -143,6 +149,7 @@ public class CavesKey extends Item {
 				InterlevelScene.mode = InterlevelScene.Mode.RETURN;
 			}
 			InterlevelScene.returnDepth = returnDepth;
+			InterlevelScene.returnBranch = returnBranch;
 			InterlevelScene.returnPos = returnPos;
 			Level.beforeTransition();
 			Game.switchScene(InterlevelScene.class);

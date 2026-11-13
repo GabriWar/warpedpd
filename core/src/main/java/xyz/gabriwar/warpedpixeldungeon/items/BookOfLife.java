@@ -47,6 +47,8 @@ public class BookOfLife extends Item {
 	private int specialLevel = 32;
 	private int returnDepth = -1;
 	private int returnPos;
+	//and its branch: a barrow's floors and the town's buildings share the dungeon's depths
+	private int returnBranch;
 
 	{
 		image = ItemSpriteSheet.BOOK_OF_LIFE;
@@ -56,6 +58,7 @@ public class BookOfLife extends Item {
 
 	private static final String DEPTH = "depth";
 	private static final String POS = "pos";
+	private static final String BRANCH = "branch";
 
 	@Override
 	public void storeInBundle(Bundle bundle) {
@@ -63,6 +66,7 @@ public class BookOfLife extends Item {
 		bundle.put(DEPTH, returnDepth);
 		if (returnDepth != -1) {
 			bundle.put(POS, returnPos);
+			bundle.put(BRANCH, returnBranch);
 		}
 	}
 
@@ -71,6 +75,7 @@ public class BookOfLife extends Item {
 		super.restoreFromBundle(bundle);
 		returnDepth = bundle.getInt(DEPTH);
 		returnPos = bundle.getInt(POS);
+		returnBranch = bundle.getInt(BRANCH);
 	}
 
 	@Override
@@ -111,10 +116,12 @@ public class BookOfLife extends Item {
 			if (Dungeon.depth < Dungeon.POSTGAME_DEPTH) {
 				returnDepth = Dungeon.depth;
 				returnPos = hero.pos;
+				returnBranch = Dungeon.branch;
 
 				Level.beforeTransition();
 				InterlevelScene.mode = InterlevelScene.Mode.PORT2;
 				InterlevelScene.returnDepth = returnDepth;
+				InterlevelScene.returnBranch = returnBranch;
 				InterlevelScene.returnPos = returnPos;
 				Game.switchScene(InterlevelScene.class);
 			} else {
@@ -122,6 +129,7 @@ public class BookOfLife extends Item {
 				Level.beforeTransition();
 				InterlevelScene.mode = InterlevelScene.Mode.RETURN;
 				InterlevelScene.returnDepth = returnDepth;
+				InterlevelScene.returnBranch = returnBranch;
 				InterlevelScene.returnPos = returnPos;
 				Game.switchScene(InterlevelScene.class);
 			}

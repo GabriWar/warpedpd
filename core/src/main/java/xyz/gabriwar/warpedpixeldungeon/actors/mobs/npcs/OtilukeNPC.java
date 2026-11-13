@@ -48,7 +48,8 @@ public class OtilukeNPC extends NPC {
 		properties.add( Property.IMMOVABLE );
 	}
 
-	//lives in the town: sleeps at the inn (TownCommute)
+	//freed, he lives in the town and keeps its hours (TownCommute): he leaves the street at
+	//night like the townsfolk, but the inn has no bed for him (TownCommute.BEDS)
 	@Override
 	public boolean sleepsAtInn() { return true; }
 

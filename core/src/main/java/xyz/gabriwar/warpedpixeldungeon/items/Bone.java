@@ -48,6 +48,8 @@ public class Bone extends Item {
 	private int specialLevel = 37;
 	private int returnDepth = -1;
 	private int returnPos;
+	//and its branch: a barrow's floors and the town's buildings share the dungeon's depths
+	private int returnBranch;
 
 	{
 		image = ItemSpriteSheet.BONE_ITEM;
@@ -58,6 +60,7 @@ public class Bone extends Item {
 
 	private static final String DEPTH = "depth";
 	private static final String POS = "pos";
+	private static final String BRANCH = "branch";
 
 	@Override
 	public void storeInBundle(Bundle bundle) {
@@ -65,6 +68,7 @@ public class Bone extends Item {
 		bundle.put(DEPTH, returnDepth);
 		if (returnDepth != -1) {
 			bundle.put(POS, returnPos);
+			bundle.put(BRANCH, returnBranch);
 		}
 	}
 
@@ -73,6 +77,7 @@ public class Bone extends Item {
 		super.restoreFromBundle(bundle);
 		returnDepth = bundle.getInt(DEPTH);
 		returnPos = bundle.getInt(POS);
+		returnBranch = bundle.getInt(BRANCH);
 	}
 
 	@Override
@@ -122,12 +127,14 @@ public class Bone extends Item {
 			if (Dungeon.depth < 25 && !Dungeon.bossLevel()) {
 				returnDepth = Dungeon.depth;
 				returnPos = hero.pos;
+				returnBranch = Dungeon.branch;
 				InterlevelScene.mode = InterlevelScene.Mode.PORTBONE;
 			} else {
 				this.doDrop(hero);
 				InterlevelScene.mode = InterlevelScene.Mode.RETURN;
 			}
 			InterlevelScene.returnDepth = returnDepth;
+			InterlevelScene.returnBranch = returnBranch;
 			InterlevelScene.returnPos = returnPos;
 			Level.beforeTransition();
 			Game.switchScene(InterlevelScene.class);

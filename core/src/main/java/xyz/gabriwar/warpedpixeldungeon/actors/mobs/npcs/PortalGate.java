@@ -36,8 +36,11 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.Portals;
+import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTeleportation;
 import xyz.gabriwar.warpedpixeldungeon.net.NetDialogs;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.PortalGateSprite;
@@ -76,6 +79,38 @@ public class PortalGate extends NPC {
 	@Override
 	public void damage(int dmg, Object src) {
 		// invulnerable — only shopkeeper death flips it to DEAD
+	}
+
+	//no spell takes hold of a gate. A lullaby put it to sleep, and the amok of a scroll of rage
+	//woke it hunting (Mob.add): it walked off round the floor until another lullaby, and terror
+	//sent it running the same way
+	@Override
+	public boolean add(Buff buff) {
+		return false;
+	}
+
+	@Override
+	protected boolean act() {
+		returnToShop();
+		return super.act();
+	}
+
+	//a shop's gate stands on the cell its shop raised it on (Portals.Record.cell), where the
+	//gate's own checks and every trip through it look for it. One a spell set walking, in a save
+	//from before add() turned every spell away, blinks back there once the cell is clear. The
+	//town's gate is left to the surface, which records wherever it stands (placeTownGate)
+	void returnToShop() {
+		int key = Portals.keyHere();
+		Portals.Record home = key == Portals.TOWN ? null : Portals.get(key);
+		if (home == null || home.cell < 0 || home.cell == pos || home.cell >= Dungeon.level.length()
+				|| !Dungeon.level.passable[home.cell] || Actor.findChar(home.cell) != null) {
+			return;
+		}
+		if (sprite != null) {
+			ScrollOfTeleportation.appear(this, home.cell);
+		} else {
+			pos = home.cell;
+		}
 	}
 
 	@Override

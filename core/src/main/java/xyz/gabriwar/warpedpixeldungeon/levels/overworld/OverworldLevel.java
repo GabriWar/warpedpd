@@ -1470,7 +1470,7 @@ public class OverworldLevel extends Level {
 					1, 0, LevelTransition.Type.SURFACE ) );
 		}
 		int stairs = localTownCell( WorldStructures.TOWN_MINE_GATE );
-		if (stairs != -1 && !xyz.gabriwar.warpedpixeldungeon.Badges.checkOtilukeRescued()){
+		if (stairs != -1){
 			transitions.add( new LevelTransition( this, stairs, LevelTransition.Type.BRANCH_EXIT,
 					56, 0, LevelTransition.Type.REGULAR_ENTRANCE ) );
 		}
@@ -2426,21 +2426,16 @@ public class OverworldLevel extends Level {
 			}
 		}
 
-		//the rescue of Otiluke seals the mine staircase for good (he himself
-		//joins the town through sleeperHomes)
-		if (xyz.gabriwar.warpedpixeldungeon.Badges.checkOtilukeRescued()){
-			//a memorial stone stands over the sealed stairwell: solid, but not a
-			//wall - the fog and wall-blocking passes leave STATUE alone, so the
-			//seal reads as something that was DONE here instead of a blank gap
-			int mineStairs = localTownCell( WorldStructures.TOWN_MINE_GATE );
-			if (mineStairs != -1 && map[mineStairs] != Terrain.STATUE){
-				if (Dungeon.level == this
-						&& com.watabou.noosa.Game.scene() instanceof xyz.gabriwar.warpedpixeldungeon.scenes.GameScene){
-					set( mineStairs, Terrain.STATUE );
-					xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.updateMap( mineStairs );
-				} else {
-					map[mineStairs] = Terrain.STATUE;
-				}
+		//the mines stay open for the whole run. Freeing Otiluke once laid a memorial stone over
+		//the stairwell for good, and a word with him anywhere freed him: with the bed the inn
+		//gave him whether he had been freed or not, the mines closed early in a run. Older
+		//saves get their staircase back (Otiluke himself joins the town through sleeperHomes)
+		int mineStairs = localTownCell( WorldStructures.TOWN_MINE_GATE );
+		if (mineStairs != -1 && map[mineStairs] == Terrain.STATUE){
+			set( mineStairs, Terrain.EXIT, this );
+			if (Dungeon.level == this
+					&& com.watabou.noosa.Game.scene() instanceof xyz.gabriwar.warpedpixeldungeon.scenes.GameScene){
+				xyz.gabriwar.warpedpixeldungeon.scenes.GameScene.updateMap( mineStairs );
 			}
 		}
 	}

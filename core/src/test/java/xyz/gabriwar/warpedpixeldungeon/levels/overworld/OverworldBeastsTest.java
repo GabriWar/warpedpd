@@ -26,6 +26,7 @@ package xyz.gabriwar.warpedpixeldungeon.levels.overworld;
 
 import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
+import xyz.gabriwar.warpedpixeldungeon.Statistics;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
 import xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle;
@@ -35,10 +36,14 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.AlbinoRat;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Alligator;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bananaspider;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bat;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bison;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.BrownWolf;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bunny;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Camel;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Crab;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Deer;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.GrayWolf;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Pike;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Scorpio;
@@ -76,7 +81,8 @@ import static org.junit.Assume.assumeTrue;
  * the rivers' at any hour, every older row still there; the surface's open water is ground of its
  * own (SHALLOWS) that only the water's beasts roll on; a parked water beast comes back only into
  * water; the windows the game builds are peopled that way, the same each time for the same dice;
- * and the night's cull takes the day's beasts, never the water's.
+ * and the night's cull takes the day's beasts, never the water's, and kills none of them: the hero
+ * is paid only for the beasts he brings down.
  */
 public class OverworldBeastsTest {
 
@@ -437,5 +443,57 @@ public class OverworldBeastsTest {
 		assertFalse( ow.mobs.contains( beasts[2] ) );
 		assertTrue( "the water's beasts keep every hour", ow.mobs.contains( beasts[3] ) );
 		assertTrue( ow.mobs.contains( beasts[4] ) );
+	}
+
+	//the hour's beasts out of sight go to ground when it turns: nobody killed them, so the hero
+	//earns nothing. a culled beast used to pay as a kill, and a new hero came up to level 6 at
+	//dawn on the night's wolves alone (12 experience each, at any level)
+	@Test
+	public void theHoursCullPaysTheHeroNothing(){
+		OverworldLevel ow = windowAt( 640, 640 );
+		hero.pos = W / 2 + (H / 2) * W;
+		int exp = hero.exp, lvl = hero.lvl, slain = Statistics.enemiesSlain;
+
+		Mob[] night = { new GrayWolf(), new GrayWolf(), new BrownWolf(), new Bat() };
+		Mob[] day = { new Scorpio(), new Crab() };
+		int x = 10;
+		for (Mob m : night){
+			m.pos = x + 10 * W;
+			x += 3;
+			ow.mobs.add( m );
+		}
+		DayNightCycle.debugPhaseOverride = Phase.DAY;
+		OverworldFauna.cull( ow );
+		for (Mob m : day){
+			m.pos = x + 10 * W;
+			x += 3;
+			ow.mobs.add( m );
+		}
+		DayNightCycle.debugPhaseOverride = Phase.NIGHT;
+		OverworldFauna.cull( ow );
+
+		for (Mob m : night) assertFalse( "dawn takes the night's " + m.name(), ow.mobs.contains( m ) );
+		for (Mob m : day) assertFalse( "dusk takes the day's " + m.name(), ow.mobs.contains( m ) );
+		assertEquals( "no experience for beasts nobody killed", exp, hero.exp );
+		assertEquals( lvl, hero.lvl );
+		assertEquals( "and no kill on the tally", slain, Statistics.enemiesSlain );
+	}
+
+	//...while a wolf the hero cuts down still pays its full worth and counts
+	@Test
+	public void aWolfTheHeroKillsStillPays(){
+		OverworldLevel ow = windowAt( 640, 640 );
+		//past a wolf's loot table, so it drops nothing but its hide (no heap needs a sprite here);
+		//a wolf is top-tier and never out-levelled
+		hero.lvl = 32;
+		hero.pos = W / 2 + (H / 2) * W;
+		GrayWolf wolf = new GrayWolf();
+		wolf.pos = hero.pos + 2;
+		ow.mobs.add( wolf );
+		int exp = hero.exp, slain = Statistics.enemiesSlain;
+		wolf.die( hero );
+		assertFalse( ow.mobs.contains( wolf ) );
+		assertEquals( exp + 12, hero.exp );
+		assertEquals( slain + 1, Statistics.enemiesSlain );
 	}
 }

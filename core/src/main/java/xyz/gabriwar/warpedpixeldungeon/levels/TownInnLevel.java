@@ -66,6 +66,13 @@ public class TownInnLevel extends TownInteriorLevel {
 	@Override
 	public void restoreFromBundle( com.watabou.utils.Bundle bundle ) {
 		super.restoreFromBundle( bundle );
+		//older saves: Otiluke had a bed here whether he had been freed or not, and a word with
+		//him freed him (TownCommute.BEDS). Unless he really is free, he is gone
+		if (!xyz.gabriwar.warpedpixeldungeon.Badges.checkOtilukeRescued()){
+			for (xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob m : mobs.toArray( new xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob[0] )){
+				if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.OtilukeNPC) mobs.remove( m );
+			}
+		}
 		//inns built before the table arrived get it on their next visit
 		for (xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob m : mobs){
 			if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.RouletteTable) return;

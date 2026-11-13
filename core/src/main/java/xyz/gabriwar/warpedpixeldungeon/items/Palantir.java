@@ -45,6 +45,8 @@ public class Palantir extends Item {
 	private int specialLevel = 99;
 	private int returnDepth = -1;
 	private int returnPos;
+	//and its branch: a barrow's floors and the town's buildings share the dungeon's depths
+	private int returnBranch;
 	private boolean used = false;
 
 	{
@@ -56,6 +58,7 @@ public class Palantir extends Item {
 
 	private static final String DEPTH = "depth";
 	private static final String POS = "pos";
+	private static final String BRANCH = "branch";
 	private static final String USED = "used";
 
 	@Override
@@ -65,6 +68,7 @@ public class Palantir extends Item {
 		bundle.put(USED, used);
 		if (returnDepth != -1) {
 			bundle.put(POS, returnPos);
+			bundle.put(BRANCH, returnBranch);
 		}
 	}
 
@@ -73,6 +77,7 @@ public class Palantir extends Item {
 		super.restoreFromBundle(bundle);
 		returnDepth = bundle.getInt(DEPTH);
 		returnPos = bundle.getInt(POS);
+		returnBranch = bundle.getInt(BRANCH);
 		used = bundle.getBoolean(USED);
 	}
 
@@ -104,11 +109,13 @@ public class Palantir extends Item {
 			if (Dungeon.depth < specialLevel) {
 				returnDepth = Dungeon.depth;
 				returnPos = hero.pos;
+				returnBranch = Dungeon.branch;
 				used = true;
 
 				Level.beforeTransition();
 				InterlevelScene.mode = InterlevelScene.Mode.PALANTIR;
 				InterlevelScene.returnDepth = returnDepth;
+				InterlevelScene.returnBranch = returnBranch;
 				InterlevelScene.returnPos = returnPos;
 				Game.switchScene(InterlevelScene.class);
 			} else {
@@ -116,6 +123,7 @@ public class Palantir extends Item {
 				Level.beforeTransition();
 				InterlevelScene.mode = InterlevelScene.Mode.RETURN;
 				InterlevelScene.returnDepth = returnDepth;
+				InterlevelScene.returnBranch = returnBranch;
 				InterlevelScene.returnPos = returnPos;
 				Game.switchScene(InterlevelScene.class);
 			}

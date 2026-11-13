@@ -667,7 +667,9 @@ public class OverworldFauna {
 	/**
 	 * The hour-change cull: by day (dawn included) nocturnal beasts that are
 	 * out of sight and more than 20 cells from the hero are gone; after dusk
-	 * the same goes for the day's. Runs on the live level only.
+	 * the same goes for the day's. Runs on the live level only. They go to
+	 * ground, nobody's kill: never destroy(), which pays the hero for every foe
+	 * (a new hero came up to level 6 at dawn on the night's wolves alone).
 	 */
 	public static void cull( OverworldLevel level ){
 		if (Dungeon.level != level || Dungeon.hero == null || level.heroFOV == null || !level.openSky()) return;
@@ -687,8 +689,7 @@ public class OverworldFauna {
 			if (m.buff( xyz.gabriwar.warpedpixeldungeon.homestead.farming.Grazing.class ) != null) continue;
 			if (m.pos < 0 || m.pos >= level.heroFOV.length || level.heroFOV[m.pos]) continue;
 			if (Math.abs( m.pos % w - hx ) <= 20 && Math.abs( m.pos / w - hy ) <= 20) continue;
-			m.destroy();
-			if (m.sprite != null) m.sprite.killAndErase();
+			OverworldLevel.vanish( level, m );
 		}
 	}
 

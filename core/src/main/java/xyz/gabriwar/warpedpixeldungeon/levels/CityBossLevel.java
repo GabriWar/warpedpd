@@ -133,6 +133,28 @@ public class CityBossLevel extends Level {
 		if (map[topDoor] != Terrain.LOCKED_DOOR && Imp.Quest.earnedShop() && !impShop.shopSpawned()){
 			spawnShop();
 		}
+
+		//loot an older version let fall on the throne, out of reach: laid at its foot
+		Heap stranded = heaps.get( throne );
+		if (stranded != null){
+			heaps.remove( throne );
+			Heap foot = heaps.get( throne + width() );
+			if (foot == null){
+				stranded.pos = throne + width();
+				heaps.put( stranded.pos, stranded );
+			} else {
+				for (Item i : stranded.items) foot.drop( i );
+			}
+		}
+	}
+
+	//no one can stand on the throne (a solid cell), so nothing on it could be picked up: what falls
+	//there (the king's loot when he dies seated on it, the dart that killed him) lands at its foot,
+	//as his crown always has (DwarfKing.dropExtraLoot)
+	@Override
+	public Heap drop( Item item, int cell ) {
+		if (cell == throne) cell = throne + width();
+		return super.drop( item, cell );
 	}
 
 	@Override
