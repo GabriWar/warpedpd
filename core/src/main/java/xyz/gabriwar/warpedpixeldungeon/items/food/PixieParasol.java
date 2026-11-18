@@ -67,7 +67,8 @@ public class PixieParasol extends Food {
 				for (Mob mob : Dungeon.level.mobs.toArray(new Mob[0])) {
 					Buff.affect(mob, Drowsy.class);
 					Buff.prolong(mob, Paralysis.class, Random.IntRange(10, 16));
-					mob.sprite.centerEmitter().start(Speck.factory(Speck.NOTE), 0.3f, 5);
+					//a mob with no sprite yet (or no longer) sleeps without the notes
+					if (mob.sprite != null) mob.sprite.centerEmitter().start(Speck.factory(Speck.NOTE), 0.3f, 5);
 				}
 				Buff.affect(hero, BerryRegeneration.class).set(hero.HT);
 				break;
@@ -75,7 +76,8 @@ public class PixieParasol extends Food {
 				for (Mob mob : Dungeon.level.mobs.toArray(new Mob[0])) {
 					Buff.affect(mob, Drowsy.class);
 					Buff.prolong(mob, Paralysis.class, Random.IntRange(10, 16));
-					mob.sprite.centerEmitter().start(Speck.factory(Speck.NOTE), 0.3f, 5);
+					//a mob with no sprite yet (or no longer) sleeps without the notes
+					if (mob.sprite != null) mob.sprite.centerEmitter().start(Speck.factory(Speck.NOTE), 0.3f, 5);
 				}
 				Buff.affect(hero, Vertigo.class, 5f);
 				Buff.affect(hero, BerryRegeneration.class).set(hero.HT);

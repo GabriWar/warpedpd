@@ -111,9 +111,11 @@ public class Sunray extends TargetedClericSpell {
 			}
 
 			if (ch.isAlive()) {
-				if (ch.buff(Blindness.class) != null && ch.buff(SunRayRecentlyBlindedTracker.class) != null) {
+				SunRayRecentlyBlindedTracker blinded = ch.buff(SunRayRecentlyBlindedTracker.class);
+				if (ch.buff(Blindness.class) != null && blinded != null) {
+					//held before the paralysis: what the paralysis sets off can take the tracker away
 					Buff.prolong(ch, Paralysis.class, 2f + 2f*hero.pointsInTalent(Talent.SUNRAY));
-					ch.buff(SunRayRecentlyBlindedTracker.class).detach();
+					blinded.detach();
 				} else if (ch.buff(SunRayUsedTracker.class) == null) {
 					Buff.prolong(ch, Blindness.class, 2f + 2f*hero.pointsInTalent(Talent.SUNRAY));
 					Buff.prolong(ch, SunRayRecentlyBlindedTracker.class, 2f + 2f*hero.pointsInTalent(Talent.SUNRAY));

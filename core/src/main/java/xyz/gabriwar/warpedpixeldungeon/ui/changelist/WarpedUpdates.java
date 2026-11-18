@@ -127,6 +127,15 @@ public final class WarpedUpdates {
 
 	/** Newest first. */
 	public static final Entry[] ALL = {
+		new Entry( 11227, item( ItemSpriteSheet.SCROLL_HOLDER ), "Transmuting the strongest weapons",
+				"Transmuting a tier 6 weapon no longer crashes the game.",
+				"Using a Scroll of Transmutation or a well of transmutation on one of the tier 6 weapons, the alchemy ones and the relics, crashed the game. They now become a random tier 5 weapon and keep their upgrades." ),
+		new Entry( 11227, icon( Icons.MAGNIFY ), "Zot's blink",
+				"Zot no longer freezes the game when he blinks across his arena.",
+				"After Zot blinked away from you, the game could stop for good, waiting on a move that had already ended. It goes on now." ),
+		new Entry( 11227, icon( Icons.WARNING ), "Smaller crash fixes",
+				"Fixed crashes with Sunray, the Pixie Parasol, the tab key and plants growing under a meteor shower.",
+				"Fixed a crash when Sunray paralysed a blinded enemy, one when eating a Pixie Parasol near a monster that had no sprite, one when pressing the cycle-tabs key on a window with no tabs, and one when a plant came up under a meteor shower." ),
 		new Entry( 11226, item( ItemSpriteSheet.GOLD ), "Black market floors load",
 				"A floor with a black market guard on it loads again.",
 				"A floor with a black market guard on it could fail to load after a save, leaving the run stuck on the stairs. It loads again, a guard you turned stays on your side after loading, and a guard's burns and heatstroke stay on him." ),

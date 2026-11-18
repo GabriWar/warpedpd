@@ -231,10 +231,12 @@ public class ScrollOfTransmutation extends InventoryScroll {
 	private static Weapon changeWeapon( Weapon w ) {
 		Weapon n;
 		Generator.Category c;
+		//Warped's tier 6 weapons (alchemy, relics) have no tier of their own to draw from:
+		//they become a tier 5 one, as Evolution does
 		if (w instanceof MeleeWeapon) {
-			c = Generator.wepTiers[((MeleeWeapon)w).tier - 1];
+			c = Generator.wepTiers[Math.min( ((MeleeWeapon)w).tier, Generator.wepTiers.length ) - 1];
 		} else {
-			c = Generator.misTiers[((MissileWeapon)w).tier - 1];
+			c = Generator.misTiers[Math.min( ((MissileWeapon)w).tier, Generator.misTiers.length ) - 1];
 		}
 		
 		do {

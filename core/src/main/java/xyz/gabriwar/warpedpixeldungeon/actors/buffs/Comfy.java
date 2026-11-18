@@ -63,6 +63,8 @@ public class Comfy extends Buff {
 
 	//once a hero turn: on while indoors or in a heated room, gone the moment they step out
 	public static void check( Hero hero ) {
+		//a hero turn finishing after the game was left (Dungeon.hero gone) has no one to warm
+		if (hero == null) return;
 		if (indoors() || xyz.gabriwar.warpedpixeldungeon.homestead.Shelter.heated( Dungeon.level, hero.pos )) {
 			if (hero.buff( Comfy.class ) == null) Buff.affect( hero, Comfy.class );
 		} else {

@@ -93,11 +93,27 @@ public class ZotSprite extends MobSprite {
 		}
 	}
 
+	//a blink's run keeps the actor thread waiting (Actor.processImpl waits on this sprite):
+	//it is woken when the run ends, or when another animation cuts the run short, as Tengu's is
+	@Override
+	public void play( Animation anim ) {
+		if (isMoving && anim != run){
+			synchronized (this){
+				isMoving = false;
+				notifyAll();
+			}
+		}
+		super.play( anim );
+	}
+
 	@Override
 	public void onComplete( Animation anim ) {
 		if (anim == run) {
-			isMoving = false;
-			idle();
+			synchronized (this){
+				isMoving = false;
+				idle();
+				notifyAll();
+			}
 		} else {
 			super.onComplete( anim );
 		}

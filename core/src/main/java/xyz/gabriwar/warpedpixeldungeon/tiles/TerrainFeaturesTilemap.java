@@ -117,8 +117,10 @@ public class TerrainFeaturesTilemap extends DungeonTilemap {
 				return (trap.active ? trap.color : Trap.BLACK) + (trap.shape * 16);
 		}
 
-		if (plants.get(pos) != null){
-			return plants.get(pos).image + 7*16;
+		//read once: the actor thread can pull the plant between two reads (a meteor's growth)
+		Plant plant = plants.get(pos);
+		if (plant != null){
+			return plant.image + 7*16;
 		}
 
 		//the homesteads' standing pieces, on every slice (one sheet serves them all)

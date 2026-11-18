@@ -253,7 +253,8 @@ public final class TileTemperature {
     }
 
     private static float tileTemp(int cell, boolean torchWarmth) {
-        if (Dungeon.level == null) return ClimateManager.localTemp();
+        //a cell of no map of this floor (a hero turn still running against the floor he left) feels the air
+        if (Dungeon.level == null || cell < 0 || cell >= Dungeon.level.length()) return ClimateManager.localTemp();
 
         // the open air, or the air of a room the hero built round the cell (homestead/Shelter)
         float t = xyz.gabriwar.warpedpixeldungeon.homestead.Shelter.air(Dungeon.level, cell, ClimateManager.localTemp());

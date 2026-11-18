@@ -58,7 +58,8 @@ public class WndTabbed extends Window {
 			@Override
 			public boolean onSignal(KeyEvent keyEvent) {
 
-				if (!keyEvent.pressed && KeyBindings.getActionForKey(keyEvent) == WPDAction.CYCLE){
+				//a window that ended up with no tabs has none to cycle to
+				if (!keyEvent.pressed && KeyBindings.getActionForKey(keyEvent) == WPDAction.CYCLE && !tabs.isEmpty()){
 					int idx = tabs.indexOf(selected);
 					idx++;
 					if (idx >= tabs.size()) idx = 0;
