@@ -33,6 +33,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle;
 import xyz.gabriwar.warpedpixeldungeon.items.journal.DescentPage;
 import xyz.gabriwar.warpedpixeldungeon.journal.GuideGraph;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
+import xyz.gabriwar.warpedpixeldungeon.actors.blobs.FallenLeaves;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.SacrificialFire;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.SmokeScreen;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Web;
@@ -66,6 +67,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.MobSpawner;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Piranha;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.YogFist;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Blacksmith;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.PortalGate;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Sheep;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.pets.Bee;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.pets.BlueDragon;
@@ -637,6 +639,17 @@ public abstract class Level implements Bundlable {
 
 		buildFlagMaps();
 		cleanWalls();
+
+		//what an older version let fall under a portal gate, out of reach: laid beside it
+		for (Mob mob : mobs){
+			Heap stranded = mob instanceof PortalGate ? heaps.get( mob.pos ) : null;
+			if (stranded == null) continue;
+			int beside = offGate( mob.pos );
+			if (beside == mob.pos) continue;
+			heaps.remove( mob.pos );
+			stranded.pos = beside;
+			heaps.put( beside, stranded );
+		}
 
 	}
 	
@@ -1447,6 +1460,8 @@ public abstract class Level implements Bundlable {
 			return heap;
 
 		}
+
+		cell = offGate( cell );
 		
 		Heap heap = heaps.get( cell );
 		if (heap == null) {
@@ -1639,6 +1654,14 @@ public abstract class Level implements Bundlable {
 				CellEmitter.get(ch.pos).burst( SacrificialParticle.FACTORY, 5 );
 			}
 			Buff.prolong( ch, SacrificialFire.Marked.class, SacrificialFire.Marked.DURATION );
+		}
+
+		//a monster walking into fallen leaves rustles them, and the hero in sight of it stops: not
+		//for one standing in them, nor for his pet or the townsfolk, or a walk through a town
+		//whose folk stand all day where the leaves drift went one tile at a time
+		if (ch instanceof Mob && ch.alignment == Char.Alignment.ENEMY && heroFOV[ch.pos]
+				&& Dungeon.hero != null && Blob.volumeAt( ch.pos, FallenLeaves.class ) > 0){
+			Dungeon.hero.interrupt();
 		}
 
 		if (!ch.flying){
@@ -2149,6 +2172,26 @@ public abstract class Level implements Bundlable {
 		for (int i = 0; i < length(); i++){
 			if (!passable[i] || avoid[i]) continue;
 			if (entrance != null && PathFinder.distance[i] == Integer.MAX_VALUE) continue;
+			float d = trueDistance( cell, i );
+			if (d < bestDistance && findMob( i ) == null){
+				best = i;
+				bestDistance = d;
+			}
+		}
+		return best;
+	}
+
+	/** Where something dropped on a cell lands: that cell, unless a portal gate stands on it. A gate
+	 *  never moves and no one can step onto its cell, so nothing there could be picked up (a throw
+	 *  that struck the gate came down under it, a shop's restock laid stock there): the nearest free
+	 *  floor takes it, open ground no one stands on and nothing lies on, as the Dwarf King's throne
+	 *  sends what falls on it to its foot (CityBossLevel.drop). The cell itself if there is none. */
+	private int offGate( int cell ){
+		if (!(findMob( cell ) instanceof PortalGate)) return cell;
+		int best = cell;
+		float bestDistance = Float.MAX_VALUE;
+		for (int i = 0; i < length(); i++){
+			if (!passable[i] || avoid[i] || heaps.get( i ) != null) continue;
 			float d = trueDistance( cell, i );
 			if (d < bestDistance && findMob( i ) == null){
 				best = i;

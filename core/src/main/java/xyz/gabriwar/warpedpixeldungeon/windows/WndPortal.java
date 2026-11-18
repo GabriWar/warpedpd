@@ -40,6 +40,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.PortalGate;
+import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTeleportation;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.OverworldLevel;
 import xyz.gabriwar.warpedpixeldungeon.levels.overworld.WorldStructures;
@@ -47,6 +48,7 @@ import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.net.NetManager;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.InterlevelScene;
+import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
 
@@ -239,11 +241,23 @@ public class WndPortal extends WndOptions {
 		if (r == null || r.state != PortalGate.State.ACTIVE) {
 			return; // sanity
 		}
+		if (!tripAllowed()) return;
 
 		Hunger h = traveler.buff(Hunger.class);
 		if (h != null) h.affectHunger(-TELEPORT_HUNGER, true);
 
 		switchTo(destDepth, r);
+	}
+
+	/** Whether a gate may carry the party off this floor, by the rule every other trip between floors
+	 *  keeps (Dungeon.interfloorTeleportAllowed): not with the Amulet carried on the dungeon's floors,
+	 *  nor off a sealed floor. When not it says so, as they do, before any hunger is paid. The gates
+	 *  never asked, and since the shopkeepers stay through the climb (and their gates with them) a lit
+	 *  one carried the hero between floors all the way up. */
+	public static boolean tripAllowed() {
+		if (Dungeon.interfloorTeleportAllowed()) return true;
+		GLog.w(Messages.get(ScrollOfTeleportation.class, "no_tele"));
+		return false;
 	}
 
 	/** Takes the whole party through to a lit gate, on the render thread (host and single player;

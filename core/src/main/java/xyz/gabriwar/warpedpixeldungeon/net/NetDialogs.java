@@ -185,6 +185,8 @@ public class NetDialogs {
 				NetManager.log("[NET-HOST] resolvePortal travel: invalid dest=" + destDepth);
 				return;
 			}
+			//the party's depth is shared: not off the Amulet's climb, nor off a sealed floor
+			if (!xyz.gabriwar.warpedpixeldungeon.windows.WndPortal.tripAllowed()) return;
 			// Hunger toll on the interacting hero specifically.
 			xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger hg =
 					hero.buff(xyz.gabriwar.warpedpixeldungeon.actors.buffs.Hunger.class);

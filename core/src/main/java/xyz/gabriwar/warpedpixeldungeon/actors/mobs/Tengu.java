@@ -160,6 +160,13 @@ public class Tengu extends Mob {
 		return false;
 	}
 
+	//damage landing inside this call (a Double Stab focus links Tengu to himself and echoes the hit
+	//back onto him: SkillInteractions.shareLinkedDamage) is part of this hit, and the brackets and
+	//phases are this call's to check, on the health both left. Checked in the echo too, the hit that
+	//took him to half health ended phase 1 twice: the second progress() built the arena at once,
+	//round a hero still in Tengu's cell, in its walls
+	private boolean inDamage = false;
+
 	@Override
 	public void damage(int dmg, Object src) {
 		if (!Dungeon.level.mobs.contains(this)){
@@ -181,7 +188,14 @@ public class Tengu extends Mob {
 		int curbracket = HP / hpBracket;
 
 		int beforeHitHP = HP;
-		super.damage(dmg, src);
+		boolean inner = inDamage;
+		inDamage = true;
+		try {
+			super.damage(dmg, src);
+		} finally {
+			inDamage = inner;
+		}
+		if (inner) return;
 
 		//cannot be hit through multiple brackets at a time
 		if (HP <= (curbracket-1)*hpBracket){

@@ -24,7 +24,13 @@
 
 package xyz.gabriwar.warpedpixeldungeon.actors.buffs;
 
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
+import xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.ItemLooks;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
+import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Crossbow;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.Dart;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import com.watabou.noosa.Image;
@@ -58,12 +64,24 @@ public class WeaponEnhance extends Buff {
         return Math.max((maxHit - hit)/(float) maxHit, 0);
     }
 
-    public void attackProc() {
+    //only a hit struck with a weapon this raises counts: one the hero has equipped, or a shot his
+    //equipped launcher fires (a bow's arrow, a gun's bullet, a crossbow's dart). A thrown weapon,
+    //the spirit bow's arrow or a bare fist is not raised and takes nothing off the count
+    public void attackProc( Hero hero, KindOfWeapon wep ) {
+        if (!raises( hero, wep )) return;
         hit--;
         if (hit <= 0) {
             detach();
         }
         BuffIndicator.refreshHero();
+    }
+
+    private static boolean raises( Hero hero, KindOfWeapon wep ) {
+        //a dart deals its crossbow's damage and fires its enchantment (Dart)
+        if (wep instanceof Dart) {
+            return hero.belongings.weapon() instanceof Crossbow || hero.belongings.secondWep() instanceof Crossbow;
+        }
+        return wep instanceof Weapon && ItemLooks.launcherOf( (Weapon) wep ).isEquipped( hero );
     }
 
     public int weaponLevel(int weaponLevel){

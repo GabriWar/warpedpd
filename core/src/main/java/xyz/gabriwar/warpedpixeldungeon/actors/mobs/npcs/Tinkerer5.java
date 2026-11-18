@@ -27,13 +27,13 @@ package xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.town.TownLedger;
 import xyz.gabriwar.warpedpixeldungeon.items.TownReturnBeacon;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.VillagerSprite;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndQuest;
 import com.watabou.noosa.Game;
-import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 import com.watabou.utils.Random;
 
@@ -56,22 +56,6 @@ public class Tinkerer5 extends NPC {
 	protected boolean act() {
 		throwItems();
 		return super.act();
-	}
-
-	private boolean first = true;
-
-	private static final String FIRST = "first";
-
-	@Override
-	public void storeInBundle( Bundle bundle ) {
-		super.storeInBundle( bundle );
-		bundle.put( FIRST, first );
-	}
-
-	@Override
-	public void restoreFromBundle( Bundle bundle ) {
-		super.restoreFromBundle( bundle );
-		first = bundle.getBoolean( FIRST );
 	}
 
 	@Override
@@ -107,8 +91,10 @@ public class Tinkerer5 extends NPC {
 			return true;
 		}
 
-		if (first) {
-			first = false;
+		//once a run, between the guard and the villager: TownCommute makes them fresh each
+		//morning, so the town keeps the count (TownLedger)
+		if (!TownLedger.beaconGiven) {
+			TownLedger.beaconGiven = true;
 			tell( Messages.get(this, "beacon") );
 			Dungeon.level.drop( new TownReturnBeacon(), Dungeon.hero.pos ).sprite.drop();
 		} else if (Random.Int(2) == 0) {

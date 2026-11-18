@@ -146,14 +146,17 @@ public class Shopkeeper extends NPC {
 	}
 	
 	/** Fresh goods: fills free cells near the keeper with new FOR_SALE stock,
-	 *  up to a modest shelf size. Old unsold goods stay - hence "fresh". */
+	 *  up to a modest shelf size. Old unsold goods stay - hence "fresh". A cell
+	 *  someone stands on is no free one: the shop's portal gate stands beside the
+	 *  keeper for good, and stock laid on its cell could never be bought. */
 	public void restock(){
 		java.util.ArrayList<Integer> spots = new java.util.ArrayList<>();
 		for (int ofs : com.watabou.utils.PathFinder.NEIGHBOURS8){
 			int c = pos + ofs;
 			if (c >= 0 && c < Dungeon.level.length()
 					&& Dungeon.level.passable[c]
-					&& Dungeon.level.heaps.get( c ) == null){
+					&& Dungeon.level.heaps.get( c ) == null
+					&& Dungeon.level.findMob( c ) == null){
 				spots.add( c );
 			}
 		}

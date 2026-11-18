@@ -76,6 +76,12 @@ public class UpgradeBlobViolet extends Item {
 	}
 
 	private void upgrade(Item item) {
+		//a normal item already at +15 or past it can take no more: keep the goo rather than use it up
+		if (!item.reinforced && item.level() >= 15) {
+			GLog.w( Messages.get(UpgradeBlobViolet.class, "capped", item.name()) );
+			return;
+		}
+
 		detach(curUser.belongings.backpack);
 
 		//reinforced items can be pushed past +15; normal items are capped at +15

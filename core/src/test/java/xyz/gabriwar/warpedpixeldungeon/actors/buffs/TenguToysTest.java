@@ -78,6 +78,7 @@ public class TenguToysTest {
 		floor.plants = new com.watabou.utils.SparseArray<>();
 		floor.heaps = new com.watabou.utils.SparseArray<>();
 		floor.blobs = new java.util.HashMap<>();
+		floor.mobs = new java.util.HashSet<>();
 		java.util.Arrays.fill( floor.solid, true );
 		for (int y = 1; y < W - 1; y++) for (int x = 1; x < W - 1; x++) Level.set( y * W + x, Terrain.EMPTY, floor );
 		Dungeon.level = floor;

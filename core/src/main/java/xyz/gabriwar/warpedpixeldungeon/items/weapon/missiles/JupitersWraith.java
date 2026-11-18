@@ -60,6 +60,8 @@ public class JupitersWraith extends MissileWeapon {
 		bones = false;
 		unique = true;
 		stackable = false;
+		//reinforced, as Sprouted's Jupiter's Wrath: the goos and the smith take it past +15
+		reinforced = true;
 	}
 
 	public int charge = 0;
@@ -225,6 +227,8 @@ public class JupitersWraith extends MissileWeapon {
 	public void restoreFromBundle(Bundle bundle) {
 		super.restoreFromBundle(bundle);
 		charge = bundle.getInt(CHARGE);
+		//an older save kept it unreinforced (the port had dropped the flag)
+		reinforced = true;
 	}
 
 	// ── CircleBack (adapted from HeavyBoomerang) ─────────────────────

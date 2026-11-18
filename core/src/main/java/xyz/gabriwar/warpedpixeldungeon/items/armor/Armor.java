@@ -460,7 +460,8 @@ public class Armor extends EquipableItem {
 
 	public int DRMin(int lvl){
 		if (Dungeon.isChallenged(Challenges.NO_ARMOR)){
-			return 0;
+			//no base minimum, but Stalwart still holds its share of the lowered maximum
+			return xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.armorMinBonus( this, DRMax(lvl) );
 		}
 
 		int max = DRMax(lvl);

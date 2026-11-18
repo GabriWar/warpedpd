@@ -24,12 +24,9 @@ package xyz.gabriwar.warpedpixeldungeon.actors.blobs;
 import xyz.gabriwar.warpedpixeldungeon.actors.ClimateManager;
 import xyz.gabriwar.warpedpixeldungeon.effects.WeatherBlobFX;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
-import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Shadows;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
-import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.effects.BlobEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -78,14 +75,6 @@ public class FallenLeaves extends Blob {
 						Shadows s = Buff.affect(hero, Shadows.class);
 						if (s != null) {
 							s.prolong();
-						}
-					}
-
-					// Mobs stepping on leaves alert the hero
-					Char ch = Actor.findChar(cell);
-					if (ch instanceof Mob && ch.fieldOfView != null) {
-						if (Dungeon.level.heroFOV[cell]) {
-							Dungeon.hero.interrupt();
 						}
 					}
 

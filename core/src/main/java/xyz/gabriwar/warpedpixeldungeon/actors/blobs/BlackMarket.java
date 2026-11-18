@@ -154,6 +154,15 @@ public class BlackMarket extends Blob {
 		if (home < 0) return;
 
 		boolean trading = DayNightCycle.isNight() && !WarpedRooms.banned && !hostile;
+		//this week's stock, whether the dealer is just setting up or is still here from an
+		//earlier night: the floor keeps him when the hero leaves it before dawn
+		if (trading){
+			int week = GameCalendar.weekIndex();
+			if (stock.isEmpty() || week != stockWeek){
+				stockWeek = week;
+				restock();
+			}
+		}
 		BlackMarketDealer dealer = dealer();
 		if (trading && dealer == null){
 			open();
@@ -170,12 +179,6 @@ public class BlackMarket extends Blob {
 	}
 
 	private void open(){
-		int week = GameCalendar.weekIndex();
-		if (stock.isEmpty() || week != stockWeek){
-			stockWeek = week;
-			restock();
-		}
-
 		int spot = freeNear( home );
 		if (spot == -1) return;
 		BlackMarketDealer dealer = new BlackMarketDealer();

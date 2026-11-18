@@ -93,7 +93,11 @@ public class SanChikarah extends Item {
 
 		if (action.equals(AC_PORT)) {
 
-			if (Dungeon.bossLevel()) {
+			//not off a boss floor, nor off a sealed one, which the Palantir and the town beacon
+			//refuse too. Zot's stays sealed until he dies: kept for good (Sprouted dropped it on
+			//its way back from the Shadow Yogs), this took the hero off it, and the spent Palantir
+			//never opened again
+			if (Dungeon.bossLevel() || Dungeon.level.locked) {
 				hero.spend(TIME_TO_USE);
 				GLog.w(Messages.get(this, "preventing"));
 				return;

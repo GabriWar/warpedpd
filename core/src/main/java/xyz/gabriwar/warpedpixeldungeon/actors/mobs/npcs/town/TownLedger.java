@@ -61,6 +61,10 @@ public class TownLedger {
 	public static Class<? extends Mob> bountyTarget;
 	public static int bountyReward;
 
+	//the town return beacon the guard or the villager hands out, once a run: the two are
+	//made fresh each morning (TownCommute), so neither can remember having given it
+	public static boolean beaconGiven;
+
 	//which of the town's services this run has used at least once, one bit each,
 	//for the Town Regular badge
 	public static final int MEAL = 1, SHOW = 2, PAGE = 4, TITHE = 8, SONG = 16,
@@ -78,6 +82,7 @@ public class TownLedger {
 		bountyTarget = null;
 		bountyReward = 0;
 		servicesUsed = 0;
+		beaconGiven = false;
 		readingWeek = Integer.MIN_VALUE;
 		readingsThisWeek = 0;
 	}
@@ -142,6 +147,7 @@ public class TownLedger {
 	private static final String SERVICES     = "town_services";
 	private static final String READING_WEEK = "town_reading_week";
 	private static final String READINGS     = "town_readings";
+	private static final String BEACON       = "town_beacon_given";
 
 	public static void storeInBundle( Bundle bundle ){
 		bundle.put( MEAL_DAY, mealDay );
@@ -161,6 +167,7 @@ public class TownLedger {
 		bundle.put( SERVICES, servicesUsed );
 		bundle.put( READING_WEEK, readingWeek );
 		bundle.put( READINGS, readingsThisWeek );
+		bundle.put( BEACON, beaconGiven );
 	}
 
 	@SuppressWarnings("unchecked")
@@ -185,5 +192,6 @@ public class TownLedger {
 		//a save from before the fortune teller kept to three readings a week starts a fresh week
 		readingWeek = bundle.contains( READING_WEEK ) ? bundle.getInt( READING_WEEK ) : Integer.MIN_VALUE;
 		readingsThisWeek = bundle.getInt( READINGS );
+		beaconGiven = bundle.getBoolean( BEACON );
 	}
 }

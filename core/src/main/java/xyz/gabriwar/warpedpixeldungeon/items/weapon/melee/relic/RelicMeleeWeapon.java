@@ -28,7 +28,6 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
-import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.JupitersWraith;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -53,11 +52,12 @@ public class RelicMeleeWeapon extends MeleeWeapon {
 		tier = 6;
 		bones = false;
 		unique = true;
+		//Sprouted's relics are reinforced: the goos and the smith take them past +15
+		reinforced = true;
 	}
 
 	public int charge = 0;
 	public int chargeCap = 1000;
-	protected int levelCap = 15;
 
 	protected Buff passiveBuff;
 
@@ -104,14 +104,6 @@ public class RelicMeleeWeapon extends MeleeWeapon {
 	}
 
 	@Override
-	public Item upgrade() {
-		if (level() < levelCap) {
-			return super.upgrade();
-		}
-		return this;
-	}
-
-	@Override
 	public String status() {
 		if (charge >= chargeCap) {
 			return Messages.get(this, "status_ready");
@@ -143,6 +135,8 @@ public class RelicMeleeWeapon extends MeleeWeapon {
 	public void restoreFromBundle(Bundle bundle) {
 		super.restoreFromBundle(bundle);
 		charge = bundle.getInt(CHARGE);
+		//an older save kept its relic unreinforced (the port had dropped the flag)
+		reinforced = true;
 	}
 
 	public class WeaponBuff extends Buff {

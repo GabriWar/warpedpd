@@ -2931,7 +2931,7 @@ public class Hero extends Char {
 		}
 
 		if (buff(WeaponEnhance.class) != null) {
-			buff(WeaponEnhance.class).attackProc();
+			buff(WeaponEnhance.class).attackProc( this, wep );
 		}
 
 		if (wep != null) {
@@ -3117,7 +3117,8 @@ public class Hero extends Char {
 			berserk.damage(damage);
 		}
 
-		if (buff(ArmorEnhance.class) != null) {
+		//the armor's enhancement counts the blows its armor takes: none without armor on
+		if (buff(ArmorEnhance.class) != null && belongings.armor() != null) {
 			buff(ArmorEnhance.class).defenseProc();
 		}
 

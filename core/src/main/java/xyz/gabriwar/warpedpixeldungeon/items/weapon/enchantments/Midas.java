@@ -27,6 +27,8 @@ package xyz.gabriwar.warpedpixeldungeon.items.weapon.enchantments;
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cocoshield;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.RoseBarrier;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Gold;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
@@ -45,6 +47,10 @@ public class Midas extends Weapon.Enchantment {
 
 	@Override
 	public int proc( Weapon weapon, Char attacker, Char defender, int damage ) {
+		//a rose barrier or a cocoshield turns the whole blow away (Char.damage): it draws no blood,
+		//so no gold, and kills nothing however hard it lands
+		if (defender.buff( RoseBarrier.class ) != null || defender.buff( Cocoshield.class ) != null) return damage;
+
 		int level = Math.max( 0, weapon.buffedLvl() );
 
 		int goldValue = 0;
