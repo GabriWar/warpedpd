@@ -2370,15 +2370,19 @@ public class OverworldLevel extends Level {
 			}
 		}
 		parkedMobs.values().removeIf( m -> m instanceof BlueCat );
-		//older saves: the enchanting pedestal moved into the church
+		//older saves: the enchanting pedestal moved into the church. Only the one that stood in
+		//the town: this runs whenever the window moves (a waystone's trip moves it), and it took
+		//the pedestals the hero had built at a homestead, leaving their bare stones
 		for (Mob m : mobs.toArray( new Mob[0] )){
-			if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.EnchantingStation){
+			if (m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.EnchantingStation
+					&& WorldStructures.townCell( worldX + m.pos % width(), worldY + m.pos / width() ) != -1){
 				mobs.remove( m );
 				Actor.remove( m );
 				if (m.sprite != null) m.sprite.killAndErase();
 			}
 		}
-		parkedMobs.values().removeIf( m -> m instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.EnchantingStation );
+		parkedMobs.entrySet().removeIf( e -> e.getValue() instanceof xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.EnchantingStation
+				&& WorldStructures.townCell( (int) e.getKey().longValue(), (int) (e.getKey() >> 32) ) != -1 );
 		parkedAt.keySet().retainAll( parkedMobs.keySet() );
 
 		for (Object[] f : TOWN_FOLK){

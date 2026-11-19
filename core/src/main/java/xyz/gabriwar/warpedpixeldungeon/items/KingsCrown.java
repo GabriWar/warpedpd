@@ -87,6 +87,22 @@ public class KingsCrown extends Item {
 		return true;
 	}
 	
+	/** The hero's armor ability becomes this one. One already chosen (the armor kit's class armor
+	 *  offers one too) gives way: its talents leave the fourth tier and the points put in them come
+	 *  back. They stayed beside the new ability's, spent on one no longer usable, and were lost from
+	 *  the tree on loading. */
+	public static void takeAbility( Hero hero, ArmorAbility ability ){
+		if (hero.armorAbility != null && ability != null
+				&& hero.armorAbility.getClass() != ability.getClass() && hero.talents.size() > 3){
+			int refund = 0;
+			for (int points : hero.talents.get(3).values()) refund += points;
+			hero.talents.get(3).clear();
+			hero.heroSkills.availableSkill += refund;
+		}
+		hero.armorAbility = ability;
+		Talent.initArmorTalents(hero);
+	}
+
 	public void upgradeArmor(Hero hero, Armor armor, ArmorAbility ability) {
 
 		detach(hero.belongings.backpack);
@@ -119,8 +135,7 @@ public class KingsCrown extends Item {
 			}
 		}
 
-		hero.armorAbility = ability;
-		Talent.initArmorTalents(hero);
+		takeAbility( hero, ability );
 
 		hero.sprite.operate( hero.pos );
 		Sample.INSTANCE.play( Assets.Sounds.MASTERY );

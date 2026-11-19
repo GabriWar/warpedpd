@@ -30,7 +30,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SheepSokoban;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SheepSokobanCorner;
-import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SheepSokobanStop;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.SheepSokobanSwitch;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.particles.ElmoParticle;
@@ -57,14 +56,15 @@ public class ChangeSheepTrap extends Trap {
 			return;
 		}
 
-		// Cycle: SheepSokoban -> SheepSokobanCorner -> SheepSokobanStop -> (cycle)
-		//        SheepSokobanSwitch -> SheepSokoban
+		// Cycle: SheepSokoban -> SheepSokobanCorner -> SheepSokobanSwitch -> SheepSokoban,
+		// every one of them a sheep that can still be moved. The corner sheep used to become a
+		// SheepSokobanStop, which nothing moves or changes again, and the puzzle was lost
 		Mob replacement = null;
 
 		if (ch instanceof SheepSokoban) {
 			replacement = new SheepSokobanCorner();
 		} else if (ch instanceof SheepSokobanCorner) {
-			replacement = new SheepSokobanStop();
+			replacement = new SheepSokobanSwitch();
 		} else if (ch instanceof SheepSokobanSwitch) {
 			replacement = new SheepSokoban();
 		}

@@ -93,7 +93,16 @@ public class Bomb extends Item {
 		return super.isSimilar(item) && this.fuse == ((Bomb) item).fuse;
 	}
 	
-	public boolean explodesDestructively(){
+	/** A boss still alive on this floor: its walls and doors stand any blast until it is dead. */
+	public static boolean bossAlive(){
+		if (Dungeon.level == null) return false;
+		for (xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob m : Dungeon.level.mobs){
+			if (m.isAlive() && m.properties().contains( xyz.gabriwar.warpedpixeldungeon.actors.Char.Property.BOSS )) return true;
+		}
+		return false;
+	}
+
+		public boolean explodesDestructively(){
 		return true;
 	}
 
@@ -197,9 +206,10 @@ public class Bomb extends Item {
 				}
 			}
 
-			//collect wall neighbors to destroy
+			//collect wall neighbors to destroy. Not while a boss lives on the floor: a blast was a way
+			//round an arena, past its sealed doors to the stairs down, without the fight
 			ArrayList<Integer> wallsToBreak = new ArrayList<>();
-			for (int i : affectedCells){
+			for (int i : bossAlive() ? new ArrayList<Integer>() : affectedCells){
 				for (int n : PathFinder.NEIGHBOURS8){
 					int adj = i + n;
 					//the map's own frame stands any blast, as it stands a pick
@@ -221,6 +231,14 @@ public class Bomb extends Item {
 			xyz.gabriwar.warpedpixeldungeon.homestead.Homestead.blast( Dungeon.level, affectedCells );
 
 			for (int w : wallsToBreak){
+				//a lock the blast broke no longer wants its key: the key for it, carried in the
+				//notes, is spent as opening it would have spent it, rather than left there for good
+				int was = Dungeon.level.map[w];
+				if (was == Terrain.LOCKED_DOOR){
+					xyz.gabriwar.warpedpixeldungeon.journal.Notes.remove( new xyz.gabriwar.warpedpixeldungeon.items.keys.IronKey( Dungeon.depth ) );
+				} else if (was == Terrain.CRYSTAL_DOOR){
+					xyz.gabriwar.warpedpixeldungeon.journal.Notes.remove( new xyz.gabriwar.warpedpixeldungeon.items.keys.CrystalKey( Dungeon.depth ) );
+				}
 				BuildersTool.applyTerrain(w, Terrain.EMPTY, false);
 				if (Dungeon.level.heroFOV[w]) {
 					CellEmitter.get(w).burst(BlastParticle.FACTORY, 6);

@@ -177,8 +177,9 @@ public class BreakersBench extends NPC {
 		Rarity rarity = Quality.of( item ).rarity;
 		boolean wand = item instanceof xyz.gabriwar.warpedpixeldungeon.items.wands.Wand;
 		int metal = metalFor( item );
-		//one piece off a stack of thrown weapons, the whole of anything else
-		item.detach( hero.belongings.backpack );
+		//a stack of thrown weapons goes on the bench whole, as one piece: broken a dart at a time,
+		//every dart of a legendary stack (the field's forest darts) was a masterwork core of its own
+		item.detachAll( hero.belongings.backpack );
 
 		hero.sprite.operate( pos );
 		hero.spendAndNext( 2f );

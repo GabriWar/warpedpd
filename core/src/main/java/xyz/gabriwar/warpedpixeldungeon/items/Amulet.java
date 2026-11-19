@@ -30,6 +30,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.AscensionChallenge;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import xyz.gabriwar.warpedpixeldungeon.scenes.AmuletScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import com.watabou.noosa.Game;
@@ -50,10 +51,36 @@ public class Amulet extends Item {
 	@Override
 	public ArrayList<String> actions( Hero hero ) {
 		ArrayList<String> actions = super.actions( hero );
-		if (hero.buff(AscensionChallenge.class) != null){
+		if (bound( hero )){
 			actions.clear();
 		}
 		return actions;
+	}
+
+	/** Whether the amulet stays in the hero's pack: until the ascent's curse is lifted on the stairs
+	 *  out of depth 1, it is neither dropped, thrown nor stored. Taking it off the actions alone
+	 *  left the ways that drop or store an item without asking them (a co-op guest's drop, a
+	 *  storage chest) */
+	public static boolean bound( Hero hero ){
+		return hero != null && hero.buff( AscensionChallenge.class ) != null;
+	}
+
+	@Override
+	public void doDrop( Hero hero ){
+		if (bound( hero )){
+			GLog.w( Messages.get( this, "bound" ) );
+			return;
+		}
+		super.doDrop( hero );
+	}
+
+	@Override
+	public void doThrow( Hero hero ){
+		if (bound( hero )){
+			GLog.w( Messages.get( this, "bound" ) );
+			return;
+		}
+		super.doThrow( hero );
 	}
 	
 	@Override

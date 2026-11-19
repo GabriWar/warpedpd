@@ -55,8 +55,28 @@ public class Librarian extends FlavorNPC {
 	//sells a page from a miner's diary: it maps one floor, chosen from the three
 	//just below the deepest you have reached. cheaper than a scroll because it only
 	//works there; each page costs half again more than the last, for the whole run
+	/** The floors a page can be sold for now: the three just below the deepest reached, not a
+	 *  boss's floor (nothing to map there), not past 24, and none the hero already holds a page
+	 *  for. The same page, the boss room's among them, was sold again and again. */
+	static java.util.ArrayList<Integer> pageFloors(){
+		java.util.ArrayList<Integer> floors = new java.util.ArrayList<>();
+		for (int d = Statistics.deepestFloor + 1; d <= Math.min( Statistics.deepestFloor + 3, 24 ); d++){
+			if (!Dungeon.bossLevel( d )) floors.add( d );
+		}
+		if (Dungeon.hero != null){
+			for (DiaryPage held : Dungeon.hero.belongings.getAllItems( DiaryPage.class )){
+				floors.remove( (Integer) held.depth );
+			}
+		}
+		return floors;
+	}
+
 	@Override
 	protected void offer( final String greeting ) {
+		if (pageFloors().isEmpty()){
+			yell( Messages.get( Librarian.class, "no_pages" ) );
+			return;
+		}
 		final int price = TownLedger.escalated( PAGE_PRICE, TownLedger.pagesBought );
 		Game.runOnRenderThread( new Callback() {
 			@Override
@@ -69,6 +89,8 @@ public class Librarian extends FlavorNPC {
 					@Override
 					protected void onSelect( int index ) {
 						if (index != 0) return;
+						java.util.ArrayList<Integer> floors = pageFloors();
+						if (floors.isEmpty()) return;
 						if (Dungeon.gold < price) {
 							GLog.w( Messages.get( Librarian.class, "no_gold" ) );
 							return;
@@ -77,7 +99,7 @@ public class Librarian extends FlavorNPC {
 						TownLedger.pagesBought++;
 						TownLedger.used( TownLedger.PAGE );
 						DiaryPage page = new DiaryPage();
-						page.depth = Math.min( Statistics.deepestFloor + Random.IntRange( 1, 3 ), 25 );
+						page.depth = Random.element( floors );
 						if (!page.collect()) {
 							Dungeon.level.drop( page, Dungeon.hero.pos ).sprite.drop();
 						}

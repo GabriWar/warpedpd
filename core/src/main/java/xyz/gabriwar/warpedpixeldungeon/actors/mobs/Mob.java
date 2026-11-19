@@ -1526,6 +1526,13 @@ public abstract class Mob extends Char {
 				//nor is a barrow's loot ever out-levelled
 				&& !xyz.gabriwar.warpedpixeldungeon.levels.Delves.inDelve()) {
 			if (extraLootIgnoresLevel()) dropExtraLoot();
+			//a Lucky weapon's proc is the hero's own doing, not the mob's loot: it pays out
+			//whatever the hero's level. Past a mob's maxLvl it never did, and Warped's heroes
+			//outlevel most of the dungeon, so the enchantment seemed to do nothing at all
+			if (buff(Lucky.LuckProc.class) != null){
+				Dungeon.level.drop(buff(Lucky.LuckProc.class).genLoot(), pos).sprite.drop();
+				Lucky.showFlare(sprite);
+			}
 			return;
 		}
 
@@ -1619,8 +1626,12 @@ public abstract class Mob extends Char {
 	//Normal loot rolls keep their level cap and existing chances.
 	protected boolean extraLootIgnoresLevel() { return false; }
 
-	//Sprouted enemies whose regular loot includes a guaranteed reward.
-	protected boolean lootIgnoresLevel() { return false; }
+	//Sprouted enemies whose regular loot includes a guaranteed reward. A dwarf token is one too:
+	//the vault's guards are maxLvl 30, and a hero past 32 got none from them, too few to open
+	//the vault's token door
+	protected boolean lootIgnoresLevel() {
+		return loot == xyz.gabriwar.warpedpixeldungeon.items.quest.DwarfToken.class;
+	}
 
 	// Drop an item at pos and mark the corresponding Bestiary slot as seen.
 	// extraSlotIndex 0 = slot 3, 1 = slot 4, etc.

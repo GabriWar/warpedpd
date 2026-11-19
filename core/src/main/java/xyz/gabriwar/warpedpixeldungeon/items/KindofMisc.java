@@ -26,6 +26,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.Artifact;
+import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
 import xyz.gabriwar.warpedpixeldungeon.items.rings.Ring;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -36,6 +37,16 @@ import com.watabou.utils.Random;
 
 
 public abstract class KindofMisc extends EquipableItem {
+
+	/** The bag whose own list holds the item: the backpack, or a bag inside it; the backpack
+	 *  when none does. */
+	static Bag holderOf( Bag backpack, Item item ){
+		if (backpack.items.contains( item )) return backpack;
+		for (Item i : backpack.items){
+			if (i instanceof Bag && ((Bag) i).items.contains( item )) return (Bag) i;
+		}
+		return backpack;
+	}
 
 	@Override
 	public boolean doEquip(final Hero hero) {
@@ -101,7 +112,11 @@ public abstract class KindofMisc extends EquipableItem {
 							// item detaching logic
 							int slot = Dungeon.quickslot.getSlot(KindofMisc.this);
 							slotOfUnequipped = -1;
-							Dungeon.hero.belongings.backpack.items.remove(KindofMisc.this);
+							//out of the bag that holds it, which may be one inside the backpack (a ring
+							//in the ankh chain): taken from the backpack's own list it stayed in its bag,
+							//was put in the backpack as well and equipped, and was then in two places
+							Bag holder = holderOf( Dungeon.hero.belongings.backpack, KindofMisc.this );
+							holder.items.remove(KindofMisc.this);
 							if (equipped.doUnequip(hero, true, false)) {
 								//swap out equip in misc slot if needed
 								if (index == 0 && KindofMisc.this instanceof Ring){
@@ -111,10 +126,10 @@ public abstract class KindofMisc extends EquipableItem {
 									hero.belongings.ring = (Ring) hero.belongings.misc;
 									hero.belongings.misc = null;
 								}
-								Dungeon.hero.belongings.backpack.items.add(KindofMisc.this);
+								holder.items.add(KindofMisc.this);
 								doEquip(hero);
 							} else {
-								Dungeon.hero.belongings.backpack.items.add(KindofMisc.this);
+								holder.items.add(KindofMisc.this);
 							}
 							if (slot != -1) {
 								Dungeon.quickslot.setSlot(slot, KindofMisc.this);

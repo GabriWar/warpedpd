@@ -106,7 +106,8 @@ public class EnchantingScene extends PixelScene {
 	/** what seeing three weaves costs, to fill a socket or to replace what is in it; taking one is
 	 *  free, and three left unchosen are lost */
 	public static final int REVEAL_COST = 20;
-	public static final int DISENCHANT_ENERGY = 20;
+	//half a reveal back: at the full 20, disenchanting and weaving again fished for any enchantment for free
+	public static final int DISENCHANT_ENERGY = 10;
 
 	public static int empowerCost( int level ){
 		//10/20/30/40/50 energy for levels 1..5

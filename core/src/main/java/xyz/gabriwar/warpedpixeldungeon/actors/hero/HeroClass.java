@@ -172,6 +172,9 @@ public enum HeroClass {
 			case CLERIC:   hero.MP = hero.MT = 40; break;
 		}
 
+		//the kit stays plain for the run (Item.starterKit)
+		for (Item kit : hero.belongings) kit.starterKit = true;
+
 		if (WPDSettings.quickslotWaterskin()) {
 			for (int s = 0; s < QuickSlot.SIZE; s++) {
 				if (Dungeon.quickslot.getItem(s) == null) {

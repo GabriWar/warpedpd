@@ -211,7 +211,7 @@ public class Quality implements Bundlable {
 
 	/** the same roll with any part forced (null = rolled by depth); used by the debug picker */
 	public static void roll( Item item, Rarity rarity, ItemType type, int masterwork ){
-		if (!eligible( item ) || item.quality != null) return;
+		if (!eligible( item ) || item.quality != null || item.starterKit) return;
 		//a barrow rolls by the depth its floor counts as (Delves.lootDepth)
 		int depth = Math.max( 1, xyz.gabriwar.warpedpixeldungeon.levels.Delves.lootDepth() );
 		Quality q = new Quality();

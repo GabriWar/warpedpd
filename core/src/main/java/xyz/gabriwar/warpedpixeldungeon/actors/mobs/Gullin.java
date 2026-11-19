@@ -84,8 +84,9 @@ public class Gullin extends Mob {
 
 	@Override
 	public void die(Object cause) {
-		if (Dungeon.LimitedDrops.NORNSTONES.count < 5
-				&& Random.Int(5) < 3) {
+		//every Gullin carries one, five a run at most: at 3 in 5, as rare as they are, a run
+		//could end without the three a relic weapon takes
+		if (Dungeon.LimitedDrops.NORNSTONES.count < 5) {
 			NornStone stone = Random.element( new NornStone[]{
 					new BlueNornStone(), new GreenNornStone(), new OrangeNornStone(),
 					new PurpleNornStone(), new YellowNornStone() } );

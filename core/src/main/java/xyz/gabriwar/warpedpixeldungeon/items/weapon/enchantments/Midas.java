@@ -55,8 +55,9 @@ public class Midas extends Weapon.Enchantment {
 
 		int goldValue = 0;
 		if (damage >= defender.HP) {
-			//killing blow always pays out, scaled by weapon level
-			goldValue = Math.round( Random.IntRange( 1 + level, 1 + level * 5 ) * power() );
+			//killing blow always pays out, scaled by weapon level and, as the chance below is, by
+			//what boosts enchantments (a Ring of Arcana): the kill's gold, most of what it pays, ignored it
+			goldValue = Math.round( Random.IntRange( 1 + level, 1 + level * 5 ) * power() * procChanceMultiplier( attacker ) );
 		} else {
 			float procChance = (1f / (level + 3f)) * procChanceMultiplier( attacker );
 			if (Random.Float() < procChance) {

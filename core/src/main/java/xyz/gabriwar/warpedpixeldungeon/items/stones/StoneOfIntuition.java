@@ -144,13 +144,9 @@ public class StoneOfIntuition extends InventoryStone {
 			guess.visible = false;
 			guess.icon( new ItemSprite(item) );
 			guess.enable(false);
-			guess.setRect(0, 80, WIDTH, 20);
 			add(guess);
 			
-			float left;
 			float top = text.bottom() + 5;
-			int rows;
-			int placed = 0;
 			
 			final ArrayList<Class<?extends Item>> unIDed = new ArrayList<>();
 			if (item.isIdentified()){
@@ -179,16 +175,17 @@ public class StoneOfIntuition extends InventoryStone {
 				return;
 			}
 			
-			if (unIDed.size() <= 5){
-				rows = 1;
-				top += BTN_SIZE/2f;
-				left = (WIDTH - BTN_SIZE*unIDed.size())/2f;
-			} else {
-				rows = 2;
-				left = (WIDTH - BTN_SIZE*((unIDed.size()+1)/2))/2f;
-			}
+			//as many rows as the kinds need, each centred: Warped has more kinds of potion and scroll
+			//than the two rows of six this window used to have room for
+			final int perRow = WIDTH / BTN_SIZE;
+			int rows = Math.max( 1, (unIDed.size() + perRow - 1) / perRow );
+			if (rows == 1) top += BTN_SIZE/2f;
+			int placed = 0;
+			int index = 0;
 			
 			for (final Class<?extends Item> i : unIDed){
+				int inThisRow = Math.min( perRow, unIDed.size() - (index - placed) );
+				float left = (WIDTH - BTN_SIZE*inThisRow)/2f;
 
 				IconButton btn = new IconButton(){
 					@Override
@@ -208,16 +205,17 @@ public class StoneOfIntuition extends InventoryStone {
 				add(btn);
 				
 				placed++;
-				if (rows == 2 && placed == ((unIDed.size()+1)/2)){
+				index++;
+				if (placed == perRow){
 					placed = 0;
-					if (unIDed.size() % 2 == 1){
-						left += BTN_SIZE/2f;
-					}
 					top += BTN_SIZE;
 				}
 			}
+			if (placed > 0) top += BTN_SIZE;
+			if (rows == 1) top += BTN_SIZE/2f;
 			
-			resize(WIDTH, 100);
+			guess.setRect(0, top + 2, WIDTH, 20);
+			resize(WIDTH, (int)guess.bottom());
 			
 		}
 

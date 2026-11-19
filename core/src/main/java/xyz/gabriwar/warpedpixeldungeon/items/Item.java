@@ -81,6 +81,10 @@ public class Item implements Bundlable {
 
 	//rarity / type / masterwork state; null for items outside that system
 	public xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality quality = null;
+	//packed in the starting kit: it stays plain, never given a rarity later. A thrown starting
+	//stone got one where it landed (Level.drop) and no longer stacked with the rest of its set
+	//nor matched its quickslot. Split pieces carry it (Item.split copies through the bundle)
+	public boolean starterKit = false;
 	
 	public boolean stackable = false;
 	protected int quantity = 1;
@@ -695,6 +699,7 @@ public class Item implements Bundlable {
 	private static final String REINFORCED     = "reinforced";
 	private static final String CUSTOM_NAME    = "custom_name";
 	private static final String QUALITY        = "quality";
+	private static final String STARTER_KIT    = "starter_kit";
 	
 	@Override
 	public void storeInBundle( Bundle bundle ) {
@@ -711,12 +716,14 @@ public class Item implements Bundlable {
 		bundle.put( REINFORCED, reinforced );
 		if (customName != null)     bundle.put(CUSTOM_NAME, customName);
 		if (quality != null)        bundle.put(QUALITY, quality);
+		if (starterKit)             bundle.put(STARTER_KIT, true);
 	}
 	
 	@Override
 	public void restoreFromBundle( Bundle bundle ) {
 		quantity	= bundle.getInt( QUANTITY );
 		if (bundle.contains( QUALITY )) quality = (xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality) bundle.get( QUALITY );
+		starterKit = bundle.getBoolean( STARTER_KIT );
 		levelKnown	= bundle.getBoolean( LEVEL_KNOWN );
 		cursedKnown	= bundle.getBoolean( CURSED_KNOWN );
 		

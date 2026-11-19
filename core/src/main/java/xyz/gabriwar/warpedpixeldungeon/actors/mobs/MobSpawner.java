@@ -416,10 +416,11 @@ public class MobSpawner extends Actor {
 				if (Random.Float() < 0.10f) rotation.add(DwarfLich.class);
 				return;
 
-			// Mines - Gullin (~10% chance)
+			// Mines - Gullin (~25% chance): at 10% a run could go the whole mines without the
+			// three Norn Stones a relic weapon takes
 			case 56: case 57: case 58: case 59: case 60:
 			case 61: case 62: case 63: case 64: case 65:
-				if (Random.Float() < 0.10f) rotation.add(Gullin.class);
+				if (Random.Float() < 0.25f) rotation.add(Gullin.class);
 				return;
 		}
 	}

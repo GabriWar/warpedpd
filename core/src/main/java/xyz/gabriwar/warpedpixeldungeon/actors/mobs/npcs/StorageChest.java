@@ -203,7 +203,10 @@ public class StorageChest extends Mob implements xyz.gabriwar.warpedpixeldungeon
 		public boolean itemSelectable(Item item) {
 			//no bags, and no storing another chest inside a chest
 			return !(item instanceof xyz.gabriwar.warpedpixeldungeon.items.bags.Bag)
-					&& !(item instanceof PortableChest);
+					&& !(item instanceof PortableChest)
+					//the amulet stays with the hero until the ascent is done (Amulet.bound)
+					&& !(item instanceof xyz.gabriwar.warpedpixeldungeon.items.Amulet
+						&& xyz.gabriwar.warpedpixeldungeon.items.Amulet.bound( Dungeon.hero ));
 		}
 
 		@Override
