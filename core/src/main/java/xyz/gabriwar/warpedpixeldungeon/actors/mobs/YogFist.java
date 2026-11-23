@@ -62,6 +62,8 @@ import com.watabou.utils.Bundle;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.Random;
 
+import java.util.ArrayList;
+
 public abstract class YogFist extends Mob {
 
 	{
@@ -214,6 +216,24 @@ public abstract class YogFist extends Mob {
 	public void restoreFromBundle(Bundle bundle) {
 		super.restoreFromBundle(bundle);
 		rangedCooldown = bundle.getFloat(RANGED_COOLDOWN);
+	}
+
+	//where a fist flees at half health: a free open cell out of the hero's sight that leads to the
+	//exit, as in Shattered. A floor with every cell in sight (the town, its inn: no fog of war)
+	//has none, and the old pick-at-random loop spun there forever, freezing the game; it then
+	//takes any free open cell, and with none at all the fist stays where it is (-1)
+	protected int hidingCell(){
+		ArrayList<Integer> hidden = new ArrayList<>(), open = new ArrayList<>();
+		int exit = Dungeon.level.exit();
+		if (exit >= 0) PathFinder.buildDistanceMap(exit, Dungeon.level.passable);
+		for (int i = 0; i < Dungeon.level.length(); i++){
+			if (Dungeon.level.solid[i] || Actor.findChar(i) != null) continue;
+			if (exit >= 0 && PathFinder.distance[i] == Integer.MAX_VALUE) continue;
+			(Dungeon.level.heroFOV[i] ? open : hidden).add(i);
+		}
+		if (!hidden.isEmpty()) return Random.element(hidden);
+		if (!open.isEmpty()) return Random.element(open);
+		return -1;
 	}
 
 	public static class BurningFist extends YogFist {
@@ -550,14 +570,8 @@ public abstract class YogFist extends Mob {
 			if (isAlive() && beforeHP > HT/2 && HP <= HT/2){
 				HP = HT/2;
 				Buff.prolong( Dungeon.hero, Blindness.class, Blindness.DURATION*1.5f );
-				int i;
-				do {
-					i = Random.Int(Dungeon.level.length());
-				} while (Dungeon.level.heroFOV[i]
-						|| Dungeon.level.solid[i]
-						|| Actor.findChar(i) != null
-						|| PathFinder.getStep(i, Dungeon.level.exit(), Dungeon.level.passable) == -1);
-				ScrollOfTeleportation.appear(this, i);
+				int i = hidingCell();
+				if (i != -1) ScrollOfTeleportation.appear(this, i);
 				state = WANDERING;
 				GameScene.flash(0x80FFFFFF);
 				GLog.w( Messages.get( this, "teleport" ));
@@ -623,14 +637,8 @@ public abstract class YogFist extends Mob {
 				if (l != null){
 					l.detach();
 				}
-				int i;
-				do {
-					i = Random.Int(Dungeon.level.length());
-				} while (Dungeon.level.heroFOV[i]
-						|| Dungeon.level.solid[i]
-						|| Actor.findChar(i) != null
-						|| PathFinder.getStep(i, Dungeon.level.exit(), Dungeon.level.passable) == -1);
-				ScrollOfTeleportation.appear(this, i);
+				int i = hidingCell();
+				if (i != -1) ScrollOfTeleportation.appear(this, i);
 				state = WANDERING;
 				GameScene.flash(0, false);
 				GLog.w( Messages.get( this, "teleport" ));
