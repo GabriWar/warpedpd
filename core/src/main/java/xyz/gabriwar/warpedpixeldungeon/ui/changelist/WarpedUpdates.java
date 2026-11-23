@@ -127,6 +127,21 @@ public final class WarpedUpdates {
 
 	/** Newest first. */
 	public static final Entry[] ALL = {
+		new Entry( 11260, icon( Icons.WARNING ), "Sokoban sheep",
+				"Pushing a sheep onto a change trap no longer crashes the game.",
+				"On the sokoban floors, a sheep pushed onto a change trap turned into the next sheep of the cycle, and the new sheep set off the same trap again, over and over, until the game crashed. One push now makes one change." ),
+		new Entry( 11260, item( ItemSpriteSheet.MASTERWORK_CORE ), "Working your starting gear",
+				"Rarity tools work on your starting gear again instead of crashing.",
+				"Masterwork cores, the reroll wheel, the black market's wheel, type shifters and the tempering anvil crashed the game when used on a piece of your starting gear, which had no rarity yet. Starting gear now gets its rarity the first time you work it." ),
+		new Entry( 11260, item( ItemSpriteSheet.IRON_KEY ), "Tengu's cell stays shut",
+				"No key opens a locked door while a boss has the floor sealed.",
+				"A spare iron key from another floor of the same depth could open Tengu's cell mid-fight and let you walk out, and the game could crash on his next jump. While a boss has the floor sealed, locks will not turn." ),
+		new Entry( 11260, icon( Icons.CONTROLLER ), "Co-op loading",
+				"Loading a co-op game no longer leaves a friend's hero on another floor's position.",
+				"A floor saved as the party arrived could keep a co-op friend's hero on the cell of the floor they had left, and loading it crashed both the host and the guest. Friends now start next to the host after loading." ),
+		new Entry( 11260, item( ItemSpriteSheet.EVOLUTION ), "Smaller crash fixes",
+				"Several rarer crashes are gone.",
+				"Fixed crashes from: a crystal wisp's attack freezing the game; Evolution on a weapon whose tier had no drops left; the tomahawk's journal page opened from the title screen; a cursed wand turning into blink zapped at a wall beside you; a monster knocked back twice at once into a chasm; closing the supporter Discord window while it waited for your role; and a monster moving while another left the floor." ),
 		new Entry( 11243, item( ItemSpriteSheet.BOMB ), "Bombs and boss floors",
 				"Bombs no longer break a boss floor's walls while its boss lives.",
 				"A bomb could blow a way round a boss's arena to the stairs down without the fight. While a boss is alive on its floor, its walls and doors now stand any blast; once it is dead they break as anywhere else." ),

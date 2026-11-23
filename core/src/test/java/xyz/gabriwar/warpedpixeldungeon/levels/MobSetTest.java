@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -114,5 +115,38 @@ public class MobSetTest {
 		}
 		assertNull( failure.get() );
 		assertEquals( 200, set.size() );
+	}
+
+	//HashSet.toArray reads its map straight, past the lock and the snapshot: a copy taken while the
+	//render thread let a mob go came out with a null in it (GameScene.afterObserve's NPE)
+	@Test
+	public void anotherThreadChangingItNeverBreaksACopy() throws Exception {
+		final MobSet set = new MobSet();
+		for (int i = 0; i < 200; i++) set.add( new Rat() );
+		final AtomicReference<Throwable> failure = new AtomicReference<>();
+		Thread writer = new Thread( () -> {
+			try {
+				for (int i = 0; i < 20000; i++){
+					Rat r = new Rat();
+					set.add( r );
+					set.remove( r );
+				}
+			} catch (Throwable t){
+				failure.set( t );
+			}
+		} );
+		writer.start();
+		try {
+			while (writer.isAlive()){
+				Mob[] copy = set.toArray( new Mob[0] );
+				assertTrue( copy.length >= 200 );
+				for (Mob m : copy) assertNotNull( m );
+				for (Object m : set.toArray()) assertNotNull( m );
+			}
+		} finally {
+			writer.join();
+		}
+		assertNull( failure.get() );
+		assertEquals( 200, set.toArray( new Mob[0] ).length );
 	}
 }

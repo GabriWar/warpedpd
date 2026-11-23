@@ -26,6 +26,7 @@ package xyz.gabriwar.warpedpixeldungeon.levels;
 
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -91,6 +92,25 @@ public class MobSet extends HashSet<Mob> {
 			snapshot = all;
 		}
 		return snapshot;
+	}
+
+	//HashSet's own copies read its map straight, past the lock: one taken while another thread let a
+	//mob go came out a slot too long, a null at its end (GameScene.afterObserve's NPE). They are
+	//copies of the snapshot instead
+	@Override
+	public Object[] toArray(){
+		Mob[] all = snapshot();
+		return Arrays.copyOf( all, all.length, Object[].class );
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public <T> T[] toArray( T[] a ){
+		Mob[] all = snapshot();
+		if (a.length < all.length) return (T[]) Arrays.copyOf( all, all.length, a.getClass() );
+		System.arraycopy( all, 0, a, 0, all.length );
+		if (a.length > all.length) a[all.length] = null;
+		return a;
 	}
 
 	@Override

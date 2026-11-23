@@ -82,8 +82,11 @@ public abstract class CrystalWispSprite extends MobSprite {
 
 	}
 
+	//not synchronized: the flare's add takes the layer's lock, which the render thread holds while
+	//it steps this sprite under its own; holding both the other way round locked the game up.
+	//super.attack takes the sprite's lock itself
 	@Override
-	public synchronized void attack(int cell) {
+	public void attack(int cell) {
 		super.attack(cell);
 		parent.add(new AlphaTweener(light, 1f, 0.2f) {
 			@Override

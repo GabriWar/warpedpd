@@ -47,12 +47,17 @@ public class ChangeSheepTrap extends Trap {
 
 	private static final float SPAWN_DELAY = 0.2f;
 
+	//the sheep a change sets down on this cell is not changed again by the same press: the
+	//level's occupyCell would fire the trap under it once more, and now that every sheep is one
+	//that can still change, that went on until the stack overflowed
+	private static boolean changing = false;
+
 	@Override
 	public void activate() {
 
 		Char ch = Actor.findChar(pos);
 
-		if (ch == null || ch == Dungeon.hero) {
+		if (changing || ch == null || ch == Dungeon.hero) {
 			return;
 		}
 
@@ -72,11 +77,16 @@ public class ChangeSheepTrap extends Trap {
 		if (replacement != null) {
 			ch.destroy();
 			ch.sprite.killAndErase();
-			CellEmitter.get(pos).burst(ElmoParticle.FACTORY, 6);
+			if (Dungeon.level.heroFOV[pos]) CellEmitter.get(pos).burst(ElmoParticle.FACTORY, 6);
 
 			replacement.pos = pos;
 			GameScene.add(replacement, SPAWN_DELAY);
-			Dungeon.level.occupyCell(replacement);
+			changing = true;
+			try {
+				Dungeon.level.occupyCell(replacement);
+			} finally {
+				changing = false;
+			}
 		}
 	}
 }

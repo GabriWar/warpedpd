@@ -2418,7 +2418,16 @@ public class Hero extends Char {
 			
 			boolean hasKey = false;
 			int door = Dungeon.level.map[doorCell];
-			
+
+			//no key turns an iron lock on a sealed floor, as the skeleton key will not: a boss shuts
+			//his own door on the hero (Tengu's cell, the Dwarf King's hall) and a branch's key of this
+			//depth fits it too. Out of Tengu's cell mid-fight, his next jump crashed the game
+			if (door == Terrain.LOCKED_DOOR && Dungeon.level.locked){
+				GLog.w( Messages.get(this, "door_sealed") );
+				ready();
+				return false;
+			}
+
 			if (door == Terrain.LOCKED_DOOR
 					&& Notes.keyCount(new IronKey(Dungeon.depth)) > 0) {
 				

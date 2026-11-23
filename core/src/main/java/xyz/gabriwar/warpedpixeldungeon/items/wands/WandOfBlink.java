@@ -77,7 +77,8 @@ public class WandOfBlink extends Wand {
 			cell = bolt.collisionPos;
 		}
 
-		if (Actor.findChar(cell) != null) {
+		//a bolt stopped on its own first cell (a cursed zap into an adjacent wall) has nowhere to back off to
+		if (Actor.findChar(cell) != null && bolt.dist > 0) {
 			//back off one tile but never past the max blink range
 			cell = bolt.path.get(Math.min(bolt.dist - 1, maxDist));
 		}

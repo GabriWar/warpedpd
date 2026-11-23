@@ -631,8 +631,8 @@ public abstract class Level implements Bundlable {
 				if (b instanceof xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero) {
 					xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero h
 							= (xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero) b;
-					xyz.gabriwar.warpedpixeldungeon.actors.Actor.add(h);
-					xyz.gabriwar.warpedpixeldungeon.net.NetManager.registerLoadedNetHero(h);
+					xyz.gabriwar.warpedpixeldungeon.actors.Actor.add(
+							xyz.gabriwar.warpedpixeldungeon.net.NetManager.registerLoadedNetHero(h));
 				}
 			}
 		}

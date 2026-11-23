@@ -100,6 +100,9 @@ public class WndSupporterDiscord extends Window {
 					final String link = url;
 					final String why = failed;
 					Game.runOnRenderThread( () -> {
+						//the window was closed (or its scene left) while the relay answered:
+						//destroying it took the button out, with nothing left to write into
+						if (parent == null) return;
 						enable( true );
 						if (link != null && link.startsWith( "https://discord.com/" )) {
 							text( Messages.get( WndSupporterDiscord.class, "role" ) );

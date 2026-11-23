@@ -532,10 +532,12 @@ public class NetManager {
 	/**
 	 * Called from Level.restoreFromBundle when a save with persisted netHeroes is loaded.
 	 * Re-marks them as remote and stashes them under their owner name so reconnecting
-	 * players can claim back their hero.
+	 * players can claim back their hero. Returns the hero to put on the floor: the loaded one,
+	 * or the one already known under that name when the loaded copy is dropped for it (the
+	 * copy put on the floor too stood there as a second actor, on the cell it was saved on).
 	 */
-	public static void registerLoadedNetHero(Hero h) {
-		if (h == null) return;
+	public static Hero registerLoadedNetHero(Hero h) {
+		if (h == null) return null;
 		h.isRemote = true;
 		h.remoteWaiting = false;
 		h.pendingActionCell = -1;
@@ -553,22 +555,25 @@ public class NetManager {
 			synchronized (CLAIM_LOCK) {
 				// Don't silently overwrite a hero that's already been claimed by an
 				// active connection or stashed earlier under the same name.
-				if (netHeroes.values().stream().anyMatch(nh -> h.netOwnerName.equals(nh.netOwnerName))) {
-					log("[NET-HOST] Loaded netHero collides with active claim name=" + h.netOwnerName
-							+ " — dropping the loaded copy");
-					return;
+				for (Hero nh : netHeroes.values()) {
+					if (h.netOwnerName.equals(nh.netOwnerName)) {
+						log("[NET-HOST] Loaded netHero collides with active claim name=" + h.netOwnerName
+								+ " — dropping the loaded copy");
+						return nh;
+					}
 				}
 				Hero existing = unclaimedHeroes.putIfAbsent(h.netOwnerName, h);
 				if (existing != null && existing != h) {
 					log("[NET-HOST] Loaded netHero collides with stashed name=" + h.netOwnerName
 							+ " existingId=" + existing.id() + " newId=" + h.id()
 							+ " — keeping existing");
-					return;
+					return existing;
 				}
 			}
 			xyz.gabriwar.warpedpixeldungeon.net.NetManager.log("[NET-HOST] Loaded netHero from save name=" + h.netOwnerName
 					+ " id=" + h.id() + " pos=" + h.pos);
 		}
+		return h;
 	}
 
 	/** Heroes (claimed + unclaimed) for level save serialization. */
@@ -1228,6 +1233,24 @@ public class NetManager {
 		broadcastLevelChange();
 	}
 
+	/** Called when a saved game has loaded (InterlevelScene CONTINUE): the floor did not
+	 *  change, so the party stays where the save left it - all but a hero the save left on a
+	 *  cell this floor does not have. A floor's file is written as the party lands on it
+	 *  (Dungeon.switchLevel), before relocateNetHeroesToCurrentFloor has brought the guests
+	 *  over from the floor they left, so until the next save it holds them on that floor's
+	 *  cells (a surface cell, up to 30975, on a 1560-cell floor). Those stand beside the host. */
+	public static void onGameLoaded() {
+		if (!isHost()) return;
+		if (Dungeon.level != null && Dungeon.hero != null) {
+			java.util.ArrayList<Hero> strays = new java.util.ArrayList<>();
+			for (Hero nh : allKnownNetHeroes()) {
+				if (nh.pos < 0 || nh.pos >= Dungeon.level.length()) strays.add(nh);
+			}
+			relocate(strays, Dungeon.hero.pos);
+		}
+		broadcastLevelChange();
+	}
+
 	/** Reset the floor tracker — call when the host quits or starts fresh. */
 	public static void resetLevelTracking() {
 		lastBroadcastDepth = -1;
@@ -1249,10 +1272,13 @@ public class NetManager {
 					? Dungeon.hero.pos
 					: Dungeon.level.entrance();
 		}
-		final int entrance = anchor;
 		java.util.HashSet<Hero> moved = new java.util.HashSet<>();
 		moved.addAll(netHeroes.values());
 		moved.addAll(unclaimedHeroes.values());
+		relocate(moved, anchor);
+	}
+
+	private static void relocate(java.util.Collection<Hero> moved, int entrance) {
 		for (Hero nh : moved) {
 			int dst = entrance;
 			if (xyz.gabriwar.warpedpixeldungeon.actors.Actor.findChar(dst) != null) {

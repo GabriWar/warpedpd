@@ -27,6 +27,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.blobs.Blob;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
+import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Statue;
 import xyz.gabriwar.warpedpixeldungeon.items.Generator;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.journal.Bestiary;
@@ -667,7 +668,7 @@ public class WndDebugPicker extends Window {
 						Dungeon.level.passable, c -> Actor.findChar(c) != null);
 				if (cells.size() < count) GLog.w("Room for only " + cells.size() + " of " + count + " there.");
 				for (int c : cells) {
-					Mob mob = Reflection.newInstance(mobCls);
+					Mob mob = bare(mobCls);
 					if (mob == null) return;
 					mob.pos = c;
 					mob.state = mob.debugSpawnState();
@@ -680,6 +681,14 @@ public class WndDebugPicker extends Window {
 				return "Tap to spawn x" + count + ": " + name;
 			}
 		}));
+	}
+
+	/** A monster as the picker spawns it. A statue is handed its weapon (and an armored one its
+	 *  armor) where it is made (Statue.random, the traps), not by its constructor: it gets them here. */
+	static Mob bare(Class<? extends Mob> mobCls) {
+		Mob mob = Reflection.newInstance(mobCls);
+		if (mob instanceof Statue) ((Statue) mob).createWeapon(false);
+		return mob;
 	}
 
 	/**

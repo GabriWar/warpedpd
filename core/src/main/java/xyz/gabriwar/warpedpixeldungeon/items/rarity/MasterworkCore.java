@@ -56,10 +56,12 @@ public class MasterworkCore extends Item {
 		return Quality.hasRarity( item );
 	}
 
-	//the item's quality, rolled now if it never got one
+	//the item's quality, rolled now if it never got one. A starting piece rolls too: the kit
+	//stays plain only until a core, shifter or the anvil works it
 	private static Quality qualityOf( Item item ){
 		Quality q = Quality.of( item );
 		if (q == null){
+			item.starterKit = false;
 			Quality.roll( item );
 			q = Quality.of( item );
 		}

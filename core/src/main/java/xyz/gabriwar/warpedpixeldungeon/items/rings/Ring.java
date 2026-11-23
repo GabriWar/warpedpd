@@ -133,7 +133,8 @@ public class Ring extends KindofMisc {
 			buff = null;
 		}
 		buff = buff();
-		buff.attachTo( ch );
+		//the plain Ring (a debug spawn) has no buff of its own
+		if (buff != null) buff.attachTo( ch );
 	}
 
 	@Override

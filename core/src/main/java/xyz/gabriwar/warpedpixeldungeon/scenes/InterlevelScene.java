@@ -552,7 +552,7 @@ public class InterlevelScene extends PixelScene {
 					// CONTINUE = game load (no actual floor change). Only relocate
 					// netHeroes for true transitions (DESCEND / ASCEND / etc).
 					if (mode == Mode.CONTINUE) {
-						xyz.gabriwar.warpedpixeldungeon.net.NetManager.broadcastLevelChange();
+						xyz.gabriwar.warpedpixeldungeon.net.NetManager.onGameLoaded();
 					} else {
 						xyz.gabriwar.warpedpixeldungeon.net.NetManager.onLevelDescent();
 					}

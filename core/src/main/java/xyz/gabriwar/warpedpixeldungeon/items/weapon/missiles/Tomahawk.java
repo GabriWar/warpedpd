@@ -55,7 +55,11 @@ public class Tomahawk extends MissileWeapon {
 	}
 
 	public float minBleed(){
-		return minBleed(buffedLvl() + RingOfSharpshooting.levelDamageBonus(Dungeon.hero));
+		if (Dungeon.hero != null){
+			return minBleed(buffedLvl() + RingOfSharpshooting.levelDamageBonus(Dungeon.hero));
+		} else {
+			return minBleed(buffedLvl());
+		}
 	}
 
 	public float minBleed(int lvl){
@@ -63,7 +67,11 @@ public class Tomahawk extends MissileWeapon {
 	}
 
 	public float maxBleed(){
-		return maxBleed(buffedLvl() + RingOfSharpshooting.levelDamageBonus(Dungeon.hero));
+		if (Dungeon.hero != null){
+			return maxBleed(buffedLvl() + RingOfSharpshooting.levelDamageBonus(Dungeon.hero));
+		} else {
+			return maxBleed(buffedLvl());
+		}
 	}
 
 	public float maxBleed(int lvl){

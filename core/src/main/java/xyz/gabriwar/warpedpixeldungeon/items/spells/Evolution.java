@@ -136,8 +136,10 @@ public class Evolution extends InventorySpell {
             }
         }
 
+        //from the tier's full list, not its deck: a deck all dropped holds no weapon until the
+        //generator's next draw refills it
         do {
-            n = (Weapon) Reflection.newInstance(c.classes[Random.chances(c.probs)]);
+            n = (Weapon) Reflection.newInstance(c.classes[Random.chances(c.defaultProbs)]);
         } while (Challenges.isItemBlocked(n) || n.getClass() == w.getClass());
 
         n.level(0);

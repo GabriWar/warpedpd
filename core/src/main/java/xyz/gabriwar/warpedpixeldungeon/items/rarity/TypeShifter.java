@@ -88,11 +88,7 @@ public class TypeShifter extends Item {
 		@Override
 		public void onSelect( Item item ){
 			if (item == null) return;
-			Quality q = Quality.of( item );
-			if (q == null){
-				Quality.roll( item );
-				q = Quality.of( item );
-			}
+			Quality q = MasterworkCore.quality( item );
 			if (q.type.alpha()){
 				GLog.w( Messages.get( TypeShifter.class, "already_alpha", item.name() ) );
 				return;

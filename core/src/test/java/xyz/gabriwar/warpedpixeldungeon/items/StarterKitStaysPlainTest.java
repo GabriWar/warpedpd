@@ -27,6 +27,7 @@ package xyz.gabriwar.warpedpixeldungeon.items;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.GamesInProgress;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.MasterworkCore;
 import xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.MissileWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.ThrowingStone;
@@ -34,6 +35,8 @@ import xyz.gabriwar.warpedpixeldungeon.levels.rooms.WarpedRoomsTest;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -61,5 +64,26 @@ public class StarterKitStaysPlainTest {
 		Quality.roll( thrown ); //what landing does to it
 		assertNull( thrown.quality );
 		assertTrue( stones.isSimilar( thrown ) );
+	}
+
+	/**
+	 * Plain until it is worked: a masterwork core, the reroll wheel, the black market's wheel, a
+	 * type shifter or the tempering anvil offered every class's starting pieces and crashed on the
+	 * quality they never got (67 reports from 24.5.6). The first use rolls it, as for any other
+	 * item that came without one.
+	 */
+	@Test
+	public void aWorkedStartingPieceGetsItsQuality(){
+		for (HeroClass cl : HeroClass.values()){
+			Dungeon.seed = 1234;
+			GamesInProgress.selectedClass = cl;
+			Dungeon.init();
+			for (Item kit : Dungeon.hero.belongings){
+				if (!MasterworkCore.workable( kit )) continue;
+				assertTrue( kit.starterKit );
+				assertNotNull( cl + " " + kit.getClass().getSimpleName(), MasterworkCore.quality( kit ) );
+				assertFalse( kit.starterKit );
+			}
+		}
 	}
 }

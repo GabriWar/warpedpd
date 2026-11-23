@@ -327,6 +327,8 @@ public class DwarfKing extends Mob {
 	}
 
 	private boolean summonSubject( int delay, Class<?extends Mob> type ){
+		//his subjects rise from his arena's summoning spots: away from it he has none to call
+		if (!(Dungeon.level instanceof CityBossLevel)) return false;
 		Summoning s = new Summoning();
 		s.pos = ((CityBossLevel)Dungeon.level).getSummoningPos();
 		if (s.pos == -1) return false;
@@ -497,7 +499,8 @@ public class DwarfKing extends Mob {
 			if (HP <= (Dungeon.isChallenged(Challenges.STRONGER_BOSSES) ? 100 : 50)) {
 				HP = (Dungeon.isChallenged(Challenges.STRONGER_BOSSES) ? 100 : 50);
 				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.mark( this, xyz.gabriwar.warpedpixeldungeon.effects.FloatingText.IMMUNE );
-				ScrollOfTeleportation.appear(this, CityBossLevel.throne);
+				//the throne is a cell of his arena's map: on any other floor he stays where he is
+				if (Dungeon.level instanceof CityBossLevel) ScrollOfTeleportation.appear(this, CityBossLevel.throne);
 				properties.add(Property.IMMOVABLE);
 				phase = 2;
 				summonsMade = 0;

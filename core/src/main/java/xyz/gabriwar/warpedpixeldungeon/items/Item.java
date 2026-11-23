@@ -81,7 +81,8 @@ public class Item implements Bundlable {
 
 	//rarity / type / masterwork state; null for items outside that system
 	public xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality quality = null;
-	//packed in the starting kit: it stays plain, never given a rarity later. A thrown starting
+	//packed in the starting kit: it stays plain, given a rarity only when a core, shifter or the
+	//anvil works it (MasterworkCore.quality). A thrown starting
 	//stone got one where it landed (Level.drop) and no longer stacked with the rest of its set
 	//nor matched its quickslot. Split pieces carry it (Item.split copies through the bundle)
 	public boolean starterKit = false;

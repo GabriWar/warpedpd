@@ -98,11 +98,19 @@ public class WndDebugGear extends Window {
 			@Override
 			public void onSelect( Item item ){
 				if (item == null) return;
-				//an item made before the rarity system has none yet: roll it one to edit
-				if (!magic) Quality.roll( item );
+				if (!magic) rollToEdit( item );
 				GameScene.show( new WndDebugGear( item, magic ) );
 			}
 		} );
+	}
+
+	//an item made before the rarity system, or a starting piece kept plain (Item.starterKit), has
+	//none yet: roll it one to edit, as MasterworkCore.quality does
+	static void rollToEdit( Item item ){
+		if (item.quality == null){
+			item.starterKit = false;
+			Quality.roll( item );
+		}
 	}
 
 	private final Item item;

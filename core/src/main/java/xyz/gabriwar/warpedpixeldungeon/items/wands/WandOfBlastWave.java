@@ -167,7 +167,8 @@ public class WandOfBlastWave extends DamageWand {
 			public void call() {
 				if (initialpos != ch.pos || Actor.findChar(newPos) != null) {
 					//something caused movement or added chars before pushing resolved, cancel to be safe.
-					ch.sprite.place(ch.pos);
+					//(a push before this one can have thrown it down a chasm, sprite and all)
+					if (ch.sprite != null) ch.sprite.place(ch.pos);
 					return;
 				}
 				int oldPos = ch.pos;
