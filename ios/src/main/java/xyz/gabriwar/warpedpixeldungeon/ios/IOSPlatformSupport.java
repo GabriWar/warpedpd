@@ -190,9 +190,9 @@ public class IOSPlatformSupport extends PlatformSupport {
 	/* FONT SUPPORT */
 
 	//custom pixel font, for use with Latin and Cyrillic languages
-	private static FreeTypeFontGenerator basicFontGenerator;
-	//droid sans fallback, for asian fonts
-	private static FreeTypeFontGenerator asianFontGenerator;
+	private static FreeTypeFontGenerator pixelFontGenerator;
+	//smooth font (droid sans / noto sans), for asian and arabic fonts
+	private static FreeTypeFontGenerator smoothFontGenerator;
 
 	@Override
 	public void setupFontGenerators(int pageSize, boolean systemfont) {
@@ -207,34 +207,39 @@ public class IOSPlatformSupport extends PlatformSupport {
 		fonts = new HashMap<>();
 
 		if (systemfont) {
-			basicFontGenerator = asianFontGenerator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/droid_sans.ttf"));
+			pixelFontGenerator = smoothFontGenerator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/droid_sans.ttf"));
 		} else {
-			basicFontGenerator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/pixel_font.ttf"));
-			asianFontGenerator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/droid_sans.ttf"));
+			pixelFontGenerator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/pixel_font.ttf"));
+			smoothFontGenerator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/droid_sans.ttf"));
 		}
 
-		fonts.put(basicFontGenerator, new HashMap<>());
-		fonts.put(asianFontGenerator, new HashMap<>());
+		fonts.put(pixelFontGenerator, new HashMap<>());
+		fonts.put(smoothFontGenerator, new HashMap<>());
 
 		packer = new PixmapPacker(pageSize, pageSize, Pixmap.Format.RGBA8888, 1, false);
 	}
 
-	private static final Matcher asianMatcher = Pattern.compile("\\p{InHangul_Syllables}|" +
+	private static Matcher smoothMatcher = Pattern.compile("\\p{InHangul_Syllables}|" +
 			"\\p{InCJK_Unified_Ideographs}|\\p{InCJK_Symbols_and_Punctuation}|\\p{InHalfwidth_and_Fullwidth_Forms}|" +
-			"\\p{InHiragana}|\\p{InKatakana}").matcher("");
+			"\\p{InHiragana}|\\p{InKatakana}|\\p{InArabic}|\\p{InARABIC_PRESENTATION_FORMS_B}").matcher("");
 
 	@Override
 	protected FreeTypeFontGenerator getGeneratorForString( String input ){
-		if (asianMatcher.reset(input).find()){
-			return asianFontGenerator;
+		if (smoothMatcher.reset(input).find()){
+			return smoothFontGenerator;
 		} else {
-			return basicFontGenerator;
+			return pixelFontGenerator;
 		}
 	}
 
-	//splits on newline (for layout), chinese/japanese (for font choice), and '_'/'**' (for highlighting)
+	//splits on:
+	// newline for layout
+	// chinese/japanese for font choice
+	// '('/')' for font choice and layout in Arabic
+	// '_'/'**' for highlighting
 	private Pattern regularsplitter = Pattern.compile(
 			"(?<=\n)|(?=\n)|(?<=_)|(?=_)|(?<=\\*\\*)|(?=\\*\\*)|" +
+					"(?<=\\))|(?=\\))|(?<=\\()|(?=\\()|"+
 					"(?<=\\p{InHiragana})|(?=\\p{InHiragana})|" +
 					"(?<=\\p{InKatakana})|(?=\\p{InKatakana})|" +
 					"(?<=\\p{InCJK_Unified_Ideographs})|(?=\\p{InCJK_Unified_Ideographs})|" +
@@ -243,6 +248,7 @@ public class IOSPlatformSupport extends PlatformSupport {
 	//additionally splits on spaces, so that each word can be laid out individually
 	private Pattern regularsplitterMultiline = Pattern.compile(
 			"(?<= )|(?= )|(?<=\n)|(?=\n)|(?<=_)|(?=_)|(?<=\\*\\*)|(?=\\*\\*)|" +
+					"(?<=\\))|(?=\\))|(?<=\\()|(?=\\()|"+
 					"(?<=\\p{InHiragana})|(?=\\p{InHiragana})|" +
 					"(?<=\\p{InKatakana})|(?=\\p{InKatakana})|" +
 					"(?<=\\p{InCJK_Unified_Ideographs})|(?=\\p{InCJK_Unified_Ideographs})|" +

@@ -60,7 +60,6 @@ import com.watabou.noosa.Camera;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Gizmo;
 import com.watabou.noosa.NoosaScript;
-import com.watabou.noosa.NoosaScriptNoLighting;
 import com.watabou.utils.PathFinder;
 import com.watabou.utils.DeviceCompat;
 
@@ -420,7 +419,6 @@ public class ScreenshotTour {
 
 		fbo.begin();
 		NoosaScript.get().resetCamera();
-		NoosaScriptNoLighting.get().resetCamera();
 		Gdx.gl.glDisable( Gdx.gl.GL_SCISSOR_TEST );
 		Gdx.gl.glClear( Gdx.gl.GL_COLOR_BUFFER_BIT );
 		Game.scene().draw();

@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.scenes;
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Badges;
 import xyz.gabriwar.warpedpixeldungeon.Chrome;
 import xyz.gabriwar.warpedpixeldungeon.GamesInProgress;
@@ -44,6 +45,7 @@ import com.watabou.noosa.Camera;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.NinePatch;
+import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.RectF;
 
 import java.util.ArrayList;
@@ -345,6 +347,17 @@ public class StartScene extends PixelScene {
 			
 		}
 		
+		@Override
+		protected void onPointerDown() {
+			bg.brightness(1.2f);
+			Sample.INSTANCE.play( Assets.Sounds.CLICK );
+		}
+
+		@Override
+		protected void onPointerUp() {
+			bg.resetColor();
+		}
+
 		@Override
 		protected void onClick() {
 			if (newGame) {

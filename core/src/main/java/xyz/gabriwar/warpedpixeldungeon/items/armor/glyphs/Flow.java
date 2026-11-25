@@ -23,6 +23,8 @@ package xyz.gabriwar.warpedpixeldungeon.items.armor.glyphs;
 
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.FlavourBuff;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
@@ -40,22 +42,34 @@ public class Flow extends Armor.Glyph {
 	}
 
 	public static float speedBoost( Char owner, int level ){
-		if (level == -1 || !Dungeon.level.water[owner.pos]){
+		if (level == -1){
 			return 1;
-		} else {
+		}
+
+		//the lingering time is what scales with glyph level (and glyph power)
+		float duration = (level+2)/4f * genericProcChanceMultiplier(owner) * owner.glyphPower(Flow.class);
+		if (Dungeon.level.water[owner.pos] && duration > 0.5f){
+			//Each step is half a turn, so an extra step every 2nd upgrade lvl essentially, assuming no other speed boosts
+			Buff.prolong(owner, FlowTracker.class, duration-0.5f);
+		}
+
+		if (Dungeon.level.water[owner.pos] || owner.buff(FlowTracker.class) != null){
 			if (owner.sprite != null && owner.sprite.visible){
 				int particles = 2 + (int) Random.Float(1+level/2f);
 				owner.sprite.emitter().startDelayed(Speck.factory(Speck.BLUE_LIGHT), 0.02f, particles, 0.05f);
 				ShadowRows.flowStep( owner );
 			}
-			//only the bonus above 1x scales with glyph level
-			return (1f + (1f + 0.5f*level) * owner.glyphPower(Flow.class)) * genericProcChanceMultiplier(owner);
+			return 2f;
 		}
+
+		return 1f;
 	}
 
 	@Override
 	public ItemSprite.Glowing glowing() {
 		return BLUE;
 	}
+
+	public static class FlowTracker extends FlavourBuff {}
 
 }

@@ -44,6 +44,7 @@ public enum Languages {
 	UKRANIAN("українська",  "uk", Status.X_UNFINISH, new String[]{"Oster", "Snikewin", "zhushman00"}, new String[]{"AlexFenixUA", "Buster54", "Doodlinka", "Dotsent", "Lyttym", "MaxQuiet", "Mops", "Sadsaltan1", "TarasUA", "TheGuyBill", "Tomfire", "Volkov", "ZverWolf", "_bor_", "alexfenixva", "ddmaster3463", "filalex77", "holuydadko", "ingvarfed", "iu0v1", "jesternotricks", "lezzen", "myshokoleksander05", "oliolioxinfree", "qweez", "romanokurg", "so1der", "sterenkevicsasa", "vlisivka", "xojltoh", "yukete", "zhawty", "Мальвочка"}),
 	INDONESIAN("indonesia", "in", Status.X_UNFINISH, new String[]{"RF_4R4F1_03", "rakapratama"}, new String[]{"An_Ironstone", "Flasherx", "INDRA_SYAHPUTRA", "Izulhaaq", "Karanh", "M.Bintang.K", "PineFirebloom", "QiuQiuQi", "Ruzz_Axleod", "Taka31", "ZakyM313", "ZangieF347", "aachunemiku", "anagakenny24", "aryasatya_arifien", "atmorojo", "di9526985", "esprogarap", "hatsunnimiku", "icebearwand", "kirimaja", "lupar21", "luthfidzaky_ldzy", "mkakhsan301", "nicoalvito", "noeldycreator", "oolek", "wisnugafur"}),
 	CZECH("čeština",        "cs", Status.X_UNFINISH, new String[]{"16cnovotny", "ObisMike", "novotnyvaclav"}, new String[]{"AshenShugar", "Autony", "Block_Vader", "Buba237", "JStrange", "Nerdiniel", "Patrik123", "RealBrofessor", "Thorn_123", "chuckjirka", "emteckos2", "kristanka", "luhan.lukas"}),
+	ARABIC("العربية",       "ar", Status.X_UNFINISH, null, new String[]{"getso"}),
 	DUTCH("nederlands",     "nl", Status.X_UNFINISH, new String[]{"AlbertBrand", "Mvharen"}, new String[]{"AvanLieshout", "Blokheck011", "Frankwert", "Gehenna", "Valco", "ZephyrZodiac", "link200023", "ojppe", "rmw", "th3f4llenh0rr0r"}),
 	SWEDISH("svenska",      "sv", Status.X_UNFINISH, new String[]{"leowitchhh", "yeager"}, new String[]{"KeyB", "Moistmemesneverlie", "antonaut", "dotMavriQ"}),
 	HUNGARIAN("magyar",     "hu", Status.X_UNFINISH, new String[]{"dorheim", "summoner001", "szalaik"}, new String[]{"Csanevox", "Navetelen", "acszoltan111", "balazsszalab", "clarovani", "dhialub", "nanometer", "nardomaa", "savarall", "szemetvodor"}),
@@ -112,6 +113,11 @@ public enum Languages {
 				return lang;
 		}
 		return ENGLISH;
+	}
+
+	public static boolean requiresSmoothFont(Languages lang){
+		return lang == Languages.CHI_SMPL || lang == Languages.CHI_TRAD
+				|| lang == Languages.KOREAN || lang == Languages.JAPANESE || lang == ARABIC;
 	}
 
 }

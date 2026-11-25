@@ -47,6 +47,7 @@ import com.watabou.noosa.ColorBlock;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Gizmo;
 import com.watabou.noosa.Image;
+import com.watabou.noosa.NoosaScript;
 import com.watabou.noosa.Scene;
 import com.watabou.noosa.Visual;
 import com.watabou.noosa.ui.Component;
@@ -185,6 +186,9 @@ public class PixelScene extends Scene {
 		Tooltip.resetLastUsedTime();
 
 		Cursor.setCustomCursor(Cursor.Type.DEFAULT, defaultZoom);
+
+		// 0.8/0.91/1/1.11/1.25
+		NoosaScript.brightness(1f/(1f-WPDSettings.brightness()/10f));
 
 	}
 

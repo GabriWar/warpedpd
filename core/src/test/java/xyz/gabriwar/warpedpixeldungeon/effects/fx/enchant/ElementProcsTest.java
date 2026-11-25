@@ -1324,7 +1324,7 @@ public class ElementProcsTest {
 			{ "items/weapon/enchantments/Blocking.java", 1, 1 },
 			{ "items/weapon/enchantments/Blooming.java", 3, 1 },
 			{ "items/weapon/enchantments/Chilling.java", 1, 1 },
-			{ "items/weapon/enchantments/Crystal.java", 1, 1 },
+			{ "items/weapon/enchantments/Crystal.java", 1, 2 }, //Shattered 4.0.3 splashes on the crack too
 			{ "items/weapon/enchantments/Elastic.java", 1, 0 },
 			{ "items/weapon/enchantments/Holy.java", 4, 0 },
 			{ "items/weapon/enchantments/Kinetic.java", 0, 0 },

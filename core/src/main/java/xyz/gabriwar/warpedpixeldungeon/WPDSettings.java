@@ -92,7 +92,7 @@ public class WPDSettings extends GameSettings {
 	}
 	
 	public static int brightness() {
-		return getInt( KEY_BRIGHTNESS, 0, -1, 1 );
+		return getInt( KEY_BRIGHTNESS, 0, -2, 2 );
 	}
 	
 	public static void visualGrid( int value ){
@@ -207,9 +207,7 @@ public class WPDSettings extends GameSettings {
 	}
 
 	public static boolean systemFont(){
-		return getBoolean(KEY_SYSTEMFONT,
-				(language() == Languages.CHI_SMPL || language() == Languages.CHI_TRAD
-						|| language() == Languages.KOREAN || language() == Languages.JAPANESE));
+		return getBoolean(KEY_SYSTEMFONT, Languages.requiresSmoothFont(language()));
 	}
 
 	public static void vibration(boolean value){

@@ -563,7 +563,13 @@ public final class DungeonLife extends Gizmo {
 			for (Flock f : flocks) if (f.kind == k && !f.scared && !f.gone()) n++;
 			return n;
 		}
-		for (Critter c : live) if (c.kind == k && calm( c )) n++;
+		//a startled glider comes back to swimming: counted while it flees, or a new one put out in
+		//the meantime takes the floor over its cap when it settles (cave fish)
+		for (Critter c : live){
+			if (c.kind != k) continue;
+			if (calm( c ) || (c.sprite instanceof SliceCritterSprite.Swimmer && c.sprite.exists && !c.sprite.leaving()
+					&& ((SliceCritterSprite.Swimmer) c.sprite).comingBack())) n++;
+		}
 		return n;
 	}
 

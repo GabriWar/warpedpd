@@ -42,6 +42,7 @@ import com.watabou.noosa.Camera;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.NinePatch;
+import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
 import com.watabou.noosa.ui.Component;
 import com.watabou.gltextures.TextureCache;
@@ -123,6 +124,19 @@ public class StatusPane extends Component {
 
 		heroInfo = new Button(){
 			@Override
+			protected void onPointerDown() {
+				Sample.INSTANCE.play( Assets.Sounds.CLICK );
+				bg.brightness(1.2f);
+				heroPaneCutout.brightness(1.2f);
+			}
+
+			@Override
+			protected void onPointerUp() {
+				bg.resetColor();
+				heroPaneCutout.resetColor();
+			}
+
+			@Override
 			protected void onClick () {
 				Camera.main.panTo( Dungeon.hero.sprite.center(), 5f );
 				GameScene.show( new WndHero() );
@@ -197,6 +211,19 @@ public class StatusPane extends Component {
 		add(mpText);
 
 		heroInfoOnBar = new Button(){
+			@Override
+			protected void onPointerDown() {
+				Sample.INSTANCE.play( Assets.Sounds.CLICK );
+				bg.brightness(1.2f);
+				heroPaneCutout.brightness(1.2f);
+			}
+
+			@Override
+			protected void onPointerUp() {
+				bg.resetColor();
+				heroPaneCutout.resetColor();
+			}
+
 			@Override
 			protected void onClick () {
 				Camera.main.panTo( Dungeon.hero.sprite.center(), 5f );

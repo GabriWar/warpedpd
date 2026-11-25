@@ -21,12 +21,12 @@
 
 package xyz.gabriwar.warpedpixeldungeon.ui.changelist;
 
-import xyz.gabriwar.warpedpixeldungeon.items.Item;
+import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.ChangesScene;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
-import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSprite;
 import com.watabou.noosa.Image;
+import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.ui.Component;
 
 //not actually a button, but functions as one.
@@ -53,6 +53,7 @@ public class ChangeButton extends Component {
 	}
 	
 	protected void onClick() {
+		Sample.INSTANCE.play( Assets.Sounds.CLICK, 0.7f, 0.7f, 1.2f );
 		ChangesScene.showChangeInfo(new Image(icon), title, messages);
 	}
 	

@@ -36,7 +36,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mob;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
-import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfEnergy;
 import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
 import xyz.gabriwar.warpedpixeldungeon.levels.traps.Trap;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -286,7 +285,7 @@ public class TimekeepersHourglass extends Artifact {
 					&& Regeneration.regenOn()) {
 				//90 turns to charge at full, 60 turns to charge at 0/10
 				float chargeGain = 1 / (90f - (chargeCap - charge)*3f);
-				chargeGain *= (RingOfEnergy.artifactChargeMultiplier(target) * xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.artifactCharge(TimekeepersHourglass.this));
+				chargeGain *= (rechargeSpeedMultiplier(target) * xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.artifactCharge(TimekeepersHourglass.this));
 				partialCharge += chargeGain;
 
 				while (partialCharge >= 1) {

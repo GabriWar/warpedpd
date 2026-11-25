@@ -34,6 +34,7 @@ import xyz.gabriwar.warpedpixeldungeon.effects.WobblyBanner;
 import xyz.gabriwar.warpedpixeldungeon.effects.Fireball;
 import xyz.gabriwar.warpedpixeldungeon.journal.Document;
 import xyz.gabriwar.warpedpixeldungeon.journal.Journal;
+import xyz.gabriwar.warpedpixeldungeon.messages.Languages;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.ui.Icons;
 import xyz.gabriwar.warpedpixeldungeon.ui.TitleBackground;
@@ -41,6 +42,7 @@ import xyz.gabriwar.warpedpixeldungeon.ui.RenderedTextBlock;
 import xyz.gabriwar.warpedpixeldungeon.ui.StyledButton;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndError;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndHardNotification;
+import xyz.gabriwar.warpedpixeldungeon.windows.WndSettings;
 import com.watabou.glwrap.Blending;
 import com.watabou.input.ControllerHandler;
 import com.watabou.noosa.Camera;
@@ -234,6 +236,10 @@ public class WelcomeScene extends PixelScene {
 					//do nothing, must press the okay button
 				}
 			});
+		}
+
+		if (WPDSettings.language() == Languages.ARABIC){
+			addToFront(new WndSettings.WndArabicWarn());
 		}
 	}
 

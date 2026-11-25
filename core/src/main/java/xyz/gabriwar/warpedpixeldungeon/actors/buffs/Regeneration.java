@@ -25,11 +25,10 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.SpiritForm;
+import xyz.gabriwar.warpedpixeldungeon.items.artifacts.Artifact;
 import xyz.gabriwar.warpedpixeldungeon.items.artifacts.ChaliceOfBlood;
-import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfEnergy;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.ChaoticCenser;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.SaltCube;
-import xyz.gabriwar.warpedpixeldungeon.levels.VaultLevel;
 import com.watabou.utils.Bundle;
 
 public class Regeneration extends Buff {
@@ -76,7 +75,10 @@ public class Regeneration extends Buff {
 					} else {
 						//15% boost at +0, scaling to a 500% boost at +10
 						delay -= 1.33f + chaliceLevel*0.667f;
-						delay /= RingOfEnergy.artifactChargeMultiplier(target);
+
+						//affected by recharge speed boosts
+						delay /= Artifact.rechargeSpeedMultiplier(target);
+
 					}
 				}
 

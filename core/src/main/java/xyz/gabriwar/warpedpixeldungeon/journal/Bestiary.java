@@ -809,4 +809,14 @@ public enum Bestiary {
 		return (loot & ~((1 << 5) | (1 << 6))) | (darts << 5);
 	}
 
+	public static void unload(){
+		for (Bestiary cat : values()) {
+			for (Class cls : cat.seen.keySet()){
+				cat.seen.put(cls, false);
+				cat.encounterCount.put(cls, 0);
+				cat.lootSeen.put(cls, 0);
+			}
+		}
+	}
+
 }

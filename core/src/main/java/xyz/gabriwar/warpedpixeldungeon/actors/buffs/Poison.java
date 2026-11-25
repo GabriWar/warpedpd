@@ -115,8 +115,11 @@ public class Poison extends Buff implements Hero.Doom, Buff.DOTbuff {
 	@Override
 	public boolean act() {
 		if (target.isAlive()) {
-			
-			target.damage( (int)(left / 3) + 1, this );
+
+			// effectively reduces dmg by 1 for every 3 duration
+			// 1, 1, 2, 2, 2, 3, 3, 3, 4
+			// 1, 1, 1, 2, 2, 2, 3, 3, 3
+			target.damage( (int)((left-1) / 3) + 1, this );
 			//the rogue's necrotoxin drinks from every tick of poison working on an enemy
 			xyz.gabriwar.warpedpixeldungeon.actors.hero.skills.Necrotoxin.onPoisonTick( target );
 			spend( TICK );

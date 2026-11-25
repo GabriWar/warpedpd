@@ -221,6 +221,8 @@ public class CatacombLevel extends Level {
 	protected void createMobs() {
 		for (int i = 0; i < mobLimit(); i++) {
 			Mob mob = createMob();
+			//createMob no longer rolls champions (Shattered 4.0.3): a floor's first mobs roll here
+			if (mob != null) rollForChampion( mob );
 			if (mob == null) continue;
 			do {
 				mob.pos = randomRespawnCell(mob);

@@ -25,6 +25,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.Char;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Corruption;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.PinCushion;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.ClericSpell;
 import xyz.gabriwar.warpedpixeldungeon.items.food.PhantomMeat;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfTeleportation;
@@ -67,6 +68,10 @@ public class PhantomPiranha extends Piranha {
 						}
 					}
 					if (!candidates.isEmpty()) {
+						PinCushion pin = buff(PinCushion.class);
+						if (pin != null){
+							pin.detach();
+						}
 						ScrollOfTeleportation.appear(this, Random.element(candidates));
 						aggro(dmgSource);
 					} else {

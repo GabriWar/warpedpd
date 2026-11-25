@@ -76,7 +76,6 @@ import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.NinePatch;
 import com.watabou.noosa.NoosaScript;
-import com.watabou.noosa.NoosaScriptNoLighting;
 import com.watabou.noosa.SkinnedBlock;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
@@ -179,11 +178,6 @@ public class EnchantingScene extends PixelScene {
 		RectF insets = getCommonInsets();
 
 		water = new SkinnedBlock( w, h, Dungeon.level.waterTex() ){
-			@Override
-			protected NoosaScript script() {
-				return NoosaScriptNoLighting.get();
-			}
-
 			@Override
 			public void draw() {
 				//water has no alpha component, this improves performance

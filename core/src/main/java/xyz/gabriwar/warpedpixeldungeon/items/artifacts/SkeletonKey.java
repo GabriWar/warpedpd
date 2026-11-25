@@ -41,7 +41,6 @@ import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.keys.CrystalKey;
 import xyz.gabriwar.warpedpixeldungeon.items.keys.GoldenKey;
 import xyz.gabriwar.warpedpixeldungeon.items.keys.IronKey;
-import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfEnergy;
 import xyz.gabriwar.warpedpixeldungeon.items.wands.WandOfBlastWave;
 import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
 import xyz.gabriwar.warpedpixeldungeon.journal.Notes;
@@ -437,7 +436,7 @@ public class SkeletonKey extends Artifact {
 					&& Regeneration.regenOn()) {
 				//120 turns to charge at full, 60 turns to charge at 0/8
 				float chargeGain = 1 / (120f - (chargeCap - charge)*7.5f);
-				chargeGain *= (RingOfEnergy.artifactChargeMultiplier(target) * xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.artifactCharge(SkeletonKey.this));
+				chargeGain *= (rechargeSpeedMultiplier(target) * xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.artifactCharge(SkeletonKey.this));
 				partialCharge += chargeGain;
 
 				while (partialCharge >= 1) {

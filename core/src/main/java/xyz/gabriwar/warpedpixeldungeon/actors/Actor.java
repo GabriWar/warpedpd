@@ -55,6 +55,10 @@ public abstract class Actor implements Bundlable {
 	//used to determine what order actors act in if their time is equal. Higher values act earlier.
 	protected int actPriority = DEFAULT;
 
+	public int actPriority(){
+		return actPriority;
+	}
+
 	protected abstract boolean act();
 
 	//Always spends exactly the specified amount of time, regardless of time-influencing factors
@@ -249,12 +253,22 @@ public abstract class Actor implements Bundlable {
 		}
 	}
 
+	//used to cancel a prior next call to ensure that acting does not progress while something is happening
+	//(which we'll then call next() again at the end of)
+	//Currently this is only used to solve a weird interaction between fury and time freeze
+	//because fury spends time at the start of the hit chain instead of at the end.
+	public void cancelNext(){
+		if (current == null){
+			current = this;
+		}
+	}
+
 	public static boolean processing(){
 		return current != null;
 	}
 
 	public static int curActorPriority() {
-		return current != null ? current.actPriority : HERO_PRIO;
+		return current != null ? current.actPriority() : HERO_PRIO;
 	}
 	
 	public static boolean keepActorThreadAlive = true;
@@ -286,7 +300,7 @@ public abstract class Actor implements Bundlable {
 
 						//some actors will always go before others if time is equal.
 						if (actor.time < earliest ||
-								actor.time == earliest && (current == null || actor.actPriority > current.actPriority)) {
+								actor.time == earliest && (current == null || actor.actPriority() > current.actPriority())) {
 							earliest = actor.time;
 							current = actor;
 						}

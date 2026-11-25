@@ -26,7 +26,6 @@ package xyz.gabriwar.warpedpixeldungeon.levels;
 
 import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
-import xyz.gabriwar.warpedpixeldungeon.actors.buffs.ChampionEnemy;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Bat;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.ClayGolem;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.FossilSkeleton;
@@ -171,8 +170,7 @@ public class SandTempleLevel extends RegularLevel {
 			toSpawn = rotation( Dungeon.depth );
 			Random.shuffle( toSpawn );
 		}
-		Mob m = Reflection.newInstance( toSpawn.remove( 0 ) );
-		ChampionEnemy.rollForChampion( m );
-		return m;
+		//champions are rolled where the mob is placed (Level.spawnMob, RegularLevel), since Shattered 4.0.3
+		return Reflection.newInstance( toSpawn.remove( 0 ) );
 	}
 }

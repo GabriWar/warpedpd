@@ -49,7 +49,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.armor.Armor;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
-import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfEnergy;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.ScrollOfRetribution;
 import xyz.gabriwar.warpedpixeldungeon.items.scrolls.exotic.ScrollOfPsionicBlast;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.Weapon;
@@ -415,7 +414,7 @@ public class DriedRose extends Artifact {
 				
 				//heals to full over 500 turns
 				if (ghost.HP < ghost.HT && Regeneration.regenOn()) {
-					partialCharge += (ghost.HT / 500f) * (RingOfEnergy.artifactChargeMultiplier(target) * xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.artifactCharge(DriedRose.this));
+					partialCharge += (ghost.HT / 500f) * (rechargeSpeedMultiplier(target) * xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.artifactCharge(DriedRose.this));
 					updateQuickslot();
 					
 					while (partialCharge > 1) {
@@ -437,7 +436,7 @@ public class DriedRose extends Artifact {
 					&& target.buff(MagicImmune.class) == null
 					&& Regeneration.regenOn()) {
 				//500 turns to a full charge
-				partialCharge += (1/5f * (RingOfEnergy.artifactChargeMultiplier(target) * xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.artifactCharge(DriedRose.this)));
+				partialCharge += (1/5f * (rechargeSpeedMultiplier(target) * xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.artifactCharge(DriedRose.this)));
 				while (partialCharge > 1){
 					charge++;
 					partialCharge--;
@@ -601,10 +600,6 @@ public class DriedRose extends Artifact {
 		public Weapon weapon(){
 			if (rose != null)   return rose.weapon;
 			else                return null;
-		}
-
-		public void clearWeapon(){
-			if (rose != null) rose.weapon = null;
 		}
 
 		public Armor armor(){

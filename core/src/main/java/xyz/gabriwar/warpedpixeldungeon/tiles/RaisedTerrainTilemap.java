@@ -96,7 +96,8 @@ public class RaisedTerrainTilemap extends DungeonTilemap {
 			return -1;
 		}
 
-		int regionOffset = region()*4;
+		//the sheet holds 8 cells a region since Shattered 4.0.3 (its door tops in the second 4)
+		int regionOffset = region()*8;
 
 		if (tile == Terrain.HIGH_GRASS){
 			if (DungeonTileSheet.getVisualWithAlts(DungeonTileSheet.RAISED_HIGH_GRASS, pos) == DungeonTileSheet.RAISED_HIGH_GRASS_ALT){
@@ -112,9 +113,15 @@ public class RaisedTerrainTilemap extends DungeonTilemap {
 			} else {
 				return regionOffset + 1;
 			}
+		} else if (DungeonTileSheet.doorTile(tile) && wall(pos-1) && wall(pos+1)) {
+			return regionOffset + 4;
 		}
 		
 		return -1;
+	}
+
+	private boolean wall(int cell) {
+		return DungeonTileSheet.wallStitcheable(map[cell]);
 	}
 
 	@Override

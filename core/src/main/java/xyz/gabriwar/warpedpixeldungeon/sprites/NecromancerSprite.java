@@ -83,7 +83,6 @@ public class NecromancerSprite extends MobSprite {
 		super.die();
 		if (summoningBones != null){
 			summoningBones.on = false;
-			summoningBones = null;
 		}
 	}
 
@@ -92,27 +91,23 @@ public class NecromancerSprite extends MobSprite {
 		super.kill();
 		if (summoningBones != null){
 			summoningBones.on = false;
-			summoningBones = null;
 		}
 	}
 
 	public void cancelSummoning(){
 		if (summoningBones != null){
 			summoningBones.on = false;
-			summoningBones = null;
 		}
 	}
 
 	public void finishSummoning(){
 		if (summoningBones != null) {
-			if (summoningBones.visible) {
+			if (summoningBones.visible && summoningBones.on) {
 				//where the bones rise, beside its target
 				SpatialSound.play(Assets.Sounds.BONES, ((Necromancer) ch).summoningPos);
 				summoningBones.burst(Speck.factory(Speck.RATTLE), 5);
-			} else {
-				summoningBones.on = false;
 			}
-			summoningBones = null;
+			summoningBones.on = false;
 		}
 		idle();
 	}

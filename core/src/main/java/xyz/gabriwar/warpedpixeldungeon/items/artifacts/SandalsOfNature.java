@@ -35,7 +35,6 @@ import xyz.gabriwar.warpedpixeldungeon.effects.particles.LeafParticle;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.Bag;
 import xyz.gabriwar.warpedpixeldungeon.items.bags.VelvetPouch;
-import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfEnergy;
 import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
@@ -274,7 +273,7 @@ public class SandalsOfNature extends Artifact {
 			if (charge < chargeCap){
 				//0.5 charge per grass at +0, up to 1.5 at +10
 				float chargeGain = (3f + 2*level())/6f;
-				chargeGain *= (RingOfEnergy.artifactChargeMultiplier(target) * xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.artifactCharge(SandalsOfNature.this));
+				chargeGain *= (rechargeSpeedMultiplier(target) * xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.artifactCharge(SandalsOfNature.this));
 				partialCharge += Math.max(0, chargeGain);
 				while (partialCharge >= 1){
 					charge++;
@@ -314,7 +313,8 @@ public class SandalsOfNature extends Artifact {
 				SpatialSound.play( Assets.Sounds.PLANT, hero );
 				hero.busy();
 				hero.spend( Actor.TICK );
-				if (seeds.size() >= 3+(level()*3)){
+				//needs 3/5/7 seeds to upgrade to +3/+6/+10
+				if (seeds.size() >= 3+(level()*2)){
 					seeds.clear();
 					upgrade();
 					Catalog.countUses(SandalsOfNature.class, level() == 3 ? 4 : 3);

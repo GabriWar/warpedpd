@@ -516,6 +516,11 @@ public final class SliceCritterSprite {
 			return state == SWIM || state == CURIOUS;
 		}
 
+		/** Fleeing, but a glider that settles back to swimming once its burst is spent. */
+		public boolean comingBack(){
+			return state == FLEE && glides;
+		}
+
 		/** Something at (sx, sy) startled it: away it bursts. */
 		public void startle( float sx, float sy ){
 			if (state == FLEE || state == DIVE || leaving()) return;

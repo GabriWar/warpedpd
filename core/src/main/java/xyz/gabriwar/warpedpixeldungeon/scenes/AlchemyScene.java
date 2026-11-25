@@ -67,7 +67,6 @@ import xyz.gabriwar.warpedpixeldungeon.windows.WndJournal;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndKeyBindings;
 import xyz.gabriwar.warpedpixeldungeon.windows.WndMessage;
 import com.watabou.gltextures.TextureCache;
-import com.watabou.glwrap.Blending;
 import com.watabou.input.ControllerHandler;
 import com.watabou.input.GameAction;
 import com.watabou.input.KeyBindings;
@@ -75,8 +74,6 @@ import com.watabou.noosa.Camera;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.NinePatch;
-import com.watabou.noosa.NoosaScript;
-import com.watabou.noosa.NoosaScriptNoLighting;
 import com.watabou.noosa.SkinnedBlock;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.particles.Emitter;
@@ -128,23 +125,7 @@ public class AlchemyScene extends PixelScene {
 		int h = Camera.main.height;
 		RectF insets = getCommonInsets();
 
-		water = new SkinnedBlock(
-				w, h,
-				Dungeon.level.waterTex() ){
-			
-			@Override
-			protected NoosaScript script() {
-				return NoosaScriptNoLighting.get();
-			}
-			
-			@Override
-			public void draw() {
-				//water has no alpha component, this improves performance
-				Blending.disable();
-				super.draw();
-				Blending.enable();
-			}
-		};
+		water = new SkinnedBlock(w, h, Dungeon.level.waterTex() );
 		water.autoAdjust = true;
 		add(water);
 		
@@ -1028,12 +1009,14 @@ public class AlchemyScene extends PixelScene {
 				@Override
 				//only the first empty button accepts key input
 				public GameAction keyAction() {
-					for (InputButton i : inputs){
-						if (i.item == null || i.item instanceof WndBag.Placeholder) {
-							if (i == InputButton.this) {
-								return WPDAction.INVENTORY;
-							} else {
-								return super.keyAction();
+					synchronized (inputs) {
+						for (InputButton i : inputs) {
+							if (i != null && (i.item == null || i.item instanceof WndBag.Placeholder)) {
+								if (i == InputButton.this) {
+									return WPDAction.INVENTORY;
+								} else {
+									return super.keyAction();
+								}
 							}
 						}
 					}

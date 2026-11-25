@@ -38,6 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.stones.Runestone;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.darts.TippedDart;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.plants.Plant;
+import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Reflection;
@@ -90,6 +91,11 @@ public class Recycle extends InventorySpell {
 		}
 		Transmuting.show(curUser, item, result);
 		curUser.sprite.emitter().start(Speck.factory(Speck.CHANGE), 0.2f, 10);
+
+		Recycle next = (Recycle)curUser.belongings.getSimilar(curItem);
+		if (next != null){
+			GameScene.selectItem( next.itemSelector );
+		}
 	}
 	
 	@Override

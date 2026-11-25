@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.ui;
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
 import xyz.gabriwar.warpedpixeldungeon.items.ArcaneResin;
@@ -116,6 +117,7 @@ import com.watabou.noosa.BitmapText;
 import com.watabou.noosa.Group;
 import com.watabou.noosa.Image;
 import com.watabou.noosa.PointerArea;
+import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.ui.Component;
 import com.watabou.utils.Reflection;
 
@@ -146,6 +148,18 @@ public class QuickRecipe extends Component {
 			curr = new ItemSlot(in) {
 				{
 					hotArea.blockLevel = PointerArea.NEVER_BLOCK;
+				}
+
+				@Override
+				protected void onPointerDown() {
+					sprite.brightness(1.5f);
+					Sample.INSTANCE.play( Assets.Sounds.CLICK );
+				}
+
+				@Override
+				protected void onPointerUp() {
+					//brightness only: a missing input stays faded
+					sprite.brightness(1f);
 				}
 
 				@Override
@@ -194,6 +208,19 @@ public class QuickRecipe extends Component {
 		
 		anonymize(output);
 		this.output = new ItemSlot(output){
+
+			@Override
+			protected void onPointerDown() {
+				sprite.brightness(1.5f);
+				Sample.INSTANCE.play( Assets.Sounds.CLICK );
+			}
+
+			@Override
+			protected void onPointerUp() {
+				//brightness only: an output you lack inputs for stays faded
+				sprite.brightness(1f);
+			}
+
 			@Override
 			protected void onClick() {
 				WarpedPixelDungeon.scene().addToFront(new WndInfoItem(output));

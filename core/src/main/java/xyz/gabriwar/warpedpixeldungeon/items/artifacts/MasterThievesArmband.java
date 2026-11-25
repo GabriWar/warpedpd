@@ -32,6 +32,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.CounterBuff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Cripple;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Invisibility;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MagicImmune;
+import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Weakness;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.mobs.Mimic;
@@ -40,7 +41,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.Shopkeeper;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Surprise;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
-import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfEnergy;
 import xyz.gabriwar.warpedpixeldungeon.journal.Catalog;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
@@ -179,6 +179,9 @@ public class MasterThievesArmband extends Artifact {
 
 							Buff.prolong(ch, Blindness.class, debuffDuration);
 							Buff.prolong(ch, Cripple.class, debuffDuration);
+							if (surprised){
+								Buff.prolong(ch, Weakness.class, debuffDuration);
+							}
 
 							artifactProc(ch, visiblyUpgraded(), 1);
 
@@ -277,7 +280,7 @@ public class MasterThievesArmband extends Artifact {
 			if (charge < chargeCap){
 				//3 charges per hero lvl at +0, scaling to 4.5 per lvl at +10
 				float chargeGain = (3f + 0.15f*level()) * levelPortion;
-				chargeGain *= (RingOfEnergy.artifactChargeMultiplier(target) * xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.artifactCharge(MasterThievesArmband.this));
+				chargeGain *= (rechargeSpeedMultiplier(target) * xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.artifactCharge(MasterThievesArmband.this));
 
 				partialCharge += chargeGain;
 				while (partialCharge > 1f){

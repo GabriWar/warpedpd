@@ -69,7 +69,7 @@ public class Crystal extends Weapon.Enchantment {
 				if (weapon instanceof MeleeWeapon){
 					avgUses -= Math.min(20, 20*weapon.buffedLvl()/6f);
 				}
-				durability -=  Random.NormalFloat(0.5f, 1.5f)*(1f/avgUses)*weapon.delayFactor(attacker);
+				durability -=  Random.NormalFloat(0.5f, 1.5f)*(100f/avgUses)*weapon.delayFactor(attacker);
 
 				float prevHeuristicDur = visualDurability;
 				visualDurability = GameMath.gate(durability-10, visualDurability, durability);
@@ -86,6 +86,7 @@ public class Crystal extends Weapon.Enchantment {
 					visualDurability = Math.max(visualDurability, 1);
 
 					SpatialSound.play( Assets.Sounds.SHATTER, attacker );
+					Splash.at(attacker.pos, 0x0088FF, 5);
 					if (attacker instanceof Hero) {
 						GLog.n(Messages.get(this, "alert_cracked"));
 					} else if (attacker instanceof DriedRose.GhostHero){
@@ -95,15 +96,17 @@ public class Crystal extends Weapon.Enchantment {
 					SpatialSound.play( Assets.Sounds.SHATTER, attacker );
 					Splash.at(attacker.pos, 0x0088FF, 15);
 					ElementRows.crystalShatter( attacker );
+					//the crystals are lost, the weapon is kept: only this slot is cleared, a second enchantment stays
+					if (weapon.enchantment2 == this){
+						weapon.enchantment2 = null;
+					} else if (weapon.enchantment == this){
+						weapon.enchantment = weapon.enchantment2;
+						weapon.enchantment2 = null;
+					}
+					Item.updateQuickslot();
 					if (attacker instanceof Hero) {
-						if (weapon.isEquipped((Hero) attacker)) {
-							weapon.doUnequip((Hero) attacker, false);
-						} else {
-							weapon.detachAll(((Hero) attacker).belongings.backpack);
-						}
 						GLog.n(Messages.get(this, "alert_shattered"));
 					} else if (attacker instanceof DriedRose.GhostHero){
-						((DriedRose.GhostHero) attacker).clearWeapon();
 						GLog.n(Messages.get(this, "alert_shattered_ghost"));
 					}
 				}

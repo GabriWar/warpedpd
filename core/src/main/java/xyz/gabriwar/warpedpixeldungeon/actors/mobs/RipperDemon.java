@@ -30,7 +30,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Light;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.Pushing;
-import xyz.gabriwar.warpedpixeldungeon.effects.TargetedCell;
 import xyz.gabriwar.warpedpixeldungeon.mechanics.Ballistica;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -137,6 +136,7 @@ public class RipperDemon extends Mob {
 	private int leapPos = -1;
 	private float leapCooldown = 0;
 
+	//FIXME a LOT of copypasta here =S
 	public class Hunting extends Mob.Hunting {
 
 		@Override
@@ -227,11 +227,19 @@ public class RipperDemon extends Mob {
 
 			} else {
 
+				//if we cannot attack our target, but were hit by something else that
+				// is visible and attackable or closer, swap targets
+				if (handleRecentAttackers()){
+					return act( true, justAlerted );
+				}
+
 				if (enemyInFOV) {
 					target = enemy.pos;
 				} else if (enemy == null) {
+					sprite.showLost();
 					state = WANDERING;
-					target = Dungeon.level.randomDestination( RipperDemon.this );
+					target = ((Mob.Wandering)WANDERING).randomDestination();
+					spend( TICK );
 					return true;
 				}
 

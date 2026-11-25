@@ -36,7 +36,6 @@ import xyz.gabriwar.warpedpixeldungeon.actors.mobs.npcs.ClimateCrystalWard;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
 import xyz.gabriwar.warpedpixeldungeon.effects.CellEmitter;
 import xyz.gabriwar.warpedpixeldungeon.effects.Speck;
-import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfEnergy;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.CellSelector;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -182,7 +181,7 @@ public class ClimateCrystal extends Artifact {
 				float gain = chargeCap / TURNS_TO_FULL;
 				float feels = TileTemperature.feelsLikeAt( target.pos, target );
 				if (feels < 0f || feels > 30f) gain *= 2f;
-				partialCharge += gain * (RingOfEnergy.artifactChargeMultiplier( target ) * xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.artifactCharge(ClimateCrystal.this));
+				partialCharge += gain * (rechargeSpeedMultiplier( target ) * xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.artifactCharge(ClimateCrystal.this));
 				gain();
 			}
 			spend( TICK );

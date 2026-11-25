@@ -536,8 +536,10 @@ public class Tilemap extends Visual {
 		}
 	}
 	
+	//every tilemap is lit now (upstream v4.0.3 dropped NoosaScriptNoLighting, so the brightness
+	// setting reaches terrain too); kept as a hook for Warped's tilemaps that draw through it
 	protected NoosaScript script(){
-		return NoosaScriptNoLighting.get();
+		return NoosaScript.get();
 	}
 
 	private void releaseChunks(){

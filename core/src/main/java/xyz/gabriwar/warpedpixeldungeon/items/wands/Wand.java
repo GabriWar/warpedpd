@@ -906,9 +906,15 @@ public abstract class Wand extends Item {
 					+ (SCALING_CHARGE_ADDITION * Math.pow(scalingFactor, missingCharges)));
 
 			if (Regeneration.regenOn()){
-				float chargeGain = (1f/turnsToCharge) * RingOfEnergy.wandChargeMultiplier(target)
+				float chargeGain = (1f/turnsToCharge) * RingOfEnergy.rechargeSpeedMultiplier(target)
+						* (1f + xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.heroBonus(target, xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.Stat.WAND_CHARGE))
 						* xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk.wandRecharge(Wand.this)
 						* (1f + xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.value( Wand.this, xyz.gabriwar.warpedpixeldungeon.items.rarity.RarityLine.RECHARGE ) + xyz.gabriwar.warpedpixeldungeon.items.rarity.Quality.potency( Wand.this ));
+				if (target instanceof Hero
+						&& ((Hero) target).heroClass != HeroClass.CLERIC
+						&& ((Hero) target).hasTalent(Talent.LIGHT_READING)){
+					chargeGain *= 1f + (0.2f * ((Hero) target).pointsInTalent(Talent.LIGHT_READING)/3f);
+				}
 				//skill tree: Mage's Wizard - wands recharge faster
 				float skillFactor = Dungeon.hero != null
 						? Dungeon.hero.heroSkills.allWandRecharge() : 1f;

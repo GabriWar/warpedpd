@@ -33,6 +33,9 @@ import xyz.gabriwar.warpedpixeldungeon.actors.hero.Talent;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.GuidingLight;
 import xyz.gabriwar.warpedpixeldungeon.items.Item;
 import xyz.gabriwar.warpedpixeldungeon.items.KindofMisc;
+import xyz.gabriwar.warpedpixeldungeon.items.rarity.GearPerk;
+import xyz.gabriwar.warpedpixeldungeon.items.rings.RingOfEnergy;
+import xyz.gabriwar.warpedpixeldungeon.levels.VaultLevel;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Bundle;
@@ -71,6 +74,12 @@ public class Artifact extends KindofMisc {
 			return false;
 
 		} else {
+
+			//standard artifacts cannot be used inside the vault, mainly to prevent exploits with temp vault inventory
+			if (Dungeon.level instanceof VaultLevel && !unique){
+				GLog.w( Messages.get(Artifact.class, "cannot_wear_vault") );
+				return false;
+			}
 
 			if (super.doEquip( hero )){
 
@@ -249,6 +258,22 @@ public class Artifact extends KindofMisc {
 	
 	public void charge(Hero target, float amount){
 		//do nothing by default;
+	}
+
+	public static float rechargeSpeedMultiplier(Char target){
+		float multiplier = 1f;
+
+		multiplier *= RingOfEnergy.rechargeSpeedMultiplier(target);
+		//hero-wide artifact charge from worn gear rarity lines
+		multiplier *= 1f + GearPerk.heroBonus(target, GearPerk.Stat.ARTIFACT_CHARGE);
+
+		if (target instanceof Hero
+				&& ((Hero) target).heroClass != HeroClass.ROGUE
+				&& ((Hero) target).hasTalent(Talent.LIGHT_CLOAK)){
+			multiplier *= 1f + (0.2f * ((Hero) target).pointsInTalent(Talent.LIGHT_CLOAK)/3f);
+		}
+
+		return multiplier;
 	}
 
 	public class ArtifactBuff extends Buff {

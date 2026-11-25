@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.ui;
 
+import xyz.gabriwar.warpedpixeldungeon.messages.ArabicUtils;
 import xyz.gabriwar.warpedpixeldungeon.messages.Languages;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.PixelScene;
@@ -53,9 +54,13 @@ public class RenderedTextBlock extends Component {
 	public static final int LEFT_ALIGN = 1;
 	public static final int CENTER_ALIGN = 2;
 	public static final int RIGHT_ALIGN = 3;
+
 	private int alignment = LEFT_ALIGN;
-	
-	public RenderedTextBlock(int size){
+
+	//set when Arabic characters are detected
+	public boolean rightToLeft = false;
+
+	public RenderedTextBlock(int size) {
 		this.size = size;
 	}
 
@@ -65,11 +70,21 @@ public class RenderedTextBlock extends Component {
 	}
 
 	public void text(String text){
+		//we persist the text here before editing it for displaying
 		this.text = text;
 
+		//if text contains Arabic characters, we need to perform various conversions on it
+		if (text != null && ArabicUtils.containsARChars(text)) {
+			rightToLeft = true;
+			text = ArabicUtils.convertTextBlockForDisplay(text);
+		} else {
+			rightToLeft = false;
+		}
+
 		if (text != null && !text.equals("")) {
-			
-			tokens = Game.platform.splitforTextBlock(text, multiline);
+
+			//if we're RTL we have to split on words because of word reversing
+			tokens = Game.platform.splitforTextBlock(text, multiline || rightToLeft);
 			
 			build();
 		}
@@ -140,7 +155,7 @@ public class RenderedTextBlock extends Component {
 					if (tint != -1 && highlighting) spanColor = tint;
 					if (str.isEmpty()) continue;
 				}
-				RenderedText word = new RenderedText(str, size);
+				RenderedText word = new RenderedText(str, size, ArabicUtils.containsARChars(str));
 				
 				if (highlighting) word.hardlight(spanColor);
 				else if (tint != -1) word.hardlight(tint);
@@ -293,6 +308,16 @@ public class RenderedTextBlock extends Component {
 						text.x += width() - lineWidth;
 						PixelScene.align(text);
 					}
+				}
+			}
+		}
+
+		if (rightToLeft){
+			for (ArrayList<RenderedText> line : lines) {
+				for (RenderedText text : line) {
+					float ofs = text.x - this.x;
+					text.x = this.x + this.width() - ofs - text.width();
+					PixelScene.align(text);
 				}
 			}
 		}

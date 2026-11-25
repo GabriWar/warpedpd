@@ -182,7 +182,7 @@ public class Image extends Visual {
 			dirty = false;
 		}
 
-		NoosaScript script = script();
+		NoosaScript script = NoosaScript.get();
 		
 		texture.bind();
 		
@@ -195,10 +195,6 @@ public class Image extends Visual {
 
 		script.drawQuad( buffer );
 		
-	}
-
-	protected NoosaScript script(){
-		return NoosaScript.get();
 	}
 
 	@Override

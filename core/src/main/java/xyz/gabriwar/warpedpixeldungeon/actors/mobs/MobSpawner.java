@@ -25,6 +25,7 @@ import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.actors.Actor;
 import xyz.gabriwar.warpedpixeldungeon.actors.DayNightCycle;
 import xyz.gabriwar.warpedpixeldungeon.actors.GameCalendar;
+import xyz.gabriwar.warpedpixeldungeon.actors.hero.abilities.duelist.Challenge;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.RatSkull;
 import com.watabou.utils.Random;
 
@@ -42,7 +43,8 @@ public class MobSpawner extends Actor {
 
 		if (Dungeon.level.mobCount() < Dungeon.level.mobLimit()) {
 
-			if (Dungeon.level.spawnMob(12)){
+			//must spawn a mob in at least a 12 tile path away, no spawn during duelist challenge either
+			if (Dungeon.hero.buff(Challenge.DuelParticipant.class) == null && Dungeon.level.spawnMob(12)){
 				spend(Dungeon.level.respawnCooldown());
 			} else {
 				//try again in 1 turn

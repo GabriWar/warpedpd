@@ -59,7 +59,7 @@ public class Sorrowmoss extends Plant {
 			Buff.affect(ch, ToxicImbue.class).set(15f);
 		}
 
-		Buff.affect( ch, Poison.class ).set( 5 + Math.round(2*Dungeon.depth / 3f) );
+		Buff.affect( ch, Poison.class ).set( 6 + Math.round(2*Dungeon.depth / 3f) );
 
 		if (Dungeon.level.heroFOV[ch.pos]) {
 			CellEmitter.center( ch.pos ).burst( PoisonParticle.SPLASH, 3 );
@@ -79,7 +79,7 @@ public class Sorrowmoss extends Plant {
 		}
 
 		if (enemy != null) {
-			Buff.affect( enemy, Poison.class ).set( 5 + Math.round(2*Dungeon.depth / 3f) );
+			Buff.affect( enemy, Poison.class ).set( 6 + Math.round(2*Dungeon.depth / 3f) );
 		}
 
 		if (Dungeon.level.heroFOV[enemy.pos]) {

@@ -23,6 +23,8 @@ package com.watabou.utils;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.PixmapPacker;
@@ -30,6 +32,8 @@ import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.watabou.input.ControllerHandler;
 import com.watabou.noosa.Game;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.HashMap;
 
 public abstract class PlatformSupport {
@@ -88,6 +92,51 @@ public abstract class PlatformSupport {
 	public void setOnscreenKeyboardVisible(boolean value, boolean multiline){
 		//by default ignore multiline
 		Gdx.input.setOnscreenKeyboardVisible(value, Input.OnscreenKeyboardType.Default);
+	}
+
+	//leave string blank to return any folder we have access to, or specify a specific folder
+	public String getExternalDataFolder(String folderName){
+		//assume no permissions are needed by default, also we have to specify a folder here
+		FileHandle file = Gdx.files.absolute(folderName);
+		if (file.exists() && file.isDirectory()){
+			return file.pathWithoutExtension();
+		} else {
+			return null;
+		}
+	}
+
+	public interface FolderCreationCallback {
+		//foldername is null if creation failed
+		void call(String foldername);
+	}
+
+	//Note that depending on the platform the given folder name may just be a suggestion!
+	public void createExternalDataFolder(String folderName, FolderCreationCallback callback){
+		//assume no permissions are needed by default
+		FileHandle folder = Gdx.files.absolute(folderName);
+		if (folder.exists() && folder.isDirectory()){
+			callback.call(folder.path());
+			return;
+		} else {
+			folder.mkdirs();
+			if (folder.exists()) {
+				callback.call(folder.path());
+				return;
+			}
+		}
+		callback.call(null);
+	}
+
+	// For platform compat reasons (i.e. Android bullshit) these return streams and not files =S
+
+	public InputStream readExternalDataFile(String folderName, String fileName){
+		FileHandle file = Gdx.files.absolute(folderName + "/" + fileName);
+		return file.read();
+	}
+
+	public OutputStream writeExternalDataFile(String folderName, String fileName){
+		FileHandle file = Gdx.files.absolute(folderName + "/" + fileName);
+		return file.write(false);
 	}
 
 	//TODO should consider spinning this into its own class, rather than platform support getting ever bigger
@@ -162,8 +211,11 @@ public abstract class PlatformSupport {
 			FreeTypeFontGenerator.FreeTypeFontParameter parameters = new FreeTypeFontGenerator.FreeTypeFontParameter();
 			parameters.size = size;
 			parameters.flip = flipped;
-			if (border) {
-				parameters.borderWidth = parameters.size / 10f;
+			parameters.borderWidth = parameters.size / 10f;
+			if (!border) {
+				//we draw a border here and just have it be clear so that border and no border font have the same spacing
+				//this is needed for Arabic, which overlays border and no border font
+				parameters.borderColor = Color.CLEAR;
 			}
 			if (size >= 20){
 				parameters.renderCount = 2;

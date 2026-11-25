@@ -28,13 +28,17 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.MonkEnergy;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.HeroClass;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.spells.SpiritForm;
+import xyz.gabriwar.warpedpixeldungeon.items.KindOfWeapon;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.MeleeWeapon;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.missiles.MissileWeapon;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
+import xyz.gabriwar.warpedpixeldungeon.sprites.CharSprite;
 import xyz.gabriwar.warpedpixeldungeon.sprites.ItemSpriteSheet;
 import xyz.gabriwar.warpedpixeldungeon.ui.AttackIndicator;
 import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.utils.Bundle;
+import com.watabou.utils.Random;
 
 import java.util.ArrayList;
 
@@ -49,9 +53,26 @@ public class RingOfForce extends Ring {
 	protected RingBuff buff( ) {
 		return new Force();
 	}
+
+	public class Force extends RingBuff {}
 	
-	public static int armedDamageBonus( Char ch ){
-		return getBuffedBonus( ch, Force.class);
+	public static int armedDamageBonus( Char ch, KindOfWeapon wep ){
+		int level = getBuffedBonus( ch, Force.class );
+		int min = level;
+		int max = level;
+		//scales from 1-1 to 1-3 bonus dmg per lvl, based on weapon tier
+		if (wep instanceof MeleeWeapon){
+			max = (int)(level * (((MeleeWeapon) wep).tier+1)/2f);
+		} else if (wep instanceof MissileWeapon){
+			max = (int)(level * (((MissileWeapon) wep).tier+1)/2f);
+		}
+
+		if (max >= min) {
+			return Random.NormalIntRange(min, max);
+		} else {
+			//cursed, negative numbers, so max is lower
+			return Random.NormalIntRange(max, min);
+		}
 	}
 
 	@Override
@@ -71,9 +92,9 @@ public class RingOfForce extends Ring {
 
 	private static float tier(int str){
 		float tier = Math.max(1, (str - 8)/2f);
-		//each str point after 18 is half as effective
-		if (tier > 5){
-			tier = 5 + (tier - 5) / 2f;
+		//each str point after 20 is half as effective
+		if (tier > 6){
+			tier = 6 + (tier - 6) / 2f;
 		}
 		return tier;
 	}
@@ -130,14 +151,25 @@ public class RingOfForce extends Ring {
 		float tier = tier(Dungeon.hero != null ? Dungeon.hero.STR() : 10);
 		if (isIdentified()) {
 			int level = soloBuffedBonus();
-			String info = Messages.get(this, "stats", min(level, tier), max(level, tier), level);
+			//if cursed, we allow a negative to be at the start of the bonus dmg range, but use abs to prevent it at th end
+			String info = Messages.get(this, "stats",
+					min(level, tier), max(level, tier),
+					level, Math.abs(level),
+					level, Math.abs(3*level));
+
 			if (isEquipped(Dungeon.hero) && soloBuffedBonus() != combinedBuffedBonus(Dungeon.hero)){
 				level = combinedBuffedBonus(Dungeon.hero);
-				info += "\n\n" + Messages.get(this, "combined_stats", min(level, tier), max(level, tier), level);
+				info += "\n\n" + Messages.get(this, "combined_stats",
+						min(level, tier), max(level, tier),
+						level, Math.abs(level),
+						level, Math.abs(3*level));
 			}
 			return info;
 		} else {
-			return Messages.get(this, "typical_stats", min(1, tier), max(1, tier), 1);
+			return Messages.get(this, "typical_stats",
+					min(1, tier), max(1, tier),
+					1, 1,
+					1, 3);
 		}
 	}
 
@@ -151,7 +183,7 @@ public class RingOfForce extends Ring {
 	@Override
 	public String upgradeStat2(int level) {
 		if (cursed && cursedKnown) level = Math.min(-1, level-3);
-		return Integer.toString(level+1);
+		return (level+1) + "-" + Math.abs(level+1) + "/" + (level+1) + "-" + 3*Math.abs(level+1);
 	}
 
 	@Override
@@ -166,10 +198,7 @@ public class RingOfForce extends Ring {
 		}
 	}
 
-	public class Force extends RingBuff {
-	}
-
-	//Duelist stuff
+	//*** Duelist logic ***
 
 	public static String AC_ABILITY = "ABILITY";
 
@@ -313,11 +342,12 @@ public class RingOfForce extends Ring {
 		private int minTurnsLeft;
 
 		public void reset(){
-			boolean announce = !active;
+			if (!active){
+				//announce the buff
+				target.sprite.showStatus(CharSprite.POSITIVE, Messages.titleCase(name()));
+			}
 			active = true;
 			minTurnsLeft = 50;
-			//announce the buff: its icon on a card (it has one once active)
-			if (announce) xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.buffIcon( target, this );
 		}
 
 		@Override

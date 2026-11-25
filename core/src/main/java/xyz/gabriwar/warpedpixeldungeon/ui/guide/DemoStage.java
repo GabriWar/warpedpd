@@ -595,7 +595,7 @@ public class DemoStage extends Component {
 
 	//the tall grass's tuft over whoever stands in it, as RaisedTerrainTilemap draws it
 	private int raisedVisual( int x, int y ){
-		int t = at( x, y ), row = 4 * demo.region().raisedRow;
+		int t = at( x, y ), row = 8 * demo.region().raisedRow;
 		if (t == Terrain.HIGH_GRASS){
 			return row + (alt( DungeonTileSheet.RAISED_HIGH_GRASS, x, y ) == DungeonTileSheet.RAISED_HIGH_GRASS_ALT ? 2 : 0);
 		} else if (t == Terrain.FURROWED_GRASS){

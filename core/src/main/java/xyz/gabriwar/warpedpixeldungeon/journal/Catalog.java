@@ -674,4 +674,13 @@ public enum Catalog {
 
 	}
 	
+	public static void unload(){
+		for (Catalog cat : values()) {
+			for (Class cls : cat.seen.keySet()){
+				cat.seen.put(cls, false);
+				cat.useCount.put(cls, 0);
+			}
+		}
+	}
+
 }

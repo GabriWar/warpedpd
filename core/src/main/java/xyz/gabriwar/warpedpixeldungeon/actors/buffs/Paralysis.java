@@ -28,6 +28,8 @@ import xyz.gabriwar.warpedpixeldungeon.ui.BuffIndicator;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
 
+import java.util.HashSet;
+
 public class Paralysis extends FlavourBuff {
 
 	public static final float DURATION	= 10f;
@@ -60,6 +62,7 @@ public class Paralysis extends FlavourBuff {
 			if (Dungeon.level.heroFOV[target.pos]) {
 				xyz.gabriwar.warpedpixeldungeon.effects.fx.combat.Blow.resisted( target, this );
 			}
+			resist.processJustResisted();
 			detach();
 		}
 	}
@@ -93,11 +96,24 @@ public class Paralysis extends FlavourBuff {
 		{
 			type = buffType.POSITIVE;
 		}
-		
+
+		@Override
+		public int actPriority() {
+			if (target != null){
+				//always acts after its target
+				// mainly to ensure 1 action of immunity after para resist
+				return target.actPriority()+1;
+			} else{
+				return actPriority;
+			}
+		}
+
 		private int damage;
+		private boolean justResisted;
 		
 		@Override
 		public boolean act() {
+			justResisted = false;
 			if (target.buff(Paralysis.class) == null) {
 				damage -= Math.ceil(damage / 10f);
 				if (damage <= 0) detach();
@@ -105,19 +121,37 @@ public class Paralysis extends FlavourBuff {
 			spend(TICK);
 			return true;
 		}
-		
+
+		public void processJustResisted(){
+			justResisted = true;
+			//always acts right after target's next action
+			spend(target.cooldown() - cooldown());
+		}
+
+		@Override
+		public HashSet<Class> immunities() {
+			HashSet<Class> result = new HashSet<>();
+			if (justResisted) {
+				result.add(Paralysis.class);
+			}
+			return result;
+		}
+
 		private static final String DAMAGE = "damage";
+		private static final String JUST_RESISTED = "just_resisted";
 		
 		@Override
 		public void storeInBundle(Bundle bundle) {
 			super.storeInBundle(bundle);
 			bundle.put( DAMAGE, damage );
+			bundle.put( JUST_RESISTED, justResisted );
 		}
 		
 		@Override
 		public void restoreFromBundle(Bundle bundle) {
 			super.restoreFromBundle(bundle);
 			damage = bundle.getInt(DAMAGE);
+			justResisted = bundle.getBoolean(JUST_RESISTED);
 		}
 	}
 }

@@ -1418,10 +1418,9 @@ public abstract class Char extends Actor {
 
 		if (src instanceof Hunger)                                  icon = FloatingText.HUNGER;
 		if (src instanceof Burning)                                 icon = FloatingText.BURNING;
+		if (src instanceof Electricity)                             icon = FloatingText.SHOCKING;
 		if (src instanceof Chill || src instanceof Frost)           icon = FloatingText.FROST;
 		if (src instanceof GeyserTrap || src instanceof StormCloud) icon = FloatingText.WATER;
-		if (src instanceof Burning)                                 icon = FloatingText.BURNING;
-		if (src instanceof Electricity)                             icon = FloatingText.SHOCKING;
 		if (src instanceof Bleeding)                                icon = FloatingText.BLEEDING;
 		if (src instanceof ToxicGas)                                icon = FloatingText.TOXIC;
 		if (src instanceof Corrosion)                               icon = FloatingText.CORROSION;
@@ -1729,16 +1728,13 @@ public abstract class Char extends Actor {
 	public void move( int step, boolean travelling ) {
 
 		if (travelling && Dungeon.level.adjacent( step, pos ) && (buff( Vertigo.class ) != null || buff( Drunk.class ) != null)) {
-			sprite.interruptMotion();
 			int newPos = pos + PathFinder.NEIGHBOURS8[Random.Int( 8 )];
 			if (!(Dungeon.level.passable[newPos] || Dungeon.level.avoid[newPos])
 					|| (properties().contains(Property.LARGE) && !Dungeon.level.openSpace[newPos])
-					|| Actor.findChar( newPos ) != null)
-				return;
-			else {
-				sprite.move(pos, newPos);
-				step = newPos;
+					|| Actor.findChar( newPos ) != null) {
+				return; //don't move
 			}
+			step = newPos;
 		}
 
 		if (Door.closesBehind(Dungeon.level.map[pos])) {

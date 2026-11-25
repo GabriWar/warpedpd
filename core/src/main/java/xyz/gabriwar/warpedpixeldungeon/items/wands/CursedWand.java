@@ -912,7 +912,7 @@ public class CursedWand {
 							break;
 						case 2:
 							Poison poison = Buff.affect(ch, Poison.class);
-							poison.set(3 + Dungeon.scalingDepth() / 2);
+							poison.set(4 + Dungeon.scalingDepth() / 2);
 							ch.damage(dmg, poison);
 							ch.sprite.emitter().burst(PoisonParticle.SPLASH, 20);
 							break;
@@ -1146,7 +1146,7 @@ public class CursedWand {
 		public boolean valid(Item origin, Char user, Ballistica bolt, boolean positiveOnly) {
 			if (positiveOnly){
 				return true;
-			} else if (origin == null || user != Dungeon.hero || !Dungeon.hero.belongings.contains(origin)){
+			} else if (origin == null || origin.unique || user != Dungeon.hero || !Dungeon.hero.belongings.contains(origin)){
 				return false;
 			} else {
 				return true;

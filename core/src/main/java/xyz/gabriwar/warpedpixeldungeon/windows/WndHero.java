@@ -21,6 +21,7 @@
 
 package xyz.gabriwar.warpedpixeldungeon.windows;
 
+import xyz.gabriwar.warpedpixeldungeon.Assets;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.WPDAction;
 import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
@@ -52,6 +53,7 @@ import com.watabou.input.KeyBindings;
 import com.watabou.input.KeyEvent;
 import com.watabou.noosa.Gizmo;
 import com.watabou.noosa.Image;
+import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.ui.Component;
 
 import java.util.ArrayList;
@@ -494,6 +496,7 @@ public class WndHero extends WndTabbed {
 			
 			protected boolean onClick ( float x, float y ) {
 				if (inside( x, y )) {
+					Sample.INSTANCE.play( Assets.Sounds.CLICK );
 					GameScene.show(new WndInfoBuff(buff));
 					return true;
 				} else {

@@ -24,7 +24,6 @@ package xyz.gabriwar.warpedpixeldungeon.tiles;
 import xyz.gabriwar.warpedpixeldungeon.Dungeon;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import com.watabou.noosa.Image;
-import com.watabou.noosa.NoosaScript;
 import com.watabou.noosa.TextureFilm;
 import com.watabou.noosa.Tilemap;
 import com.watabou.utils.Bundlable;
@@ -148,11 +147,6 @@ public abstract class CustomTilemap implements Bundlable {
 	 *  own (OverworldDress.Layer, whose trees sway in the wind). */
 	protected Tilemap tilemap(){
 		return new Tilemap(texture, new TextureFilm( texture, SIZE, SIZE )){
-			@Override
-			protected NoosaScript script() {
-				//allow lighting for custom tilemaps
-				return NoosaScript.get();
-			}
 
 			@Override
 			public synchronized void updateMap() {

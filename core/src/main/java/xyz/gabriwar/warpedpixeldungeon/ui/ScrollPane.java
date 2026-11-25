@@ -217,6 +217,8 @@ public class ScrollPane extends Component {
 		return Math.abs( event.current.x - event.start.x ) >= Math.abs( event.current.y - event.start.y );
 	}
 
+	//TODO might be nice to have pointer down and up here too!
+	// this would allow sub-elements to behave more like real buttons
 	public void onClick( float x, float y ) {
 	}
 

@@ -555,6 +555,7 @@ public enum Talent {
 
 		if (talent == HEIGHTENED_SENSES || talent == FARSIGHT || talent == DIVINE_SENSE){
 			Dungeon.observe();
+			Dungeon.hero.checkVisibleMobs();
 		}
 
 		if (talent == TWIN_UPGRADES || talent == DESPERATE_POWER

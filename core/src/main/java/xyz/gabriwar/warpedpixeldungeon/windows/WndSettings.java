@@ -27,6 +27,7 @@ import xyz.gabriwar.warpedpixeldungeon.WPDSettings;
 import xyz.gabriwar.warpedpixeldungeon.WarpedPixelDungeon;
 import xyz.gabriwar.warpedpixeldungeon.audio.RoomAcoustics;
 import xyz.gabriwar.warpedpixeldungeon.audio.SpatialSound;
+import xyz.gabriwar.warpedpixeldungeon.messages.ArabicUtils;
 import xyz.gabriwar.warpedpixeldungeon.messages.Languages;
 import xyz.gabriwar.warpedpixeldungeon.messages.Messages;
 import xyz.gabriwar.warpedpixeldungeon.scenes.GameScene;
@@ -46,8 +47,10 @@ import com.watabou.input.ControllerHandler;
 import com.watabou.noosa.ColorBlock;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
+import com.watabou.noosa.NoosaScript;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.noosa.ui.Component;
+import com.watabou.utils.Callback;
 import com.watabou.utils.DeviceCompat;
 import com.watabou.utils.Random;
 
@@ -275,10 +278,13 @@ public class WndSettings extends WndTabbed {
 			add(sep2);
 
 			optBrightness = new OptionSlider(Messages.get(this, "brightness"),
-					Messages.get(this, "dark"), Messages.get(this, "bright"), -1, 1) {
+					Messages.get(this, "dark"), Messages.get(this, "bright"), -2, 2) {
 				@Override
 				protected void onChange() {
 					WPDSettings.brightness(getSelectedValue());
+					// 0.8/0.91/1/1.11/1.25
+					NoosaScript.brightness(1f/(1f-getSelectedValue()/10f));
+					GameScene.updateFog();
 				}
 			};
 			optBrightness.setSelectedValue(WPDSettings.brightness());
@@ -802,6 +808,8 @@ public class WndSettings extends WndTabbed {
 		ColorBlock sep2;
 		RenderedTextBlock mpTitle;
 		RedButton btnMpName;
+		ColorBlock sep3;
+		RedButton btnBackupRestore;
 
 		@Override
 		protected void createChildren() {
@@ -889,6 +897,25 @@ public class WndSettings extends WndTabbed {
 				}
 			};
 			add(btnMpName);
+
+			//only shown on Android (iOS has sync, Desktop can access files)
+			if (DeviceCompat.isAndroid()) {
+
+				sep3 = new ColorBlock(1, 1, 0xFF000000);
+				add(sep3);
+
+				btnBackupRestore = new RedButton( Messages.get(this, "backup") ){
+					@Override
+					protected void onClick() {
+						if (WarpedPixelDungeon.scene() instanceof GameScene) {
+							GameScene.show(new WndError(Messages.get(WndSettings.DataTab.this, "backup_main_menu")));
+						} else {
+							WarpedPixelDungeon.scene().addToFront(new WndAndroidLocalBackupRestore());
+						}
+					}
+				};
+				add(btnBackupRestore);
+			}
 		}
 
 		@Override
@@ -930,6 +957,17 @@ public class WndSettings extends WndTabbed {
 
 			btnMpName.setRect(0, pos + GAP, width, BTN_HEIGHT);
 			pos = btnMpName.bottom();
+
+			if (sep3 != null){
+				sep3.size(width, 1);
+				sep3.y = pos + GAP;
+				pos = sep3.y + 1;
+			}
+
+			if (btnBackupRestore != null){
+				btnBackupRestore.setRect(0, pos + GAP, width, BTN_HEIGHT);
+				pos = btnBackupRestore.bottom();
+			}
 
 			height = pos;
 
@@ -1295,7 +1333,14 @@ public class WndSettings extends WndTabbed {
 									}
 									@Override
 									public void afterCreate() {
-										//do nothing
+										if (langs.get(langIndex) == Languages.ARABIC){
+											WarpedPixelDungeon.runOnRenderThread(new Callback() {
+												@Override
+												public void call() {
+													WarpedPixelDungeon.scene().addToFront(new WndArabicWarn());
+												}
+											});
+										}
 									}
 								});
 							}
@@ -1394,6 +1439,13 @@ public class WndSettings extends WndTabbed {
 
 						RenderedTextBlock text = PixelScene.renderTextBlock(7);
 						text.maxWidth(w);
+						if (currLang == Languages.ARABIC){
+							for (int i = 0; i < entries.length; i++){
+								entries[i] = ArabicUtils.convertTextBlockForDisplay(entries[i]);
+							}
+							text.rightToLeft = true;
+						}
+
 						text.tokens(entries);
 
 						text.setPos(0, title.bottom() + 4);
@@ -1458,6 +1510,20 @@ public class WndSettings extends WndTabbed {
 				height = txtTranifex.bottom();
 			}
 
+		}
+	}
+
+	public static class WndArabicWarn extends WndTitledMessage{
+
+		public WndArabicWarn() {
+			super(Icons.INFO.get(), "دعم تجريبي للغة العربية!", "تدعم لعبة Warped Pixel Dungeon الآن اللغة العربية! نظرًا لأن اللغة العربية لغة تُكتب من اليمين إلى اليسار، فقد كانت هناك حاجة إلى بعض وظائف عرض النصوص الجديدة لجعلها تعمل. يجب أن يعمل كل شيء في الغالب، ولكن يُرجى إبلاغي إذا واجهت أي مشاكل! يمكنك تغيير اللغة مرة أخرى إلى الإنجليزية في قائمة الإعدادات");
+
+			RenderedTextBlock text = PixelScene.renderTextBlock( 6 );
+			text.text("_Experimental Arabic Support!_\n\nWarped Pixel Dungeon now supports Arabic! Because Arabic is a right-to-left language, some new text-rendering functionality was needed. Things should work for the most part, but please let me know if you encounter issues! You can switch the language back to English in the settings menu.", width);
+			text.setPos( 0, height + 2*GAP );
+			add( text );
+
+			resize(width, (int) text.bottom());
 		}
 	}
 }

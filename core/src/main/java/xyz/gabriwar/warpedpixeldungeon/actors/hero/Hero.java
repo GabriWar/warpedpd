@@ -474,6 +474,7 @@ public class Hero extends Char {
 	private static final String ATTACK		= "attackSkill";
 	private static final String DEFENSE		= "defenseSkill";
 	private static final String STRENGTH	= "STR";
+	private static final String STR_BONUS	= "STR_BONUS";
 	private static final String LEVEL		= "lvl";
 	private static final String EXPERIENCE	= "exp";
 	private static final String HTBOOST     = "htboost";
@@ -521,6 +522,8 @@ public class Hero extends Char {
 		bundle.put( DEFENSE, defenseSkill );
 		
 		bundle.put( STRENGTH, STR );
+		//store the bonus for previewing runs
+		bundle.put( STR_BONUS, STR() - STR );
 		
 		bundle.put( LEVEL, lvl );
 		bundle.put( EXPERIENCE, exp );
@@ -633,6 +636,7 @@ public class Hero extends Char {
 	public static void preview( GamesInProgress.Info info, Bundle bundle ) {
 		info.level = bundle.getInt( LEVEL );
 		info.str = bundle.getInt( STRENGTH );
+		info.strBonus = bundle.getInt( STR_BONUS );
 		info.exp = bundle.getInt( EXPERIENCE );
 		info.hp = bundle.getInt( Char.TAG_HP );
 		info.ht = bundle.getInt( Char.TAG_HT );
@@ -1062,10 +1066,15 @@ public class Hero extends Char {
 			dmg = wep.damageRoll( this );
 			DamageLedger.rollMark( wep, dmg );
 
+			//the ring of force reaches thrown weapons too; a melee weapon's augment scales its bonus
+			int forceDmg = RingOfForce.armedDamageBonus(this, wep);
+			if (wep instanceof MeleeWeapon && ((MeleeWeapon) wep).augment != null){
+				forceDmg = ((MeleeWeapon) wep).augment.damageFactor(forceDmg);
+			}
+			int rolled = dmg;
+			dmg += forceDmg;
+			DamageLedger.rollPart( Step.ADD, RingOfForce.class, rolled, dmg );
 			if (!(wep instanceof MissileWeapon)){
-				int rolled = dmg;
-				dmg += RingOfForce.armedDamageBonus(this);
-				DamageLedger.rollPart( Step.ADD, RingOfForce.class, rolled, dmg );
 				rolled = dmg;
 				dmg += weaponSkillLevelDamage(wep);
 				DamageLedger.rollPart( Step.ADD, DamageLedger.SKILL_LEVELS, rolled, dmg );
@@ -1456,6 +1465,9 @@ public class Hero extends Char {
 		}
 		
 		checkVisibleMobs();
+		if (buff(TalismanOfForesight.Foresight.class) != null){
+			buff(TalismanOfForesight.Foresight.class).checkAwareness();
+		}
 		BuffIndicator.refreshHero();
 		BuffIndicator.refreshBoss();
 		
@@ -3281,7 +3293,7 @@ public class Hero extends Char {
 		}
 
 		//we ceil this one to avoid letting the player easily take 0 dmg from tenacity early
-		float tenacity = RingOfTenacity.damageMultiplier( this );
+		float tenacity = RingOfTenacity.effectiveDamageMultiplier( this );
 		dmg = DamageLedger.mulRound( this, Step.DEFENDER, RingOfTenacity.class, dmg, tenacity, (int)Math.ceil(dmg * tenacity) );
 
 		int preHP = HP + shielding();
@@ -3576,10 +3588,10 @@ public class Hero extends Char {
 			if (subClass == HeroSubClass.FREERUNNER){
 				Buff.affect(this, Momentum.class).gainStack();
 			}
-			
+
 			int from = pos;
-			sprite.move(pos, step);
 			move(step);
+			sprite.move(from, pos);
 			xyz.gabriwar.warpedpixeldungeon.homestead.mounts.Mounts.stepped( this, from, getDown );
 
 			spend( delay / speed() );

@@ -51,6 +51,7 @@ import xyz.gabriwar.warpedpixeldungeon.items.keys.GoldenKey;
 import xyz.gabriwar.warpedpixeldungeon.items.keys.Key;
 import xyz.gabriwar.warpedpixeldungeon.items.SteelHoneypot;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.CrackedSpyglass;
+import xyz.gabriwar.warpedpixeldungeon.items.trinkets.ExoticCrystals;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.MimicTooth;
 import xyz.gabriwar.warpedpixeldungeon.items.trinkets.TrinketCatalyst;
 import xyz.gabriwar.warpedpixeldungeon.journal.Document;
@@ -256,9 +257,15 @@ public abstract class RegularLevel extends Level {
 
 		PathFinder.buildDistanceMap(entrance(), entranceWalkable, 8);
 
-		Mob mob = null;
-		while (mobsToSpawn > 0) {
-			if (mob == null) mob = createMob();
+		ArrayList<Mob> spawning = new ArrayList<>();
+		while (spawning.size() < mobsToSpawn){
+			Mob mob = createMob();
+			rollForChampion(mob);
+			spawning.add(mob);
+		}
+
+		while (!spawning.isEmpty()) {
+			Mob mob = spawning.get(0);
 			Room roomToSpawn;
 			
 			if (!stdRoomIter.hasNext()) {
@@ -280,14 +287,13 @@ public abstract class RegularLevel extends Level {
 					|| (!openSpace[mob.pos] && mob.properties().contains(Char.Property.LARGE))));
 
 			if (tries >= 0) {
-				mobsToSpawn--;
 				mob.originalgen = true;
 				mobs.add(mob);
-				mob = null;
+				spawning.remove(mob);
 
 				//chance to add a second mob to this room, except on floor 1
-				if (Dungeon.depth > 1 && mobsToSpawn > 0 && Random.Int(4) == 0){
-					mob = createMob();
+				if (Dungeon.depth > 1 && !spawning.isEmpty() && Random.Int(4) == 0){
+					mob = spawning.get(0);
 
 					tries = 30;
 					do {
@@ -303,10 +309,9 @@ public abstract class RegularLevel extends Level {
 							|| (!openSpace[mob.pos] && mob.properties().contains(Char.Property.LARGE))));
 
 					if (tries >= 0) {
-						mobsToSpawn--;
 						mob.originalgen = true;
 						mobs.add(mob);
-						mob = null;
+						spawning.remove(mob);
 					}
 				}
 			}
@@ -677,6 +682,19 @@ public abstract class RegularLevel extends Level {
 					losBlocking[cell] = false;
 				}
 				drop( Generator.randomUsingDefaults(), cell).hidden = true;
+			}
+		Random.popGenerator();
+
+		//extra exotic crystals loot
+		Random.pushGenerator(Random.Long());
+			if (Random.Float() < ExoticCrystals.extraConsumableChance()){
+				Item item = Generator.random(Random.oneOf(Generator.Category.POTION, Generator.Category.SCROLL));
+				int cell = randomDropCell();
+				if (map[cell] == Terrain.HIGH_GRASS || map[cell] == Terrain.FURROWED_GRASS) {
+					map[cell] = Terrain.GRASS;
+					losBlocking[cell] = false;
+				}
+				drop( item, cell );
 			}
 		Random.popGenerator();
 
