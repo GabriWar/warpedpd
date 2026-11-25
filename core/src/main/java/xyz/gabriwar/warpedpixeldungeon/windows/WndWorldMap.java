@@ -206,15 +206,13 @@ public class WndWorldMap extends Window {
 			pin( WAYPOINT_MARKER, level.waypointX, level.waypointY );
 		}
 		//under the hero's pin, which is drawn last
-		markEvents();
 		markSites();
 		markHomesteads();
 		markSea();
 		heroPin = pin( MARKER, heroWx, heroWy );
 
-		labelSites();
-		//the blinking pins of cleared barrows went in after the hero's: the hero's stays on top
-		page.bringToFront( heroPin.dot );
+		//the events and the villages' names go in once their sites are worked out (siteLater)
+		siteLater();
 
 		applyView();
 
@@ -318,8 +316,8 @@ public class WndWorldMap extends Window {
 	//(labelCorner). a second event on the very same cell - a market and a raid in one village on
 	//one day, both on its well - has its pin nudged a chart pixel toward its own name, so the
 	//first's colour still shows on the side of the first's
-	private void markEvents(){
-		events.addAll( level.mapEvents( chart.originX, chart.originY, WorldChart.SPAN ) );
+	private void markEvents( ArrayList<WorldEvents.Event> found ){
+		events.addAll( found );
 		for (int i = 0; i < events.size(); i++){
 			WorldEvents.Event e = events.get( i );
 			Pin p = pin( e.type.pin, e.wx, e.wy );
@@ -553,6 +551,43 @@ public class WndWorldMap extends Window {
 		p.dot.y = p.y * s - p.dot.height() / 2f;
 	}
 
+	//the events and the villages' names read the site of every sector on the slab, some hundreds
+	//of them worked out cold the first time the map opens, as the chart's own threads work out the
+	//land: on slow phones that held the screen for over 15 seconds (freeze reports, the map opening
+	//on the surface). They are worked out on a thread of their own (the site caches are concurrent)
+	//and pinned on the render thread once found, the pins already up kept above them
+	private volatile ArrayList<WorldEvents.Event> found;
+	private boolean sitesPinned = false;
+
+	private void siteLater(){
+		final int ox = chart.originX, oy = chart.originY;
+		Thread t = new Thread( () -> {
+			ArrayList<WorldEvents.Event> evs = level.mapEvents( ox, oy, WorldChart.SPAN );
+			//labelSites' sectors, their land worked out here so it only reads the cache
+			int s0x = Math.floorDiv( ox, WorldStructures.SECTOR ) - 1;
+			int s0y = Math.floorDiv( oy, WorldStructures.SECTOR ) - 1;
+			int span = WorldChart.SPAN / WorldStructures.SECTOR + 2;
+			for (int sy = s0y; sy <= s0y + span; sy++){
+				for (int sx = s0x; sx <= s0x + span; sx++){
+					WorldStructures.landType( level.worldSeed, sx, sy );
+				}
+			}
+			found = evs;
+		}, "world-map-sites" );
+		t.setDaemon( true );
+		t.start();
+	}
+
+	private void pinSites(){
+		ArrayList<Pin> above = new ArrayList<>( pins );
+		markEvents( found );
+		//the sites', homesteads' and sea's pins stay over the events', as when they went in first
+		for (Pin p : above) page.bringToFront( p.dot );
+		labelSites();
+		//the blinking pins of cleared barrows went in after the hero's: the hero's stays on top
+		page.bringToFront( heroPin.dot );
+	}
+
 	//the slab on show changed under the chart (its own arrived): lay the page out again
 	private boolean laidOut = false;
 
@@ -563,6 +598,10 @@ public class WndWorldMap extends Window {
 			blinkTime += com.watabou.noosa.Game.elapsed;
 			float a = 0.15f + 0.85f * (0.5f + 0.5f * (float)Math.cos( blinkTime * 5f ));
 			for (Pin p : blinking) p.dot.alpha( a );
+		}
+		if (!sitesPinned && found != null){
+			sitesPinned = true;
+			pinSites();
 		}
 		if (!laidOut && chart.ready()){
 			laidOut = true;

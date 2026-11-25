@@ -179,7 +179,7 @@ public class Chillisnapper extends Plant {
 
 		if (ch instanceof Hero) {
 			for (Char cha : Dungeon.level.mobs.toArray(new Mob[0])) {
-				if (ch.fieldOfView[cha.pos]) {
+				if (sees( ch, cha.pos )) {
 					if (cha != null){
 						shoot(ch, cha.pos);
 						if (((Hero) ch).subClass != HeroSubClass.WARDEN){
@@ -190,7 +190,7 @@ public class Chillisnapper extends Plant {
 			}
 		} else {
 			//a mob that has not acted yet has no field of view at all
-			if (ch.fieldOfView != null && ch.fieldOfView[Dungeon.hero.pos]){
+			if (sees( ch, Dungeon.hero.pos )){
 				shoot(ch, Dungeon.hero.pos);
 				return;
 			} else {
@@ -205,6 +205,14 @@ public class Chillisnapper extends Plant {
 			}
 		}
 		GameScene.add(Blob.seed(ch.pos, 1+2, Fire.class));
+	}
+
+	//a hero set down on a new floor (a teleport, a floor change) presses the plant under him before
+	//his sight is worked out for it: his field of view is still the last floor's, of another size
+	//(1 report, the surface: index 13822 into the 1394 cells of the floor he came from)
+	private static boolean sees( Char ch, int cell ){
+		return ch.fieldOfView != null && ch.fieldOfView.length == Dungeon.level.length()
+				&& cell >= 0 && cell < ch.fieldOfView.length && ch.fieldOfView[cell];
 	}
 
 	@Override

@@ -1316,8 +1316,11 @@ public abstract class Char extends Actor {
 			b.announced = false;
 			b.attachTo(this);
 			b.set(bleedAmt, bleedSrc);
-			sprite.showStatusWithIcon(CharSprite.WARNING, Integer.toString(dmg), FloatingText.BLEEDING);
-			Splash.at( sprite.center(), -PointF.PI / 2, PointF.PI / 6, sprite.blood(), 10 );
+			//a char with no sprite (3 reports, a bleeding arrow at depth 11) still bleeds, unseen
+			if (sprite != null){
+				sprite.showStatusWithIcon(CharSprite.WARNING, Integer.toString(dmg), FloatingText.BLEEDING);
+				Splash.at( sprite.center(), -PointF.PI / 2, PointF.PI / 6, sprite.blood(), 10 );
+			}
 			if (bleedSrc == Vorpal.class) xyz.gabriwar.warpedpixeldungeon.effects.fx.enchant.rows.ShadowRows.vorpalBleed( (Char) src, this, bleedAmt, vorpalEcho );
 			xyz.gabriwar.warpedpixeldungeon.actors.ledger.DamageLedger.outcome( this, xyz.gabriwar.warpedpixeldungeon.actors.ledger.HitRecord.BLEED, bleedAmt );
 			return;

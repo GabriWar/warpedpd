@@ -127,6 +127,15 @@ public final class WarpedUpdates {
 
 	/** Newest first. */
 	public static final Entry[] ALL = {
+		new Entry( 11263, icon( Icons.COMPASS ), "World map opens at once",
+				"The world map no longer freezes the game as it opens on slower phones.",
+				"Opening the world map worked out every village, barrow and event on it before showing anything, which froze slower phones for over 15 seconds. The map now shows at once and puts in the events and place names a moment later, when they are ready." ),
+		new Entry( 11263, icon( Icons.WARNING ), "More crash fixes",
+				"Fixed crashes with succubi, the chillisnapper and bleeding hits.",
+				"A succubus that was chasing you could crash the game when you came back to its floor. A chillisnapper you landed on after a teleport or a floor change crashed the game, and so could a hit that made a monster bleed." ),
+		new Entry( 11262, item( ItemSpriteSheet.POTION_AMBER ), "Saves under the potion of eye",
+				"A game saved while a potion of eye was working loads again.",
+				"A game saved while a potion of eye was still showing the floor's secrets crashed every time it was loaded, so the run could not be continued. It now loads, and the potion keeps working until it runs out." ),
 		new Entry( 11260, icon( Icons.WARNING ), "Sokoban sheep",
 				"Pushing a sheep onto a change trap no longer crashes the game.",
 				"On the sokoban floors, a sheep pushed onto a change trap turned into the next sheep of the cycle, and the new sheep set off the same trap again, over and over, until the game crashed. One push now makes one change." ),

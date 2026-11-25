@@ -51,7 +51,8 @@ public class Eyeing extends FlavourBuff {
 	@Override
 	public boolean attachTo( Char target ) {
 		if (super.attachTo( target )) {
-			revealSecrets();
+			//a loaded game restores the hero, buffs and all, before the floor
+			if (Dungeon.level != null) revealSecrets();
 			return true;
 		}
 		return false;

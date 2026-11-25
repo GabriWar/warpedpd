@@ -576,6 +576,11 @@ public abstract class Mob extends Char {
 			state = FLEEING;
 		}
 		
+		//a cell it was heading for that this floor does not have: a floor's save held a hunting
+		//succubus's target from a bigger floor (cell 3249 of 2655), and it blinked toward it
+		//on the first turn after the hero came back (5 reports, depth 22)
+		if (target >= Dungeon.level.length()) target = -1;
+
 		enemy = chooseEnemy();
 		
 		boolean enemyInFOV = enemy != null && enemy.isAlive() && fieldOfView[enemy.pos] && enemy.invisible <= 0;
