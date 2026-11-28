@@ -742,7 +742,7 @@ public abstract class Char extends Actor {
 				combinedLethality.detach();
 			}
 
-			if (enemy.sprite != null) {
+			if (enemy.sprite != null && sprite != null) {
 				enemy.sprite.bloodBurstA(sprite.center(), effectiveDamage);
 				enemy.sprite.flash();
 				//the blow as the eye takes it: its star, what the weapon leaves, a recoil (pictures

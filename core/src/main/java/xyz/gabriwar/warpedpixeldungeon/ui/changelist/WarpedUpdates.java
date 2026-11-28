@@ -127,6 +127,9 @@ public final class WarpedUpdates {
 
 	/** Newest first. */
 	public static final Entry[] ALL = {
+		new Entry( 11371, icon( Icons.WARNING ), "Crash fixes",
+				"Fixed a freeze in the infested arena and crashes with teleports, arrows and brutes.",
+				"Stepping into the infested arena could freeze the game when you could see the whole of it. Teleporting with the unstable spellbook could crash, as could an arrow lying on the floor with no bow behind it, the hero's portrait in rare cases, and a brute or an attacker that had no sprite." ),
 		new Entry( 11369, icon( Icons.DISPLAY ), "Brightness, doors and Arabic",
 				"The brightness setting now lightens the whole game, doors have new art, and Arabic is in.",
 				"From Shattered 4.0.3: the brightness slider now runs from -2 to +2 and brightens or darkens the whole game, not only the fog. Doors set in a wall get their own tops and shadows in every region. Arabic is a new language, still unfinished. On Android the settings' data tab can back up and restore your rankings, badges and journal to a folder you pick. Buttons and sliders click when pressed." ),

@@ -225,31 +225,38 @@ public class BowWeapon extends MeleeWeapon {
 
         @Override
         public int min() {
-            return arrowFrom.arrowMin();
+            return bow().arrowMin();
         }
 
         @Override
         public int min(int lvl) {
-            return arrowFrom.arrowMin(lvl);
+            return bow().arrowMin(lvl);
         }
 
         @Override
         public int max() {
-            return arrowFrom.arrowMax();
+            return bow().arrowMax();
         }
 
         @Override
         public int max(int lvl) {
-            return arrowFrom.arrowMax(lvl);
+            return bow().arrowMax(lvl);
         }
 
         private BowWeapon arrowFrom;
+
+        //an arrow made without a bow (put on a floor as loot, not knocked) reads a plain bow's
+        //numbers; it read null and the loot button crashed (1 report, 11370: NPE in STRReq)
+        private BowWeapon bow() {
+            if (arrowFrom == null) arrowFrom = new Bow();
+            return arrowFrom;
+        }
         public boolean useBullet = true;
 
         //the arrow fires both of the bow's enchantments and counts its rarity
         @Override
         public Weapon magicSource() {
-            return arrowFrom;
+            return bow();
         }
         public boolean isBurst = false;
 
@@ -291,21 +298,21 @@ public class BowWeapon extends MeleeWeapon {
 
         @Override
         public int buffedLvl(){
-            return arrowFrom.buffedLvl();
+            return bow().buffedLvl();
         }
 
         @Override
         public int damageRoll(Char owner) {
-            int damage = arrowFrom.arrowDamage();
+            int damage = bow().arrowDamage();
             if (owner instanceof Hero) {
                 Hero hero = (Hero)owner;
                 Char enemy = hero.attackTarget();
                 if (enemy instanceof Mob && ((Mob) enemy).surprisedBy(hero)) {
                     //deals 50% toward max to max on surprise, instead of min to max.
-                    int diff = arrowFrom.arrowMax() - arrowFrom.arrowMin();
+                    int diff = bow().arrowMax() - bow().arrowMin();
                     damage = augment.damageFactor(Hero.heroDamageIntRange(
-                            arrowFrom.arrowMin() + Math.round(diff*(3/(3f+tier))), //75%, 60%, 50%, 43%, 38% toward max
-                            arrowFrom.arrowMax()));
+                            bow().arrowMin() + Math.round(diff*(3/(3f+tier))), //75%, 60%, 50%, 43%, 38% toward max
+                            bow().arrowMax()));
                     int exStr = hero.STR() - STRReq();
                     if (exStr > 0) {
                         damage += Hero.heroDamageIntRange(0, exStr);
@@ -333,17 +340,17 @@ public class BowWeapon extends MeleeWeapon {
         @Override
         public boolean hasEnchant(Class<? extends Enchantment> type, Char owner) {
 
-            return arrowFrom.hasEnchant(type, owner);
+            return bow().hasEnchant(type, owner);
         }
 
         @Override
         public float delayFactor(Char owner) {
-            return arrowFrom.delayFactor(owner);
+            return bow().delayFactor(owner);
         }
 
         @Override
         public float accuracyFactor(Char owner, Char target) {
-            float ACC = arrowFrom.accuracyFactor(owner, target);
+            float ACC = bow().accuracyFactor(owner, target);
 
 
             return ACC;
@@ -351,7 +358,7 @@ public class BowWeapon extends MeleeWeapon {
 
         @Override
         public int STRReq() {
-            return arrowFrom.STRReq();
+            return bow().STRReq();
         }
 
         private float arrowPinChance() {
@@ -394,7 +401,7 @@ public class BowWeapon extends MeleeWeapon {
 
         public void onShoot() {
             //an AMMO line's spared arrow
-            if (useBullet && !Quality.rollSpareAmmo(arrowFrom, curUser)) Dungeon.bullet--;
+            if (useBullet && !Quality.rollSpareAmmo(bow(), curUser)) Dungeon.bullet--;
 
             if (Dungeon.hero.buff(PenetrationShotBuff.class) != null) {
                 Dungeon.hero.buff(PenetrationShotBuff.class).detach();

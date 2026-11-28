@@ -38,6 +38,7 @@ import xyz.gabriwar.warpedpixeldungeon.utils.GLog;
 import com.watabou.noosa.Group;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Random;
+import java.util.ArrayList;
 
 public class InfestBossLevel extends Level {
 
@@ -229,13 +230,22 @@ public class InfestBossLevel extends Level {
 
 			enteredArena = true;
 
+			//cells out of the hero's sight first, any arena cell when he sees them all: the old
+			//pick-until-unseen loop never ended then (1 report, 11370: frozen on entering)
+			ArrayList<Integer> unseen = new ArrayList<>(), arena = new ArrayList<>();
+			for (int c = 0; c < length(); c++) {
+				if (!passable[c] || !outsideEntraceRoom(c) || Actor.findChar(c) != null) continue;
+				arena.add(c);
+				if (!heroFOV[c]) unseen.add(c);
+			}
 			for (int i = 0; i < 10; i++) {
+				ArrayList<Integer> from = unseen.isEmpty() ? arena : unseen;
+				if (from.isEmpty()) break;
 				ShadowYog boss = new ShadowYog();
 				boss.state = boss.SLEEPING;
-				do {
-					boss.pos = Random.Int(length());
-				} while (!passable[boss.pos] || !outsideEntraceRoom(boss.pos)
-						|| Dungeon.level.heroFOV[boss.pos]);
+				boss.pos = from.remove(Random.Int(from.size()));
+				unseen.remove((Integer) boss.pos);
+				arena.remove((Integer) boss.pos);
 				GameScene.add(boss);
 			}
 			GLog.n("we are legion");

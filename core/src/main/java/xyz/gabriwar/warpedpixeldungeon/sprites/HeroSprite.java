@@ -218,6 +218,8 @@ public class HeroSprite extends CharSprite {
 	public static Image avatar( HeroClass cl, int armorTier ) {
 		
 		RectF patch = tiers().get( armorTier );
+		//a tier the sheet has no row for shows the bare look (2 reports, 11370: NPE on patch.left)
+		if (patch == null) patch = tiers().get( 0 );
 		Image avatar = new Image( cl.spritesheet() );
 		RectF frame = avatar.texture.uvRect( 1, 0, FRAME_WIDTH, FRAME_HEIGHT );
 		frame.shift( patch.left, patch.top );

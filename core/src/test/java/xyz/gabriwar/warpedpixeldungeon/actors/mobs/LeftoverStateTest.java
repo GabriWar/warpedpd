@@ -31,6 +31,7 @@ import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Bleeding;
 import xyz.gabriwar.warpedpixeldungeon.actors.buffs.Buff;
 import xyz.gabriwar.warpedpixeldungeon.actors.hero.Hero;
 import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.Sickle;
+import xyz.gabriwar.warpedpixeldungeon.items.weapon.melee.bow.BowWeapon;
 import xyz.gabriwar.warpedpixeldungeon.levels.Level;
 import xyz.gabriwar.warpedpixeldungeon.levels.Terrain;
 import xyz.gabriwar.warpedpixeldungeon.levels.rooms.WarpedRoomsTest;
@@ -173,5 +174,26 @@ public class LeftoverStateTest {
 		l.buildFlagMaps();
 		PathFinder.setMapSize( W, W );
 		Dungeon.level = l;
+	}
+
+	//1 report, 11370: an arrow on the floor with no bow behind it crashed the loot button
+	@Test
+	public void anArrowWithNoBowReadsAPlainBow(){
+		BowWeapon.Arrow a = new BowWeapon.Arrow();
+		assertTrue( a.STRReq() > 0 );
+		assertTrue( a.max() >= a.min() );
+	}
+
+	//1 report, 11243: a brute with no sprite enraged as it fell
+	@Test
+	public void aBruteWithNoSpriteStillEnrages(){
+		Brute b = new Brute();
+		b.pos = 2 + W;
+		b.HP = 0;
+		Dungeon.level.mobs.add( b );
+		Actor.add( b );
+		Dungeon.level.heroFOV[b.pos] = true;
+
+		assertTrue( b.isAlive() );
 	}
 }

@@ -166,7 +166,7 @@ public class ScrollOfTeleportation extends Scroll {
 					continue;
 				//also skip open rooms whose door is in hero FOV
 				//except rooms with a hidden door, they are always considered
-				} else if (terr != Terrain.SECRET_DOOR && hero.fieldOfView[doorPos]){
+				} else if (terr != Terrain.SECRET_DOOR && hero.fieldOfView != null && hero.fieldOfView[doorPos]){
 					continue;
 				}
 

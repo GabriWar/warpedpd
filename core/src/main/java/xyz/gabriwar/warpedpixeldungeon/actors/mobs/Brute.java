@@ -118,8 +118,8 @@ public class Brute extends Mob {
 	protected void triggerEnrage(){
 		rage = Buff.affect(this, BruteRage.class);
 		rage.setShield(HT/2 + 4);
-		sprite.showStatusWithIcon( CharSprite.POSITIVE, Integer.toString(HT/2), FloatingText.SHIELDING );
-		if (Dungeon.level.heroFOV[pos]) {
+		if (sprite != null) sprite.showStatusWithIcon( CharSprite.POSITIVE, Integer.toString(HT/2), FloatingText.SHIELDING );
+		if (sprite != null && Dungeon.level.heroFOV[pos]) {
 			SpellSprite.show( this, SpellSprite.BERSERK);
 		}
 		spend( TICK );
